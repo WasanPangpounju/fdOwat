@@ -203,10 +203,11 @@ if(parseFloat(salary ) >= 1660) {
   tmpSalary  = parseFloat(salary) / 30;
 }
 
-const empWpResponse = await axios.post(`${sURL}/workplace/getupsalary`, wsSearch );
-if (empWpResponse.data.workplaces) {
-  upsalary = await empWpResponse?.data?.workplaces?.[0]?.addWorkRate || 0;
-  const workRateChange = await empWpResponse?.data?.workplaces?.[0]?.workRateChange || 0;
+try {
+  const empWpResponse = await axios.post(`${sURL}/workplace/getupsalary`, wsSearch );
+  if (empWpResponse.data.workplaces) {
+    upsalary = await empWpResponse?.data?.workplaces?.[0]?.addWorkRate || 0;
+    const workRateChange = await empWpResponse?.data?.workplaces?.[0]?.workRateChange || 0;
 // console.log(workRateChange );
 // Convert the string to a Date object
 const date = await new Date(workRateChange);
@@ -217,11 +218,15 @@ upSalary_year = await date.getFullYear(); // Use getFullYear() for local time
 upSalary_month = await date.getMonth() + 1; // Use getMonth() for local time
 //check up Salary with month and year
 // if((prevMonth  == upSalary_month ) && (year1  == upSalary_year ) ) {
-salary  = await parseFloat(salary)   + parseFloat(upsalary  || '0');
-tmpSalary = await parseFloat(tmpSalary)  + salary   + parseFloat(upsalary  || '0');
+  salary  = await parseFloat(salary)   + parseFloat(upsalary  || '0');
+  tmpSalary = await parseFloat(tmpSalary)  + salary   + parseFloat(upsalary  || '0');
 // }
-} else {
-}
+  } else {
+  }
+
+} catch (error) {
+
+  }
 
 
 
