@@ -66,9 +66,9 @@ router.post('/autocreate', async (req, res) => {
   sumWorkRateOt = 0;
 
 const workplaceListTmp = [];
-// const upsalary = 0;
-// const upSalary_year = '';
-// const upSalary_month  = '';
+const upsalary = 0;
+const upSalary_year = '';
+const upSalary_month  = '';
 //check up Salary and up Salary
 //check data with workplace 
 const wsSearch  = {
@@ -79,16 +79,16 @@ const wsSearch  = {
 try {
   const empWpResponse = await axios.post(`${sURL}/workplace/getupsalary`, wsSearch );
   if (empWpResponse.data.workplaces) {
-    const upsalary = await empWpResponse?.data?.workplaces?.[0]?.addWorkRate || 0;
+    upsalary = await empWpResponse?.data?.workplaces?.[0]?.addWorkRate || 0;
     const workRateChange = await empWpResponse?.data?.workplaces?.[0]?.workRateChange || 0;
 // console.log(workRateChange );
 // Convert the string to a Date object
 const date = await new Date(workRateChange);
 
 // Get the year
-const upSalary_year = await date.getFullYear(); // Use getFullYear() for local time
+upSalary_year = await date.getFullYear(); // Use getFullYear() for local time
 // Get the month (0-based index, so add 1 for the correct month)
-const upSalary_month = await date.getMonth() + 1; // Use getMonth() for local time
+upSalary_month = await date.getMonth() + 1; // Use getMonth() for local time
 //check up Salary with month and year
 // if((prevMonth  == upSalary_month ) && (year1  == upSalary_year ) ) {
   // salary  = await parseFloat(salary)   + parseFloat(upsalary  || '0');
