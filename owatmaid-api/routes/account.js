@@ -699,7 +699,7 @@ dayOffWork += 1;
   //check work rate is not standard day
   if(((parseFloat(responseConclude.data.recordConclude[c].concludeRecord[i].workRate) == parseFloat(salary)) || (parseFloat(responseConclude.data.recordConclude[c].concludeRecord[i].workRate) == parseFloat(salary) - parseFloat(upsalary)) ) || parseFloat(salary) > 1660 ) {
     // console.log('responseConclude.data.recordConclude[c].concludeRecord[i].workRate ' + responseConclude.data.recordConclude[c].concludeRecord[i].workRate + ' salary ' + salary)
-    if(parseInt(responseConclude.data.recordConclude[c].concludeRecord[i].day) <= 20) {
+    if(parseInt(responseConclude.data.recordConclude[c].concludeRecord[i].day) <=   20) {
       console.log('day ' + responseConclude.data.recordConclude[c].concludeRecord[i].day);
 
     }
