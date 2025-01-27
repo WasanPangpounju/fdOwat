@@ -805,10 +805,10 @@ const upSalary_year = date.getFullYear(); // Use getFullYear() for local time
 // Get the month (0-based index, so add 1 for the correct month)
 const upSalary_month = date.getMonth() + 1; // Use getMonth() for local time
 //check up Salary with month and year
-if((month == upSalary_month ) && (year == upSalary_year ) ) {
+// if((month == upSalary_month ) && (year == upSalary_year ) ) {
   salary  = await parseFloat(salary)   + parseFloat(upsalary  || '0');
   tmpSalary = await parseFloat(tmpSalary)  + salary   + parseFloat(upsalary  || '0');
-}
+// }
   } else {
   }
 
