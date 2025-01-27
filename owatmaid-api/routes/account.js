@@ -228,7 +228,7 @@ salary = await response.data.salary || 0;
     const foundWorkplace = await workplaceList.data.find(workplace => workplace.workplaceId === response.data.workplace );
 
     if (foundWorkplace) {
-      upsalary = await foundWorkplace.upsalary  || 0;
+      upsalary = await foundWorkplace._id || 0;
 
       amountSpecial = await foundWorkplace.holiday || 0;
       // await console.log("workTimeDay " + JSON.stringify(foundWorkplace.workTimeDay ) );
