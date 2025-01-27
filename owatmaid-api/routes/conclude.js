@@ -793,7 +793,8 @@ const wsSearch  = {
 try {
   const empWpResponse = await axios.post(`${sURL}/workplace/getupsalary`, wsSearch );
   if (empWpResponse.data.workplaces) {
-    let upsalary = await empWpResponse?.data?.workplaces?.[0]?.addWorkRate || 0;
+    // let upsalary = await empWpResponse?.data?.workplaces?.[0]?.addWorkRate || 0;
+    let upsalary = 9;
     let workRateChange = await empWpResponse?.data?.workplaces?.[0]?.workRateChange || 0;
 console.log(workRateChange );
 // Convert the string to a Date object
