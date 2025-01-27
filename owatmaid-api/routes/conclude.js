@@ -177,8 +177,7 @@ const wsSearch  = {
 try {
   const empWpResponse = await axios.post(`${sURL}/workplace/getupsalary`, wsSearch );
   if (empWpResponse.data.workplaces) {
-    // let upsalary = await empWpResponse?.data?.[0]?.workplaces?.addWorkRate || 0;
-    let upsalary = 9;
+    let upsalary = await empWpResponse?.data?.workplaces?.[0]?.addWorkRate || 0;
 console.log('upsalary ' + upsalary )
 salary  = await parseFloat(salary)   + parseFloat(upsalary  || '0');
 tmpSalary = await parseFloat(tmpSalary)  + salary   + parseFloat(upsalary  || '0');
