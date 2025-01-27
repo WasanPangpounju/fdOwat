@@ -179,6 +179,8 @@ try {
   if (empWpResponse.data.workplaces) {
     let upsalary = empWpResponse?.data?.workplaces?.addWorkRate || 0;
 console.log('upsalary ' + upsalary )
+salary  = salary   + parseFloat(upsalary  || '0');
+tmpSalary = tmpSalary  + salary   + parseFloat(upsalary  || '0');
   } else {
   }
 
