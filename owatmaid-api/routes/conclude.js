@@ -786,7 +786,7 @@ const         wpDataCalculator1 = await {
       //check up Salary and up Salary
 //check data with workplace 
 const wsSearch  = {
-  searchWorkplaceId: wpId1 , 
+  searchWorkplaceId: employeeId , 
   searchWorkplaceName: ''
 };
 
