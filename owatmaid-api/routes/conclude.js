@@ -167,6 +167,24 @@ if(parseFloat(salary ) >= 1660) {
   tmpSalary  = parseFloat(salary) / 30;
 }
 
+//check up Salary and up Salary
+//check data with workplace 
+const wsSearch  = {
+  searchWorkplaceId: wpId1 , 
+  searchWorkplaceName: ''
+};
+
+try {
+  const empWpResponse = await axios.post(`${sURL}/workplace/getupsalary`, wsSearch );
+  if (empWpResponse.data.workplaces) {
+    let upsalary = empWpResponse?.data?.workplaces?.addWorkRate || 0;
+console.log('upsalary ' + upsalary )
+  } else {
+  }
+
+} catch (error) {
+
+  }
 
       const wCalList1 = [];
 

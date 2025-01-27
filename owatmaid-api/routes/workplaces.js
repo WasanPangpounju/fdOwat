@@ -388,6 +388,44 @@ router.post('/getaddsalary', async (req, res) => {
 // });
 
 
+//get upSalary
+router.post('/getupsalary', async (req, res) => {
+    try {
+        const { searchWorkplaceId, searchWorkplaceName } = req.body;
+
+        // Construct the search query based on the provided parameters
+        const query = {};
+
+        if (searchWorkplaceId !== '') {
+            query.workplaceId = searchWorkplaceId;
+        }
+
+
+        if (searchWorkplaceName !== '') {
+            query.workplaceName = { $regex: new RegExp(searchWorkplaceName, 'i') };
+            //{ $regex: name, $options: 'i' };
+        }
+        //    query.searchWorkplaceId = '1001';
+        //    console.log({ employeeId, name, idCard, workPlace });
+
+        console.log('Constructed Query:');
+        console.log(query);
+        if (searchWorkplaceId == '' && searchWorkplaceName == '') {
+            res.status(200).json({});
+        }
+
+        // Query the workplace collection for matching documents
+        const workplaces = await Workplace.find(query);
+
+        // await console.log('Search Results:');
+        // await console.log(workplaces);
+        let textSearch = 'workplace';
+        await res.status(200).json({ workplaces });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
 
 router.post('/search', async (req, res) => {
     try {
