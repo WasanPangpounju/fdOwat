@@ -312,8 +312,8 @@ if((prevMonth  == upSalary_month ) && (year1  == upSalary_year ) ) {
 
             } else {
               if (specialDayOff.includes(Number(str1))) {
-                if (salary === 0) {
-                  salary = tmpWP.data.workRate;
+                if (salary === 0 || salary == upsalary  ) {
+                  salary = tmpWP.data.workRate + parseFloat(upsalary   || '0');
                 }
 
                 if (allTime >= workOfHour) {
@@ -361,8 +361,8 @@ console.log(workRate + ' workRate ');
                 tmp.workType = 'specialDayOff';
 
               } else if (dayOffCheck.includes(str1)) {
-                if (salary === 0) {
-                  salary = tmpWP.data.workRate;
+                if (salary === 0 || salary == upsalary  ) {
+                  salary = tmpWP.data.workRate + parseFloat(upsalary   || '0');
                 }
 
                 if (allTime >= workOfHour) {
@@ -409,8 +409,8 @@ console.log(workRate + ' workRate ');
                 tmp.workType = 'dayOff';
 
               } else {
-                if (salary === 0) {
-                  salary = tmpWP.data.workRate;
+                if (salary === 0 || salary == upsalary  ) {
+                  salary = tmpWP.data.workRate + parseFloat(upsalary   || '0');
                 }
 
                 if(parseFloat(allTime || 0 ) >= workOfHour) {
@@ -562,8 +562,8 @@ const         wpDataCalculator1 = await {
               if (specialDayOff1.includes(Number(str1))) {
 // console.log('special day off rate');                
 
-                if (salary === 0) {
-                  salary = parseFloat( wpResponse1.data.workRate);
+                if (salary === 0 || salary == upsalary  ) {
+                  salary = wpResponse1.data.workRate + parseFloat(upsalary   || '0');
                 }
 
                 if (allTime >= workOfHour) {
@@ -611,9 +611,10 @@ const         wpDataCalculator1 = await {
               } else if (dayOffCheck1.includes(str1)) {
                 console.log('day off rate');
 
-                if (salary === 0) {
-                  salary = wpResponse1.data.workRate;
+                if (salary === 0 || salary == upsalary  ) {
+                  salary = wpResponse1.data.workRate + parseFloat(upsalary   || '0');
                 }
+
 
                 if (allTime >= workOfHour) {
                   allTime = workOfHour;
@@ -661,9 +662,10 @@ const         wpDataCalculator1 = await {
 
               } else {
                 // console.log('default rate');
-                if (salary === 0) {
-                  salary = parseFloat( wpResponse1.data.workRate);
+                if (salary === 0 || salary == upsalary  ) {
+                  salary = parseFloat(wpResponse1.data.workRate || '0') + parseFloat(upsalary   || '0');
                 }
+
 
                 if (parseFloat(allTime || '0') >= workOfHour) {
                   allTime = workOfHour;
@@ -905,8 +907,8 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
 
             } else {
               if (specialDayOff.includes(Number(str1))) {
-                if (salary === 0) {
-                  salary = tmpWP.data.workRate;
+                if (salary === 0 || salary == upsalary  ) {
+                  salary = parseFloat(wpResponse.data.workRate || '0') + parseFloat(upsalary   || '0');
                 }
 
                 if (allTime >= workOfHour) {
@@ -956,8 +958,8 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
                 tmp.workType = 'specialDayOff';
 
               } else if (dayOffCheck.includes(str1)) {
-                if (salary === 0) {
-                  salary = tmpWP.data.workRate;
+                if (salary === 0 || salary == upsalary  ) {
+                  salary = tmpWP.data.workRate + parseFloat(upsalary   || '0');
                 }
 
                 if (allTime >= workOfHour) {
@@ -1005,10 +1007,10 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
                 tmp.workType = 'dayOff';
 
               } else {
-                if (salary == 0) {
-                  salary = tmpWP.data.workRate;
-                  // console.log('test');
+                if (salary === 0 || salary == upsalary  ) {
+                  salary = tmpWP.data.workRate + parseFloat(upsalary   || '0');
                 }
+
 // console.log('tmpWP.data.workRate ' + tmpWP.data.workRate + 'salary '+ salary);
 
                 if (parseFloat(allTime || '0') >= workOfHour) {
@@ -1147,8 +1149,8 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
 
             } else {
               if (specialDayOff.includes(Number(str1))) {
-                if (salary === 0) {
-                  salary = wpResponse.data.workRate;
+                if (salary === 0 || salary == upsalary  ) {
+                  salary = tmpWP.data.workRate + parseFloat(upsalary   || '0');
                 }
 
                 if (allTime >= workOfHour) {
@@ -1195,8 +1197,8 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
                 tmp.workType = 'specialDayOff';
 
               } else if (dayOffCheck.includes(str1)) {
-                if (salary === 0) {
-                  salary = wpResponse.data.workRate;
+                if (salary === 0 || salary == upsalary  ) {
+                  salary = tmpWP.data.workRate + parseFloat(upsalary   || '0');
                 }
 
                 if (allTime >= workOfHour) {
@@ -1244,8 +1246,8 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
                 tmp.workType = 'dayOff';
 
               } else {
-                if (salary === 0) {
-                  salary = wpResponse.data.workRate;
+                if (salary === 0 || salary == upsalary  ) {
+                  salary = tmpWP.data.workRate + parseFloat(upsalary   || '0');
                 }
 
                 if (parseFloat(allTime || '0') >= workOfHour) {
