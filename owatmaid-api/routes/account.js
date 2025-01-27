@@ -229,6 +229,15 @@ salary = await response.data.salary || 0;
 
     if (foundWorkplace) {
       upsalary = await foundWorkplace.addWorkRate || 0;
+      const workRateChange = await foundWorkplace.workRateChange || 0;
+// Convert the string to a Date object
+const date = await new Date(workRateChange);
+
+// Get the year
+upSalary_year = await date.getFullYear(); // Use getFullYear() for local time
+// Get the month (0-based index, so add 1 for the correct month)
+upSalary_month = await date.getMonth() + 1; // Use getMonth() for local time
+//check up Salary with month and year
 
       amountSpecial = await foundWorkplace.holiday || 0;
       // await console.log("workTimeDay " + JSON.stringify(foundWorkplace.workTimeDay ) );
@@ -1120,7 +1129,9 @@ await salaryRecord.save();
   console.log('emty data not save');
 }
 
-console.log('upsalary ' + upsalary);
+// console.log('upsalary ' + upsalary);
+console.log('upsalary year' + upSalary_year + ' month ' + upSalary_month);
+
       }
     } else {
       console.log('no data conclude');
