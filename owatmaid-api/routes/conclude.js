@@ -66,9 +66,9 @@ router.post('/autocreate', async (req, res) => {
   sumWorkRateOt = 0;
 
 const workplaceListTmp = [];
-const upsalary = 0;
-const upSalary_year = '';
-const upSalary_month  = '';
+let upsalary = 0;
+let upSalary_year = '';
+let upSalary_month  = '';
 //check up Salary and up Salary
 //check data with workplace 
 const wsSearch  = {
