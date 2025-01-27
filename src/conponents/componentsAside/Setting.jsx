@@ -492,12 +492,19 @@ function Setting({ workplaceList, employeeList }) {
 
   //set day month year to WorkRate change
   useEffect(() => {
+    if (workRateDayChange && workRateMonthChange && workRateYearChange) {
+      const selectedDate = new Date(`${workRateMonthChange }/${workRateDayChange }/${workRateYearChange}`);
+      setWorkRateChange(selectedDate || null);
+    }
+  }, [ workRateDayChange , workRateMonthChange , workRateYearChange] );
+
+  useEffect(() => {
     const currentDate = new Date(workRateChange); // Get the workRateChange date
-alert(workRateChange);
+
     setWorkRateDayChange(currentDate.getDate()); // Day of the month (1-31) 
    setWorkRateMonthChange(currentDate.getMonth() + 1); // Month (0-11) - Add 1 to get 1-12
    setWorkRateYearChange( currentDate.getFullYear()); // Year (e.g., 2025)
-  }, [workRateChange] );
+}, [workRateChange ] );
 
 
   const handleAddDate = () => {
@@ -1043,7 +1050,6 @@ alert(workRateChange);
     setWorkTimeDayList(workplace.workTimeDay);
     setWorkTimeDayPersonList(workplace.workTimeDayPerson);
 setWorkRateChange(workplace.workRateChange)
-alert('t ' + workplace.workRateChange)
     // console.log(workplace);
     // // console.log(initialFormData);
     // console.log("formData", formData);
@@ -1104,10 +1110,6 @@ alert('t ' + workplace.workRateChange)
   async function handleManageWorkplace(event) {
     event.preventDefault();
 //set WorkRateChange
-if (workRateDayChange && workRateMonthChange && workRateYearChange) {
-  const selectedDate = await new Date(`${workRateMonthChange }/${workRateDayChange }/${workRateYearChange}`);
-  await setWorkRateChange(selectedDate || null);
-}
 
 
     //get data from input in useState to data
@@ -1959,9 +1961,9 @@ if (workRateDayChange && workRateMonthChange && workRateYearChange) {
                           >
                             <option value="">Select day</option>
                             {Array.from({ length: 31 }, (_, i) => i + 1).map(
-                              (day) => (
-                                <option key={day} value={day}>
-                                  {day}
+                              (workRateDayChange) => (
+                                <option key={workRateDayChange} value={workRateDayChange}>
+                                  {workRateDayChange}
                                 </option>
                               )
                             )}
@@ -1975,9 +1977,9 @@ if (workRateDayChange && workRateMonthChange && workRateYearChange) {
                           >
                             <option value="">Select month</option>
                             {Array.from({ length: 12 }, (_, i) => i + 1).map(
-                              (month) => (
-                                <option key={month} value={month}>
-                                  {month}
+                              (workRateMonthChange) => (
+                                <option key={workRateMonthChange} value={workRateMonthChange}>
+                                  {workRateMonthChange}
                                 </option>
                               )
                             )}
@@ -1994,8 +1996,8 @@ if (workRateDayChange && workRateMonthChange && workRateYearChange) {
                             {Array.from(
                               { length: 7 },
                               (_, i) => new Date().getFullYear() + 3 - i
-                            ).map((year) => (
-                              <option key={year} value={year}>
+                            ).map((workRateYearChange) => (
+                              <option key={workRateYearChange} value={workRateYearChange}>
                                 {workRateYearChange + 543}
                               </option>
                             ))}
