@@ -156,7 +156,7 @@ const workplaceListTmp = [];
       
       //get workplaceId in first employee_workplaceRecord
       // let wpId1 = await data1.recordworkplace[0].employee_workplaceRecord[0].workplaceId;
-      let wpId1 = dataEmp.employees[0].workplace || '';
+      let wpId1 = dataEmp?.employees?.[0]?.workplace || '';
       let salary = dataEmp.employees[0].salary || 0;
       let tmpSalary = dataEmp.employees[0].salary || 0;
 
