@@ -387,13 +387,14 @@ if(month !== "01" && month !== "12" && year == year1 ) {
     // console.log(year + ' ' + year1 + ' ' + month + ' ' + month1String);
 
     await specialDaylist.push(day1.getDate() );
-    holidayRate = await response.data.salary || foundWorkplace.workRate;
+    holidayRate = await parseFloat(response.data.salary || '0') + upsalary || parseFloat(foundWorkplace.workRate || '0') + upsalary ;
   } else {
     if(previousMonthString  == month1String && day1.getDate() >= 21) {
       console.log(year + ' ' + year1 + ' ' + month + ' ' + month1String);
 
       await specialDaylist.push(day1.getDate() );
-holidayRate = await response.data.salary || foundWorkplace.workRate;
+// holidayRate = await response.data.salary || foundWorkplace.workRate;
+holidayRate = await parseFloat(response.data.salary || '0') + upsalary || parseFloat(foundWorkplace.workRate || '0') + upsalary ;
     }
   }
 
@@ -402,11 +403,13 @@ holidayRate = await response.data.salary || foundWorkplace.workRate;
         if(month == "01" ) {
           if(year1 == year -1 && month1String == "12" && day1 >= 21 ) {
             await specialDaylist.push(day1.getDate() );
-            holidayRate = await response.data.salary || foundWorkplace.workRate;
+            // holidayRate = await response.data.salary || foundWorkplace.workRate;
+            holidayRate = await parseFloat(response.data.salary || '0') + upsalary || parseFloat(foundWorkplace.workRate || '0') + upsalary ;
           }
           if(year1 == year  && month1String == "01" && day1 <= 20 ) {
             await specialDaylist.push(day1.getDate() );
-            holidayRate = await response.data.salary || foundWorkplace.workRate;
+            // holidayRate = await response.data.salary || foundWorkplace.workRate;
+            holidayRate = await parseFloat(response.data.salary || '0') + upsalary || parseFloat(foundWorkplace.workRate || '0') + upsalary ;
           }
 
         }
@@ -414,7 +417,8 @@ holidayRate = await response.data.salary || foundWorkplace.workRate;
         if(month == "12" ){
           if(year1 == year  && month1String == "12" && day1 <= 20 ) {
             await specialDaylist.push(day1.getDate() );
-            holidayRate = await response.data.salary || foundWorkplace.workRate;
+            // holidayRate = await response.data.salary || foundWorkplace.workRate;
+            holidayRate = await parseFloat(response.data.salary || '0') + upsalary || parseFloat(foundWorkplace.workRate || '0') + upsalary ;
           }
 
         }
