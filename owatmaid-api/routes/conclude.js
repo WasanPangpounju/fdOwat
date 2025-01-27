@@ -72,7 +72,7 @@ const upSalary_month  = '';
 //check up Salary and up Salary
 //check data with workplace 
 const wsSearch  = {
-  searchWorkplaceId: wpId1 , 
+  searchWorkplaceId: employeeId , 
   searchWorkplaceName: ''
 };
 
