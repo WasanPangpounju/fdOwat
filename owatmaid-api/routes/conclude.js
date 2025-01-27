@@ -782,7 +782,39 @@ const         wpDataCalculator1 = await {
         temSalary = parseFloat(salary) / 30;
       }
       console.log('s1 ' + salary);
-      
+
+      //check up Salary and up Salary
+//check data with workplace 
+const wsSearch  = {
+  searchWorkplaceId: wpId1 , 
+  searchWorkplaceName: ''
+};
+
+try {
+  const empWpResponse = await axios.post(`${sURL}/workplace/getupsalary`, wsSearch );
+  if (empWpResponse.data.workplaces) {
+    let upsalary = await empWpResponse?.data?.workplaces?.[0]?.addWorkRate || 0;
+    let workRateChange = await empWpResponse?.data?.workplaces?.[0]?.workRateChange || 0;
+console.log(workRateChange );
+// Convert the string to a Date object
+const date = new Date(workRateChange);
+
+// Get the year
+const upSalary_year = date.getFullYear(); // Use getFullYear() for local time
+// Get the month (0-based index, so add 1 for the correct month)
+const upSalary_month = date.getMonth() + 1; // Use getMonth() for local time
+//check up Salary with month and year
+if((month == upSalary_month ) && (year == upSalary_year ) ) {
+  salary  = await parseFloat(salary)   + parseFloat(upsalary  || '0');
+  tmpSalary = await parseFloat(tmpSalary)  + salary   + parseFloat(upsalary  || '0');
+}
+  } else {
+  }
+
+} catch (error) {
+
+  }
+
       // console.log('wGroup X ' + JSON.stringify(wGroup    ,2,null))
       // console.log('wGroup X ' + Object.keys(wGroup).length)
       // if (wGroup) {
