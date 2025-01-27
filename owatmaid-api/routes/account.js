@@ -699,7 +699,11 @@ dayOffWork += 1;
   //check work rate is not standard day
   if(((parseFloat(responseConclude.data.recordConclude[c].concludeRecord[i].workRate) == parseFloat(salary)) || (parseFloat(responseConclude.data.recordConclude[c].concludeRecord[i].workRate) == parseFloat(salary) - parseFloat(upsalary)) ) || parseFloat(salary) > 1660 ) {
     // console.log('responseConclude.data.recordConclude[c].concludeRecord[i].workRate ' + responseConclude.data.recordConclude[c].concludeRecord[i].workRate + ' salary ' + salary)
-console.log('day ' + responseConclude.data.recordConclude[c].concludeRecord[i].day);
+    if(parseInt(responseConclude.data.recordConclude[c].concludeRecord[i].day) < 20=){
+      console.log('day ' + responseConclude.data.recordConclude[c].concludeRecord[i].day);
+
+    }
+
       if(! workDaylist.includes(responseConclude.data.recordConclude[c].concludeRecord[i].day.split("/")[0] ) && responseConclude.data.recordConclude[c].concludeRecord[i].workplaceId !== '') {
         workDaylist.push(responseConclude.data.recordConclude[c].concludeRecord[i].day.split("/")[0]);
       dayOffWork = await dayOffWork  + 1;
