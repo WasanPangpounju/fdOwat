@@ -1103,7 +1103,7 @@ await salaryRecord.save();
   console.log('emty data not save');
 }
 
-
+console.log('upsalary ' + upsalary);
       }
     } else {
       console.log('no data conclude');
