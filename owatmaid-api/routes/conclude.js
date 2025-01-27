@@ -791,7 +791,7 @@ const         wpDataCalculator1 = await {
 
 //check up Salary with month and year
 // if((month == upSalary_month ) && (year == upSalary_year ) ) {
-  upsalary   = 9;
+  upsalary   = await 9;
   salary  = await parseFloat(salary)   + parseFloat(upsalary  || '0');
   temSalary = await parseFloat(temSalary )  + salary   + parseFloat(upsalary  || '0');
 // }
