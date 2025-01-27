@@ -66,6 +66,7 @@ router.post('/autocreate', async (req, res) => {
   sumWorkRateOt = 0;
 
 const workplaceListTmp = [];
+const upsalary = 0;
 
   try {
 
@@ -177,7 +178,7 @@ const wsSearch  = {
 try {
   const empWpResponse = await axios.post(`${sURL}/workplace/getupsalary`, wsSearch );
   if (empWpResponse.data.workplaces) {
-    const upsalary = await empWpResponse?.data?.workplaces?.[0]?.addWorkRate || 0;
+    upsalary = await empWpResponse?.data?.workplaces?.[0]?.addWorkRate || 0;
     const workRateChange = await empWpResponse?.data?.workplaces?.[0]?.workRateChange || 0;
 console.log(workRateChange );
 // Convert the string to a Date object
