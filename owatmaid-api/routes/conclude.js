@@ -177,10 +177,11 @@ const wsSearch  = {
 try {
   const empWpResponse = await axios.post(`${sURL}/workplace/getupsalary`, wsSearch );
   if (empWpResponse.data.workplaces) {
-    let upsalary = empWpResponse?.data?.[0]?.workplaces?.addWorkRate || 0;
+    // let upsalary = await empWpResponse?.data?.[0]?.workplaces?.addWorkRate || 0;
+    let upsalary = 9;
 console.log('upsalary ' + upsalary )
-salary  = parseFloat(salary)   + parseFloat(upsalary  || '0');
-tmpSalary = parseFloat(tmpSalary)  + salary   + parseFloat(upsalary  || '0');
+salary  = await parseFloat(salary)   + parseFloat(upsalary  || '0');
+tmpSalary = await parseFloat(tmpSalary)  + salary   + parseFloat(upsalary  || '0');
   } else {
   }
 
