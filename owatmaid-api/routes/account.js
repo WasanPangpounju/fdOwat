@@ -160,6 +160,10 @@ let sumNonTaxNonSalary = 0;
 let sumDeductUncalculateTax = 0;
 let sumDeductWithTax = 0;
 
+let upsalary  = 0;
+let upSalary_year  = '';
+let upSalary_month  = '';
+
 //value for report
 
 let sumAddSalaryBeforeTaxNonSocial = 0;
@@ -224,12 +228,14 @@ salary = await response.data.salary || 0;
     const foundWorkplace = await workplaceList.data.find(workplace => workplace.workplaceId === response.data.workplace );
 
     if (foundWorkplace) {
+      upsalary = await foundWorkplace.upsalary  || 0;
+
       amountSpecial = await foundWorkplace.holiday || 0;
       // await console.log("workTimeDay " + JSON.stringify(foundWorkplace.workTimeDay ) );
 
       //employee salary is not set use with workplace
       if(salary === 0 ) {
-        salary = await parseFloat(foundWorkplace.workRate|| 0);
+        salary = await parseFloat(foundWorkplace.workRate || 0) + parseFloat(upsalary );
       }
       
       // Found the workplace
