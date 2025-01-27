@@ -189,7 +189,7 @@ const upSalary_year = date.getUTCFullYear(); // Use getFullYear() for local time
 const upSalary_month = date.getUTCMonth() + 1; // Use getMonth() for local time
 //check up Salary with month and year
 if((prevMonth  == upSalary_month ) && (year1  == upSalary_year ) ) {
-  salary  = await parseFloat(salary)   + parseFloat(upsalary  || '0');
+  salary  = await parseFloat(salary)   + parseFloat(upsalary  || '0') +'y ' + prevMonth  + ' m ' + upSalary_month ;
   tmpSalary = await parseFloat(tmpSalary)  + salary   + parseFloat(upsalary  || '0');
 }
   } else {
