@@ -69,38 +69,6 @@ const workplaceListTmp = [];
 let upsalary = 0;
 let upSalary_year = '';
 let upSalary_month  = '';
-//check up Salary and up Salary
-//check data with workplace 
-const wsSearch  = {
-  searchWorkplaceId: employeeId , 
-  searchWorkplaceName: ''
-};
-
-// try {
-//   const empWpResponse = await axios.post(`${sURL}/workplace/getupsalary`, wsSearch );
-//   if (empWpResponse.data.workplaces) {
-//     upsalary = await empWpResponse?.data?.workplaces?.[0]?.addWorkRate || 0;
-//     const workRateChange = await empWpResponse?.data?.workplaces?.[0]?.workRateChange || 0;
-// // console.log(workRateChange );
-// // Convert the string to a Date object
-// const date = await new Date(workRateChange);
-
-// // Get the year
-// upSalary_year = await date.getFullYear(); // Use getFullYear() for local time
-// // Get the month (0-based index, so add 1 for the correct month)
-// upSalary_month = await date.getMonth() + 1; // Use getMonth() for local time
-// //check up Salary with month and year
-// // if((prevMonth  == upSalary_month ) && (year1  == upSalary_year ) ) {
-//   // salary  = await parseFloat(salary)   + parseFloat(upsalary  || '0');
-//   // tmpSalary = await parseFloat(tmpSalary)  + salary   + parseFloat(upsalary  || '0');
-// // }
-//   } else {
-//   }
-
-// } catch (error) {
-
-//   }
-
 
   try {
 
@@ -203,6 +171,10 @@ if(parseFloat(salary ) >= 1660) {
   tmpSalary  = parseFloat(salary) / 30;
 }
 
+const wsSearch  = {
+  searchWorkplaceId: wpId1 , 
+  searchWorkplaceName  : ''
+}
 try {
   const empWpResponse = await axios.post(`${sURL}/workplace/getupsalary`, wsSearch );
   if (empWpResponse.data.workplaces) {
