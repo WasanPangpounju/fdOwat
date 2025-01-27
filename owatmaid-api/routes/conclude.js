@@ -202,10 +202,10 @@ if(parseFloat(salary ) >= 1660) {
   tmpSalary  = parseFloat(salary) / 30;
 }
 
-if((prevMonth  == upSalary_month || '') && (year1  == upSalary_year || '') ) {
+// if((prevMonth  == upSalary_month) && (year1  == upSalary_year) ) {
   salary  = await parseFloat(salary)   + parseFloat(upsalary  || '0');
   tmpSalary = await parseFloat(tmpSalary)  + salary   + parseFloat(upsalary  || '0');
-}
+// }
 
       const wCalList1 = [];
 
