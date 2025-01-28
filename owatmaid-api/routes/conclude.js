@@ -1150,7 +1150,7 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
             } else {
               if (specialDayOff.includes(Number(str1))) {
                 if (salary === 0 || salary == upsalary  ) {
-                  salary = tmpWP.data.workRate + parseFloat(upsalary   || '0');
+                  salary = parseFloat(tmpWP.data.workRate || '0') + parseFloat(upsalary   || '0');
                 }
 
                 if (allTime >= workOfHour) {
@@ -1178,7 +1178,7 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
                 // let workRateOT = ((parseFloat(tmpWP.data.dayoffRateOT) * (salary / 8)) * (parseFloat(hoursTmp + decimalFraction))).toFixed(2);
 
                 //cal OT
-                let workRateOT = ((parseFloat(wpResponse.data.holidayOT) * (salary / 8)) * (parseFloat( (((hoursTmp * 60) + (minutesTmp )) / 60)  )) ).toFixed(3);
+                let workRateOT = ((parseFloat(wpResponse.data.holidayOT) * (parseFloat(salary || '0') / 8)) * (parseFloat( (((hoursTmp * 60) + (minutesTmp )) / 60)  )) ).toFixed(3);
                 tmp.workRateOT = workRateOT || '';
                 tmp.workRateOTMultiply = wpResponse.data.holidayOT || 0;
 
@@ -1198,7 +1198,7 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
 
               } else if (dayOffCheck.includes(str1)) {
                 if (salary === 0 || salary == upsalary  ) {
-                  salary = tmpWP.data.workRate + parseFloat(upsalary   || '0');
+                  salary = parseFloat(tmpWP.data.workRate || '0') + parseFloat(upsalary   || '0');
                 }
 
                 if (allTime >= workOfHour) {
@@ -1226,7 +1226,7 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
                 // let workRateOT = ((parseFloat(tmpWP.data.dayoffRateOT) * (salary / 8)) * (parseFloat(hoursTmp + decimalFraction))).toFixed(2);
 
                 //cal OT
-                let workRateOT = ((parseFloat(wpResponse.data.dayoffRateOT) * (salary / 8)) * (parseFloat( (((hoursTmp * 60) + (minutesTmp )) / 60) )) ).toFixed(3);
+                let workRateOT = ((parseFloat(wpResponse.data.dayoffRateOT) * (parseFloat(salary || '0') / 8)) * (parseFloat( (((hoursTmp * 60) + (minutesTmp )) / 60) )) ).toFixed(3);
                 tmp.workRateOT = workRateOT || 0;
                 tmp.workRateOTMultiply = wpResponse.data.dayoffRateOT || 0;
 
@@ -1247,7 +1247,7 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
 
               } else {
                 if (salary === 0 || salary == upsalary  ) {
-                  salary = tmpWP.data.workRate + parseFloat(upsalary   || '0');
+                  salary = parseFloat(tmpWP.data.workRate || '0') + parseFloat(upsalary   || '0');
                 }
 
                 if (parseFloat(allTime || '0') >= workOfHour) {
@@ -1275,7 +1275,7 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
                 // let workRateOT = ((parseFloat(tmpWP.data.dayoffRateOT) * (salary / 8)) * (parseFloat(hoursTmp + decimalFraction))).toFixed(2);
 
                 //cal OT
-                let workRateOT = (((salary / 8) * parseFloat(wpResponse.data.workRateOT)) * (parseFloat( (((hoursTmp * 60) + (minutesTmp )) / 60) )) ).toFixed(3);
+                let workRateOT = (((parseFloat(salary || '0') / 8) * parseFloat(wpResponse.data.workRateOT)) * (parseFloat( (((hoursTmp * 60) + (minutesTmp )) / 60) )) ).toFixed(3);
                 tmp.workRateOT = workRateOT || 0;
                 tmp.workRateOTMultiply = wpResponse.data.workRateOT || 0;
 
