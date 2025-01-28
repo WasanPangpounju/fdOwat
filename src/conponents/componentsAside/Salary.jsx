@@ -1691,10 +1691,9 @@ function Salary() {
                               </div>
                             </div>
                             {/* </div> */}
-
                             {addSalaryWorkplace
                             .map((data, index) => (
-                              data.StaffType === "all" || data.StaffType === employeeData?.position && (
+                              (data.StaffType === 'all' || data.StaffType === employeeData?.position) && (
 
                               <div className="row" key={index}>
                                 <div className="row">
