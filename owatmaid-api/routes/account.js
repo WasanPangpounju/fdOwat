@@ -716,8 +716,8 @@ dayOffWork += 1;
     
     // console.log('responseConclude.data.recordConclude[c].concludeRecord[i].workRate ' + responseConclude.data.recordConclude[c].concludeRecord[i].workRate + ' salary ' + salary)
     if(parseInt(responseConclude.data.recordConclude[c].concludeRecord[i].day) <=   20) {
-      console.log('day ' + responseConclude.data.recordConclude[c].concludeRecord[i].day);
-      console.log('responseConclude.data.recordConclude[c].concludeRecord[i].workRate ' + responseConclude.data.recordConclude[c].concludeRecord[i].workRate + ' salary ' + salary)
+      // console.log('day ' + responseConclude.data.recordConclude[c].concludeRecord[i].day);
+      // console.log('responseConclude.data.recordConclude[c].concludeRecord[i].workRate ' + responseConclude.data.recordConclude[c].concludeRecord[i].workRate + ' salary ' + salary)
   
     }
   
