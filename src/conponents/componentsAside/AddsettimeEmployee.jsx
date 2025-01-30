@@ -70,6 +70,9 @@ function AddsettimeEmployee() {
   }, [month, year]);
 
   const options = [];
+  const [groupOptions , setGroupOptions ] = useState([]);
+  const [groupOptions1 , setGroupOptions1 ] = useState();
+
 
   for (let i = 1; i <= 31; i++) {
     // Use padStart to add leading zeros to numbers less than 10
@@ -146,6 +149,7 @@ function AddsettimeEmployee() {
   const [tmpIndex, setTmpIndex] = useState(0);
   const [wId, setWId] = useState("");
   const [wName, setWName] = useState("");
+  const [wGroup, setWGroup] = useState("");
   const [wDate, setWDate] = useState("");
   const [wShift, setWShift] = useState("morning_shift");
   const [wStartTime, setWStartTime] = useState("");
@@ -251,8 +255,8 @@ function AddsettimeEmployee() {
             //department: employee department process
             if (
               searchResult[0].workplace === wId &&
-              (searchResult[0].department !== "" && searchResult[0].department !== null) &&
-              workplacesearch.workplaceGroup.length > 0
+              ((searchResult[0].department !== "" && searchResult[0].department !== null) || wGroup !== "")
+              && workplacesearch.workplaceGroup.length > 0
             ) {
 
               // alert(searchResult[0].workplace );
@@ -277,9 +281,16 @@ function AddsettimeEmployee() {
               let date = await new Date(year, month - 1, wDate); // Subtract 1 from the month since months are zero-indexed
               let dayOfWeek = await date.getDay(); // This will give you the day of the week, where 0 is Sunday, 1 is
 
-              await workplacesearch.workplaceGroup[
-                parseInt(searchResult[0].department || 0) - 1
-              ].workplaceComplexData.workTimeDay.map(async (item, index) => {
+
+              // await workplacesearch.workplaceGroup[
+              //   parseInt(searchResult[0].department || 0) - 1
+              // ].workplaceComplexData.workTimeDay.map(async (item, index) => {
+                
+                const departmentIndex = wGroup !== "" ? parseInt(wGroup) - 1 : parseInt(searchResult[0].department || 0) - 1;
+
+await workplacesearch.workplaceGroup[departmentIndex]
+  .workplaceComplexData.workTimeDay.map(async (item, index) => {
+    
                 //    alert(JSON.stringify(item.allTimes));
                 // const morningTimes = await item.allTimes.filter(time => time.shift === "กะเช้า");
                 // await alert(morningTimes[0].startTime );
@@ -1177,11 +1188,13 @@ function AddsettimeEmployee() {
     }
   }, [wSelectOtTime, wSelectOtTimeout]);
 
-  // search employee Name by employeeId
 
+
+  // search employee Name by employeeId
   useEffect(() => {
     if (wId !== "") {
       try {
+        setGroupOptions1 (null);            
 
         const workplacesearch = workplaceList.find(
           (workplace) => workplace.workplaceId === wId);
@@ -1193,6 +1206,9 @@ function AddsettimeEmployee() {
             workplacesearch.workplaceGroup.length > 0
           ) {
             // alert(searchResult[0].workplace );
+            setGroupOptions1 (workplacesearch.workplaceGroup);            
+            // alert(workplacesearch.workplaceGroup.length  + ' ' + groupOptions[0].length);
+// alert(JSON.stringify(groupOptions1));
             // alert(searchResult[0].department);
             // alert(workplacesearch.workplaceGroup[parseInt(searchResult[0].department || 0) -1].workplaceComplexName );
 
@@ -1217,6 +1233,8 @@ function AddsettimeEmployee() {
 
           // Optional: Add work time to selection (as per your comment)
           // alert(JSON.stringify(workplacesearch.workTimeDay, null, 2));
+
+
         } else {
           setWName("");
         }
@@ -2258,6 +2276,10 @@ function AddsettimeEmployee() {
                   </div>
 
                   <div class="col-md-1">
+                    <label role="wDate">กลุ่มที่</label>
+                  </div>
+
+                  <div class="col-md-1">
                     <label role="wDate">วันที่</label>
                   </div>
 
@@ -2342,6 +2364,24 @@ function AddsettimeEmployee() {
                       />
                     </div>
                   </div>
+
+                  <div class="col-md-1">
+                    
+                    <select
+                      className="form-control"
+                      value={wGroup}
+                      onChange={(e) => setWGroup(e.target.value)}
+                      style={{ width: "5.5rem" }}
+                    >
+                      <option value="">หน่วยงานหลัก</option>
+
+                      {groupOptions1 && groupOptions1.map((item) => (
+      <option key={item.workplaceComplexId} value={item.workplaceComplexId}>
+        {item.workplaceComplexName}
+      </option>
+    ))}
+                    </select>
+                  </div> 
 
                   <div class="col-md-1">
                     {/* <label role="wDate">วันที่</label> */}
