@@ -1224,11 +1224,15 @@ await workplacesearch.workplaceGroup[departmentIndex]
 
             if (dep == "") {
               setWName(workplacesearch.workplaceName);
+              setWGroup('');
             } else {
-              setWName(workplacesearch.workplaceName + ": " + dep);
+              setWName(dep);
+              setWGroup(workplacesearch?.wGroup || '');
+
             }
           } else {
             setWName(workplacesearch.workplaceName);
+            setWGroup('');
           }
 
           // Optional: Add work time to selection (as per your comment)
@@ -1269,6 +1273,7 @@ await workplacesearch.workplaceGroup[departmentIndex]
   const initialRowData2 = {
     workplaceId: "",
     workplaceName: "",
+    wGroup: "",
     date: "", // Use null as initial value for DatePicker
     shift: "morning_shift",
     startTime: "",
@@ -1307,6 +1312,7 @@ await workplacesearch.workplaceGroup[departmentIndex]
           newDataList2[index2] = {
             ...newDataList2[index2],
             ["workplaceName"]: workplaceIdSearch.workplaceName + "",
+            ["wGroup"]: workplaceIdSearch.wGroup + "",
             ["shift"]: "morning_shift",
             ["startTime"]: workplaceIdSearch.workStart1 + "",
             ["endTime"]: workplaceIdSearch.workEnd1 + "",
@@ -1752,6 +1758,7 @@ await workplacesearch.workplaceGroup[departmentIndex]
       timerecordId: year || "",
       workplaceId: wId || "",
       workplaceName: wName || "",
+      wGroup: wGroup  || "",
       date: wDate || "",
       shift: wShift || "",
       startTime: wStartTime || "",
@@ -1858,6 +1865,7 @@ await workplacesearch.workplaceGroup[departmentIndex]
     // alert(tmp.staffId);
     await setWId(tmp.workplaceId);
     await setWName(tmp.workplaceName);
+    await setWGroup(tmp.wGroup || '');
   };
 
   // Function to handle deleting a row
@@ -1952,7 +1960,7 @@ await workplacesearch.workplaceGroup[departmentIndex]
             await localStorage.setItem("month", month);
             await localStorage.setItem("year", year);
 
-            await setIsDataTrue(true); // Set isDataTrue based on fetched data
+            // await setIsDataTrue(true); // Set isDataTrue based on fetched data
           }
         } catch (e) {
           console.log(e);

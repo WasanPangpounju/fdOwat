@@ -58,6 +58,7 @@ const employeeTimerecordSchema = new mongoose.Schema({
   employee_workplaceRecord: [{
     workplaceId: String,
     workplaceName: String,
+    wGroup : String,
     date: String,
     shift: String,
     startTime: String,
