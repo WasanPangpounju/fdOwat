@@ -2579,130 +2579,74 @@ await workplacesearch.workplaceGroup[departmentIndex]
             </form>
 
             <form onSubmit={handleManageWorkplace}>
-              <section class="Frame">
-                <div class="row">
-                  <div class="col-md-12">
-                    <div class="row">
-                      <div class="col-md-1"> รหัสหน่วยงาน</div>
-                      <div class="col-md-1"> ชื่อหน่วยงาน </div>
-                      <div class="col-md-1"> กลุ่มงาน</div>
-                      <div class="col-md-1"> วันที่</div>
-                      <div class="col-md-1"> กะการทำงาน </div>
-                      <div class="col-md-1"> เวลาเข้างาน </div>
-                      <div class="col-md-1"> เวลาออกงาน </div>
-                      <div class="col-md-1"> ชั่วโมงทำงาน </div>
-                      <div class="col-md-1"> ชั่วโมง OT</div>
-                      <div class="col-md-1"> เวลาเข้า OT </div>
-                      <div class="col-md-1"> เวลาออก OT</div>
-                    </div>
-                  </div>
-                </div>
-                <div class="row">
-                  <div class="col-md-12">
-                    {rowDataList2.map(
-                      (rowData2, index) =>
-                        rowData2.workplaceId && (
-                          <div key={index}>
-                            <input
-                              type="hidden"
-                              id="hiddenField"
-                              name=""
-                              value={index}
-                            />
-
-                            <div
-                              class="row"
-                              style={{
-                                marginBottom: "1rem",
-                                borderBottom: "2px solid #000",
-                              }}
-                            >
-                              <div class="col-md-1" style={bordertable}>
-                                {" "}
-                                {rowData2.workplaceId}
-                              </div>
-                              <div class="col-md-1" style={bordertable}>
-                                {" "}
-                                {rowData2.workplaceName}{" "}
-                              </div>
-                              <div class="col-md-1" style={bordertable}>
-                              {rowData2.workplaceName?.match(/\((.*?)\)/)?.[1] || ""}
-                                {/* {" "}
-                                {rowData2.workplaceName.match(/\((.*?)\)/)?.[1]) }{" "} */}
-                              </div>
-
-                              <div class="col-md-1" style={bordertable}>
-                                {" "}
-                                {rowData2.date}{" "}
-                              </div>
-                              <div class="col-md-1" style={bordertable}>
-                                {rowData2.shift === "morning_shift" ? (
-                                  <p>กะเช้า</p>
-                                ) : rowData2.shift === "afternoon_shift" ? (
-                                  <p>กะบ่าย</p>
-                                ) : rowData2.shift === "night_shift" ? (
-                                  <p>กะดึก</p>
-                                ) : rowData2.shift === "specialt_shift" ? (
-                                  <p>กะพิเศษ</p>
-                                ) : (
-                                  <div></div>
-                                )}
-                              </div>
-                              <div class="col-md-1" style={bordertable}>
-                                {" "}
-                                {rowData2.startTime}{" "}
-                              </div>
-                              <div class="col-md-1" style={bordertable}>
-                                {" "}
-                                {rowData2.endTime}{" "}
-                              </div>
-                              <div class="col-md-1" style={bordertable}>
-                                {" "}
-                                {rowData2.allTime}{" "}
-                              </div>
-                              <div class="col-md-1" style={bordertable}>
-                                {" "}
-                                {rowData2.otTime}{" "}
-                              </div>
-                              <div class="col-md-1" style={bordertable}>
-                                {" "}
-                                {rowData2.selectotTime}{" "}
-                              </div>
-                              <div class="col-md-1" style={bordertable}>
-                                {" "}
-                                {rowData2.selectotTimeOut}{" "}
-                              </div>
-                              {rowData2.cashSalary === "true" ||
-                                rowData2.cashSalary === true ? (
-                                // <div style={{ marginBottom: '1rem', borderBottom: '2px solid #000', width: '10rem' }}>
-                                <div class="col-md-1" style={bordertable}>
-                                  {rowData2.specialtSalary} บาท
-                                </div>
-                              ) : (
-                                // </div>
-
-                                <div class="col-md-1" style={bordertable}></div>
-                              )}
-                              <div class="col-md-1" style={bordertable}>
-                                {/* <button onClick={() => handleEditRow(index)}>Edit</button> */}
-                                <button
-                                  type="button"
-                                  class="btn btn-xs btn-danger"
-                                  style={{ padding: "0.3rem ", width: "8rem" }}
-                                  onClick={() =>
-                                    handleDeleteRow(rowData2.tmpIndex)
-                                  }
-                                >
-                                  Delete
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        )
-                    )}
-                  </div>
-                </div>
-              </section>
+            <section className="Frame">
+  <div className="table-responsive">
+    <table className="table table-bordered table-sm text-center align-middle">
+      <thead>
+        <tr>
+          <th className="text-center" style={{ backgroundColor: "transparent" }}>รหัสหน่วยงาน</th>
+          <th className="text-center" style={{ backgroundColor: "transparent" }}>ชื่อหน่วยงาน</th>
+          <th className="text-center" style={{ backgroundColor: "transparent" }}>กลุ่มงาน</th>
+          <th className="text-center" style={{ backgroundColor: "transparent" }}>วันที่</th>
+          <th className="text-center" style={{ backgroundColor: "transparent" }}>กะการทำงาน</th>
+          <th className="text-center" style={{ backgroundColor: "transparent" }}>เวลาเข้างาน</th>
+          <th className="text-center" style={{ backgroundColor: "transparent" }}>เวลาออกงาน</th>
+          <th className="text-center" style={{ backgroundColor: "transparent" }}>ชั่วโมงทำงาน</th>
+          <th className="text-center" style={{ backgroundColor: "transparent" }}>ชั่วโมง OT</th>
+          <th className="text-center" style={{ backgroundColor: "transparent" }}>เวลาเข้า OT</th>
+          <th className="text-center" style={{ backgroundColor: "transparent" }}>เวลาออก OT</th>
+          <th className="text-center" style={{ backgroundColor: "transparent" }}>เงินพิเศษ</th>
+          <th className="text-center" style={{ backgroundColor: "transparent" }}>ลบ</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rowDataList2.map(
+          (rowData2, index) =>
+            rowData2.workplaceId && (
+              <tr key={index} className="align-middle text-center">
+                <td>{rowData2.workplaceId}</td>
+                <td>{rowData2.workplaceName}</td>
+                <td>{rowData2.workplaceName?.match(/\((.*?)\)/)?.[1] || ""}</td>
+                <td>{rowData2.date}</td>
+                <td>
+                  {rowData2.shift === "morning_shift"
+                    ? "กะเช้า"
+                    : rowData2.shift === "afternoon_shift"
+                    ? "กะบ่าย"
+                    : rowData2.shift === "night_shift"
+                    ? "กะดึก"
+                    : rowData2.shift === "specialt_shift"
+                    ? "กะพิเศษ"
+                    : ""}
+                </td>
+                <td>{rowData2.startTime}</td>
+                <td>{rowData2.endTime}</td>
+                <td>{rowData2.allTime}</td>
+                <td>{rowData2.otTime}</td>
+                <td>{rowData2.selectotTime}</td>
+                <td>{rowData2.selectotTimeOut}</td>
+                <td>
+                  {rowData2.cashSalary === "true" || rowData2.cashSalary === true
+                    ? `${rowData2.specialtSalary} บาท`
+                    : ""}
+                </td>
+                <td className="text-center">
+                  <button
+                    type="button"
+                    className="btn btn-danger btn-sm"
+                    style={{ padding: "0.2rem", width: "6rem" }}
+                    onClick={() => handleDeleteRow(rowData2.tmpIndex)}
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            )
+        )}
+      </tbody>
+    </table>
+  </div>
+</section>
 
               <div class="form-group">
                 {/* <button class="btn b_save" onClick={handleCreateWorkplaceTimerecord}><i class="nav-icon fas fa-save"></i> &nbsp; บันทึก</button> */}
@@ -2750,3 +2694,127 @@ await workplacesearch.workplaceGroup[departmentIndex]
 }
 
 export default AddsettimeEmployee;
+
+// <section class="Frame">
+// <div class="row">
+//   <div class="col-md-12">
+//     <div class="row">
+//       <div class="col-md-1"> รหัสหน่วยงาน</div>
+//       <div class="col-md-1"> ชื่อหน่วยงาน </div>
+//       <div class="col-md-1"> กลุ่มงาน</div>
+//       <div class="col-md-1"> วันที่</div>
+//       <div class="col-md-1"> กะการทำงาน </div>
+//       <div class="col-md-1"> เวลาเข้างาน </div>
+//       <div class="col-md-1"> เวลาออกงาน </div>
+//       <div class="col-md-1"> ชั่วโมงทำงาน </div>
+//       <div class="col-md-1"> ชั่วโมง OT</div>
+//       <div class="col-md-1"> เวลาเข้า OT </div>
+//       <div class="col-md-1"> เวลาออก OT</div>
+//     </div>
+//   </div>
+// </div>
+// <div class="row">
+//   <div class="col-md-12">
+//     {rowDataList2.map(
+//       (rowData2, index) =>
+//         rowData2.workplaceId && (
+//           <div key={index}>
+//             <input
+//               type="hidden"
+//               id="hiddenField"
+//               name=""
+//               value={index}
+//             />
+
+//             <div
+//               class="row"
+//               style={{
+//                 marginBottom: "1rem",
+//                 borderBottom: "2px solid #000",
+//               }}
+//             >
+//               <div class="col-md-1" style={bordertable}>
+//                 {" "}
+//                 {rowData2.workplaceId}
+//               </div>
+//               <div class="col-md-1" style={bordertable}>
+//                 {" "}
+//                 {rowData2.workplaceName}{" "}
+//               </div>
+//               <div class="col-md-1" style={bordertable}>
+//                   {rowData2.workplaceName?.match(/\((.*?)\)/)?.[1] || ""}
+//               </div>
+
+//               <div class="col-md-1" style={bordertable}>
+//                 {" "}
+//                 {rowData2.date}{" "}
+//               </div>
+//               <div class="col-md-1" style={bordertable}>
+//                 {rowData2.shift === "morning_shift" ? (
+//                   <p>กะเช้า</p>
+//                 ) : rowData2.shift === "afternoon_shift" ? (
+//                   <p>กะบ่าย</p>
+//                 ) : rowData2.shift === "night_shift" ? (
+//                   <p>กะดึก</p>
+//                 ) : rowData2.shift === "specialt_shift" ? (
+//                   <p>กะพิเศษ</p>
+//                 ) : (
+//                   <div></div>
+//                 )}
+//               </div>
+//               <div class="col-md-1" style={bordertable}>
+//                 {" "}
+//                 {rowData2.startTime}{" "}
+//               </div>
+//               <div class="col-md-1" style={bordertable}>
+//                 {" "}
+//                 {rowData2.endTime}{" "}
+//               </div>
+//               <div class="col-md-1" style={bordertable}>
+//                 {" "}
+//                 {rowData2.allTime}{" "}
+//               </div>
+//               <div class="col-md-1" style={bordertable}>
+//                 {" "}
+//                 {rowData2.otTime}{" "}
+//               </div>
+//               <div class="col-md-1" style={bordertable}>
+//                 {" "}
+//                 {rowData2.selectotTime}{" "}
+//               </div>
+//               <div class="col-md-1" style={bordertable}>
+//                 {" "}
+//                 {rowData2.selectotTimeOut}{" "}
+//               </div>
+//               {rowData2.cashSalary === "true" ||
+//                 rowData2.cashSalary === true ? (
+//                 // <div style={{ marginBottom: '1rem', borderBottom: '2px solid #000', width: '10rem' }}>
+//                 <div class="col-md-1" style={bordertable}>
+//                   {rowData2.specialtSalary} บาท
+//                 </div>
+//               ) : (
+//                 // </div>
+
+//                 <div class="col-md-1" style={bordertable}></div>
+//               )}
+//               <div class="col-md-1" style={bordertable}>
+//                 {/* <button onClick={() => handleEditRow(index)}>Edit</button> */}
+//                 <button
+//                   type="button"
+//                   class="btn btn-xs btn-danger"
+//                   style={{ padding: "0.3rem ", width: "8rem" }}
+//                   onClick={() =>
+//                     handleDeleteRow(rowData2.tmpIndex)
+//                   }
+//                 >
+//                   Delete
+//                 </button>
+//               </div>
+//             </div>
+//           </div>
+//         )
+//     )}
+//   </div>
+// </div>
+// </section>
+
