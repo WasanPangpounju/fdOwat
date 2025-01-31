@@ -28,6 +28,7 @@ const workplaceTimerecordSchema = new mongoose.Schema({
   timerecordId: String,
   workplaceId: String,
   workplaceName: String,
+  wGroup: String,
   date: String,
   employeeRecord: [{
     staffId: String,

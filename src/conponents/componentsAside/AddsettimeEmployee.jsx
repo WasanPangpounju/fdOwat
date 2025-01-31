@@ -2585,6 +2585,7 @@ await workplacesearch.workplaceGroup[departmentIndex]
                     <div class="row">
                       <div class="col-md-1"> รหัสหน่วยงาน</div>
                       <div class="col-md-1"> ชื่อหน่วยงาน </div>
+                      <div class="col-md-1"> กลุ่มงาน</div>
                       <div class="col-md-1"> วันที่</div>
                       <div class="col-md-1"> กะการทำงาน </div>
                       <div class="col-md-1"> เวลาเข้างาน </div>
@@ -2624,6 +2625,12 @@ await workplacesearch.workplaceGroup[departmentIndex]
                                 {" "}
                                 {rowData2.workplaceName}{" "}
                               </div>
+                              <div class="col-md-1" style={bordertable}>
+                              {rowData2.workplaceName?.match(/\((.*?)\)/)?.[1] || ""}
+                                {/* {" "}
+                                {rowData2.workplaceName.match(/\((.*?)\)/)?.[1]) }{" "} */}
+                              </div>
+
                               <div class="col-md-1" style={bordertable}>
                                 {" "}
                                 {rowData2.date}{" "}

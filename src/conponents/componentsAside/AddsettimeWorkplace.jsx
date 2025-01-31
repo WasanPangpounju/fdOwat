@@ -28,10 +28,13 @@ function AddsettimeWorkplace({ workplaceList, employeeList }) {
 
   const [timeRecord_id, setTimeRecord_id] = useState("");
   const [loading, setLoading] = useState(false); // Create loading state
+  const [groupOptions1 , setGroupOptions1 ] = useState();
+
 
   //Workplace data
   const [workplaceId, setWorkplaceId] = useState(""); //รหัสหน่วยงาน
   const [workplaceName, setWorkplaceName] = useState(""); //ชื่อหน่วยงาน
+  const [wGroup , setWGroup] = useState('');
   const [workplacestay, setWorkplacestay] = useState(""); //สังกัด
   const [workplaceArea, setWorkplaceArea] = useState(""); //สถานที่ปฏิบัติงาน
   const [workOfWeek, setWorkOfWeek] = useState(""); //วันทำงานต่อสัปดาห์
@@ -129,6 +132,7 @@ function AddsettimeWorkplace({ workplaceList, employeeList }) {
           window.location.reload();
         } else {
           await setSearchResult(response.data.workplaces);
+await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
 
           // Calculate the time difference
           setWorkOfHour(response.data.workplaces[0].workOfHour);
@@ -1080,6 +1084,7 @@ function AddsettimeWorkplace({ workplaceList, employeeList }) {
         // Set the state to true if data is found
         await setUpdateButton(true);
         await setTimeRecord_id(response.data.recordworkplace[0]._id);
+        await setWGroup(response.data.recordworkplace[0].wGroup || '');
         if (workplaceName != "") {
           await setRowDataList(response.data.recordworkplace[0].employeeRecord);
         } else {
@@ -1469,7 +1474,7 @@ function AddsettimeWorkplace({ workplaceList, employeeList }) {
             </div>
             <form onSubmit={handleManageWorkplace}>
               <div class="row">
-                <div class="col-md-3">
+                <div class="col-md-2">
                   <div class="form-group">
                     <label role="agencynumber">รหัสหน่วยงาน</label>
                     <input
@@ -1497,6 +1502,28 @@ function AddsettimeWorkplace({ workplaceList, employeeList }) {
                     />
                   </div>
                 </div>
+
+                <div class="col-md-2">
+                <div class="form-group">
+                    <label role="agencynumber">กลุ่มงาน</label>
+                    
+                    <select
+                      className="form-control"
+                      value={wGroup}
+                      onChange={(e) => setWGroup(e.target.value)}
+                      style={{ width: "10rem" }}
+                    >
+                      <option value="">หน่วยงานหลัก</option>
+
+                      {groupOptions1 && groupOptions1.map((item) => (
+      <option key={item.workplaceComplexId} value={item.workplaceComplexId}>
+        {item.workplaceComplexName}
+      </option>
+    ))}
+                    </select>
+                    </div>
+                  </div> 
+
                 <div class="col-md-2">
                   <div class="form-group">
                     <label role="datetime">วันที่</label>
