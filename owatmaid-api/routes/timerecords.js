@@ -199,6 +199,7 @@ router.post('/search', async (req, res) => {
   try {
     const { workplaceId,
       workplaceName,
+      wGroup ,
       date} = req.body;
     // Construct the search query based on the provided parameters
     const query = {};
@@ -210,6 +211,10 @@ router.post('/search', async (req, res) => {
 
     if (workplaceName !== '') {
       query.workplaceName = { $regex: new RegExp(workplaceName, 'i') };
+    }
+
+    if (wGroup !== '') {
+      query.wGroup = { $regex: new RegExp(wGroup , 'i') };
     }
 
     if (date !== '') {
@@ -515,6 +520,7 @@ async function setToEmployee(selectWorkplaceId, selectworkplaceName, selectMonth
           recordworkplace.employee_workplaceRecord.push({
             'workplaceId': workplaceId,
             'workplaceName': workplaceName,
+            'wGroup': wGroup  || '',
             'date': day,
             'shift': element.shift,
             'startTime': element.startTime,
@@ -541,6 +547,7 @@ async function setToEmployee(selectWorkplaceId, selectworkplaceName, selectMonth
           const employee_workplaceRecord = {
             'workplaceId': workplaceId,
             'workplaceName': workplaceName,
+            'wGroup': wGroup  || '',
             'date': day,
             'shift': element.shift,
             'startTime': element.startTime,
@@ -580,6 +587,7 @@ router.post('/create', async (req, res) => {
     const {
       workplaceId,
       workplaceName,
+      wGroup ,
       date,
       employeeRecord
     } = req.body;
@@ -596,6 +604,7 @@ router.post('/create', async (req, res) => {
       timerecordId,
       workplaceId,
       workplaceName,
+      wGroup ,
       date,
       employeeRecord: filteredEmployeeRecord
     });

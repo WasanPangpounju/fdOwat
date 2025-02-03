@@ -1107,22 +1107,16 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
 
   async function handleCreateWorkplaceTimerecord(event) {
     setLoading(true); // Set loading to true to block the button
-
-    // event.preventDefault();
-    // alert('test');
-    // alert(formattedWorkDate);
-
+    event.preventDefault();
+  
     const dateObject = new Date(formattedWorkDate);
-
-    // Extract the year from the dateObject
     const year = dateObject.getFullYear();
-    //get data from input in useState to data
     const date = new Date(selectedDate);
-
-    // Extract day, month, and year
+  
     const daySelectedDate = date.getDate().toString().padStart(2, "0");
     const monthSelectedDate = (date.getMonth() + 1).toString().padStart(2, "0");
     const yearSelectedDate = date.getFullYear().toString();
+    
     const data = {
       workplaceId: workplaceId,
       workplaceName: workplaceName,
@@ -1130,71 +1124,63 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
       employeeRecord: rowDataList,
       timerecordId: yearSelectedDate.toString(),
     };
-
-    //check create or update Employee
-    // if (newWorkplace) {
-    // alert('Create Workplace');
+  
     try {
       const response = await axios.post(endpoint + "/timerecord/create", data);
-      // setEmployeesResult(response.data.employees);
-      if (response) {
+  
+      if (response.status === 200) {
         alert("บันทึกสำเร็จ");
-        // window.location.reload();
+  
+        if (response.data) {
+          setRowDataList(response.data.employeeRecord); // Set new data
+          setTimeRecordId(response.data._id); // Store new record ID for future updates
+          setUpdateButton(true); // Enable update button
+          setWorkplaceId(response.data.workplaceId); // Update workplaceId
+          setWorkplaceName(response.data.workplaceName); // Update workplaceName
+          setFormattedDate(response.data.date); // Update formattedDate
+        }
       }
     } catch (error) {
+      console.error("Error creating timerecord: ", error);
       alert("กรุณาตรวจสอบข้อมูลในช่องกรอกข้อมูล");
-      // window.location.reload();
     } finally {
-      setLoading(false); // Set loading to false to unblock the button
+      setLoading(false); // Unblock button
     }
-    // } else {
-    //update workplace data
-
-    // Make the API call to update the resource by ID
-    //         try {
-
-    //             const response = await axios.put(endpoint + '/workplace/update/' + _id, data);
-    //             // setEmployeesResult(response.data.employees);
-    //             if (response) {
-    //                 alert("บันทึกสำเร็จ");
-    //                 window.location.reload();
-
-    //             }
-    //         } catch (error) {
-    //             alert('กรุณาตรวจสอบข้อมูลในช่องกรอกข้อมูล');
-    //             // window.location.reload();
-    //         }
-
-    //     }
   }
+  
 
   async function handleUpdateWorkplaceTimerecord(event) {
     event.preventDefault();
-    // alert('hi');
-    //get data from input in useState to data
-
+  
     const data = {
       workplaceId: workplaceId,
       workplaceName: workplaceName,
       date: convertBuddhistToGregorian(formattedDate),
       employeeRecord: rowDataList,
     };
-
+  
     try {
-      const response = await axios.put(
-        endpoint + "/timerecord/update/" + timeRecord_id,
-        data
-      );
-      // setEmployeesResult(response.data.employees);
-      if (response) {
+      const response = await axios.put(endpoint + "/timerecord/update/" + timeRecord_id, data);
+  
+      if (response.status === 200) {
         alert("บันทึกสำเร็จ");
-        // window.location.reload();
+  
+        // Assuming API returns updated data
+        if (response.data) {
+          setRowDataList(response.data.employeeRecord); // Update state
+          setTimeRecord_id(response.data._id); // Set new timeRecord_id for next update
+          setUpdateButton(true); // Enable update button
+          setWorkplaceId(response.data.workplaceId); // Update workplaceId
+          setWorkplaceName(response.data.workplaceName); // Update workplaceName
+          setFormattedDate(response.data.date); // Update formattedDate
+        }
       }
     } catch (error) {
+      console.error("Error updating timerecord: ", error);
       alert("กรุณาตรวจสอบข้อมูลในช่องกรอกข้อมูล");
-      // window.location.reload();
     }
   }
+  
 
   async function handleManageWorkplace(event) {
     event.preventDefault();
@@ -1958,108 +1944,69 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
             </form>
 
             <form onSubmit={handleManageWorkplace}>
-              <section class="Frame">
-                <div class="row">
-                  <div class="col-md-12">
-                    <div class="row">
-                      <div class="col-md-1"> รหัสพนักงาน </div>
-                      <div class="col-md-2"> ชื่อพนักงาน </div>
-                      <div class="col-md-1"> กะการทำงาน </div>
-                      <div class="col-md-1"> เวลาเข้างาน </div>
-                      <div class="col-md-1"> เวลาออกงาน </div>
-                      <div class="col-md-1"> ชั่วโมงทำงาน </div>
-                      <div class="col-md-1"> เวลาเข้า OT </div>
-                      <div class="col-md-1"> เวลาออก OT</div>
-                      <div class="col-md-1"> ชั่วโมง OT</div>
-                      <div class="col-md-1"> จ่ายเงินสด</div>
-                    </div>
-                  </div>
-                </div>
-                <div class="row">
-                  <div class="col-md-12">
-                    {rowDataList.map(
-                      (rowData, index) =>
-                        rowData.staffId !== "" && ( // Check if staffId is set (truthy)
-                          <div key={index}>
-                            <div
-                              class="row"
-                              style={{
-                                marginBottom: "1rem",
-                                borderBottom: "2px solid #000",
-                              }}
-                            >
-                              <div class="col-md-1" style={bordertable}>
-                                {" "}
-                                {rowData.staffId}{" "}
-                              </div>
-                              <div class="col-md-2" style={bordertable}>
-                                {" "}
-                                {rowData.staffName}{" "}
-                              </div>
-                              <div class="col-md-1" style={bordertable}>
-                                {rowData.shift === "morning_shift" ? (
-                                  <p>กะเช้า</p>
-                                ) : rowData.shift === "afternoon_shift" ? (
-                                  <p>กะบ่าย</p>
-                                ) : rowData.shift === "night_shift" ? (
-                                  <p>กะดึก</p>
-                                ) : rowData.shift === "specialt_shift" ? (
-                                  <p>กะพิเศษ</p>
-                                ) : (
-                                  <div></div>
-                                )}
-                              </div>
-                              <div class="col-md-1" style={bordertable}>
-                                {" "}
-                                {rowData.startTime}{" "}
-                              </div>
-                              <div class="col-md-1" style={bordertable}>
-                                {" "}
-                                {rowData.endTime}{" "}
-                              </div>
-                              <div class="col-md-1" style={bordertable}>
-                                {" "}
-                                {rowData.allTime}{" "}
-                              </div>
-                              <div class="col-md-1" style={bordertable}>
-                                {" "}
-                                {rowData.selectotTime}{" "}
-                              </div>
-                              <div class="col-md-1" style={bordertable}>
-                                {" "}
-                                {rowData.selectotTimeOut}{" "}
-                              </div>
-                              <div class="col-md-1" style={bordertable}>
-                                {" "}
-                                {rowData.otTime}{" "}
-                              </div>
-
-                              {rowData.cashSalary === "true" ||
-                              rowData.cashSalary === true ? (
-                                <div class="col-md-1" style={bordertable}>
-                                  {rowData.specialtSalary} บาท
-                                </div>
-                              ) : (
-                                <div class="col-md-1"></div>
-                              )}
-
-                              <div class="col-md-1" style={bordertable}>
-                                {/* <button onClick={() => handleEditRow(index)}>Edit</button> */}
-                                <button
-                                  class="btn btn-xs btn-danger"
-                                  style={{ padding: "0.3rem ", width: "8rem" }}
-                                  onClick={() => handleDeleteRow(index)}
-                                >
-                                  Delete
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        )
-                    )}
-                  </div>
-                </div>
-              </section>
+              <section className="Frame">
+  <table className="table table-bordered">
+    <thead>
+      <tr>
+        <th>รหัสพนักงาน</th>
+        <th>ชื่อพนักงาน</th>
+        <th>กะการทำงาน</th>
+        <th>เวลาเข้างาน</th>
+        <th>เวลาออกงาน</th>
+        <th>ชั่วโมงทำงาน</th>
+        <th>เวลาเข้า OT</th>
+        <th>เวลาออก OT</th>
+        <th>ชั่วโมง OT</th>
+        <th>จ่ายเงินสด</th>
+        <th>ลบ</th>
+      </tr>
+    </thead>
+    <tbody>
+      {rowDataList.map(
+        (rowData, index) =>
+          rowData.staffId !== "" && ( // ตรวจสอบว่ามี staffId
+            <tr key={index}>
+              <td>{rowData.staffId}</td>
+              <td>{rowData.staffName}</td>
+              <td>
+                {rowData.shift === "morning_shift" ? (
+                  "กะเช้า"
+                ) : rowData.shift === "afternoon_shift" ? (
+                  "กะบ่าย"
+                ) : rowData.shift === "night_shift" ? (
+                  "กะดึก"
+                ) : rowData.shift === "specialt_shift" ? (
+                  "กะพิเศษ"
+                ) : (
+                  ""
+                )}
+              </td>
+              <td>{rowData.startTime}</td>
+              <td>{rowData.endTime}</td>
+              <td>{rowData.allTime}</td>
+              <td>{rowData.selectotTime}</td>
+              <td>{rowData.selectotTimeOut}</td>
+              <td>{rowData.otTime}</td>
+              <td>
+                {rowData.cashSalary === "true" || rowData.cashSalary === true
+                  ? `${rowData.specialtSalary} บาท`
+                  : ""}
+              </td>
+              <td>
+                <button
+                  className="btn btn-xs btn-danger"
+                  style={{ padding: "0.3rem", width: "8rem" }}
+                  onClick={() => handleDeleteRow(index)}
+                >
+                  Delete
+                </button>
+              </td>
+            </tr>
+          )
+      )}
+    </tbody>
+  </table>
+</section>
 
               <div class="form-group">
                 {/* <button class="btn b_save" onClick={handleCreateWorkplaceTimerecord}><i class="nav-icon fas fa-save"></i> &nbsp; บันทึก</button> */}
@@ -2091,3 +2038,107 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
 }
 
 export default AddsettimeWorkplace;
+
+// <section class="Frame">
+// <div class="row">
+//   <div class="col-md-12">
+//     <div class="row">
+//       <div class="col-md-1"> รหัสพนักงาน </div>
+//       <div class="col-md-2"> ชื่อพนักงาน </div>
+//       <div class="col-md-1"> กะการทำงาน </div>
+//       <div class="col-md-1"> เวลาเข้างาน </div>
+//       <div class="col-md-1"> เวลาออกงาน </div>
+//       <div class="col-md-1"> ชั่วโมงทำงาน </div>
+//       <div class="col-md-1"> เวลาเข้า OT </div>
+//       <div class="col-md-1"> เวลาออก OT</div>
+//       <div class="col-md-1"> ชั่วโมง OT</div>
+//       <div class="col-md-1"> จ่ายเงินสด</div>
+//     </div>
+//   </div>
+// </div>
+// <div class="row">
+//   <div class="col-md-12">
+//     {rowDataList.map(
+//       (rowData, index) =>
+//         rowData.staffId !== "" && ( // Check if staffId is set (truthy)
+//           <div key={index}>
+//             <div
+//               class="row"
+//               style={{
+//                 marginBottom: "1rem",
+//                 borderBottom: "2px solid #000",
+//               }}
+//             >
+//               <div class="col-md-1" style={bordertable}>
+//                 {" "}
+//                 {rowData.staffId}{" "}
+//               </div>
+//               <div class="col-md-2" style={bordertable}>
+//                 {" "}
+//                 {rowData.staffName}{" "}
+//               </div>
+//               <div class="col-md-1" style={bordertable}>
+//                 {rowData.shift === "morning_shift" ? (
+//                   <p>กะเช้า</p>
+//                 ) : rowData.shift === "afternoon_shift" ? (
+//                   <p>กะบ่าย</p>
+//                 ) : rowData.shift === "night_shift" ? (
+//                   <p>กะดึก</p>
+//                 ) : rowData.shift === "specialt_shift" ? (
+//                   <p>กะพิเศษ</p>
+//                 ) : (
+//                   <div></div>
+//                 )}
+//               </div>
+//               <div class="col-md-1" style={bordertable}>
+//                 {" "}
+//                 {rowData.startTime}{" "}
+//               </div>
+//               <div class="col-md-1" style={bordertable}>
+//                 {" "}
+//                 {rowData.endTime}{" "}
+//               </div>
+//               <div class="col-md-1" style={bordertable}>
+//                 {" "}
+//                 {rowData.allTime}{" "}
+//               </div>
+//               <div class="col-md-1" style={bordertable}>
+//                 {" "}
+//                 {rowData.selectotTime}{" "}
+//               </div>
+//               <div class="col-md-1" style={bordertable}>
+//                 {" "}
+//                 {rowData.selectotTimeOut}{" "}
+//               </div>
+//               <div class="col-md-1" style={bordertable}>
+//                 {" "}
+//                 {rowData.otTime}{" "}
+//               </div>
+
+//               {rowData.cashSalary === "true" ||
+//               rowData.cashSalary === true ? (
+//                 <div class="col-md-1" style={bordertable}>
+//                   {rowData.specialtSalary} บาท
+//                 </div>
+//               ) : (
+//                 <div class="col-md-1"></div>
+//               )}
+
+//               <div class="col-md-1" style={bordertable}>
+//                 {/* <button onClick={() => handleEditRow(index)}>Edit</button> */}
+//                 <button
+//                   class="btn btn-xs btn-danger"
+//                   style={{ padding: "0.3rem ", width: "8rem" }}
+//                   onClick={() => handleDeleteRow(index)}
+//                 >
+//                   Delete
+//                 </button>
+//               </div>
+//             </div>
+//           </div>
+//         )
+//     )}
+//   </div>
+// </div>
+// </section>
+
