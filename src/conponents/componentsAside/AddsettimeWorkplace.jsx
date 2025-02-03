@@ -960,6 +960,7 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
     const data = {
       workplaceId: searchWorkplaceId,
       workplaceName: searchWorkplaceName,
+      wGroup: wGroup || '',
       // date: formattedDate,
       date: convertBuddhistToGregorian(formattedDate),
     };
@@ -1120,6 +1121,7 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
     const data = {
       workplaceId: workplaceId,
       workplaceName: workplaceName,
+      wGroup: wGroup || '',
       date: convertBuddhistToGregorian(formattedDate),
       employeeRecord: rowDataList,
       timerecordId: yearSelectedDate.toString(),
@@ -1137,6 +1139,7 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
           setUpdateButton(true); // Enable update button
           setWorkplaceId(response.data.workplaceId); // Update workplaceId
           setWorkplaceName(response.data.workplaceName); // Update workplaceName
+          setWGroup(response.data.wGroup || '');
           setFormattedDate(response.data.date); // Update formattedDate
         }
       }
@@ -1155,6 +1158,7 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
     const data = {
       workplaceId: workplaceId,
       workplaceName: workplaceName,
+      wGroup: wGroup || '',
       date: convertBuddhistToGregorian(formattedDate),
       employeeRecord: rowDataList,
     };
@@ -1172,6 +1176,7 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
           setUpdateButton(true); // Enable update button
           setWorkplaceId(response.data.workplaceId); // Update workplaceId
           setWorkplaceName(response.data.workplaceName); // Update workplaceName
+          setWGroup(response.data.wGroup || '');
           setFormattedDate(response.data.date); // Update formattedDate
         }
       }
