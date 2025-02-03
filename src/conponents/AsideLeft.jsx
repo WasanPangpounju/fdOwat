@@ -6,6 +6,7 @@ import Navitems from './Navitems'
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 
 function AsideLeft() {
+  
   const [showSubMenu, setShowSubMenu] = useState(false);
   const [showSubMenu2, setShowSubMenu2] = useState(false);
   const [showSubMenu3, setShowSubMenu3] = useState(false);
@@ -36,23 +37,53 @@ function AsideLeft() {
 
   function toggleSubMenu() {
     setShowSubMenu(!showSubMenu);
+setShowSubMenu2(false);
+setShowSubMenu3(false);
+setShowSubMenu3_2(false);
+setShowSubMenu3_3(false);
+setShowSubMenu4(false);
   }
 
   function toggleSubMenu2() {
     setShowSubMenu2(!showSubMenu2);
+    setShowSubMenu(false);
+setShowSubMenu3(false);
+setShowSubMenu3_2(false);
+setShowSubMenu3_3(false);
+setShowSubMenu4(false);
   }
 
   function toggleSubMenu3() {
     setShowSubMenu3(!showSubMenu3);
+    setShowSubMenu(false);
+setShowSubMenu2(false);
+setShowSubMenu3_2(false);
+setShowSubMenu3_3(false);
+setShowSubMenu4(false);
   }
   function toggleSubMenu3_2() {
     setShowSubMenu3_2(!showSubMenu3_2);
+    setShowSubMenu(false);
+setShowSubMenu2(false);
+setShowSubMenu3(false);
+setShowSubMenu3_3(false);
+setShowSubMenu4(false);
   }
   function toggleSubMenu3_3() {
     setShowSubMenu3_3(!showSubMenu3_3);
+    setShowSubMenu(false);
+setShowSubMenu2(false);
+setShowSubMenu3(false);
+setShowSubMenu3_2(false);
+setShowSubMenu4(false);
   }
   function toggleSubMenu4() {
     setShowSubMenu4(!showSubMenu4);
+    setShowSubMenu(false);
+setShowSubMenu2(false);
+setShowSubMenu3(false);
+setShowSubMenu3_2(false);
+setShowSubMenu3_3(false);
   }
 
   return (

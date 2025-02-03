@@ -1135,7 +1135,7 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
   
         if (response.data) {
           setRowDataList(response.data.employeeRecord); // Set new data
-          setTimeRecordId(response.data._id); // Store new record ID for future updates
+          setTimeRecord_id(response.data._id); // Store new record ID for future updates
           setUpdateButton(true); // Enable update button
           setWorkplaceId(response.data.workplaceId); // Update workplaceId
           setWorkplaceName(response.data.workplaceName); // Update workplaceName
@@ -1145,7 +1145,7 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
       }
     } catch (error) {
       console.error("Error creating timerecord: ", error);
-      alert("กรุณาตรวจสอบข้อมูลในช่องกรอกข้อมูล");
+      alert("กรุณาตรวจสอบข้อมูลในช่องกรอกข้อมูล" + error);
     } finally {
       setLoading(false); // Unblock button
     }
