@@ -1721,15 +1721,23 @@ await workplacesearch.workplaceGroup[departmentIndex]
           // setRowDataList2(response.data.recordworkplace[0].employee_workplaceRecord);
           if (name != "") {
             // setRowDataList2(response.data.recordworkplace[0].employee_workplaceRecord);
+            // setRowDataList2(
+            //   response.data.recordworkplace[0].employee_workplaceRecord.map(
+            //     (item, index) => ({
+            //       ...item,
+            //       tmpIndex: index,
+            //     })
+            //   )
+            // );
+            //111
             setRowDataList2(
-              response.data.recordworkplace[0].employee_workplaceRecord.map(
-                (item, index) => ({
+              response.data.recordworkplace[0].employee_workplaceRecord
+                .sort((a, b) => parseInt(a.date) - parseInt(b.date)) // Sort by date (ascending order)
+                .map((item, index) => ({
                   ...item,
                   tmpIndex: index,
-                })
-              )
+                }))
             );
-            //111
           } else {
             setRowDataList2([]);
           }
@@ -1804,6 +1812,7 @@ await workplacesearch.workplaceGroup[departmentIndex]
   //     setRowDataList2(newDataList);
   //   };
 
+
   const addRow = (newRowData) => {
     setCheckaddData(true);
 
@@ -1836,17 +1845,18 @@ await workplacesearch.workplaceGroup[departmentIndex]
       return hours * 60 + minutes; // Convert to total minutes
     }
 
-    if (isDuplicate) {
-      alert("มีวันและกะที่ลงไว้แล้ว");
-      return; // Exit the function to prevent adding the duplicate row
-    }
+    // if (isDuplicate) {
+    //   alert("มีวันและกะที่ลงไว้แล้ว");
+    //   return; // Exit the function to prevent adding the duplicate row
+    // }
 
     // Push a new row with specific data
     newDataList.unshift(newRowData);
-
+    
     // Update the state with the new data
     setRowDataList2(newDataList);
 
+  
     const currentDate = parseInt(wDate, 10);
     let nextDate = currentDate + 1;
 
@@ -1931,44 +1941,56 @@ await workplacesearch.workplaceGroup[departmentIndex]
         data
       );
       // setEmployeesResult(response.data.employees);
-      if (response) {
+      if (response?.data?.employee_workplaceRecord.length > 1) {
         alert("บันทึกสำเร็จ");
 
-        //get data from conclude data then check edit data
-        const serchConclude = await {
-          year: year,
-          month: month,
-          concludeDate: "",
-          employeeId: searchEmployeeId,
-          employeeName: searchEmployeeName,
-        };
+        setUpdateButton(true);
+        // alert(response.data.recordworkplace[0].employee_workplaceRecord[1].workplaceId);
+        setTimeRecord_id(response?.data?.employee_workplaceRecord._id);
+        setRowDataList2(
+          response?.data?.employee_workplaceRecord.sort((a, b) => parseInt(a.date) - parseInt(b.date)) // Sort by date (ascending order)
+            .map((item, index) => ({
+              ...item,
+              tmpIndex: index,
+            }))
+        );
 
-        try {
-          const concludeResponse = await axios.post(
-            endpoint + "/conclude/search",
-            serchConclude
-          );
+      //   //get data from conclude data then check edit data
+      //   const serchConclude = await {
+      //     year: year,
+      //     month: month,
+      //     concludeDate: "",
+      //     employeeId: searchEmployeeId,
+      //     employeeName: searchEmployeeName,
+      //   };
 
-          // await alert(JSON.stringify(concludeResponse ,null,2));
-          if (concludeResponse.data.recordConclude.length < 1) {
-            // await alert('conclude is null');
-            window.location.reload();
-          } else {
-            // await alert('conclude is set');
-            await localStorage.setItem("editConclude", searchEmployeeId);
-            await localStorage.setItem("employeeId", searchEmployeeId);
-            await localStorage.setItem("month", month);
-            await localStorage.setItem("year", year);
+      //   try {
+      //     const concludeResponse = await axios.post(
+      //       endpoint + "/conclude/search",
+      //       serchConclude
+      //     );
 
-            // await setIsDataTrue(true); // Set isDataTrue based on fetched data
-          }
-        } catch (e) {
-          console.log(e);
-        }
-        // window.location.reload();
+      //     // await alert(JSON.stringify(concludeResponse ,null,2));
+      //     if (concludeResponse.data.recordConclude.length < 1) {
+      //       // await alert('conclude is null');
+      //       window.location.reload();
+      //     } else {
+      //       // await alert('conclude is set');
+      //       await localStorage.setItem("editConclude", searchEmployeeId);
+      //       await localStorage.setItem("employeeId", searchEmployeeId);
+      //       await localStorage.setItem("month", month);
+      //       await localStorage.setItem("year", year);
+
+      //       // await setIsDataTrue(true); // Set isDataTrue based on fetched data
+      //     }
+      //   } catch (e) {
+      //     console.log(e);
+      //   }
+      //   // window.location.reload();
       }
+      
     } catch (error) {
-      console.log("error", error);
+      alert("error" + error);
       alert("กรุณาตรวจสอบข้อมูลในช่องกรอกข้อมูล");
       // window.location.reload();
     }
