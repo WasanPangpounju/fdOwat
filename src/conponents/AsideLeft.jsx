@@ -205,13 +205,13 @@ setShowSubMenu3_3(false);
                   <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
                     <>
                       <li class="nav-item">
-                        <Link to="/replaceWorkplaceReport" className="nav-link"><i class="nav-icon fas fa-tachometer-alt"></i>รายหน่วยงาน</Link>
+                        <Link to="/replaceWorkplaceReport" className="nav-link"><i class="nav-icon far fa-dot-circle" style={{ fontSize: "14px", marginLeft: '1rem' }}></i>รายหน่วยงาน</Link>
                       </li>
                       <li class="nav-item">
-                        <Link to="/replaceEmployeeReport" className="nav-link"><i class="nav-icon fas fa-tachometer-alt"></i> รายบุคคล</Link>
+                        <Link to="/replaceEmployeeReport" className="nav-link"><i class="nav-icon far fa-dot-circle" style={{ fontSize: "14px", marginLeft: '1rem' }}></i> รายบุคคล</Link>
                       </li>
                       <li class="nav-item">
-                        <Link to="/replaceReport" className="nav-link"><i class="nav-icon fas fa-tachometer-alt"></i> ออกรายงาน</Link>
+                        <Link to="/replaceReport" className="nav-link"><i class="nav-icon far fa-dot-circle" style={{ fontSize: "14px", marginLeft: '1rem' }}></i> ออกรายงาน</Link>
                       </li>
                     </>
                   </ul>
