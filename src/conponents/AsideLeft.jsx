@@ -350,10 +350,10 @@ setShowSubMenu3_3(false);
                   <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
                     <>
                       <li class="nav-item">
-                      <li class="nav-item">
                         <Link to="/basicsetting" className="nav-link"><i class="nav-icon far fa-dot-circle" style={{ fontSize: "14px" }}></i> ตั้งค่าระบบ</Link>
                       </li>
 
+                      <li class="nav-item">
                         <Link to="/systemuser" className="nav-link"><i class="nav-icon far fa-dot-circle" style={{ fontSize: "14px" }}></i> ผู้ใช้งานระบบ</Link>
                       </li>
                       <li class="nav-item">
