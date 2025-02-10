@@ -1201,7 +1201,7 @@ setWorkRateChange(workplace.workRateChange)
       listSpecialWorktime: listSpecialWorktime,
       workTimeDay: workTimeDayList,
       workTimeDayPerson: workTimeDayPersonList,
-      // specialWorkTimeDay: workTimeDayList_specialwork || []
+      specialWorkTimeDay: workTimeDayList_specialwork || []
     };
 
     // if (file) {
