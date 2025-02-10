@@ -832,12 +832,12 @@ function Setting({ workplaceList, employeeList }) {
   const [filteredWorkplaceList, setFilteredWorkplaceList] = useState([]);
   const [searchWorkplaceId, setSearchWorkplaceId] = useState(""); //รหัสหน่วยงาน
   const [searchWorkplaceName, setSearchWorkplaceName] = useState(""); //ชื่อหน่วยงาน
-
+  
   async function handleSearch(event) {
     event.preventDefault();
-    console.log("testtest");
     //clean list employee
     setShowEmployeeListResult([]);
+    setWorkTimeDay_specialwork([]);
 
     //get value from form search
     const data = {
@@ -846,8 +846,8 @@ function Setting({ workplaceList, employeeList }) {
     };
 
     try {
-      // const response = await axios.post(endpoint + "/workplace/search", data);
-      // setSearchResult(response.data.workplaces);
+      const response = await axios.post(endpoint + "/workplace/search", data);
+      setSearchResult(response.data.workplaces);
       // console.log("response", response);
       const filteredList = workplaceList.filter((workplace) => {
         const idMatch = workplace.workplaceId
@@ -896,7 +896,7 @@ function Setting({ workplaceList, employeeList }) {
       }
     } catch (error) {
       // setMessage('ไม่พบผลการค้นหา กรุณาตรวจสอบข้อมูลที่ใช้ในการค้นหาอีกครั้ง');
-      // alert("กรุณาตรวจสอบข้อมูลในช่องค้นหา", error);
+      // alert("กรุณาตรวจสอบข้อมูลในช่องค้นหา" , error);
       // window.location.reload();
     }
   }
@@ -971,6 +971,7 @@ function Setting({ workplaceList, employeeList }) {
     setworkRateDayoffRate(workplace.workRateDayoffRate);
     setWorkplaceAddress(workplace.workplaceAddress);
     //setSelectedDates([...selectedDates, workplace.daysOff]);
+setWorkTimeDay_specialwork(workplace.specialWorkTimeDay);
 
     ////////work day
     if (workplace.workday1 == "false") {
@@ -1199,6 +1200,7 @@ setWorkRateChange(workplace.workRateChange)
       listSpecialWorktime: listSpecialWorktime,
       workTimeDay: workTimeDayList,
       workTimeDayPerson: workTimeDayPersonList,
+      specialWorkTimeDay: workTimeDayList_specialwork
     };
 
     // if (file) {
@@ -1297,6 +1299,117 @@ setWorkRateChange(workplace.workRateChange)
   //         console.error('Upload error:', error);
   //     }
   // }
+
+  //Specail work 
+  const [workDate_specialwork, setWorkDate_specialwork] = useState(null);
+  const [workTimeDay_specialwork, setWorkTimeDay_specialwork] = useState({
+    shift_specialwork: "",
+    startTime_specialwork: "",
+    endTime_specialwork: "",
+    startTimeOT_specialwork: "",
+    endTimeOT_specialwork: "",
+    payment_specialwork: "",
+    paymentOT_specialwork: "",
+    workDetail_specialwork: "",
+    employees_specialwork: [],
+  });
+
+  const [workTimeDayList_specialwork, setWorkTimeDayList_specialwork] = useState([]);
+  const shiftWork_specialwork = ["กะเช้า", "กะบ่าย", "กะดึก", "กะพิเศษ"];
+  const positionWork_specialwork = [
+    "ทั้งหมด",
+"หัวหน้าควบคุมงาน",
+"ผู้ช่วยผู้ควบคุมงาน",
+"พนักงานทำความสะอาด",
+"พนักงานทำความสะอาดรอบนอก",
+"พนักงานเสิร์ฟ",
+"พนักงานคนสวน",
+"พนักงานแรงงานชาย",
+"กรรมการผู้จัดการ",
+"ผู้จัดการทั่วไป",
+"ผู้จัดการฝ่ายการตลาด",
+"ผู้จัดการฝ่ายบัญชี/การเงิน",
+"ผู้จัดการฝ่ายบุคคล",
+"เจ้าหน้าที่ฝ่ายบัญชี/การเงิน",
+"เจ้าหน้าที่ฝ่ายบุคคล",
+"เจ้าหน้าที่ฝ่ายจัดซื้อ",
+"เจ้าหน้าที่ธุรการฝ่ายขาย",
+"เจ้าหน้าที่ฝ่ายการตลาด",
+"เจ้าหน้าที่ฝ่ายปฏิบัติการ",
+"เจ้าหน้าที่ฝ่ายปฏิบัติการ(สายตรวจ)",
+"เจ้าหน้าที่ฝ่ายยานพาหนะ",
+"เจ้าหน้าที่ฝ่ายไอที",
+"เจ้าหน้าที่ฝ่ายสโตร์",
+"เจ้าหน้าที่ความปลอดภัยในการทำงาน(จป)",
+"ธุรการทั่วไป",
+"หัวหน้าฝ่ายปฏิบัติการ",
+"หัวหน้าฝ่ายบัญชี/การเงิน",
+"หัวหน้าฝ่ายสโตร์"
+];
+
+  // Handle input changes for the main form
+  const handleInputChange_specialwork = (e) => {
+    const { name, value } = e.target;
+    setWorkTimeDay_specialwork((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // Handle input changes for employees
+  const handleInputChangePerson_specialwork = (e, index) => {
+    const { name, value } = e.target;
+    const updatedEmployees_specialwork = [...workTimeDay_specialwork.employees_specialwork];
+    updatedEmployees_specialwork[index][name] = value;
+    setWorkTimeDay_specialwork((prev) => ({ ...prev, employees_specialwork: updatedEmployees_specialwork }));
+  };
+
+  // Add a new employee row
+  const handleAddTimePerson_specialwork = () => {
+    setWorkTimeDay_specialwork((prev) => ({
+      ...prev,
+      employees_specialwork: [...prev.employees_specialwork, { positionWork_specialwork: "", countPerson_specialwork: "" }],
+    }));
+  };
+
+  // Remove an employee row
+  const handleRemoveTimePerson_specialwork = (index) => {
+    const updatedEmployees_specialwork = workTimeDay_specialwork.employees_specialwork.filter((_, i) => i !== index);
+    setWorkTimeDay_specialwork((prev) => ({ ...prev, employees_specialwork: updatedEmployees_specialwork }));
+  };
+
+  // ✅ Add work time to the list (FIXED ISSUE)
+  const handleAddTimeList_specialwork = () => {
+    if (!workDate_specialwork) {
+      alert("กรุณาเลือกวันที่ก่อนเพิ่มรายการ");
+      return;
+    }
+
+    // ✅ Ensure data is properly saved before updating state
+    const newEntry = {
+      ...workTimeDay_specialwork,
+      day_specialwork: workDate_specialwork.toLocaleDateString("th-TH"),
+      employees_specialwork: [...workTimeDay_specialwork.employees_specialwork], // ✅ Copy employees list
+    };
+
+    setWorkTimeDayList_specialwork((prev) => [...prev, newEntry]);
+
+    // Reset input fields
+    setWorkTimeDay_specialwork({
+      shift_specialwork: "",
+      startTime_specialwork: "",
+      endTime_specialwork: "",
+      startTimeOT_specialwork: "",
+      endTimeOT_specialwork: "",
+      payment_specialwork: "",
+      paymentOT_specialwork: "",
+      workDetail_specialwork: "",
+      employees_specialwork: [],
+    });
+    setWorkDate_specialwork(null);
+  };
+
+  // ✅ Remove a work time row
+  const handleRemoveTimeList_specialwork = (index) => {
+    setWorkTimeDayList_specialwork((prev) => prev.filter((_, i) => i !== index));
+  };
 
   return (
     <body class="hold-transition sidebar-mini" className="editlaout">
@@ -3346,8 +3459,183 @@ setWorkRateChange(workplace.workRateChange)
                     />
                   </div> */}
                 </section>
-                {/* <section class="Frame">
-                  <h2 class="title">พนักงานในสังกัด</h2> */}
+
+{/* Special work                   */}
+<h2 class="title">ตั้งค่าวันทํางานพิเศษ</h2>
+<section className="Frame">
+      {/* Date Selection */}
+      <div className="row mb-3">
+        <div className="col-md-2">เลือกวันที่</div>
+        <div className="col-md-2">
+          <DatePicker
+            selected={workDate_specialwork}
+            onChange={setWorkDate_specialwork}
+            dateFormat="dd/MM/yyyy"
+            className="form-control"
+          />
+        </div>
+      </div>
+
+      {/* Work Time Inputs */}
+      <div className="table-responsive">
+        <table className="table table-bordered text-center align-middle">
+          <thead className="thead-dark">
+            <tr>
+              <th>กะ</th>
+              <th>เวลาเข้า</th>
+              <th>เวลาออก</th>
+              <th>เวลาเข้า OT</th>
+              <th>เวลาออก OT</th>
+              <th>อัตราค่าจ้าง</th>
+              <th>อัตราค่าจ้าง OT</th>
+              <th>รายละเอียดงาน</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <select name="shift_specialwork" className="form-control" value={workTimeDay_specialwork.shift_specialwork} onChange={handleInputChange_specialwork}>
+                  <option value="">เลือกกะ</option>
+                  {shiftWork_specialwork.map((shift, index) => (
+                    <option key={index} value={shift}>
+                      {shift}
+                    </option>
+                  ))}
+                </select>
+              </td>
+              {["startTime_specialwork", "endTime_specialwork", "startTimeOT_specialwork", "endTimeOT_specialwork", "payment_specialwork", "paymentOT_specialwork"].map((field, idx) => (
+                <td key={idx}>
+                  <input type="text" name={field} className="form-control" placeholder={field} value={workTimeDay_specialwork[field]} onChange={handleInputChange_specialwork} />
+                </td>
+              ))}
+              <td>
+                <input type="text" name="workDetail_specialwork" className="form-control" placeholder="รายละเอียดงาน" value={workTimeDay_specialwork.workDetail_specialwork} onChange={handleInputChange_specialwork} />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      {/* ✅ Employees Input Section */}
+      <h5 className="mt-4">ตำแหน่งและจำนวนคน</h5>
+      <button type="button" className="btn btn-success mb-2" onClick={handleAddTimePerson_specialwork}>
+        + เพิ่มตำแหน่ง
+      </button>
+      <br />
+      
+      <div className="table-responsive">
+        <table className="table table-bordered text-center align-middle">
+          <thead>
+            <tr>
+              <th>ตำแหน่ง</th>
+              <th>จำนวนคน</th>
+              <th>ลบ</th>
+            </tr>
+          </thead>
+          <tbody>
+            {workTimeDay_specialwork.employees_specialwork.map((emp, index) => (
+              <tr key={index}>
+                <td>
+                  <select name="positionWork_specialwork" className="form-control" value={emp.positionWork_specialwork} onChange={(e) => handleInputChangePerson_specialwork(e, index)}>
+                    <option value="">เลือกตำแหน่ง</option>
+                    {positionWork_specialwork.map((position, posIndex) => (
+                      <option key={posIndex} value={position}>
+                        {position}
+                      </option>
+                    ))}
+                  </select>
+                </td>
+                <td>
+                  <input type="text" name="countPerson_specialwork" className="form-control" placeholder="จำนวนคน" value={emp.countPerson_specialwork} onChange={(e) => handleInputChangePerson_specialwork(e, index)} />
+                </td>
+                <td>
+                  <button type="button" className="btn btn-danger" onClick={() => handleRemoveTimePerson_specialwork(index)}>
+                    ลบ
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* ✅ Add Work Time Button */}
+      <button type="button" className="btn btn-primary mt-3" onClick={handleAddTimeList_specialwork}>
+        ➕ เพิ่มรายการวันทำงาน
+      </button>
+
+{/* ✅ Display Work Schedule List */}
+{workTimeDayList_specialwork.length > 0 && (
+  <div className="table-responsive mt-4">
+    <h5>📌 ตารางเวลาทำงาน</h5>
+    <table className="table table-bordered text-center align-middle">
+      <thead>
+        <tr>
+          <th>วันที่</th>
+          <th>กะ</th>
+          <th>เวลาเข้า</th>
+          <th>เวลาออก</th>
+          <th>เวลาเข้า OT</th>
+          <th>เวลาออก OT</th>
+          <th>อัตราค่าจ้าง</th>
+          <th>อัตราค่าจ้าง OT</th>
+          <th>รายละเอียดงาน</th>
+          <th>ตำแหน่งและจำนวนคน</th>
+          <th>ลบ</th>
+        </tr>
+      </thead>
+      <tbody>
+        {workTimeDayList_specialwork.map((item, index) => (
+          <tr key={index}>
+            <td>{item.day_specialwork}</td>
+            <td>{item.shift_specialwork}</td>
+            <td>{item.startTime_specialwork}</td>
+            <td>{item.endTime_specialwork}</td>
+            <td>{item.startTimeOT_specialwork}</td>
+            <td>{item.endTimeOT_specialwork}</td>
+            <td>{item.payment_specialwork} บาท</td>
+            <td>{item.paymentOT_specialwork} บาท</td>
+            <td>{item.workDetail_specialwork}</td>
+            <td>
+              {item.employees_specialwork.length > 0 ? (
+                item.employees_specialwork.map((emp, i) => (
+                  <div key={i}>
+                    {emp.positionWork_specialwork} - {emp.countPerson_specialwork} คน
+                  </div>
+                ))
+              ) : (
+                <span>-</span>
+              )}
+            </td>
+            <td>
+              <button type="button" className="btn btn-danger" onClick={() => handleRemoveTimeList_specialwork(index)}>
+                ลบ
+              </button>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+)}
+
+      {/* ✅ Display Work Schedule List */}
+      {workTimeDayList_specialwork.length > 0 && (
+        <div className="table-responsive mt-4">
+          <h5>📌 ตารางเวลาทำงาน</h5>
+          <table className="table table-bordered text-center align-middle">
+            <tbody>
+              {workTimeDayList_specialwork.map((item, index) => (
+                <tr key={index}>
+                  <td>{item.day_specialwork}</td>
+                  <td>{item.shift_specialwork}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
                 <section class="Frame">
                   <div>
                     {showEmployeeListResult.length > 0 && (

@@ -1207,6 +1207,11 @@ await workplacesearch.workplaceGroup[departmentIndex]
           ) {
             // alert(searchResult[0].workplace );
             setGroupOptions1 (workplacesearch.workplaceGroup);            
+            const newGroupOptions = workplacesearch.workplaceGroup.map(
+              element => element.workplaceComplexName
+            );
+        
+            setGroupOptions(newGroupOptions);
             // alert(workplacesearch.workplaceGroup.length  + ' ' + groupOptions[0].length);
 // alert(JSON.stringify(groupOptions1));
             // alert(searchResult[0].department);
@@ -2291,303 +2296,238 @@ await workplacesearch.workplaceGroup[departmentIndex]
                   </div>
                 </div>
               </div>
-              <section class="Frame">
-                <div class="row">
-                  <div class="col-md-1">
-                    <div class="form-group">
-                      <label role="wId">รหัสหน่วยงาน</label>
-                    </div>
-                  </div>
 
-                  <div class="col-md-2">
-                    <div class="form-group">
-                      <label role="wName">ชื่อหน่วยงาน</label>
-                    </div>
-                  </div>
+              <section className="Frame">
+  <div className="table-responsive">
+    <table className="table table-bordered table-sm text-center align-middle">
+      <thead>
+        <tr>
+          <th>รหัสหน่วยงาน</th>
+          <th>ชื่อหน่วยงาน</th>
+          <th>กลุ่มที่</th>
+          <th>วันที่</th>
+          <th>กะทำงาน</th>
+          <th>เวลาเข้างาน</th>
+          <th>เวลาออกงาน</th>
+          <th>ชั่วโมงทำงาน</th>
+          <th>ชั่วโมง OT</th>
+          <th>เวลาเข้า OT</th>
+          <th>เวลาออก OT</th>
+          {wShift === "specialt_shift" && (
+            <>
+              <th>จ่ายสด</th>
+              <th>เป็นเงิน</th>
+              <th>เป็นเงิน OT</th>
+              <th>หมายเหตุ</th>
+            </>
+          )}
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          {/* Workplace ID */}
+          <td>
+            <input
+              type="text"
+              className="form-control text-center"
+              id="wId"
+              placeholder="รหัสหน่วยงาน"
+              value={wId}
+              onChange={(e) => setWId(e.target.value)}
+              list="workplaces"
+            />
+            <datalist id="workplaces">
+              <option value="">ยังไม่ระบุหน่วยงาน</option>
+              {workplaceList.map((wp) => (
+                <option key={wp._id} value={wp.workplaceId}>
+                  {wp.workplaceName}
+                </option>
+              ))}
+            </datalist>
+          </td>
 
-                  <div class="col-md-1">
-                    <label role="wDate">กลุ่มที่</label>
-                  </div>
+          {/* Workplace Name */}
+          <td>
+            <input
+              type="text"
+              className="form-control text-center"
+              id="wName"
+              placeholder="ชื่อหน่วยงาน"
+              value={wName}
+              onChange={(e) => setWName(e.target.value)}
+            />
+          </td>
 
-                  <div class="col-md-1">
-                    <label role="wDate">วันที่</label>
-                  </div>
+          {/* Group */}
+          <td>
+            <select
+              className="form-control"
+              value={wGroup}
+              onChange={(e) => setWGroup(e.target.value)}
+            >
+              <option value="">หน่วยงานหลัก</option>
+              {groupOptions1?.map((item) => (
+                <option key={item.workplaceComplexId} value={item.workplaceComplexId}>
+                  {item.workplaceComplexName}
+                </option>
+              ))}
+            </select>
+          </td>
 
-                  <div class="col-md-1">
-                    <label role="wShift">กะทำงาน</label>
-                  </div>
+          {/* Date */}
+          <td>
+            <select
+              className="form-control"
+              value={wDate}
+              onChange={(e) => setWDate(e.target.value)}
+            >
+              <option value="">เลือกวัน</option>
+              {options}
+            </select>
+          </td>
 
-                  <div class="col-md-1">
-                    <div class="form-group">
-                      <label role="wStartTime">เวลาเข้างาน</label>
-                    </div>
-                  </div>
+          {/* Shift */}
+          <td>
+            <select
+              className="form-control"
+              value={wShift}
+              onChange={(e) => setWShift(e.target.value)}
+            >
+              <option value="morning_shift">กะเช้า</option>
+              <option value="afternoon_shift">กะบ่าย</option>
+              <option value="night_shift">กะดึก</option>
+              <option value="specialt_shift">กะพิเศษ</option>
+            </select>
+          </td>
 
-                  <div class="col-md-1">
-                    <div class="form-group">
-                      <label role="wEndTime">เวลาออกงาน</label>
-                    </div>
-                  </div>
+          {/* Work Start Time */}
+          <td>
+            <input
+              type="text"
+              className="form-control text-center"
+              id="wStartTime"
+              placeholder="เวลาเข้างาน"
+              value={wStartTime}
+              onChange={(e) => setWStartTime(e.target.value)}
+            />
+          </td>
 
-                  <div class="col-md-1">
-                    <div class="form-group">
-                      <label role="wAllTime">ชั่วโมงทำงาน</label>
-                    </div>
-                  </div>
+          {/* Work End Time */}
+          <td>
+            <input
+              type="text"
+              className="form-control text-center"
+              id="wEndTime"
+              placeholder="เวลาออกงาน"
+              value={wEndTime}
+              onChange={(e) => setWEndTime(e.target.value)}
+            />
+          </td>
 
-                  <div class="col-md-1">
-                    <div class="form-group">
-                      <label role="wOtTime">ชั่วโมง OT</label>
-                    </div>
-                  </div>
+          {/* Work Hours */}
+          <td>
+            <input
+              type="text"
+              className="form-control text-center"
+              id="wAllTime"
+              placeholder="ชั่วโมงทำงาน"
+              value={wAllTime}
+              onChange={(e) => setWAllTime(e.target.value)}
+            />
+          </td>
 
-                  <div class="col-md-1">
-                    <div class="form-group">
-                      <label role="wSelectOtTime">เวลาเข้า OT</label>
-                    </div>
-                  </div>
+          {/* OT Hours */}
+          <td>
+            <input
+              type="text"
+              className="form-control text-center"
+              id="wOtTime"
+              placeholder="ชั่วโมง OT"
+              value={wOtTime}
+              onChange={(e) => setWOtTime(e.target.value)}
+            />
+          </td>
 
-                  <div class="col-md-1">
-                    <div class="form-group">
-                      <label role="wSelectOtTimeout">เวลาออก OT</label>
-                    </div>
-                  </div>
+          {/* OT Start Time */}
+          <td>
+            <input
+              type="text"
+              className="form-control text-center"
+              id="wSelectOtTime"
+              placeholder="เวลาเข้า OT"
+              value={wSelectOtTime}
+              onChange={(e) => setWSelectOtTime(e.target.value)}
+            />
+          </td>
 
-                  <div class="col-md-1">
-                    <label role="button"></label>
-                  </div>
-                </div>
-                <div class="row">
-                  <div class="col-md-1">
-                    <div class="form-group">
-                      {/* <label role="wId">รหัสหน่วยงาน</label> */}
-                      <input
-                        type="text"
-                        class="form-control"
-                        id="wId"
-                        placeholder="รหัสหน่วยงาน"
-                        value={wId}
-                        onChange={(e) => setWId(e.target.value)}
-                        list="workplaces"
-                      />
-                      <datalist id="workplaces">
-                        <option value="">ยังไม่ระบุหน่วยงาน</option>
-                        {workplaceList.map((wp) => (
-                          <option key={wp._id} value={wp.workplaceId}>
-                            {wp.workplaceName}
-                          </option>
-                        ))}
-                      </datalist>
-                    </div>
-                  </div>
+          {/* OT End Time */}
+          <td>
+            <input
+              type="text"
+              className="form-control text-center"
+              id="wSelectOtTimeout"
+              placeholder="เวลาออก OT"
+              value={wSelectOtTimeout}
+              onChange={(e) => setWSelectOtTimeout(e.target.value)}
+            />
+          </td>
 
-                  <div class="col-md-2">
-                    <div class="form-group">
-                      {/* <label role="wName">ชื่อหน่วยงาน</label> */}
-                      <input
-                        type="text"
-                        class="form-control"
-                        id="wName"
-                        placeholder="ชื่อหน่วยงาน"
-                        value={wName}
-                        onChange={(e) => setWName(e.target.value)}
-                      />
-                    </div>
-                  </div>
+          {/* Special Shift Salary Fields (Only for กะพิเศษ) */}
+          {wShift === "specialt_shift" && (
+            <>
+              <td>
+                <input
+                  type="checkbox"
+                  className="form-control"
+                  checked={cashSalary}
+                  onChange={handleCheckboxChange}
+                />
+              </td>
+              <td>
+                <input
+                  type="text"
+                  className="form-control text-center"
+                  id="specialtSalary"
+                  placeholder="เป็นเงิน"
+                  value={specialtSalary}
+                  onChange={(e) => setSpecialtSalary(e.target.value)}
+                />
+              </td>
+              <td>
+                <input
+                  type="text"
+                  className="form-control text-center"
+                  id="specialtSalaryOT"
+                  placeholder="OT เป็นเงิน"
+                  value={specialtSalaryOT}
+                  onChange={(e) => setSpecialtSalaryOT(e.target.value)}
+                />
+              </td>
+              <td>
+                <input
+                  type="text"
+                  className="form-control text-center"
+                  id="messageSalary"
+                  placeholder="หมายเหตุ"
+                  value={messageSalary}
+                  onChange={(e) => setMessageSalary(e.target.value)}
+                />
+              </td>
+            </>
+          )}
+        </tr>
+      </tbody>
+    </table>
+  </div>
 
-                  <div class="col-md-1">
-                    
-                    <select
-                      className="form-control"
-                      value={wGroup}
-                      onChange={(e) => setWGroup(e.target.value)}
-                      style={{ width: "5.5rem" }}
-                    >
-                      <option value="">หน่วยงานหลัก</option>
-
-                      {groupOptions1 && groupOptions1.map((item) => (
-      <option key={item.workplaceComplexId} value={item.workplaceComplexId}>
-        {item.workplaceComplexName}
-      </option>
-    ))}
-                    </select>
-                  </div> 
-
-                  <div class="col-md-1">
-                    {/* <label role="wDate">วันที่</label> */}
-                    <select
-                      className="form-control"
-                      value={wDate}
-                      onChange={(e) => setWDate(e.target.value)}
-                      style={{ width: "5.5rem" }}
-                    >
-                      <option value="">เลือกวัน</option>
-                      {options}
-                    </select>
-                  </div>
-
-                  <div class="col-md-1">
-                    {/* <label role="wShift">กะทำงาน</label> */}
-                    <select
-                      className="form-control"
-                      value={wShift}
-                      onChange={(e) => setWShift(e.target.value)}
-                      style={{ width: "5.5rem" }}
-                    >
-                      {/* <option value="">เลือกกะ</option> */}
-                      <option value="morning_shift">กะเช้า</option>
-                      <option value="afternoon_shift">กะบ่าย</option>
-                      <option value="night_shift">กะดึก</option>
-                      <option value="specialt_shift">กะพิเศษ</option>
-                    </select>
-                  </div>
-
-                  <div class="col-md-1">
-                    <div class="form-group">
-                      {/* <label role="wStartTime">เวลาเข้างาน</label> */}
-                      <input
-                        type="text"
-                        class="form-control"
-                        id="wStartTime"
-                        placeholder="เวลาเข้างาน"
-                        value={wStartTime}
-                        onChange={(e) => setWStartTime(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <div class="col-md-1">
-                    <div class="form-group">
-                      {/* <label role="wEndTime">เวลาออกงาน</label> */}
-                      <input
-                        type="text"
-                        class="form-control"
-                        id="wEndTime"
-                        placeholder="เวลาออกงาน"
-                        value={wEndTime}
-                        onChange={(e) => setWEndTime(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <div class="col-md-1">
-                    <div class="form-group">
-                      {/* <label role="wAllTime">ชั่วโมงทำงาน</label> */}
-                      <input
-                        type="text"
-                        class="form-control"
-                        id="wAllTime"
-                        placeholder="ชั่วโมงทำงาน"
-                        value={wAllTime}
-                        onChange={(e) => setWAllTime(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <div class="col-md-1">
-                    <div class="form-group">
-                      {/* <label role="wOtTime">ชั่วโมง OT</label> */}
-                      <input
-                        type="text"
-                        class="form-control"
-                        id="wOtTime"
-                        placeholder="ชั่วโมง OT"
-                        value={wOtTime}
-                        onChange={(e) => setWOtTime(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <div class="col-md-1">
-                    <div class="form-group">
-                      {/* <label role="wSelectOtTime">เวลาเข้า OT</label> */}
-                      <input
-                        type="text"
-                        class="form-control"
-                        id="wSelectOtTime"
-                        placeholder="เวลาเข้า OT"
-                        value={wSelectOtTime}
-                        onChange={(e) => setWSelectOtTime(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <div class="col-md-1">
-                    <div class="form-group">
-                      {/* <label role="wSelectOtTimeout">เวลาออก OT</label> */}
-                      <input
-                        type="text"
-                        class="form-control"
-                        id="wSelectOtTimeout"
-                        placeholder="เวลาออก OT"
-                        value={wSelectOtTimeout}
-                        onChange={(e) => setWSelectOtTimeout(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  {wShift === "specialt_shift" && (
-                    <div>
-                      <div class="row">
-                        <div class="col-md-2">
-                          <label>จ่ายสด</label>
-                        </div>
-                        <div class="col-md-3">
-                          <label role="specialtSalary">เป็นเงิน</label>
-                        </div>
-                        <div class="col-md-3">
-                          <label role="specialtSalaryOT">เป็นเงินOT</label>
-                        </div>
-                        <div class="col-md-3">
-                          <label role="messageSalary">หมายเหตุ</label>
-                        </div>
-                      </div>
-                      <div class="row">
-                        <div class="col-md-2">
-                          <input
-                            type="checkbox"
-                            class="form-control"
-                            checked={cashSalary}
-                            onChange={handleCheckboxChange}
-                          />
-                        </div>
-                        <div class="col-md-3">
-                          <input
-                            type="text"
-                            class="form-control"
-                            id="specialtSalary"
-                            placeholder="เป็นเงิน"
-                            value={specialtSalary}
-                            onChange={(e) => setSpecialtSalary(e.target.value)}
-                          />
-                        </div>
-                        <div class="col-md-3">
-                          <input
-                            type="text"
-                            class="form-control"
-                            id="specialtSalaryOT"
-                            placeholder="OT เป็นเงิน"
-                            value={specialtSalaryOT}
-                            onChange={(e) =>
-                              setSpecialtSalaryOT(e.target.value)
-                            }
-                          />
-                        </div>
-                        <div class="col-md-3">
-                          <input
-                            type="text"
-                            class="form-control"
-                            id="messageSalary"
-                            placeholder="หมายเหตุ"
-                            value={messageSalary}
-                            onChange={(e) => setMessageSalary(e.target.value)}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </section>
+  {/* Submit Button */}
+  <div className="form-group mt-3">
+    <button className="btn b_save">
+      <i className="fas fa-check"></i> &nbsp; เพิ่ม
+    </button>
+  </div>
+</section>
+              
               {/* <div class="col-md-1">
                                 <div class="">
                                     <button class="btn b_save"><i class="fas fa-check"></i> &nbsp; เพิ่ม</button>
@@ -2628,7 +2568,8 @@ await workplacesearch.workplaceGroup[departmentIndex]
               <tr key={index} className="align-middle text-center">
                 <td>{rowData2.workplaceId}</td>
                 <td>{rowData2.workplaceName}</td>
-                <td>{rowData2.workplaceName?.match(/\((.*?)\)/)?.[1] || ""}</td>
+                 <td>{groupOptions[parseInt(rowData2.wGroup) -1 ] || ""}</td> 
+
                 <td>{rowData2.date}</td>
                 <td>
                   {rowData2.shift === "morning_shift"
@@ -2840,3 +2781,303 @@ export default AddsettimeEmployee;
 // </div>
 // </section>
 
+// =========
+
+// <section class="Frame">
+// <div class="row">
+//   <div class="col-md-1">
+//     <div class="form-group">
+//       <label role="wId">รหัสหน่วยงาน</label>
+//     </div>
+//   </div>
+
+//   <div class="col-md-2">
+//     <div class="form-group">
+//       <label role="wName">ชื่อหน่วยงาน</label>
+//     </div>
+//   </div>
+
+//   <div class="col-md-1">
+//     <label role="wDate">กลุ่มที่</label>
+//   </div>
+
+//   <div class="col-md-1">
+//     <label role="wDate">วันที่</label>
+//   </div>
+
+//   <div class="col-md-1">
+//     <label role="wShift">กะทำงาน</label>
+//   </div>
+
+//   <div class="col-md-1">
+//     <div class="form-group">
+//       <label role="wStartTime">เวลาเข้างาน</label>
+//     </div>
+//   </div>
+
+//   <div class="col-md-1">
+//     <div class="form-group">
+//       <label role="wEndTime">เวลาออกงาน</label>
+//     </div>
+//   </div>
+
+//   <div class="col-md-1">
+//     <div class="form-group">
+//       <label role="wAllTime">ชั่วโมงทำงาน</label>
+//     </div>
+//   </div>
+
+//   <div class="col-md-1">
+//     <div class="form-group">
+//       <label role="wOtTime">ชั่วโมง OT</label>
+//     </div>
+//   </div>
+
+//   <div class="col-md-1">
+//     <div class="form-group">
+//       <label role="wSelectOtTime">เวลาเข้า OT</label>
+//     </div>
+//   </div>
+
+//   <div class="col-md-1">
+//     <div class="form-group">
+//       <label role="wSelectOtTimeout">เวลาออก OT</label>
+//     </div>
+//   </div>
+
+//   <div class="col-md-1">
+//     <label role="button"></label>
+//   </div>
+// </div>
+// <div class="row">
+//   <div class="col-md-1">
+//     <div class="form-group">
+//       {/* <label role="wId">รหัสหน่วยงาน</label> */}
+//       <input
+//         type="text"
+//         class="form-control"
+//         id="wId"
+//         placeholder="รหัสหน่วยงาน"
+//         value={wId}
+//         onChange={(e) => setWId(e.target.value)}
+//         list="workplaces"
+//       />
+//       <datalist id="workplaces">
+//         <option value="">ยังไม่ระบุหน่วยงาน</option>
+//         {workplaceList.map((wp) => (
+//           <option key={wp._id} value={wp.workplaceId}>
+//             {wp.workplaceName}
+//           </option>
+//         ))}
+//       </datalist>
+//     </div>
+//   </div>
+
+//   <div class="col-md-2">
+//     <div class="form-group">
+//       {/* <label role="wName">ชื่อหน่วยงาน</label> */}
+//       <input
+//         type="text"
+//         class="form-control"
+//         id="wName"
+//         placeholder="ชื่อหน่วยงาน"
+//         value={wName}
+//         onChange={(e) => setWName(e.target.value)}
+//       />
+//     </div>
+//   </div>
+
+//   <div class="col-md-1">
+    
+//     <select
+//       className="form-control"
+//       value={wGroup}
+//       onChange={(e) => setWGroup(e.target.value)}
+//       style={{ width: "5.5rem" }}
+//     >
+//       <option value="">หน่วยงานหลัก</option>
+
+//       {groupOptions1 && groupOptions1.map((item) => (
+
+// <option key={item.workplaceComplexId} value={item.workplaceComplexId}>
+// {item.workplaceComplexName}
+// </option>
+// ))}
+//     </select>
+//   </div> 
+
+//   <div class="col-md-1">
+//     {/* <label role="wDate">วันที่</label> */}
+//     <select
+//       className="form-control"
+//       value={wDate}
+//       onChange={(e) => setWDate(e.target.value)}
+//       style={{ width: "5.5rem" }}
+//     >
+//       <option value="">เลือกวัน</option>
+//       {options}
+//     </select>
+//   </div>
+
+//   <div class="col-md-1">
+//     {/* <label role="wShift">กะทำงาน</label> */}
+//     <select
+//       className="form-control"
+//       value={wShift}
+//       onChange={(e) => setWShift(e.target.value)}
+//       style={{ width: "5.5rem" }}
+//     >
+//       {/* <option value="">เลือกกะ</option> */}
+//       <option value="morning_shift">กะเช้า</option>
+//       <option value="afternoon_shift">กะบ่าย</option>
+//       <option value="night_shift">กะดึก</option>
+//       <option value="specialt_shift">กะพิเศษ</option>
+//     </select>
+//   </div>
+
+//   <div class="col-md-1">
+//     <div class="form-group">
+//       {/* <label role="wStartTime">เวลาเข้างาน</label> */}
+//       <input
+//         type="text"
+//         class="form-control"
+//         id="wStartTime"
+//         placeholder="เวลาเข้างาน"
+//         value={wStartTime}
+//         onChange={(e) => setWStartTime(e.target.value)}
+//       />
+//     </div>
+//   </div>
+
+//   <div class="col-md-1">
+//     <div class="form-group">
+//       {/* <label role="wEndTime">เวลาออกงาน</label> */}
+//       <input
+//         type="text"
+//         class="form-control"
+//         id="wEndTime"
+//         placeholder="เวลาออกงาน"
+//         value={wEndTime}
+//         onChange={(e) => setWEndTime(e.target.value)}
+//       />
+//     </div>
+//   </div>
+
+//   <div class="col-md-1">
+//     <div class="form-group">
+//       {/* <label role="wAllTime">ชั่วโมงทำงาน</label> */}
+//       <input
+//         type="text"
+//         class="form-control"
+//         id="wAllTime"
+//         placeholder="ชั่วโมงทำงาน"
+//         value={wAllTime}
+//         onChange={(e) => setWAllTime(e.target.value)}
+//       />
+//     </div>
+//   </div>
+
+//   <div class="col-md-1">
+//     <div class="form-group">
+//       {/* <label role="wOtTime">ชั่วโมง OT</label> */}
+//       <input
+//         type="text"
+//         class="form-control"
+//         id="wOtTime"
+//         placeholder="ชั่วโมง OT"
+//         value={wOtTime}
+//         onChange={(e) => setWOtTime(e.target.value)}
+//       />
+//     </div>
+//   </div>
+
+//   <div class="col-md-1">
+//     <div class="form-group">
+//       {/* <label role="wSelectOtTime">เวลาเข้า OT</label> */}
+//       <input
+//         type="text"
+//         class="form-control"
+//         id="wSelectOtTime"
+//         placeholder="เวลาเข้า OT"
+//         value={wSelectOtTime}
+//         onChange={(e) => setWSelectOtTime(e.target.value)}
+//       />
+//     </div>
+//   </div>
+
+//   <div class="col-md-1">
+//     <div class="form-group">
+//       {/* <label role="wSelectOtTimeout">เวลาออก OT</label> */}
+//       <input
+//         type="text"
+//         class="form-control"
+//         id="wSelectOtTimeout"
+//         placeholder="เวลาออก OT"
+//         value={wSelectOtTimeout}
+//         onChange={(e) => setWSelectOtTimeout(e.target.value)}
+//       />
+//     </div>
+//   </div>
+
+//   {wShift === "specialt_shift" && (
+//     <div>
+//       <div class="row">
+//         <div class="col-md-2">
+//           <label>จ่ายสด</label>
+//         </div>
+//         <div class="col-md-3">
+//           <label role="specialtSalary">เป็นเงิน</label>
+//         </div>
+//         <div class="col-md-3">
+//           <label role="specialtSalaryOT">เป็นเงินOT</label>
+//         </div>
+//         <div class="col-md-3">
+//           <label role="messageSalary">หมายเหตุ</label>
+//         </div>
+//       </div>
+//       <div class="row">
+//         <div class="col-md-2">
+//           <input
+//             type="checkbox"
+//             class="form-control"
+//             checked={cashSalary}
+//             onChange={handleCheckboxChange}
+//           />
+//         </div>
+//         <div class="col-md-3">
+//           <input
+//             type="text"
+//             class="form-control"
+//             id="specialtSalary"
+//             placeholder="เป็นเงิน"
+//             value={specialtSalary}
+//             onChange={(e) => setSpecialtSalary(e.target.value)}
+//           />
+//         </div>
+//         <div class="col-md-3">
+//           <input
+//             type="text"
+//             class="form-control"
+//             id="specialtSalaryOT"
+//             placeholder="OT เป็นเงิน"
+//             value={specialtSalaryOT}
+//             onChange={(e) =>
+//               setSpecialtSalaryOT(e.target.value)
+//             }
+//           />
+//         </div>
+//         <div class="col-md-3">
+//           <input
+//             type="text"
+//             class="form-control"
+//             id="messageSalary"
+//             placeholder="หมายเหตุ"
+//             value={messageSalary}
+//             onChange={(e) => setMessageSalary(e.target.value)}
+//           />
+//         </div>
+//       </div>
+//     </div>
+//   )}
+// </div>
+// </section>

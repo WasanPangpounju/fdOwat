@@ -101,7 +101,7 @@ function AddsettimeWorkplaceReplace({ workplaceList, employeeList }) {
       });
   }, [workplaceList, employeeList]);
 
-  const validateData = async () => {
+  const validateData    = async () => {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
         // Check if lists are empty
@@ -451,19 +451,19 @@ function AddsettimeWorkplaceReplace({ workplaceList, employeeList }) {
   }
 
   // Handle changes in input fields
-  const handleInputChange = (index, key, value) => {
+  const handleInputChange_back = (index, key, value) => {
     const updatedRows = [...rows];
     updatedRows[index][key] = value;
     setRows(updatedRows);
   };
 
   // Add a new row
-  const handleAddRow = () => {
+  const handleAddRow_back = () => {
     setRows([...rows, { codeSpSalary: "", name: "", SpSalary: "" }]);
   };
 
   // Remove a specific row
-  const handleRemoveRow = (index) => {
+  const handleRemoveRow_back = (index) => {
     const updatedRows = rows.filter((_, i) => i !== index);
     setRows(updatedRows);
   };
@@ -752,6 +752,7 @@ function AddsettimeWorkplaceReplace({ workplaceList, employeeList }) {
 
   // Function to add a new row to the rowDataList with specific values
   const addRow = (newRowData) => {
+    alert(JSON.stringify(newRowData))
     // Create a copy of the current state
     const newDataList = [...rowDataList];
     // Push a new row with specific data
@@ -760,7 +761,6 @@ function AddsettimeWorkplaceReplace({ workplaceList, employeeList }) {
 rowDataList
     // Update the state with the new data
     setRowDataList(newDataList);
-    alert('2')
   };
 
   // Function to handle editing a row
@@ -1555,6 +1555,34 @@ setRows([
     setStaffFullNameReplace(selectedStaffName);
   };
 
+  // const [rows, setRows] = useState([]);
+  const [newRow, setNewRow] = useState({
+    codeSpSalary: "",
+    name: "",
+    SpSalary: "",
+  });
+
+  // Handle input change for the existing rows
+  const handleInputChange = (index, field, value) => {
+    const updatedRows = [...rows];
+    updatedRows[index][field] = value;
+    setRows(updatedRows);
+  };
+
+  // Handle adding a new row
+  const handleAddRow = () => {
+    if (newRow.codeSpSalary && newRow.name && newRow.SpSalary) {
+      setRows([...rows, newRow]);
+      setNewRow({ codeSpSalary: "", name: "", SpSalary: "" }); // Clear input fields
+    }
+  };
+
+  // Handle removing a row
+  const handleRemoveRow = (index) => {
+    const updatedRows = rows.filter((_, i) => i !== index);
+    setRows(updatedRows);
+  };
+
   return (
     <section class="content">
       <div class="row">
@@ -1805,584 +1833,223 @@ setRows([
             </form>
 
             <form onSubmit={handleManageWorkplace}>
-              <section class="Frame">
-                <div class="row">
-                  <div class="col-md-2">
-                    <div class="form-group">
-                      <label role="staffId">รหัสพนักงานแทน</label>
-                    </div>
-                  </div>
-                  <div class="col-md-2">
-                    <div class="form-group">
-                      <label role="staffName">ชื่อพนักงานแทน</label>
-                    </div>
-                  </div>
-                  <div class="col-md-2">
-                    <div class="form-group">
-                      <label role="shift">กะการทำงาน</label>
-                    </div>
-                  </div>
-                  <div class="col-md-1">
-                    <div class="form-group">
-                      <label role="startTime">เวลาเข้างาน</label>
-                    </div>
-                  </div>
-                  <div class="col-md-1">
-                    <div class="form-group">
-                      <label role="endTime">เวลาออกงาน</label>
-                    </div>
-                  </div>
-                  <div class="col-md-1">
-                    <div class="form-group">
-                      <label role="allTime">ชั่วโมงทำงาน</label>
-                    </div>
-                  </div>
-                  <div class="col-md-1">
-                    <div class="form-group">
-                      <label role="selectotTime">เวลาเข้า OT</label>
-                    </div>
-                  </div>
-                  <div class="col-md-1">
-                    <div class="form-group">
-                      <label role="selectotTimeOut">เวลาออก OT</label>
-                    </div>
-                  </div>
-                  <div class="col-md-1">
-                    <div class="form-group">
-                      <label role="otTime">ชั่วโมง OT</label>
-                    </div>
-                  </div>
-                </div>
+<section className="Frame" style={{ overflowX: "auto" }}>
+  {/* First Table: Employee & Work Shift Details */}
+  <table className="table table-bordered">
+    <thead>
+      <tr>
+        <th>รหัสพนักงานแทน</th>
+        <th>ชื่อพนักงานแทน</th>
+        <th>รหัสพนักงานลา</th>
+        <th>ชื่อพนักงานลา</th>
+        <th>กะการทำงาน</th>
+        <th>เวลาเข้างาน</th>
+        <th>เวลาออกงาน</th>
+        <th>ชั่วโมงทำงาน</th>
+        <th>เวลาเข้า OT</th>
+        <th>เวลาออก OT</th>
+        <th>ชั่วโมง OT</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><input type="text" className="form-control" value={staffId} onChange={handleStaffIdChange} /></td>
+        <td><input type="text" className="form-control" value={staffFullName} onChange={handleStaffNameChange} /></td>
+        <td><input type="text" className="form-control" value={staffIdReplace} onChange={handleStaffIdReplaceChange} /></td>
+        <td><input type="text" className="form-control" value={staffFullNameReplace} onChange={handleStaffNameReplaceChange} /></td>
+        <td>
+          <select className="form-control" value={shift} onChange={handleShiftChange}>
+            <option value="morning_shift">กะเช้า</option>
+            <option value="afternoon_shift">กะบ่าย</option>
+            <option value="night_shift">กะดึก</option>
+            <option value="specialt_shift">กะพิเศษ</option>
+          </select>
+        </td>
+        <td><input type="text" className="form-control" value={startTime} onChange={(e) => setStartTime(e.target.value)} /></td>
+        <td><input type="text" className="form-control" value={endTime} onChange={(e) => setEndTime(e.target.value)} /></td>
+        <td><input type="text" className="form-control" value={allTime} onChange={(e) => setAllTime(e.target.value)} /></td>
+        <td><input type="text" className="form-control" value={selectotTime} onChange={(e) => setSelectotTime(e.target.value)} /></td>
+        <td><input type="text" className="form-control" value={selectotTimeOut} onChange={(e) => setSelectotTimeOut(e.target.value)} /></td>
+        <td><input type="text" className="form-control" value={otTime} onChange={(e) => setOtTime(e.target.value)} /></td>
+      </tr>
+    </tbody>
+  </table>
 
-                <div class="row">
-                  <div className="col-md-2">
-                    <div className="form-group">
-                      <input
-                        type="text"
-                        className="form-control"
-                        id="staffId"
-                        placeholder="รหัสพนักงาน"
-                        value={staffId}
-                        onChange={handleStaffIdChange}
-                        list="staffIdList"
-                        onInput={(e) => {
-                          // Remove any non-digit characters
-                          e.target.value = e.target.value.replace(
-                            /[^0-9.]/g,
-                            ""
-                          );
+{/* Second Table: Salary Information */}
+<table className="table table-bordered mt-3">
+  <thead>
+    <tr>
+      <th style={{ width: "10%" }}>ค่าจ้าง</th>
+      <th style={{ width: "10%" }}>ค่าจ้าง OT</th>
+      <th>หมายเหตุ</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>
+        <input 
+          type="text" 
+          className="form-control" 
+          value={specialtSalary} 
+          onChange={(e) => setSpecialtSalary(e.target.value)} 
+        />
+      </td>
+      <td>
+        <input 
+          type="text" 
+          className="form-control" 
+          value={specialtSalaryOT} 
+          onChange={(e) => setSpecialtSalaryOT(e.target.value)} 
+        />
+      </td>
+      <td>
+        <input 
+          type="text" 
+          className="form-control" 
+          value={messageSalary} 
+          onChange={(e) => setMessageSalary(e.target.value)} 
+          placeholder="หมายเหตุ"
+        />
+      </td>
+    </tr>
+  </tbody>
+</table>
 
-                          // Ensure only one '.' is allowed
-                          const parts = e.target.value.split(".");
-                          if (parts.length > 2) {
-                            e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
-                          }
-                        }}
-                      />
-                      <datalist id="staffIdList">
-                        {employeeList.map((employee) => (
-                          <option
-                            key={employee.employeeId}
-                            value={employee.employeeId}
-                          />
-                        ))}
-                      </datalist>
-                    </div>
-                  </div>
-                  <div className="col-md-2">
-                    <div className="form-group">
-                      <input
-                        type="text"
-                        className="form-control"
-                        id="staffName"
-                        placeholder="ชื่อพนักงาน"
-                        value={staffFullName}
-                        onChange={handleStaffNameChange}
-                        list="staffNameList"
-                      />
-                      <datalist id="staffNameList">
-                        {employeeList.map((employee) => (
-                          <option
-                            key={employee.employeeId}
-                            value={employee.name + " " + employee.lastName}
-                          />
-                        ))}
-                      </datalist>
-                    </div>
-                  </div>
-                  <div class="col-md-2">
-                    <div class="form-group">
-                      <select
-                        className="form-control"
-                        value={shift}
-                        onChange={handleShiftChange}
-                      >
-                        {/* <option value="">เลือกกะการทำงาน</option> */}
-                        <option value="morning_shift">กะเช้า</option>
-                        <option value="afternoon_shift">กะบ่าย</option>
-                        <option value="night_shift">กะดึก</option>
-                        <option value="specialt_shift">กะพิเศษ</option>
-                      </select>
-                    </div>
-                  </div>
-
-                        
-                  <div class="col-md-1">
-                    <div class="form-group">
-                      {/* <label role="startTime">เวลาเข้างาน</label> */}
-                      <input
-                        type="text"
-                        class="form-control"
-                        id="startTime"
-                        placeholder="เวลาเข้างาน"
-                        value={startTime}
-                        onChange={(e) => setStartTime(e.target.value)}
-                        onInput={(e) => {
-                          // Remove any non-digit characters
-                          e.target.value = e.target.value.replace(
-                            /[^0-9.]/g,
-                            ""
-                          );
-
-                          // Ensure only one '.' is allowed
-                          const parts = e.target.value.split(".");
-                          if (parts.length > 2) {
-                            e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
-                          }
-                        }}
-                      />
-                    </div>
-                  </div>
-                  <div class="col-md-1">
-                    <div class="form-group">
-                      {/* <label role="endTime">เวลาออกงาน</label> */}
-                      <input
-                        type="text"
-                        class="form-control"
-                        id="endTime"
-                        placeholder="เวลาออกงาน"
-                        value={endTime}
-                        onChange={(e) => setEndTime(e.target.value)}
-                        onInput={(e) => {
-                          // Remove any non-digit characters
-                          e.target.value = e.target.value.replace(
-                            /[^0-9.]/g,
-                            ""
-                          );
-
-                          // Ensure only one '.' is allowed
-                          const parts = e.target.value.split(".");
-                          if (parts.length > 2) {
-                            e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
-                          }
-                        }}
-                      />
-                    </div>
-                  </div>
-                  <div class="col-md-1">
-                    <div class="form-group">
-                      {/* <label role="allTime">ชั่วโมงทำงาน</label> */}
-                      <input
-                        type="text"
-                        class="form-control"
-                        id="allTime"
-                        placeholder="ชั่วโมงทำงาน"
-                        value={allTime}
-                        onChange={(e) => setAllTime(e.target.value)}
-                        onInput={(e) => {
-                          // Remove any non-digit characters
-                          e.target.value = e.target.value.replace(
-                            /[^0-9.]/g,
-                            ""
-                          );
-
-                          // Ensure only one '.' is allowed
-                          const parts = e.target.value.split(".");
-                          if (parts.length > 2) {
-                            e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
-                          }
-                        }}
-                      />
-                    </div>
-                  </div>
-                  <div class="col-md-1">
-                    <div class="form-group">
-                      {/* <label role="selectotTime">เวลาเข้า OT</label> */}
-                      <input
-                        type="text"
-                        class="form-control"
-                        id="selectotTime"
-                        placeholder="เวลาเข้า OT"
-                        value={selectotTime}
-                        onChange={(e) => setSelectotTime(e.target.value)}
-                        onInput={(e) => {
-                          // Remove any non-digit characters
-                          e.target.value = e.target.value.replace(
-                            /[^0-9.]/g,
-                            ""
-                          );
-
-                          // Ensure only one '.' is allowed
-                          const parts = e.target.value.split(".");
-                          if (parts.length > 2) {
-                            e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
-                          }
-                        }}
-                      />
-                    </div>
-                  </div>
-                  <div class="col-md-1">
-                    <div class="form-group">
-                      {/* <label role="selectotTimeOut">เวลาออก OT</label> */}
-                      <input
-                        type="text"
-                        class="form-control"
-                        id="selectotTimeOut"
-                        placeholder="เวลาออก OT"
-                        value={selectotTimeOut}
-                        onChange={(e) => setSelectotTimeOut(e.target.value)}
-                        onInput={(e) => {
-                          // Remove any non-digit characters
-                          e.target.value = e.target.value.replace(
-                            /[^0-9.]/g,
-                            ""
-                          );
-
-                          // Ensure only one '.' is allowed
-                          const parts = e.target.value.split(".");
-                          if (parts.length > 2) {
-                            e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
-                          }
-                        }}
-                      />
-                    </div>
-                  </div>
-                  <div class="col-md-1">
-                    <div class="form-group">
-                      {/* <label role="otTime">ชั่วโมง OT</label> */}
-                      <input
-                        type="text"
-                        class="form-control"
-                        id="otTime"
-                        placeholder="ชั่วโมง OT"
-                        value={otTime}
-                        onChange={(e) => setOtTime(e.target.value)}
-                        onInput={(e) => {
-                          // Remove any non-digit characters
-                          e.target.value = e.target.value.replace(
-                            /[^0-9.]/g,
-                            ""
-                          );
-
-                          // Ensure only one '.' is allowed
-                          const parts = e.target.value.split(".");
-                          if (parts.length > 2) {
-                            e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
-                          }
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div class="row" style={{
-                  borderTop: "2px solid #000",
-                  marginTop: "10px",
-                  paddingTop: "10px",
-                }}>
-                  <div className="col-md-2">
-                    รหัสพนักงานลา
-                  </div>
-                  <div className="col-md-2">
-                    ชื่อพนักงานลา
-                  </div>
-                </div>
-                <div class="row" >
-                  <div className="col-md-2">
-                    <div className="form-group">
-                      <input
-                        type="text"
-                        className="form-control"
-                        id="staffIdReplace"
-                        placeholder="รหัสพนักงาน"
-                        value={staffIdReplace}
-                        onChange={handleStaffIdReplaceChange}
-                        list="staffIdListReplace"
-                        onInput={(e) => {
-                          // Remove any non-digit characters
-                          e.target.value = e.target.value.replace(
-                            /[^0-9.]/g,
-                            ""
-                          );
-
-                          // Ensure only one '.' is allowed
-                          const parts = e.target.value.split(".");
-                          if (parts.length > 2) {
-                            e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
-                          }
-                        }}
-                      />
-                      <datalist id="staffIdListReplace">
-                        {replaceIt.map((employee) => (
-                          <option
-                            key={employee.employeeId}
-                            value={employee.employeeId}
-                          />
-                        ))}
-                      </datalist>
-                    </div>
-                  </div>
-                  <div className="col-md-2">
-                    <div className="form-group">
-                      <input
-                        type="text"
-                        className="form-control"
-                        id="staffNameReplace"
-                        placeholder="ชื่อพนักงาน"
-                        value={staffFullNameReplace}
-                        onChange={handleStaffNameReplaceChange}
-                        list="staffNameListReplace"
-                      />
-                      <datalist id="staffNameListReplace">
-                        {replaceIt.map((employee) => (
-                          <option
-                            key={employee.employeeId}
-                            value={employee.name + " " + employee.lastName}
-                          />
-                        ))}
-                      </datalist>
-                    </div>
-                  </div>
-                </div>
-                {/* {showInputs && shift === "specialt_shift" && ( */}
-                <div>
-                  <div class="row" style={{
-                  borderTop: "2px solid #000",
-                  marginTop: "10px",
-                  paddingTop: "10px",
-                }}>
-                    {/* <div class="col-md-1">
-                      <label>จ่ายสด</label>
-                    </div> */}
-                    <div class="col-md-2">
-                      <label role="specialtSalary">เป็นเงิน</label>
-                    </div>
-                    <div class="col-md-2">
-                      <label role="specialtSalaryOT">เป็นเงินOT</label>
-                    </div>
-                    <div class="col-md-2">
-                      <label role="messageSalary">หมายเหตุ</label>
-                    </div>
-                  </div>
-                  <div class="row">
-                    {/* <div class="col-md-1">
-                      <input
-                        type="checkbox"
-                        class="form-control"
-                        checked={cashSalary}
-                        onChange={handleCheckboxChange}
-                      />
-                    </div> */}
-                    <div class="col-md-2">
-                      <input
-                        type="text"
-                        class="form-control"
-                        id="specialtSalary"
-                        placeholder="เป็นเงิน"
-                        value={specialtSalary}
-                        onChange={(e) => setSpecialtSalary(e.target.value)}
-                        onInput={(e) => {
-                          // Remove any non-digit characters
-                          e.target.value = e.target.value.replace(
-                            /[^0-9.]/g,
-                            ""
-                          );
-
-                          // Ensure only one '.' is allowed
-                          const parts = e.target.value.split(".");
-                          if (parts.length > 2) {
-                            e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
-                          }
-                        }}
-                      />
-                    </div>
-                    <div class="col-md-2">
-                      <input
-                        type="text"
-                        class="form-control"
-                        id="specialtSalaryOT"
-                        placeholder="เป็นเงิน"
-                        value={specialtSalaryOT}
-                        onChange={(e) => setSpecialtSalaryOT(e.target.value)}
-                        onInput={(e) => {
-                          // Remove any non-digit characters
-                          e.target.value = e.target.value.replace(
-                            /[^0-9.]/g,
-                            ""
-                          );
-
-                          // Ensure only one '.' is allowed
-                          const parts = e.target.value.split(".");
-                          if (parts.length > 2) {
-                            e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
-                          }
-                        }}
-                      />
-                    </div>
-                    <div class="col-md-2">
-                      <input
-                        type="text"
-                        class="form-control"
-                        id="messageSalary"
-                        placeholder="หมายเหตุ"
-                        value={messageSalary}
-                        onChange={(e) => setMessageSalary(e.target.value)}
-                        onInput={(e) => {
-                          // Remove any non-digit characters
-                          e.target.value = e.target.value.replace(
-                            /[^0-9.]/g,
-                            ""
-                          );
-
-                          // Ensure only one '.' is allowed
-                          const parts = e.target.value.split(".");
-                          if (parts.length > 2) {
-                            e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
-                          }
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-                {/* )} */}
-                <div>
-                  <br />
-                  <h3>เงินเพิ่ม</h3>
-                  {rows.map((row, index) => (
-                    <div className="row mb-3" key={index}>
-                      <div className="col-md-2">
-                        <input
-                          type="text"
-                          className="form-control"
-                          placeholder="รหัส"
-                          value={row.codeSpSalary}
-                          onChange={(e) =>
-                            handleInputChange(index, "codeSpSalary", e.target.value)
-                          }
-                          onInput={(e) => {
-                            // Remove any non-digit characters
-                            e.target.value = e.target.value.replace(
-                              /[^0-9.]/g,
-                              ""
-                            );
-
-                            // Ensure only one '.' is allowed
-                            const parts = e.target.value.split(".");
-                            if (parts.length > 2) {
-                              e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
-                            }
-                          }}
-                        />
-                      </div>
-                      <div className="col-md-2">
-                        <input
-                          type="text"
-                          className="form-control"
-                          placeholder="ชื่อ"
-                          value={row.name}
-                          onChange={(e) =>
-                            handleInputChange(index, "name", e.target.value)
-                          }
-                        />
-                      </div>
-                      <div className="col-md-2">
-                        <input
-                          type="text"
-                          className="form-control"
-                          placeholder="จำนวนเงิน"
-                          value={row.SpSalary}
-                          onChange={(e) =>
-                            handleInputChange(index, "SpSalary", e.target.value)
-                          }
-                          onInput={(e) => {
-                            // Remove any non-digit characters
-                            e.target.value = e.target.value.replace(
-                              /[^0-9.]/g,
-                              ""
-                            );
-
-                            // Ensure only one '.' is allowed
-                            const parts = e.target.value.split(".");
-                            if (parts.length > 2) {
-                              e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
-                            }
-                          }}
-                        />
-                      </div>
-                      <div className="col-md-3">
-                        <button
-                          type="button"
-                          className="btn btn-danger"
-                          onClick={() => handleRemoveRow(index)}
-                        >
-                          ลบ
-                        </button>
-                      </div>
-                      <br /></div>
-
-                  ))}
-                  <br />
-                  <button
-                    type="button"
-                    className="btn btn-primary mt-3"
-                    onClick={handleAddRow}
-                  >
-                    เพิ่ม
-                  </button>
-
-                </div>
-                <br />
-                <div class="row">
-                  <div class="col-md-3">
-                    <div className="mt-4">
-                      <label>รวมเงิน:</label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        value={calculateSum()}
-                        readOnly
-                      />
-                    </div>
-                  </div>
-                  <div class="col-md-3">
-                    <div className="mt-4">
-                      <label>รวมเงินเพิ่ม:</label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        value={calculateSumSpSalary()}
-                        readOnly
-                      />
-                    </div>
-                  </div>
-                  <div class="col-md-3">
-                    <div className="mt-4">
-                      <label>สุทธิ:</label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        value={calculateSum() + calculateSumSpSalary()}
-                        readOnly
-                      />
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              <div class="form-group">
-                <button type="button" class="btn b_save" onClick={handleAddTimeRecord}>
-                  <i class="fas fa-check"></i> &nbsp; เพิ่ม
+<div>
+      <h3>เงินเพิ่ม</h3>
+      <table className="table table-bordered">
+        <thead>
+          <tr>
+            <th style={{ width: "20%" }}>รหัส</th>
+            <th style={{ width: "30%" }}>ชื่อ</th>
+            <th style={{ width: "20%" }}>จำนวนเงิน</th>
+            <th style={{ width: "15%" }}>ลบ</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, index) => (
+            <tr key={index}>
+              <td>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="รหัส"
+                  value={row.codeSpSalary}
+                  onChange={(e) => handleInputChange(index, "codeSpSalary", e.target.value)}
+                />
+              </td>
+              <td>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="ชื่อ"
+                  value={row.name}
+                  onChange={(e) => handleInputChange(index, "name", e.target.value)}
+                />
+              </td>
+              <td>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="จำนวนเงิน"
+                  value={row.SpSalary}
+                  onChange={(e) => handleInputChange(index, "SpSalary", e.target.value)}
+                />
+              </td>
+              <td>
+                <button type="button" className="btn btn-danger" onClick={() => handleRemoveRow(index)}>
+                  ลบ
                 </button>
-              </div>
+              </td>
+            </tr>
+          ))}
+          {/* Last row with input fields and Add Button */}
+          <tr>
+            <td>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="รหัส"
+                value={newRow.codeSpSalary}
+                onChange={(e) => setNewRow({ ...newRow, codeSpSalary: e.target.value })}
+              />
+            </td>
+            <td>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="ชื่อ"
+                value={newRow.name}
+                onChange={(e) => setNewRow({ ...newRow, name: e.target.value })}
+              />
+            </td>
+            <td>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="จำนวนเงิน"
+                value={newRow.SpSalary}
+                onChange={(e) => setNewRow({ ...newRow, SpSalary: e.target.value })}
+              />
+            </td>
+            <td>
+              <button type="button" className="btn btn-primary" onClick={handleAddRow}>
+                เพิ่ม
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+{/* Summary Table */}
+<h3>สรุปรายการ</h3>
+<table className="table table-bordered">
+  <thead>
+    <tr>
+      <th style={{ width: "30%" }}>รวมเงิน</th>
+      <th style={{ width: "30%" }}>รวมเงินเพิ่ม</th>
+      <th style={{ width: "30%" }}>สุทธิ</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>
+        <input 
+          type="text" 
+          className="form-control" 
+          value={calculateSum()} 
+          readOnly 
+        />
+      </td>
+      <td>
+        <input 
+          type="text" 
+          className="form-control" 
+          value={calculateSumSpSalary()} 
+          readOnly 
+        />
+      </td>
+      <td>
+        <input 
+          type="text" 
+          className="form-control" 
+          value={calculateSum() + calculateSumSpSalary()} 
+          readOnly 
+        />
+      </td>
+    </tr>
+    <tr>
+      <td colSpan="3" className="text-start">
+        <button type="button" className="btn btn-primary mt-2" onClick={handleAddTimeRecord}>
+          เพิ่ม
+        </button>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+</section>
 
 
             </form>
@@ -2455,7 +2122,7 @@ setRows([
                                 {" "}
                                 {rowData.selectotTime}{" "}
                               </div>
-                              <div class="col-md-1" style={bordertable}>
+                              <div class="  col-md-1" style={bordertable}>
                                 {" "}
                                 {rowData.selectotTimeOut}{" "}
                               </div>
@@ -2511,6 +2178,7 @@ setRows([
                   </button>
                 )}
               </div>
+
             </form>
           </div>
         </div>
@@ -2521,3 +2189,4 @@ setRows([
 }
 
 export default AddsettimeWorkplaceReplace;
+

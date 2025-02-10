@@ -1565,387 +1565,220 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
             </form>
 
             <form onSubmit={handleManageWorkplace}>
-              <section class="Frame">
-                <div class="row">
-                  <div class="col-md-2">
-                    <div class="form-group">
-                      <label role="staffId">รหัสพนักงาน</label>
-                    </div>
-                  </div>
-                  <div class="col-md-2">
-                    <div class="form-group">
-                      <label role="staffName">ชื่อพนักงาน</label>
-                    </div>
-                  </div>
-                  <div class="col-md-2">
-                    <div class="form-group">
-                      <label role="shift">กะการทำงาน</label>
-                    </div>
-                  </div>
-                  <div class="col-md-1">
-                    <div class="form-group">
-                      <label role="startTime">เวลาเข้างาน</label>
-                    </div>
-                  </div>
-                  <div class="col-md-1">
-                    <div class="form-group">
-                      <label role="endTime">เวลาออกงาน</label>
-                    </div>
-                  </div>
-                  <div class="col-md-1">
-                    <div class="form-group">
-                      <label role="allTime">ชั่วโมงทำงาน</label>
-                    </div>
-                  </div>
-                  <div class="col-md-1">
-                    <div class="form-group">
-                      <label role="selectotTime">เวลาเข้า OT</label>
-                    </div>
-                  </div>
-                  <div class="col-md-1">
-                    <div class="form-group">
-                      <label role="selectotTimeOut">เวลาออก OT</label>
-                    </div>
-                  </div>
-                  <div class="col-md-1">
-                    <div class="form-group">
-                      <label role="otTime">ชั่วโมง OT</label>
-                    </div>
-                  </div>
-                </div>
 
-                <div class="row">
-                  <div className="col-md-2">
-                    <div className="form-group">
-                      <input
-                        type="text"
-                        className="form-control"
-                        id="staffId"
-                        placeholder="รหัสพนักงาน"
-                        value={staffId}
-                        onChange={handleStaffIdChange}
-                        list="staffIdList"
-                        onInput={(e) => {
-                          // Remove any non-digit characters
-                          e.target.value = e.target.value.replace(
-                            /[^0-9.]/g,
-                            ""
-                          );
+            <section className="Frame">
+  <div className="table-responsive">
+    <table className="table table-bordered table-sm text-center align-middle">
+      <thead>
+        <tr>
+          <th>รหัสพนักงาน</th>
+          <th>ชื่อพนักงาน</th>
+          <th>กะการทำงาน</th>
+          <th>เวลาเข้างาน</th>
+          <th>เวลาออกงาน</th>
+          <th>ชั่วโมงทำงาน</th>
+          <th>เวลาเข้า OT</th>
+          <th>เวลาออก OT</th>
+          <th>ชั่วโมง OT</th>
+          {shift === "specialt_shift" && (
+            <>
+              <th>จ่ายสด</th>
+              <th>เป็นเงิน</th>
+              <th>เป็นเงิน OT</th>
+              <th>หมายเหตุ</th>
+            </>
+          )}
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          {/* Employee ID */}
+          <td>
+            <input
+              type="text"
+              className="form-control text-center"
+              id="staffId"
+              placeholder="รหัสพนักงาน"
+              value={staffId}
+              onChange={handleStaffIdChange}
+              list="staffIdList"
+            />
+            <datalist id="staffIdList">
+              {employeeList.map((employee) => (
+                <option key={employee.employeeId} value={employee.employeeId} />
+              ))}
+            </datalist>
+          </td>
 
-                          // Ensure only one '.' is allowed
-                          const parts = e.target.value.split(".");
-                          if (parts.length > 2) {
-                            e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
-                          }
-                        }}
-                      />
-                      <datalist id="staffIdList">
-                        {employeeList.map((employee) => (
-                          <option
-                            key={employee.employeeId}
-                            value={employee.employeeId}
-                          />
-                        ))}
-                      </datalist>
-                    </div>
-                  </div>
-                  <div className="col-md-2">
-                    <div className="form-group">
-                      <input
-                        type="text"
-                        className="form-control"
-                        id="staffName"
-                        placeholder="ชื่อพนักงาน"
-                        value={staffFullName}
-                        onChange={handleStaffNameChange}
-                        list="staffNameList"
-                      />
-                      <datalist id="staffNameList">
-                        {employeeList.map((employee) => (
-                          <option
-                            key={employee.employeeId}
-                            value={employee.name + " " + employee.lastName}
-                          />
-                        ))}
-                      </datalist>
-                    </div>
-                  </div>
-                  {/* <div class="col-md-2">
-                                        <div class="form-group">
-                                            <input type="text" class="form-control" id="staffId" placeholder="รหัสพนักงาน" value={staffId} onChange={(e) => setStaffId(e.target.value)} />
-                                        </div>
-                                    </div>
-                                    <div class="col-md-2">
-                                        <div class="form-group">
-                                            <input type="text" class="form-control" id="staffName" placeholder="ชื่อพนักงาน" value={(staffName + " " + staffLastname)} onChange={(e) => setStaffName(e.target.value)} />
-                                        </div>
-                                    </div> */}
-                  <div class="col-md-2">
-                    <div class="form-group">
-                      {/* <label role="shift">กะการทำงาน</label> */}
-                      {/* <select className="form-control" value={shift} onChange={(e) => setShift(e.target.value)}  > */}
-                      {/* <select className="form-control" value={shift} onChange={(e) => handleShiftChange(e.target.value)}> */}
-                      <select
-                        className="form-control"
-                        value={shift}
-                        onChange={handleShiftChange}
-                      >
-                        {/* <option value="">เลือกกะการทำงาน</option> */}
-                        <option value="morning_shift">กะเช้า</option>
-                        <option value="afternoon_shift">กะบ่าย</option>
-                        <option value="night_shift">กะดึก</option>
-                        <option value="specialt_shift">กะพิเศษ</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div class="col-md-1">
-                    <div class="form-group">
-                      {/* <label role="startTime">เวลาเข้างาน</label> */}
-                      <input
-                        type="text"
-                        class="form-control"
-                        id="startTime"
-                        placeholder="เวลาเข้างาน"
-                        value={startTime}
-                        onChange={(e) => setStartTime(e.target.value)}
-                        onInput={(e) => {
-                          // Remove any non-digit characters
-                          e.target.value = e.target.value.replace(
-                            /[^0-9.]/g,
-                            ""
-                          );
+          {/* Employee Name */}
+          <td>
+            <input
+              type="text"
+              className="form-control text-center"
+              id="staffName"
+              placeholder="ชื่อพนักงาน"
+              value={staffFullName}
+              onChange={handleStaffNameChange}
+              list="staffNameList"
+            />
+            <datalist id="staffNameList">
+              {employeeList.map((employee) => (
+                <option
+                  key={employee.employeeId}
+                  value={`${employee.name} ${employee.lastName}`}
+                />
+              ))}
+            </datalist>
+          </td>
 
-                          // Ensure only one '.' is allowed
-                          const parts = e.target.value.split(".");
-                          if (parts.length > 2) {
-                            e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
-                          }
-                        }}
-                      />
-                    </div>
-                  </div>
-                  <div class="col-md-1">
-                    <div class="form-group">
-                      {/* <label role="endTime">เวลาออกงาน</label> */}
-                      <input
-                        type="text"
-                        class="form-control"
-                        id="endTime"
-                        placeholder="เวลาออกงาน"
-                        value={endTime}
-                        onChange={(e) => setEndTime(e.target.value)}
-                        onInput={(e) => {
-                          // Remove any non-digit characters
-                          e.target.value = e.target.value.replace(
-                            /[^0-9.]/g,
-                            ""
-                          );
+          {/* Work Shift */}
+          <td>
+            <select
+              className="form-control"
+              value={shift}
+              onChange={handleShiftChange}
+            >
+              <option value="morning_shift">กะเช้า</option>
+              <option value="afternoon_shift">กะบ่าย</option>
+              <option value="night_shift">กะดึก</option>
+              <option value="specialt_shift">กะพิเศษ</option>
+            </select>
+          </td>
 
-                          // Ensure only one '.' is allowed
-                          const parts = e.target.value.split(".");
-                          if (parts.length > 2) {
-                            e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
-                          }
-                        }}
-                      />
-                    </div>
-                  </div>
-                  <div class="col-md-1">
-                    <div class="form-group">
-                      {/* <label role="allTime">ชั่วโมงทำงาน</label> */}
-                      <input
-                        type="text"
-                        class="form-control"
-                        id="allTime"
-                        placeholder="ชั่วโมงทำงาน"
-                        value={allTime}
-                        onChange={(e) => setAllTime(e.target.value)}
-                        onInput={(e) => {
-                          // Remove any non-digit characters
-                          e.target.value = e.target.value.replace(
-                            /[^0-9.]/g,
-                            ""
-                          );
+          {/* Work Start Time */}
+          <td>
+            <input
+              type="text"
+              className="form-control text-center"
+              id="startTime"
+              placeholder="เวลาเข้างาน"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+            />
+          </td>
 
-                          // Ensure only one '.' is allowed
-                          const parts = e.target.value.split(".");
-                          if (parts.length > 2) {
-                            e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
-                          }
-                        }}
-                      />
-                    </div>
-                  </div>
-                  <div class="col-md-1">
-                    <div class="form-group">
-                      {/* <label role="selectotTime">เวลาเข้า OT</label> */}
-                      <input
-                        type="text"
-                        class="form-control"
-                        id="selectotTime"
-                        placeholder="เวลาเข้า OT"
-                        value={selectotTime}
-                        onChange={(e) => setSelectotTime(e.target.value)}
-                        onInput={(e) => {
-                          // Remove any non-digit characters
-                          e.target.value = e.target.value.replace(
-                            /[^0-9.]/g,
-                            ""
-                          );
+          {/* Work End Time */}
+          <td>
+            <input
+              type="text"
+              className="form-control text-center"
+              id="endTime"
+              placeholder="เวลาออกงาน"
+              value={endTime}
+              onChange={(e) => setEndTime(e.target.value)}
+            />
+          </td>
 
-                          // Ensure only one '.' is allowed
-                          const parts = e.target.value.split(".");
-                          if (parts.length > 2) {
-                            e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
-                          }
-                        }}
-                      />
-                    </div>
-                  </div>
-                  <div class="col-md-1">
-                    <div class="form-group">
-                      {/* <label role="selectotTimeOut">เวลาออก OT</label> */}
-                      <input
-                        type="text"
-                        class="form-control"
-                        id="selectotTimeOut"
-                        placeholder="เวลาออก OT"
-                        value={selectotTimeOut}
-                        onChange={(e) => setSelectotTimeOut(e.target.value)}
-                        onInput={(e) => {
-                          // Remove any non-digit characters
-                          e.target.value = e.target.value.replace(
-                            /[^0-9.]/g,
-                            ""
-                          );
+          {/* Work Hours */}
+          <td>
+            <input
+              type="text"
+              className="form-control text-center"
+              id="allTime"
+              placeholder="ชั่วโมงทำงาน"
+              value={allTime}
+              onChange={(e) => setAllTime(e.target.value)}
+            />
+          </td>
 
-                          // Ensure only one '.' is allowed
-                          const parts = e.target.value.split(".");
-                          if (parts.length > 2) {
-                            e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
-                          }
-                        }}
-                      />
-                    </div>
-                  </div>
-                  <div class="col-md-1">
-                    <div class="form-group">
-                      {/* <label role="otTime">ชั่วโมง OT</label> */}
-                      <input
-                        type="text"
-                        class="form-control"
-                        id="otTime"
-                        placeholder="ชั่วโมง OT"
-                        value={otTime}
-                        onChange={(e) => setOtTime(e.target.value)}
-                        onInput={(e) => {
-                          // Remove any non-digit characters
-                          e.target.value = e.target.value.replace(
-                            /[^0-9.]/g,
-                            ""
-                          );
+          {/* OT Start Time */}
+          <td>
+            <input
+              type="text"
+              className="form-control text-center"
+              id="selectotTime"
+              placeholder="เวลาเข้า OT"
+              value={selectotTime}
+              onChange={(e) => setSelectotTime(e.target.value)}
+            />
+          </td>
 
-                          // Ensure only one '.' is allowed
-                          const parts = e.target.value.split(".");
-                          if (parts.length > 2) {
-                            e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
-                          }
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-                {showInputs && shift === "specialt_shift" && (
-                  <div>
-                    <div class="row">
-                      <div class="col-md-1">
-                        <label>จ่ายสด</label>
-                      </div>
-                      <div class="col-md-2">
-                        <label role="specialtSalary">เป็นเงิน</label>
-                      </div>
-                      <div class="col-md-2">
-                        <label role="specialtSalaryOT">เป็นเงินOT</label>
-                      </div>
-                      <div class="col-md-2">
-                        <label role="messageSalary">หมายเหตุ</label>
-                      </div>
-                    </div>
-                    <div class="row">
-                      <div class="col-md-1">
-                        <input
-                          type="checkbox"
-                          class="form-control"
-                          checked={cashSalary}
-                          onChange={handleCheckboxChange}
-                        />
-                      </div>
-                      <div class="col-md-2">
-                        <input
-                          type="text"
-                          class="form-control"
-                          id="specialtSalary"
-                          placeholder="เป็นเงิน"
-                          value={specialtSalary}
-                          onChange={(e) => setSpecialtSalary(e.target.value)}
-                          onInput={(e) => {
-                            // Remove any non-digit characters
-                            e.target.value = e.target.value.replace(
-                              /[^0-9.]/g,
-                              ""
-                            );
+          {/* OT End Time */}
+          <td>
+            <input
+              type="text"
+              className="form-control text-center"
+              id="selectotTimeOut"
+              placeholder="เวลาออก OT"
+              value={selectotTimeOut}
+              onChange={(e) => setSelectotTimeOut(e.target.value)}
+            />
+          </td>
 
-                            // Ensure only one '.' is allowed
-                            const parts = e.target.value.split(".");
-                            if (parts.length > 2) {
-                              e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
-                            }
-                          }}
-                        />
-                      </div>
-                      <div class="col-md-2">
-                        <input
-                          type="text"
-                          class="form-control"
-                          id="specialtSalaryOT"
-                          placeholder="เป็นเงิน"
-                          value={specialtSalaryOT}
-                          onChange={(e) => setSpecialtSalaryOT(e.target.value)}
-                          onInput={(e) => {
-                            // Remove any non-digit characters
-                            e.target.value = e.target.value.replace(
-                              /[^0-9.]/g,
-                              ""
-                            );
+          {/* OT Hours */}
+          <td>
+            <input
+              type="text"
+              className="form-control text-center"
+              id="otTime"
+              placeholder="ชั่วโมง OT"
+              value={otTime}
+              onChange={(e) => setOtTime(e.target.value)}
+            />
+          </td>
 
-                            // Ensure only one '.' is allowed
-                            const parts = e.target.value.split(".");
-                            if (parts.length > 2) {
-                              e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
-                            }
-                          }}
-                        />
-                      </div>
-                      <div class="col-md-2">
-                        <input
-                          type="text"
-                          class="form-control"
-                          id="messageSalary"
-                          placeholder="หมายเหตุ"
-                          value={messageSalary}
-                          onChange={(e) => setMessageSalary(e.target.value)}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </section>
+          {/* Special Shift Salary Fields (Only for กะพิเศษ) */}
+          {shift === "specialt_shift" && (
+            <>
+              <td>
+                <input
+                  type="checkbox"
+                  className="form-control"
+                  checked={cashSalary}
+                  onChange={handleCheckboxChange}
+                />
+              </td>
+              <td>
+                <input
+                  type="text"
+                  className="form-control text-center"
+                  id="specialtSalary"
+                  placeholder="เป็นเงิน"
+                  value={specialtSalary}
+                  onChange={(e) => setSpecialtSalary(e.target.value)}
+                />
+              </td>
+              <td>
+                <input
+                  type="text"
+                  className="form-control text-center"
+                  id="specialtSalaryOT"
+                  placeholder="OT เป็นเงิน"
+                  value={specialtSalaryOT}
+                  onChange={(e) => setSpecialtSalaryOT(e.target.value)}
+                />
+              </td>
+              <td>
+                <input
+                  type="text"
+                  className="form-control text-center"
+                  id="messageSalary"
+                  placeholder="หมายเหตุ"
+                  value={messageSalary}
+                  onChange={(e) => setMessageSalary(e.target.value)}
+                />
+              </td>
+            </>
+          )}
+        </tr>
+      </tbody>
+    </table>
+  </div>
 
-              <div class="form-group">
+  {/* Submit Button */}
+  <div className="form-group mt-3">
+    <button className="btn b_save">
+      <i className="fas fa-check"></i> &nbsp; เพิ่ม
+    </button>
+  </div>
+</section>
+
+              {/* <div class="form-group">
                 <button class="btn b_save">
                   <i class="fas fa-check"></i> &nbsp; เพิ่ม
                 </button>
-              </div>
+              </div> */}
+
             </form>
 
             <form onSubmit={handleManageWorkplace}>
@@ -2145,5 +1978,383 @@ export default AddsettimeWorkplace;
 //     )}
 //   </div>
 // </div>
+// </section>
+
+// =========
+
+// <section class="Frame">
+// <div class="row">
+//   <div class="col-md-2">
+//     <div class="form-group">
+//       <label role="staffId">รหัสพนักงาน</label>
+//     </div>
+//   </div>
+//   <div class="col-md-2">
+//     <div class="form-group">
+//       <label role="staffName">ชื่อพนักงาน</label>
+//     </div>
+//   </div>
+//   <div class="col-md-2">
+//     <div class="form-group">
+//       <label role="shift">กะการทำงาน</label>
+//     </div>
+//   </div>
+//   <div class="col-md-1">
+//     <div class="form-group">
+//       <label role="startTime">เวลาเข้างาน</label>
+//     </div>
+//   </div>
+//   <div class="col-md-1">
+//     <div class="form-group">
+//       <label role="endTime">เวลาออกงาน</label>
+//     </div>
+//   </div>
+//   <div class="col-md-1">
+//     <div class="form-group">
+//       <label role="allTime">ชั่วโมงทำงาน</label>
+//     </div>
+//   </div>
+//   <div class="col-md-1">
+//     <div class="form-group">
+//       <label role="selectotTime">เวลาเข้า OT</label>
+//     </div>
+//   </div>
+//   <div class="col-md-1">
+//     <div class="form-group">
+//       <label role="selectotTimeOut">เวลาออก OT</label>
+//     </div>
+//   </div>
+//   <div class="col-md-1">
+//     <div class="form-group">
+//       <label role="otTime">ชั่วโมง OT</label>
+//     </div>
+//   </div>
+// </div>
+
+// <div class="row">
+//   <div className="col-md-2">
+//     <div className="form-group">
+//       <input
+//         type="text"
+//         className="form-control"
+//         id="staffId"
+//         placeholder="รหัสพนักงาน"
+//         value={staffId}
+//         onChange={handleStaffIdChange}
+//         list="staffIdList"
+//         onInput={(e) => {
+//           // Remove any non-digit characters
+//           e.target.value = e.target.value.replace(
+//             /[^0-9.]/g,
+//             ""
+//           );
+
+//           // Ensure only one '.' is allowed
+//           const parts = e.target.value.split(".");
+//           if (parts.length > 2) {
+//             e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
+//           }
+//         }}
+//       />
+//       <datalist id="staffIdList">
+//         {employeeList.map((employee) => (
+//           <option
+//             key={employee.employeeId}
+//             value={employee.employeeId}
+//           />
+//         ))}
+//       </datalist>
+//     </div>
+//   </div>
+//   <div className="col-md-2">
+//     <div className="form-group">
+//       <input
+//         type="text"
+//         className="form-control"
+//         id="staffName"
+//         placeholder="ชื่อพนักงาน"
+//         value={staffFullName}
+//         onChange={handleStaffNameChange}
+//         list="staffNameList"
+//       />
+//       <datalist id="staffNameList">
+//         {employeeList.map((employee) => (
+//           <option
+//             key={employee.employeeId}
+//             value={employee.name + " " + employee.lastName}
+//           />
+//         ))}
+//       </datalist>
+//     </div>
+//   </div>
+//   {/* <div class="col-md-2">
+//                         <div class="form-group">
+//                             <input type="text" class="form-control" id="staffId" placeholder="รหัสพนักงาน" value={staffId} onChange={(e) => setStaffId(e.target.value)} />
+//                         </div>
+//                     </div>
+//                     <div class="col-md-2">
+//                         <div class="form-group">
+//                             <input type="text" class="form-control" id="staffName" placeholder="ชื่อพนักงาน" value={(staffName + " " + staffLastname)} onChange={(e) => setStaffName(e.target.value)} />
+//                         </div>
+//                     </div> */}
+//   <div class="col-md-2">
+//     <div class="form-group">
+//       {/* <label role="shift">กะการทำงาน</label> */}
+//       {/* <select className="form-control" value={shift} onChange={(e) => setShift(e.target.value)}  > */}
+//       {/* <select className="form-control" value={shift} onChange={(e) => handleShiftChange(e.target.value)}> */}
+//       <select
+//         className="form-control"
+//         value={shift}
+//         onChange={handleShiftChange}
+//       >
+//         {/* <option value="">เลือกกะการทำงาน</option> */}
+//         <option value="morning_shift">กะเช้า</option>
+//         <option value="afternoon_shift">กะบ่าย</option>
+//         <option value="night_shift">กะดึก</option>
+//         <option value="specialt_shift">กะพิเศษ</option>
+//       </select>
+//     </div>
+//   </div>
+//   <div class="col-md-1">
+//     <div class="form-group">
+//       {/* <label role="startTime">เวลาเข้างาน</label> */}
+//       <input
+//         type="text"
+//         class="form-control"
+//         id="startTime"
+//         placeholder="เวลาเข้างาน"
+//         value={startTime}
+//         onChange={(e) => setStartTime(e.target.value)}
+//         onInput={(e) => {
+//           // Remove any non-digit characters
+//           e.target.value = e.target.value.replace(
+//             /[^0-9.]/g,
+//             ""
+//           );
+
+//           // Ensure only one '.' is allowed
+//           const parts = e.target.value.split(".");
+//           if (parts.length > 2) {
+//             e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
+//           }
+//         }}
+//       />
+//     </div>
+//   </div>
+//   <div class="col-md-1">
+//     <div class="form-group">
+//       {/* <label role="endTime">เวลาออกงาน</label> */}
+//       <input
+//         type="text"
+//         class="form-control"
+//         id="endTime"
+//         placeholder="เวลาออกงาน"
+//         value={endTime}
+//         onChange={(e) => setEndTime(e.target.value)}
+//         onInput={(e) => {
+//           // Remove any non-digit characters
+//           e.target.value = e.target.value.replace(
+//             /[^0-9.]/g,
+//             ""
+//           );
+
+//           // Ensure only one '.' is allowed
+//           const parts = e.target.value.split(".");
+//           if (parts.length > 2) {
+//             e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
+//           }
+//         }}
+//       />
+//     </div>
+//   </div>
+//   <div class="col-md-1">
+//     <div class="form-group">
+//       {/* <label role="allTime">ชั่วโมงทำงาน</label> */}
+//       <input
+//         type="text"
+//         class="form-control"
+//         id="allTime"
+//         placeholder="ชั่วโมงทำงาน"
+//         value={allTime}
+//         onChange={(e) => setAllTime(e.target.value)}
+//         onInput={(e) => {
+//           // Remove any non-digit characters
+//           e.target.value = e.target.value.replace(
+//             /[^0-9.]/g,
+//             ""
+//           );
+
+//           // Ensure only one '.' is allowed
+//           const parts = e.target.value.split(".");
+//           if (parts.length > 2) {
+//             e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
+//           }
+//         }}
+//       />
+//     </div>
+//   </div>
+//   <div class="col-md-1">
+//     <div class="form-group">
+//       {/* <label role="selectotTime">เวลาเข้า OT</label> */}
+//       <input
+//         type="text"
+//         class="form-control"
+//         id="selectotTime"
+//         placeholder="เวลาเข้า OT"
+//         value={selectotTime}
+//         onChange={(e) => setSelectotTime(e.target.value)}
+//         onInput={(e) => {
+//           // Remove any non-digit characters
+//           e.target.value = e.target.value.replace(
+//             /[^0-9.]/g,
+//             ""
+//           );
+
+//           // Ensure only one '.' is allowed
+//           const parts = e.target.value.split(".");
+//           if (parts.length > 2) {
+//             e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
+//           }
+//         }}
+//       />
+//     </div>
+//   </div>
+//   <div class="col-md-1">
+//     <div class="form-group">
+//       {/* <label role="selectotTimeOut">เวลาออก OT</label> */}
+//       <input
+//         type="text"
+//         class="form-control"
+//         id="selectotTimeOut"
+//         placeholder="เวลาออก OT"
+//         value={selectotTimeOut}
+//         onChange={(e) => setSelectotTimeOut(e.target.value)}
+//         onInput={(e) => {
+//           // Remove any non-digit characters
+//           e.target.value = e.target.value.replace(
+//             /[^0-9.]/g,
+//             ""
+//           );
+
+//           // Ensure only one '.' is allowed
+//           const parts = e.target.value.split(".");
+//           if (parts.length > 2) {
+//             e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
+//           }
+//         }}
+//       />
+//     </div>
+//   </div>
+//   <div class="col-md-1">
+//     <div class="form-group">
+//       {/* <label role="otTime">ชั่วโมง OT</label> */}
+//       <input
+//         type="text"
+//         class="form-control"
+//         id="otTime"
+//         placeholder="ชั่วโมง OT"
+//         value={otTime}
+//         onChange={(e) => setOtTime(e.target.value)}
+//         onInput={(e) => {
+//           // Remove any non-digit characters
+//           e.target.value = e.target.value.replace(
+//             /[^0-9.]/g,
+//             ""
+//           );
+
+//           // Ensure only one '.' is allowed
+//           const parts = e.target.value.split(".");
+//           if (parts.length > 2) {
+//             e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
+//           }
+//         }}
+//       />
+//     </div>
+//   </div>
+// </div>
+// {showInputs && shift === "specialt_shift" && (
+//   <div>
+//     <div class="row">
+//       <div class="col-md-1">
+//         <label>จ่ายสด</label>
+//       </div>
+//       <div class="col-md-2">
+//         <label role="specialtSalary">เป็นเงิน</label>
+//       </div>
+//       <div class="col-md-2">
+//         <label role="specialtSalaryOT">เป็นเงินOT</label>
+//       </div>
+//       <div class="col-md-2">
+//         <label role="messageSalary">หมายเหตุ</label>
+//       </div>
+//     </div>
+//     <div class="row">
+//       <div class="col-md-1">
+//         <input
+//           type="checkbox"
+//           class="form-control"
+//           checked={cashSalary}
+//           onChange={handleCheckboxChange}
+//         />
+//       </div>
+//       <div class="col-md-2">
+//         <input
+//           type="text"
+//           class="form-control"
+//           id="specialtSalary"
+//           placeholder="เป็นเงิน"
+//           value={specialtSalary}
+//           onChange={(e) => setSpecialtSalary(e.target.value)}
+//           onInput={(e) => {
+//             // Remove any non-digit characters
+//             e.target.value = e.target.value.replace(
+//               /[^0-9.]/g,
+//               ""
+//             );
+
+//             // Ensure only one '.' is allowed
+//             const parts = e.target.value.split(".");
+//             if (parts.length > 2) {
+//               e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
+//             }
+//           }}
+//         />
+//       </div>
+//       <div class="col-md-2">
+//         <input
+//           type="text"
+//           class="form-control"
+//           id="specialtSalaryOT"
+//           placeholder="เป็นเงิน"
+//           value={specialtSalaryOT}
+//           onChange={(e) => setSpecialtSalaryOT(e.target.value)}
+//           onInput={(e) => {
+//             // Remove any non-digit characters
+//             e.target.value = e.target.value.replace(
+//               /[^0-9.]/g,
+//               ""
+//             );
+
+//             // Ensure only one '.' is allowed
+//             const parts = e.target.value.split(".");
+//             if (parts.length > 2) {
+//               e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
+//             }
+//           }}
+//         />
+//       </div>
+//       <div class="col-md-2">
+//         <input
+//           type="text"
+//           class="form-control"
+//           id="messageSalary"
+//           placeholder="หมายเหตุ"
+//           value={messageSalary}
+//           onChange={(e) => setMessageSalary(e.target.value)}
+//         />
+//       </div>
+//     </div>
+//   </div>
+// )}
 // </section>
 

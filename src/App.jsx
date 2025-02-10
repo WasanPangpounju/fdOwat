@@ -63,6 +63,8 @@ import Salaryresult from "./conponents/componentsAside/SalaryResult";
 import SalaryAllResult from "./conponents/componentsAside/SalaryAllResult";
 import SalaryAllResultAudit from "./conponents/componentsAside/SalaryAllResultAudit";
 
+
+import AddsettimeReplace from "./conponents/componentsAside/AddsettimeReplace";
 import ReplaceReport from "./conponents/componentsAside/ReplaceReport";
 import ReplaceWorkplaceReport from "./conponents/componentsAside/ReplaceWorkplaceReport";
 import ReplaceEmployeeReport from "./conponents/componentsAside/ReplaceEmployeeReport";
@@ -303,6 +305,12 @@ function App() {
                 path="/addsettime"
                 element={<Addsettime workplaceList={workplaceList} employeeList={employeeList}/>}
               />
+
+              <Route
+                              path="/addsettimereplace"
+                element={<AddsettimeReplace workplaceList={workplaceList} employeeList={employeeList}/>}
+              />
+
               {/* <Route path="/addsettimeupload" element={<AddsettimeUpload workplaceList={workplaceList}/>} /> */}
               <Route path="/application" element={<Application />} />
               <Route path="/applicatio1" element={<Application1 />} />
