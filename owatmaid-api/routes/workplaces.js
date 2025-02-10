@@ -19,25 +19,25 @@ mongoose.connect(connectionString, {
 const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'MongoDB connection error:'));
 
-// // ✅ Define Employee Schema
-// const EmployeeSchema = new mongoose.Schema({
-//     positionWork: { type: String, required: true }, // Job Position
-//     countPerson: { type: Number, required: true }, // Number of People
-//   });
+// ✅ Define Employee Schema
+const EmployeeSchema = new mongoose.Schema({
+    positionWork: { type: String, required: true }, // Job Position
+    countPerson: { type: Number, required: true }, // Number of People
+  });
   
-//   // ✅ Define Special Work Time Schema
-//   const SpecialWorkTimeSchema = new mongoose.Schema({
-//     day: { type: String, required: true }, // Work Date (Format: dd/MM/yyyy)
-//     shift: { type: String, enum: ["กะเช้า", "กะบ่าย", "กะดึก", "กะพิเศษ"], required: true }, // Shift Type
-//     startTime: { type: String, required: true }, // Start Work Time
-//     endTime: { type: String, required: true }, // End Work Time
-//     startTimeOT: { type: String }, // OT Start Time
-//     endTimeOT: { type: String }, // OT End Time
-//     payment: { type: Number, required: true }, // Payment per Shift
-//     paymentOT: { type: Number }, // OT Payment
-//     workDetail: { type: String }, // Work Details
-//     employees: [EmployeeSchema], // Employees Assigned
-//   });
+  // ✅ Define Special Work Time Schema
+  const SpecialWorkTimeSchema = new mongoose.Schema({
+    day: { type: String, required: true }, // Work Date (Format: dd/MM/yyyy)
+    shift: { type: String, enum: ["กะเช้า", "กะบ่าย", "กะดึก", "กะพิเศษ"], required: true }, // Shift Type
+    startTime: { type: String, required: true }, // Start Work Time
+    endTime: { type: String, required: true }, // End Work Time
+    startTimeOT: { type: String }, // OT Start Time
+    endTimeOT: { type: String }, // OT End Time
+    payment: { type: Number, required: true }, // Payment per Shift
+    paymentOT: { type: Number }, // OT Payment
+    workDetail: { type: String }, // Work Details
+    employees: [EmployeeSchema], // Employees Assigned
+  });
 
 // Define workplace schema
 const workplaceSchema = new mongoose.Schema({
@@ -262,24 +262,24 @@ const workplaceSchema = new mongoose.Schema({
         }]
     }],
 
-    specialWorkTimeDay: [{
-        day: String,
-        shift: String,
-        startTime: String,
-        endTime: String,
-        startTimeOT: String,
-        endTimeOT: String,
-        payment: String,
-        paymentOT: String,
-        workDetail: String,
-        employees: [{
-            positionWork: String,
-            countPerson: String
-        }]
-    }],
+    // specialWorkTimeDay: [{
+    //     day: String,
+    //     shift: String,
+    //     startTime: String,
+    //     endTime: String,
+    //     startTimeOT: String,
+    //     endTimeOT: String,
+    //     payment: String,
+    //     paymentOT: String,
+    //     workDetail: String,
+    //     employees: [{
+    //         positionWork: String,
+    //         countPerson: String
+    //     }]
+    // }],
 
-//       // ✅ New Special Work Time Field
-//   specialWorkDay: [SpecialWorkTimeSchema],
+      // ✅ New Special Work Time Field
+      specialWorkTimeDay: [SpecialWorkTimeSchema],
 });
 
 // Create the workplace model based on the schema

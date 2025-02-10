@@ -837,7 +837,7 @@ function Setting({ workplaceList, employeeList }) {
     event.preventDefault();
     //clean list employee
     setShowEmployeeListResult([]);
-    setWorkTimeDay_specialwork([]);
+    // setWorkTimeDay_specialwork([]);
 
     //get value from form search
     const data = {
@@ -971,7 +971,7 @@ function Setting({ workplaceList, employeeList }) {
     setworkRateDayoffRate(workplace.workRateDayoffRate);
     setWorkplaceAddress(workplace.workplaceAddress);
     //setSelectedDates([...selectedDates, workplace.daysOff]);
-setWorkTimeDay_specialwork(workplace.specialWorkTimeDay);
+setWorkTimeDay_specialwork(workplace.specialWorkTimeDay || []);
 
     ////////work day
     if (workplace.workday1 == "false") {
