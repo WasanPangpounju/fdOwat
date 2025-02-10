@@ -21,22 +21,22 @@ db.on('error', console.error.bind(console, 'MongoDB connection error:'));
 
 // ✅ Define Employee Schema
 const EmployeeSchema = new mongoose.Schema({
-    positionWork: { type: String, required: true }, // Job Position
-    countPerson: { type: Number, required: true }, // Number of People
+    positionWork_specialwork: { type: String, required: true }, // Job Position
+    countPerson_specialwork: { type: Number, required: true }, // Number of People
   });
   
   // ✅ Define Special Work Time Schema
   const SpecialWorkTimeSchema = new mongoose.Schema({
-    day: { type: String, required: true }, // Work Date (Format: dd/MM/yyyy)
-    shift: { type: String, enum: ["กะเช้า", "กะบ่าย", "กะดึก", "กะพิเศษ"], required: true }, // Shift Type
-    startTime: { type: String, required: true }, // Start Work Time
-    endTime: { type: String, required: true }, // End Work Time
-    startTimeOT: { type: String }, // OT Start Time
-    endTimeOT: { type: String }, // OT End Time
-    payment: { type: Number, required: true }, // Payment per Shift
-    paymentOT: { type: Number }, // OT Payment
-    workDetail: { type: String }, // Work Details
-    employees: [EmployeeSchema], // Employees Assigned
+    day_specialwork: { type: String, required: true }, // Work Date (Format: dd/MM/yyyy)
+    shift_specialwork: { type: String, enum: ["กะเช้า", "กะบ่าย", "กะดึก", "กะพิเศษ"], required: true }, // Shift Type
+    startTime_specialwork: { type: String, required: true }, // Start Work Time
+    endTime_specialwork: { type: String, required: true }, // End Work Time
+    startTimeOT_specialwork: { type: String }, // OT Start Time
+    endTimeOT_specialwork: { type: String }, // OT End Time
+    payment_specialwork: { type: Number, required: true }, // Payment per Shift
+    paymentOT_specialwork: { type: Number }, // OT Payment
+    workDetail_specialwork: { type: String }, // Work Details
+    employees_specialwork: [EmployeeSchema], // Employees Assigned
   });
 
 // Define workplace schema

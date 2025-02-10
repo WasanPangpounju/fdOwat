@@ -971,7 +971,8 @@ function Setting({ workplaceList, employeeList }) {
     setworkRateDayoffRate(workplace.workRateDayoffRate);
     setWorkplaceAddress(workplace.workplaceAddress);
     //setSelectedDates([...selectedDates, workplace.daysOff]);
-setWorkTimeDay_specialwork(workplace.specialWorkTimeDay || []);
+setWorkTimeDayList_specialwork(workplace.specialWorkTimeDay || []);
+alert(JSON.stringify(workplace.specialWorkTimeDay ))
 
     ////////work day
     if (workplace.workday1 == "false") {
@@ -1200,7 +1201,7 @@ setWorkRateChange(workplace.workRateChange)
       listSpecialWorktime: listSpecialWorktime,
       workTimeDay: workTimeDayList,
       workTimeDayPerson: workTimeDayPersonList,
-      specialWorkTimeDay: workTimeDayList_specialwork
+      // specialWorkTimeDay: workTimeDayList_specialwork || []
     };
 
     // if (file) {
