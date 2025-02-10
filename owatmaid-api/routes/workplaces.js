@@ -19,6 +19,25 @@ mongoose.connect(connectionString, {
 const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'MongoDB connection error:'));
 
+// ✅ Define Employee Schema
+const EmployeeSchema = new mongoose.Schema({
+    positionWork: { type: String, required: true }, // Job Position
+    countPerson: { type: Number, required: true }, // Number of People
+  });
+  
+  // ✅ Define Special Work Time Schema
+  const SpecialWorkTimeSchema = new mongoose.Schema({
+    day: { type: String, required: true }, // Work Date (Format: dd/MM/yyyy)
+    shift: { type: String, enum: ["กะเช้า", "กะบ่าย", "กะดึก", "กะพิเศษ"], required: true }, // Shift Type
+    startTime: { type: String, required: true }, // Start Work Time
+    endTime: { type: String, required: true }, // End Work Time
+    startTimeOT: { type: String }, // OT Start Time
+    endTimeOT: { type: String }, // OT End Time
+    payment: { type: Number, required: true }, // Payment per Shift
+    paymentOT: { type: Number }, // OT Payment
+    workDetail: { type: String }, // Work Details
+    employees: [EmployeeSchema], // Employees Assigned
+  });
 
 // Define workplace schema
 const workplaceSchema = new mongoose.Schema({
@@ -259,6 +278,8 @@ const workplaceSchema = new mongoose.Schema({
         }]
     }],
 
+      // ✅ New Special Work Time Field
+  specialWorkTimeDay: [SpecialWorkTimeSchema],
 });
 
 // Create the workplace model based on the schema
@@ -875,5 +896,48 @@ async function getDayNumberFromDate(dateString) {
     }
     return dayNumber;
   }
+
+  // ✅ Add Special Work Schedule to a Workplace
+router.post("/add-work-schedule/:workplaceId", async (req, res) => {
+    try {
+      const workplace = await Workplace.findOne({ workplaceId: req.params.workplaceId });
+      if (!workplace) return res.status(404).json({ message: "Workplace Not Found" });
+  
+      workplace.specialWorkTimeDay.push(req.body); // Add new work schedule
+      await workplace.save();
+      res.status(201).json({ message: "Work Schedule Added Successfully", data: workplace });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // ✅ Get All Work Schedules for a Workplace
+  router.get("/work-schedule/:workplaceId", async (req, res) => {
+    try {
+      const workplace = await Workplace.findOne({ workplaceId: req.params.workplaceId });
+      if (!workplace) return res.status(404).json({ message: "Workplace Not Found" });
+  
+      res.status(200).json(workplace.specialWorkTimeDay);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // ✅ Delete a Work Schedule Entry
+  router.delete("/work-schedule/:workplaceId/:scheduleId", async (req, res) => {
+    try {
+      const workplace = await Workplace.findOne({ workplaceId: req.params.workplaceId });
+      if (!workplace) return res.status(404).json({ message: "Workplace Not Found" });
+  
+      workplace.specialWorkTimeDay = workplace.specialWorkTimeDay.filter(
+        (schedule) => schedule._id.toString() !== req.params.scheduleId
+      );
+  
+      await workplace.save();
+      res.status(200).json({ message: "Deleted Successfully" });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
   
 module.exports = router;
