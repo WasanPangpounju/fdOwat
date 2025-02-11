@@ -2528,16 +2528,6 @@ await workplacesearch.workplaceGroup[departmentIndex]
   </div>
 </section>
               
-              {/* <div class="col-md-1">
-                                <div class="">
-                                    <button class="btn b_save"><i class="fas fa-check"></i> &nbsp; เพิ่ม</button>
-                                </div>
-                            </div> */}
-              <div class="form-group">
-                <button class="btn b_save">
-                  <i class="fas fa-check"></i> &nbsp; เพิ่ม
-                </button>
-              </div>
             </form>
 
             <form onSubmit={handleManageWorkplace}>

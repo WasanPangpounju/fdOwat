@@ -972,7 +972,7 @@ function Setting({ workplaceList, employeeList }) {
     setWorkplaceAddress(workplace.workplaceAddress);
     //setSelectedDates([...selectedDates, workplace.daysOff]);
 setWorkTimeDayList_specialwork(workplace.specialWorkTimeDay || []);
-alert(JSON.stringify(workplace.specialWorkTimeDay ))
+// alert(JSON.stringify(workplace.specialWorkTimeDay ))
 
     ////////work day
     if (workplace.workday1 == "false") {
@@ -3477,52 +3477,68 @@ setWorkRateChange(workplace.workRateChange)
         </div>
       </div>
 
-      {/* Work Time Inputs */}
-      <div className="table-responsive">
-        <table className="table table-bordered text-center align-middle">
-          <thead className="thead-dark">
-            <tr>
-              <th>กะ</th>
-              <th>เวลาเข้า</th>
-              <th>เวลาออก</th>
-              <th>เวลาเข้า OT</th>
-              <th>เวลาออก OT</th>
-              <th>อัตราค่าจ้าง</th>
-              <th>อัตราค่าจ้าง OT</th>
-              <th>รายละเอียดงาน</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>
-                <select name="shift_specialwork" className="form-control" value={workTimeDay_specialwork.shift_specialwork} onChange={handleInputChange_specialwork}>
-                  <option value="">เลือกกะ</option>
-                  {shiftWork_specialwork.map((shift, index) => (
-                    <option key={index} value={shift}>
-                      {shift}
-                    </option>
-                  ))}
-                </select>
-              </td>
-              {["startTime_specialwork", "endTime_specialwork", "startTimeOT_specialwork", "endTimeOT_specialwork", "payment_specialwork", "paymentOT_specialwork"].map((field, idx) => (
-                <td key={idx}>
-                  <input type="text" name={field} className="form-control" placeholder={field} value={workTimeDay_specialwork[field]} onChange={handleInputChange_specialwork} />
-                </td>
-              ))}
-              <td>
-                <input type="text" name="workDetail_specialwork" className="form-control" placeholder="รายละเอียดงาน" value={workTimeDay_specialwork.workDetail_specialwork} onChange={handleInputChange_specialwork} />
-              </td>
-            </tr>
-          </tbody>
-        </table>
+{/* Work Time Inputs using Bootstrap Grid */}
+  <div className="row text-center font-weight-bold mb-2">
+    <div className="col-md-1">กะ</div>
+    <div className="col-md-1">เวลาเข้า</div>
+    <div className="col-md-1">เวลาออก</div>
+    <div className="col-md-1">เวลาเข้า OT</div>
+    <div className="col-md-1">เวลาออก OT</div>
+    <div className="col-md-1">ค่าจ้าง</div>
+    <div className="col-md-1">ค่าจ้าง OT</div>
+    <div className="col-md-3">รายละเอียดงาน</div>
+  </div>
+
+  <div className="row align-items-center mb-3">
+    <div className="col-md-1">
+      <select
+        name="shift_specialwork"
+        className="form-control"
+        value={workTimeDay_specialwork.shift_specialwork}
+        onChange={handleInputChange_specialwork}
+      >
+        <option value="">เลือกกะ</option>
+        {shiftWork_specialwork.map((shift, index) => (
+          <option key={index} value={shift}>
+            {shift}
+          </option>
+        ))}
+      </select>
+    </div>
+
+    {["startTime_specialwork", "endTime_specialwork", "startTimeOT_specialwork", "endTimeOT_specialwork", "payment_specialwork", "paymentOT_specialwork"].map((field, idx) => (
+      <div key={idx} className="col-md-1">
+        <input
+          type="text"
+          name={field}
+          className="form-control"
+          placeholder={field.replace("_specialwork", "")}
+          value={workTimeDay_specialwork[field]}
+          onChange={handleInputChange_specialwork}
+        />
       </div>
+    ))}
+
+    <div className="col-md-3">
+      <input
+        type="text"
+        name="workDetail_specialwork"
+        className="form-control"
+        placeholder="รายละเอียดงาน"
+        value={workTimeDay_specialwork.workDetail_specialwork}
+        onChange={handleInputChange_specialwork}
+      />
+    </div>
+  </div>
+
 
       {/* ✅ Employees Input Section */}
       <h5 className="mt-4">ตำแหน่งและจำนวนคน</h5>
+      <div className="d-flex justify-content-start mt-3 mb-4">
       <button type="button" className="btn btn-success mb-2" onClick={handleAddTimePerson_specialwork}>
         + เพิ่มตำแหน่ง
       </button>
-      <br />
+      </div>
       
       <div className="table-responsive">
         <table className="table table-bordered text-center align-middle">
@@ -3560,10 +3576,16 @@ setWorkRateChange(workplace.workRateChange)
         </table>
       </div>
 
-      {/* ✅ Add Work Time Button */}
-      <button type="button" className="btn btn-primary mt-3" onClick={handleAddTimeList_specialwork}>
-        ➕ เพิ่มรายการวันทำงาน
-      </button>
+  <div className="d-flex justify-content-start mt-3 mb-5">
+  <button
+    type="button"
+    className="btn btn-primary"
+    onClick={handleAddTimeList_specialwork}
+  >
+    ➕ เพิ่มรายการ
+  </button>
+</div>
+
 
 {/* ✅ Display Work Schedule List */}
 {workTimeDayList_specialwork.length > 0 && (
