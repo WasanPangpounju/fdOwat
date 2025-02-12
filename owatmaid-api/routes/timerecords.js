@@ -373,50 +373,126 @@ router.post('/searchemp', async (req, res) => {
 //   }
 // });
 
-
-// Create new employee timerecord 
+// Create new employee time record
 router.post('/createemp', async (req, res) => {
-  const currentDate = new Date();
-  const currentYear = currentDate.getFullYear();
-  //const timerecordId = currentYear;
-
   const {
-timerecordId,
+    timerecordId,
     employeeId,
     employeeName,
     month,
     employee_workplaceRecord
   } = req.body;
 
-
-  // Create workplace
-  const workplaceTimeRecordData = new workplaceTimerecordEmp({
-timerecordId,
-    employeeId,
-    employeeName,
-    month,
-    employee_workplaceRecord
-  });
-console.log(workplaceTimeRecordData );
-
   try {
-    // Delete existing records for the same employee and month timerecordId
-    await workplaceTimerecordEmp.deleteMany({
+    // Delete existing records for the same employee and month
+    await workplaceTimerecordEmp.deleteMany({ timerecordId, employeeId, month });
+
+    // Create new employee record
+    const workplaceTimeRecordData = new workplaceTimerecordEmp({
       timerecordId,
       employeeId,
       employeeName,
-      month    });
-      
+      month,
+      employee_workplaceRecord
+    });
+
     await workplaceTimeRecordData.save();
- 
-    await res.json(workplaceTimeRecordData);
+
+    // Iterate through each employee_workplaceRecord to update workplaceTimerecord
+    for (const record of employee_workplaceRecord) {
+      const { workplaceId, workplaceName, wGroup, date } = record;
+
+      // Find the existing workplace record
+      let workplaceRecord = await workplaceTimerecord.findOne({ timerecordId, workplaceId });
+
+      if (workplaceRecord) {
+        // If workplace record exists, update employeeRecord array
+        const existingEmployeeIndex = workplaceRecord.employeeRecord.findIndex(emp => emp.staffId === employeeId);
+        
+        if (existingEmployeeIndex !== -1) {
+          // Update existing employee record
+          workplaceRecord.employeeRecord[existingEmployeeIndex] = {
+            ...workplaceRecord.employeeRecord[existingEmployeeIndex],
+            ...record
+          };
+        } else {
+          // Add new employee record
+          workplaceRecord.employeeRecord.push({
+            staffId: employeeId,
+            staffName: employeeName,
+            ...record
+          });
+        }
+      } else {
+        // Create a new workplace record
+        workplaceRecord = new workplaceTimerecord({
+          timerecordId,
+          workplaceId,
+          workplaceName,
+          wGroup,
+          date,
+          employeeRecord: [{
+            staffId: employeeId,
+            staffName: employeeName,
+            ...record
+          }]
+        });
+      }
+
+      await workplaceRecord.save();
+    }
+
+    res.json({ message: "Employee and workplace records saved successfully", workplaceTimeRecordData });
 
   } catch (err) {
     console.log(err);
     res.status(400).json({ error: err.message });
   }
-
 });
+
+// // Create new employee timerecord 
+// router.post('/createemp', async (req, res) => {
+//   const currentDate = new Date();
+//   const currentYear = currentDate.getFullYear();
+//   //const timerecordId = currentYear;
+
+//   const {
+// timerecordId,
+//     employeeId,
+//     employeeName,
+//     month,
+//     employee_workplaceRecord
+//   } = req.body;
+
+
+//   // Create workplace
+//   const workplaceTimeRecordData = new workplaceTimerecordEmp({
+// timerecordId,
+//     employeeId,
+//     employeeName,
+//     month,
+//     employee_workplaceRecord
+//   });
+// console.log(workplaceTimeRecordData );
+
+//   try {
+//     // Delete existing records for the same employee and month timerecordId
+//     await workplaceTimerecordEmp.deleteMany({
+//       timerecordId,
+//       employeeId,
+//       employeeName,
+//       month    });
+      
+//     await workplaceTimeRecordData.save();
+ 
+//     await res.json(workplaceTimeRecordData);
+
+//   } catch (err) {
+//     console.log(err);
+//     res.status(400).json({ error: err.message });
+//   }
+
+// });
 
 
 // // Update a employeeTimeRecordData  by its employeeTimeRecordData  
