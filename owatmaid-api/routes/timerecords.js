@@ -848,22 +848,27 @@ year,
 });
 
 router.put('/updatetimerecordemployee/:employeeRecordId', async (req, res) => {
-  const employeeIdToUpdate = req.params.employeeRecordId;
-  const updateFields = req.body;
-
   try {
-    // Find the document that contains the employee record
-    const record = await workplaceTimerecordEmp.findOneAndUpdate(
-      { "employeeRecord._id": employeeIdToUpdate }, // Find the record containing this employee
-      { $set: { "employeeRecord.$": updateFields } }, // Update the specific employee
-      { new: true } // Return the updated document
-    );
+    const { employeeRecordId } = req.params;
+    const updateFields = req.body;
 
-    if (!record) {
+    // Find the parent document that contains this employee record
+    const parentRecord = await workplaceTimerecordEmp.findOne({
+      "employeeRecord._id": employeeRecordId
+    });
+
+    if (!parentRecord) {
       return res.status(404).json({ message: "Employee record not found" });
     }
 
-    res.status(200).json(record);
+    // Update the specific employee inside the employeeRecord array
+    const updatedRecord = await workplaceTimerecordEmp.findOneAndUpdate(
+      { "employeeRecord._id": employeeRecordId },
+      { $set: { "employeeRecord.$": updateFields } },
+      { new: true }
+    );
+
+    res.status(200).json(updatedRecord);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Internal server error" });
