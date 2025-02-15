@@ -373,126 +373,87 @@ router.post('/searchemp', async (req, res) => {
 //   }
 // });
 
-// Create new employee time record
+// Create new employee timerecord 
 router.post('/createemp', async (req, res) => {
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+  //const timerecordId = currentYear;
+
   const {
-    timerecordId,
+timerecordId,
     employeeId,
     employeeName,
     month,
     employee_workplaceRecord
   } = req.body;
 
-  try {
-    // Delete existing records for the same employee and month
-    await workplaceTimerecordEmp.deleteMany({ timerecordId, employeeId, month });
 
-    // Create new employee record
-    const workplaceTimeRecordData = new workplaceTimerecordEmp({
+  // Create workplace
+  const workplaceTimeRecordData = new workplaceTimerecordEmp({
+timerecordId,
+    employeeId,
+    employeeName,
+    month,
+    employee_workplaceRecord
+  });
+console.log(workplaceTimeRecordData );
+
+  try {
+    // Delete existing records for the same employee and month timerecordId
+    await workplaceTimerecordEmp.deleteMany({
       timerecordId,
       employeeId,
       employeeName,
-      month,
-      employee_workplaceRecord
-    });
-
+      month    });
+      
     await workplaceTimeRecordData.save();
 
-    // Iterate through each employee_workplaceRecord to update workplaceTimerecord
+    //save or update to workplace timeRecord
     for (const record of employee_workplaceRecord) {
-      const { workplaceId, workplaceName, wGroup, date } = record;
+      const { workplaceId, wGroup, date } = record;
+      const wdate = await month + '/' + date + '/' + timerecordId;
 
-      // Find the existing workplace record
-      let workplaceRecord = await workplaceTimerecord.findOne({ timerecordId, workplaceId });
+      let workplaceRecord = await workplaceTimerecord.findOne({timerecordId: timerecordId,workplaceId: workplaceId, wGroup: wGroup,date:  wdate });
 
       if (workplaceRecord) {
+        
         // If workplace record exists, update employeeRecord array
         const existingEmployeeIndex = workplaceRecord.employeeRecord.findIndex(emp => emp.staffId === employeeId);
-        
         if (existingEmployeeIndex !== -1) {
-          // Update existing employee record
-          workplaceRecord.employeeRecord[existingEmployeeIndex] = {
-            ...workplaceRecord.employeeRecord[existingEmployeeIndex],
-            ...record
-          };
-        } else {
-          // Add new employee record
-          workplaceRecord.employeeRecord.push({
-            staffId: employeeId,
-            staffName: employeeName,
-            ...record
-          });
-        }
-      } else {
-        // Create a new workplace record
-        workplaceRecord = new workplaceTimerecord({
-          timerecordId,
-          workplaceId,
-          workplaceName,
-          wGroup,
-          date,
-          employeeRecord: [{
-            staffId: employeeId,
-            staffName: employeeName,
-            ...record
-          }]
-        });
-      }
+                    // Update existing employee record
 
+        }
+
+                
+      } else {
+                  // Add new employee record
+                  workplaceRecord = new workplaceTimerecord({
+                    timerecordId,
+                    workplaceId,
+                    workplaceName,
+                    wGroup,
+                    date,
+                    employeeRecord: [{
+                      staffId: employeeId,
+                      staffName: employeeName,
+                      ...record
+                    }]
+                  });
+          
+      }
       await workplaceRecord.save();
+
     }
 
-    res.json({ message: "Employee and workplace records saved successfully", workplaceTimeRecordData });
+    
+    await res.json(workplaceTimeRecordData);
 
   } catch (err) {
     console.log(err);
     res.status(400).json({ error: err.message });
   }
+
 });
-
-// // Create new employee timerecord 
-// router.post('/createemp', async (req, res) => {
-//   const currentDate = new Date();
-//   const currentYear = currentDate.getFullYear();
-//   //const timerecordId = currentYear;
-
-//   const {
-// timerecordId,
-//     employeeId,
-//     employeeName,
-//     month,
-//     employee_workplaceRecord
-//   } = req.body;
-
-
-//   // Create workplace
-//   const workplaceTimeRecordData = new workplaceTimerecordEmp({
-// timerecordId,
-//     employeeId,
-//     employeeName,
-//     month,
-//     employee_workplaceRecord
-//   });
-// console.log(workplaceTimeRecordData );
-
-//   try {
-//     // Delete existing records for the same employee and month timerecordId
-//     await workplaceTimerecordEmp.deleteMany({
-//       timerecordId,
-//       employeeId,
-//       employeeName,
-//       month    });
-      
-//     await workplaceTimeRecordData.save();
- 
-//     await res.json(workplaceTimeRecordData);
-
-//   } catch (err) {
-//     console.log(err);
-//     res.status(400).json({ error: err.message });
-//   }
-
-// });
 
 
 // // Update a employeeTimeRecordData  by its employeeTimeRecordData  
