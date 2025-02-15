@@ -1073,7 +1073,8 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
     await setShift("morning");
 
     try {
-      const response = await axios.post(endpoint + "/timerecord/search", data);
+      const response = await axios.post(
+        endpoint + "/timerecord/searchworkplacetimerecords", data);
 
       if (response.data.recordworkplace.length < 1) {
         // alert('ไม่พบข้อมูล');

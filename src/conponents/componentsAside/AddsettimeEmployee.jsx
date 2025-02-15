@@ -1751,7 +1751,26 @@ await workplacesearch.workplaceGroup[departmentIndex]
 
           // setRowDataList2(response.data.recordworkplace[0].employee_workplaceRecord);
           if (name != "") {
-            setRowDataList2(response.data.result[0].employee_record);
+            
+            setRowDataList2(
+              response?.data?.result?.[0]?.employee_record
+                .sort((a, b) => {
+                  const dateA = parseInt(a.date, 10);
+                  const dateB = parseInt(b.date, 10);
+            
+                  // Prioritize dates from 21-30 first, then 01-20
+                  if ((dateA >= 21 && dateB >= 21) || (dateA <= 20 && dateB <= 20)) {
+                    return dateA - dateB; // Sort normally within each group
+                  }
+                  return dateA >= 21 ? -1 : 1; // Move 21-30 to the front
+                })
+                .map((item, index) => ({
+                  ...item,
+                  tmpIndex: index,
+                }))
+            );
+            
+            // setRowDataList2(response.data.result[0].employee_record);
             // setRowDataList2(
             //   response.data.recordworkplace[0].employee_workplaceRecord.map(
             //     (item, index) => ({
@@ -1971,19 +1990,37 @@ await workplacesearch.workplaceGroup[departmentIndex]
         data
       );
       // setEmployeesResult(response.data.employees);
-      if (response?.data?.employee_workplaceRecord.length > 1) {
+      if (response?.data?.employee_record.length > 1) {
         alert("บันทึกสำเร็จ");
 
         setUpdateButton(true);
         // alert(response.data.recordworkplace[0].employee_workplaceRecord[1].workplaceId);
-        setTimeRecord_id(response?.data?.employee_workplaceRecord._id);
+        setTimeRecord_id(response?.data?.employee_record._id);
         setRowDataList2(
-          response?.data?.employee_workplaceRecord.sort((a, b) => parseInt(a.date) - parseInt(b.date)) // Sort by date (ascending order)
+          response?.data?.employee_record
+            .sort((a, b) => {
+              const dateA = parseInt(a.date, 10);
+              const dateB = parseInt(b.date, 10);
+        
+              // Prioritize dates from 21-30 first, then 01-20
+              if ((dateA >= 21 && dateB >= 21) || (dateA <= 20 && dateB <= 20)) {
+                return dateA - dateB; // Sort normally within each group
+              }
+              return dateA >= 21 ? -1 : 1; // Move 21-30 to the front
+            })
             .map((item, index) => ({
               ...item,
               tmpIndex: index,
             }))
         );
+        
+        // setRowDataList2(
+        //   response?.data?.employee_record.sort((a, b) => parseInt(a.date) - parseInt(b.date)) // Sort by date (ascending order)
+        //     .map((item, index) => ({
+        //       ...item,
+        //       tmpIndex: index,
+        //     }))
+        // );
 
       //   //get data from conclude data then check edit data
       //   const serchConclude = await {
