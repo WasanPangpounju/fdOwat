@@ -847,26 +847,36 @@ year,
 
 });
 
-  router.put('/updatetimerecordemployee/:employeeRecordId', async (req, res) => {
-
-  const employeeIdToUpdate = req.params.employeeRecordId;
-  const updateFields = req.body;
+router.put('/updatetimerecordemployee/:employeeRecordId', async (req, res) => {
+  console.log("API called with ID:", req.params.employeeRecordId);
+  console.log("Request body:", req.body);
 
   try {
-    // Find and update the specific employee record within the employeeRecord array
-    const updatedRecord = await workplaceTimerecordEmp.findOneAndUpdate(
-      { "employeeRecord._id": employeeIdToUpdate }, // Find document where employeeRecord array contains the given ID
-      { $set: { "employeeRecord.$": updateFields } }, // Update the matched record
-      { new: true } // Return the updated document
-    );
+    const employeeRecordId = req.params.employeeRecordId;
+    const updateFields = req.body;
 
-    if (!updatedRecord) {
+    // Check if the record exists
+    const parentRecord = await workplaceTimerecordEmp.findOne({
+      "employeeRecord._id": employeeRecordId
+    });
+
+    if (!parentRecord) {
+      console.log("❌ No record found for ID:", employeeRecordId);
       return res.status(404).json({ message: "Employee record not found" });
     }
 
+    console.log("✅ Found record, updating...");
+
+    // Update the specific employee inside the employeeRecord array
+    const updatedRecord = await workplaceTimerecordEmp.findOneAndUpdate(
+      { "employeeRecord._id": employeeRecordId },
+      { $set: { "employeeRecord.$": updateFields } },
+      { new: true }
+    );
+
     res.status(200).json(updatedRecord);
   } catch (error) {
-    console.error(error);
+    console.error("🔥 Error in API:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
