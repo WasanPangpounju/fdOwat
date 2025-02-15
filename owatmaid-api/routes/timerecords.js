@@ -864,10 +864,13 @@ router.put('/updatetimerecordemployee/:employeeRecordId', async (req, res) => {
 
     // Save the new record
     const savedRecord = await newRecord.save();
+if(savedRecord ) {
+// Respond with the newly created record
+await res.status(201).json(savedRecord);
+} 
 
-    // Respond with the newly created record
-    await res.status(201).json(savedRecord);
-  } catch (error) {
+}
+    catch (error) {
 await    console.error(error);
     await res.status(500).json({ error: 'Internal server error' });
   }
