@@ -997,7 +997,7 @@ console.log('query.date ' + query.date);
 });
 
 //======test 
-router.get('/listempdeletes', async (req, res) => {
+router.get('/listempdeletexx', async (req, res) => {
   try {
     // Fetch the data first
     const workplaceTimeRecordData = await timerecordEmployee.find();
