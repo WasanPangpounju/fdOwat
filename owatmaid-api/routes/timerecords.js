@@ -847,39 +847,39 @@ year,
 
 });
 
-router.put('/updatetimerecordemployee/:employeeRecordId', async (req, res) => {
-  console.log("API called with ID:", req.params.employeeRecordId);
-  console.log("Request body:", req.body);
+const express = require("express");
+const router = express.Router();
+const workplaceTimerecordEmp = require("../models/periodWorkplaceTimerecord"); // Import model
 
+// Route to delete all matching records and save a new one
+router.put("/updatetimerecordemployee/:employeeRecordId", async (req, res) => {
   try {
-    const employeeRecordId = req.params.employeeRecordId;
-    const updateFields = req.body;
+    const { year, employeeId, month } = req.body;
 
-    // Check if the record exists
-    const parentRecord = await workplaceTimerecordEmp.findOne({
-      "employeeRecord._id": employeeRecordId
-    });
+    console.log("🔍 Finding records to delete for:", { year, employeeId, month });
 
-    if (!parentRecord) {
-      console.log("❌ No record found for ID:", employeeRecordId);
-      return res.status(404).json({ message: "Employee record not found" });
-    }
+    // Delete all matching records
+    const deleteResult = await workplaceTimerecordEmp.deleteMany({ year, employeeId, month });
 
-    console.log("✅ Found record, updating...");
+    console.log(`🗑️ Deleted ${deleteResult.deletedCount} records`);
 
-    // Update the specific employee inside the employeeRecord array
-    const updatedRecord = await workplaceTimerecordEmp.findOneAndUpdate(
-      { "employeeRecord._id": employeeRecordId },
-      { $set: { "employeeRecord.$": updateFields } },
-      { new: true }
-    );
+    // Create a new record with updated fields
+    const newRecord = new workplaceTimerecordEmp(req.body);
 
-    res.status(200).json(updatedRecord);
+    // Save the new record
+    const savedRecord = await newRecord.save();
+
+    console.log("✅ New record saved:", savedRecord);
+
+    // Respond with the newly created record
+    res.status(201).json(savedRecord);
   } catch (error) {
-    console.error("🔥 Error in API:", error);
+    console.error("🔥 Error updating record:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
+module.exports = router;
 
 // // Delete all records by year , employeeId, and month, then save a new timerecordEmployee 
 // router.put('/updatetimerecordemployee/:employeeRecordId', async (req, res) => {
