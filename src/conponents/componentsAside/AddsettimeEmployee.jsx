@@ -1991,27 +1991,27 @@ await workplacesearch.workplaceGroup[departmentIndex]
       // setEmployeesResult(response.data.employees);
       if (response?.status === 201) {
         alert("บันทึกสำเร็จ");
-handleCheckTimerecord();
+// handleCheckTimerecord();
         setUpdateButton(true);
         // alert(response.data.recordworkplace[0].employee_workplaceRecord[1].workplaceId);
-        // setTimeRecord_id(response?.data?.employee_record._id);
-        // setRowDataList2(
-        //   response?.data?.employee_record
-        //     .sort((a, b) => {
-        //       const dateA = parseInt(a.date, 10);
-        //       const dateB = parseInt(b.date, 10);
+        setTimeRecord_id(response?.data?.employee_record._id);
+        setRowDataList2(
+          response?.data?.employee_record
+            .sort((a, b) => {
+              const dateA = parseInt(a.date, 10);
+              const dateB = parseInt(b.date, 10);
         
-        //       // Prioritize dates from 21-30 first, then 01-20
-        //       if ((dateA >= 21 && dateB >= 21) || (dateA <= 20 && dateB <= 20)) {
-        //         return dateA - dateB; // Sort normally within each group
-        //       }
-        //       return dateA >= 21 ? -1 : 1; // Move 21-30 to the front
-        //     })
-        //     .map((item, index) => ({
-        //       ...item,
-        //       tmpIndex: index,
-        //     }))
-        // );
+              // Prioritize dates from 21-30 first, then 01-20
+              if ((dateA >= 21 && dateB >= 21) || (dateA <= 20 && dateB <= 20)) {
+                return dateA - dateB; // Sort normally within each group
+              }
+              return dateA >= 21 ? -1 : 1; // Move 21-30 to the front
+            })
+            .map((item, index) => ({
+              ...item,
+              tmpIndex: index,
+            }))
+        );
         
         // setRowDataList2(
         //   response?.data?.employee_record.sort((a, b) => parseInt(a.date) - parseInt(b.date)) // Sort by date (ascending order)
@@ -2641,7 +2641,7 @@ handleCheckTimerecord();
                 <td>{rowData2.endOtTime}</td>
                 <td>
                   {rowData2.specialtSalary !== "" 
-                    ? `${rowData2.specialtSalary} บาท`
+                    ? `${parseFloat(rowData2.specialtSalary || '0') + parseFloat(rowData2.specialtSalaryOT || '0')} บาท`
                     : ""}
                 </td>
                 <td className="text-center">

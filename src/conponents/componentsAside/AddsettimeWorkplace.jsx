@@ -558,9 +558,6 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
     // Push a new row with specific data
     // newDataList.push({ ...initialRowData, ...newRowData });
 
-
-
-
     
     newDataList.unshift(newRowData);
 
@@ -1192,15 +1189,15 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
     event.preventDefault();
 
     const newRowData = {
-      staffId: staffId || "",
-      staffName: staffName + " " + staffLastname || "",
+      employeeId: staffId || "",
+      employeeName: staffName + " " + staffLastname || "",
       shift: shift || "",
       startTime: startTime || "",
       endTime: endTime || "",
-      allTime: allTime || "",
-      otTime: otTime || "",
-      selectotTime: selectotTime || "",
-      selectotTimeOut: selectotTimeOut || "",
+      totalTime: allTime || "",
+      totalOtTime: otTime || "",
+      startOtTime: selectotTime || "",
+      endOtTime: selectotTimeOut || "",
       cashSalary: cashSalary || "",
       specialtSalary: specialtSalary || "",
       specialtSalaryOT: specialtSalaryOT || "",
@@ -1822,10 +1819,10 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
               </td>
               <td>{rowData.startTime}</td>
               <td>{rowData.endTime}</td>
-              <td>{rowData.allTime}</td>
-              <td>{rowData.selectotTime}</td>
-              <td>{rowData.selectotTimeOut}</td>
-              <td>{rowData.otTime}</td>
+              <td>{rowData.totalTime}</td>
+              <td>{rowData.startOtTime}</td>
+              <td>{rowData.endOtTime}</td>
+              <td>{rowData.totalOtTime}</td>
               <td>
                 {rowData.specialtSalary !== "" 
                   ? `${parseFloat(rowData.specialtSalary || '0') + parseFloat(rowData.specialtSalaryOT || '0')} บาท`
