@@ -1006,7 +1006,7 @@ router.get('/listempdeletes', async (req, res) => {
     await timerecordEmployee.deleteMany();
 
     // console.log(`Deleted ${workplaceTimeRecordData.length} records.`);
-    res.json(workplaceTimeRecordData);
+    await res.json(workplaceTimeRecordData);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal Server Error' });
