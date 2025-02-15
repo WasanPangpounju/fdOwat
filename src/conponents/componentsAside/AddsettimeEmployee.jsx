@@ -1976,7 +1976,6 @@ await workplacesearch.workplaceGroup[departmentIndex]
   async function handleUpdateWorkplaceTimerecord(event) {
     event.preventDefault();
     //get data from input in useState to data
-alert(timeRecord_id)
     const data = {
       year: year,
       employeeId: employeeId,
