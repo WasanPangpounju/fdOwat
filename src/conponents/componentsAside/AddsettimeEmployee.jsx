@@ -1788,7 +1788,7 @@ await workplacesearch.workplaceGroup[departmentIndex]
     //get data from input in useState to data
 
     const newRowData = await {
-      tmpIndex: tmpIndex || "",
+      tmpIndex    : tmpIndex || "",
       year: year || "",
       workplaceId: wId || "",
       workplaceName: wName || "",
@@ -1798,9 +1798,9 @@ await workplacesearch.workplaceGroup[departmentIndex]
       startTime: wStartTime || "",
       endTime: wEndTime || "",
       totalTime: wAllTime || "",
-      StartOtTime: wOtTime || "",
-      endOtTime: wSelectOtTime || "",
-      totalOtTime: wSelectOtTimeout || "",
+      totalOtTime: wOtTime || "",
+      startOtTime: wSelectOtTime || "",
+      endOtTime: wSelectOtTimeout || "",
       cashSalary: cashSalary || "",
       specialtSalary: specialtSalary || "",
       specialtSalaryOT: specialtSalaryOT || "",
@@ -1912,7 +1912,7 @@ await workplacesearch.workplaceGroup[departmentIndex]
     const newDataList = [...rowDataList2];
     // Remove the row at the specified index
     const updatedList = newDataList.filter((entry) => entry.tmpIndex !== index);
-    // alert(index);
+    alert(index);
     // newDataList.splice(index, 1);
     // Update the state with the new data
     setRowDataList2(updatedList);
@@ -1942,10 +1942,12 @@ await workplacesearch.workplaceGroup[departmentIndex]
       if (response) {
         alert("บันทึกสำเร็จ");
         // window.location.reload();
+        handleCheckTimerecord();
+
       }
     } catch (error) {
       alert("กรุณาตรวจสอบข้อมูลในช่องกรอกข้อมูล");
-      alert(error)
+      // alert(error)
       // window.location.reload();
     } finally {
       setLoading(false); // Set loading to false to unblock the button
@@ -1965,7 +1967,7 @@ await workplacesearch.workplaceGroup[departmentIndex]
     };
     try {
       const response = await axios.put(
-        endpoint + "/timerecord/updateemp/" + timeRecord_id,
+        endpoint + "/timerecord/updatetimerecordemployee/" + timeRecord_id,
         data
       );
       // setEmployeesResult(response.data.employees);
@@ -2597,12 +2599,12 @@ await workplacesearch.workplaceGroup[departmentIndex]
                 </td>
                 <td>{rowData2.startTime}</td>
                 <td>{rowData2.endTime}</td>
-                <td>{rowData2.allTime}</td>
-                <td>{rowData2.otTime}</td>
-                <td>{rowData2.selectotTime}</td>
-                <td>{rowData2.selectotTimeOut}</td>
+                <td>{rowData2.totalTime}</td>
+                <td>{rowData2.totalOtTime}</td>
+                <td>{rowData2.startOtTime}</td>
+                <td>{rowData2.endOtTime}</td>
                 <td>
-                  {rowData2.cashSalary === "true" || rowData2.cashSalary === true
+                  {rowData2.specialtSalary !== "" 
                     ? `${rowData2.specialtSalary} บาท`
                     : ""}
                 </td>
