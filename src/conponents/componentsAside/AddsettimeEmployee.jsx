@@ -1931,8 +1931,8 @@ await workplacesearch.workplaceGroup[departmentIndex]
     const newDataList = [...rowDataList2];
     // Remove the row at the specified index
     const updatedList = newDataList.filter((entry) => entry.tmpIndex !== index);
-    alert(index);
-    // newDataList.splice(index, 1);
+    // alert(index);
+    newDataList.splice(index, 1);
     // Update the state with the new data
     setRowDataList2(updatedList);
   };

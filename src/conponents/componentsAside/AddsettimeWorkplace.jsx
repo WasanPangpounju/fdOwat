@@ -1827,8 +1827,8 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
               <td>{rowData.selectotTimeOut}</td>
               <td>{rowData.otTime}</td>
               <td>
-                {rowData.cashSalary === "true" || rowData.cashSalary === true
-                  ? `${rowData.specialtSalary} บาท`
+                {rowData.specialtSalary !== "" 
+                  ? `${parseFloat(rowData.specialtSalary || '0') + parseFloat(rowData.specialtSalaryOT || '0')} บาท`
                   : ""}
               </td>
               <td>
