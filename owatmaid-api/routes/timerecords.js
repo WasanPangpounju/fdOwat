@@ -111,6 +111,23 @@ console.log(workplaceTimeRecordData.length);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+router.get('/listdeletexx', async (req, res) => {
+
+  try {
+    // Fetch the data first
+    const workplaceTimeRecordData = await workplaceTimerecords.find();
+
+    // Delete all data
+    await workplaceTimerecords.deleteMany();
+
+    // console.log(`Deleted ${workplaceTimeRecordData.length} records.`);
+    res.json(workplaceTimeRecordData);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 
 
 
