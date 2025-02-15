@@ -846,7 +846,9 @@ year,
   }
 
 });
-router.put('/updatetimerecordemployee/:employeeRecordId', async (req, res) => {
+
+  router.put('/updatetimerecordemployee/:employeeRecordId', async (req, res) => {
+
   const employeeIdToUpdate = req.params.employeeRecordId;
   const updateFields = req.body;
 
