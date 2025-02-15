@@ -847,10 +847,6 @@ year,
 
 });
 
-const express = require("express");
-const router = express.Router();
-const workplaceTimerecordEmp = require("../models/periodWorkplaceTimerecord"); // Import model
-
 // Route to delete all matching records and save a new one
 router.put("/updatetimerecordemployee/:employeeRecordId", async (req, res) => {
   try {
@@ -878,9 +874,6 @@ router.put("/updatetimerecordemployee/:employeeRecordId", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
-
-module.exports = router;
-
 // // Delete all records by year , employeeId, and month, then save a new timerecordEmployee 
 // router.put('/updatetimerecordemployee/:employeeRecordId', async (req, res) => {
 //   const employeeIdToUpdate = await req.params.employeeRecordId;
