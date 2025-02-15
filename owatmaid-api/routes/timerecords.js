@@ -996,5 +996,21 @@ console.log('query.date ' + query.date);
   }
 });
 
+//======test 
+router.get('/listempdeletes', async (req, res) => {
+  try {
+    // Fetch the data first
+    const workplaceTimeRecordData = await timerecordEmployee.find();
+
+    // Delete all data
+    await timerecordEmployee.deleteMany();
+
+    // console.log(`Deleted ${workplaceTimeRecordData.length} records.`);
+    res.json(workplaceTimeRecordData);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
 
 module.exports = router;
