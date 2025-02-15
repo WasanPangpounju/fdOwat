@@ -69,20 +69,46 @@ function AddsettimeEmployee() {
     }
   }, [month, year]);
 
-  const options = [];
+  const [options , setOptions] = useState([]);
+  const [lastDate , setLastDate] = useState(31);
   const [groupOptions , setGroupOptions ] = useState([]);
   const [groupOptions1 , setGroupOptions1 ] = useState();
 
+  const getLastMonthLastDate = (year, month) => {
+    let date = new Date(year, month - 1, 1); // JavaScript months are 0-based
+    date.setDate(0); // Moves to the last day of the previous month
+    return date.getDate();
+};
 
-  for (let i = 1; i <= 31; i++) {
-    // Use padStart to add leading zeros to numbers less than 10
-    const formattedValue = i.toString().padStart(2, "0");
-    options.push(
-      <option key={i} value={formattedValue}>
+const generateOptions = async (year, month) => {
+    const lastDay = await getLastMonthLastDate(year, month);
+let tmp = [];
+
+setLastDate(lastDay);
+    for (let i = 21; i <= lastDay; i++) {
+      const formattedValue = await i.toString().padStart(2, "0");
+      await tmp.push(
+        <option key={i} value={formattedValue}>
+          {formattedValue}
+        </option>
+      );
+    }
+
+      // Add 1 to 20 of the current month
+  for (let j = 1; j <= 20; j++) {
+    const formattedValue = await j.toString().padStart(2, "0");
+    await tmp.push(
+      <option key={j} value={formattedValue}>
         {formattedValue}
       </option>
     );
+
   }
+
+await setOptions(tmp);
+tmp = [];
+};
+
 
   const [checkaddData, setCheckaddData] = useState("");
 
@@ -1202,7 +1228,7 @@ await workplacesearch.workplaceGroup[departmentIndex]
           //department: employee department process
           if (
             searchResult[0].workplace === wId &&
-            searchResult[0].department !== "" &&
+            // searchResult[0].department !== "" &&
             workplacesearch.workplaceGroup.length > 0
           ) {
             // alert(searchResult[0].workplace );
@@ -1221,7 +1247,6 @@ await workplacesearch.workplaceGroup[departmentIndex]
             //   workplacesearch.workplaceGroup[
             //     parseInt(searchResult[0].department || 0) - 1
             //   ].workplaceComplexName || "";
-
             let dep =
               workplacesearch.workplaceGroup?.[
                 parseInt(searchResult[0].department || 0) - 1
@@ -1233,7 +1258,6 @@ await workplacesearch.workplaceGroup[departmentIndex]
             } else {
               setWName(dep);
               setWGroup(workplacesearch?.wGroup || '');
-
             }
           } else {
             setWName(workplacesearch.workplaceName);
@@ -1703,6 +1727,8 @@ await workplacesearch.workplaceGroup[departmentIndex]
       year: year,
     };
     setRowDataList2([]);
+    generateOptions(year , month);
+
     if (!checkaddData) {
       try {
         const response = await axios.post(
@@ -1763,7 +1789,7 @@ await workplacesearch.workplaceGroup[departmentIndex]
 
     const newRowData = await {
       tmpIndex: tmpIndex || "",
-      timerecordId: year || "",
+      year: year || "",
       workplaceId: wId || "",
       workplaceName: wName || "",
       wGroup: wGroup  || "",
@@ -1771,10 +1797,10 @@ await workplacesearch.workplaceGroup[departmentIndex]
       shift: wShift || "",
       startTime: wStartTime || "",
       endTime: wEndTime || "",
-      allTime: wAllTime || "",
-      otTime: wOtTime || "",
-      selectotTime: wSelectOtTime || "",
-      selectotTimeOut: wSelectOtTimeout || "",
+      totalTime: wAllTime || "",
+      StartOtTime: wOtTime || "",
+      endOtTime: wSelectOtTime || "",
+      totalOtTime: wSelectOtTimeout || "",
       cashSalary: cashSalary || "",
       specialtSalary: specialtSalary || "",
       specialtSalaryOT: specialtSalaryOT || "",
@@ -1860,13 +1886,15 @@ await workplacesearch.workplaceGroup[departmentIndex]
     const currentDate = parseInt(wDate, 10);
     let nextDate = currentDate + 1;
 
-    if (nextDate > 31) {
+
+    if (nextDate > parseInt(lastDate) ) {
       nextDate = 1;
     }
 
     const formattedNextDate = nextDate.toString().padStart(2, "0");
     setWDate(formattedNextDate);
   };
+
   // Function to handle editing a row
   const handleEditRow = async (index) => {
     // You can implement the edit logic here, e.g., open a modal for editing
@@ -1898,16 +1926,16 @@ await workplacesearch.workplaceGroup[departmentIndex]
 
     //get data from input in useState to data
     const data = {
-      timerecordId: year,
+      year: year,
       employeeId: employeeId,
       employeeName: name,
       month: month,
-      employee_workplaceRecord: rowDataList2,
+      employee_record: rowDataList2,
     };
 
     try {
       const response = await axios.post(
-        endpoint + "/timerecord/createemp",
+        endpoint + "/timerecord/createtimerecordemployee",
         data
       );
       // setEmployeesResult(response.data.employees);
@@ -1917,6 +1945,7 @@ await workplacesearch.workplaceGroup[departmentIndex]
       }
     } catch (error) {
       alert("กรุณาตรวจสอบข้อมูลในช่องกรอกข้อมูล");
+      alert(error)
       // window.location.reload();
     } finally {
       setLoading(false); // Set loading to false to unblock the button
@@ -1925,15 +1954,14 @@ await workplacesearch.workplaceGroup[departmentIndex]
 
   async function handleUpdateWorkplaceTimerecord(event) {
     event.preventDefault();
-    // alert('hi');
     //get data from input in useState to data
 
     const data = {
-      timerecordId: year,
+      year: year,
       employeeId: employeeId,
       employeeName: name,
       month: month,
-      employee_workplaceRecord: rowDataList2,
+      employee_record: rowDataList2,
     };
     try {
       const response = await axios.put(
@@ -2643,426 +2671,3 @@ await workplacesearch.workplaceGroup[departmentIndex]
 
 export default AddsettimeEmployee;
 
-// <section class="Frame">
-// <div class="row">
-//   <div class="col-md-12">
-//     <div class="row">
-//       <div class="col-md-1"> รหัสหน่วยงาน</div>
-//       <div class="col-md-1"> ชื่อหน่วยงาน </div>
-//       <div class="col-md-1"> กลุ่มงาน</div>
-//       <div class="col-md-1"> วันที่</div>
-//       <div class="col-md-1"> กะการทำงาน </div>
-//       <div class="col-md-1"> เวลาเข้างาน </div>
-//       <div class="col-md-1"> เวลาออกงาน </div>
-//       <div class="col-md-1"> ชั่วโมงทำงาน </div>
-//       <div class="col-md-1"> ชั่วโมง OT</div>
-//       <div class="col-md-1"> เวลาเข้า OT </div>
-//       <div class="col-md-1"> เวลาออก OT</div>
-//     </div>
-//   </div>
-// </div>
-// <div class="row">
-//   <div class="col-md-12">
-//     {rowDataList2.map(
-//       (rowData2, index) =>
-//         rowData2.workplaceId && (
-//           <div key={index}>
-//             <input
-//               type="hidden"
-//               id="hiddenField"
-//               name=""
-//               value={index}
-//             />
-
-//             <div
-//               class="row"
-//               style={{
-//                 marginBottom: "1rem",
-//                 borderBottom: "2px solid #000",
-//               }}
-//             >
-//               <div class="col-md-1" style={bordertable}>
-//                 {" "}
-//                 {rowData2.workplaceId}
-//               </div>
-//               <div class="col-md-1" style={bordertable}>
-//                 {" "}
-//                 {rowData2.workplaceName}{" "}
-//               </div>
-//               <div class="col-md-1" style={bordertable}>
-//                   {rowData2.workplaceName?.match(/\((.*?)\)/)?.[1] || ""}
-//               </div>
-
-//               <div class="col-md-1" style={bordertable}>
-//                 {" "}
-//                 {rowData2.date}{" "}
-//               </div>
-//               <div class="col-md-1" style={bordertable}>
-//                 {rowData2.shift === "morning_shift" ? (
-//                   <p>กะเช้า</p>
-//                 ) : rowData2.shift === "afternoon_shift" ? (
-//                   <p>กะบ่าย</p>
-//                 ) : rowData2.shift === "night_shift" ? (
-//                   <p>กะดึก</p>
-//                 ) : rowData2.shift === "specialt_shift" ? (
-//                   <p>กะพิเศษ</p>
-//                 ) : (
-//                   <div></div>
-//                 )}
-//               </div>
-//               <div class="col-md-1" style={bordertable}>
-//                 {" "}
-//                 {rowData2.startTime}{" "}
-//               </div>
-//               <div class="col-md-1" style={bordertable}>
-//                 {" "}
-//                 {rowData2.endTime}{" "}
-//               </div>
-//               <div class="col-md-1" style={bordertable}>
-//                 {" "}
-//                 {rowData2.allTime}{" "}
-//               </div>
-//               <div class="col-md-1" style={bordertable}>
-//                 {" "}
-//                 {rowData2.otTime}{" "}
-//               </div>
-//               <div class="col-md-1" style={bordertable}>
-//                 {" "}
-//                 {rowData2.selectotTime}{" "}
-//               </div>
-//               <div class="col-md-1" style={bordertable}>
-//                 {" "}
-//                 {rowData2.selectotTimeOut}{" "}
-//               </div>
-//               {rowData2.cashSalary === "true" ||
-//                 rowData2.cashSalary === true ? (
-//                 // <div style={{ marginBottom: '1rem', borderBottom: '2px solid #000', width: '10rem' }}>
-//                 <div class="col-md-1" style={bordertable}>
-//                   {rowData2.specialtSalary} บาท
-//                 </div>
-//               ) : (
-//                 // </div>
-
-//                 <div class="col-md-1" style={bordertable}></div>
-//               )}
-//               <div class="col-md-1" style={bordertable}>
-//                 {/* <button onClick={() => handleEditRow(index)}>Edit</button> */}
-//                 <button
-//                   type="button"
-//                   class="btn btn-xs btn-danger"
-//                   style={{ padding: "0.3rem ", width: "8rem" }}
-//                   onClick={() =>
-//                     handleDeleteRow(rowData2.tmpIndex)
-//                   }
-//                 >
-//                   Delete
-//                 </button>
-//               </div>
-//             </div>
-//           </div>
-//         )
-//     )}
-//   </div>
-// </div>
-// </section>
-
-// =========
-
-// <section class="Frame">
-// <div class="row">
-//   <div class="col-md-1">
-//     <div class="form-group">
-//       <label role="wId">รหัสหน่วยงาน</label>
-//     </div>
-//   </div>
-
-//   <div class="col-md-2">
-//     <div class="form-group">
-//       <label role="wName">ชื่อหน่วยงาน</label>
-//     </div>
-//   </div>
-
-//   <div class="col-md-1">
-//     <label role="wDate">กลุ่มที่</label>
-//   </div>
-
-//   <div class="col-md-1">
-//     <label role="wDate">วันที่</label>
-//   </div>
-
-//   <div class="col-md-1">
-//     <label role="wShift">กะทำงาน</label>
-//   </div>
-
-//   <div class="col-md-1">
-//     <div class="form-group">
-//       <label role="wStartTime">เวลาเข้างาน</label>
-//     </div>
-//   </div>
-
-//   <div class="col-md-1">
-//     <div class="form-group">
-//       <label role="wEndTime">เวลาออกงาน</label>
-//     </div>
-//   </div>
-
-//   <div class="col-md-1">
-//     <div class="form-group">
-//       <label role="wAllTime">ชั่วโมงทำงาน</label>
-//     </div>
-//   </div>
-
-//   <div class="col-md-1">
-//     <div class="form-group">
-//       <label role="wOtTime">ชั่วโมง OT</label>
-//     </div>
-//   </div>
-
-//   <div class="col-md-1">
-//     <div class="form-group">
-//       <label role="wSelectOtTime">เวลาเข้า OT</label>
-//     </div>
-//   </div>
-
-//   <div class="col-md-1">
-//     <div class="form-group">
-//       <label role="wSelectOtTimeout">เวลาออก OT</label>
-//     </div>
-//   </div>
-
-//   <div class="col-md-1">
-//     <label role="button"></label>
-//   </div>
-// </div>
-// <div class="row">
-//   <div class="col-md-1">
-//     <div class="form-group">
-//       {/* <label role="wId">รหัสหน่วยงาน</label> */}
-//       <input
-//         type="text"
-//         class="form-control"
-//         id="wId"
-//         placeholder="รหัสหน่วยงาน"
-//         value={wId}
-//         onChange={(e) => setWId(e.target.value)}
-//         list="workplaces"
-//       />
-//       <datalist id="workplaces">
-//         <option value="">ยังไม่ระบุหน่วยงาน</option>
-//         {workplaceList.map((wp) => (
-//           <option key={wp._id} value={wp.workplaceId}>
-//             {wp.workplaceName}
-//           </option>
-//         ))}
-//       </datalist>
-//     </div>
-//   </div>
-
-//   <div class="col-md-2">
-//     <div class="form-group">
-//       {/* <label role="wName">ชื่อหน่วยงาน</label> */}
-//       <input
-//         type="text"
-//         class="form-control"
-//         id="wName"
-//         placeholder="ชื่อหน่วยงาน"
-//         value={wName}
-//         onChange={(e) => setWName(e.target.value)}
-//       />
-//     </div>
-//   </div>
-
-//   <div class="col-md-1">
-    
-//     <select
-//       className="form-control"
-//       value={wGroup}
-//       onChange={(e) => setWGroup(e.target.value)}
-//       style={{ width: "5.5rem" }}
-//     >
-//       <option value="">หน่วยงานหลัก</option>
-
-//       {groupOptions1 && groupOptions1.map((item) => (
-
-// <option key={item.workplaceComplexId} value={item.workplaceComplexId}>
-// {item.workplaceComplexName}
-// </option>
-// ))}
-//     </select>
-//   </div> 
-
-//   <div class="col-md-1">
-//     {/* <label role="wDate">วันที่</label> */}
-//     <select
-//       className="form-control"
-//       value={wDate}
-//       onChange={(e) => setWDate(e.target.value)}
-//       style={{ width: "5.5rem" }}
-//     >
-//       <option value="">เลือกวัน</option>
-//       {options}
-//     </select>
-//   </div>
-
-//   <div class="col-md-1">
-//     {/* <label role="wShift">กะทำงาน</label> */}
-//     <select
-//       className="form-control"
-//       value={wShift}
-//       onChange={(e) => setWShift(e.target.value)}
-//       style={{ width: "5.5rem" }}
-//     >
-//       {/* <option value="">เลือกกะ</option> */}
-//       <option value="morning_shift">กะเช้า</option>
-//       <option value="afternoon_shift">กะบ่าย</option>
-//       <option value="night_shift">กะดึก</option>
-//       <option value="specialt_shift">กะพิเศษ</option>
-//     </select>
-//   </div>
-
-//   <div class="col-md-1">
-//     <div class="form-group">
-//       {/* <label role="wStartTime">เวลาเข้างาน</label> */}
-//       <input
-//         type="text"
-//         class="form-control"
-//         id="wStartTime"
-//         placeholder="เวลาเข้างาน"
-//         value={wStartTime}
-//         onChange={(e) => setWStartTime(e.target.value)}
-//       />
-//     </div>
-//   </div>
-
-//   <div class="col-md-1">
-//     <div class="form-group">
-//       {/* <label role="wEndTime">เวลาออกงาน</label> */}
-//       <input
-//         type="text"
-//         class="form-control"
-//         id="wEndTime"
-//         placeholder="เวลาออกงาน"
-//         value={wEndTime}
-//         onChange={(e) => setWEndTime(e.target.value)}
-//       />
-//     </div>
-//   </div>
-
-//   <div class="col-md-1">
-//     <div class="form-group">
-//       {/* <label role="wAllTime">ชั่วโมงทำงาน</label> */}
-//       <input
-//         type="text"
-//         class="form-control"
-//         id="wAllTime"
-//         placeholder="ชั่วโมงทำงาน"
-//         value={wAllTime}
-//         onChange={(e) => setWAllTime(e.target.value)}
-//       />
-//     </div>
-//   </div>
-
-//   <div class="col-md-1">
-//     <div class="form-group">
-//       {/* <label role="wOtTime">ชั่วโมง OT</label> */}
-//       <input
-//         type="text"
-//         class="form-control"
-//         id="wOtTime"
-//         placeholder="ชั่วโมง OT"
-//         value={wOtTime}
-//         onChange={(e) => setWOtTime(e.target.value)}
-//       />
-//     </div>
-//   </div>
-
-//   <div class="col-md-1">
-//     <div class="form-group">
-//       {/* <label role="wSelectOtTime">เวลาเข้า OT</label> */}
-//       <input
-//         type="text"
-//         class="form-control"
-//         id="wSelectOtTime"
-//         placeholder="เวลาเข้า OT"
-//         value={wSelectOtTime}
-//         onChange={(e) => setWSelectOtTime(e.target.value)}
-//       />
-//     </div>
-//   </div>
-
-//   <div class="col-md-1">
-//     <div class="form-group">
-//       {/* <label role="wSelectOtTimeout">เวลาออก OT</label> */}
-//       <input
-//         type="text"
-//         class="form-control"
-//         id="wSelectOtTimeout"
-//         placeholder="เวลาออก OT"
-//         value={wSelectOtTimeout}
-//         onChange={(e) => setWSelectOtTimeout(e.target.value)}
-//       />
-//     </div>
-//   </div>
-
-//   {wShift === "specialt_shift" && (
-//     <div>
-//       <div class="row">
-//         <div class="col-md-2">
-//           <label>จ่ายสด</label>
-//         </div>
-//         <div class="col-md-3">
-//           <label role="specialtSalary">เป็นเงิน</label>
-//         </div>
-//         <div class="col-md-3">
-//           <label role="specialtSalaryOT">เป็นเงินOT</label>
-//         </div>
-//         <div class="col-md-3">
-//           <label role="messageSalary">หมายเหตุ</label>
-//         </div>
-//       </div>
-//       <div class="row">
-//         <div class="col-md-2">
-//           <input
-//             type="checkbox"
-//             class="form-control"
-//             checked={cashSalary}
-//             onChange={handleCheckboxChange}
-//           />
-//         </div>
-//         <div class="col-md-3">
-//           <input
-//             type="text"
-//             class="form-control"
-//             id="specialtSalary"
-//             placeholder="เป็นเงิน"
-//             value={specialtSalary}
-//             onChange={(e) => setSpecialtSalary(e.target.value)}
-//           />
-//         </div>
-//         <div class="col-md-3">
-//           <input
-//             type="text"
-//             class="form-control"
-//             id="specialtSalaryOT"
-//             placeholder="OT เป็นเงิน"
-//             value={specialtSalaryOT}
-//             onChange={(e) =>
-//               setSpecialtSalaryOT(e.target.value)
-//             }
-//           />
-//         </div>
-//         <div class="col-md-3">
-//           <input
-//             type="text"
-//             class="form-control"
-//             id="messageSalary"
-//             placeholder="หมายเหตุ"
-//             value={messageSalary}
-//             onChange={(e) => setMessageSalary(e.target.value)}
-//           />
-//         </div>
-//       </div>
-//     </div>
-//   )}
-// </div>
-// </section>

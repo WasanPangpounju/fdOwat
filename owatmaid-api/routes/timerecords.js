@@ -882,6 +882,50 @@ router.post('/searchtimerecordemployee', async (req, res) => {
   }
 });
 
+// Create new timerecordEmployee 
+router.post('/createtimerecordemployee ', async (req, res) => {
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+
+  const {
+year,
+    employeeId,
+    employeeName,
+    month,
+    employee_record
+  } = req.body;
+
+
+  // Create timerecordEmployee 
+  const timerecordEmployeeData = new timerecordEmployee({
+year,
+    employeeId,
+    employeeName,
+    month,
+    employee_record
+  });
+// console.log(workplaceTimeRecordData );
+
+  try {
+    // Delete existing records for the same employee and month timerecordId
+    await timerecordEmployee.deleteMany({
+      year,
+      employeeId,
+      employeeName,
+      month    });
+      
+    await timerecordEmployeeData.save();
+
+    
+    await res.json(timerecordEmployeeData);
+
+  } catch (err) {
+    console.log(err);
+    res.status(400).json({ error: err.message });
+  }
+
+});
+
 
 
 
