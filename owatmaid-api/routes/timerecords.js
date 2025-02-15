@@ -906,35 +906,6 @@ router.put("/updatetimerecordemployee/:employeeRecordId", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
-// // Delete all records by year , employeeId, and month, then save a new timerecordEmployee 
-// router.put('/updatetimerecordemployee/:employeeRecordId', async (req, res) => {
-//   const employeeIdToUpdate = await req.params.employeeRecordId;
-//   const updateFields = await req.body;
-
-//   try {
-//     await workplaceTimerecordEmp.deleteMany({
-//       year: updateFields.year,
-//       employeeId: updateFields.employeeId,
-//       month: updateFields.month,
-//     });
-
-//     // Create a new record with updated fields
-//         const newRecord = await new timerecordEmployee(updateFields);
-
-//     // Save the new record
-//     const savedRecord = await newRecord.save();
-// if(savedRecord ) {
-// // Respond with the newly created record
-// await res.status(201).json(savedRecord);
-// } 
-
-// }
-//     catch (error) {
-// await    console.error(error);
-//     await res.status(500).json({ error: 'Internal server error' });
-//   }
-// });
-
 
 
 
@@ -1001,7 +972,8 @@ router.post('/searchworkplacetimerecords', async (req, res) => {
     }
 
     if (wGroup !== '') {
-      query.wGroup = { $regex: new RegExp(wGroup , 'i') };
+      query.wGroup = wGroup;
+      // { $regex: new RegExp(wGroup , 'i') };
     }
 
     if (date !== '') {

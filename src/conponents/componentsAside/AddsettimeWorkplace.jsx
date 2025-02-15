@@ -1122,11 +1122,11 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
       wGroup: wGroup || '',
       date: convertBuddhistToGregorian(formattedDate),
       employeeRecord: rowDataList,
-      timerecordId: yearSelectedDate.toString(),
+      year: yearSelectedDate.toString(),
     };
   
     try {
-      const response = await axios.post(endpoint + "/timerecord/create", data);
+      const response = await axios.post(endpoint + "/timerecord/createworkplacetimerecords", data);
   
       if (response.status === 200) {
         alert("บันทึกสำเร็จ");
@@ -1802,8 +1802,8 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
         (rowData, index) =>
           rowData.staffId !== "" && ( // ตรวจสอบว่ามี staffId
             <tr key={index}>
-              <td>{rowData.staffId}</td>
-              <td>{rowData.staffName}</td>
+              <td>{rowData.employeeId}</td>
+              <td>{rowData.employeeName}</td>
               <td>
                 {rowData.shift === "morning_shift" ? (
                   "กะเช้า"
