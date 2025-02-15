@@ -847,59 +847,31 @@ year,
 
 });
 
+// Delete all records by year , employeeId, and month, then save a new timerecordEmployee 
 router.put('/updatetimerecordemployee/:employeeRecordId', async (req, res) => {
-  try {
-    const { employeeRecordId } = req.params;
-    const updateFields = req.body;
+  const employeeIdToUpdate = await req.params.employeeRecordId;
+  const updateFields = await req.body;
 
-    // Find the parent document that contains this employee record
-    const parentRecord = await workplaceTimerecordEmp.findOne({
-      "employeeRecord._id": employeeRecordId
+  try {
+    await workplaceTimerecordEmp.deleteMany({
+      year: updateFields.year,
+      employeeId: updateFields.employeeId,
+      month: updateFields.month,
     });
 
-    if (!parentRecord) {
-      return res.status(404).json({ message: "Employee record not found" });
-    }
+    // Create a new record with updated fields
+        const newRecord = await new timerecordEmployee(updateFields);
 
-    // Update the specific employee inside the employeeRecord array
-    const updatedRecord = await workplaceTimerecordEmp.findOneAndUpdate(
-      { "employeeRecord._id": employeeRecordId },
-      { $set: { "employeeRecord.$": updateFields } },
-      { new: true }
-    );
+    // Save the new record
+    const savedRecord = await newRecord.save();
 
-    res.status(200).json(updatedRecord);
+    // Respond with the newly created record
+    await res.status(201).json(savedRecord);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Internal server error" });
+await    console.error(error);
+    await res.status(500).json({ error: 'Internal server error' });
   }
 });
-
-// // Delete all records by year , employeeId, and month, then save a new timerecordEmployee 
-// router.put('/updatetimerecordemployee/:employeeRecordId', async (req, res) => {
-//   const employeeIdToUpdate = await req.params.employeeRecordId;
-//   const updateFields = await req.body;
-
-//   try {
-//     await workplaceTimerecordEmp.deleteMany({
-//       year: updateFields.year,
-//       employeeId: updateFields.employeeId,
-//       month: updateFields.month,
-//     });
-
-//     // Create a new record with updated fields
-//         const newRecord = await new timerecordEmployee(updateFields);
-
-//     // Save the new record
-//     const savedRecord = await newRecord.save();
-
-//     // Respond with the newly created record
-//     await res.status(201).json(savedRecord);
-//   } catch (error) {
-// await    console.error(error);
-//     await res.status(500).json({ error: 'Internal server error' });
-//   }
-// });
 
 
 
