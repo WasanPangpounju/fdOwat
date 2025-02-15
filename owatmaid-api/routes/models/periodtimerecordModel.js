@@ -1,0 +1,31 @@
+const mongoose = require('mongoose');
+
+// Define time record schema for employee
+const periodEmployeeTimerecordSchema = new mongoose.Schema({
+  year: String,
+  employeeId: String,
+  employeeName: String,
+  month: String,
+  employee_record: [{
+    workplaceId: String,
+    workplaceName: String,
+    wGroup : String,
+    date: String,
+    shift: String,
+    startTime: String,
+    endTime: String,
+    totalTime: String,
+    startOtTime: String,
+    endOtTime: String,
+    totalOtTime: String,
+    cashSalary: String,
+specialtSalary: String,
+specialtSalaryOT: String,
+        messageSalary: String,
+}]
+});
+
+// Create the workplace record time model based on the schema
+const timerecordEmployee = mongoose.model('periodEmployeeTimerecord', periodEmployeeTimerecordSchema );
+
+module.exports = timerecordEmployee;

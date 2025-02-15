@@ -1700,18 +1700,18 @@ await workplacesearch.workplaceGroup[departmentIndex]
       employeeId: employeeId,
       employeeName: name,
       month: month,
-      timerecordId: year,
+      year: year,
     };
     setRowDataList2([]);
     if (!checkaddData) {
       try {
         const response = await axios.post(
-          endpoint + "/timerecord/searchemp",
+          endpoint + "/timerecord/searchtimerecordemployee",
           data
         );
         // alert(JSON.stringify(response ,null,2));
 
-        if (response.data.recordworkplace.length < 1) {
+        if (response.data.result.length < 1) {
           alert("ไม่พบข้อมูล");
           // Set the state to false if no data is found
           setUpdateButton(false);
@@ -1719,13 +1719,13 @@ await workplacesearch.workplaceGroup[departmentIndex]
           setRowDataList2([]);
         } else {
           // Set the state to true if data is found
-          setUpdateButton(true);
+          await setUpdateButton(true);
           // alert(response.data.recordworkplace[0].employee_workplaceRecord[1].workplaceId);
-          setTimeRecord_id(response.data.recordworkplace[0]._id);
+          await setTimeRecord_id(response.data.result[0]._id);
 
           // setRowDataList2(response.data.recordworkplace[0].employee_workplaceRecord);
           if (name != "") {
-            // setRowDataList2(response.data.recordworkplace[0].employee_workplaceRecord);
+            setRowDataList2(response.data.result[0].employee_record);
             // setRowDataList2(
             //   response.data.recordworkplace[0].employee_workplaceRecord.map(
             //     (item, index) => ({
@@ -1735,24 +1735,19 @@ await workplacesearch.workplaceGroup[departmentIndex]
             //   )
             // );
             //111
-            setRowDataList2(
-              response.data.recordworkplace[0].employee_workplaceRecord
-                .sort((a, b) => parseInt(a.date) - parseInt(b.date)) // Sort by date (ascending order)
-                .map((item, index) => ({
-                  ...item,
-                  tmpIndex: index,
-                }))
-            );
+            // setRowDataList2(
+            //   response.data.recordworkplace[0].employee_workplaceRecord
+            //     .sort((a, b) => parseInt(a.date) - parseInt(b.date)) // Sort by date (ascending order)
+            //     .map((item, index) => ({
+            //       ...item,
+            //       tmpIndex: index,
+            //     }))
+            // );
           } else {
             setRowDataList2([]);
           }
 
           // alert(JSON.stringify( rowDataList[0] ) );
-          //count work of time and set to table
-          // for (let i = 0; i < response.data.recordworkplace[0].employeeRecord.length; i++) {
-          // alert(response.data.recordworkplace[0].employeeRecord[i].shift );
-          // handleFieldChange(i, 'shift', response.data.recordworkplace[0].employeeRecord[i].shift);
-          // }
         }
       } catch (error) {
         alert("กรุณาตรวจสอบข้อมูลในช่องค้นหา");
