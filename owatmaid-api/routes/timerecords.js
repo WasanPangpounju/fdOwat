@@ -883,7 +883,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
 });
 
 // Create new timerecordEmployee 
-router.post('/createtimerecordemployee ', async (req, res) => {
+router.post('/createtimerecordemployee', async (req, res) => {
   const currentDate = new Date();
   const currentYear = currentDate.getFullYear();
 
