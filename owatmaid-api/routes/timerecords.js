@@ -507,7 +507,7 @@ async function setToWorkplace(selectWorkplaceId, selectworkplaceName, selectMont
 }
 
 
-async function setToEmployee(selectWorkplaceId, selectworkplaceName, selectMonth, workplaceTimeRecordData) {
+async function setToEmployee(selectWorkplaceId, selectworkplaceName, selectWGroup, selectMonth, workplaceTimeRecordData) {
   console.log('setToEmployee working');
   const dateParts = selectMonth.split('/');
   const workplaceId = selectWorkplaceId;
@@ -534,7 +534,7 @@ async function setToEmployee(selectWorkplaceId, selectworkplaceName, selectMonth
           recordworkplace.employee_workplaceRecord.push({
             'workplaceId': workplaceId,
             'workplaceName': workplaceName,
-            'wGroup': wGroup  || '',
+            'wGroup': selectWGroup || '',
             'date': day,
             'shift': element.shift,
             'startTime': element.startTime,
@@ -626,7 +626,7 @@ router.post('/create', async (req, res) => {
     const ans = await workplaceTimeRecordData.save();
     if (ans) {
       console.log('Create workplace time record success');
-      await setToEmployee(workplaceId, workplaceName, date, filteredEmployeeRecord);
+      await setToEmployee(workplaceId, workplaceName, wGroup, date, filteredEmployeeRecord);
     }
 
     res.json(workplaceTimeRecordData);
