@@ -948,7 +948,6 @@ router.post('/createworkplacetimerecords', async (req, res) => {
 
     // Create workplace with filtered employeeRecord array
     const workplaceTimeRecordData = new workplaceTimerecords({
-      year,
       workplaceId,
       workplaceName,
       wGroup ,
