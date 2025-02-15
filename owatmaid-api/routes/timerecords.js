@@ -1012,5 +1012,20 @@ router.get('/listempdeletexx', async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+// Get list of employeeTimerecords
+router.get('/listemptest', async (req, res) => {
+  try {
+    // Fetch the data first
+    const workplaceTimeRecordData = await timerecordEmployee.find();
+    // console.log(workplaceTimeRecordData[0].employee_workplaceRecord );
+
+console.log(workplaceTimeRecordData.length);
+    res.json(workplaceTimeRecordData );
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 
 module.exports = router;
