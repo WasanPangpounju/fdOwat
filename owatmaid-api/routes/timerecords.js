@@ -502,8 +502,9 @@ await    console.error(error);
 });
 
 
+const workplaceTimerecords = require("../models/workplaceTimerecords");
 
-async function setToWorkplaceTimerecords(employeeRecords, year, month) {
+async function setToWorkplaceTimerecords(employeeId, employeeName, employeeRecords, year, month) {
   console.log("🔄 Processing workplace records...");
 
   try {
@@ -513,8 +514,6 @@ async function setToWorkplaceTimerecords(employeeRecords, year, month) {
         workplaceName,
         wGroup,
         date,
-        employeeId,
-        employeeName,
         shift,
         startTime,
         endTime,
@@ -531,7 +530,7 @@ async function setToWorkplaceTimerecords(employeeRecords, year, month) {
       // Ensure date is in "DD/MM/YYYY" format
       const formattedDate = `${date}/${month}/${year}`;
 
-      // 🔍 Check if workplace record exists
+      // 🔍 Check if a workplace record exists for this date
       let workplaceRecord = await workplaceTimerecords.findOne({
         workplaceId,
         wGroup,
@@ -539,7 +538,7 @@ async function setToWorkplaceTimerecords(employeeRecords, year, month) {
       });
 
       if (workplaceRecord) {
-        // ✅ Check if employee already exists in employeeRecord array
+        // ✅ Check if the employee already exists in the record
         const existingEmployeeIndex = workplaceRecord.employeeRecord.findIndex(emp => emp.employeeId === employeeId);
 
         if (existingEmployeeIndex !== -1) {
@@ -607,13 +606,15 @@ async function setToWorkplaceTimerecords(employeeRecords, year, month) {
 
       // Save updated/new workplace record
       await workplaceRecord.save();
+      console.log(`✅ Workplace record updated for ${workplaceId} on ${formattedDate}`);
     }
 
-    console.log("✅ Workplace records processed successfully!");
+    console.log("✅ All workplace records processed successfully!");
   } catch (error) {
     console.error("❌ Error processing workplace records:", error);
   }
 }
+
 
 
 async function setToEmployee(selectWorkplaceId, selectworkplaceName, selectWGroup, selectMonth, workplaceTimeRecordData) {
@@ -996,7 +997,7 @@ year,
     await timerecordEmployeeData.save();
 
     if(timerecordEmployeeData) {
-      await setToWorkplaceTimerecords(employee_record, year, month) 
+      await setToWorkplaceTimerecords(employeeId, employeeName,  employee_record, year, month) 
     }
 
     await res.json(timerecordEmployeeData);
