@@ -1016,32 +1016,69 @@ console.log('query.date ' + query.date);
   }
 });
 
-// Update existing records in workplaceTimerecordEmp
+// Delete existing records by workplaceId, wGroup, and date, then save a new one
 router.put('/updateworkplacetimerecords/:workplaceRecordId', async (req, res) => {
   const workplaceIdToUpdate = req.params.workplaceRecordId;
-  const updateFields = req.body;
+  const newData = req.body; // New data to insert
 
   try {
-    // Find the resource by ID and update it
-    const updatedResource = await workplaceTimerecords.findByIdAndUpdate(
-      workplaceIdToUpdate,
-      updateFields,
-      { new: true } // To get the updated document as the result
+    // Step 1: Delete records matching workplaceId, wGroup, and date
+    const deleteResult = await workplaceTimerecords.deleteMany({
+      workplaceId: newData.workplaceId,
+      wGroup: newData.wGroup,
+      date: newData.date,
+    });
+
+    console.log(`🗑️ Deleted ${deleteResult.deletedCount} records`);
+
+    // Step 2: Create a new record with the updated data
+    const newRecord = new workplaceTimerecords(newData);
+    const updatedResource = await newRecord.save();
+
+    // Step 3: Update workplaceTimerecordEmp (if needed)
+    await setToEmployee(
+      updatedResource.workplaceId,
+      updatedResource.workplaceName,
+      updatedResource.wGroup,
+      updatedResource.date,
+      updatedResource.employeeRecord
     );
-    if (!updatedResource) {
-      return res.status(404).json({ message: 'Resource not found' });
-    }
 
-    // Update records in workplaceTimerecordEmp using setToEmployee with updateRecord set to true
-    await setToEmployee(updatedResource.workplaceId, updatedResource.workplaceName, updatedResource.wGroup, updatedResource.date, updatedResource.employeeRecord);
-
-    // Send the updated resource as the response
-    res.json(updatedResource);
-
+    // Respond with the newly created record
+    res.status(201).json(updatedResource );
+    
   } catch (error) {
-    console.error(error);
+    console.error("❌ Error:", error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+// // Update existing records in workplaceTimerecordEmp
+// router.put('/updateworkplacetimerecords/:workplaceRecordId', async (req, res) => {
+//   const workplaceIdToUpdate = req.params.workplaceRecordId;
+//   const updateFields = req.body;
+
+//   try {
+//     // Find the resource by ID and update it
+//     const updatedResource = await workplaceTimerecords.findByIdAndUpdate(
+//       workplaceIdToUpdate,
+//       updateFields,
+//       { new: true } // To get the updated document as the result
+//     );
+//     if (!updatedResource) {
+//       return res.status(404).json({ message: 'Resource not found' });
+//     }
+
+//     // Update records in workplaceTimerecordEmp using setToEmployee with updateRecord set to true
+//     await setToEmployee(updatedResource.workplaceId, updatedResource.workplaceName, updatedResource.wGroup, updatedResource.date, updatedResource.employeeRecord);
+
+//     // Send the updated resource as the response
+//     res.json(updatedResource);
+
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ error: 'Internal server error' });
+//   }
+// });
 
 module.exports = router;

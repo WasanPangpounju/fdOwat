@@ -1177,7 +1177,7 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
           setWGroup(response.data.wGroup || '');
           setFormattedDate(response.data.date); // Update formattedDate
         }
-      }
+      }   
     } catch (error) {
       console.error("Error updating timerecord: ", error);
       alert("กรุณาตรวจสอบข้อมูลในช่องกรอกข้อมูล");
