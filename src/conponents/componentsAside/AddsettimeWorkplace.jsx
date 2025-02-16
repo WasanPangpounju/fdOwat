@@ -1162,7 +1162,7 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
     };
   
     try {
-      const response = await axios.put(endpoint + "/timerecord/update/" + timeRecord_id, data);
+      const response = await axios.put(endpoint + "/timerecord/updateworkplacetimerecords/" + timeRecord_id, data);
   
       if (response.status === 200) {
         alert("บันทึกสำเร็จ");
