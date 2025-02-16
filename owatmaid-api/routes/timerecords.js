@@ -958,7 +958,7 @@ router.post('/createworkplacetimerecords', async (req, res) => {
     const ans = await workplaceTimeRecordData.save();
     if (ans) {
       console.log('Create workplace time record success');
-      await setToEmployee(workplaceId, workplaceName, date, filteredEmployeeRecord);
+      await setToEmployee(workplaceId, workplaceName,wGroup, date, filteredEmployeeRecord);
     }
 
     res.json(workplaceTimeRecordData);
