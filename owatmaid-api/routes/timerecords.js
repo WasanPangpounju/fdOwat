@@ -1033,7 +1033,7 @@ router.put('/updateworkplacetimerecords/:workplaceRecordId', async (req, res) =>
     }
 
     // Update records in workplaceTimerecordEmp using setToEmployee with updateRecord set to true
-    await setToEmployee(updatedResource.workplaceId, updatedResource.workplaceName, updatedResource.wGroup, updatedResource.date, updatedResource.employeeRecord, true);
+    await setToEmployee(updatedResource.workplaceId, updatedResource.workplaceName, updatedResource.wGroup, updatedResource.date, updatedResource.employeeRecord);
 
     // Send the updated resource as the response
     res.json(updatedResource);
