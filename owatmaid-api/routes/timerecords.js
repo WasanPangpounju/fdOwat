@@ -561,7 +561,7 @@ async function setToEmployee(selectWorkplaceId, selectworkplaceName, selectWGrou
           const employee_record = {
             'workplaceId': workplaceId,
             'workplaceName': workplaceName,
-            'wGroup': wGroup  || '',
+            'wGroup': selectWGroup || '',
             'date': day,
             'shift': element.shift,
             'startTime': element.startTime,
