@@ -509,7 +509,7 @@ async function setToWorkplace(selectWorkplaceId, selectworkplaceName, selectMont
 
 async function setToEmployee(selectWorkplaceId, selectworkplaceName, selectWGroup, selectMonth, workplaceTimeRecordData) {
   console.log('setToEmployee working');
-  const dateParts = String(selectMonth.split("/"));
+  const dateParts = selectMonth.split("/");
   const workplaceId = selectWorkplaceId;
   const workplaceName = selectworkplaceName;
   const month = dateParts[1];
@@ -554,7 +554,7 @@ async function setToEmployee(selectWorkplaceId, selectworkplaceName, selectWGrou
         } else {
           // Employee time record does not exist, create a new one
           const timerecordId_year = dateParts[2];
-          const timerecordId = timerecordId_year;
+          const year= timerecordId_year;
           const employeeId = element.employeeId ;
           const employeeName = element.employeeName;
 
