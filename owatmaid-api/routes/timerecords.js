@@ -1011,7 +1011,7 @@ year,
 // Route to delete all matching records and save a new one
 router.put("/updatetimerecordemployee/:employeeRecordId", async (req, res) => {
   try {
-    const { year, employeeId, month } = req.body;
+    const { year, employeeId, employeeName, month } = req.body;
 
     console.log("🔍 Finding records to delete for:", { year, employeeId, month });
 
@@ -1028,6 +1028,10 @@ router.put("/updatetimerecordemployee/:employeeRecordId", async (req, res) => {
 
     console.log("✅ New record saved:", employee_record);
 
+    if(employee_record ) {
+      await setToWorkplaceTimerecords(employeeId, employeeName,  newRecord.employee_record, year, month) 
+
+    }
     // Respond with the newly created record
     res.status(201).json(employee_record);
   } catch (error) {
