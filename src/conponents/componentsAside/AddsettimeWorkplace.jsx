@@ -580,13 +580,36 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
 
   // Function to handle deleting a row
   const handleDeleteRow = (index) => {
-    // Create a copy of the current state
-    const newDataList = [...rowDataList];
-    // Remove the row at the specified index
-    newDataList.splice(index, 1);
-    // Update the state with the new data
-    setRowDataList(newDataList);
+    console.log("Attempting to delete index:", index); // Debugging
+    
+    setRowDataList((prevList) => {
+      if (!Array.isArray(prevList) || prevList.length === 0) {
+        console.error("❌ rowDataList is empty or not an array.");
+        return prevList; // Prevent resetting state to empty
+      }
+  
+      if (index < 0 || index >= prevList.length) {
+        console.error("❌ Invalid index:", index);
+        return prevList;
+      }
+  
+      // Create a new array without modifying the original
+      const updatedList = prevList.filter((_, i) => i !== index);
+      
+      console.log("✅ Updated List:", updatedList); // Debugging
+      return updatedList;
+    });
   };
+  
+  // const handleDeleteRow = (index) => {
+  //   alert(index)
+  //   // Create a copy of the current state
+  //   const newDataList = [...rowDataList];
+  //   // Remove the row at the specified index
+  //   newDataList.splice(index, 1);
+  //   // Update the state with the new data
+  //   setRowDataList(newDataList);
+  // };
 
   const handleWorkDateChange = (date) => {
     setWorkDate(date);
