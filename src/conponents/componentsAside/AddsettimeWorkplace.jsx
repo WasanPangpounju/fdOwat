@@ -580,7 +580,7 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
 
   // Function to handle deleting a row
   const handleDeleteRow = (index) => {
-    console.log("Attempting to delete index:", index); // Debugging
+    // alert("Attempting to delete index:", index); // Debugging
     
     setRowDataList((prevList) => {
       if (!Array.isArray(prevList) || prevList.length === 0) {
@@ -1187,7 +1187,7 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
     try {
       const response = await axios.put(endpoint + "/timerecord/updateworkplacetimerecords/" + timeRecord_id, data);
   
-      if (response.status === 200) {
+      if (response.status === 201) {
         alert("บันทึกสำเร็จ");
   
         // Assuming API returns updated data
@@ -1823,7 +1823,7 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
     <tbody>
       {rowDataList.map(
         (rowData, index) =>
-          rowData.staffId !== "" && ( // ตรวจสอบว่ามี staffId
+          rowData.employeeId !== "" && ( // ตรวจสอบว่ามี staffId
             <tr key={index}>
               <td>{rowData.employeeId}</td>
               <td>{rowData.employeeName}</td>
@@ -1852,10 +1852,10 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
                   : ""}
               </td>
               <td>
-                <button
+                <button type="button"
                   className="btn btn-xs btn-danger"
                   style={{ padding: "0.3rem", width: "8rem" }}
-                  onClick={() => handleDeleteRow(index)}
+                  onClick={() => handleDeleteRow(parseInt(index))}
                 >
                   Delete
                 </button>
