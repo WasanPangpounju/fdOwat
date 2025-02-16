@@ -1192,13 +1192,14 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
   
         // Assuming API returns updated data
         if (response.data) {
-          setRowDataList(response.data.employeeRecord); // Update state
-          setTimeRecord_id(response.data._id); // Set new timeRecord_id for next update
-          setUpdateButton(true); // Enable update button
-          setWorkplaceId(response.data.workplaceId); // Update workplaceId
-          setWorkplaceName(response.data.workplaceName); // Update workplaceName
-          setWGroup(response.data.wGroup || '');
-          setFormattedDate(response.data.date); // Update formattedDate
+          handleCheckTimerecord();
+          // setRowDataList(response.data.employeeRecord); // Update state
+          // setTimeRecord_id(response.data._id); // Set new timeRecord_id for next update
+          // setUpdateButton(true); // Enable update button
+          // setWorkplaceId(response.data.workplaceId); // Update workplaceId
+          // setWorkplaceName(response.data.workplaceName); // Update workplaceName
+          // setWGroup(response.data.wGroup || '');
+          // setFormattedDate(response.data.date); // Update formattedDate
         }
       }   
     } catch (error) {
