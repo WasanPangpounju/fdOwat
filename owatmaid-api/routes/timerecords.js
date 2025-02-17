@@ -1088,7 +1088,7 @@ router.post('/createworkplacetimerecords', async (req, res) => {
 router.post('/searchworkplacetimerecords', async (req, res) => {
   try {
     const { workplaceId,
-      workplaceName,
+      // workplaceName,
       wGroup ,
       date} = req.body;
     // Construct the search query based on the provided parameters
@@ -1099,9 +1099,9 @@ router.post('/searchworkplacetimerecords', async (req, res) => {
     }
 
 
-    if (workplaceName !== '') {
-      query.workplaceName = { $regex: new RegExp(workplaceName, 'i') };
-    }
+    // if (workplaceName !== '') {
+    //   query.workplaceName = { $regex: new RegExp(workplaceName, 'i') };
+    // }
 
     if (wGroup !== '') {
       query.wGroup = wGroup;
