@@ -96,6 +96,12 @@ const workplaceSchema = new mongoose.Schema({
     workOfHour_subMinute: { 
         type: String
     },
+    startWorkOfOT_subHour: { 
+        type: String
+    },
+    startWorkOfOT_subMinute: {
+        type: String
+    },
     workOfOT_subHour: { 
         type: String
     },
@@ -511,6 +517,8 @@ router.post('/create', async (req, res) => {
         workOfOT,
         workOfHour_subHour,
         workOfHour_subMinute,
+        startWorkOfOT_subHour,
+        startWorkOfOT_subMinute,
         workOfOT_subHour,
         workOfOT_subMinute,
         workOfOT_breakHour,
@@ -592,6 +600,8 @@ router.post('/create', async (req, res) => {
         workOfOT,
         workOfHour_subHour,
         workOfHour_subMinute,
+        startWorkOfOT_subHour,
+        startWorkOfOT_subMinute,
         workOfOT_subHour,
         workOfOT_subMinute,
         workOfOT_breakHour,
@@ -844,6 +854,8 @@ data.workOfHour= workplace.workOfHour||0;
 data.workOfOT = workplace.workOfOT||0;
 data.workOfHour_subHour = workplace.workOfHour_subHour || 0;
 data.workOfHour_subMinute = workplace.workOfHour_subMinute || 0;
+data.startWorkOfOT_subHour = workplace.startWorkOfOT_subHour || 0;
+data.startWorkOfOT_subMinute = workplace.startWorkOfOT_subMinute || 0;
 data.workOfOT_subHour = workplace.workOfOT_subHour || 0;
 data.workOfOT_subMinute = workplace.workOfOT_subMinute || 0;
 data.workOfOT_breakHour = workplace.workOfOT_breakHour  || 0;

@@ -618,6 +618,8 @@ function Setting({ workplaceList, employeeList }) {
 
   const [workOfHour, setWorkOfHour] = useState(""); //ชั่วโมงทำงานต่อสัปดาห์
   const [workOfMinute, setWorkOfMinute] = useState(""); //ชั่วโมงทำงานต่อสัปดาห์
+  const [startWorkOfOT, setStartWorkOfOT] = useState(""); //ชั่วโมง OT ต่อสัปดาห์
+  const [startWorkOfOTMinute, setStartWorkOfOTMinute] = useState(""); //ชั่วโมง OT ต่อสัปดาห์
   const [workOfOT, setWorkOfOT] = useState(""); //ชั่วโมง OT ต่อสัปดาห์
   const [workOfOTMinute, setWorkOfOTMinute] = useState(""); //ชั่วโมง OT ต่อสัปดาห์
   const [breakOfOT, setBreakOfOT] = useState(""); //ชั่วโมง OT ต่อสัปดาห์
@@ -936,6 +938,8 @@ function Setting({ workplaceList, employeeList }) {
 
     setWorkOfHour(workplace.workOfHour_subHour || workplace.workOfHour);
     setWorkOfMinute(workplace.workOfHour_subMinute || 0);
+    setStartWorkOfOT(workplace.startWorkOfOT_subHour || workplace.workOfOT);
+    setStartWorkOfOTMinute(workplace.startWorkOfOT_subMinute || 0);
     setWorkOfOT(workplace.workOfOT_subHour || workplace.workOfOT);
     setWorkOfOTMinute(workplace.workOfOT_subMinute || 0);
     setBreakOfOT(workplace.workOfOT_breakMinute || 0);
@@ -1143,6 +1147,8 @@ setWorkRateChange(workplace.workRateChange)
 
       workOfHour_subHour: workOfHour || 0,
       workOfHour_subMinute: workOfMinute || 0,
+      startWorkOfOT_subHour: startWorkOfOT || 0,
+      startWorkOfOT_subMinute: startWorkOfOTMinute || 0,
       workOfOT_subHour: workOfOT || 0,
       workOfOT_subMinute: workOfOTMinute || 0,
       workOfOT_breakHour: '',
@@ -1630,6 +1636,43 @@ setWorkRateChange(workplace.workRateChange)
 
                 <h2 class="title">เวลาทำงาน</h2>
                 <section class="Frame">
+                <div class="row align-items-end">
+                    <div class="col-md-3">
+                      <div class="form-group">
+                        <label role="startOT">ชั่วโมงทำงาน OT ก่อนเริ่มงาน</label>
+                        <input
+                          type="text"
+                          class="form-control"
+                          id="startOT"
+                          placeholder="ชั่วโมงทำงาน OT"
+                          value={startWorkOfOT}
+                          onChange={(e) => setstartWorkOfOT(e.target.value)}
+                          onInput={(e) => {
+                            // Remove any non-digit characters, including '.'
+                            e.target.value = e.target.value.replace(/[^0-9]/g, "");
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div class="col-md-3">
+                      <div class="form-group">
+                        {/* <label role="workOfOT">-</label> */}
+                        <input
+                          type="text"
+                          class="form-control"
+                          id="startOT"
+                          placeholder="นาที"
+                          value={startWorkOfOTMinute}
+                          onChange={(e) => setStartWorkOfOTMinute(e.target.value)}
+                          onInput={(e) => {
+                            // Remove any non-digit characters, including '.'
+                            e.target.value = e.target.value.replace(/[^0-9]/g, "");
+                          }}
+                        />
+                      </div>
+                    </div>
+</div>
+
                   <div class="row align-items-end">
                     <div class="col-md-3">
                       <div class="form-group">
@@ -1655,7 +1698,7 @@ setWorkRateChange(workplace.workRateChange)
                           type="text"
                           // style={{ marginBottom: "0rem" }}
                           class="form-control "
-                          id="workOfOT"
+                          id="workOfHour"
                           placeholder="นาที"
                           value={workOfMinute}
                           onChange={(e) => setWorkOfMinute(e.target.value)}
@@ -1670,11 +1713,11 @@ setWorkRateChange(workplace.workRateChange)
                   <div class="row align-items-end">
                     <div class="col-md-3">
                       <div class="form-group">
-                        <label role="workOfHour">ชั่วโมงทำงาน OT</label>
+                        <label role="endOT">ชั่วโมงทำงาน OT</label>
                         <input
                           type="text"
                           class="form-control"
-                          id="workOfHour"
+                          id="endOT"
                           placeholder="ชั่วโมงทำงาน OT"
                           value={workOfOT}
                           onChange={(e) => setWorkOfOT(e.target.value)}
@@ -1691,7 +1734,7 @@ setWorkRateChange(workplace.workRateChange)
                         <input
                           type="text"
                           class="form-control"
-                          id="workOfOT"
+                          id="endOT"
                           placeholder="นาที"
                           value={workOfOTMinute}
                           onChange={(e) => setWorkOfOTMinute(e.target.value)}
@@ -3465,17 +3508,31 @@ setWorkRateChange(workplace.workRateChange)
 <h2 class="title">ตั้งค่าวันทํางานพิเศษ</h2>
 <section className="Frame">
       {/* Date Selection */}
-      <div className="row mb-3">
-        <div className="col-md-2">เลือกวันที่</div>
-        <div className="col-md-2">
-          <DatePicker
-            selected={workDate_specialwork}
-            onChange={setWorkDate_specialwork}
-            dateFormat="dd/MM/yyyy"
-            className="form-control"
-          />
-        </div>
-      </div>
+      <div className="row mb-3 align-items-center">
+    <div className="col-md-2">เลือกวันที่</div>
+    <div className="col-md-2">
+      <DatePicker
+        selected={workDate_specialwork}
+        onChange={setWorkDate_specialwork}
+        dateFormat="dd/MM/yyyy"
+        className="form-control"
+      />
+    </div>
+    
+    {/* Selection Dropdown */}
+    <div className="col-md-2">
+      <select className="form-control">
+        <option value="clear">เคลียร์</option>
+        <option value="job">จ๊อบ</option>
+      </select>
+    </div>
+
+    {/* Textbox */}
+    <div className="col-md-2">ค่าใช้จ่ายหน่วยงาน</div>
+    <div className="col-md-2">
+      <input type="text" className="form-control" placeholder="รหัสหน่วยงาน" />
+    </div>
+  </div>
 
 {/* Work Time Inputs using Bootstrap Grid */}
   <div className="row text-center font-weight-bold mb-2">
