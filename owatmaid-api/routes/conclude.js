@@ -1802,7 +1802,23 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     // Query the workplace collection for matching documents
     const result = await timerecordEmployee.find(query);
 
+    // Check if any record has missing cash values
+    let updateNeeded = false;
+    result.forEach(doc => {
+      if (doc.employee_record.some(record =>
+        record.cashBeforeOt === '' || record.cashWork === '' || record.cashOt === ''
+      )) {
+        updateNeeded = true;
+      }
+    });
 
+    if (updateNeeded) {
+      for (const doc of result) {
+        doc.employee_record = calculateCashValues(doc.employee_record);
+        await doc.save(); // Save updated values in DB
+      }
+    }
+    
     await res.status(200).json({ result});
   } catch (error) {
     console.error(error);
@@ -1810,5 +1826,17 @@ router.post('/searchtimerecordemployee', async (req, res) => {
   }
 });
 
+
+// Function to calculate cash values
+const calculateCashValues = (employee_record) => {
+  return employee_record.map(record => {
+    return {
+      ...record,
+      cashBeforeOt: record.cashBeforeOt !== '' ? record.cashBeforeOt : (record.beforeTotalOtTime || 0) * 50,
+      cashWork: record.cashWork !== '' ? record.cashWork : (record.totalTime || 0) * 363,
+      cashOt: record.cashOt !== '' ? record.cashOt : (record.totalOtTime || 0) * 100,
+    };
+  });
+};
 
 module.exports = router;

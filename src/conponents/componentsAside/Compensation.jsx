@@ -1638,11 +1638,12 @@ function Compensation() {
 
 
     try {
+
       const response = await axios.post(
         endpoint + "/conclude/searchtimerecordemployee",
         data
       );
-      // alert(JSON.stringify(response ,null,2));
+      alert(JSON.stringify(response.data ,null,2));
 
       if (response.data.result.length < 1) {
 
