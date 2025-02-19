@@ -1643,7 +1643,7 @@ function Compensation() {
         endpoint + "/conclude/searchtimerecordemployee",
         data
       );
-      alert(JSON.stringify(response.data ,null,2));
+      alert(JSON.stringify(response.data?.result?.[0].employee_record[0] ,null,2));
 
       if (response.data.result.length < 1) {
 

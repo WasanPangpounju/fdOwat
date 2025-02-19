@@ -1771,72 +1771,129 @@ function groupByWorkplaceId(records) {
 
 //========== latest code
 
-//search timerecordEmployee 
-router.post('/searchtimerecordemployee', async (req, res) => {
-  try {
-    const { employeeId,
-      month,
-     year} = req.body;
+// //search timerecordEmployee 
+// router.post('/searchtimerecordemployee', async (req, res) => {
+//   try {
+//     const { employeeId,
+//       month,
+//      year} = req.body;
 
-    // Construct the search query based on the provided parameters
-    const query = {};
+//     // Construct the search query based on the provided parameters
+//     const query = {};
 
-    if (employeeId !== '') {
-      query.employeeId= employeeId;
-    }
+//     if (employeeId !== '') {
+//       query.employeeId= employeeId;
+//     }
 
 
-    if (month !== '') {
-      //query.month = new Date(date);
-      query.month = { $regex: new RegExp(month , 'i') };
-    }
+//     if (month !== '') {
+//       //query.month = new Date(date);
+//       query.month = { $regex: new RegExp(month , 'i') };
+//     }
 
-    if (year!== '') {
-      query.year = { $regex: new RegExp(year , 'i') };
-    }
+//     if (year!== '') {
+//       query.year = { $regex: new RegExp(year , 'i') };
+//     }
 
-    if (employeeId == '' && employeeName == '' && month == '' && year== '') {
-      res.status(200).json({});
-    }
+//     if (employeeId == '' && employeeName == '' && month == '' && year== '') {
+//       res.status(200).json({});
+//     }
 
-    // Query the workplace collection for matching documents
-    const result = await timerecordEmployee.find(query);
+//     // Query the workplace collection for matching documents
+//     const result = await timerecordEmployee.find(query);
 
-    // Check if any record has missing cash values
-    let updateNeeded = false;
-    result.forEach(doc => {
-      if (doc.employee_record.some(record =>
-        record.cashBeforeOt === '' || record.cashWork === '' || record.cashOt === ''
-      )) {
-        updateNeeded = true;
-      }
-    });
+//     // Check if any record has missing cash values
+//     let updateNeeded = false;
+//     result.forEach(doc => {
+//       if (doc.employee_record.some(record =>
+//         record.cashBeforeOt === '' || record.cashWork === '' || record.cashOt === ''
+//       )) {
+//         updateNeeded = true;
+//       }
+//     });
 
-    if (updateNeeded) {
-      for (const doc of result) {
-        doc.employee_record = calculateCashValues(doc.employee_record);
-        await doc.save(); // Save updated values in DB
-      }
-    }
-    
-    await res.status(200).json({ result});
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-});
+//     if (updateNeeded) {
+//       for (const doc of result) {
+//         doc.employee_record = calculateCashValues(doc.employee_record);
+//         await doc.save(); // Save updated values in DB
+//       }
+//     }
+
+//     await res.status(200).json({ result});
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ message: 'Internal server error' });
+//   }
+// });
+
+
+// // Function to calculate cash values
+// const calculateCashValues = (employee_record) => {
+//   return employee_record.map(record => {
+//     return {
+//       ...record,
+//       cashBeforeOt: record.cashBeforeOt !== '' ? record.cashBeforeOt : (record.beforeTotalOtTime || 0) * 50,
+//       cashWork: record.cashWork !== '' ? record.cashWork : (record.totalTime || 0) * 363,
+//       cashOt: record.cashOt !== '' ? record.cashOt : (record.totalOtTime || 0) * 100,
+//     };
+//   });
+// };
 
 
 // Function to calculate cash values
 const calculateCashValues = (employee_record) => {
   return employee_record.map(record => {
     return {
-      ...record,
-      cashBeforeOt: record.cashBeforeOt !== '' ? record.cashBeforeOt : (record.beforeTotalOtTime || 0) * 50,
-      cashWork: record.cashWork !== '' ? record.cashWork : (record.totalTime || 0) * 363,
-      cashOt: record.cashOt !== '' ? record.cashOt : (record.totalOtTime || 0) * 100,
+      ...record.toObject(), // Convert Mongoose document to plain object
+      cashBeforeOt: record.cashBeforeOt ? record.cashBeforeOt : (record.beforeTotalOtTime || 0) * 50,
+      cashWork: record.cashWork ? record.cashWork : (record.totalTime || 0) * 363,
+      cashOt: record.cashOt ? record.cashOt : (record.totalOtTime || 0) * 100,
     };
   });
 };
+
+// Search timerecordEmployee
+router.post('/searchtimerecordemployee', async (req, res) => {
+  try {
+    const { employeeId, month, year } = req.body;
+    const query = {};
+
+    if (employeeId) {
+      query.employeeId = employeeId;
+    }
+
+    if (month) {
+      query.month = { $regex: new RegExp(month, 'i') };
+    }
+
+    if (year) {
+      query.year = { $regex: new RegExp(year, 'i') };
+    }
+
+    if (!employeeId && !month && !year) {
+      return res.status(200).json({});
+    }
+
+    // Query the collection
+    const result = await timerecordEmployee.find(query);
+
+    // Check if any record has missing cash values
+    let updateNeeded = false;
+    for (const doc of result) {
+      const updatedRecords = calculateCashValues(doc.employee_record);
+      if (JSON.stringify(updatedRecords) !== JSON.stringify(doc.employee_record)) {
+        doc.employee_record = updatedRecords;
+        await doc.save(); // Save only if changes are made
+        updateNeeded = true;
+      }
+    }
+
+    res.status(200).json({ result });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
 
 module.exports = router;
