@@ -1786,10 +1786,6 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     }
 
 
-    if (employeeName !== '') {
-      query.employeeName = { $regex: new RegExp(employeeName, 'i') };
-    }
-
     if (month !== '') {
       //query.month = new Date(date);
       query.month = { $regex: new RegExp(month , 'i') };
@@ -1806,7 +1802,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     // Query the workplace collection for matching documents
     const result = await timerecordEmployee.find(query);
 
-    
+
     await res.status(200).json({ result});
   } catch (error) {
     console.error(error);
