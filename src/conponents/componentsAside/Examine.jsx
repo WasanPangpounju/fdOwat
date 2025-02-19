@@ -249,7 +249,8 @@ function Examine() {
         localStorage.setItem('staffFullName', staffFullName);
     }, [staffFullName]); 
 
-    async function handleSearch(event) {
+
+    async function backup_handleSearch(event) {
         event.preventDefault();
 
         await localStorage.setItem('employeeId', searchEmployeeId);
@@ -262,8 +263,8 @@ function Examine() {
             // employeeName: searchEmployeeName,
             month: month,
             timerecordId: year,
-
         };
+
         const dataLower = await {
             employeeId: searchEmployeeId,
             // name: searchEmployeeName,
@@ -788,6 +789,95 @@ let r = {};
         // return <Compensation  />;
 
     }
+
+    //latest code
+
+    async function handleSearch(event) {
+        event.preventDefault();
+
+        await localStorage.setItem('employeeId', searchEmployeeId);
+        await localStorage.setItem('month', month);
+        await localStorage.setItem('year', year);
+
+        //data for search timerecordEmployee
+        const data = await {
+            employeeId: searchEmployeeId,
+            month: month,
+            year: year,
+        };
+
+
+        try {
+            const response = await axios.post(
+              endpoint + "/timerecord/searchtimerecordemployee",
+              data
+            );
+            // alert(JSON.stringify(response ,null,2));
+    
+            if (response.data.result.length < 1) {
+              alert("ไม่พบข้อมูล");
+              // Set the state to false if no data is found
+              setUpdateButton(false);
+              setTimeRecord_id("");
+              setRowDataList2([]);
+            } else {
+              // Set the state to true if data is found
+              await setUpdateButton(true);
+              // alert(response.data.recordworkplace[0].employee_workplaceRecord[1].workplaceId);
+              await setTimeRecord_id(response.data.result[0]._id);
+    
+              // setRowDataList2(response.data.recordworkplace[0].employee_workplaceRecord);
+              if (name != "") {
+                
+                setRowDataList2(
+                  response?.data?.result?.[0]?.employee_record
+                    .sort((a, b) => {
+                      const dateA = parseInt(a.date, 10);
+                      const dateB = parseInt(b.date, 10);
+                
+                      // Prioritize dates from 21-30 first, then 01-20
+                      if ((dateA >= 21 && dateB >= 21) || (dateA <= 20 && dateB <= 20)) {
+                        return dateA - dateB; // Sort normally within each group
+                      }
+                      return dateA >= 21 ? -1 : 1; // Move 21-30 to the front
+                    })
+                    .map((item, index) => ({
+                      ...item,
+                      tmpIndex: index,
+                    }))
+                );
+                
+                // setRowDataList2(response.data.result[0].employee_record);
+                // setRowDataList2(
+                //   response.data.recordworkplace[0].employee_workplaceRecord.map(
+                //     (item, index) => ({
+                //       ...item,
+                //       tmpIndex: index,
+                //     })
+                //   )
+                // );
+                //111
+                // setRowDataList2(
+                //   response.data.recordworkplace[0].employee_workplaceRecord
+                //     .sort((a, b) => parseInt(a.date) - parseInt(b.date)) // Sort by date (ascending order)
+                //     .map((item, index) => ({
+                //       ...item,
+                //       tmpIndex: index,
+                //     }))
+                // );
+              } else {
+                setRowDataList2([]);
+              }
+    
+            }
+          } catch (error) {
+            alert("กรุณาตรวจสอบข้อมูลในช่องค้นหา");
+            alert(error.message);
+            window.location.reload();
+          }
+    
+    }
+
 
     return (
         // <div>

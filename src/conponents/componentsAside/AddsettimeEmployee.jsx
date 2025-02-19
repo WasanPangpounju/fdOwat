@@ -2167,7 +2167,7 @@ await workplacesearch.workplaceGroup[departmentIndex]
       totalOtTime: wOtTime || "",
       startOtTime: wSelectOtTime || "",
       endOtTime: wSelectOtTimeout || "",
-      beforeTotalOtTime: wOtTime || "",
+      beforeTotalOtTime: wBeforeOtTime || "",
       beforeStartOtTime: wBeforeSelectOtTime || "",
       beforeEndOtTime: wBeforeSelectOtTimeout || "",
       cashSalary: cashSalary || "",

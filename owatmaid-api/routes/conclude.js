@@ -1,6 +1,10 @@
 const connectionString = require('../config');
 const sURL = 'http://localhost:3000';
 
+//require timerecordEmployee 
+const timerecordEmployee = require('./models/periodtimerecordModel');
+
+
 const axios = require('axios');
 
 var express = require('express');
@@ -1763,6 +1767,52 @@ function groupByWorkplaceId(records) {
   }, {});
 }
 
+
+
+//========== latest code
+
+//search timerecordEmployee 
+router.post('/searchtimerecordemployee', async (req, res) => {
+  try {
+    const { employeeId,
+      month,
+     year} = req.body;
+
+    // Construct the search query based on the provided parameters
+    const query = {};
+
+    if (employeeId !== '') {
+      query.employeeId= employeeId;
+    }
+
+
+    if (employeeName !== '') {
+      query.employeeName = { $regex: new RegExp(employeeName, 'i') };
+    }
+
+    if (month !== '') {
+      //query.month = new Date(date);
+      query.month = { $regex: new RegExp(month , 'i') };
+    }
+
+    if (year!== '') {
+      query.year = { $regex: new RegExp(year , 'i') };
+    }
+
+    if (employeeId == '' && employeeName == '' && month == '' && year== '') {
+      res.status(200).json({});
+    }
+
+    // Query the workplace collection for matching documents
+    const result = await timerecordEmployee.find(query);
+
+    
+    await res.status(200).json({ result});
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
 
 
 module.exports = router;

@@ -466,7 +466,7 @@ function Compensation() {
     }
   }
 
-  async function backup_handleSearch(event) {
+  async function handleSearch(event) {
     event.preventDefault();
     await localStorage.setItem("employeeId", searchEmployeeId);
     await localStorage.setItem("employeeName", searchEmployeeName);
@@ -1616,47 +1616,6 @@ function Compensation() {
     special_shift: "กะพิเศษ",
     specialt_shift: "กะพิเศษ",
   };
-
-
-  //latest code
-  async function handleSearch(event) {
-    event.preventDefault();
-    await localStorage.setItem("employeeId", searchEmployeeId);
-    await localStorage.setItem("employeeName", searchEmployeeName);
-    await localStorage.setItem("month", month);
-    await localStorage.setItem("year", year);
-    
-    let searchStatus = null;
-    await setConcludeResult([]);
-    await setLoadStatus(null);
-
-    const data = await {
-      employeeId: searchEmployeeId,
-      month: month,
-      year: year,
-    };
-
-
-    try {
-      const response = await axios.post(
-        endpoint + "/conclude/searchtimerecordemployee",
-        data
-      );
-      // alert(JSON.stringify(response ,null,2));
-
-      if (response.data.result.length < 1) {
-
-        alert('conclude is null');
-
-      } else {
-        //check update time record then reset data conclude
-        await alert(editStatus);
-      }
-    } catch (e) {
-      // alert(e);
-    }
-
-  }
 
   return (
     // <div>

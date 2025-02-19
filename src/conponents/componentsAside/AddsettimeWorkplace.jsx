@@ -86,6 +86,10 @@ function AddsettimeWorkplace({ workplaceList, employeeList }) {
   const [selectotTime, setSelectotTime] = useState("");
   const [selectotTimeOut, setSelectotTimeOut] = useState("");
 
+  const [beforeOtTime, setBeforeOtTime] = useState(""); //รหัสหน่วยงาน
+  const [beforeSelectotTime, setBeforeSelectotTime] = useState("");
+  const [beforeSelectotTimeOut, setBeforeSelectotTimeOut] = useState("");
+
   const [cashSalary, setCashSalary] = useState(false);
   const [specialtSalary, setSpecialtSalary] = useState("");
   const [specialtSalaryOT, setSpecialtSalaryOT] = useState("");
@@ -511,6 +515,29 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
     }
   }, [selectotTime, selectotTimeOut, workOfOT]);
 
+  //cal before ot time 
+  useEffect(() => {
+    try {
+      if (
+        shift == "night_shift" ||
+        shift == "afternoon_shift" ||
+        shift == "morning_shift"
+      ) {
+        const ot =
+          calTime(beforeSelectotTime || 0, beforeSelectotTimeOut || 0, workOfOT || 0) || 0;
+        setBeforeOtTime(ot);
+      } else {
+        const ot = calTime(beforeSelectotTime || 0, beforeSelectotTimeOut || 0, 24) || 0;
+        setBeforeOtTime(ot);
+      }
+    } catch (error) {
+      // Handle the error here, you can log it or show an error message.
+      console.error(error);
+      //   alert(error);
+    }
+  }, [beforeSelectotTime, beforeSelectotTimeOut, workOfOT]);
+
+
   //     useEffect(() => {
   // const ot = calTime( selectotTime || 0, selectotTimeOut || 0 , workOfOT  || 0) || 0;
   // setOtTime(ot );
@@ -641,6 +668,10 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
     otTime: "",
     selectotTime: "",
     selectotTimeOut: "",
+    beforeOtTime: "",
+    beforeSelectotTime: "",
+    beforeSelectotTimeOut: "",
+
   };
 
   const [rowDataList, setRowDataList] = useState(
@@ -1222,6 +1253,10 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
       totalOtTime: otTime || "",
       startOtTime: selectotTime || "",
       endOtTime: selectotTimeOut || "",
+      beforeTotalOtTime: beforeOtTime || "",
+      beforeStartOtTime: beforeSelectotTime || "",
+      beforeEndOtTime: beforeSelectotTimeOut || "",
+
       cashSalary: cashSalary || "",
       specialtSalary: specialtSalary || "",
       specialtSalaryOT: specialtSalaryOT || "",
@@ -1693,8 +1728,8 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
               className="form-control text-center"
               id="selectotTime"
               placeholder="เข้า OT"
-              value={selectotTime}
-              onChange={(e) => setSelectotTime(e.target.value)}
+              value={beforeSelectotTime}
+              onChange={(e) => setBeforeSelectotTime(e.target.value)}
             />
           </td>
 
@@ -1705,8 +1740,8 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
               className="form-control text-center"
               id="selectotTimeOut"
               placeholder="ออก OT"
-              value={selectotTimeOut}
-              onChange={(e) => setSelectotTimeOut(e.target.value)}
+              value={beforeSelectotTimeOut}
+              onChange={(e) => setBeforeSelectotTimeOut(e.target.value)}
             />
           </td>
 
@@ -1717,8 +1752,8 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
               className="form-control text-center"
               id="otTime"
               placeholder="ชั่วโมง OT"
-              value={otTime}
-              onChange={(e) => setOtTime(e.target.value)}
+              value={beforeOtTime}
+              onChange={(e) => setBeforeOtTime(e.target.value)}
             />
           </td>
 
@@ -1915,9 +1950,9 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
                   ""
                 )}
               </td>
-              <td className="text-center">{rowData.startOtTime}</td>
-              <td className="text-center">{rowData.endOtTime}</td>
-              <td className="text-center">{rowData.totalOtTime}</td>
+              <td className="text-center">{rowData.beforeStartOtTime}</td>
+              <td className="text-center">{rowData.beforeEndOtTime}</td>
+              <td className="text-center">{rowData.beforeTotalOtTime}</td>
 
               <td className="text-center">{rowData.startTime}</td>
               <td className="text-center">{rowData.endTime}</td>
