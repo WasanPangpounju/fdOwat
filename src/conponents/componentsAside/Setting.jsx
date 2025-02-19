@@ -938,7 +938,7 @@ function Setting({ workplaceList, employeeList }) {
 
     setWorkOfHour(workplace.workOfHour_subHour || workplace.workOfHour);
     setWorkOfMinute(workplace.workOfHour_subMinute || 0);
-    setStartWorkOfOT(workplace.startWorkOfOT_subHour || workplace.workOfOT);
+    setStartWorkOfOT(workplace.startWorkOfOT_subHour || 0);
     setStartWorkOfOTMinute(workplace.startWorkOfOT_subMinute || 0);
     setWorkOfOT(workplace.workOfOT_subHour || workplace.workOfOT);
     setWorkOfOTMinute(workplace.workOfOT_subMinute || 0);
@@ -1646,7 +1646,7 @@ setWorkRateChange(workplace.workRateChange)
                           id="startOT"
                           placeholder="ชั่วโมงทำงาน OT"
                           value={startWorkOfOT}
-                          onChange={(e) => setstartWorkOfOT(e.target.value)}
+                          onChange={(e) => setStartWorkOfOT(e.target.value)}
                           onInput={(e) => {
                             // Remove any non-digit characters, including '.'
                             e.target.value = e.target.value.replace(/[^0-9]/g, "");

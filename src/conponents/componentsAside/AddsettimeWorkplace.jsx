@@ -1589,25 +1589,44 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
             <form onSubmit={handleManageWorkplace}>
 
             <section className="Frame">
+              
   <div className="table-responsive">
     <table className="table table-bordered table-sm text-center align-middle">
       <thead>
         <tr>
-          <th>รหัสพนักงาน</th>
-          <th>ชื่อพนักงาน</th>
-          <th>กะการทำงาน</th>
-          <th>เวลาเข้างาน</th>
-          <th>เวลาออกงาน</th>
-          <th>ชั่วโมงทำงาน</th>
-          <th>เวลาเข้า OT</th>
-          <th>เวลาออก OT</th>
-          <th>ชั่วโมง OT</th>
+
+<th rowSpan="2">พนักงาน</th>
+        <th rowSpan="2">ชื่อพนักงาน</th>
+        <th rowSpan="2">กะ</th>
+        <th colSpan="3">OT (ก่อนเวลาทำงาน)</th>
+        <th colSpan="3">เวลาทำงาน</th>
+        <th colSpan="3">OT (หลังเวลาทำงาน)</th>
+        {shift === "specialt_shift" && <th colSpan="3">ข้อมูลพิเศษ</th>}
+        </tr>
+      {/* Second Row - Detailed Headers */}
+      <tr>
+        {/* OT (รอบแรก) */}
+        <th>เข้า OT</th>
+        <th>ออก OT</th>
+        <th>ชั่วโมง OT</th>
+
+        {/* เวลาทำงาน */}
+        <th>เข้างาน</th>
+        <th>ออกงาน</th>
+        <th>ชั่วโมงทำงาน</th>
+
+        {/* OT (รอบสอง) */}
+        <th>เข้า OT</th>
+        <th>ออก OT</th>
+        <th>ชั่วโมง OT</th>
+
+
           {shift === "specialt_shift" && (
             <>
               <th>จ่ายสด</th>
               <th>เป็นเงิน</th>
               <th>เป็นเงิน OT</th>
-              <th>หมายเหตุ</th>
+              {/* <th>หมายเหตุ</th> */}
             </>
           )}
         </tr>
@@ -1620,7 +1639,7 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
               type="text"
               className="form-control text-center"
               id="staffId"
-              placeholder="รหัสพนักงาน"
+              placeholder="พนักงาน"
               value={staffId}
               onChange={handleStaffIdChange}
               list="staffIdList"
@@ -1667,13 +1686,49 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
             </select>
           </td>
 
+          {/* OT Start Time */}
+          <td>
+            <input
+              type="text"
+              className="form-control text-center"
+              id="selectotTime"
+              placeholder="เข้า OT"
+              value={selectotTime}
+              onChange={(e) => setSelectotTime(e.target.value)}
+            />
+          </td>
+
+          {/* OT End Time */}
+          <td>
+            <input
+              type="text"
+              className="form-control text-center"
+              id="selectotTimeOut"
+              placeholder="ออก OT"
+              value={selectotTimeOut}
+              onChange={(e) => setSelectotTimeOut(e.target.value)}
+            />
+          </td>
+
+          {/* OT Hours */}
+          <td>
+            <input
+              type="text"
+              className="form-control text-center"
+              id="otTime"
+              placeholder="ชั่วโมง OT"
+              value={otTime}
+              onChange={(e) => setOtTime(e.target.value)}
+            />
+          </td>
+
           {/* Work Start Time */}
           <td>
             <input
               type="text"
               className="form-control text-center"
               id="startTime"
-              placeholder="เวลาเข้างาน"
+              placeholder="เข้างาน"
               value={startTime}
               onChange={(e) => setStartTime(e.target.value)}
             />
@@ -1685,7 +1740,7 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
               type="text"
               className="form-control text-center"
               id="endTime"
-              placeholder="เวลาออกงาน"
+              placeholder="ออกงาน"
               value={endTime}
               onChange={(e) => setEndTime(e.target.value)}
             />
@@ -1709,7 +1764,7 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
               type="text"
               className="form-control text-center"
               id="selectotTime"
-              placeholder="เวลาเข้า OT"
+              placeholder="เข้า OT"
               value={selectotTime}
               onChange={(e) => setSelectotTime(e.target.value)}
             />
@@ -1721,7 +1776,7 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
               type="text"
               className="form-control text-center"
               id="selectotTimeOut"
-              placeholder="เวลาออก OT"
+              placeholder="ออก OT"
               value={selectotTimeOut}
               onChange={(e) => setSelectotTimeOut(e.target.value)}
             />
@@ -1770,7 +1825,7 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
                   onChange={(e) => setSpecialtSalaryOT(e.target.value)}
                 />
               </td>
-              <td>
+              {/* <td>
                 <input
                   type="text"
                   className="form-control text-center"
@@ -1779,7 +1834,7 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
                   value={messageSalary}
                   onChange={(e) => setMessageSalary(e.target.value)}
                 />
-              </td>
+              </td> */}
             </>
           )}
         </tr>
@@ -1808,17 +1863,36 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
   <table className="table table-bordered">
     <thead>
       <tr>
-        <th>รหัสพนักงาน</th>
-        <th>ชื่อพนักงาน</th>
-        <th>กะการทำงาน</th>
-        <th>เวลาเข้างาน</th>
-        <th>เวลาออกงาน</th>
-        <th>ชั่วโมงทำงาน</th>
-        <th>เวลาเข้า OT</th>
-        <th>เวลาออก OT</th>
+
+<th rowSpan="2" className="text-center">พนักงาน</th>
+        <th rowSpan="2" className="text-center">ชื่อพนักงาน</th>
+        <th rowSpan="2" className="text-center">กะ</th>
+        <th colSpan="3" className="text-center">OT (ก่อนเวลาทำงาน)</th>
+        <th colSpan="3" className="text-center">เวลาทำงาน</th>
+        <th colSpan="3" className="text-center">OT (หลังเวลาทำงาน)</th>
+        <th rowSpan="2" className="text-center">เงินจ้าง</th>
+        <th rowSpan="2" className="text-center">ลบ</th>
+
+</tr><tr>
+        {/* OT (รอบแรก) */}
+        <th>เข้า OT</th>
+        <th>ออก OT</th>
         <th>ชั่วโมง OT</th>
-        <th>จ่ายเงินสด</th>
-        <th>ลบ</th>
+
+        {/* เวลาทำงาน */}
+        <th>เข้างาน</th>
+        <th>ออกงาน</th>
+        <th>ชั่วโมงทำงาน</th>
+
+        {/* OT (รอบสอง) */}
+        <th>เข้า OT</th>
+        <th>ออก OT</th>
+        <th>ชั่วโมง OT</th>
+
+
+
+        {/* <th>จ่ายเงินสด</th>
+        <th>ลบ</th> */}
       </tr>
     </thead>
     <tbody>
@@ -1826,9 +1900,9 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
         (rowData, index) =>
           rowData.employeeId !== "" && ( // ตรวจสอบว่ามี staffId
             <tr key={index}>
-              <td>{rowData.employeeId}</td>
-              <td>{rowData.employeeName}</td>
-              <td>
+              <td className="text-center">{rowData.employeeId}</td>
+              <td className="text-center">{rowData.employeeName}</td>
+              <td className="text-center">
                 {rowData.shift === "morning_shift" ? (
                   "กะเช้า"
                 ) : rowData.shift === "afternoon_shift" ? (
@@ -1841,25 +1915,37 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
                   ""
                 )}
               </td>
-              <td>{rowData.startTime}</td>
-              <td>{rowData.endTime}</td>
-              <td>{rowData.totalTime}</td>
-              <td>{rowData.startOtTime}</td>
-              <td>{rowData.endOtTime}</td>
-              <td>{rowData.totalOtTime}</td>
-              <td>
+              <td className="text-center">{rowData.startOtTime}</td>
+              <td className="text-center">{rowData.endOtTime}</td>
+              <td className="text-center">{rowData.totalOtTime}</td>
+
+              <td className="text-center">{rowData.startTime}</td>
+              <td className="text-center">{rowData.endTime}</td>
+              <td className="text-center">{rowData.totalTime}</td>
+              <td className="text-center">{rowData.startOtTime}</td>
+              <td className="text-center">{rowData.endOtTime}</td>
+              <td className="text-center">{rowData.totalOtTime}</td>
+              <td className="text-center">
                 {rowData.specialtSalary !== "" 
                   ? `${parseFloat(rowData.specialtSalary || '0') + parseFloat(rowData.specialtSalaryOT || '0')} บาท`
                   : ""}
               </td>
-              <td>
-                <button type="button"
+              <td className="text-center">
+                {/* <button type="button"
                   className="btn btn-xs btn-danger"
                   style={{ padding: "0.3rem", width: "8rem" }}
                   onClick={() => handleDeleteRow(parseInt(index))}
                 >
                   Delete
-                </button>
+                </button> */}
+                <button
+  type="button"
+  className="btn btn-xs btn-danger"
+  style={{ padding: "0.3rem", width: "3rem", alignItems: "center", justifyContent: "center" }}
+  onClick={() => handleDeleteRow(parseInt(index))}
+>
+  <i className="fas fa-trash-alt"></i> 
+</button>
               </td>
             </tr>
           )

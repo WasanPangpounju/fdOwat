@@ -31,6 +31,8 @@ const EmployeeSchema = new mongoose.Schema({
     shift_specialwork: { type: String, enum: ["กะเช้า", "กะบ่าย", "กะดึก", "กะพิเศษ"], required: true }, // Shift Type
     startTime_specialwork: { type: String, required: true }, // Start Work Time
     endTime_specialwork: { type: String, required: true }, // End Work Time
+    beforeStartTimeOT_specialwork: { type: String }, // OT Start Time
+    beforeEndTimeOT_specialwork: { type: String }, // OT End Time
     startTimeOT_specialwork: { type: String }, // OT Start Time
     endTimeOT_specialwork: { type: String }, // OT End Time
     payment_specialwork: { type: Number, required: true }, // Payment per Shift
@@ -252,6 +254,9 @@ const workplaceSchema = new mongoose.Schema({
              startTime: String, 
              endTime: String, 
              resultTime: String, 
+             beforeStartTimeOT: String, 
+             beforeEndTimeOT: String, 
+             beforeResultTimeOT: String,
              startTimeOT: String, 
              endTimeOT: String, 
              resultTimeOT: String }]
