@@ -28,6 +28,7 @@
     "mongodb": "^5.5.0",
     "mongoose": "^8.6.3",
     "react": "^18.2.0",
+    "react-bootstrap-icons": "^1.11.5",
     "react-calendar": "^4.0.0",
     "react-datepicker": "^4.25.0",
     "react-dom": "^18.2.0",

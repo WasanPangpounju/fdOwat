@@ -4,6 +4,8 @@ import { Link } from "react-router-dom";
 import axios from "axios";
 import React, { useEffect, useState } from "react";
 
+// import "bootstrap/dist/css/bootstrap.min.css"; // Import Bootstrap
+import { PencilSquare } from "react-bootstrap-icons"; // Bootstrap icons
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
@@ -1619,45 +1621,89 @@ function Compensation() {
 
 
   //latest code
+  const [concludeResultx, setConcludeResultx] = useState([]); // Store search results
+  const [loading, setLoading] = useState(false); // Track loading state
+  const [error, setError] = useState(null); // Store errors
   async function handleSearch(event) {
     event.preventDefault();
-    await localStorage.setItem("employeeId", searchEmployeeId);
-    await localStorage.setItem("employeeName", searchEmployeeName);
-    await localStorage.setItem("month", month);
-    await localStorage.setItem("year", year);
-    
-    let searchStatus = null;
-    await setConcludeResult([]);
-    await setLoadStatus(null);
 
-    const data = await {
+    // Save search values in localStorage
+    localStorage.setItem("employeeId", searchEmployeeId);
+    localStorage.setItem("employeeName", searchEmployeeName);
+    localStorage.setItem("month", month);
+    localStorage.setItem("year", year);
+
+    // Reset previous results
+    setConcludeResultx([]);
+    setLoading(true);
+    setError(null);
+
+    const data = {
       employeeId: searchEmployeeId,
       month: month,
       year: year,
     };
 
-
     try {
-
       const response = await axios.post(
         endpoint + "/conclude/searchtimerecordemployee",
         data
       );
-      alert(JSON.stringify(response.data?.result?.[0].employee_record[0] ,null,2));
 
-      if (response.data.result.length < 1) {
-
-        alert('conclude is null');
-
+      if (response.data?.result?.length > 0) {
+        await setConcludeResultx(response.data.result);
+        // alert(JSON.stringify(response.data?.result[0]?.employee_record[0], null, 2));
       } else {
-        //check update time record then reset data conclude
-        await alert(editStatus);
+        // alert("Conclude is null");
       }
     } catch (e) {
-      // alert(e);
+      setError("An error occurred while fetching data.");
+      console.error(e);
+    } finally {
+      setLoading(false);
+      
     }
-
   }
+
+  // async function handleSearch(event) {
+  //   event.preventDefault();
+  //   await localStorage.setItem("employeeId", searchEmployeeId);
+  //   await localStorage.setItem("employeeName", searchEmployeeName);
+  //   await localStorage.setItem("month", month);
+  //   await localStorage.setItem("year", year);
+    
+  //   let searchStatus = null;
+  //   await setConcludeResult([]);
+  //   await setLoadStatus(null);
+
+  //   const data = await {
+  //     employeeId: searchEmployeeId,
+  //     month: month,
+  //     year: year,
+  //   };
+
+
+  //   try {
+
+  //     const response = await axios.post(
+  //       endpoint + "/conclude/searchtimerecordemployee",
+  //       data
+  //     );
+  //     alert(JSON.stringify(response.data?.result?.[0].employee_record[0] ,null,2));
+
+  //     if (response.data.result.length < 1) {
+
+  //       alert('conclude is null');
+
+  //     } else {
+  //       //check update time record then reset data conclude
+  //       await alert(editStatus);
+  //     }
+  //   } catch (e) {
+  //     // alert(e);
+  //   }
+
+  // }
 
   return (
     // <div>
@@ -1852,7 +1898,79 @@ function Compensation() {
                     </div>
                   </div>
                 </div>
+
+      {/* Error Message */}
+      {error && <div className="alert alert-danger mt-3">{error}</div>}
+
+      {/* Loading Indicator */}
+      {loading && <div className="mt-3 alert alert-info">Loading data...</div>}
+
+{/* Results Table */}
+{concludeResultx.length > 0 && (
+  <div className="mt-4">
+    <h3 className="text-center">Employee Records</h3>
+    <div className="table-responsive">
+      <table className="table table-bordered text-center">
+        <thead >
+          <tr>
+            <th style={headerCellStyle}>วันที่</th>
+            <th style={headerCellStyle}>รหัส</th>
+            <th style={headerCellStyle}>ชื่อ</th>
+            <th style={headerCellStyle}>กลุ่ม</th>
+            <th style={headerCellStyle}>กะ</th>
+            <th style={headerCellStyle}>OT ก่อน</th>
+            <th style={headerCellStyle}>ค่าจ้าง</th>
+            <th style={headerCellStyle}>เวลาทำงาน</th>
+            <th style={headerCellStyle}>ค่าจ้าง</th>
+            <th style={headerCellStyle}>OT หลัง</th>
+            <th style={headerCellStyle}>ค่าจ้าง</th>
+            <th style={headerCellStyle}>เงินเพิ่ม</th>
+            <th style={headerCellStyle}>Edit</th>
+          </tr>
+        </thead>
+        <tbody>
+          {concludeResultx.map((record, index) =>
+            record.employee_record.map((item, subIndex) => (
+              <tr key={`${index}-${subIndex}`}>
+                <td>{`${record.year} / ${record.month} / ${item.date}`}</td>
+                <td>{item.workplaceId}</td>
+                <td>{item.workplaceName}</td>
+                <td>{item.wGroup}</td>
+                <td>{item.shift}</td>
+                <td>{item.beforeTotalOtTime}</td>
+                <td>{item.cashBeforeOt}</td>
+                <td>{item.totalTime}</td>
+                <td>{item.cashWork}</td>
+                <td>{item.totalOtTime}</td>
+                <td>{item.cashOt}</td>
+                <td>{item.addSalary}</td>
+                <td>
+                  <button
+                    style={{
+                      border: "none",
+                      background: "none",
+                      padding: 0,
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                    }}
+                    onClick={() => handleEdit(item)}
+                  >
+                    <PencilSquare size={20} className="text-danger" />
+                  </button>
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
+  </div>
+)}
+
                 <br />
+
+                
                 <div class="row">
                   <div class="col-md-12">
                     <div class="form-group">
