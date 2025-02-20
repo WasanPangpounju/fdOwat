@@ -4,8 +4,7 @@ import { Link } from "react-router-dom";
 import axios from "axios";
 import React, { useEffect, useState } from "react";
 
-// import "bootstrap/dist/css/bootstrap.min.css"; // Import Bootstrap
-import { PencilSquare } from "react-bootstrap-icons"; // Bootstrap icons
+// import { PencilSquare } from "react-bootstrap-icons"; // Bootstrap icons
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
@@ -1945,6 +1944,22 @@ function Compensation() {
                 <td>{item.cashOt}</td>
                 <td>{item.addSalary}</td>
                 <td>
+  <button
+    style={{
+      border: "none",
+      background: "none",
+      padding: 0,
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+    }}
+    onClick={() => handleEdit(item)}
+  >
+    <i className="bi bi-pencil-square text-danger" style={{ fontSize: "20px" }}></i>
+  </button>
+</td>
+
+                {/* <td>
                   <button
                     style={{
                       border: "none",
@@ -1958,7 +1973,7 @@ function Compensation() {
                   >
                     <PencilSquare size={20} className="text-danger" />
                   </button>
-                </td>
+                </td> */}
               </tr>
             ))
           )}
