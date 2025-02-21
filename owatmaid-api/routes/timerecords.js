@@ -509,21 +509,19 @@ const setToWorkplaceTimerecords = async (employeeId, employeeName, employee_reco
         beforeStartOtTime, beforeEndOtTime, beforeTotalOtTime, 
         startOtTime, endOtTime, totalOtTime, cashSalary, specialtSalary, specialtSalaryOT, messageSalary } = record;
 
-      // Convert date to number
       let numericDate = Number(date);
       let numericMonth = Number(month);
       let numericYear = Number(year);
 
       // Adjust month if date is 21, 22, or 31
-      if ([21, 22,23, 24, 25, 26, 27, 28, 29, 30, 31].includes(numericDate)) {
+      if ([21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31].includes(numericDate)) {
         numericMonth -= 1;
         if (numericMonth === 0) { 
-          numericMonth = 12; // If previous month is 0, set to December
-          numericYear -= 1;   // Decrease year if month rolls back to December
+          numericMonth = 12;
+          numericYear -= 1;
         }
       }
 
-      // Format date to always be 2 digits (e.g., 01, 02, ..., 31)
       let formattedDate = `${String(numericDate).padStart(2, '0')}/${String(numericMonth).padStart(2, '0')}/${numericYear}`;
 
       // Find if this workplace record exists
@@ -534,7 +532,7 @@ const setToWorkplaceTimerecords = async (employeeId, employeeName, employee_reco
       });
 
       if (workplaceRecord) {
-        // If record exists, update existing employee data inside `employeeRecord` array
+        // Update existing employee data
         let updatedEmployeeRecords = workplaceRecord.employeeRecord.map(emp => {
           if (emp.employeeId === employeeId) {
             return {
@@ -581,6 +579,12 @@ const setToWorkplaceTimerecords = async (employeeId, employeeName, employee_reco
           });
         }
 
+        // 🚨 **Skip update if employeeRecord is empty**
+        if (updatedEmployeeRecords.length === 0) {
+          console.log(`⚠️ Skipping update for workplaceId: ${workplaceId} on ${formattedDate} because employeeRecord is empty.`);
+          continue;
+        }
+
         // Update Workplace Record
         await workplaceTimerecords.findOneAndUpdate(
           { _id: workplaceRecord._id },
@@ -589,7 +593,13 @@ const setToWorkplaceTimerecords = async (employeeId, employeeName, employee_reco
         );
 
       } else {
-        // If workplace record does not exist, create a new one
+        // 🚨 **Skip creating a new record if `employeeRecord` is empty**
+        if (employee_record.length === 0) {
+          console.log(`⚠️ Skipping creation for workplaceId: ${workplaceId} on ${formattedDate} because employeeRecord is empty.`);
+          continue;
+        }
+
+        // Create new workplace record
         const newWorkplaceRecord = new workplaceTimerecords({
           year: numericYear,
           workplaceId,
