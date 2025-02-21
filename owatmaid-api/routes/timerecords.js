@@ -660,7 +660,7 @@ async function setToEmployee(selectWorkplaceId, selectworkplaceName, selectWGrou
 
         if (recordworkplace) {
           // Employee time record exists, update employee_workplaceRecord
-          recordworkplace.employee_Record.push({
+          recordworkplace.employee_record.push({
             'workplaceId': selectWorkplaceId,
             'workplaceName': selectworkplaceName,
             'wGroup': selectWGroup || '',
