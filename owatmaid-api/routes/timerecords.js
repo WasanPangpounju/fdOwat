@@ -509,6 +509,7 @@ const setToWorkplaceTimerecords = async (employeeId, employeeName, employee_reco
         beforeStartOtTime, beforeEndOtTime, beforeTotalOtTime, 
         startOtTime, endOtTime, totalOtTime, cashSalary, specialtSalary, specialtSalaryOT, messageSalary } = record;
 
+        date = date + '/' + month + '/' + year;
       // Find if this workplace record exists
       let workplaceRecord = await workplaceTimerecords.findOne({
         year,
