@@ -510,14 +510,12 @@ const setToWorkplaceTimerecords = async (employeeId, employeeName, employee_reco
         beforeStartOtTime, beforeEndOtTime, beforeTotalOtTime, 
         startOtTime, endOtTime, totalOtTime, cashSalary, specialtSalary, specialtSalaryOT, messageSalary } = record;
 
-              // Correctly format the date as "DD/MM/YYYY"
-      d = await `${date}/${month}/${year}`;
 
       // Find if this workplace record exists
       let workplaceRecord = await workplaceTimerecords.findOne({
         year,
         workplaceId,
-        d
+        date
       });
 
       if (workplaceRecord) {
@@ -582,7 +580,7 @@ const setToWorkplaceTimerecords = async (employeeId, employeeName, employee_reco
           workplaceId,
           workplaceName,
           wGroup,
-          d,
+          date,
           employeeRecord: [{
             employeeId,
             employeeName,
