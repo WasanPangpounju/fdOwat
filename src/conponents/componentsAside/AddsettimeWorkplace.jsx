@@ -383,7 +383,7 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
     const cappedHours = Math.floor(cappedTotalMinutes / 60);
     const cappedMinutes = cappedTotalMinutes % 60;
     const timeDiffFormatted = `${cappedHours}.${cappedMinutes}`;
-    if (isNaN(timeDiffFormatted)) {
+    if (isNaN(timeDiffFormatted) || parseFloat(timeDiffFormatted || '0') === 0 ) {
       return "";
     }
 
@@ -527,7 +527,7 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
           calTime(beforeSelectotTime || 0, beforeSelectotTimeOut || 0, workOfOT || 0) || 0;
         setBeforeOtTime(ot);
       } else {
-        const ot = calTime(beforeSelectotTime || 0, beforeSelectotTimeOut || 0, 24) || 0;
+        const ot = calTime(beforeSelectotTime || 0, beforeSelectotTimeOut || 0, 24) || '';
         setBeforeOtTime(ot);
       }
     } catch (error) {
@@ -927,7 +927,7 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
       ) {
         otTimeFormatted2 = `${otHoursDiff}.${otMinutesDiff}`;
       } else {
-        otTimeFormatted2 = "0";
+        otTimeFormatted2 = "";
       }
 
       newDataList[index] = {
