@@ -510,12 +510,13 @@ const setToWorkplaceTimerecords = async (employeeId, employeeName, employee_reco
         beforeStartOtTime, beforeEndOtTime, beforeTotalOtTime, 
         startOtTime, endOtTime, totalOtTime, cashSalary, specialtSalary, specialtSalaryOT, messageSalary } = record;
 
+        let formattedDate = `${String(date).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
 
       // Find if this workplace record exists
       let workplaceRecord = await workplaceTimerecords.findOne({
         year,
         workplaceId,
-        date
+        date : formattedDate 
       });
 
       if (workplaceRecord) {
