@@ -503,20 +503,34 @@ await    console.error(error);
 
 
 const setToWorkplaceTimerecords = async (employeeId, employeeName, employee_record, year, month) => {
-  const d = '';
   try {
     for (const record of employee_record) {
       const { workplaceId, workplaceName, wGroup, date, shift, startTime, endTime, totalTime, 
         beforeStartOtTime, beforeEndOtTime, beforeTotalOtTime, 
         startOtTime, endOtTime, totalOtTime, cashSalary, specialtSalary, specialtSalaryOT, messageSalary } = record;
 
-        let formattedDate = `${String(date).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
+      // Convert date to number
+      let numericDate = Number(date);
+      let numericMonth = Number(month);
+      let numericYear = Number(year);
+
+      // Adjust month if date is 21, 22, or 31
+      if ([21, 22,23, 24, 25, 26, 27, 28, 29, 30, 31].includes(numericDate)) {
+        numericMonth -= 1;
+        if (numericMonth === 0) { 
+          numericMonth = 12; // If previous month is 0, set to December
+          numericYear -= 1;   // Decrease year if month rolls back to December
+        }
+      }
+
+      // Format date to always be 2 digits (e.g., 01, 02, ..., 31)
+      let formattedDate = `${String(numericDate).padStart(2, '0')}/${String(numericMonth).padStart(2, '0')}/${numericYear}`;
 
       // Find if this workplace record exists
       let workplaceRecord = await workplaceTimerecords.findOne({
-        year,
+        year: numericYear,
         workplaceId,
-        date : formattedDate 
+        date: formattedDate
       });
 
       if (workplaceRecord) {
@@ -577,11 +591,11 @@ const setToWorkplaceTimerecords = async (employeeId, employeeName, employee_reco
       } else {
         // If workplace record does not exist, create a new one
         const newWorkplaceRecord = new workplaceTimerecords({
-          year,
+          year: numericYear,
           workplaceId,
           workplaceName,
           wGroup,
-          date : formattedDate ,
+          date: formattedDate,
           employeeRecord: [{
             employeeId,
             employeeName,
@@ -609,7 +623,6 @@ const setToWorkplaceTimerecords = async (employeeId, employeeName, employee_reco
     console.error("🔥 Error in setToWorkplaceTimerecords:", error);
   }
 };
-
 
 
 // async function setToWorkplaceTimerecords(employeeId, employeeName, employeeRecords, year, month) {
