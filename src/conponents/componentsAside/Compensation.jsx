@@ -1664,46 +1664,6 @@ function Compensation() {
     }
   }
 
-  // async function handleSearch(event) {
-  //   event.preventDefault();
-  //   await localStorage.setItem("employeeId", searchEmployeeId);
-  //   await localStorage.setItem("employeeName", searchEmployeeName);
-  //   await localStorage.setItem("month", month);
-  //   await localStorage.setItem("year", year);
-    
-  //   let searchStatus = null;
-  //   await setConcludeResult([]);
-  //   await setLoadStatus(null);
-
-  //   const data = await {
-  //     employeeId: searchEmployeeId,
-  //     month: month,
-  //     year: year,
-  //   };
-
-
-  //   try {
-
-  //     const response = await axios.post(
-  //       endpoint + "/conclude/searchtimerecordemployee",
-  //       data
-  //     );
-  //     alert(JSON.stringify(response.data?.result?.[0].employee_record[0] ,null,2));
-
-  //     if (response.data.result.length < 1) {
-
-  //       alert('conclude is null');
-
-  //     } else {
-  //       //check update time record then reset data conclude
-  //       await alert(editStatus);
-  //     }
-  //   } catch (e) {
-  //     // alert(e);
-  //   }
-
-  // }
-
   return (
     // <div>
     <body class="hold-transition sidebar-mini" className="editlaout">
@@ -1929,53 +1889,50 @@ function Compensation() {
         </thead>
         <tbody>
           {concludeResultx.map((record, index) =>
-            record.employee_record.map((item, subIndex) => (
-              <tr key={`${index}-${subIndex}`}>
-                <td>{`${record.year} / ${record.month} / ${item.date}`}</td>
-                <td>{item.workplaceId}</td>
-                <td>{item.workplaceName}</td>
-                <td>{item.wGroup}</td>
-                <td>{item.shift}</td>
-                <td>{item.beforeTotalOtTime}</td>
-                <td>{item.cashBeforeOt}</td>
-                <td>{item.totalTime}</td>
-                <td>{item.cashWork}</td>
-                <td>{item.totalOtTime}</td>
-                <td>{item.cashOt}</td>
-                <td>{item.addSalary}</td>
-                <td>
-  <button
-    style={{
-      border: "none",
-      background: "none",
-      padding: 0,
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-    }}
-    onClick={() => handleEdit(item)}
-  >
-    <i className="bi bi-pencil-square text-danger" style={{ fontSize: "20px" }}></i>
-  </button>
-</td>
+            <>
+            {dataTable.map((workplaceRecord, subIndex) => {
+              const day = workplaceRecord.day.split("/")[0]; // Extract the day
+              const matchedRecord = record.employee_record.find(item => item.date === day); // Find matching record
+        
+              return (
+                <tr key={`${index}-${subIndex}`}>
+                  <td>{day} / {record.month} / {record.year}</td>
+                  <td>{matchedRecord ? matchedRecord.workplaceId : "-"}</td>
+                  <td>{matchedRecord ? matchedRecord.workplaceName : "-"}</td>
+                  <td>{matchedRecord ? matchedRecord.wGroup : "-"}</td>
+                  <td>
+                    {matchedRecord ? shiftMapping[matchedRecord.shift] : "-"}
+                    </td>
+                  <td>{matchedRecord ? matchedRecord.beforeTotalOtTime : "-"}</td>
+                  <td>{matchedRecord ? matchedRecord.cashBeforeOt : "-"}</td>
+                  <td>{matchedRecord ? matchedRecord.totalTime : "-"}</td>
+                  <td>{matchedRecord ? matchedRecord.cashWork : "-"}</td>
+                  <td>{matchedRecord ? matchedRecord.totalOtTime : "-"}</td>
+                  <td>{matchedRecord ? matchedRecord.cashOt : "-"}</td>
+                  <td>{matchedRecord ? matchedRecord.addSalary : "-"}</td>
+                  <td>
+                    {matchedRecord ? (
+                      <button
+                        style={{
+                          border: "none",
+                          background: "none",
+                          padding: 0,
+                          display: "flex",
+                          justifyContent: "center",
+                          alignItems: "center",
+                        }}
+                        onClick={() => handleEdit(matchedRecord)}
+                      >
+                        <i className="bi bi-pencil-square text-danger" style={{ fontSize: "20px" }}></i>
+                      </button>
+                    ) : "-"}
+                  </td>
+                </tr>
+              );
+            })}
 
-                {/* <td>
-                  <button
-                    style={{
-                      border: "none",
-                      background: "none",
-                      padding: 0,
-                      display: "flex",
-                      justifyContent: "center",
-                      alignItems: "center",
-                    }}
-                    onClick={() => handleEdit(item)}
-                  >
-                    <PencilSquare size={20} className="text-danger" />
-                  </button>
-                </td> */}
-              </tr>
-            ))
+            </>
+
           )}
         </tbody>
       </table>
