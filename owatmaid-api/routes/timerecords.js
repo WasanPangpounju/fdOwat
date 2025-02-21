@@ -581,7 +581,7 @@ const setToWorkplaceTimerecords = async (employeeId, employeeName, employee_reco
           workplaceId,
           workplaceName,
           wGroup,
-          date,
+          date : formattedDate ,
           employeeRecord: [{
             employeeId,
             employeeName,
