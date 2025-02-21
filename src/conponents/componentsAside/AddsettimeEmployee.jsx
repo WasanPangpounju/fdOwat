@@ -96,7 +96,9 @@ setLastDate(lastDay);
 
       // Add 1 to 20 of the current month
   for (let j = 1; j <= 20; j++) {
-    const formattedValue = await j.toString().padStart(2, "0");
+    // const formattedValue = await j.toString().padStart(2, "0");
+    const formattedValue = await j.toString();
+
     await tmp.push(
       <option key={j} value={formattedValue}>
         {formattedValue}
@@ -1531,7 +1533,7 @@ await workplacesearch.workplaceGroup[departmentIndex]
         }
       }
     } else {
-      setWOtTime(0);
+      setWOtTime('');
     }
   }, [wSelectOtTime, wSelectOtTimeout]);
 
@@ -1559,7 +1561,7 @@ await workplacesearch.workplaceGroup[departmentIndex]
         }
       }
     } else {
-      setWBeforeOtTime(0);
+      setWBeforeOtTime('');
     }
   }, [wBeforeSelectOtTime, wBeforeSelectOtTimeout]);
 
