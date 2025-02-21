@@ -637,10 +637,10 @@ async function setToEmployee(selectWorkplaceId, selectworkplaceName, selectWGrou
 
   // Adjust month based on date range
   if (day >= 21) {
-    month -= 1; // Move to previous month
-    if (month === 0) {
-      month = 12; // Wrap around to December
-      year -= 1; // Adjust year for previous December
+    month += 1; // Move to previous month
+    if (month === 13) {
+      month = '01'; // Wrap around to December
+      year += 1; // Adjust year for previous December
     }
   }
 
