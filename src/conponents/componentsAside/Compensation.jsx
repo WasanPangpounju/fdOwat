@@ -1863,77 +1863,102 @@ function Compensation() {
 
       {/* Loading Indicator */}
       {loading && <div className="mt-3 alert alert-info">Loading data...</div>}
-
 {/* Results Table */}
 {concludeResultx.length > 0 && (
   <div className="mt-4">
     <h3 className="text-center">Employee Records</h3>
     <div className="table-responsive">
       <table className="table table-bordered text-center">
-        <thead >
+        <thead>
           <tr>
-            <th style={headerCellStyle}>วันที่</th>
-            <th style={headerCellStyle}>รหัส</th>
-            <th style={headerCellStyle}>ชื่อ</th>
-            <th style={headerCellStyle}>กลุ่ม</th>
-            <th style={headerCellStyle}>กะ</th>
-            <th style={headerCellStyle}>OT ก่อน</th>
-            <th style={headerCellStyle}>ค่าจ้าง</th>
-            <th style={headerCellStyle}>เวลาทำงาน</th>
-            <th style={headerCellStyle}>ค่าจ้าง</th>
-            <th style={headerCellStyle}>OT หลัง</th>
-            <th style={headerCellStyle}>ค่าจ้าง</th>
-            <th style={headerCellStyle}>เงินเพิ่ม</th>
-            <th style={headerCellStyle}>Edit</th>
+            <th style={{ textAlign: "center", verticalAlign: "middle" }}>วันที่</th>
+            <th style={{ textAlign: "center", verticalAlign: "middle" }}>รหัส</th>
+            <th style={{ textAlign: "center", verticalAlign: "middle" }}>ชื่อ</th>
+            <th style={{ textAlign: "center", verticalAlign: "middle" }}>กลุ่ม</th>
+            <th style={{ textAlign: "center", verticalAlign: "middle" }}>กะ</th>
+            <th style={{ textAlign: "center", verticalAlign: "middle" }}>OT ก่อน</th>
+            <th style={{ textAlign: "center", verticalAlign: "middle" }}>ค่าจ้าง</th>
+            <th style={{ textAlign: "center", verticalAlign: "middle" }}>เวลาทำงาน</th>
+            <th style={{ textAlign: "center", verticalAlign: "middle" }}>ค่าจ้าง</th>
+            <th style={{ textAlign: "center", verticalAlign: "middle" }}>OT หลัง</th>
+            <th style={{ textAlign: "center", verticalAlign: "middle" }}>ค่าจ้าง</th>
+            <th style={{ textAlign: "center", verticalAlign: "middle" }}>เงินเพิ่ม</th>
+            <th style={{ textAlign: "center", verticalAlign: "middle" }}>แก้ไข</th>
           </tr>
         </thead>
         <tbody>
-          {concludeResultx.map((record, index) =>
+          {concludeResultx.map((record, index) => (
             <>
-            {dataTable.map((workplaceRecord, subIndex) => {
-              const day = workplaceRecord.day.split("/")[0]; // Extract the day
-              const matchedRecord = record.employee_record.find(item => item.date === day); // Find matching record
-        
-              return (
-                <tr key={`${index}-${subIndex}`}>
-                  <td>{day} / {record.month} / {record.year}</td>
-                  <td>{matchedRecord ? matchedRecord.workplaceId : "-"}</td>
-                  <td>{matchedRecord ? matchedRecord.workplaceName : "-"}</td>
-                  <td>{matchedRecord ? matchedRecord.wGroup : "-"}</td>
-                  <td>
-                    {matchedRecord ? shiftMapping[matchedRecord.shift] : "-"}
+              {dataTable.map((workplaceRecord, subIndex) => {
+                const day = workplaceRecord.day.split("/")[0]; // Extract the day
+                const matchedRecord = record.employee_record.find(item => item.date === day); // Find matching record
+
+                return (
+                  <tr key={`${index}-${subIndex}`}>
+                    <td style={{ textAlign: "center", verticalAlign: "middle" }}>
+                      {day} / {record.month} / {record.year}
                     </td>
-                  <td>{matchedRecord ? matchedRecord.beforeTotalOtTime : "-"}</td>
-                  <td>{matchedRecord ? matchedRecord.cashBeforeOt : "-"}</td>
-                  <td>{matchedRecord ? matchedRecord.totalTime : "-"}</td>
-                  <td>{matchedRecord ? matchedRecord.cashWork : "-"}</td>
-                  <td>{matchedRecord ? matchedRecord.totalOtTime : "-"}</td>
-                  <td>{matchedRecord ? matchedRecord.cashOt : "-"}</td>
-                  <td>{matchedRecord ? matchedRecord.addSalary : "-"}</td>
-                  <td>
-                    {matchedRecord ? (
-                      <button
-                        style={{
-                          border: "none",
-                          background: "none",
-                          padding: 0,
-                          display: "flex",
-                          justifyContent: "center",
-                          alignItems: "center",
-                        }}
-                        onClick={() => handleEdit(matchedRecord)}
-                      >
-                        <i className="bi bi-pencil-square text-danger" style={{ fontSize: "20px" }}></i>
-                      </button>
-                    ) : "-"}
-                  </td>
-                </tr>
-              );
-            })}
+                    <td style={{ textAlign: "center", verticalAlign: "middle" }}>
+                      {matchedRecord ? matchedRecord.workplaceId : "-"}
+                    </td>
+                    <td style={{ textAlign: "center", verticalAlign: "middle" }}>
+                      {matchedRecord ? matchedRecord.workplaceName : "-"}
+                    </td>
+                    <td style={{ textAlign: "center", verticalAlign: "middle" }}>
+                      {matchedRecord ? matchedRecord.wGroup : "-"}
+                    </td>
+                    <td style={{ textAlign: "center", verticalAlign: "middle" }}>
+                      {matchedRecord ? shiftMapping[matchedRecord.shift] : "-"}
+                    </td>
+                    <td style={{ textAlign: "center", verticalAlign: "middle" }}>
+                      {matchedRecord ? matchedRecord.beforeTotalOtTime : "-"}
+                    </td>
+                    <td style={{ textAlign: "center", verticalAlign: "middle" }}>
+                      {matchedRecord ? matchedRecord.cashBeforeOt : "-"}
+                    </td>
+                    <td style={{ textAlign: "center", verticalAlign: "middle" }}>
+                      {matchedRecord ? matchedRecord.totalTime : "-"}
+                    </td>
+                    <td style={{ textAlign: "center", verticalAlign: "middle" }}>
+                      {matchedRecord ? matchedRecord.cashWork : "-"}
+                    </td>
+                    <td style={{ textAlign: "center", verticalAlign: "middle" }}>
+                      {matchedRecord ? matchedRecord.totalOtTime : "-"}
+                    </td>
+                    <td style={{ textAlign: "center", verticalAlign: "middle" }}>
+                      {matchedRecord ? matchedRecord.cashOt : "-"}
+                    </td>
+                    <td style={{ textAlign: "center", verticalAlign: "middle" }}>
+                      {matchedRecord ? matchedRecord.addSalary : "-"}
+                    </td>
+                    <td style={{ textAlign: "center", verticalAlign: "middle" }}>
+  {matchedRecord ? (
+    <button
+      style={{
+        border: "none",
+        background: "none",
+        padding: 0,
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        width: "100%", // Ensures button takes the full width of the cell
+        height: "100%", // Ensures button takes the full height of the cell
+      }}
+      onClick={() => handleEdit(matchedRecord)}
+    >
+      <i
+        className="bi bi-pencil-square text-danger"
+        style={{ fontSize: "20px", display: "block" }}
+      ></i>
+    </button>
+  ) : "-"}
+</td>
 
+                  </tr>
+                );
+              })}
             </>
-
-          )}
+          ))}
         </tbody>
       </table>
     </div>
@@ -1957,7 +1982,7 @@ function Compensation() {
                             <th style={headerCellStyle}>ชั่วโมง OT</th>
                             <th style={headerCellStyle}>ค่าล่วงเวลา OT</th>
                             <th style={headerCellStyle}>เงินเพิ่ม</th>
-                            <th style={headerCellStyle}>แก้/ลบ</th>
+                            <th style={headerCellStyle}>แก้ไข</th>
                           </tr>
                         </thead>
                         <tbody>

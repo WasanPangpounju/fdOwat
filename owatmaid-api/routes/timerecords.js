@@ -627,25 +627,33 @@ async function setToWorkplaceTimerecords(employeeId, employeeName, employeeRecor
 }
 
 
-
 async function setToEmployee(selectWorkplaceId, selectworkplaceName, selectWGroup, selectMonth, workplaceTimeRecordData) {
   console.log('setToEmployee working');
+  
   const dateParts = selectMonth.split("/");
-  const workplaceId = selectWorkplaceId;
-  const workplaceName = selectworkplaceName;
-  const month = dateParts[1];
-  const day = dateParts[0];
+  const day = parseInt(dateParts[0], 10);
+  let year = parseInt(dateParts[2], 10);
+  let month = parseInt(dateParts[1], 10); // Month is 1-based (1 = January, 12 = December)
+
+  // Adjust month based on date range
+  if (day >= 21) {
+    month -= 1; // Move to previous month
+    if (month === 0) {
+      month = 12; // Wrap around to December
+      year -= 1; // Adjust year for previous December
+    }
+  }
+
+  // Convert month to 2-digit format (e.g., '01', '02', ..., '12')
+  const formattedMonth = month.toString().padStart(2, '0');
 
   for (const element of workplaceTimeRecordData) {
     if (element.staffId !== '') {
       try {
-        const timerecordId_year = dateParts[2];
-        const year= timerecordId_year;
-
         const query = {
-          year: year,
+          year: year.toString(),
           employeeId: element.employeeId,
-          month: { $regex: new RegExp(month, 'i') }
+          month: { $regex: new RegExp(`^${formattedMonth}$`, 'i') } // Exact match with two-digit month
         };
 
         const recordworkplace = await timerecordEmployee.findOne(query);
@@ -653,8 +661,8 @@ async function setToEmployee(selectWorkplaceId, selectworkplaceName, selectWGrou
         if (recordworkplace) {
           // Employee time record exists, update employee_workplaceRecord
           recordworkplace.employee_workplaceRecord.push({
-            'workplaceId': workplaceId,
-            'workplaceName': workplaceName,
+            'workplaceId': selectWorkplaceId,
+            'workplaceName': selectworkplaceName,
             'wGroup': selectWGroup || '',
             'date': day,
             'shift': element.shift,
@@ -670,38 +678,125 @@ async function setToEmployee(selectWorkplaceId, selectworkplaceName, selectWGrou
             'cashSalary': element.cashSalary,
             'specialtSalary': element.specialtSalary,
             'specialtSalaryOT': element.specialtSalaryOT,
-                    'messageSalary': element.messageSalary,
+            'messageSalary': element.messageSalary,
           });
 
           await recordworkplace.save();
           console.log('Employee time record updated successfully.');
         } else {
           // Employee time record does not exist, create a new one
-          const timerecordId_year = dateParts[2];
-          const year= timerecordId_year;
-          const employeeId = element.employeeId ;
-          const employeeName = element.employeeName;
+          const newEmployeeTimeRecord = new timerecordEmployee({
+            year: year.toString(),
+            employeeId: element.employeeId,
+            employeeName: element.employeeName,
+            month: formattedMonth,
+            employee_record: [{
+              'workplaceId': selectWorkplaceId,
+              'workplaceName': selectworkplaceName,
+              'wGroup': selectWGroup || '',
+              'date': day,
+              'shift': element.shift,
+              'startTime': element.startTime,
+              'endTime': element.endTime,
+              'totalTime': element.totalTime,
+              'beforeStartOtTime': element.beforeStartOtTime,
+              'beforeEndOtTime': element.beforeEndOtTime,
+              'beforeTotalOtTime': element.beforeTotalOtTime,
+              'startOtTime': element.startOtTime,
+              'endOtTime': element.endOtTime,
+              'totalOtTime': element.totalOtTime,
+              'cashSalary': element.cashSalary,
+              'specialtSalary': element.specialtSalary,
+              'specialtSalaryOT': element.specialtSalaryOT,
+              'messageSalary': element.messageSalary,
+            }]
+          });
 
-          const employee_record = {
-            'workplaceId': workplaceId,
-            'workplaceName': workplaceName,
-            'wGroup': selectWGroup || '',
-            'date': day,
-            'shift': element.shift,
-            'startTime': element.startTime,
-            'endTime': element.endTime,
-            'totalTime': element.totalTime,
-            'beforeStartOtTime': element.beforeStartOtTime,
-            'beforeEndOtTime': element.beforeEndOtTime,
-            'beforeTotalOtTime': element.beforeTotalOtTime,
-            'startOtTime': element.startOtTime,
-            'endOtTime': element.endOtTime,
-            'totalOtTime': element.totalOtTime,
-            'cashSalary': element.cashSalary,
-            'specialtSalary': element.specialtSalary,
-            'specialtSalaryOT': element.specialtSalaryOT,
-                    'messageSalary': element.messageSalary,
-          };
+          await newEmployeeTimeRecord.save();
+          console.log('New employee time record created successfully.');
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    }
+  }
+}
+
+
+// async function setToEmployee(selectWorkplaceId, selectworkplaceName, selectWGroup, selectMonth, workplaceTimeRecordData) {
+//   console.log('setToEmployee working');
+//   const dateParts = selectMonth.split("/");
+//   const workplaceId = selectWorkplaceId;
+//   const workplaceName = selectworkplaceName;
+//   const month = dateParts[1];
+//   const day = dateParts[0];
+
+//   for (const element of workplaceTimeRecordData) {
+//     if (element.staffId !== '') {
+//       try {
+//         const timerecordId_year = dateParts[2];
+//         const year= timerecordId_year;
+
+//         const query = {
+//           year: year,
+//           employeeId: element.employeeId,
+//           month: { $regex: new RegExp(month, 'i') }
+//         };
+
+//         const recordworkplace = await timerecordEmployee.findOne(query);
+
+//         if (recordworkplace) {
+//           // Employee time record exists, update employee_workplaceRecord
+//           recordworkplace.employee_workplaceRecord.push({
+//             'workplaceId': workplaceId,
+//             'workplaceName': workplaceName,
+//             'wGroup': selectWGroup || '',
+//             'date': day,
+//             'shift': element.shift,
+//             'startTime': element.startTime,
+//             'endTime': element.endTime,
+//             'totalTime': element.totalTime,
+//             'beforeStartOtTime': element.beforeStartOtTime,
+//             'beforeEndOtTime': element.beforeEndOtTime,
+//             'beforeTotalOtTime': element.beforeTotalOtTime,
+//             'startOtTime': element.startOtTime,
+//             'endOtTime': element.endOtTime,
+//             'totalOtTime': element.totalOtTime,
+//             'cashSalary': element.cashSalary,
+//             'specialtSalary': element.specialtSalary,
+//             'specialtSalaryOT': element.specialtSalaryOT,
+//                     'messageSalary': element.messageSalary,
+//           });
+
+//           await recordworkplace.save();
+//           console.log('Employee time record updated successfully.');
+//         } else {
+//           // Employee time record does not exist, create a new one
+//           const timerecordId_year = dateParts[2];
+//           const year= timerecordId_year;
+//           const employeeId = element.employeeId ;
+//           const employeeName = element.employeeName;
+
+//           const employee_record = {
+//             'workplaceId': workplaceId,
+//             'workplaceName': workplaceName,
+//             'wGroup': selectWGroup || '',
+//             'date': day,
+//             'shift': element.shift,
+//             'startTime': element.startTime,
+//             'endTime': element.endTime,
+//             'totalTime': element.totalTime,
+//             'beforeStartOtTime': element.beforeStartOtTime,
+//             'beforeEndOtTime': element.beforeEndOtTime,
+//             'beforeTotalOtTime': element.beforeTotalOtTime,
+//             'startOtTime': element.startOtTime,
+//             'endOtTime': element.endOtTime,
+//             'totalOtTime': element.totalOtTime,
+//             'cashSalary': element.cashSalary,
+//             'specialtSalary': element.specialtSalary,
+//             'specialtSalaryOT': element.specialtSalaryOT,
+//                     'messageSalary': element.messageSalary,
+//           };
 
           // Create new employee time record
           const newEmployeeTimeRecord = new timerecordEmployee({
