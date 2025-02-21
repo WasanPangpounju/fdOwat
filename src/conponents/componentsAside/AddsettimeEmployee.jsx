@@ -2255,6 +2255,8 @@ await workplacesearch.workplaceGroup[departmentIndex]
 
   
     const currentDate = parseInt(wDate, 10);
+    // const currentDate = parseInt(wDate);
+
     let nextDate = currentDate + 1;
 
 
@@ -2262,7 +2264,7 @@ await workplacesearch.workplaceGroup[departmentIndex]
       nextDate = 1;
     }
 
-    const formattedNextDate = nextDate.toString().padStart(2, "0");
+    const formattedNextDate = nextDate.toString();
     setWDate(formattedNextDate);
   };
 
