@@ -1206,12 +1206,14 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
 
   async function handleUpdateWorkplaceTimerecord(event) {
     event.preventDefault();
-  
+    const [dd, mm, yyyy] = convertBuddhistToGregorian(formattedDate).split('/'); // Split the date string
+    const xdate = `${parseInt(dd, 10)}/${mm}/${yyyy}`; // Convert dd to an integer to remove leading zero
+
     const data = {
       workplaceId: workplaceId,
       workplaceName: workplaceName,
       wGroup: wGroup || '',
-      date: convertBuddhistToGregorian(formattedDate),
+      date: xdate,
       employeeRecord: rowDataList,
     };
   
