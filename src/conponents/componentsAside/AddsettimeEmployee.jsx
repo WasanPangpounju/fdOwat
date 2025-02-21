@@ -253,7 +253,7 @@ tmp = [];
     const timeDiffFormatted = `${cappedHours}.${cappedMinutes}`;
 
     if (isNaN(timeDiffFormatted)) {
-      return "0";
+      return "";
     }
 
     return timeDiffFormatted;

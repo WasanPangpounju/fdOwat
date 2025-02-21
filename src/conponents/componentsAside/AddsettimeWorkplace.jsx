@@ -384,7 +384,7 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
     const cappedMinutes = cappedTotalMinutes % 60;
     const timeDiffFormatted = `${cappedHours}.${cappedMinutes}`;
     if (isNaN(timeDiffFormatted)) {
-      return "0";
+      return "";
     }
 
     return timeDiffFormatted;
