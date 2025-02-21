@@ -503,7 +503,7 @@ await    console.error(error);
 
 
 const setToWorkplaceTimerecords = async (employeeId, employeeName, employee_record, year, month) => {
-  
+  const d = '';
   try {
     for (const record of employee_record) {
       const { workplaceId, workplaceName, wGroup, date, shift, startTime, endTime, totalTime, 
@@ -511,13 +511,13 @@ const setToWorkplaceTimerecords = async (employeeId, employeeName, employee_reco
         startOtTime, endOtTime, totalOtTime, cashSalary, specialtSalary, specialtSalaryOT, messageSalary } = record;
 
               // Correctly format the date as "DD/MM/YYYY"
-      date = await `${date}/${month}/${year}`;
+      d = await `${date}/${month}/${year}`;
 
       // Find if this workplace record exists
       let workplaceRecord = await workplaceTimerecords.findOne({
         year,
         workplaceId,
-        date
+        d
       });
 
       if (workplaceRecord) {
@@ -582,7 +582,7 @@ const setToWorkplaceTimerecords = async (employeeId, employeeName, employee_reco
           workplaceId,
           workplaceName,
           wGroup,
-          date,
+          d,
           employeeRecord: [{
             employeeId,
             employeeName,
