@@ -2254,8 +2254,8 @@ await workplacesearch.workplaceGroup[departmentIndex]
     setRowDataList2(newDataList);
 
   
-    const currentDate = parseInt(wDate, 10);
-    // const currentDate = parseInt(wDate);
+    // const currentDate = parseInt(wDate, 10);
+    const currentDate = parseInt(wDate);
 
     let nextDate = currentDate + 1;
 

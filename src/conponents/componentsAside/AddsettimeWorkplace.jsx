@@ -502,10 +502,10 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
         shift == "morning_shift"
       ) {
         const ot =
-          calTime(selectotTime || 0, selectotTimeOut || 0, workOfOT || 0) || 0;
+          calTime(selectotTime || 0, selectotTimeOut || 0, workOfOT || 0) || '';
         setOtTime(ot);
       } else {
-        const ot = calTime(selectotTime || 0, selectotTimeOut || 0, 24) || 0;
+        const ot = calTime(selectotTime || 0, selectotTimeOut || 0, 24) || '';
         setOtTime(ot);
       }
     } catch (error) {
