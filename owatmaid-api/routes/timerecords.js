@@ -1220,10 +1220,14 @@ router.post('/searchworkplacetimerecords', async (req, res) => {
       query.wGroup = wGroup;
       // { $regex: new RegExp(wGroup , 'i') };
     }
-
     if (date !== '') {
-      query.date= date;
+      const [dd, mm, yyyy] = date.split('/'); // Split the date string
+      query.date = `${parseInt(dd, 10)}/${mm}/${yyyy}`; // Convert dd to an integer to remove leading zero
     }
+    
+    // if (date !== '') {
+    //   query.date= date;
+    // }
 console.log('query.date ' + query.date);
     // console.log('Constructed Query:');
     // console.log(query);
