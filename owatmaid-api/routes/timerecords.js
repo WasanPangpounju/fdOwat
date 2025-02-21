@@ -798,24 +798,24 @@ async function setToEmployee(selectWorkplaceId, selectworkplaceName, selectWGrou
 //                     'messageSalary': element.messageSalary,
 //           };
 
-          // Create new employee time record
-          const newEmployeeTimeRecord = new timerecordEmployee({
-            year,
-            employeeId,
-            employeeName,
-            month,
-            employee_record 
-          });
+//           // Create new employee time record
+//           const newEmployeeTimeRecord = new timerecordEmployee({
+//             year,
+//             employeeId,
+//             employeeName,
+//             month,
+//             employee_record 
+//           });
 
-          await newEmployeeTimeRecord.save();
-          console.log('New employee time record created successfully.');
-        }
-      } catch (error) {
-        console.error(error);
-      }
-    }
-  }
-}
+//           await newEmployeeTimeRecord.save();
+//           console.log('New employee time record created successfully.');
+//         }
+//       } catch (error) {
+//         console.error(error);
+//       }
+//     }
+//   }
+// }
 
 // Create new workplace
 router.post('/create', async (req, res) => {
