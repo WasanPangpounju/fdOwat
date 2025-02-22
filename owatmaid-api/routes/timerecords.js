@@ -501,101 +501,139 @@ await    console.error(error);
   }
 });
 
-const removeEmptyWorkplaceRecords = async (year, month) => {
-  try {
-    let emptyRecords = await workplaceTimerecords.find({ year, date: new RegExp(`/${String(month).padStart(2, '0')}/${year}$`) });
 
-    for (const record of emptyRecords) {
-      if (record.employeeRecord.length === 0) {
-        await workplaceTimerecords.findByIdAndDelete(record._id);
-        console.log(`🗑️ Deleted empty workplaceTimerecord for workplace ${record.workplaceId} on ${record.date}`);
+
+const setToWorkplaceTimerecords = async (employeeId, employeeName, employee_record, year, month) => {
+  try {
+    for (const record of employee_record) {
+      const { workplaceId, workplaceName, wGroup, date, shift, startTime, endTime, totalTime, 
+        beforeStartOtTime, beforeEndOtTime, beforeTotalOtTime, 
+        startOtTime, endOtTime, totalOtTime, cashSalary, specialtSalary, specialtSalaryOT, messageSalary } = record;
+
+      let numericDate = Number(date);
+      let numericMonth = Number(month);
+      let numericYear = Number(year);
+
+      // Adjust month if date is 21, 22, or 31
+      if ([21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31].includes(numericDate)) {
+        numericMonth -= 1;
+        if (numericMonth === 0) { 
+          numericMonth = 12;
+          numericYear -= 1;
+        }
       }
-    }
-  } catch (error) {
-    console.error("🔥 Error in removeEmptyWorkplaceRecords:", error);
-  }
-};
 
+      let formattedDate = `${String(numericDate).padStart(2, '0')}/${String(numericMonth).padStart(2, '0')}/${numericYear}`;
 
-const setToWorkplaceTimerecords = async (year, month) => {
-  try {
-    // Get all time records for this year and month
-    const allEmployeeRecords = await timerecordEmployee.find({ year, month });
+      // Find if this workplace record exists
+      let workplaceRecord = await workplaceTimerecords.findOne({
+        year: numericYear,
+        workplaceId,
+        date: formattedDate
+      });
 
-    // Group records by workplaceId and date
-    const workplaceData = {};
+      if (workplaceRecord) {
+        // Update existing employee data
+        let updatedEmployeeRecords = workplaceRecord.employeeRecord.map(emp => {
+          if (emp.employeeId === employeeId) {
+            return {
+              ...emp, // Keep existing data
+              shift,
+              startTime,
+              endTime,
+              totalTime,
+              beforeStartOtTime,
+              beforeEndOtTime,
+              beforeTotalOtTime,
+              startOtTime,
+              endOtTime,
+              totalOtTime,
+              cashSalary,
+              specialtSalary,
+              specialtSalaryOT,
+              messageSalary
+            };
+          }
+          return emp;
+        });
 
-    for (const record of allEmployeeRecords) {
-      for (const empRecord of record.employee_record) {
-        let formattedDate = `${String(empRecord.date).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
-
-        let key = `${empRecord.workplaceId}-${formattedDate}`;
-
-        if (!workplaceData[key]) {
-          workplaceData[key] = {
-            year,
-            workplaceId: empRecord.workplaceId,
-            workplaceName: empRecord.workplaceName,
-            wGroup: empRecord.wGroup,
-            date: formattedDate,
-            employeeRecord: []
-          };
+        // Check if employee exists in workplace record, otherwise add them
+        const employeeExists = workplaceRecord.employeeRecord.some(emp => emp.employeeId === employeeId);
+        if (!employeeExists) {
+          updatedEmployeeRecords.push({
+            employeeId,
+            employeeName,
+            shift,
+            startTime,
+            endTime,
+            totalTime,
+            beforeStartOtTime,
+            beforeEndOtTime,
+            beforeTotalOtTime,
+            startOtTime,
+            endOtTime,
+            totalOtTime,
+            cashSalary,
+            specialtSalary,
+            specialtSalaryOT,
+            messageSalary
+          });
         }
 
-        workplaceData[key].employeeRecord.push({
-          employeeId: record.employeeId,
-          employeeName: record.employeeName,
-          shift: empRecord.shift,
-          startTime: empRecord.startTime,
-          endTime: empRecord.endTime,
-          totalTime: empRecord.totalTime,
-          beforeStartOtTime: empRecord.beforeStartOtTime,
-          beforeEndOtTime: empRecord.beforeEndOtTime,
-          beforeTotalOtTime: empRecord.beforeTotalOtTime,
-          startOtTime: empRecord.startOtTime,
-          endOtTime: empRecord.endOtTime,
-          totalOtTime: empRecord.totalOtTime,
-          cashSalary: empRecord.cashSalary,
-          specialtSalary: empRecord.specialtSalary,
-          specialtSalaryOT: empRecord.specialtSalaryOT,
-          messageSalary: empRecord.messageSalary
-        });
-      }
-    }
+        // 🚨 **Skip update if employeeRecord is empty**
+        if (updatedEmployeeRecords.length === 0) {
+          console.log(`⚠️ Skipping update for workplaceId: ${workplaceId} on ${formattedDate} because employeeRecord is empty.`);
+          continue;
+        }
 
-    // Iterate through the grouped data and update `workplaceTimerecords`
-    for (const key in workplaceData) {
-      const { year, workplaceId, date, workplaceName, wGroup, employeeRecord } = workplaceData[key];
+        // Update Workplace Record
+        await workplaceTimerecords.findOneAndUpdate(
+          { _id: workplaceRecord._id },
+          { employeeRecord: updatedEmployeeRecords },
+          { new: true }
+        );
 
-      let existingRecord = await workplaceTimerecords.findOne({ year, workplaceId, date });
-
-      if (existingRecord) {
-        // Update existing record
-        await workplaceTimerecords.findByIdAndUpdate(existingRecord._id, { employeeRecord });
-        console.log(`✅ Updated workplaceTimerecords for workplace ${workplaceId} on ${date}`);
       } else {
-        // Create a new record
+        // 🚨 **Skip creating a new record if `employeeRecord` is empty**
+        if (employee_record.length === 0) {
+          console.log(`⚠️ Skipping creation for workplaceId: ${workplaceId} on ${formattedDate} because employeeRecord is empty.`);
+          continue;
+        }
+
+        // Create new workplace record
         const newWorkplaceRecord = new workplaceTimerecords({
-          year,
+          year: numericYear,
           workplaceId,
           workplaceName,
           wGroup,
-          date,
-          employeeRecord
+          date: formattedDate,
+          employeeRecord: [{
+            employeeId,
+            employeeName,
+            shift,
+            startTime,
+            endTime,
+            totalTime,
+            beforeStartOtTime,
+            beforeEndOtTime,
+            beforeTotalOtTime,
+            startOtTime,
+            endOtTime,
+            totalOtTime,
+            cashSalary,
+            specialtSalary,
+            specialtSalaryOT,
+            messageSalary
+          }]
         });
 
         await newWorkplaceRecord.save();
-        console.log(`✅ Created new workplaceTimerecords for workplace ${workplaceId} on ${date}`);
       }
     }
-
-    // Remove workplaceTimerecords that no longer have employee records
-    await removeEmptyWorkplaceRecords(year, month);
   } catch (error) {
     console.error("🔥 Error in setToWorkplaceTimerecords:", error);
   }
 };
-
 
 // async function setToWorkplaceTimerecords(employeeId, employeeName, employeeRecords, year, month) {
 //   console.log("🔄 Processing workplace records...");
