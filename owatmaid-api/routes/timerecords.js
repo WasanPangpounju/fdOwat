@@ -502,9 +502,13 @@ await    console.error(error);
 });
 
 
-
 const setToWorkplaceTimerecords = async (employeeId, employeeName, employee_record, year, month) => {
   try {
+    if (!employee_record || employee_record.length === 0) {
+      console.log(`⚠️ No employee records provided for Employee ID: ${employeeId}. Skipping update.`);
+      return;
+    }
+
     for (const record of employee_record) {
       const { workplaceId, workplaceName, wGroup, date, shift, startTime, endTime, totalTime, 
         beforeStartOtTime, beforeEndOtTime, beforeTotalOtTime, 
@@ -514,8 +518,8 @@ const setToWorkplaceTimerecords = async (employeeId, employeeName, employee_reco
       let numericMonth = Number(month);
       let numericYear = Number(year);
 
-      // Adjust month if date is 21, 22, or 31
-      if ([21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31].includes(numericDate)) {
+      // Adjust month if date is 21-31
+      if (numericDate >= 21) {
         numericMonth -= 1;
         if (numericMonth === 0) { 
           numericMonth = 12;
@@ -534,32 +538,9 @@ const setToWorkplaceTimerecords = async (employeeId, employeeName, employee_reco
 
       if (workplaceRecord) {
         // Update existing employee data
-        let updatedEmployeeRecords = workplaceRecord.employeeRecord.map(emp => {
-          if (emp.employeeId === employeeId) {
-            return {
-              ...emp, // Keep existing data
-              shift,
-              startTime,
-              endTime,
-              totalTime,
-              beforeStartOtTime,
-              beforeEndOtTime,
-              beforeTotalOtTime,
-              startOtTime,
-              endOtTime,
-              totalOtTime,
-              cashSalary,
-              specialtSalary,
-              specialtSalaryOT,
-              messageSalary
-            };
-          }
-          return emp;
-        });
+        let updatedEmployeeRecords = workplaceRecord.employeeRecord.filter(emp => emp.employeeId !== employeeId);
 
-        // Check if employee exists in workplace record, otherwise add them
-        const employeeExists = workplaceRecord.employeeRecord.some(emp => emp.employeeId === employeeId);
-        if (!employeeExists) {
+        if (shift || startTime || endTime) {
           updatedEmployeeRecords.push({
             employeeId,
             employeeName,
@@ -580,21 +561,19 @@ const setToWorkplaceTimerecords = async (employeeId, employeeName, employee_reco
           });
         }
 
-        // 🚨 **Skip update if employeeRecord is empty**
+        // 🚨 **If `employeeRecord` is empty after update, delete the workplace record**
         if (updatedEmployeeRecords.length === 0) {
-          console.log(`⚠️ Skipping update for workplaceId: ${workplaceId} on ${formattedDate} because employeeRecord is empty.`);
+          await workplaceTimerecords.findByIdAndDelete(workplaceRecord._id);
+          console.log(`🗑️ Deleted workplace record for workplaceId: ${workplaceId} on ${formattedDate} because no employees exist.`);
           continue;
         }
 
         // Update Workplace Record
-        await workplaceTimerecords.findOneAndUpdate(
-          { _id: workplaceRecord._id },
-          { employeeRecord: updatedEmployeeRecords },
-          { new: true }
-        );
+        await workplaceTimerecords.findByIdAndUpdate(workplaceRecord._id, { employeeRecord: updatedEmployeeRecords }, { new: true });
+        console.log(`✅ Updated workplace record for workplaceId: ${workplaceId} on ${formattedDate}`);
 
       } else {
-        // 🚨 **Skip creating a new record if `employeeRecord` is empty**
+        // 🚨 **Skip creation if `employee_record` is empty**
         if (employee_record.length === 0) {
           console.log(`⚠️ Skipping creation for workplaceId: ${workplaceId} on ${formattedDate} because employeeRecord is empty.`);
           continue;
@@ -628,6 +607,7 @@ const setToWorkplaceTimerecords = async (employeeId, employeeName, employee_reco
         });
 
         await newWorkplaceRecord.save();
+        console.log(`✅ Created new workplace record for workplaceId: ${workplaceId} on ${formattedDate}`);
       }
     }
   } catch (error) {
