@@ -527,7 +527,7 @@ const setToWorkplaceTimerecords = async (employeeId, employeeName, employee_reco
         }
       }
 
-      let formattedDate = `${String(numericDate).padStart(2, '0')}/${String(numericMonth).padStart(2, '0')}/${numericYear}`;
+      let formattedDate = `${String(numericDate)}/${String(numericMonth).padStart(2, '0')}/${numericYear}`;
 
       // Find if this workplace record exists
       let workplaceRecord = await workplaceTimerecords.findOne({
@@ -539,7 +539,8 @@ const setToWorkplaceTimerecords = async (employeeId, employeeName, employee_reco
       if (workplaceRecord) {
         // Update existing employee data
         let updatedEmployeeRecords = workplaceRecord.employeeRecord.filter(emp => emp.employeeId !== employeeId);
-console.log('updatedEmployeeRecords ' + updatedEmployeeRecords .length);
+// console.log('updatedEmployeeRecords ' + updatedEmployeeRecords .length);
+
         if (shift || startTime || endTime) {
           updatedEmployeeRecords.push({
             employeeId,
