@@ -539,7 +539,7 @@ const setToWorkplaceTimerecords = async (employeeId, employeeName, employee_reco
       if (workplaceRecord) {
         // Update existing employee data
         let updatedEmployeeRecords = workplaceRecord.employeeRecord.filter(emp => emp.employeeId !== employeeId);
-
+console.log('updatedEmployeeRecords ' + updatedEmployeeRecords .length);
         if (shift || startTime || endTime) {
           updatedEmployeeRecords.push({
             employeeId,
