@@ -501,6 +501,21 @@ await    console.error(error);
   }
 });
 
+const removeEmptyWorkplaceRecords = async (year, month) => {
+  try {
+    let emptyRecords = await workplaceTimerecords.find({ year, date: new RegExp(`/${String(month).padStart(2, '0')}/${year}$`) });
+
+    for (const record of emptyRecords) {
+      if (record.employeeRecord.length === 0) {
+        await workplaceTimerecords.findByIdAndDelete(record._id);
+        console.log(`🗑️ Deleted empty workplaceTimerecord for workplace ${record.workplaceId} on ${record.date}`);
+      }
+    }
+  } catch (error) {
+    console.error("🔥 Error in removeEmptyWorkplaceRecords:", error);
+  }
+};
+
 
 const setToWorkplaceTimerecords = async (year, month) => {
   try {
