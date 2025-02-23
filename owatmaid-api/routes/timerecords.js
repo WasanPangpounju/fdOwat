@@ -569,9 +569,19 @@ const setToWorkplaceTimerecords = async (employeeId, employeeName, employee_reco
           continue;
         }
 
-        // Update Workplace Record
-        await workplaceTimerecords.findByIdAndUpdate(workplaceRecord._id, { employeeRecord: updatedEmployeeRecords }, { new: true });
-        console.log(`✅ Updated workplace record for workplaceId: ${workplaceId} on ${formattedDate}`);
+        // // Update Workplace Record
+        // await workplaceTimerecords.findByIdAndUpdate(workplaceRecord._id, { employeeRecord: updatedEmployeeRecords }, { new: true });
+        // console.log(`✅ Updated workplace record for workplaceId: ${workplaceId} on ${formattedDate}`);
+// Update Workplace Record - First clear old data, then update
+await workplaceTimerecords.findByIdAndUpdate(workplaceRecord._id, { $set: { employeeRecord: [] } });
+
+await workplaceTimerecords.findByIdAndUpdate(
+  workplaceRecord._id,
+  { $set: { employeeRecord: updatedEmployeeRecords } },
+  { new: true }
+);
+
+console.log(`✅ Completely replaced workplace record for workplaceId: ${workplaceId} on ${formattedDate}`);
 
       } else {
         // 🚨 **Skip creation if `employee_record` is empty**
