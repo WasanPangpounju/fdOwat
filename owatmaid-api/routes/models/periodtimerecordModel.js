@@ -22,12 +22,17 @@ const periodEmployeeTimerecordSchema = new mongoose.Schema({
     endOtTime: String,
     totalOtTime: String,
     cashBeforeOt: String,
+    cashBeforeOtMul: String,
     cashWork: String,
+    cashWorkMul: String,
     cashOt: String,
+    cashOtMul: String,
     cashSalary: String,
 specialtSalary: String,
 specialtSalaryOT: String,
         messageSalary: String,
+        dayType: String,
+
 }]
 });
 
