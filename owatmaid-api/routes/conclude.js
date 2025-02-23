@@ -1776,9 +1776,14 @@ function groupByWorkplaceId(records) {
 
 // Function to calculate cash values
 const calculateCashValues = (employee_record) => {
+//get workplace data for cal
+// const employeeData = Workplace 
+
   return employee_record.map(record => {
+    console.log(record.workplaceId );
     return {
       ...record.toObject(), // Convert Mongoose document to plain object
+
       cashBeforeOt: record.cashBeforeOt ? record.cashBeforeOt : (record.beforeTotalOtTime || 0) * 50,
       cashWork: record.cashWork ? record.cashWork : (record.totalTime || 0) * 363,
       cashOt: record.cashOt ? record.cashOt : (record.totalOtTime || 0) * 100,
