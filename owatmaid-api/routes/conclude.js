@@ -1779,7 +1779,7 @@ const calculateCashValues = async (employee_record) => {
     const query = {};
 
     if (record.workplaceId !== '') {
-      query.workplaceId = record.workplaceId;
+      query.workplaceId = await record.workplaceId;
     }
 
     try {
