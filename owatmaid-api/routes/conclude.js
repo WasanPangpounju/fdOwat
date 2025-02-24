@@ -1773,32 +1773,58 @@ function groupByWorkplaceId(records) {
 
 //========== latest code
 
-
 // Function to calculate cash values
-const calculateCashValues = (employee_record) => {
-//get workplace data for cal
-// const employeeData = Workplace 
-
-  return employee_record.map(record => {
+const calculateCashValues = async (employee_record) => {
+  return Promise.all(employee_record.map(async (record) => {
     const query = {};
 
     if (record.workplaceId !== '') {
-        query.workplaceId = record.workplaceId;
+      query.workplaceId = record.workplaceId;
     }
 
-    const workplaceData  = Workplace.find(query.workplaces );
+    try {
+      // Fetch workplace data
+      const workplaceData = await Workplace.findOne(query);
 
-    console.log(json(workplaceData) );
+      console.log("Workplace Data:", JSON.stringify(workplaceData, null, 2));
 
-    return {
-      ...record.toObject(), // Convert Mongoose document to plain object
-
-      cashBeforeOt: record.cashBeforeOt ? record.cashBeforeOt : (record.beforeTotalOtTime || 0) * 50,
-      cashWork: record.cashWork ? record.cashWork : (record.totalTime || 0) * 363,
-      cashOt: record.cashOt ? record.cashOt : (record.totalOtTime || 0) * 100,
-    };
-  });
+      return {
+        ...record.toObject(), // Convert Mongoose document to plain object
+        cashBeforeOt: record.cashBeforeOt ? record.cashBeforeOt : (record.beforeTotalOtTime || 0) * 50,
+        cashWork: record.cashWork ? record.cashWork : (record.totalTime || 0) * 363,
+        cashOt: record.cashOt ? record.cashOt : (record.totalOtTime || 0) * 100,
+      };
+    } catch (error) {
+      console.error("🔥 Error fetching workplace data:", error);
+      return record.toObject();
+    }
+  }));
 };
+// // Function to calculate cash values
+// const calculateCashValues = (employee_record) => {
+// //get workplace data for cal
+// // const employeeData = Workplace 
+
+//   return employee_record.map(record => {
+//     const query = {};
+
+//     if (record.workplaceId !== '') {
+//         query.workplaceId = record.workplaceId;
+//     }
+
+//     const workplaceData  = Workplace.find(query.workplaces );
+
+//     console.log(json(workplaceData) );
+
+//     return {
+//       ...record.toObject(), // Convert Mongoose document to plain object
+
+//       cashBeforeOt: record.cashBeforeOt ? record.cashBeforeOt : (record.beforeTotalOtTime || 0) * 50,
+//       cashWork: record.cashWork ? record.cashWork : (record.totalTime || 0) * 363,
+//       cashOt: record.cashOt ? record.cashOt : (record.totalOtTime || 0) * 100,
+//     };
+//   });
+// };
 
 // Search timerecordEmployee
 router.post('/searchtimerecordemployee', async (req, res) => {
