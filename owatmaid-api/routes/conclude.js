@@ -1778,6 +1778,7 @@ const calculateCashValues = async (employee_record) => {
   return Promise.all(employee_record.map(async (record) => {
     const query = {};
     
+    console.log(record);
     if (record.workplaceId !== '') {
       query.workplaceId = await record.workplaceId ;
     }
@@ -1788,7 +1789,6 @@ const calculateCashValues = async (employee_record) => {
 
       await console.log(record.workplaceId + "Workplace Data :", JSON.stringify(workplaceData, null, 2));
 // console.log("workRate " + workplaceData[0].workRate);
-await console.log(JSON.stringify( record.toObject().workRate , null, 2) )
 
       return {
         ...record.toObject(), // Convert Mongoose document to plain object
