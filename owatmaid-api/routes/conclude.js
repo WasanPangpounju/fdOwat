@@ -1788,10 +1788,10 @@ const calculateCashValues = async (employee_record) => {
 
       await console.log(record.workplaceId + "Workplace Data :", JSON.stringify(workplaceData, null, 2));
 // console.log("workRate " + workplaceData[0].workRate);
+await console.log(JSON.stringify( record.toObject() , null, 2) )
 
       return {
         ...record.toObject(), // Convert Mongoose document to plain object
-        await console.log(JSON.stringify( record.workplaceId , null, 2) );
 
         cashBeforeOt: record.cashBeforeOt ? record.cashBeforeOt : (record.beforeTotalOtTime || 0) * 50,
         cashWork: record.cashWork ? record.cashWork : (record.totalTime || 0) * 363,
