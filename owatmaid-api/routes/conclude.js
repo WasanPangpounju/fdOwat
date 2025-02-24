@@ -1786,7 +1786,7 @@ const calculateCashValues = async (employee_record) => {
       // Fetch workplace data
       const workplaceData = await Workplace.findOne(query);
 
-      console.log("Workplace Data:", JSON.stringify(workplaceData, null, 2));
+      console.log("Workplace Data:", JSON.stringify(workplaceData.workRate, null, 2));
 
       return {
         ...record.toObject(), // Convert Mongoose document to plain object
