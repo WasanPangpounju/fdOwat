@@ -11,7 +11,7 @@ const axios = require('axios');
 
 var express = require('express');
 var router = express.Router();
-// const mongoose = require('mongoose');
+const mongoose = require('mongoose');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
@@ -1772,9 +1772,6 @@ function groupByWorkplaceId(records) {
 
 
 //========== latest code
-
-const mongoose = require("mongoose"); // Ensure mongoose is imported
-const Workplace = require("../models/Workplace"); // Import Workplace model
 
 // Function to calculate cash values
 const calculateCashValues = async (employee_record) => {
