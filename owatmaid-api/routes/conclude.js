@@ -1777,7 +1777,7 @@ function groupByWorkplaceId(records) {
 const calculateCashValues = async (employee_record) => {
   return Promise.all(employee_record.map(async (record) => {
     const query = {};
-    await console.log(JSON.stringify( record.workplaceId , null, 2) );
+    
     if (record.workplaceId !== '') {
       query.workplaceId = await record.workplaceId ;
     }
@@ -1791,6 +1791,8 @@ const calculateCashValues = async (employee_record) => {
 
       return {
         ...record.toObject(), // Convert Mongoose document to plain object
+        await console.log(JSON.stringify( record.workplaceId , null, 2) );
+
         cashBeforeOt: record.cashBeforeOt ? record.cashBeforeOt : (record.beforeTotalOtTime || 0) * 50,
         cashWork: record.cashWork ? record.cashWork : (record.totalTime || 0) * 363,
         cashOt: record.cashOt ? record.cashOt : (record.totalOtTime || 0) * 100,
