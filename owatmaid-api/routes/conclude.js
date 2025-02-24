@@ -1773,29 +1773,40 @@ function groupByWorkplaceId(records) {
 
 //========== latest code
 
+const mongoose = require("mongoose"); // Ensure mongoose is imported
+const Workplace = require("../models/Workplace"); // Import Workplace model
+
 // Function to calculate cash values
 const calculateCashValues = async (employee_record) => {
   return Promise.all(employee_record.map(async (record) => {
-    const query = {};
-    
-    console.log(record);
-    // if (record.workplaceId !== '') {
-      if (!record.workplaceId) {
-      query.workplaceId = await record.workplaceId ;
+    console.log("🔍 Processing Record:", record);
+
+    // Ensure workplaceId is valid
+    if (!record.workplaceId) {
+      console.warn("⚠️ Missing workplaceId for record:", record);
+      return record.toObject();
     }
+
+    const workplaceId = mongoose.Types.ObjectId.isValid(record.workplaceId) 
+      ? new mongoose.Types.ObjectId(record.workplaceId) 
+      : record.workplaceId; // Convert if it's an ObjectId
 
     try {
       // Fetch workplace data
-      const workplaceData = await Workplace.findOne(query);
+      const workplaceData = await Workplace.findOne({ workplaceId });
 
-      await console.log(record.workplaceId + "Workplace Data :", JSON.stringify(workplaceData, null, 2));
-// console.log("workRate " + workplaceData[0].workRate);
+      if (!workplaceData) {
+        console.warn(`⚠️ No workplace found for workplaceId: ${record.workplaceId}`);
+        return record.toObject();
+      }
+
+      console.log(`✅ Workplace Data for ${record.workplaceId}:`, JSON.stringify(workplaceData, null, 2));
 
       return {
         ...record.toObject(), // Convert Mongoose document to plain object
-
+        workRate: workplaceData.workRate, // Include workRate in the result
         cashBeforeOt: record.cashBeforeOt ? record.cashBeforeOt : (record.beforeTotalOtTime || 0) * 50,
-        cashWork: record.cashWork ? record.cashWork : (record.totalTime || 0) * 363,
+        cashWork: record.cashWork ? record.cashWork : (record.totalTime || 0) * workplaceData.workRate, // Use dynamic workRate
         cashOt: record.cashOt ? record.cashOt : (record.totalOtTime || 0) * 100,
       };
     } catch (error) {
@@ -1804,6 +1815,8 @@ const calculateCashValues = async (employee_record) => {
     }
   }));
 };
+
+
 // // Function to calculate cash values
 // const calculateCashValues = (employee_record) => {
 // //get workplace data for cal
