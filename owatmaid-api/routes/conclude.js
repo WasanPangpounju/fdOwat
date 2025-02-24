@@ -1,6 +1,5 @@
 const connectionString = require('../config');
 const sURL = 'http://localhost:3000';
-const mongoose = require('mongoose');
 
 //require timerecordEmployee 
 const timerecordEmployee = require('./models/periodtimerecordModel');
