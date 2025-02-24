@@ -1777,7 +1777,7 @@ function groupByWorkplaceId(records) {
 const calculateCashValues = async (employee_record) => {
   return Promise.all(employee_record.map(async (record) => {
     const query = {};
-
+    await console.log(record.workplaceId );
     if (record.workplaceId !== '') {
       query.workplaceId = await record.workplaceId ;
     }
