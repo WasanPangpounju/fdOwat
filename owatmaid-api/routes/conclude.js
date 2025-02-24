@@ -11,7 +11,6 @@ const axios = require('axios');
 
 var express = require('express');
 var router = express.Router();
-const mongoose = require('mongoose');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
