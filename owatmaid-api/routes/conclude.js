@@ -1786,7 +1786,7 @@ const calculateCashValues = (employee_record) => {
         query.workplaceId = record.workplaceId;
     }
 
-    const workplaceData  = Workplace.find(query);
+    const workplaceData  = Workplace.find(query.workplaces );
 
     console.log(workplaceData );
 
