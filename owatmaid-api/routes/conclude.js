@@ -1781,17 +1781,17 @@ const calculateCashValues = (employee_record) => {
 // const employeeData = Workplace 
 
   return employee_record.map(record => {
-    const query = {};
-    const recordData = record.toObject ? record.toObject() : record;
-    console.log("test " + JSON.stringify(recordData ,null,2))
-    if (record.workplaceId !== '') {
-        query.workplaceId = record.workplaceId;
-    }
+//     const query = {};
+//     const recordData = record.toObject ? record.toObject() : record;
+//     console.log("test " + JSON.stringify(recordData ,null,2))
+//     if (record.workplaceId !== '') {
+//         query.workplaceId = record.workplaceId;
+//     }
 
-    const workplaceData  = Workplace.find(query.workplaces );
+//     const workplaceData  = Workplace.find(query.workplaces );
 
-    // console.log(workplaceData);
-// console.log("record.workplaceId ", record.workplaceId)
+//     // console.log(workplaceData);
+// // console.log("record.workplaceId ", record.workplaceId)
 
     return {
       ...record.toObject(), // Convert Mongoose document to plain object
