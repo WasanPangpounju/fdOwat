@@ -1779,7 +1779,7 @@ function groupByWorkplaceId(records) {
 const calculateCashValues = (employee_record) => {
 
   return employee_record.map(record => {
-console.log(record.totalTime || 0);
+console.log(record.workplaceId|| 0);
     return {
       ...record.toObject(), // Convert Mongoose document to plain object
 
