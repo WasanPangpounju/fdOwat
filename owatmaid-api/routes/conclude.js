@@ -1774,15 +1774,19 @@ function groupByWorkplaceId(records) {
 //========== latest code
 
 
+const checkDayRate = (workplaceId, wGroup, date ) => {
+console.log("test" , workplaceId, wGroup, date );
+
+}
 
 // Function to calculate cash values
-const calculateCashValues = (employee_record) => {
+const calculateCashValues = (employee_record, month, year ) => {
 
   return employee_record.map(record => {
-console.log(record.workplaceId|| 0);
-console.log(record.wGroup || '');
-console.log(record.date || '');
-
+// console.log(record.workplaceId|| 0);
+// console.log(record.wGroup || '');
+// console.log(record.date || '');
+let dataRate = checkDayRate(record.workplaceId, record.wGroup , new Date(record.date , month , year));
 
     return {
       ...record.toObject(), // Convert Mongoose document to plain object
@@ -1822,7 +1826,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     // Check if any record has missing cash values
     let updateNeeded = false;
     for (const doc of result) {
-      const updatedRecords = calculateCashValues(doc.employee_record);
+      const updatedRecords = calculateCashValues(doc.employee_record, month, year );
       if (JSON.stringify(updatedRecords) !== JSON.stringify(doc.employee_record)) {
         doc.employee_record = updatedRecords;
         await doc.save(); // Save only if changes are made
