@@ -1775,8 +1775,8 @@ function groupByWorkplaceId(records) {
 
 
 const checkDayRate = async (workplaceId, wGroup, date ) => {
-console.log("test" , workplaceId, wGroup, date );
-console.log(date.getDay() );
+await console.log("test" , workplaceId, wGroup, date );
+await console.log(date.getDay() );
 
 //data for cal
 const dataCal = {};
