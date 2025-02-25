@@ -1782,7 +1782,8 @@ const calculateCashValues = (employee_record) => {
 
   return employee_record.map(record => {
     const query = {};
-
+    const recordData = record.toObject ? record.toObject() : record;
+    console.log(JSON.stringify(recordData ,null,2))
     if (record.workplaceId !== '') {
         query.workplaceId = record.workplaceId;
     }
