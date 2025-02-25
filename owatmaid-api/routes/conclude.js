@@ -1774,46 +1774,9 @@ function groupByWorkplaceId(records) {
 //========== latest code
 
 
-// Function to calculate cash values
-const calculateCashValues = async (employee_record) => {
-  return Promise.all(
-    employee_record.map(async (record) => {
-      try {
-        // Convert Mongoose document to plain object
-        const recordData = record.toObject ? record.toObject() : record;
-
-        // Fetch workplace data using workplaceId
-        const workplaceData = await Workplace.findOne({ workplaceId: recordData.workplaceId });
-
-        if (!workplaceData) {
-          console.warn(`⚠️ No workplace data found for workplaceId: ${recordData.workplaceId}`);
-          return {
-            ...recordData,
-            cashBeforeOt: recordData.cashBeforeOt ? recordData.cashBeforeOt : (recordData.beforeTotalOtTime || 0) * 50,
-            cashWork: recordData.cashWork ? recordData.cashWork : (recordData.totalTime || 0) * 363, // Default workRate = 363
-            cashOt: recordData.cashOt ? recordData.cashOt : (recordData.totalOtTime || 0) * 100,
-          };
-        }
-
-        // Extract workRate from workplace data
-        const workRate = workplaceData.workRate || 363; // Default workRate = 363
-
-        return {
-          ...recordData,
-          cashBeforeOt: recordData.cashBeforeOt ? recordData.cashBeforeOt : (recordData.beforeTotalOtTime || 0) * 50,
-          cashWork: recordData.cashWork ? recordData.cashWork : (recordData.totalTime || 0) * workRate, // Use workplace's workRate
-          cashOt: recordData.cashOt ? recordData.cashOt : (recordData.totalOtTime || 0) * 100,
-        };
-      } catch (error) {
-        console.error(`🔥 Error fetching workplace data for workplaceId: ${record.workplaceId}`, error);
-        return record.toObject ? record.toObject() : record;
-      }
-    })
-  );
-};
 
 // Function to calculate cash values
-const calculateCashValues_back = (employee_record) => {
+const calculateCashValues = (employee_record) => {
 
   return employee_record.map(record => {
 
