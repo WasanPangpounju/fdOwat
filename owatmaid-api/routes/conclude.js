@@ -1775,75 +1775,31 @@ function groupByWorkplaceId(records) {
 
 
 
-const calculateCashValues = async (employee_record) => {
-  return Promise.all(employee_record.map(async (record) => {
-    console.log("🔍 Processing Record:", JSON.stringify(record, null, 2));
+// Function to calculate cash values
+const calculateCashValues = (employee_record) => {
+//get workplace data for cal
+// const employeeData = Workplace 
 
-    // **Check if `workplaceId` is missing**
-    if (!record.workplaceId) {
-      console.warn(`⚠️ Missing workplaceId for record: ${JSON.stringify(record, null, 2)}`);
-      return record.toObject(); // Skip processing
+  return employee_record.map(record => {
+    const query = {};
+
+    if (record.workplaceId !== '') {
+        query.workplaceId = record.workplaceId;
     }
 
-    // **Show workplaceId type to catch unexpected issues**
-    console.log(`🧐 Checking workplaceId Type:`, typeof record.workplaceId, record.workplaceId);
+    const workplaceData  = Workplace.find(query.workplaces );
 
-    // **Convert workplaceId to ObjectId if needed**
-    const workplaceId = mongoose.Types.ObjectId.isValid(record.workplaceId) 
-      ? new mongoose.Types.ObjectId(record.workplaceId) 
-      : record.workplaceId; 
+    console.log(json(workplaceData) );
 
-    try {
-      // **Fetch workplace data**
-      const workplaceData = await Workplace.findOne({ workplaceId });
+    return {
+      ...record.toObject(), // Convert Mongoose document to plain object
 
-      if (!workplaceData) {
-        console.warn(`⚠️ No workplace found for workplaceId: ${record.workplaceId} (Record _id: ${record._id})`);
-        return record.toObject();
-      }
-
-      console.log(`✅ Found workplace for workplaceId: ${record.workplaceId} (Record _id: ${record._id})`);
-      console.log(`🏢 Workplace Data:`, JSON.stringify(workplaceData, null, 2));
-
-      return {
-        ...record.toObject(), 
-        workRate: workplaceData.workRate, 
-        cashBeforeOt: record.cashBeforeOt || (record.beforeTotalOtTime || 0) * 50,
-        cashWork: record.cashWork || (record.totalTime || 0) * workplaceData.workRate, 
-        cashOt: record.cashOt || (record.totalOtTime || 0) * 100,
-      };
-    } catch (error) {
-      console.error(`🔥 Error fetching workplace data for workplaceId: ${record.workplaceId} (Record _id: ${record._id})`, error);
-      return record.toObject();
-    }
-  }));
+      cashBeforeOt: record.cashBeforeOt ? record.cashBeforeOt : (record.beforeTotalOtTime || 0) * 50,
+      cashWork: record.cashWork ? record.cashWork : (record.totalTime || 0) * 363,
+      cashOt: record.cashOt ? record.cashOt : (record.totalOtTime || 0) * 100,
+    };
+  });
 };
-
-// // Function to calculate cash values
-// const calculateCashValues = (employee_record) => {
-// //get workplace data for cal
-// // const employeeData = Workplace 
-
-//   return employee_record.map(record => {
-//     const query = {};
-
-//     if (record.workplaceId !== '') {
-//         query.workplaceId = record.workplaceId;
-//     }
-
-//     const workplaceData  = Workplace.find(query.workplaces );
-
-//     console.log(json(workplaceData) );
-
-//     return {
-//       ...record.toObject(), // Convert Mongoose document to plain object
-
-//       cashBeforeOt: record.cashBeforeOt ? record.cashBeforeOt : (record.beforeTotalOtTime || 0) * 50,
-//       cashWork: record.cashWork ? record.cashWork : (record.totalTime || 0) * 363,
-//       cashOt: record.cashOt ? record.cashOt : (record.totalOtTime || 0) * 100,
-//     };
-//   });
-// };
 
 // Search timerecordEmployee
 router.post('/searchtimerecordemployee', async (req, res) => {
