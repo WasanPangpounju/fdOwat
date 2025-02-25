@@ -1780,6 +1780,10 @@ const calculateCashValues = (employee_record) => {
 
   return employee_record.map(record => {
 console.log(record.workplaceId|| 0);
+console.log(record.wGroup || '');
+console.log(record.date || '');
+
+
     return {
       ...record.toObject(), // Convert Mongoose document to plain object
 
