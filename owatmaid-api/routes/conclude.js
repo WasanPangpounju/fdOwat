@@ -1779,13 +1779,13 @@ function groupByWorkplaceId(records) {
 const calculateCashValues = (employee_record) => {
 
   return employee_record.map(record => {
-
+console.log(record.cashWork );
     return {
       ...record.toObject(), // Convert Mongoose document to plain object
 
-      cashBeforeOt: record.cashBeforeOt ? record.cashBeforeOt : (record.beforeTotalOtTime || 0) * 50,
-      cashWork: record.cashWork ? record.cashWork : (record.totalTime || 0) * 363,
-      cashOt: record.cashOt ? record.cashOt : (record.totalOtTime || 0) * 100,
+      cashBeforeOt: record.cashBeforeOt ? record.cashBeforeOt : (record.beforeTotalOtTime || 0) * 69.75,
+      cashWork: record.cashWork ? record.cashWork : (record.totalTime || 0) * 46.5,
+      cashOt: record.cashOt ? record.cashOt : (record.totalOtTime || 0) * 69.75,
     };
   });
 };
