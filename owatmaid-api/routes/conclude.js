@@ -1774,15 +1774,19 @@ function groupByWorkplaceId(records) {
 //========== latest code
 
 
+
 const calculateCashValues = async (employee_record) => {
   return Promise.all(employee_record.map(async (record) => {
-    console.log("🔍 Processing Record:", JSON.stringify(record, null, 2)); 
+    console.log("🔍 Processing Record:", JSON.stringify(record, null, 2));
 
-    // **Check if `workplaceId` exists**
+    // **Check if `workplaceId` is missing**
     if (!record.workplaceId) {
-      console.warn(`⚠️ Missing workplaceId for record with _id: ${record._id}`);
+      console.warn(`⚠️ Missing workplaceId for record: ${JSON.stringify(record, null, 2)}`);
       return record.toObject(); // Skip processing
     }
+
+    // **Show workplaceId type to catch unexpected issues**
+    console.log(`🧐 Checking workplaceId Type:`, typeof record.workplaceId, record.workplaceId);
 
     // **Convert workplaceId to ObjectId if needed**
     const workplaceId = mongoose.Types.ObjectId.isValid(record.workplaceId) 
