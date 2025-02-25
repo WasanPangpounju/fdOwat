@@ -1794,7 +1794,7 @@ if (wGroup !== '') {
         const workplaces = await Workplace.find(query);
 
 if(workplaces ) {
-dataCal.workRate = await workplaces.workRate;
+dataCal.workRate = await workplaces[0].workRate;
 console.log("wr "+ dataCal.workRate );
 
 }        
