@@ -1774,9 +1774,31 @@ function groupByWorkplaceId(records) {
 //========== latest code
 
 
-const checkDayRate = (workplaceId, wGroup, date ) => {
+const checkDayRate = async (workplaceId, wGroup, date ) => {
 console.log("test" , workplaceId, wGroup, date );
 console.log(date.getDay() );
+
+//data for cal
+const dataCal = {};
+
+// Construct the search query based on the provided parameters
+const query = {};
+if (workplaceId !== '') {
+  query.workplaceId = await workplaceId;
+}
+if (wGroup !== '') {
+  query.wGroup = await wGroup;
+}
+
+        // Query the workplace collection for matching documents
+        const workplaces = await Workplace.find(query);
+
+if(workplaces ) {
+dataCal.workRate = await workplaces.workRate;
+console.log("wr "+ dataCal.workRate );
+
+}        
+
 }
 
 // Function to calculate cash values
