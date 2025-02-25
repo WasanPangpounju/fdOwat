@@ -1776,17 +1776,18 @@ function groupByWorkplaceId(records) {
 // Function to calculate cash values
 const calculateCashValues = async (employee_record) => {
   return Promise.all(employee_record.map(async (record) => {
-    console.log("🔍 Processing Record:", record);
+    console.log("🔍 Processing Record:", JSON.stringify(record, null, 2)); // Log full record for debugging
 
-    // Ensure workplaceId is valid
+    // Check if workplaceId is missing
     if (!record.workplaceId) {
-      console.warn("⚠️ Missing workplaceId for record:", record);
+      console.warn(`⚠️ Missing workplaceId for record: ${JSON.stringify(record, null, 2)}`);
       return record.toObject();
     }
 
+    // Ensure workplaceId is properly formatted
     const workplaceId = mongoose.Types.ObjectId.isValid(record.workplaceId) 
       ? new mongoose.Types.ObjectId(record.workplaceId) 
-      : record.workplaceId; // Convert if it's an ObjectId
+      : record.workplaceId; // Keep original if it's already a string
 
     try {
       // Fetch workplace data
@@ -1801,9 +1802,9 @@ const calculateCashValues = async (employee_record) => {
 
       return {
         ...record.toObject(), // Convert Mongoose document to plain object
-        workRate: workplaceData.workRate, // Include workRate in the result
+        workRate: workplaceData.workRate, // Include workRate
         cashBeforeOt: record.cashBeforeOt ? record.cashBeforeOt : (record.beforeTotalOtTime || 0) * 50,
-        cashWork: record.cashWork ? record.cashWork : (record.totalTime || 0) * workplaceData.workRate, // Use dynamic workRate
+        cashWork: record.cashWork ? record.cashWork : (record.totalTime || 0) * workplaceData.workRate, // Use workRate
         cashOt: record.cashOt ? record.cashOt : (record.totalOtTime || 0) * 100,
       };
     } catch (error) {
@@ -1812,8 +1813,7 @@ const calculateCashValues = async (employee_record) => {
     }
   }));
 };
-
-
+ 
 // // Function to calculate cash values
 // const calculateCashValues = (employee_record) => {
 // //get workplace data for cal
