@@ -1789,7 +1789,7 @@ const calculateCashValues = (employee_record) => {
 
     const workplaceData  = Workplace.find(query.workplaces );
 
-    console.log(json(workplaceData) );
+    console.log(workplaceData);
 
     return {
       ...record.toObject(), // Convert Mongoose document to plain object
