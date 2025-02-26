@@ -1779,7 +1779,7 @@ const dayList = ["อาทิตย์", "จันทร์", "อังคา
 const start = dayList.indexOf(startText);
 const end = dayList.indexOf(endText);
 
-if(start == end == dayNumber ) {
+if((start == end) && (end == dayNumber) ) {
   console.log(start , end , dayNumber)
 
 return true;
