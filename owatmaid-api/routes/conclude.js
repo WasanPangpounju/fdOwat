@@ -1830,7 +1830,7 @@ dataCal.holiday = await workplaces?.[0]?.holiday || 0;
 dataCal.holidayOT = await workplaces?.[0]?.holidayOT || 0;
 
 //check day type
-for(const workTimeDay of workplaces?.[0]?.workTimeDay) {
+for(const workTimeDay of workplaces[0].workTimeDay) {
   let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay , date.getDay());
   if(check === true) {
     console.log(workTimeDay.workOrStop )
