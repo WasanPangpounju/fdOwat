@@ -1900,7 +1900,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     const result = await timerecordEmployee.find(query);
 
     const updatedRecords = calculateCashValues(result[result.length -1 ].employee_record, month, year );
-    if (JSON.stringify(updatedRecords) !== JSON.stringify(doc.employee_record)) {
+    if (JSON.stringify(updatedRecords) !== JSON.stringify(result[result.length -1].employee_record)) {
       result[0].employee_record = updatedRecords;
       await result.save(); // Save only if changes are made
     }
