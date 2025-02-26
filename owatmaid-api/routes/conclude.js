@@ -1795,7 +1795,7 @@ if (wGroup !== '') {
 
 if(workplaces ) {
 dataCal.workRate = await workplaces[0].workRate;
-console.log("wr "+ dataCal.workRate );
+await console.log("wr "+ dataCal.workRate );
 
 }        
 
