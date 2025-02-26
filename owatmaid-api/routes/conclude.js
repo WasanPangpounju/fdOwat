@@ -1866,7 +1866,7 @@ let cashOt = 0;
       ...record.toObject(), // Convert Mongoose document to plain object
 
       cashBeforeOt: record.cashBeforeOt ? record.cashBeforeOt : (record.beforeTotalOtTime || 0) * parseFloat(dataRate.workRateOT || '0'),
-      cashWork: record.cashWork ? record.cashWork : cashWork,
+      cashWork: cashWork,
       // (record.totalTime || 0) * dataRate.workRate ,
       cashOt: record.cashOt ? record.cashOt : (record.totalOtTime || 0) * parseFloat(dataRate.workRateOT || '0'),
     };
@@ -1898,7 +1898,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
 
     // Query the collection
     const result = await timerecordEmployee.find(query);
-console.log("result  " , result[0].employee_record.length)
+// console.log("result  " , result[0].employee_record.length)
     // Check if any record has missing cash values
     let updateNeeded = false;
     for (const doc of result) {
