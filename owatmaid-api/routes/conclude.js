@@ -1898,7 +1898,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
 
     // Query the collection
     const result = await timerecordEmployee.find(query);
-console.log("result  " , result .length)
+console.log("result  " , result.employee_record.length)
     // Check if any record has missing cash values
     let updateNeeded = false;
     for (const doc of result) {
