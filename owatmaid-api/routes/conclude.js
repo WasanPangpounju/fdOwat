@@ -1778,17 +1778,15 @@ const checkdayType = (startText , endText , dayNumber ) => {
 const dayList = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัส", "ศุกร์", "เสาร์"];
 const start = dayList.indexOf(startText);
 const end = dayList.indexOf(endText);
+console.log(start , end , dayNumber)
 
 if((start == end) && (end == dayNumber) ) {
-  console.log(start , end , dayNumber)
-
 return true;
 } else {
-  return false;
-  if(start <= dayNumber  <= end) {
+  if((start <= dayNumber )  && (dayNumber <= end)) {
     return true;
   } else 
-  if((0 <= dayNumber  <= start) || (end <= dayNumber  <= 6) ) {
+  if(((0 <= dayNumber) &&   (dayNumber <= start)) || ((end <= dayNumber) && (dayNumber <= 6)) ) {
     return true;
   } else {
     return false;
