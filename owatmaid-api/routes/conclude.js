@@ -1858,8 +1858,9 @@ const calculateCashValues = (employee_record, month, year ) => {
 // console.log(record.wGroup || '');
 // console.log(record.date || '');
 const dataRate = checkDayRate(record.workplaceId, record.wGroup , new Date(year, month -1, record.date ));
+
 let cashBeforeOt = 0;
-let cashWork = (record.totalTime || 0) * parseFloat(dataRate.workRate );
+let cashWork = (record.totalTime || 0) * parseFloat(dataRate.workRate || '0');
 let cashOt = 0;
 
   return {
