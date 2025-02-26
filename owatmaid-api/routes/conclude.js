@@ -1851,62 +1851,24 @@ return dataCal;
 
 
 // Function to calculate cash values
-const calculateCashValues = (employee_record, month, year) => {
-  let totalCashBeforeOt = 0;
-  let totalCashWork = 0;
-  let totalCashOt = 0;
 
-  // Calculate individual cash values and sum up totals
-  let updatedRecords = employee_record.map(record => {
-    let dataRate = checkDayRate(record.workplaceId, record.wGroup, new Date(year, month - 1, record.date));
-console.log("dataRate  " , dataRate.workRate);
-    let cashBeforeOt = record.cashBeforeOt ?? (record.beforeTotalOtTime || 0) * parseFloat(dataRate.workRateOT || '0');
-    let cashWork = record.cashWork ?? (record.totalTime || 0) * 50;
-    let cashOt = record.cashOt ?? (record.totalOtTime || 0) * parseFloat(dataRate.workRateOT || '0');
+const calculateCashValues = (employee_record, month, year ) => {
 
-    // Sum up total values
-    totalCashBeforeOt = cashBeforeOt;
-    totalCashWork = cashWork;
-    totalCashOt = cashOt;
+ return employee_record.map(record => {
+// console.log(record.workplaceId|| 0);
+// console.log(record.wGroup || '');
+// console.log(record.date || '');
+let dataRate = checkDayRate(record.workplaceId, record.wGroup , new Date(year, month -1, record.date ));
 
-    return {
+  return {
       ...record.toObject(), // Convert Mongoose document to plain object
-      cashBeforeOt,
-      cashWork,
-      cashOt,
+
+      cashBeforeOt: record.cashBeforeOt ? record.cashBeforeOt : (record.beforeTotalOtTime || 0) * parseFloat(dataRate.workRateOT || '0'),
+      cashWork: record.cashWork ? record.cashWork : (record.totalTime || 0) * dataRate.workRate ,
+      cashOt: record.cashOt ? record.cashOt : (record.totalOtTime || 0) * parseFloat(dataRate.workRateOT || '0'),
     };
   });
-
-  // Replace values in the first record
-  if (updatedRecords.length > 0) {
-    updatedRecords[0] = {
-      ...updatedRecords[0],
-      cashBeforeOt: totalCashBeforeOt,
-      cashWork: totalCashWork,
-      cashOt: totalCashOt,
-    };
-  }
-
-  return updatedRecords;
 };
-
-// const calculateCashValues = (employee_record, month, year ) => {
-
-//  return employee_record.map(record => {
-// // console.log(record.workplaceId|| 0);
-// // console.log(record.wGroup || '');
-// // console.log(record.date || '');
-// let dataRate = checkDayRate(record.workplaceId, record.wGroup , new Date(year, month -1, record.date ));
-
-//   return {
-//       ...record.toObject(), // Convert Mongoose document to plain object
-
-//       cashBeforeOt: record.cashBeforeOt ? record.cashBeforeOt : (record.beforeTotalOtTime || 0) * parseFloat(dataRate.workRateOT || '0'),
-//       cashWork: record.cashWork ? record.cashWork : (record.totalTime || 0) * 50,
-//       cashOt: record.cashOt ? record.cashOt : (record.totalOtTime || 0) * parseFloat(dataRate.workRateOT || '0'),
-//     };
-//   });
-// };
 
 // Search timerecordEmployee
 router.post('/searchtimerecordemployee', async (req, res) => {
