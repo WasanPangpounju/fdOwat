@@ -1853,7 +1853,7 @@ return dataCal;
 // Function to calculate cash values
 const calculateCashValues = (employee_record, month, year ) => {
 
- const r = employee_record.map(record => {
+ return employee_record.map(record => {
 // console.log(record.workplaceId|| 0);
 // console.log(record.wGroup || '');
 // console.log(record.date || '');
@@ -1872,7 +1872,6 @@ let cashOt = 0;
     };
     
   });
-  return r[r.length -1];
 };
 
 // Search timerecordEmployee
@@ -1900,16 +1899,21 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     // Query the collection
     const result = await timerecordEmployee.find(query);
 
+    const updatedRecords = calculateCashValues(result[result.length -1 ].employee_record, month, year );
+    if (JSON.stringify(updatedRecords) !== JSON.stringify(doc.employee_record)) {
+      result[0].employee_record = updatedRecords;
+      await result.save(); // Save only if changes are made
+
     // Check if any record has missing cash values
-    let updateNeeded = false;
-    for (const doc of result) {
-      const updatedRecords = calculateCashValues(doc.employee_record, month, year );
-      if (JSON.stringify(updatedRecords) !== JSON.stringify(doc.employee_record)) {
-        doc.employee_record = updatedRecords;
-        await doc.save(); // Save only if changes are made
-        updateNeeded = true;
-      }
-    }
+    // let updateNeeded = false;
+    // for (const doc of result) {
+    //   const updatedRecords = calculateCashValues(doc.employee_record, month, year );
+    //   if (JSON.stringify(updatedRecords) !== JSON.stringify(doc.employee_record)) {
+    //     doc.employee_record = updatedRecords;
+    //     await doc.save(); // Save only if changes are made
+    //     updateNeeded = true;
+    //   }
+    // }
 
     res.status(200).json({ result });
 
