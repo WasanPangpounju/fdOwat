@@ -1774,7 +1774,11 @@ function groupByWorkplaceId(records) {
 //========== latest code
 
 
-const checkdayType = (start , end , dayNumber ) => {
+const checkdayType = (startText , endText , dayNumber ) => {
+const dayList = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัส", "ศุกร์", "เสาร์"];
+const start = dayList.indexOf(startText);
+const end = dayList.indexOf(endText);
+
 if(start == end == dayNumber ) {
 return true;
 } else {
@@ -1819,8 +1823,14 @@ dataCal.holidayOT = await workplaces[0].holidayOT || 0;
 
 //check day type
 for(const workTimeDay of workplaces[0].workTimeDay) {
-  console.log(workTimeDay.workOrStop )
+  let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay , date.getDay);
+  if(check) {
+    console.log(workTimeDay.workOrStop )
 
+  }
+
+  startDay
+  endDay
 }
 
 // await console.log("wr "+ JSON.stringify(dataCal,null,2));
