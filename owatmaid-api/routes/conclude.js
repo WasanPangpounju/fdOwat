@@ -1899,21 +1899,16 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     // Query the collection
     const result = await timerecordEmployee.find(query);
 
-    const updatedRecords = calculateCashValues(result[result.length -1 ].employee_record, month, year );
-    if (JSON.stringify(updatedRecords) !== JSON.stringify(result[result.length -1].employee_record)) {
-      result[0].employee_record = updatedRecords;
-      await result.save(); // Save only if changes are made
-    }
     // Check if any record has missing cash values
-    // let updateNeeded = false;
-    // for (const doc of result) {
-    //   const updatedRecords = calculateCashValues(doc.employee_record, month, year );
-    //   if (JSON.stringify(updatedRecords) !== JSON.stringify(doc.employee_record)) {
-    //     doc.employee_record = updatedRecords;
-    //     await doc.save(); // Save only if changes are made
-    //     updateNeeded = true;
-    //   }
-    // }
+    let updateNeeded = false;
+    for (const doc of result) {
+      const updatedRecords = calculateCashValues(doc.employee_record, month, year );
+      if (JSON.stringify(updatedRecords) !== JSON.stringify(doc.employee_record)) {
+        doc.employee_record = updatedRecords;
+        await doc.save(); // Save only if changes are made
+        updateNeeded = true;
+      }
+    }
 
     res.status(200).json({ result });
 
