@@ -1786,7 +1786,7 @@ return true;
   if((start <= dayNumber )  && (dayNumber <= end)) {
     return true;
   } else 
-  if(((0 <= dayNumber) &&   (dayNumber <= start)) || ((end <= dayNumber) && (dayNumber <= 6)) ) {
+  if(((0 <= dayNumber) &&   (dayNumber <= start)) && ((end <= dayNumber) && (dayNumber <= 6)) ) {
     // return true;
   } else {
     return false;
