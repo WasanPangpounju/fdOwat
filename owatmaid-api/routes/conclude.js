@@ -1778,7 +1778,7 @@ const checkdayType = (startText , endText , dayNumber ) => {
 const dayList = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัส", "ศุกร์", "เสาร์"];
 const start = dayList.indexOf(startText);
 const end = dayList.indexOf(endText);
-
+console.log(start , end , dayNumber )
 if(start == end == dayNumber ) {
 return true;
 } else {
@@ -1825,8 +1825,8 @@ dataCal.holidayOT = await workplaces[0].holidayOT || 0;
 for(const workTimeDay of workplaces[0].workTimeDay) {
   let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay , date.getDay);
   if(check) {
-    console.log(workTimeDay.workOrStop )
-console.log("data " ,workTimeDay.startDay, workTimeDay.endDay , date.getDay() );
+    // console.log(workTimeDay.workOrStop )
+// console.log("data " ,workTimeDay.startDay, workTimeDay.endDay , date.getDay() );
   }
 
 } //end for
