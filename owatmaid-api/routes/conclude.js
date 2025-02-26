@@ -1774,6 +1774,22 @@ function groupByWorkplaceId(records) {
 //========== latest code
 
 
+const checkdayType = (start , end , dayNumber ) => {
+if(start == end == dayNumber ) {
+return true;
+} else {
+  if(start <= dayNumber  <= end) {
+    return true;
+  } else 
+  if((0 <= dayNumber  <= start) || (end <= dayNumber  <= 6) ) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+}
+
 const checkDayRate = async (workplaceId, wGroup, date ) => {
 await console.log("test" , workplaceId, wGroup, date );
 await console.log(date.getDay() );
@@ -1801,7 +1817,13 @@ dataCal.dayoffRateOT = await workplaces[0].dayoffRateOT || 0;
 dataCal.holiday = await workplaces[0].holiday || 0;
 dataCal.holidayOT = await workplaces[0].holidayOT || 0;
 
-await console.log("wr "+ JSON.stringify(dataCal,null,2));
+//check day type
+for(const workTimeDay of workplaces[0].workTimeDay) {
+  console.log(workTimeDay.workOrStop )
+
+}
+
+// await console.log("wr "+ JSON.stringify(dataCal,null,2));
 
 }        
 
