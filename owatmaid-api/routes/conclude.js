@@ -1829,7 +1829,7 @@ dataCal.dayoffRateOT = await workplaces?.[0]?.dayoffRateOT || 0;
 dataCal.holiday = await workplaces?.[0]?.holiday || 0;
 dataCal.holidayOT = await workplaces?.[0]?.holidayOT || 0;
 
-console.log(JSON.stringify(workplaces,null,2) );
+// console.log(JSON.stringify(workplaces,null,2) );
 //check day type
 for(const workTimeDay of workplaces[0].workTimeDay) {
   let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay , date.getDay());
