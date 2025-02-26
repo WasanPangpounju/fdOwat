@@ -1851,7 +1851,6 @@ return dataCal;
 
 
 // Function to calculate cash values
-
 const calculateCashValues = (employee_record, month, year ) => {
 
  return employee_record.map(record => {
@@ -1859,12 +1858,16 @@ const calculateCashValues = (employee_record, month, year ) => {
 // console.log(record.wGroup || '');
 // console.log(record.date || '');
 let dataRate = checkDayRate(record.workplaceId, record.wGroup , new Date(year, month -1, record.date ));
+let cashBeforeOt = 0;
+let cashWork = (record.totalTime || 0) * 20;
+let cashOt = 0;
 
   return {
       ...record.toObject(), // Convert Mongoose document to plain object
 
       cashBeforeOt: record.cashBeforeOt ? record.cashBeforeOt : (record.beforeTotalOtTime || 0) * parseFloat(dataRate.workRateOT || '0'),
-      cashWork: record.cashWork ? record.cashWork : (record.totalTime || 0) * dataRate.workRate ,
+      cashWork: record.cashWork ? record.cashWork : cashWork,
+      // (record.totalTime || 0) * dataRate.workRate ,
       cashOt: record.cashOt ? record.cashOt : (record.totalOtTime || 0) * parseFloat(dataRate.workRateOT || '0'),
     };
   });
