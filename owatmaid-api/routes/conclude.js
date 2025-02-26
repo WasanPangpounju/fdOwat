@@ -1862,7 +1862,7 @@ let cashBeforeOt = 0;
 let cashWork = (record.totalTime || 0) * 20;
 let cashOt = 0;
 
-  const r = {
+  return {
       ...record.toObject(), // Convert Mongoose document to plain object
 
       cashBeforeOt: record.cashBeforeOt ? record.cashBeforeOt : (record.beforeTotalOtTime || 0) * parseFloat(dataRate.workRateOT || '0'),
@@ -1870,7 +1870,7 @@ let cashOt = 0;
       // (record.totalTime || 0) * dataRate.workRate ,
       cashOt: record.cashOt ? record.cashOt : (record.totalOtTime || 0) * parseFloat(dataRate.workRateOT || '0'),
     };
-    return r[r.length -1];
+    
   });
 };
 
