@@ -1801,7 +1801,7 @@ dataCal.dayoffRateOT = await workplaces[0].dayoffRateOT || 0;
 dataCal.holiday = await workplaces[0].holiday || 0;
 dataCal.holidayOT = await workplaces[0].holidayOT || 0;
 
-await console.log("wr "+ dataCal);
+await console.log("wr "+ JSON.stringify(dataCal,null,2));
 
 }        
 
