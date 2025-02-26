@@ -1851,7 +1851,29 @@ return dataCal;
 
 
 // Function to calculate cash values
-const calculateCashValues = (employee_record, month, year ) => {
+const calculateCashValues = async (employee_record, month, year) => {
+  return Promise.all(
+    employee_record.map(async (record) => {
+      // Wait for checkDayRate to complete before proceeding
+      const dataRate = await checkDayRate(record.workplaceId, record.wGroup, new Date(year, month - 1, record.date));
+      dataRate = dataRate || { workRate: '0', workRateOT: '0' }; // Ensure default values if null
+
+      let cashBeforeOt = record.cashBeforeOt ?? (record.beforeTotalOtTime || 0) * parseFloat(dataRate.workRateOT);
+      let cashWork = (record.totalTime || 0) * parseFloat(dataRate.workRate);
+      let cashOt = record.cashOt ?? (record.totalOtTime || 0) * parseFloat(dataRate.workRateOT);
+
+      return {
+        ...record.toObject(), // Convert Mongoose document to plain object
+        cashBeforeOt,
+        cashWork,
+        cashOt,
+      };
+    })
+  );
+};
+
+// Function to calculate cash values
+const calculateCashValues_back = (employee_record, month, year ) => {
 
  return employee_record.map(record => {
 // console.log(record.workplaceId|| 0);
