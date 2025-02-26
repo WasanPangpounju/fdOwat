@@ -1849,55 +1849,9 @@ for(const workTimeDay of workplaces[0].workTimeDay) {
 return dataCal;
 }
 
-// Function to calculate cash values
-const calculateCashValues = async (employee_record, month, year) => {
-  let totalCashBeforeOt = 0;
-  let totalCashWork = 0;
-  let totalCashOt = 0;
-
-  // Use Promise.all() to handle async function calls inside map
-  let updatedRecords = await Promise.all(
-    employee_record.map(async (record) => {
-      let dataRate = await checkDayRate(record.workplaceId, record.wGroup, new Date(year, month - 1, record.date));
-
-      // Ensure dataRate is always an object with default values if null/undefined
-      dataRate = dataRate || { workRateOT: '0' };
-
-      console.log("dataRate:", dataRate.workRate);
-
-      let cashBeforeOt = record.cashBeforeOt ?? (record.beforeTotalOtTime || 0) * parseFloat(dataRate.workRateOT);
-      let cashWork = record.cashWork ?? (record.totalTime || 0) * 50;
-      let cashOt = record.cashOt ?? (record.totalOtTime || 0) * parseFloat(dataRate.workRateOT);
-
-      // Sum up total values
-      totalCashBeforeOt += cashBeforeOt;
-      totalCashWork += cashWork;
-      totalCashOt += cashOt;
-
-      return {
-        ...record.toObject(), // Convert Mongoose document to plain object
-        cashBeforeOt,
-        cashWork,
-        cashOt,
-      };
-    })
-  );
-
-  // Replace values in the first record
-  if (updatedRecords.length > 0) {
-    updatedRecords[0] = {
-      ...updatedRecords[0],
-      cashBeforeOt: totalCashBeforeOt,
-      cashWork: totalCashWork,
-      cashOt: totalCashOt,
-    };
-  }
-
-  return updatedRecords;
-};
 
 // Function to calculate cash values
-const calculateCashValues_back = (employee_record, month, year) => {
+const calculateCashValues = (employee_record, month, year) => {
   let totalCashBeforeOt = 0;
   let totalCashWork = 0;
   let totalCashOt = 0;
@@ -1911,9 +1865,9 @@ console.log("dataRate  " , dataRate.workRate);
     let cashOt = record.cashOt ?? (record.totalOtTime || 0) * parseFloat(dataRate.workRateOT || '0');
 
     // Sum up total values
-    totalCashBeforeOt += cashBeforeOt;
-    totalCashWork += cashWork;
-    totalCashOt += cashOt;
+    totalCashBeforeOt = cashBeforeOt;
+    totalCashWork = cashWork;
+    totalCashOt = cashOt;
 
     return {
       ...record.toObject(), // Convert Mongoose document to plain object
