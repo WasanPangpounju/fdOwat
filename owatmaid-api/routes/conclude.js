@@ -1851,11 +1851,11 @@ return dataCal;
 // Function to calculate cash values
 const calculateCashValues = async (employee_record, month, year ) => {
 
- return employee_record.map(async record => {
+ return employee_record.map(record => {
 // console.log(record.workplaceId|| 0);
 // console.log(record.wGroup || '');
 // console.log(record.date || '');
-let dataRate = await checkDayRate(record.workplaceId, record.wGroup , new Date(year, month -1, record.date ));
+let dataRate = checkDayRate(record.workplaceId, record.wGroup , new Date(year, month -1, record.date ));
 
   return {
       ...record.toObject(), // Convert Mongoose document to plain object
