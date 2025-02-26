@@ -1815,7 +1815,7 @@ if (wGroup !== '') {
         const workplaces = await Workplace.find(query);
 
 if(workplaces ) {
-dataCal.workRate = await parseFloat(workplaces[0].workRate || '0') / 8;
+dataCal.workRate = await parseFloat(workplaces?.[0]?.workRate || '0') / 8 || 0;;
 dataCal.worktTime = await parseFloat(workplaces[0].workOfHour_subHour || '0') + parseFloat(workplaces[0].workOfHour_subMinute || '0');
 dataCal.workRateOT = await workplaces[0].workRateOT || 0;
 let tmp_OT = await (parseFloat(workplaces[0].workOfOT_subHour || '0')* 60 + parseFloat(workplaces[0].workOfOT_subMinute || '0')) -
