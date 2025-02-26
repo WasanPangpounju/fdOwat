@@ -1794,8 +1794,14 @@ if (wGroup !== '') {
         const workplaces = await Workplace.find(query);
 
 if(workplaces ) {
-dataCal.workRate = await workplaces[0].workRate;
-await console.log("wr "+ dataCal.workRate );
+dataCal.workRate = await workplaces[0].workRate || 0;
+dataCal.workRateOT = await workplaces[0].workRateOT || 0;
+dataCal.dayoffRateHour = await workplaces[0].dayoffRateHour || 0;
+dataCal.dayoffRateOT = await workplaces[0].dayoffRateOT || 0;
+dataCal.holiday = await workplaces[0].holiday || 0;
+dataCal.holidayOT = await workplaces[0].holidayOT || 0;
+
+await console.log("wr "+ dataCal);
 
 }        
 
