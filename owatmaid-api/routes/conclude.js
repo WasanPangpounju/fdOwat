@@ -1778,7 +1778,7 @@ const checkdayType = (startText , endText , dayNumber ) => {
 const dayList = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัส", "ศุกร์", "เสาร์"];
 const start = dayList.indexOf(startText);
 const end = dayList.indexOf(endText);
-console.log(start , end , dayNumber)
+// console.log(start , end , dayNumber)
 
 if((start == end) && (end == dayNumber) ) {
 return true;
@@ -1815,8 +1815,15 @@ if (wGroup !== '') {
         const workplaces = await Workplace.find(query);
 
 if(workplaces ) {
-dataCal.workRate = await workplaces[0].workRate || 0;
+dataCal.workRate = await parseFloat(workplaces[0].workRate || '0') / 8;
+dataCal.worktTime = await parseFloat(workplaces[0].workOfHour_subHour || '0') + parseFloat(workplaces[0].workOfHour_subMinute || '0');
 dataCal.workRateOT = await workplaces[0].workRateOT || 0;
+let tmp_OT = await (parseFloat(workplaces[0].workOfOT_subHour || '0')* 60 + parseFloat(workplaces[0].workOfOT_subMinute || '0')) -
+(parseFloat(workplaces[0].workOfOT_breakHour || '0')* 60 + parseFloat(workplaces[0].workOfOT_breakMinute || '0'));
+
+dataCal.worktTimeOT = await Math.floor(tmp_OT / 60) + tmp_OT % 60;
+dataCal.worktTimeStartOT = await parseFloat(workplaces[0].startWorkOfOT_subHour || '0') + parseFloat(workplaces[0].startWorkOfOT_subMinute || '0');
+
 dataCal.dayoffRateHour = await workplaces[0].dayoffRateHour || 0;
 dataCal.dayoffRateOT = await workplaces[0].dayoffRateOT || 0;
 dataCal.holiday = await workplaces[0].holiday || 0;
@@ -1827,7 +1834,10 @@ for(const workTimeDay of workplaces[0].workTimeDay) {
   let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay , date.getDay());
   if(check === true) {
     console.log(workTimeDay.workOrStop )
+    dataCal.dayType = await workTimeDay.workOrStop;
+
 // console.log("data " ,workTimeDay.startDay, workTimeDay.endDay , date.getDay() );
+
   }
 
 } //end for
@@ -1835,7 +1845,7 @@ for(const workTimeDay of workplaces[0].workTimeDay) {
 // await console.log("wr "+ JSON.stringify(dataCal,null,2));
 
 }        
-
+return dataCal;
 }
 
 // Function to calculate cash values
@@ -1851,7 +1861,7 @@ let dataRate = checkDayRate(record.workplaceId, record.wGroup , new Date(year, m
       ...record.toObject(), // Convert Mongoose document to plain object
 
       cashBeforeOt: record.cashBeforeOt ? record.cashBeforeOt : (record.beforeTotalOtTime || 0) * 69.75,
-      cashWork: record.cashWork ? record.cashWork : (record.totalTime || 0) * 46.5,
+      cashWork: record.cashWork ? record.cashWork : (record.totalTime || 0) * dataRate.workRate ,
       cashOt: record.cashOt ? record.cashOt : (record.totalOtTime || 0) * 69.75,
     };
   });
