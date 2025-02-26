@@ -1856,7 +1856,7 @@ const calculateCashValues = async (employee_record, month, year) => {
     employee_record.map(async (record) => {
       // Wait for checkDayRate to complete before proceeding
       const dataRate = await checkDayRate(record.workplaceId, record.wGroup, new Date(year, month - 1, record.date));
-      dataRate = dataRate || { workRate: '0', workRateOT: '0' }; // Ensure default values if null
+      // dataRate = dataRate || { workRate: '0', workRateOT: '0' }; // Ensure default values if null
 
       let cashBeforeOt = record.cashBeforeOt ?? (record.beforeTotalOtTime || 0) * parseFloat(dataRate.workRateOT);
       let cashWork = (record.totalTime || 0) * parseFloat(dataRate.workRate);
