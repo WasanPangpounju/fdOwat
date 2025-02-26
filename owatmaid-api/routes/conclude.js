@@ -1814,7 +1814,7 @@ if (wGroup !== '') {
         // Query the workplace collection for matching documents
         const workplaces = await Workplace.find(query);
 
-if(workplaces ) {
+if(workplaces.length > 0 ) {
 dataCal.workRate = await parseFloat(workplaces?.[0]?.workRate || '0') / 8 || 0;;
 dataCal.worktTime = await parseFloat(workplaces?.[0]?.workOfHour_subHour || '0') + parseFloat(workplaces?.[0]?.workOfHour_subMinute || '0');
 dataCal.workRateOT = await workplaces?.[0]?.workRateOT || 0;
