@@ -1829,9 +1829,7 @@ for(const workTimeDay of workplaces[0].workTimeDay) {
 
   }
 
-  startDay
-  endDay
-}
+} //end for
 
 // await console.log("wr "+ JSON.stringify(dataCal,null,2));
 
