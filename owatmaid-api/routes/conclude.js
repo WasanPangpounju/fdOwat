@@ -1903,7 +1903,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     if (JSON.stringify(updatedRecords) !== JSON.stringify(doc.employee_record)) {
       result[0].employee_record = updatedRecords;
       await result.save(); // Save only if changes are made
-
+    }
     // Check if any record has missing cash values
     // let updateNeeded = false;
     // for (const doc of result) {
