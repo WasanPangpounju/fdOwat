@@ -1826,7 +1826,7 @@ for(const workTimeDay of workplaces[0].workTimeDay) {
   let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay , date.getDay);
   if(check) {
     console.log(workTimeDay.workOrStop )
-
+console.log(workTimeDay.startDay, workTimeDay.endDay , date.getDay);
   }
 
 } //end for
