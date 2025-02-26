@@ -1862,7 +1862,7 @@ let dataRate = checkDayRate(record.workplaceId, record.wGroup , new Date(year, m
       ...record.toObject(), // Convert Mongoose document to plain object
 
       cashBeforeOt: record.cashBeforeOt ? record.cashBeforeOt : (record.beforeTotalOtTime || 0) * parseFloat(dataRate.workRateOT || '0'),
-      cashWork: record.cashWork ? record.cashWork : (record.totalTime || 0) * parseFloat(dataRate.workRate || '0'),
+      cashWork: record.cashWork ? record.cashWork : (record.totalTime || 0) * parseFloat(dataRate.workRate),
       cashOt: record.cashOt ? record.cashOt : (record.totalOtTime || 0) * parseFloat(dataRate.workRateOT || '0'),
     };
   });
