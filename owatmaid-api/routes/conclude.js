@@ -1816,21 +1816,21 @@ if (wGroup !== '') {
 
 if(workplaces ) {
 dataCal.workRate = await parseFloat(workplaces?.[0]?.workRate || '0') / 8 || 0;;
-dataCal.worktTime = await parseFloat(workplaces[0].workOfHour_subHour || '0') + parseFloat(workplaces[0].workOfHour_subMinute || '0');
-dataCal.workRateOT = await workplaces[0].workRateOT || 0;
-let tmp_OT = await (parseFloat(workplaces[0].workOfOT_subHour || '0')* 60 + parseFloat(workplaces[0].workOfOT_subMinute || '0')) -
-(parseFloat(workplaces[0].workOfOT_breakHour || '0')* 60 + parseFloat(workplaces[0].workOfOT_breakMinute || '0'));
+dataCal.worktTime = await parseFloat(workplaces?.[0]?.workOfHour_subHour || '0') + parseFloat(workplaces?.[0]?.workOfHour_subMinute || '0');
+dataCal.workRateOT = await workplaces?.[0]?.workRateOT || 0;
+let tmp_OT = await (parseFloat(workplaces?.[0]?.workOfOT_subHour || '0')* 60 + parseFloat(workplaces?.[0]?.workOfOT_subMinute || '0')) -
+(parseFloat(workplaces?.[0]?.workOfOT_breakHour || '0')* 60 + parseFloat(workplaces?.[0]?.workOfOT_breakMinute || '0'));
 
 dataCal.worktTimeOT = await Math.floor(tmp_OT / 60) + tmp_OT % 60;
-dataCal.worktTimeStartOT = await parseFloat(workplaces[0].startWorkOfOT_subHour || '0') + parseFloat(workplaces[0].startWorkOfOT_subMinute || '0');
+dataCal.worktTimeStartOT = await parseFloat(workplaces?.[0]?.startWorkOfOT_subHour || '0') + parseFloat(workplaces?.[0]?.startWorkOfOT_subMinute || '0');
 
-dataCal.dayoffRateHour = await workplaces[0].dayoffRateHour || 0;
-dataCal.dayoffRateOT = await workplaces[0].dayoffRateOT || 0;
-dataCal.holiday = await workplaces[0].holiday || 0;
-dataCal.holidayOT = await workplaces[0].holidayOT || 0;
+dataCal.dayoffRateHour = await workplaces?.[0]?.dayoffRateHour || 0;
+dataCal.dayoffRateOT = await workplaces?.[0]?.dayoffRateOT || 0;
+dataCal.holiday = await workplaces?.[0]?.holiday || 0;
+dataCal.holidayOT = await workplaces?.[0]?.holidayOT || 0;
 
 //check day type
-for(const workTimeDay of workplaces[0].workTimeDay) {
+for(const workTimeDay of workplaces?.[0]?.workTimeDay) {
   let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay , date.getDay());
   if(check === true) {
     console.log(workTimeDay.workOrStop )
