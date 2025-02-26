@@ -1851,15 +1851,15 @@ return dataCal;
 
 
 // Function to calculate cash values
-const calculateCashValues = (employee_record, month, year ) => {
+const calculateCashValues = async (employee_record, month, year ) => {
 
  return employee_record.map(record => {
 // console.log(record.workplaceId|| 0);
 // console.log(record.wGroup || '');
 // console.log(record.date || '');
-let dataRate = checkDayRate(record.workplaceId, record.wGroup , new Date(year, month -1, record.date ));
+const dataRate = checkDayRate(record.workplaceId, record.wGroup , new Date(year, month -1, record.date ));
 let cashBeforeOt = 0;
-let cashWork = (record.totalTime || 0) * 30;
+let cashWork = await (record.totalTime || 0) * parseFloat(dataRate.workRate );
 let cashOt = 0;
 
   return {
