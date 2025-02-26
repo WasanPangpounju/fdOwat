@@ -1853,7 +1853,7 @@ return dataCal;
 // Function to calculate cash values
 const calculateCashValues = (employee_record, month, year ) => {
 
- return employee_record.map(record => {
+ const r = employee_record.map(record => {
 // console.log(record.workplaceId|| 0);
 // console.log(record.wGroup || '');
 // console.log(record.date || '');
@@ -1872,6 +1872,7 @@ let cashOt = 0;
     };
     
   });
+  return r[r.length -1];
 };
 
 // Search timerecordEmployee
