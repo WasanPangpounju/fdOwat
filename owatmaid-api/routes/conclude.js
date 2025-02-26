@@ -1850,7 +1850,6 @@ return dataCal;
 }
 
 // Function to calculate cash values
-// Function to calculate cash values
 const calculateCashValues = (employee_record, month, year) => {
   let totalCashBeforeOt = 0;
   let totalCashWork = 0;
@@ -1859,7 +1858,7 @@ const calculateCashValues = (employee_record, month, year) => {
   // Calculate individual cash values and sum up totals
   let updatedRecords = employee_record.map(record => {
     let dataRate = checkDayRate(record.workplaceId, record.wGroup, new Date(year, month - 1, record.date));
-
+console.log("dataRate  " , dataRate.workRate);
     let cashBeforeOt = record.cashBeforeOt ?? (record.beforeTotalOtTime || 0) * parseFloat(dataRate.workRateOT || '0');
     let cashWork = record.cashWork ?? (record.totalTime || 0) * 50;
     let cashOt = record.cashOt ?? (record.totalOtTime || 0) * parseFloat(dataRate.workRateOT || '0');
