@@ -1778,7 +1778,7 @@ const checkdayType = (startText , endText , dayNumber ) => {
 const dayList = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัส", "ศุกร์", "เสาร์"];
 const start = dayList.indexOf(startText);
 const end = dayList.indexOf(endText);
-console.log(start , end , dayNumber )
+console.log(start , end , dayNumber() )
 if(start == end == dayNumber ) {
 return true;
 } else {
