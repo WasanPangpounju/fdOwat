@@ -1846,7 +1846,9 @@ for(const workTimeDay of workplaces[0].workTimeDay) {
 // await console.log("wr "+ JSON.stringify(dataCal,null,2));
 
 }        
+console.log("dataCal", JSON.stringify(dataCal,null,2))
 return dataCal;
+
 }
 
 
