@@ -1796,8 +1796,8 @@ return true;
 }
 
 const checkDayRate = async (workplaceId, wGroup, date ) => {
-await console.log("test" , workplaceId, wGroup, date );
-await console.log(date.getDay() );
+console.log("test" , workplaceId, wGroup, date );
+console.log(date.getDay() );
 
 //data for cal
 const dataCal = {};
@@ -1805,10 +1805,10 @@ const dataCal = {};
 // Construct the search query based on the provided parameters
 const query = {};
 if (workplaceId !== '') {
-  query.workplaceId = await workplaceId;
+  query.workplaceId = workplaceId;
 }
 if (wGroup !== '') {
-  query.wGroup = await wGroup;
+  query.wGroup = wGroup;
 }
 
         // Query the workplace collection for matching documents
@@ -1852,13 +1852,15 @@ return dataCal;
 }
 
 const calculateCashValues = async (employee_record, month, year) => {
-  return await Promise.all(
+  return Promise.all(
     employee_record.map(async (record) => {
       const dataRate = await checkDayRate(record.workplaceId, record.wGroup, new Date(year, month - 1, record.date));
 
       //check dayType
-      if(dataRate?.dayType || '' !== '' ) {
-      if(dataRate?.dayType || '' === 'stop') {
+      // if(dataRate?.dayType || '' !== '' ) {
+        if (dataRate?.dayType !== '') {
+      // if(dataRate?.dayType || '' === 'stop') {
+        if (dataRate?.dayType === 'stop') {
         let cashBeforeOt = (record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.dayoffRateOT || '0') * parseFloat(dataRate?.workRate || '0'));
         let cashWork = (record.totalTime || 0) * (parseFloat(dataRate?.workRate || '0')* parseFloat(dataRate?.dayoffRateHour || '0'));
         let cashOt = (record.totalOtTime || 0) * (parseFloat(dataRate?.dayoffRateOT || '0') * parseFloat(dataRate?.workRate || '0'));
@@ -1871,7 +1873,7 @@ const calculateCashValues = async (employee_record, month, year) => {
       let cashOt = (record.totalOtTime || 0) * (parseFloat(dataRate?.workRateOT || '0') * parseFloat(dataRate?.workRate || '0'));
       let dayType = dataRate?.dayType || '';
     }
-    
+
   }
 
       return {
