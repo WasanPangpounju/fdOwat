@@ -1855,7 +1855,7 @@ const calculateCashValues = async (employee_record, month, year) => {
   return Promise.all(
     employee_record.map(async (record) => {
       const dataRate = await checkDayRate(record.workplaceId, record.wGroup, new Date(year, month - 1, record.date));
-
+console.log(dataRate?.dayType );
       //check dayType
       // if(dataRate?.dayType || '' !== '' ) {
         if (dataRate?.dayType !== '') {
