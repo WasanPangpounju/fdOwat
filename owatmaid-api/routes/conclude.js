@@ -1860,7 +1860,8 @@ const calculateCashValues = (employee_record, month, year ) => {
 // console.log(record.wGroup || '');
 // console.log(record.date || '');
 const dataRate = await checkDayRate(record.workplaceId, record.wGroup , new Date(year, month -1, record.date ));
-await console.log(JSON.stringify(dataRate ,null,2))
+// await console.log(JSON.stringify(dataRate ,null,2))
+
 let cashBeforeOt = await (record.beforeTotalOtTime || 0) * parseFloat(dataRate.workRateOT || '0');
 let cashWork = await (record.totalTime || 0) * parseFloat(dataRate.workRate || '0');
 let cashOt = await (record.totalOtTime || 0) * parseFloat(dataRate.workRateOT || '0');
