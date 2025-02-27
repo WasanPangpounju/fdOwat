@@ -1940,16 +1940,47 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     const result = await timerecordEmployee.find(query);
 // console.log("result  " , result[0].employee_record.length)
     // Check if any record has missing cash values
+    // let updateNeeded = false;
+    // for (const doc of result) {
+    //   const updatedRecords = await calculateCashValues(doc.employee_record, month, year );
+    //   if (JSON.stringify(updatedRecords) !== JSON.stringify(doc.employee_record)) {
+    //     doc.employee_record = await updatedRecords;
+    //     await doc.save(); // Save only if changes are made
+    //     updateNeeded = true;
+    //   }
+    // }
     let updateNeeded = false;
     for (const doc of result) {
-      const updatedRecords = await calculateCashValues(doc.employee_record, month, year );
-      if (JSON.stringify(updatedRecords) !== JSON.stringify(doc.employee_record)) {
-        doc.employee_record = await updatedRecords;
-        await doc.save(); // Save only if changes are made
-        updateNeeded = true;
+      
+      // 1️⃣ ตรวจสอบว่า doc มีค่าและ employee_record เป็น array จริงๆ
+      if (!doc || !Array.isArray(doc.employee_record) || doc.employee_record.length === 0) {
+        console.warn(`Skipping invalid or empty document: ${JSON.stringify(doc)}`);
+        continue; // ข้ามรอบ loop นี้
+      }
+    
+      // 2️⃣ ตรวจสอบข้อมูลภายใน employee_record
+      for (const record of doc.employee_record) {
+        if (!record.workplaceId || !record.wGroup || !record.date) {
+          console.warn(`Skipping record with missing data: ${JSON.stringify(record)}`);
+          continue; // ข้าม record นี้
+        }
+      }
+    
+      // 3️⃣ เรียก calculateCashValues อย่างปลอดภัย
+      try {
+        const updatedRecords = await calculateCashValues(doc.employee_record, month, year);
+    
+        // 4️⃣ ตรวจสอบว่ามีการเปลี่ยนแปลงจริงก่อนบันทึก
+        if (JSON.stringify(updatedRecords) !== JSON.stringify(doc.employee_record)) {
+          doc.employee_record = updatedRecords;
+          await doc.save(); // บันทึกข้อมูลเฉพาะที่มีการเปลี่ยนแปลง
+          updateNeeded = true;
+        }
+      } catch (error) {
+        console.error(`Error in calculateCashValues:`, error);
       }
     }
-
+    
     await res.status(200).json({ result });
 
   } catch (error) {
