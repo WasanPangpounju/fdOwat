@@ -1866,17 +1866,17 @@ const calculateCashValues = async (employee_record, month, year) => {
         if (dataRate?.dayType !== '') {
       // if(dataRate?.dayType || '' === 'stop') {
         if (dataRate?.dayType === 'stop') {
-        let cashBeforeOt = ((record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.dayoffRateOT || '0') * parseFloat(dataRate?.workRate || '0') || 0)) || '';
-        let cashWork = (record.totalTime || 0) * (parseFloat(dataRate?.workRate || '0')* parseFloat(dataRate?.dayoffRateHour || '0')) || '';
-        let cashOt = (record.totalOtTime || 0) * (parseFloat(dataRate?.dayoffRateOT || '0') * parseFloat(dataRate?.workRate || '0')) || '';
-        let dayType = dataRate?.dayType || '';
+         cashBeforeOt = await ((record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.dayoffRateOT || '0') * parseFloat(dataRate?.workRate || '0') || 0)) || '';
+         cashWork = await (record.totalTime || 0) * (parseFloat(dataRate?.workRate || '0')* parseFloat(dataRate?.dayoffRateHour || '0')) || '';
+         cashOt = await (record.totalOtTime || 0) * (parseFloat(dataRate?.dayoffRateOT || '0') * parseFloat(dataRate?.workRate || '0')) || '';
+         dayType = await dataRate?.dayType || '';
   
     } else {
 
-      let cashBeforeOt = (record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.workRateOT || '0') * parseFloat(dataRate?.workRate || '0'));
-      let cashWork = (record.totalTime || 0) * parseFloat(dataRate?.workRate || '0');
-      let cashOt = (record.totalOtTime || 0) * (parseFloat(dataRate?.workRateOT || '0') * parseFloat(dataRate?.workRate || '0'));
-      let dayType = dataRate?.dayType || '';
+       cashBeforeOt = await (record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.workRateOT || '0') * parseFloat(dataRate?.workRate || '0'));
+       cashWork = await (record.totalTime || 0) * parseFloat(dataRate?.workRate || '0');
+       cashOt = await (record.totalOtTime || 0) * (parseFloat(dataRate?.workRateOT || '0') * parseFloat(dataRate?.workRate || '0'));
+       dayType = await dataRate?.dayType || '';
     }
     
   }
