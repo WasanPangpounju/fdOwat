@@ -1880,23 +1880,23 @@ let cashOt = await (record.totalOtTime || 0) * parseFloat(dataRate.workRateOT ||
 // Search timerecordEmployee
 router.post('/searchtimerecordemployee', async (req, res) => {
   try {
-    const { employeeId, month, year } = req.body;
+    const { employeeId, month, year } = await req.body;
     const query = {};
 
     if (employeeId) {
-      query.employeeId = employeeId;
+      query.employeeId = await employeeId;
     }
 
     if (month) {
-      query.month = { $regex: new RegExp(month, 'i') };
+      query.month = await { $regex: new RegExp(month, 'i') };
     }
 
     if (year) {
-      query.year = { $regex: new RegExp(year, 'i') };
+      query.year = await { $regex: new RegExp(year, 'i') };
     }
 
     if (!employeeId && !month && !year) {
-      return res.status(200).json({});
+      return await res.status(200).json({});
     }
 
     // Query the collection
@@ -1905,15 +1905,15 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     // Check if any record has missing cash values
     let updateNeeded = false;
     for (const doc of result) {
-      const updatedRecords = calculateCashValues(doc.employee_record, month, year );
+      const updatedRecords = await calculateCashValues(doc.employee_record, month, year );
       if (JSON.stringify(updatedRecords) !== JSON.stringify(doc.employee_record)) {
-        doc.employee_record = updatedRecords;
+        doc.employee_record = await updatedRecords;
         await doc.save(); // Save only if changes are made
         updateNeeded = true;
       }
     }
 
-    res.status(200).json({ result });
+    await res.status(200).json({ result });
 
   } catch (error) {
     console.error(error);
