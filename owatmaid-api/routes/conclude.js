@@ -1831,17 +1831,17 @@ dataCal.holidayOT = await workplaces?.[0]?.holidayOT || 0;
 
 // console.log(JSON.stringify(workplaces,null,2) );
 //check day type
-// for(const workTimeDay of workplaces[0].workTimeDay) {
-//   let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay , date.getDay());
-//   if(check === true) {
-//     console.log(workTimeDay.workOrStop )
-//     dataCal.dayType = await workTimeDay.workOrStop;
+for(const workTimeDay of workplaces[0].workTimeDay) {
+  let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay , date.getDay());
+  if(check === true) {
+    console.log(workTimeDay.workOrStop )
+    dataCal.dayType = await workTimeDay.workOrStop;
 
-// // console.log("data " ,workTimeDay.startDay, workTimeDay.endDay , date.getDay() );
+// console.log("data " ,workTimeDay.startDay, workTimeDay.endDay , date.getDay() );
 
-//   }
+  }
 
-// } //end for
+} //end for
 
 // await console.log("wr "+ JSON.stringify(dataCal,null,2));
 
@@ -1859,15 +1859,19 @@ const calculateCashValues = async (employee_record, month, year) => {
       let cashBeforeOt = (record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.workRateOT || '0') * parseFloat(dataRate?.workRate || '0'));
       let cashWork = (record.totalTime || 0) * parseFloat(dataRate?.workRate || '0');
       let cashOt = (record.totalOtTime || 0) * (parseFloat(dataRate?.workRateOT || '0') * parseFloat(dataRate?.workRate || '0'));
+      dayType 
+      let dayType = dataRate?.dayType || '';
 
       return {
         ...record,
         cashBeforeOt,
         cashWork,
         cashOt,
+        dayType ,
       };
     })
   );
+
 };
 
 
