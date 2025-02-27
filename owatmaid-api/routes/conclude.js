@@ -1873,22 +1873,30 @@ const calculateCashValues = async (employee_record, month, year) => {
           return record;
         }
 
-        // กำหนดค่าเริ่มต้นป้องกัน ReferenceError
-        let cashBeforeOt = 0;
-        let cashWork = 0;
-        let cashOt = 0;
         let dayType = dataRate?.dayType || '';
 
-        // เช็คว่าเป็นวันหยุดหรือไม่
+        // แปลงค่าให้แน่ใจว่าเป็นตัวเลข (ถ้า `undefined` ให้เป็น 0)
+        let workRate = parseFloat(dataRate.workRate || '0');
+        let workRateOT = parseFloat(dataRate.workRateOT || '0');
+        let dayoffRateHour = parseFloat(dataRate.dayoffRateHour || '0');
+        let dayoffRateOT = parseFloat(dataRate.dayoffRateOT || '0');
+
+        // คำนวณเงินเดือน
+        let cashBeforeOt = (record.beforeTotalOtTime || 0) * workRateOT;
+        let cashWork = (record.totalTime || 0) * workRate;
+        let cashOt = (record.totalOtTime || 0) * workRateOT;
+
+        // ถ้าเป็นวันหยุด คำนวณแบบพิเศษ
         if (dayType === 'stop') {
-          cashBeforeOt = (record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.dayoffRateOT || '0') * parseFloat(dataRate?.workRate || '0'));
-          cashWork = (record.totalTime || 0) * (parseFloat(dataRate?.workRate || '0') * parseFloat(dataRate?.dayoffRateHour || '0'));
-          cashOt = (record.totalOtTime || 0) * (parseFloat(dataRate?.workRateOT || '0'));
-        } else {
-          cashBeforeOt = (record.beforeTotalOtTime || 0) * parseFloat(dataRate.workRateOT || '0');
-          cashWork = (record.totalTime || 0) * parseFloat(dataRate.workRate || '0');
-          cashOt = (record.totalOtTime || 0) * parseFloat(dataRate.workRateOT || '0');
+          cashBeforeOt = (record.beforeTotalOtTime || 0) * (dayoffRateOT * workRate);
+          cashWork = (record.totalTime || 0) * (workRate * dayoffRateHour);
+          cashOt = (record.totalOtTime || 0) * workRateOT;
         }
+
+        // ถ้าค่าใดเป็น NaN ให้เซ็ตเป็น 0
+        cashBeforeOt = isNaN(cashBeforeOt) ? 0 : cashBeforeOt;
+        cashWork = isNaN(cashWork) ? 0 : cashWork;
+        cashOt = isNaN(cashOt) ? 0 : cashOt;
 
         return {
           ...record,
