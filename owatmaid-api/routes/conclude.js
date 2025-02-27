@@ -1854,12 +1854,11 @@ return dataCal;
 // Function to calculate cash values
 const calculateCashValues = async (employee_record, month, year ) => {
 
- return await Promise.all(
-  employee_record.map(async (record) => {
+ return employee_record.map(record => {
 // console.log(record.workplaceId|| 0);
 // console.log(record.wGroup || '');
 // console.log(record.date || '');
-const dataRate = await checkDayRate(record.workplaceId, record.wGroup , new Date(year, month -1, record.date ));
+const dataRate = checkDayRate(record.workplaceId, record.wGroup , new Date(year, month -1, record.date ));
 
 let cashBeforeOt = 0;
 let cashWork = (record.totalTime || 0) * parseFloat(dataRate.workRate || '0');
@@ -1874,7 +1873,7 @@ let cashOt = 0;
       cashOt: record.cashOt ? record.cashOt : (record.totalOtTime || 0) * parseFloat(dataRate.workRateOT || '0'),
     };
     
-  }));
+  });
 };
 
 // Search timerecordEmployee
