@@ -1846,7 +1846,7 @@ for(const workTimeDay of workplaces[0].workTimeDay) {
 // await console.log("wr "+ JSON.stringify(dataCal,null,2));
 
 }        
-console.log("dataCal", JSON.stringify(dataCal,null,2))
+// console.log("dataCal", JSON.stringify(dataCal,null,2))
 return dataCal;
 
 }
@@ -1855,15 +1855,15 @@ return dataCal;
 // Function to calculate cash values
 const calculateCashValues = (employee_record, month, year ) => {
 
- return employee_record.map(record => {
+ return employee_record.map(async (record) => {
 // console.log(record.workplaceId|| 0);
 // console.log(record.wGroup || '');
 // console.log(record.date || '');
-const dataRate = checkDayRate(record.workplaceId, record.wGroup , new Date(year, month -1, record.date ));
-console.log(JSON.stringify(dataRate ,null,2))
-let cashBeforeOt = (record.beforeTotalOtTime || 0) * parseFloat(dataRate.workRateOT || '0');
-let cashWork = (record.totalTime || 0) * parseFloat(dataRate.workRate || '0');
-let cashOt = (record.totalOtTime || 0) * parseFloat(dataRate.workRateOT || '0');
+const dataRate = await checkDayRate(record.workplaceId, record.wGroup , new Date(year, month -1, record.date ));
+await console.log(JSON.stringify(dataRate ,null,2))
+let cashBeforeOt = await (record.beforeTotalOtTime || 0) * parseFloat(dataRate.workRateOT || '0');
+let cashWork = await (record.totalTime || 0) * parseFloat(dataRate.workRate || '0');
+let cashOt = await (record.totalOtTime || 0) * parseFloat(dataRate.workRateOT || '0');
 
   return {
       ...record.toObject(), // Convert Mongoose document to plain object
