@@ -1852,7 +1852,7 @@ return dataCal;
 
 
 // Function to calculate cash values
-const calculateCashValues = async (employee_record, month, year ) => {
+const calculateCashValues = (employee_record, month, year ) => {
 
  return employee_record.map(record => {
 // console.log(record.workplaceId|| 0);
