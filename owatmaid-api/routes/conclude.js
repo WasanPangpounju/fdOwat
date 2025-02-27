@@ -1851,7 +1851,62 @@ return dataCal;
 
 }
 
+
 const calculateCashValues = async (employee_record, month, year) => {
+  if (!Array.isArray(employee_record) || employee_record.length === 0) {
+    console.warn("⚠️ employee_record is empty or invalid");
+    return [];
+  }
+
+  return await Promise.all(
+    employee_record.map(async (record, index) => {
+      try {
+        if (!record.workplaceId || !record.wGroup || !record.date) {
+          console.warn(`⚠️ Skipping record at index ${index} due to missing data`, record);
+          return record; // Return unchanged record if missing data
+        }
+
+        const dataRate = await checkDayRate(record.workplaceId, record.wGroup, new Date(year, month - 1, record.date));
+
+        if (!dataRate) {
+          console.warn(`⚠️ No dataRate found for record at index ${index}`, record);
+          return record;
+        }
+
+        // กำหนดค่าเริ่มต้นป้องกัน ReferenceError
+        let cashBeforeOt = 0;
+        let cashWork = 0;
+        let cashOt = 0;
+        let dayType = dataRate?.dayType || '';
+
+        // เช็คว่าเป็นวันหยุดหรือไม่
+        if (dayType === 'stop') {
+          cashBeforeOt = (record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.dayoffRateOT || '0') * parseFloat(dataRate?.workRate || '0'));
+          cashWork = (record.totalTime || 0) * (parseFloat(dataRate?.workRate || '0') * parseFloat(dataRate?.dayoffRateHour || '0'));
+          cashOt = (record.totalOtTime || 0) * (parseFloat(dataRate?.workRateOT || '0'));
+        } else {
+          cashBeforeOt = (record.beforeTotalOtTime || 0) * parseFloat(dataRate.workRateOT || '0');
+          cashWork = (record.totalTime || 0) * parseFloat(dataRate.workRate || '0');
+          cashOt = (record.totalOtTime || 0) * parseFloat(dataRate.workRateOT || '0');
+        }
+
+        return {
+          ...record,
+          cashBeforeOt,
+          cashWork,
+          cashOt,
+          dayType,
+        };
+
+      } catch (error) {
+        console.error(`❌ Error at index ${index} in calculateCashValues:`, error);
+        return record; // Return unchanged record to prevent crash
+      }
+    })
+  );
+};
+
+const calculateCashValues_back1 = async (employee_record, month, year) => {
   return Promise.all(
     employee_record.map(async (record) => {
       const dataRate = await checkDayRate(record.workplaceId, record.wGroup, new Date(year, month - 1, record.date));
