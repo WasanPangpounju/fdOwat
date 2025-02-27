@@ -1862,6 +1862,7 @@ const calculateCashValues = async (employee_record, month, year) => {
       console.log("dataRate:", JSON.stringify(dataRate, null, 2));
 
       let cashBeforeOt = (record.beforeTotalOtTime || 0) * parseFloat(dataRate?.workRateOT || '0');
+
       let cashWork = (record.totalTime || 0) * parseFloat(dataRate?.workRate || '0');
       let cashOt = (record.totalOtTime || 0) * parseFloat(dataRate?.workRateOT || '0');
 
