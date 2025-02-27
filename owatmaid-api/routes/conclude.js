@@ -1851,70 +1851,7 @@ return dataCal;
 
 }
 
-
 const calculateCashValues = async (employee_record, month, year) => {
-  if (!Array.isArray(employee_record) || employee_record.length === 0) {
-    console.warn("⚠️ employee_record is empty or invalid");
-    return [];
-  }
-
-  return await Promise.all(
-    employee_record.map(async (record, index) => {
-      try {
-        if (!record.workplaceId || !record.wGroup || !record.date) {
-          console.warn(`⚠️ Skipping record at index ${index} due to missing data`, record);
-          return record; // Return unchanged record if missing data
-        }
-
-        const dataRate = await checkDayRate(record.workplaceId, record.wGroup, new Date(year, month - 1, record.date));
-
-        if (!dataRate) {
-          console.warn(`⚠️ No dataRate found for record at index ${index}`, record);
-          return record;
-        }
-
-        let dayType = dataRate?.dayType || '';
-
-        // แปลงค่าให้แน่ใจว่าเป็นตัวเลข (ถ้า `undefined` ให้เป็น 0)
-        let workRate = parseFloat(dataRate.workRate || '0');
-        let workRateOT = parseFloat(dataRate.workRateOT || '0');
-        let dayoffRateHour = parseFloat(dataRate.dayoffRateHour || '0');
-        let dayoffRateOT = parseFloat(dataRate.dayoffRateOT || '0');
-
-        // คำนวณเงินเดือน
-        let cashBeforeOt = (record.beforeTotalOtTime || 0) * workRateOT;
-        let cashWork = (record.totalTime || 0) * workRate;
-        let cashOt = (record.totalOtTime || 0) * workRateOT;
-
-        // ถ้าเป็นวันหยุด คำนวณแบบพิเศษ
-        if (dayType === 'stop') {
-          cashBeforeOt = (record.beforeTotalOtTime || 0) * (dayoffRateOT * workRate);
-          cashWork = (record.totalTime || 0) * (workRate * dayoffRateHour);
-          cashOt = (record.totalOtTime || 0) * workRateOT;
-        }
-
-        // ถ้าค่าใดเป็น NaN ให้เซ็ตเป็น 0
-        cashBeforeOt = isNaN(cashBeforeOt) ? 0 : cashBeforeOt;
-        cashWork = isNaN(cashWork) ? 0 : cashWork;
-        cashOt = isNaN(cashOt) ? 0 : cashOt;
-
-        return {
-          ...record,
-          cashBeforeOt,
-          cashWork,
-          cashOt,
-          dayType,
-        };
-
-      } catch (error) {
-        console.error(`❌ Error at index ${index} in calculateCashValues:`, error);
-        return record; // Return unchanged record to prevent crash
-      }
-    })
-  );
-};
-
-const calculateCashValues_back1 = async (employee_record, month, year) => {
   return Promise.all(
     employee_record.map(async (record) => {
       const dataRate = await checkDayRate(record.workplaceId, record.wGroup, new Date(year, month - 1, record.date));
@@ -1925,8 +1862,7 @@ const calculateCashValues_back1 = async (employee_record, month, year) => {
       // if(dataRate?.dayType || '' === 'stop') {
         if (dataRate?.dayType === 'stop') {
         // let cashBeforeOt = ((record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.dayoffRateOT || '0') * parseFloat(dataRate?.workRate || '0') || 0)) || '';
-        let cashBeforeOt = (record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.workRateOT || '0') * parseFloat(dataRate?.workRate || '0'));
-
+        let cashBeforeOt = 0;
         let cashWork = (record.totalTime || 0) * (parseFloat(dataRate?.workRate || '0')* parseFloat(dataRate?.dayoffRateHour || '0')) || '';
         let cashOt = (record.totalOtTime || 0) * (parseFloat(dataRate?.dayoffRateOT || '0') * parseFloat(dataRate?.workRate || '0')) || '';
         let dayType = dataRate?.dayType || '';
