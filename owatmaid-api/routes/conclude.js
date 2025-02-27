@@ -1875,11 +1875,6 @@ const calculateCashValues = async (employee_record, month, year) => {
   );
 };
 
-// Example usage
-(async () => {
-  const updatedRecords = await calculateCashValues(employee_record, 2, 2024);
-  console.log("Updated Records:", updatedRecords);
-})();
 
 // Function to calculate cash values
 const calculateCashValues_back = (employee_record, month, year ) => {
