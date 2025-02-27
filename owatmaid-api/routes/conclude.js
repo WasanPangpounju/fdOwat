@@ -1866,7 +1866,7 @@ let cashBeforeOt = await (record.beforeTotalOtTime || 0) * parseFloat(dataRate.w
 let cashWork = await (record.totalTime || 0) * parseFloat(dataRate.workRate || '0');
 let cashOt = await (record.totalOtTime || 0) * parseFloat(dataRate.workRateOT || '0');
 
-  return await {
+  return {
       ...record.toObject(), // Convert Mongoose document to plain object
 
       cashBeforeOt: cashBeforeOt ,
