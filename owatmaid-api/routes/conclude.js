@@ -1864,7 +1864,6 @@ const calculateCashValues = async (employee_record, month, year) => {
         let cashOt = (record.totalOtTime || 0) * (parseFloat(dataRate?.dayoffRateOT || '0') * parseFloat(dataRate?.workRate || '0'));
         let dayType = dataRate?.dayType || '';
   
-      }
     } else {
 
       let cashBeforeOt = (record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.workRateOT || '0') * parseFloat(dataRate?.workRate || '0'));
@@ -1872,6 +1871,8 @@ const calculateCashValues = async (employee_record, month, year) => {
       let cashOt = (record.totalOtTime || 0) * (parseFloat(dataRate?.workRateOT || '0') * parseFloat(dataRate?.workRate || '0'));
       let dayType = dataRate?.dayType || '';
     }
+    
+  }
 
       return {
         ...record,
