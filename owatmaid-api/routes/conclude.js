@@ -1861,7 +1861,7 @@ const calculateCashValues = async (employee_record, month, year) => {
         if (dataRate?.dayType !== '') {
       // if(dataRate?.dayType || '' === 'stop') {
         if (dataRate?.dayType === 'stop') {
-        let cashBeforeOt = ((record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.dayoffRateOT || '0') * parseFloat(dataRate?.workRate || '0'))) || '';
+        let cashBeforeOt = ((record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.dayoffRateOT || '0') * parseFloat(dataRate?.workRate || '0') || 0)) || '';
         let cashWork = (record.totalTime || 0) * (parseFloat(dataRate?.workRate || '0')* parseFloat(dataRate?.dayoffRateHour || '0')) || '';
         let cashOt = (record.totalOtTime || 0) * (parseFloat(dataRate?.dayoffRateOT || '0') * parseFloat(dataRate?.workRate || '0')) || '';
         let dayType = dataRate?.dayType || '';
