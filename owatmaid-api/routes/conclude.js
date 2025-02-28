@@ -1829,6 +1829,12 @@ dataCal.dayoffRateOT = await workplaces?.[0]?.dayoffRateOT || 0;
 dataCal.holiday = await workplaces?.[0]?.holiday || 0;
 dataCal.holidayOT = await workplaces?.[0]?.holidayOT || 0;
 
+// dataCal?.daysOff
+const isDayOff = dataCal?.daysOff?.some(d => 
+  new Date(d).toDateString() === date.toDateString()
+);
+
+console.log(isDayOff); // ✅ true
 // console.log(JSON.stringify(workplaces,null,2) );
 //check day type
 for(const workTimeDay of workplaces[0].workTimeDay) {
@@ -1859,6 +1865,9 @@ const calculateCashValues = async (employee_record, month, year) => {
       let cashBeforeOt = 0;
       let cashWork = 0;
       let cashOt = 0;
+      let cashBeforeOtMul = 0;
+      let cashWorkMul = 0;
+      let cashOtMul = 0;
       let dayType = '';
 
       //check dayType
@@ -1870,13 +1879,20 @@ const calculateCashValues = async (employee_record, month, year) => {
          cashWork = await (record.totalTime || 0) * (parseFloat(dataRate?.workRate || '0')* parseFloat(dataRate?.dayoffRateHour || '0')) || '';
          cashOt = await (record.totalOtTime || 0) * (parseFloat(dataRate?.dayoffRateOT || '0') * parseFloat(dataRate?.workRate || '0')) || '';
          dayType = await dataRate?.dayType || '';
-  
+          cashBeforeOtMul = dataRate?.dayoffRateOT ||  0;
+          cashWorkMul = dataRate?.dayoffRateHour || 0;
+          cashOtMul = dataRate?.dayoffRateOT || 0;
+     
     } else {
 
        cashBeforeOt = await (record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.workRateOT || '0') * parseFloat(dataRate?.workRate || '0'));
        cashWork = await (record.totalTime || 0) * parseFloat(dataRate?.workRate || '0');
        cashOt = await (record.totalOtTime || 0) * (parseFloat(dataRate?.workRateOT || '0') * parseFloat(dataRate?.workRate || '0'));
        dayType = await dataRate?.dayType || '';
+       cashBeforeOtMul = dataRate?.workRateOT ||  0;
+       cashWorkMul = 1;
+       cashOtMul = dataRate?.workRateOT || 0;
+
     }
     
   }
@@ -1886,6 +1902,9 @@ const calculateCashValues = async (employee_record, month, year) => {
         cashBeforeOt,
         cashWork,
         cashOt,
+        cashBeforeOtMul,
+        cashWorkMul,
+        cashOtMul,
         dayType ,
       };
     })
