@@ -1985,578 +1985,6 @@ function Compensation() {
                 <br />
 
                 
-                <div class="row">
-                  <div class="col-md-12">
-                    <div class="form-group">
-                      <table border="1" style={tableStyle}>
-                        <thead>
-                          <tr>
-                            <th style={headerCellStyle}>วันที่</th>
-                            <th style={headerCellStyle}>หน่วยงาน</th>
-                            <th style={headerCellStyle}>กะ</th>
-                            <th style={headerCellStyle}>ชั่วโมงทำงาน</th>
-                            <th style={headerCellStyle}>ค่าจ้างปกติ</th>
-                            <th style={headerCellStyle}>ชั่วโมง OT</th>
-                            <th style={headerCellStyle}>ค่าล่วงเวลา OT</th>
-                            <th style={headerCellStyle}>เงินเพิ่ม</th>
-                            <th style={headerCellStyle}>แก้ไข</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {dataTable.map((workplaceRecord, index) => (
-                            <tr key={index}>
-                              <td
-                                style={
-                                  commonNumbers.has(resultArray22[index])
-                                    ? {
-                                        ...cellStyle,
-                                        backgroundColor: "yellow",
-                                      }
-                                    : cellStyle
-                                }
-                              >
-                                {editIndex === index ? (
-                                  <input
-                                    type="text"
-                                    className="form-control"
-                                    value={formData.day}
-                                    onChange={handleInputChange}
-                                    name="day"
-                                    readOnly
-                                  />
-                                ) : (
-                                  workplaceRecord.day
-                                )}
-                              </td>
-                              {/* <td style={commonNumbers.has(resultArray2[index]) ? { ...cellStyle, backgroundColor: 'yellow' } : cellStyle}>
-                                                                {editIndex === index ?
-                                                                    <input type="text" className="form-control" value={formData.day} onChange={handleInputChange} name="day" readOnly /> :
-                                                                    workplaceRecord.shift}
-                                                            </td> */}
-                              <td
-                                style={
-                                  commonNumbers.has(resultArray22[index])
-                                    ? {
-                                        ...cellStyle,
-                                        backgroundColor: "yellow",
-                                      }
-                                    : cellStyle
-                                }
-                              >
-                                {editIndex === index ? (
-                                  <input
-                                    type="text"
-                                    className="form-control"
-                                    value={formData.workplaceId}
-                                    onChange={handleInputChange}
-                                    name="workplaceId"
-                                    readOnly
-                                  />
-                                ) : (
-                                  workplaceRecord.workplaceId
-                                )}
-                              </td>
-                              <td
-                                style={
-                                  commonNumbers.has(resultArray22[index])
-                                    ? {
-                                        ...cellStyle,
-                                        backgroundColor: "yellow",
-                                      }
-                                    : cellStyle
-                                }
-                              >
-                                {editIndex === index ? (
-                                  <input
-                                    type="text"
-                                    className="form-control"
-                                    value={formData.shift}
-                                    onChange={handleInputChange}
-                                    name="shift"
-                                  />
-                                ) : (
-                                  // workplaceRecord.shift
-                                  shiftMapping[workplaceRecord.shift] ||
-                                  workplaceRecord.shift
-                                )}
-                              </td>
-                              <td
-                                style={
-                                  commonNumbers.has(resultArray22[index])
-                                    ? {
-                                        ...cellStyle,
-                                        backgroundColor: "yellow",
-                                      }
-                                    : cellStyle
-                                }
-                              >
-                                {editIndex === index ? (
-                                  <input
-                                    type="text"
-                                    className="form-control"
-                                    value={formData.allTimes}
-                                    onChange={handleInputChange}
-                                    name="allTimes"
-                                  />
-                                ) : (
-                                  workplaceRecord.allTimes
-                                )}
-                              </td>
-                              <td
-                                style={
-                                  commonNumbers.has(resultArray22[index])
-                                    ? {
-                                        ...cellStyle,
-                                        backgroundColor: "yellow",
-                                      }
-                                    : cellStyle
-                                }
-                              >
-                                {editIndex === index ? (
-                                  <>
-                                    <input
-                                      type="text"
-                                      className="form-control"
-                                      value={formData.workRate}
-                                      onChange={handleInputChange}
-                                      name="workRate"
-                                    />
-                                    <input
-                                      type="hidden"
-                                      className="form-control"
-                                      value={formData.workRateMultiply}
-                                      onChange={handleInputChange}
-                                      name="workRateMultiply"
-                                    />
-                                    <input
-                                      type="hidden"
-                                      className="form-control"
-                                      value={formData.shift}
-                                      onChange={handleInputChange}
-                                      name="shift"
-                                    />
-                                    <input
-                                      type="hidden"
-                                      className="form-control"
-                                      value={formData.workType}
-                                      onChange={handleInputChange}
-                                      name="workType"
-                                    />
-                                  </>
-                                ) : (
-                                  workplaceRecord.workRate
-                                )}
-                              </td>
-                              <td
-                                style={
-                                  commonNumbers.has(resultArray22[index])
-                                    ? {
-                                        ...cellStyle,
-                                        backgroundColor: "yellow",
-                                      }
-                                    : cellStyle
-                                }
-                              >
-                                {editIndex === index ? (
-                                  <input
-                                    type="text"
-                                    className="form-control"
-                                    value={formData.otTimes}
-                                    onChange={handleInputChange}
-                                    name="otTimes"
-                                  />
-                                ) : (
-                                  workplaceRecord.otTimes
-                                )}
-                              </td>
-
-                              <td
-                                style={
-                                  commonNumbers.has(resultArray22[index])
-                                    ? {
-                                        ...cellStyle,
-                                        backgroundColor: "yellow",
-                                      }
-                                    : cellStyle
-                                }
-                              >
-                                {editIndex === index ? (
-                                  <>
-                                    <input
-                                      type="text"
-                                      className="form-control"
-                                      value={formData.workRateOT}
-                                      onChange={handleInputChange}
-                                      name="workRateOT"
-                                    />
-                                    <input
-                                      type="hidden"
-                                      className="form-control"
-                                      value={formData.workRateOTMultiply}
-                                      onChange={handleInputChange}
-                                      name="workRateOTMultiply"
-                                    />{" "}
-                                  </>
-                                ) : (
-                                  workplaceRecord.workRateOT
-                                )}
-                              </td>
-                              <td
-                                style={
-                                  commonNumbers.has(resultArray22[index])
-                                    ? {
-                                        ...cellStyle,
-                                        backgroundColor: "yellow",
-                                      }
-                                    : cellStyle
-                                }
-                              >
-                                {editIndex === index ? (
-                                  <div className="popup">
-                                    <h4>รายการเงินเพิ่ม</h4>
-                                    <ul
-                                      style={{
-                                        listStyleType: "none",
-                                        padding: 0,
-                                        margin: 0,
-                                      }}
-                                    >
-                                      {addSalaryList[index] &&
-                                        addSalaryList[index].map(
-                                          (addsalary, index1) =>
-                                            addsalary.name !== "" && (
-                                              <li
-                                                key={index1}
-                                                style={{ marginBottom: "10px" }}
-                                              >
-                                                {addsalary.name} - จำนวน:{" "}
-                                                {addsalary.SpSalary > 100
-                                                  ? (
-                                                      addsalary.SpSalary / 30
-                                                    ).toFixed(2)
-                                                  : addsalary.SpSalary}{" "}
-                                                {addsalary.roundOfSalary ==
-                                                  "daily" && (
-                                                  <>/ {addsalary.message} วัน</>
-                                                )}
-                                                <button
-                                                  type="button"
-                                                  onClick={() =>
-                                                    handleRemoveAddSalaryArray(
-                                                      index,
-                                                      index1
-                                                    )
-                                                  }
-                                                >
-                                                  ลบ
-                                                </button>
-                                              </li>
-                                            )
-                                        )}
-                                    </ul>
-                                  </div>
-                                ) : // workplaceRecord.addSalaryDay
-                                addSalaryList[index] &&
-                                  addSalaryList[index].length > 0 &&
-                                  workplaceRecord.workplaceId !== "" &&
-                                  workplaceRecord.workplaceId !== undefined ? (
-                                  addSalaryList[index].reduce(
-                                    (acc, addsalary) => {
-                                      if (
-                                        addsalary.name !== "" &&
-                                        addsalary.roundOfSalary === "daily"
-                                      ) {
-                                        if (addsalary.SpSalary > 100) {
-                                          acc += parseFloat(
-                                            (addsalary.SpSalary / 30).toFixed(2)
-                                          );
-                                        } else {
-                                          acc += parseFloat(addsalary.SpSalary);
-                                        }
-                                      }
-                                      return acc;
-                                    },
-                                    0
-                                  )
-                                ) : (
-                                  0
-                                )}
-                              </td>
-                              <td
-                                style={
-                                  commonNumbers.has(resultArray22[index])
-                                    ? {
-                                        ...cellStyle,
-                                        backgroundColor: "yellow",
-                                      }
-                                    : cellStyle
-                                }
-                              >
-                                {/* <a href="https://example.com" class="link1" style={{ color: 'red' }}><b>ลบ</b></a> / <a href="#" class="link2" style={{ color: 'blue' }} onClick={openModal}><b>แก้ไข</b></a> */}
-
-                                {editIndex === index ? (
-                                  <button
-                                    class="btn btn-info"
-                                    style={{ width: "4rem" }}
-                                    onClick={saveFormData}
-                                  >
-                                    Save
-                                  </button>
-                                ) : (
-                                  // <button class="btn btn-danger" style={{ width: '3rem' }} onClick={() => editData(index)}>แก้ไข</button>
-                                  <button
-                                    class="btn btn-danger"
-                                    style={{
-                                      width: "4rem",
-                                      textAlign: "center",
-                                    }}
-                                    onClick={() => editData(index)}
-                                  >
-                                    แก้ไข
-                                  </button>
-                                )}
-
-                                <Modal
-                                  isOpen={modalIsOpen}
-                                  onRequestClose={closeModal}
-                                  contentLabel="Example Modal"
-                                  style={{
-                                    overlay: {
-                                      backgroundColor:
-                                        "rgba(100, 100, 100, 0.5)",
-                                      zIndex: 10,
-                                    },
-                                    content: {
-                                      width: "50rem",
-                                      margin: "auto",
-                                      borderRadius: "8px",
-                                      boxShadow: "0 0 10px rgba(0, 0, 0, 0.3)",
-                                    },
-                                  }}
-                                >
-                                  {/* Your form content goes here */}
-                                  <form>
-                                    {/* <label>
-                                      Form Input:
-                                      <input type="text" />
-                                    </label>
-                                    <button type="submit">Submit</button> */}
-                                    {workTimeDayPerson.allTimesPerson.map(
-                                      (time, index) => (
-                                        <div key={index} className="row">
-                                          <div className="col-md-3">
-                                            <select
-                                              name="CodeSalary"
-                                              className="form-control"
-                                              value={time.CodeSalary}
-                                              onChange={(e) =>
-                                                handleInputChangePerson(
-                                                  e,
-                                                  index
-                                                )
-                                              }
-                                            >
-                                              <option value="">
-                                                เลือกตำแหน่ง
-                                              </option>
-
-                                              {positionWork.map(
-                                                (position, positionIndex) => (
-                                                  <option
-                                                    key={positionIndex}
-                                                    value={position}
-                                                  >
-                                                    {position}
-                                                  </option>
-                                                )
-                                              )}
-                                            </select>
-                                          </div>
-
-                                          <div className="col-md-3">
-                                            <select
-                                              name="positionWork"
-                                              className="form-control"
-                                              value={time.positionWork}
-                                              onChange={(e) =>
-                                                handleInputChangePerson(
-                                                  e,
-                                                  index
-                                                )
-                                              }
-                                            >
-                                              <option value="">
-                                                เลือกตำแหน่ง
-                                              </option>
-
-                                              {positionWork.map(
-                                                (position, positionIndex) => (
-                                                  <option
-                                                    key={positionIndex}
-                                                    value={position}
-                                                  >
-                                                    {position}
-                                                  </option>
-                                                )
-                                              )}
-                                            </select>
-                                          </div>
-                                          <div className="col-md-3">
-                                            {/* <input
-                                                            type="text"
-                                                            className="form-control"
-                                                            placeholder={`Person ${index + 1}`}
-                                                            value={time.countPerson}
-                                                            onChange={(e) => handleInputChangePerson(e, index)}
-                                                        /> */}
-                                            <input
-                                              type="text"
-                                              className="form-control"
-                                              placeholder={`Person ${
-                                                index + 1
-                                              }`}
-                                              name="countPerson" // Make sure the name attribute is set to "countPerson"
-                                              value={time.countPerson}
-                                              onChange={(e) =>
-                                                handleInputChangePerson(
-                                                  e,
-                                                  index
-                                                )
-                                              }
-                                            />
-                                          </div>
-                                          <div class="col-md-2">
-                                            {index >= 1 ? (
-                                              <button
-                                                type="button"
-                                                onClick={() =>
-                                                  handleRemoveTimePerson(index)
-                                                }
-                                                style={{ width: "2.5rem" }}
-                                                className="btn btn-danger ml-auto"
-                                              >
-                                                ลบ
-                                              </button>
-                                            ) : (
-                                              <>
-                                                <button
-                                                  type="button"
-                                                  aria-label="เพิ่ม"
-                                                  onClick={handleAddTimePerson}
-                                                  className="btn btn-primary"
-                                                  style={{ width: "2.5rem" }}
-                                                >
-                                                  <i className="fa">&#xf067;</i>
-                                                </button>
-                                              </>
-                                            )}
-                                          </div>
-                                          <br />
-                                          <br />
-                                          <br />
-                                        </div>
-                                      )
-                                    )}
-                                    <button
-                                      type="button"
-                                      class="btn btn-secondary"
-                                      style={{ width: "3rem" }}
-                                      onClick={closeModal}
-                                    >
-                                      Close
-                                    </button>
-                                  </form>
-                                </Modal>
-                              </td>
-                            </tr>
-                          ))}
-                          <tr>
-                            <td style={cellStyle}>สรุป</td>
-                            <td></td>
-                            <td></td>
-                            <td style={cellStyle}>
-                              {statusEditSum ? (
-                                <input
-                                  type="text"
-                                  className="form-control"
-                                  value={sumWorkHourX}
-                                  onChange={handleChangeSumWorkHourX}
-                                  name=""
-                                />
-                              ) : (
-                                Number(sumWorkHourX).toFixed(2) || 0
-                              )}
-                            </td>
-                            <td style={cellStyle}>
-                              {statusEditSum ? (
-                                <input
-                                  type="text"
-                                  className="form-control"
-                                  value={sumWorkRateX}
-                                  onChange={handleChangeSumWorkRateX}
-                                  name=""
-                                />
-                              ) : (
-                                Number(sumWorkRateX).toFixed(2) || 0
-                              )}
-                            </td>
-                            <td style={cellStyle}>
-                              {statusEditSum ? (
-                                <input
-                                  type="text"
-                                  className="form-control"
-                                  value={sumWorkHourOtX}
-                                  onChange={handleChangeSumWorkHourOtX}
-                                  name=""
-                                />
-                              ) : (
-                                Number(sumWorkHourOtX).toFixed(2) || 0
-                              )}
-                            </td>
-                            <td style={cellStyle}>
-                              {statusEditSum ? (
-                                <input
-                                  type="text"
-                                  className="form-control"
-                                  value={sumWorkRateOtX}
-                                  onChange={handleChangeSumWorkRateOtX}
-                                  name=""
-                                />
-                              ) : (
-                                Number(sumWorkRateOtX).toFixed(2) || 0
-                              )}
-                            </td>
-                            <td style={cellStyle}>
-                              {/* {sumAddSalary} */}
-                              {calculateTotalSalary().toFixed(2)}
-                            </td>
-                            <td style={cellStyle}>
-                              {statusEditSum ? (
-                                <button
-                                  class="btn btn-info"
-                                  style={{ width: "4rem", textAlign: "center" }}
-                                  onClick={handleClickEditSum}
-                                >
-                                  Save
-                                </button>
-                              ) : (
-                                <button
-                                  class="btn btn-danger"
-                                  style={{ width: "4rem", textAlign: "center" }}
-                                  onClick={handleClickEditSum}
-                                >
-                                  แก้ไข
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
-
-                      <br />
-                    </div>
-                  </div>
-                </div>
 
                 <div class="line_btn">
                   <button
@@ -2585,3 +2013,576 @@ function Compensation() {
   );
 }
 export default Compensation;
+
+// <div class="row">
+// <div class="col-md-12">
+//   <div class="form-group">
+//     <table border="1" style={tableStyle}>
+//       <thead>
+//         <tr>
+//           <th style={headerCellStyle}>วันที่</th>
+//           <th style={headerCellStyle}>หน่วยงาน</th>
+//           <th style={headerCellStyle}>กะ</th>
+//           <th style={headerCellStyle}>ชั่วโมงทำงาน</th>
+//           <th style={headerCellStyle}>ค่าจ้างปกติ</th>
+//           <th style={headerCellStyle}>ชั่วโมง OT</th>
+//           <th style={headerCellStyle}>ค่าล่วงเวลา OT</th>
+//           <th style={headerCellStyle}>เงินเพิ่ม</th>
+//           <th style={headerCellStyle}>แก้ไข</th>
+//         </tr>
+//       </thead>
+//       <tbody>
+//         {dataTable.map((workplaceRecord, index) => (
+//           <tr key={index}>
+//             <td
+//               style={
+//                 commonNumbers.has(resultArray22[index])
+//                   ? {
+//                       ...cellStyle,
+//                       backgroundColor: "yellow",
+//                     }
+//                   : cellStyle
+//               }
+//             >
+//               {editIndex === index ? (
+//                 <input
+//                   type="text"
+//                   className="form-control"
+//                   value={formData.day}
+//                   onChange={handleInputChange}
+//                   name="day"
+//                   readOnly
+//                 />
+//               ) : (
+//                 workplaceRecord.day
+//               )}
+//             </td>
+//             {/* <td style={commonNumbers.has(resultArray2[index]) ? { ...cellStyle, backgroundColor: 'yellow' } : cellStyle}>
+//                                               {editIndex === index ?
+//                                                   <input type="text" className="form-control" value={formData.day} onChange={handleInputChange} name="day" readOnly /> :
+//                                                   workplaceRecord.shift}
+//                                           </td> */}
+//             <td
+//               style={
+//                 commonNumbers.has(resultArray22[index])
+//                   ? {
+//                       ...cellStyle,
+//                       backgroundColor: "yellow",
+//                     }
+//                   : cellStyle
+//               }
+//             >
+//               {editIndex === index ? (
+//                 <input
+//                   type="text"
+//                   className="form-control"
+//                   value={formData.workplaceId}
+//                   onChange={handleInputChange}
+//                   name="workplaceId"
+//                   readOnly
+//                 />
+//               ) : (
+//                 workplaceRecord.workplaceId
+//               )}
+//             </td>
+//             <td
+//               style={
+//                 commonNumbers.has(resultArray22[index])
+//                   ? {
+//                       ...cellStyle,
+//                       backgroundColor: "yellow",
+//                     }
+//                   : cellStyle
+//               }
+//             >
+//               {editIndex === index ? (
+//                 <input
+//                   type="text"
+//                   className="form-control"
+//                   value={formData.shift}
+//                   onChange={handleInputChange}
+//                   name="shift"
+//                 />
+//               ) : (
+//                 // workplaceRecord.shift
+//                 shiftMapping[workplaceRecord.shift] ||
+//                 workplaceRecord.shift
+//               )}
+//             </td>
+//             <td
+//               style={
+//                 commonNumbers.has(resultArray22[index])
+//                   ? {
+//                       ...cellStyle,
+//                       backgroundColor: "yellow",
+//                     }
+//                   : cellStyle
+//               }
+//             >
+//               {editIndex === index ? (
+//                 <input
+//                   type="text"
+//                   className="form-control"
+//                   value={formData.allTimes}
+//                   onChange={handleInputChange}
+//                   name="allTimes"
+//                 />
+//               ) : (
+//                 workplaceRecord.allTimes
+//               )}
+//             </td>
+//             <td
+//               style={
+//                 commonNumbers.has(resultArray22[index])
+//                   ? {
+//                       ...cellStyle,
+//                       backgroundColor: "yellow",
+//                     }
+//                   : cellStyle
+//               }
+//             >
+//               {editIndex === index ? (
+//                 <>
+//                   <input
+//                     type="text"
+//                     className="form-control"
+//                     value={formData.workRate}
+//                     onChange={handleInputChange}
+//                     name="workRate"
+//                   />
+//                   <input
+//                     type="hidden"
+//                     className="form-control"
+//                     value={formData.workRateMultiply}
+//                     onChange={handleInputChange}
+//                     name="workRateMultiply"
+//                   />
+//                   <input
+//                     type="hidden"
+//                     className="form-control"
+//                     value={formData.shift}
+//                     onChange={handleInputChange}
+//                     name="shift"
+//                   />
+//                   <input
+//                     type="hidden"
+//                     className="form-control"
+//                     value={formData.workType}
+//                     onChange={handleInputChange}
+//                     name="workType"
+//                   />
+//                 </>
+//               ) : (
+//                 workplaceRecord.workRate
+//               )}
+//             </td>
+//             <td
+//               style={
+//                 commonNumbers.has(resultArray22[index])
+//                   ? {
+//                       ...cellStyle,
+//                       backgroundColor: "yellow",
+//                     }
+//                   : cellStyle
+//               }
+//             >
+//               {editIndex === index ? (
+//                 <input
+//                   type="text"
+//                   className="form-control"
+//                   value={formData.otTimes}
+//                   onChange={handleInputChange}
+//                   name="otTimes"
+//                 />
+//               ) : (
+//                 workplaceRecord.otTimes
+//               )}
+//             </td>
+
+//             <td
+//               style={
+//                 commonNumbers.has(resultArray22[index])
+//                   ? {
+//                       ...cellStyle,
+//                       backgroundColor: "yellow",
+//                     }
+//                   : cellStyle
+//               }
+//             >
+//               {editIndex === index ? (
+//                 <>
+//                   <input
+//                     type="text"
+//                     className="form-control"
+//                     value={formData.workRateOT}
+//                     onChange={handleInputChange}
+//                     name="workRateOT"
+//                   />
+//                   <input
+//                     type="hidden"
+//                     className="form-control"
+//                     value={formData.workRateOTMultiply}
+//                     onChange={handleInputChange}
+//                     name="workRateOTMultiply"
+//                   />{" "}
+//                 </>
+//               ) : (
+//                 workplaceRecord.workRateOT
+//               )}
+//             </td>
+//             <td
+//               style={
+//                 commonNumbers.has(resultArray22[index])
+//                   ? {
+//                       ...cellStyle,
+//                       backgroundColor: "yellow",
+//                     }
+//                   : cellStyle
+//               }
+//             >
+//               {editIndex === index ? (
+//                 <div className="popup">
+//                   <h4>รายการเงินเพิ่ม</h4>
+//                   <ul
+//                     style={{
+//                       listStyleType: "none",
+//                       padding: 0,
+//                       margin: 0,
+//                     }}
+//                   >
+//                     {addSalaryList[index] &&
+//                       addSalaryList[index].map(
+//                         (addsalary, index1) =>
+//                           addsalary.name !== "" && (
+//                             <li
+//                               key={index1}
+//                               style={{ marginBottom: "10px" }}
+//                             >
+//                               {addsalary.name} - จำนวน:{" "}
+//                               {addsalary.SpSalary > 100
+//                                 ? (
+//                                     addsalary.SpSalary / 30
+//                                   ).toFixed(2)
+//                                 : addsalary.SpSalary}{" "}
+//                               {addsalary.roundOfSalary ==
+//                                 "daily" && (
+//                                 <>/ {addsalary.message} วัน</>
+//                               )}
+//                               <button
+//                                 type="button"
+//                                 onClick={() =>
+//                                   handleRemoveAddSalaryArray(
+//                                     index,
+//                                     index1
+//                                   )
+//                                 }
+//                               >
+//                                 ลบ
+//                               </button>
+//                             </li>
+//                           )
+//                       )}
+//                   </ul>
+//                 </div>
+//               ) : // workplaceRecord.addSalaryDay
+//               addSalaryList[index] &&
+//                 addSalaryList[index].length > 0 &&
+//                 workplaceRecord.workplaceId !== "" &&
+//                 workplaceRecord.workplaceId !== undefined ? (
+//                 addSalaryList[index].reduce(
+//                   (acc, addsalary) => {
+//                     if (
+//                       addsalary.name !== "" &&
+//                       addsalary.roundOfSalary === "daily"
+//                     ) {
+//                       if (addsalary.SpSalary > 100) {
+//                         acc += parseFloat(
+//                           (addsalary.SpSalary / 30).toFixed(2)
+//                         );
+//                       } else {
+//                         acc += parseFloat(addsalary.SpSalary);
+//                       }
+//                     }
+//                     return acc;
+//                   },
+//                   0
+//                 )
+//               ) : (
+//                 0
+//               )}
+//             </td>
+//             <td
+//               style={
+//                 commonNumbers.has(resultArray22[index])
+//                   ? {
+//                       ...cellStyle,
+//                       backgroundColor: "yellow",
+//                     }
+//                   : cellStyle
+//               }
+//             >
+//               {/* <a href="https://example.com" class="link1" style={{ color: 'red' }}><b>ลบ</b></a> / <a href="#" class="link2" style={{ color: 'blue' }} onClick={openModal}><b>แก้ไข</b></a> */}
+
+//               {editIndex === index ? (
+//                 <button
+//                   class="btn btn-info"
+//                   style={{ width: "4rem" }}
+//                   onClick={saveFormData}
+//                 >
+//                   Save
+//                 </button>
+//               ) : (
+//                 // <button class="btn btn-danger" style={{ width: '3rem' }} onClick={() => editData(index)}>แก้ไข</button>
+//                 <button
+//                   class="btn btn-danger"
+//                   style={{
+//                     width: "4rem",
+//                     textAlign: "center",
+//                   }}
+//                   onClick={() => editData(index)}
+//                 >
+//                   แก้ไข
+//                 </button>
+//               )}
+
+//               <Modal
+//                 isOpen={modalIsOpen}
+//                 onRequestClose={closeModal}
+//                 contentLabel="Example Modal"
+//                 style={{
+//                   overlay: {
+//                     backgroundColor:
+//                       "rgba(100, 100, 100, 0.5)",
+//                     zIndex: 10,
+//                   },
+//                   content: {
+//                     width: "50rem",
+//                     margin: "auto",
+//                     borderRadius: "8px",
+//                     boxShadow: "0 0 10px rgba(0, 0, 0, 0.3)",
+//                   },
+//                 }}
+//               >
+//                 {/* Your form content goes here */}
+//                 <form>
+//                   {/* <label>
+//                     Form Input:
+//                     <input type="text" />
+//                   </label>
+//                   <button type="submit">Submit</button> */}
+//                   {workTimeDayPerson.allTimesPerson.map(
+//                     (time, index) => (
+//                       <div key={index} className="row">
+//                         <div className="col-md-3">
+//                           <select
+//                             name="CodeSalary"
+//                             className="form-control"
+//                             value={time.CodeSalary}
+//                             onChange={(e) =>
+//                               handleInputChangePerson(
+//                                 e,
+//                                 index
+//                               )
+//                             }
+//                           >
+//                             <option value="">
+//                               เลือกตำแหน่ง
+//                             </option>
+
+//                             {positionWork.map(
+//                               (position, positionIndex) => (
+//                                 <option
+//                                   key={positionIndex}
+//                                   value={position}
+//                                 >
+//                                   {position}
+//                                 </option>
+//                               )
+//                             )}
+//                           </select>
+//                         </div>
+
+//                         <div className="col-md-3">
+//                           <select
+//                             name="positionWork"
+//                             className="form-control"
+//                             value={time.positionWork}
+//                             onChange={(e) =>
+//                               handleInputChangePerson(
+//                                 e,
+//                                 index
+//                               )
+//                             }
+//                           >
+//                             <option value="">
+//                               เลือกตำแหน่ง
+//                             </option>
+
+//                             {positionWork.map(
+//                               (position, positionIndex) => (
+//                                 <option
+//                                   key={positionIndex}
+//                                   value={position}
+//                                 >
+//                                   {position}
+//                                 </option>
+//                               )
+//                             )}
+//                           </select>
+//                         </div>
+//                         <div className="col-md-3">
+//                           {/* <input
+//                                           type="text"
+//                                           className="form-control"
+//                                           placeholder={`Person ${index + 1}`}
+//                                           value={time.countPerson}
+//                                           onChange={(e) => handleInputChangePerson(e, index)}
+//                                       /> */}
+//                           <input
+//                             type="text"
+//                             className="form-control"
+//                             placeholder={`Person ${
+//                               index + 1
+//                             }`}
+//                             name="countPerson" // Make sure the name attribute is set to "countPerson"
+//                             value={time.countPerson}
+//                             onChange={(e) =>
+//                               handleInputChangePerson(
+//                                 e,
+//                                 index
+//                               )
+//                             }
+//                           />
+//                         </div>
+//                         <div class="col-md-2">
+//                           {index >= 1 ? (
+//                             <button
+//                               type="button"
+//                               onClick={() =>
+//                                 handleRemoveTimePerson(index)
+//                               }
+//                               style={{ width: "2.5rem" }}
+//                               className="btn btn-danger ml-auto"
+//                             >
+//                               ลบ
+//                             </button>
+//                           ) : (
+//                             <>
+//                               <button
+//                                 type="button"
+//                                 aria-label="เพิ่ม"
+//                                 onClick={handleAddTimePerson}
+//                                 className="btn btn-primary"
+//                                 style={{ width: "2.5rem" }}
+//                               >
+//                                 <i className="fa">&#xf067;</i>
+//                               </button>
+//                             </>
+//                           )}
+//                         </div>
+//                         <br />
+//                         <br />
+//                         <br />
+//                       </div>
+//                     )
+//                   )}
+//                   <button
+//                     type="button"
+//                     class="btn btn-secondary"
+//                     style={{ width: "3rem" }}
+//                     onClick={closeModal}
+//                   >
+//                     Close
+//                   </button>
+//                 </form>
+//               </Modal>
+//             </td>
+//           </tr>
+//         ))}
+//         <tr>
+//           <td style={cellStyle}>สรุป</td>
+//           <td></td>
+//           <td></td>
+//           <td style={cellStyle}>
+//             {statusEditSum ? (
+//               <input
+//                 type="text"
+//                 className="form-control"
+//                 value={sumWorkHourX}
+//                 onChange={handleChangeSumWorkHourX}
+//                 name=""
+//               />
+//             ) : (
+//               Number(sumWorkHourX).toFixed(2) || 0
+//             )}
+//           </td>
+//           <td style={cellStyle}>
+//             {statusEditSum ? (
+//               <input
+//                 type="text"
+//                 className="form-control"
+//                 value={sumWorkRateX}
+//                 onChange={handleChangeSumWorkRateX}
+//                 name=""
+//               />
+//             ) : (
+//               Number(sumWorkRateX).toFixed(2) || 0
+//             )}
+//           </td>
+//           <td style={cellStyle}>
+//             {statusEditSum ? (
+//               <input
+//                 type="text"
+//                 className="form-control"
+//                 value={sumWorkHourOtX}
+//                 onChange={handleChangeSumWorkHourOtX}
+//                 name=""
+//               />
+//             ) : (
+//               Number(sumWorkHourOtX).toFixed(2) || 0
+//             )}
+//           </td>
+//           <td style={cellStyle}>
+//             {statusEditSum ? (
+//               <input
+//                 type="text"
+//                 className="form-control"
+//                 value={sumWorkRateOtX}
+//                 onChange={handleChangeSumWorkRateOtX}
+//                 name=""
+//               />
+//             ) : (
+//               Number(sumWorkRateOtX).toFixed(2) || 0
+//             )}
+//           </td>
+//           <td style={cellStyle}>
+//             {/* {sumAddSalary} */}
+//             {calculateTotalSalary().toFixed(2)}
+//           </td>
+//           <td style={cellStyle}>
+//             {statusEditSum ? (
+//               <button
+//                 class="btn btn-info"
+//                 style={{ width: "4rem", textAlign: "center" }}
+//                 onClick={handleClickEditSum}
+//               >
+//                 Save
+//               </button>
+//             ) : (
+//               <button
+//                 class="btn btn-danger"
+//                 style={{ width: "4rem", textAlign: "center" }}
+//                 onClick={handleClickEditSum}
+//               >
+//                 แก้ไข
+//               </button>
+//             )}
+//           </td>
+//         </tr>
+//       </tbody>
+//     </table>
+
+//     <br />
+//   </div>
+// </div>
+// </div>
