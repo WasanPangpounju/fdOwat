@@ -1830,15 +1830,11 @@ dataCal.holiday = await workplaces?.[0]?.holiday || 0;
 dataCal.holidayOT = await workplaces?.[0]?.holidayOT || 0;
 
 // dataCal?.daysOff
-// const isDayOff = await workplaces?.[0]?.daysOff?.some(d => 
-//   new Date(d).toDateString() === date.toDateString()
-// );
 const isDayOff = workplaces?.[0]?.daysOff?.some(d => 
   new Date(d).toISOString().split('T')[0] === date.toISOString().split('T')[0]
 );
 
 if(isDayOff == true) {
-  console.log(date)
   console.log(date.toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }));
   dataCal.dayType = await 'specialDayOff';
 
@@ -1892,6 +1888,16 @@ const calculateCashValues = async (employee_record, month, year) => {
           cashWorkMul = dataRate?.dayoffRateHour || 0;
           cashOtMul = dataRate?.dayoffRateOT || 0;
      
+    }else 
+    if(dataRate?.dayType === 'specialDayOff') {
+      cashBeforeOt = await ((record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.holidayOT || '0') * parseFloat(dataRate?.workRate || '0') || 0)) || '';
+      cashWork = await (record.totalTime || 0) * (parseFloat(dataRate?.workRate || '0')* parseFloat(dataRate?.holiday || '0')) || '';
+      cashOt = await (record.totalOtTime || 0) * (parseFloat(dataRate?.holidayOT || '0') * parseFloat(dataRate?.workRate || '0')) || '';
+      dayType = await dataRate?.dayType || '';
+       cashBeforeOtMul = dataRate?.holidayOT ||  0;
+       cashWorkMul = dataRate?.holiday || 0;
+       cashOtMul = dataRate?.holidayOT || 0;
+
     } else {
 
        cashBeforeOt = await (record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.workRateOT || '0') * parseFloat(dataRate?.workRate || '0'));
