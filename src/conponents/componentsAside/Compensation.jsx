@@ -1887,35 +1887,32 @@ function Compensation() {
           </tr>
         </thead>
         <tbody>
+          
         {concludeResultx.map((record, index) => (
   <>
     {dataTable.map((workplaceRecord, subIndex) => {
       const day = workplaceRecord.day.split("/")[0]; // ดึงวันที่
       const matchedRecords = record.employee_record.filter(item => item.date === day); // ค้นหาข้อมูลที่ตรงกัน
+      let displayDay = day;
+      let displayMonth = record.month;
+      let displayYear = record.year;
+
+      // ปรับเดือนและปีตามเงื่อนไข
+      if (day >= 21 && day <= 31) {
+        if (displayMonth === "01") {
+          displayMonth = 12;
+          displayYear -= 1;
+        } else {
+          displayMonth = (parseInt(displayMonth, 10) - 1).toString().padStart(2, "0");
+        }
+      }
 
       return matchedRecords.length > 0 ? (
         matchedRecords.map((matchedRecord, idx) => (
           <tr key={`${index}-${subIndex}-${idx}`}>
-            {/* แสดงวัน เดือน ปี บนทุกแถว */}
             <td style={{ textAlign: "center", verticalAlign: "middle" }}>
-              {(() => {
-                let displayDay = day;
-                let displayMonth = record.month;
-                let displayYear = record.year;
-
-                if (day >= 21 && day <= 31) {
-                  if (displayMonth === "01") {
-                    displayMonth = 12;
-                    displayYear -= 1;
-                  } else {
-                    displayMonth = (parseInt(displayMonth, 10) - 1).toString().padStart(2, "0");
-                  }
-                }
-
-                return `${displayDay} / ${displayMonth} / ${displayYear}`;
-              })()}
+              {`${displayDay} / ${displayMonth} / ${displayYear}`}
             </td>
-
             <td style={{ textAlign: "center", verticalAlign: "middle" }}>
               {matchedRecord.workplaceId}
             </td>
@@ -1970,8 +1967,9 @@ function Compensation() {
         ))
       ) : (
         <tr key={`${index}-${subIndex}-no-record`}>
+          {/* ถ้าไม่มีข้อมูล ให้ยังคงแสดงวัน / เดือน -1 / ปี -1 */}
           <td style={{ textAlign: "center", verticalAlign: "middle" }}>
-            {day} / {record.month} / {record.year}
+            {`${displayDay} / ${displayMonth} / ${displayYear}`}
           </td>
           <td colSpan="12" style={{ textAlign: "center", verticalAlign: "middle" }}>-</td>
         </tr>
@@ -1979,6 +1977,7 @@ function Compensation() {
     })}
   </>
 ))}
+
           
 
         </tbody>
