@@ -1838,7 +1838,7 @@ const isDayOff = workplaces?.[0]?.daysOff?.some(d =>
 );
 if(isDayOff == true) {
   console.log(date)
-
+  console.log(date.toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }));
 }
 // console.log(JSON.stringify(workplaces,null,2) );
 //check day type
