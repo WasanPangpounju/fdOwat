@@ -1830,7 +1830,7 @@ dataCal.holiday = await workplaces?.[0]?.holiday || 0;
 dataCal.holidayOT = await workplaces?.[0]?.holidayOT || 0;
 
 // dataCal?.daysOff
-const isDayOff = dataCal?.daysOff?.some(d => 
+const isDayOff = await dataCal?.daysOff?.some(d => 
   new Date(d).toDateString() === date.toDateString()
 );
 
