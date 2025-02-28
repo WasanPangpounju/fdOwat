@@ -916,8 +916,10 @@ let y = '';
 m = '12';
                   y= await year - 1; // Decrease the year
                 } else {
-                  m = Await (parseInt(month, 10) - 1).toString().padStart(2, '0'); // Convert to number, subtract 1, and format as 2-digit string
+                  m =  parseInt(month, 10) - 1;
+                  m = m.toString().padStart(2, '0')
                   y = year;
+                  alert(m);
                 }
 
               }
