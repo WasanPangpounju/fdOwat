@@ -1833,8 +1833,9 @@ dataCal.holidayOT = await workplaces?.[0]?.holidayOT || 0;
 // const isDayOff = await workplaces?.[0]?.daysOff?.some(d => 
 //   new Date(d).toDateString() === date.toDateString()
 // );
-const isDayOff = workplaces?.[0]?.daysOff?.some(d => d.toDateString() === date.toDateString());
-
+const isDayOff = workplaces?.[0]?.daysOff?.some(d => 
+  new Date(d).toISOString().split('T')[0] === date.toISOString().split('T')[0]
+);
 if(isDayOff == true) {
   console.log(date)
 
