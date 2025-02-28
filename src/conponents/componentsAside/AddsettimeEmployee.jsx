@@ -922,6 +922,9 @@ m = '12';
                   // alert(m);
                 }
 
+              } else {
+m = month;
+y = year
               }
               
               
