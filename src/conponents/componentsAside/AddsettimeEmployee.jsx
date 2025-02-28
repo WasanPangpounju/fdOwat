@@ -320,6 +320,10 @@ tmp = [];
                 ศุกร์: 5,
                 เสาร์: 6,
               };
+              if((wDate >= 21 && wDate <= 31) && month == 12) {
+                year = year -1;
+                month = 12;
+              }
               let date = await new Date(year, month - 1, wDate); // Subtract 1 from the month since months are zero-indexed
               let dayOfWeek = await date.getDay(); // This will give you the day of the week, where 0 is Sunday, 1 is
 

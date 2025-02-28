@@ -1871,6 +1871,8 @@ year = year -1;
 month = 12;
 }
       const dataRate = await checkDayRate(record.workplaceId, record.wGroup, new Date(year, month - 1, record.date));
+
+      
       let cashBeforeOt = 0;
       let cashWork = 0;
       let cashOt = 0;
@@ -1880,9 +1882,7 @@ month = 12;
       let dayType = '';
 
       //check dayType
-      // if(dataRate?.dayType || '' !== '' ) {
         if (dataRate?.dayType !== '') {
-      // if(dataRate?.dayType || '' === 'stop') {
         if (dataRate?.dayType === 'stop') {
          cashBeforeOt = await ((record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.dayoffRateOT || '0') * parseFloat(dataRate?.workRate || '0') || 0)) || '';
          cashWork = await (record.totalTime || 0) * (parseFloat(dataRate?.workRate || '0')* parseFloat(dataRate?.dayoffRateHour || '0')) || '';
