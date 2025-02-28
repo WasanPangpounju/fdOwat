@@ -919,7 +919,7 @@ m = '12';
                   m =  parseInt(month, 10) - 1;
                   m = m.toString().padStart(2, '0')
                   y = year;
-                  alert(m);
+                  // alert(m);
                 }
 
               }
