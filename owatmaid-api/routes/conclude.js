@@ -1836,10 +1836,13 @@ dataCal.holidayOT = await workplaces?.[0]?.holidayOT || 0;
 const isDayOff = workplaces?.[0]?.daysOff?.some(d => 
   new Date(d).toISOString().split('T')[0] === date.toISOString().split('T')[0]
 );
+
 if(isDayOff == true) {
   console.log(date)
   console.log(date.toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }));
-}
+  dataCal.dayType = await 'specialDayOff';
+
+} else {
 // console.log(JSON.stringify(workplaces,null,2) );
 //check day type
 for(const workTimeDay of workplaces[0].workTimeDay) {
@@ -1853,6 +1856,7 @@ for(const workTimeDay of workplaces[0].workTimeDay) {
   }
 
 } //end for
+}
 
 // await console.log("wr "+ JSON.stringify(dataCal,null,2));
 
