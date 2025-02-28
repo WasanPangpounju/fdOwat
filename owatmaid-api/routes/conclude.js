@@ -1835,7 +1835,10 @@ dataCal.holidayOT = await workplaces?.[0]?.holidayOT || 0;
 // );
 const isDayOff = workplaces?.[0]?.daysOff?.some(d => d.toDateString() === date.toDateString());
 
-console.log(isDayOff )
+if(isDayOff == true) {
+  console.log(date)
+
+}
 // console.log(JSON.stringify(workplaces,null,2) );
 //check day type
 for(const workTimeDay of workplaces[0].workTimeDay) {
