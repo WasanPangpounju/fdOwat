@@ -1830,9 +1830,11 @@ dataCal.holiday = await workplaces?.[0]?.holiday || 0;
 dataCal.holidayOT = await workplaces?.[0]?.holidayOT || 0;
 
 // dataCal?.daysOff
-const isDayOff = await workplaces?.[0]?.daysOff?.some(d => 
-  new Date(d).toDateString() === date.toDateString()
-);
+// const isDayOff = await workplaces?.[0]?.daysOff?.some(d => 
+//   new Date(d).toDateString() === date.toDateString()
+// );
+const isDayOff = workplaces?.[0]?.daysOff?.some(d => d.toDateString() === date.toDateString());
+
 console.log(isDayOff )
 // console.log(JSON.stringify(workplaces,null,2) );
 //check day type
