@@ -1887,95 +1887,100 @@ function Compensation() {
           </tr>
         </thead>
         <tbody>
-          {concludeResultx.map((record, index) => (
-            <>
-              {dataTable.map((workplaceRecord, subIndex) => {
-                const day = workplaceRecord.day.split("/")[0]; // Extract the day
-                const matchedRecord = record.employee_record.find(item => item.date === day); // Find matching record
+        {concludeResultx.map((record, index) => (
+  <>
+    {dataTable.map((workplaceRecord, subIndex) => {
+      const day = workplaceRecord.day.split("/")[0]; // ดึงวันที่
+      const matchedRecords = record.employee_record.filter(item => item.date === day); // ค้นหาข้อมูลที่ตรงกัน
 
-                return (
-                  <tr key={`${index}-${subIndex}`}>
-<td style={{ textAlign: "center", verticalAlign: "middle" }}>
-  {(() => {
-    let displayDay = day;
-    let displayMonth = record.month;
-    let displayYear = record.year;
+      return matchedRecords.length > 0 ? (
+        matchedRecords.map((matchedRecord, idx) => (
+          <tr key={`${index}-${subIndex}-${idx}`}>
+            {/* แสดงวัน เดือน ปี บนทุกแถว */}
+            <td style={{ textAlign: "center", verticalAlign: "middle" }}>
+              {(() => {
+                let displayDay = day;
+                let displayMonth = record.month;
+                let displayYear = record.year;
 
-    if (day >= 21 && day <= 31) {
-      if (displayMonth === '01') {
-        displayMonth = 12; // Set to December
-        displayYear -= 1;  // Decrease year
-      } else {
-        let x = parseInt(displayMonth  , 10);
-        displayMonth = x -1;
-      }
-    }
+                if (day >= 21 && day <= 31) {
+                  if (displayMonth === "01") {
+                    displayMonth = 12;
+                    displayYear -= 1;
+                  } else {
+                    displayMonth = (parseInt(displayMonth, 10) - 1).toString().padStart(2, "0");
+                  }
+                }
 
-    return `${displayDay} / ${displayMonth.toString().padStart(2, '0')} / ${displayYear}`;
-  })()}
-</td>
-                    
-                    <td style={{ textAlign: "center", verticalAlign: "middle" }}>
-                      {matchedRecord ? matchedRecord.workplaceId : "-"}
-                    </td>
-                    <td style={{ textAlign: "center", verticalAlign: "middle" }}>
-                      {matchedRecord ? matchedRecord.workplaceName : "-"}
-                    </td>
-                    <td style={{ textAlign: "center", verticalAlign: "middle" }}>
-                      {matchedRecord ? matchedRecord.wGroup : "-"}
-                    </td>
-                    <td style={{ textAlign: "center", verticalAlign: "middle" }}>
-                      {matchedRecord ? shiftMapping[matchedRecord.shift] : "-"}
-                    </td>
-                    <td style={{ textAlign: "center", verticalAlign: "middle" }}>
-                      {matchedRecord ? matchedRecord.beforeTotalOtTime : "-"}
-                    </td>
-                    <td style={{ textAlign: "center", verticalAlign: "middle" }}>
-                      {matchedRecord ? matchedRecord.cashBeforeOt : "-"}
-                    </td>
-                    <td style={{ textAlign: "center", verticalAlign: "middle" }}>
-                      {matchedRecord ? matchedRecord.totalTime : "-"}
-                    </td>
-                    <td style={{ textAlign: "center", verticalAlign: "middle" }}>
-                      {matchedRecord ? matchedRecord.cashWork : "-"}
-                    </td>
-                    <td style={{ textAlign: "center", verticalAlign: "middle" }}>
-                      {matchedRecord ? matchedRecord.totalOtTime : "-"}
-                    </td>
-                    <td style={{ textAlign: "center", verticalAlign: "middle" }}>
-                      {matchedRecord ? matchedRecord.cashOt : "-"}
-                    </td>
-                    <td style={{ textAlign: "center", verticalAlign: "middle" }}>
-                      {matchedRecord ? matchedRecord.addSalary : "-"}
-                    </td>
-                    <td style={{ textAlign: "center", verticalAlign: "middle" }}>
-  {matchedRecord ? (
-    <button
-      style={{
-        border: "none",
-        background: "none",
-        padding: 0,
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        width: "100%", // Ensures button takes the full width of the cell
-        height: "100%", // Ensures button takes the full height of the cell
-      }}
-      onClick={() => handleEdit(matchedRecord)}
-    >
-      <i
-        className="bi bi-pencil-square text-danger"
-        style={{ fontSize: "20px", display: "block" }}
-      ></i>
-    </button>
-  ) : "-"}
-</td>
+                return `${displayDay} / ${displayMonth} / ${displayYear}`;
+              })()}
+            </td>
 
-                  </tr>
-                );
-              })}
-            </>
-          ))}
+            <td style={{ textAlign: "center", verticalAlign: "middle" }}>
+              {matchedRecord.workplaceId}
+            </td>
+            <td style={{ textAlign: "center", verticalAlign: "middle" }}>
+              {matchedRecord.workplaceName}
+            </td>
+            <td style={{ textAlign: "center", verticalAlign: "middle" }}>
+              {matchedRecord.wGroup}
+            </td>
+            <td style={{ textAlign: "center", verticalAlign: "middle" }}>
+              {shiftMapping[matchedRecord.shift]}
+            </td>
+            <td style={{ textAlign: "center", verticalAlign: "middle" }}>
+              {matchedRecord.beforeTotalOtTime}
+            </td>
+            <td style={{ textAlign: "center", verticalAlign: "middle" }}>
+              {matchedRecord.cashBeforeOt}
+            </td>
+            <td style={{ textAlign: "center", verticalAlign: "middle" }}>
+              {matchedRecord.totalTime}
+            </td>
+            <td style={{ textAlign: "center", verticalAlign: "middle" }}>
+              {matchedRecord.cashWork}
+            </td>
+            <td style={{ textAlign: "center", verticalAlign: "middle" }}>
+              {matchedRecord.totalOtTime}
+            </td>
+            <td style={{ textAlign: "center", verticalAlign: "middle" }}>
+              {matchedRecord.cashOt}
+            </td>
+            <td style={{ textAlign: "center", verticalAlign: "middle" }}>
+              {matchedRecord.addSalary}
+            </td>
+            <td style={{ textAlign: "center", verticalAlign: "middle" }}>
+              <button
+                style={{
+                  border: "none",
+                  background: "none",
+                  padding: 0,
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  width: "100%",
+                  height: "100%",
+                }}
+                onClick={() => handleEdit(matchedRecord)}
+              >
+                <i className="bi bi-pencil-square text-danger" style={{ fontSize: "20px", display: "block" }}></i>
+              </button>
+            </td>
+          </tr>
+        ))
+      ) : (
+        <tr key={`${index}-${subIndex}-no-record`}>
+          <td style={{ textAlign: "center", verticalAlign: "middle" }}>
+            {day} / {record.month} / {record.year}
+          </td>
+          <td colSpan="12" style={{ textAlign: "center", verticalAlign: "middle" }}>-</td>
+        </tr>
+      );
+    })}
+  </>
+))}
+          
+
         </tbody>
       </table>
     </div>
