@@ -1,5 +1,5 @@
 import endpoint from "../../config";
-import { json, Link } from "react-router-dom";
+import { Await, json, Link } from "react-router-dom";
 
 import axios from "axios";
 import React, { useEffect, useRef, useState } from "react";
@@ -320,13 +320,18 @@ tmp = [];
                 ศุกร์: 5,
                 เสาร์: 6,
               };
-              if((wDate >= 21 && wDate <= 31) && month == 12) {
-                year = year -1;
-                month = 12;
+              if(wDate >= 21 && wDate <= 31 ) {
+                if(month === '01') {
+month = 12;
+year = year -1;
+                } else {
+month = parseInt((month ,10) -1).toString().padStart(2, '0');
+
+                }
               }
               let date = await new Date(year, month - 1, wDate); // Subtract 1 from the month since months are zero-indexed
               let dayOfWeek = await date.getDay(); // This will give you the day of the week, where 0 is Sunday, 1 is
-
+// alert(date )
 
               // await workplacesearch.workplaceGroup[
               //   parseInt(searchResult[0].department || 0) - 1
@@ -380,7 +385,6 @@ await workplacesearch.workplaceGroup[departmentIndex]
                             workplacesearch?.beforeWorkOfOT || ""
                           ) || ""
                         );
-  
                       break;
                     case "afternoon_shift":
                       const afternoonTimes = await item.allTimes.filter(
@@ -901,9 +905,30 @@ await workplacesearch.workplaceGroup[departmentIndex]
                 ศุกร์: 5,
                 เสาร์: 6,
               };
-              let date = await new Date(year, month - 1, wDate); // Subtract 1 from the month since months are zero-indexed
-              let dayOfWeek = await date.getDay(); // This will give you the day of the week, where 0 is Sunday, 1 is
 
+              // let date = await new Date(year, month - 1, wDate); // Subtract 1 from the month since months are zero-indexed
+              // let dayOfWeek = await date.getDay(); // This will give you the day of the week, where 0 is Sunday, 1 is
+              let m = '';
+let y = '';
+              if (wDate >= 21 && wDate <= 31) {
+                if (parseInt(month, 10) === 1) {
+                  // month = '12';  // Change '01' to '12'
+m = '12';
+                  y= await year - 1; // Decrease the year
+                } else {
+                  m = Await (parseInt(month, 10) - 1).toString().padStart(2, '0'); // Convert to number, subtract 1, and format as 2-digit string
+                  y = year;
+                }
+
+              }
+              
+              
+              let date = new Date(y, parseInt(m, 10) - 1, wDate); // Ensure month is a number
+              let dayOfWeek = date.getDay(); // Get day of the week
+              
+              console.log('Date:', date);
+              console.log('Day of the Week:', dayOfWeek);
+              
               // alert(JSON.stringify('hi') );
 
               await workplacesearch.workTimeDay.map(async (item, index) => {
