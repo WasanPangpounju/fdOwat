@@ -1895,9 +1895,26 @@ function Compensation() {
 
                 return (
                   <tr key={`${index}-${subIndex}`}>
-                    <td style={{ textAlign: "center", verticalAlign: "middle" }}>
-                      {day} / {record.month} / {record.year}
-                    </td>
+<td style={{ textAlign: "center", verticalAlign: "middle" }}>
+  {(() => {
+    let displayDay = day;
+    let displayMonth = record.month;
+    let displayYear = record.year;
+
+    if (day >= 21 && day <= 31) {
+      if (displayMonth === '01') {
+        displayMonth = 12; // Set to December
+        displayYear -= 1;  // Decrease year
+      } else {
+        let x = parseInt(displayMonth  , 10);
+        displayMonth = x -1;
+      }
+    }
+
+    return `${displayDay} / ${displayMonth.toString().padStart(2, '0')} / ${displayYear}`;
+  })()}
+</td>
+                    
                     <td style={{ textAlign: "center", verticalAlign: "middle" }}>
                       {matchedRecord ? matchedRecord.workplaceId : "-"}
                     </td>
