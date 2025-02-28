@@ -1866,6 +1866,10 @@ return dataCal;
 const calculateCashValues = async (employee_record, month, year) => {
   return Promise.all(
     employee_record.map(async (record) => {
+if((record.date >= 21 && record.date <= 31) && month == 1) {
+year = year -1;
+month = 12;
+}
       const dataRate = await checkDayRate(record.workplaceId, record.wGroup, new Date(year, month - 1, record.date));
       let cashBeforeOt = 0;
       let cashWork = 0;
