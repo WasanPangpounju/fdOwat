@@ -1917,7 +1917,7 @@ month = 12;
 
                 //check salary custom with profile or use with workplace
                 if(salaryTmp !== 0) {
-                  // salary = parseFloat(salary || '0') / 8;
+                  salary = parseFloat(salary || '0') / 8;
                   console.log(salary)
                             } else {
                               if(dataRate?.workRate ){
