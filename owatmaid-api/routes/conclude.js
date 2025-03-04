@@ -1889,11 +1889,11 @@ const getEmployeeProfile = async (employeeId) => {
 
 const calculateCashValues = async (employeeId, employee_record, month, year) => {
   const employeeProfile = await getEmployeeProfile(employeeId);
-const salaryTmp = await parseFloat(employeeProfile[0].salary || '0') || 0;
+const salaryTmp = parseFloat(employeeProfile[0].salary || '0') || 0;
 const salary = await 0;
 
 if(parseFloat(salary || '0')  > 1660) {
-  salary = await parseFloat(salaryTmp || '0') / 30;
+  salary = parseFloat(salaryTmp || '0') / 30;
 }
 
   return Promise.all(
@@ -1920,7 +1920,7 @@ month = 12;
                   salary = parseFloat(salary || '0') / 8;
                             } else {
                               if(dataRate?.workRate ){
-                              salary = await parseFloat(dataRate.workRate || '0');
+                              salary = parseFloat(dataRate.workRate || '0');
                             } else {
                               salary = 0;
                             }
