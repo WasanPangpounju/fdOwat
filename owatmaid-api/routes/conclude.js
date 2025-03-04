@@ -1891,7 +1891,6 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
   const employeeProfile = await getEmployeeProfile(employeeId);
 const salaryTmp = parseFloat(employeeProfile[0].salary || '0') || 0;
 let addSalary = employeeProfile?.[0]?.addSalary || [];
-console.log('add salary' + addSalary.length);
 let salary = 0;
 
 if(parseFloat(salaryTmp || '0')  > 1660) {
@@ -1915,6 +1914,8 @@ const workplaceId = employeeProfile[0].workplace === "10105" ? "10105" : record.
 
 // console.log(record.date );
 // console.log(employeeId + JSON.stringify(employeeProfile[0].salary,null,2))
+console.log('add salary' + addSalary.length);
+
 
       let cashBeforeOt = 0;
       let cashWork = 0;
