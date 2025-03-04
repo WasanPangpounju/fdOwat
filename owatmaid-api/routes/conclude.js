@@ -1920,7 +1920,7 @@ month = 12;
                   salary = await parseFloat(salary || '0') / 8;
                             } else {
                               if(dataRate?.workRate ){
-                              salary = await parseFloat(dataRate?.workRate || '0') || 0;
+                              salary = await parseFloat(dataRate.workRate || '0');
                             } else {
                               salary = 0;
                             }
