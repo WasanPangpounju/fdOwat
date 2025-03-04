@@ -1893,7 +1893,9 @@ const salaryTmp = parseFloat(employeeProfile[0].salary || '0') || 0;
 let salary = 0;
 
 if(parseFloat(salaryTmp || '0')  > 1660) {
-  salary = parseFloat(salaryTmp || '0') / 30;
+  salary = await (parseFloat(salaryTmp || '0') / 30)/ 8;
+} else {
+  salary = await (parseFloat(salaryTmp || '0')/ 8);
 }
 
   return Promise.all(
@@ -1916,8 +1918,8 @@ month = 12;
       let dayType = '';
 
                 //check salary custom with profile or use with workplace
-                if(salaryTmp !== 0 && salary === 0) {
-                  salary = parseFloat(salary || '0') / 8;
+                if(salaryTmp !== 0 ) {
+                  // salary = parseFloat(salary || '0') / 8;
                   console.log(salary)
                             } else {
                               if(dataRate?.workRate ){
