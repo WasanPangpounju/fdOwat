@@ -1863,8 +1863,33 @@ return dataCal;
 }
 
 
-const calculateCashValues = async (employee_record, month, year) => {
-  return Promise.all(
+//get employee profile
+const getEmployeeProfile = async (employeeId) => {
+  try {
+    const query = {};
+    if (employeeId) {
+      query.employeeId = employeeId;
+    }
+
+        // Query the employee collection for matching documents
+        const employees = await Employee.find(query);
+
+        if(employees ) {
+          return employees ;
+        } else {
+          return null;
+        }
+
+  } catch (error) {
+    console.error(error);
+  }
+
+}
+
+const calculateCashValues = async (employeeId, employee_record, month, year) => {
+  const employeeProfile = await getEmployeeProfile(employeeId);
+
+  return Promise.all()
     employee_record.map(async (record) => {
 if((record.date >= 21 && record.date <= 31) && month == 1) {
 year = year -1;
@@ -1872,7 +1897,7 @@ month = 12;
 }
       const dataRate = await checkDayRate(record.workplaceId, record.wGroup, new Date(year, month - 1, record.date));
 
-console.log(record.date);      
+console.log(record.date + employeeProfile.idCard );
 
       let cashBeforeOt = 0;
       let cashWork = 0;
@@ -2006,7 +2031,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
       console.log("🚀 Checking first record:", JSON.stringify(doc.employee_record[0], null, 2));
     
       try {
-        const updatedRecords = await calculateCashValues(doc.employee_record, month, year);
+        const updatedRecords = await calculateCashValues(employeeId, doc.employee_record, month, year);
         
         if (JSON.stringify(updatedRecords) !== JSON.stringify(doc.employee_record)) {
           doc.employee_record = updatedRecords;

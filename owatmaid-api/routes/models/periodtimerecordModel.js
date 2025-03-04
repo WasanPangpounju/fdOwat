@@ -6,6 +6,7 @@ const periodEmployeeTimerecordSchema = new mongoose.Schema({
   employeeId: String,
   employeeName: String,
   month: String,
+  status: String,
   employee_record: [{
     workplaceId: String,
     workplaceName: String,

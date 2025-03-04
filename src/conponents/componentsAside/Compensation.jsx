@@ -1664,6 +1664,41 @@ function Compensation() {
     }
   }
 
+
+  //sum concludeResultx
+  const [dataTotals , setDataTotals ] = useState({});
+
+  useEffect(() => {
+    const sum = async (data) => {
+      if (!data || !data.employee_record) return;
+  
+      const totals = data.employee_record.reduce((acc, record) => {
+        acc.totalTime += parseFloat(record.totalTime) || 0;
+        acc.beforeTotalOtTime += parseFloat(record.beforeTotalOtTime) || 0;
+        acc.totalOtTime += parseFloat(record.totalOtTime) || 0;
+        acc.cashBeforeOt += parseFloat(record.cashBeforeOt) || 0;
+        acc.cashWork += parseFloat(record.cashWork) || 0;
+        acc.cashOt += parseFloat(record.cashOt) || 0;
+        return acc;
+      }, {
+        totalTime: 0,
+        beforeTotalOtTime: 0,
+        totalOtTime: 0,
+        cashBeforeOt: 0,
+        cashWork: 0,
+        cashOt: 0
+      });
+  
+      // alert(JSON.stringify(totals, null, 2));
+      setDataTotals(totals);
+    };
+  
+    if (concludeResultx.length > 0) {
+      sum(concludeResultx[0]);
+    }
+  }, [concludeResultx]);
+  
+
   return (
     // <div>
     <body class="hold-transition sidebar-mini" className="editlaout">
@@ -1979,7 +2014,23 @@ function Compensation() {
 ))}
 
           
+<tr>
+<td style={{ textAlign: "center", verticalAlign: "middle" }}> รวม </td>
+<td style={{ textAlign: "center", verticalAlign: "middle" }}></td>
+<td style={{ textAlign: "center", verticalAlign: "middle" }}></td>
+<td style={{ textAlign: "center", verticalAlign: "middle" }}></td>
+<td style={{ textAlign: "center", verticalAlign: "middle" }}></td>
+<td style={{ textAlign: "center", verticalAlign: "middle" }}>{dataTotals.beforeTotalOtTime || '0'} ชั่วโมง</td>
+<td style={{ textAlign: "center", verticalAlign: "middle" }}>{dataTotals.cashBeforeOt || '0'} บาท</td>
+<td style={{ textAlign: "center", verticalAlign: "middle" }}>{dataTotals.totalTime || '0'} ชั่วโมง</td>
+<td style={{ textAlign: "center", verticalAlign: "middle" }}>{dataTotals.cashWork || '0'} บาท</td>
+<td style={{ textAlign: "center", verticalAlign: "middle" }}>{dataTotals.totalOtTime || '0'} ชั่วโมง</td>
+<td style={{ textAlign: "center", verticalAlign: "middle" }}>{dataTotals.cashOt || '0'} บาท</td>
 
+<td style={{ textAlign: "center", verticalAlign: "middle" }}></td>
+<td style={{ textAlign: "center", verticalAlign: "middle" }}></td>
+
+</tr>
         </tbody>
       </table>
     </div>
