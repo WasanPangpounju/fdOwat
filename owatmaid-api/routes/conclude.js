@@ -1889,7 +1889,7 @@ const getEmployeeProfile = async (employeeId) => {
 const calculateCashValues = async (employeeId, employee_record, month, year) => {
   const employeeProfile = await getEmployeeProfile(employeeId);
 
-  return Promise.all()
+  return Promise.all(
     employee_record.map(async (record) => {
 if((record.date >= 21 && record.date <= 31) && month == 1) {
 year = year -1;
