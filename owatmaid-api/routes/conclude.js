@@ -1906,9 +1906,10 @@ month = 12;
 }
 
 //check workplace 10105
-console.log('employee workplace' + employeeProfile[0].workplace);
+// console.log('employee workplace' + employeeProfile[0].workplace);
+const workplaceId = employeeProfile[0].workplace === "10105" ? "10105" : record.workplaceId;
 
-      const dataRate = await checkDayRate(record.workplaceId, record.wGroup, new Date(year, month - 1, record.date));
+      const dataRate = await checkDayRate(workplaceId,  record.wGroup, new Date(year, month - 1, record.date));
 
 // console.log(record.date );
 // console.log(employeeId + JSON.stringify(employeeProfile[0].salary,null,2))
