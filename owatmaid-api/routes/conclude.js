@@ -1897,8 +1897,8 @@ month = 12;
 }
       const dataRate = await checkDayRate(record.workplaceId, record.wGroup, new Date(year, month - 1, record.date));
 
-console.log(record.date + employeeProfile[0].idCard );
-
+console.log(record.date );
+console.log(JSON.stringify(employeeProfile,null,2))
       let cashBeforeOt = 0;
       let cashWork = 0;
       let cashOt = 0;
