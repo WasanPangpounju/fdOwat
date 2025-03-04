@@ -1904,6 +1904,10 @@ if((record.date >= 21 && record.date <= 31) && month == 1) {
 year = year -1;
 month = 12;
 }
+
+//check workplace 10105
+console.log(employeeProfile[0].workplace);
+
       const dataRate = await checkDayRate(record.workplaceId, record.wGroup, new Date(year, month - 1, record.date));
 
 // console.log(record.date );
@@ -1920,7 +1924,7 @@ month = 12;
                 //check salary custom with profile or use with workplace
                 if(salaryTmp !== 0 ) {
                   // salary = parseFloat(salary || '0') / 8;
-                  console.log(salary)
+                  // console.log(salary)
                             } else {
                               if(dataRate?.workRate ){
                               salary = parseFloat(dataRate.workRate || '0');
