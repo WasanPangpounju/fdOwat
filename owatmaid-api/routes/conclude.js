@@ -1920,7 +1920,7 @@ month = 12;
                   salary = parseFloat(salary || '0') / 8;
                             } else {
                               if(dataRate?.workRate ){
-                              salary = parseFloat(dataRate.workRate || '0');
+                              // salary = parseFloat(dataRate.workRate || '0');
                             } else {
                               salary = 0;
                             }
