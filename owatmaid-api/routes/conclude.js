@@ -1889,6 +1889,10 @@ const getEmployeeProfile = async (employeeId) => {
 
 const calculateCashValues = async (employeeId, employee_record, month, year) => {
   const employeeProfile = await getEmployeeProfile(employeeId);
+const salary = await parseFloat(employeeProfile[0].salary || '0') || 0;
+if(parseFloat(salary || '0')  > 1660) {
+  salary = await parseFloat(salary || '0') / 30;
+}
 
   return Promise.all(
     employee_record.map(async (record) => {
@@ -1899,7 +1903,7 @@ month = 12;
       const dataRate = await checkDayRate(record.workplaceId, record.wGroup, new Date(year, month - 1, record.date));
 
 // console.log(record.date );
-console.log(employeeId + JSON.stringify(employeeProfile[0].salary,null,2))
+// console.log(employeeId + JSON.stringify(employeeProfile[0].salary,null,2))
 
       let cashBeforeOt = 0;
       let cashWork = 0;
@@ -1909,12 +1913,20 @@ console.log(employeeId + JSON.stringify(employeeProfile[0].salary,null,2))
       let cashOtMul = 0;
       let dayType = '';
 
+                //check salary custom with profile or use with workplace
+                if(salary !== 0) {
+                  salary = await parseFloat(salary || '0') / 8);
+                            } else {
+                              salary = await parseFloat(dataRate?.workRate || '0');
+                            }
+                  
       //check dayType
         if (dataRate?.dayType !== '') {
         if (dataRate?.dayType === 'stop') {
-         cashBeforeOt = await ((record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.dayoffRateOT || '0') * parseFloat(dataRate?.workRate || '0') || 0)) || '';
-         cashWork = await (record.totalTime || 0) * (parseFloat(dataRate?.workRate || '0')* parseFloat(dataRate?.dayoffRateHour || '0')) || '';
-         cashOt = await (record.totalOtTime || 0) * (parseFloat(dataRate?.dayoffRateOT || '0') * parseFloat(dataRate?.workRate || '0')) || '';
+          
+         cashBeforeOt = await ((record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.dayoffRateOT || '0') * salary || 0)) || '';
+         cashWork = await (record.totalTime || 0) * (salary * parseFloat(dataRate?.dayoffRateHour || '0')) || '';
+         cashOt = await (record.totalOtTime || 0) * (parseFloat(dataRate?.dayoffRateOT || '0') * salary ) || '';
          dayType = await dataRate?.dayType || '';
           cashBeforeOtMul = dataRate?.dayoffRateOT ||  0;
           cashWorkMul = dataRate?.dayoffRateHour || 0;
@@ -1922,9 +1934,9 @@ console.log(employeeId + JSON.stringify(employeeProfile[0].salary,null,2))
      
     }else 
     if(dataRate?.dayType === 'specialDayOff') {
-      cashBeforeOt = await ((record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.holidayOT || '0') * parseFloat(dataRate?.workRate || '0') || 0)) || '';
-      cashWork = await (record.totalTime || 0) * (parseFloat(dataRate?.workRate || '0')* parseFloat(dataRate?.holiday || '0')) || '';
-      cashOt = await (record.totalOtTime || 0) * (parseFloat(dataRate?.holidayOT || '0') * parseFloat(dataRate?.workRate || '0')) || '';
+      cashBeforeOt = await ((record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.holidayOT || '0') * salary  || 0)) || '';
+      cashWork = await (record.totalTime || 0) * (salary * parseFloat(dataRate?.holiday || '0')) || '';
+      cashOt = await (record.totalOtTime || 0) * (parseFloat(dataRate?.holidayOT || '0') * salary ) || '';
       dayType = await dataRate?.dayType || '';
        cashBeforeOtMul = dataRate?.holidayOT ||  0;
        cashWorkMul = dataRate?.holiday || 0;
@@ -1932,9 +1944,9 @@ console.log(employeeId + JSON.stringify(employeeProfile[0].salary,null,2))
 
     } else {
 
-       cashBeforeOt = await (record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.workRateOT || '0') * parseFloat(dataRate?.workRate || '0'));
-       cashWork = await (record.totalTime || 0) * parseFloat(dataRate?.workRate || '0');
-       cashOt = await (record.totalOtTime || 0) * (parseFloat(dataRate?.workRateOT || '0') * parseFloat(dataRate?.workRate || '0'));
+       cashBeforeOt = await (record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.workRateOT || '0') * salary );
+       cashWork = await (record.totalTime || 0) * salary;
+       cashOt = await (record.totalOtTime || 0) * (parseFloat(dataRate?.workRateOT || '0') * salary );
        dayType = await dataRate?.dayType || '';
        cashBeforeOtMul = dataRate?.workRateOT ||  0;
        cashWorkMul = 1;
