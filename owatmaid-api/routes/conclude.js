@@ -1919,7 +1919,8 @@ month = 12;
                 if(salary !== 0) {
                   salary = await parseFloat(salary || '0') / 8;
                             } else {
-                              salary = await parseFloat(dataRate?.workRate || '0');
+                              salary = await parseFloat(dataRate?.workRate || '0') || 0;
+                              
                             }
                   
       //check dayType
