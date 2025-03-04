@@ -1914,7 +1914,7 @@ const workplaceId = employeeProfile[0].workplace === "10105" ? "10105" : record.
 
 // console.log(record.date );
 // console.log(employeeId + JSON.stringify(employeeProfile[0].salary,null,2))
-console.log('add salary' + addSalary.length);
+console.log('add salary' + JSON.stringify(addSalary,null,2) );
 
 
       let cashBeforeOt = 0;
