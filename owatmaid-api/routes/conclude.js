@@ -5,6 +5,7 @@ const sURL = 'http://localhost:3000';
 const timerecordEmployee = require('./models/periodtimerecordModel');
 //require Workplace 
 const Workplace = require('./models/workplaceModel');
+const Employee = require('./models/employeeModel');
 
 
 const axios = require('axios');
@@ -1899,6 +1900,7 @@ month = 12;
 
 console.log(record.date );
 console.log(employeeId + JSON.stringify(employeeProfile,null,2))
+
       let cashBeforeOt = 0;
       let cashWork = 0;
       let cashOt = 0;
