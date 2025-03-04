@@ -1906,7 +1906,7 @@ month = 12;
 }
 
 //check workplace 10105
-console.log(employeeProfile[0].workplace);
+console.log('employee workplace' + employeeProfile[0].workplace);
 
       const dataRate = await checkDayRate(record.workplaceId, record.wGroup, new Date(year, month - 1, record.date));
 
