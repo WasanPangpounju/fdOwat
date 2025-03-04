@@ -1916,7 +1916,7 @@ month = 12;
       let dayType = '';
 
                 //check salary custom with profile or use with workplace
-                if(salaryTmp !== 0) {
+                if(salaryTmp !== 0 && salary === 0) {
                   salary = parseFloat(salary || '0') / 8;
                   console.log(salary)
                             } else {
