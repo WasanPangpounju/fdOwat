@@ -1915,7 +1915,7 @@ month = 12;
 
                 //check salary custom with profile or use with workplace
                 if(salary !== 0) {
-                  salary = await parseFloat(salary || '0') / 8);
+                  salary = await parseFloat(salary || '0') / 8;
                             } else {
                               salary = await parseFloat(dataRate?.workRate || '0');
                             }
