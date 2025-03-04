@@ -1893,9 +1893,9 @@ const salaryTmp = parseFloat(employeeProfile[0].salary || '0') || 0;
 let salary = 0;
 
 if(parseFloat(salaryTmp || '0')  > 1660) {
-  salary = await (parseFloat(salaryTmp || '0') / 30)/ 8;
+  salary = await ((parseFloat(salaryTmp || '0') / 30)/ 8).toFixed(3);
 } else {
-  salary = await (parseFloat(salaryTmp || '0')/ 8);
+  salary = await (parseFloat(salaryTmp || '0')/ 8).toFixed(3);
 }
 
   return Promise.all(
