@@ -1890,6 +1890,8 @@ const getEmployeeProfile = async (employeeId) => {
 const calculateCashValues = async (employeeId, employee_record, month, year) => {
   const employeeProfile = await getEmployeeProfile(employeeId);
 const salaryTmp = parseFloat(employeeProfile[0].salary || '0') || 0;
+let addSalary = employeeProfile?.[0]?.addSalary || [];
+console.log('add salary' + addSalary.length);
 let salary = 0;
 
 if(parseFloat(salaryTmp || '0')  > 1660) {
