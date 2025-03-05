@@ -1890,7 +1890,7 @@ const getEmployeeProfile = async (employeeId) => {
 const calculateCashValues = async (employeeId, employee_record, month, year) => {
   const employeeProfile = await getEmployeeProfile(employeeId);
 const salaryTmp = parseFloat(employeeProfile[0].salary || '0') || 0;
-let addSalary = await employeeProfile?.[0]?.addSalary?.filter(item => item.roundOfSalary === "daily") || [];
+let addSalaryDaily = await employeeProfile?.[0]?.addSalary?.filter(item => item.roundOfSalary === "daily") || [];
 
 let salary = 0;
 
@@ -1915,7 +1915,7 @@ const workplaceId = employeeProfile[0].workplace === "10105" ? "10105" : record.
 
 // console.log(record.date );
 // console.log(employeeId + JSON.stringify(employeeProfile[0].salary,null,2))
-console.log('add salary' + JSON.stringify(addSalary,null,2) );
+console.log('add salary' + JSON.stringify(addSalaryDaily,null,2) );
 
 
       let cashBeforeOt = 0;
@@ -1925,6 +1925,7 @@ console.log('add salary' + JSON.stringify(addSalary,null,2) );
       let cashWorkMul = 0;
       let cashOtMul = 0;
       let dayType = '';
+let addSalary = [];
 
                 //check salary custom with profile or use with workplace
                 if(salaryTmp !== 0 ) {
@@ -1969,7 +1970,7 @@ console.log('add salary' + JSON.stringify(addSalary,null,2) );
        cashBeforeOtMul = dataRate?.workRateOT ||  0;
        cashWorkMul = 1;
        cashOtMul = dataRate?.workRateOT || 0;
-
+addSalary = addSalaryDaily;
     }
     
   }
