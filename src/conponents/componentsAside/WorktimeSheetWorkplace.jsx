@@ -1,5 +1,5 @@
 import endpoint from "../../config";
-import { Table } from "react-bootstrap";
+// import { Table } from "react-bootstrap";
 // import "bootstrap/dist/css/bootstrap.min.css";
 import "./table.css";
 
