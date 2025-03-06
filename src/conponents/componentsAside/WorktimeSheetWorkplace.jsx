@@ -2,6 +2,7 @@ import endpoint from "../../config";
 // import { Table } from "react-bootstrap";
 // import "bootstrap/dist/css/bootstrap.min.css";
 import "./table.css";
+import Table from "react-bootstrap/Table";
 
 import { ThaiDatePicker } from "thaidatepicker-react";
 import { FaCalendarAlt } from "react-icons/fa"; // You can use any icon library
