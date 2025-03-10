@@ -829,21 +829,100 @@ const cleanRowDataList2 = async () => {
 async function handleUpdateWorkplaceTimerecord () {
     const data = {
         year: year,
-        employeeId: employeeId,
-        employeeName: name,
+        employeeId: staffId,
+        employeeName: "",
         month: month,
         employee_record: rowDataList2,
       };
-  alert(JSON.stringify(data , null,2) );
+//   alert(JSON.stringify(data , null,2) );
     try {
         setLoading(true); // Start loading state
         await cleanRowDataList2();
 
-        // const response = await axios.put(
-        //     endpoint + "/timerecord/updatetimerecordemployee/" + timeRecord_id,
-        //     data
-        //   );
+        const response = await axios.put(
+            endpoint + "/timerecord/updatetimerecordemployee/" + timeRecord_id,
+            data
+          );
+
+          if (response?.status === 201) {
+            alert("บันทึกสำเร็จ");
+            // handleCheckTimerecord();
+                    setUpdateButton(true);
+                    // alert(response.data.recordworkplace[0].employee_workplaceRecord[1].workplaceId);
+                    setTimeRecord_id(response?.data?.employee_record._id);
+                    let apiData = response?.data?.employee_record || [];
+
+                    // Extract existing dates from API response
+                    const existingDates = new Set(apiData.map((item) => parseInt(item.date, 10)));
+        
+                    // Create an array to store sorted data
+                    let sortedData = [...apiData];
+        
+                    // Function to create an empty record
+                    const emptyRecord = (date) => ({
+                        workplaceId: "",
+                        workplaceName: "",
+                        wGroup: "",
+                        date: date.toString(), // Ensure it's always a string
+                        shift: "",
+                        startTime: "",
+                        endTime: "",
+                        totalTime: "",
+                        beforeStartOtTime: "",
+                        beforeEndOtTime: "",
+                        beforeTotalOtTime: "",
+                        startOtTime: "",
+                        endOtTime: "",
+                        totalOtTime: "",
+                        cashBeforeOt: "",
+                        cashBeforeOtMul: "",
+                        cashWork: "",
+                        cashWorkMul: "",
+                        cashOt: "",
+                        cashOtMul: "",
+                        cashSalary: "",
+                        specialtSalary: "",
+                        specialtSalaryOT: "",
+                        messageSalary: "",
+                        dayType: "",
+                        addSalary: [],
+                    });
+        
+                    // Loop through 21-31 and add missing dates
+                    for (let i = 21; i <= 31; i++) {
+                        if (!existingDates.has(i)) { 
+                            sortedData.push(emptyRecord(i));
+                        }
+                    }
+        
+                    // Loop through 1-20 and add missing dates
+                    for (let i = 1; i <= 20; i++) {
+                        if (!existingDates.has(i)) { 
+                            sortedData.push(emptyRecord(i));
+                        }
+                    }
+        
+                    // Sort the final list: 21-31 first, then 1-20
+                    sortedData = sortedData.sort((a, b) => {
+                        const dateA = parseInt(a.date, 10);
+                        const dateB = parseInt(b.date, 10);
+        
+                        // Ensure valid dates only
+                        if (isNaN(dateA) || isNaN(dateB)) return 0;
+        
+                        // Sort within groups: (21-31 first, then 1-20)
+                        if ((dateA >= 21 && dateB >= 21) || (dateA <= 20 && dateB <= 20)) {
+                            return dateA - dateB;
+                        }
+                        return dateA >= 21 ? -1 : 1;
+                    });
+        
+                    // Assign temporary indices after sorting
+                    setRowDataList2(sortedData.map((item, index) => ({ ...item, tmpIndex: index })));
+    setLoading(false);
     
+          }
+
     } catch (error) {
         console.error("Error updating data:", error);
         alert("❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์");

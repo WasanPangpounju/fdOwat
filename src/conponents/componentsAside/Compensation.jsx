@@ -1651,7 +1651,7 @@ function Compensation() {
 
       if (response.data?.result?.length > 0) {
         await setConcludeResultx(response.data.result);
-        // alert(JSON.stringify(response.data?.result[0]?.employee_record[0], null, 2));
+        alert(JSON.stringify(response.data?.result[0]?.employee_record[0].addSalary, null, 2));
       } else {
         // alert("Conclude is null");
       }

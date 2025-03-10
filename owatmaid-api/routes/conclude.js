@@ -1924,6 +1924,7 @@ console.log('add salary' + JSON.stringify(addSalary,null,2) );
       let cashWorkMul = 0;
       let cashOtMul = 0;
       let dayType = '';
+let addSalaryDaily = [];
 
                 //check salary custom with profile or use with workplace
                 if(salaryTmp !== 0 ) {
@@ -1948,7 +1949,7 @@ console.log('add salary' + JSON.stringify(addSalary,null,2) );
           cashBeforeOtMul = dataRate?.dayoffRateOT ||  0;
           cashWorkMul = dataRate?.dayoffRateHour || 0;
           cashOtMul = dataRate?.dayoffRateOT || 0;
-     
+          addSalaryDaily  = [];
     }else 
     if(dataRate?.dayType === 'specialDayOff') {
       cashBeforeOt = await ((record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.holidayOT || '0') * salary  || 0)) || '';
@@ -1958,7 +1959,7 @@ console.log('add salary' + JSON.stringify(addSalary,null,2) );
        cashBeforeOtMul = dataRate?.holidayOT ||  0;
        cashWorkMul = dataRate?.holiday || 0;
        cashOtMul = dataRate?.holidayOT || 0;
-
+       addSalaryDaily  = [];
     } else {
 
        cashBeforeOt = await (record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.workRateOT || '0') * salary );
@@ -1968,7 +1969,7 @@ console.log('add salary' + JSON.stringify(addSalary,null,2) );
        cashBeforeOtMul = dataRate?.workRateOT ||  0;
        cashWorkMul = 1;
        cashOtMul = dataRate?.workRateOT || 0;
-
+addSalaryDaily = addSalary;
     }
     
   }
@@ -1982,6 +1983,7 @@ console.log('add salary' + JSON.stringify(addSalary,null,2) );
         cashWorkMul,
         cashOtMul,
         dayType ,
+        addSalaryDaily,
       };
     })
   );
