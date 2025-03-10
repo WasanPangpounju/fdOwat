@@ -33,6 +33,7 @@ specialtSalary: String,
 specialtSalaryOT: String,
         messageSalary: String,
         dayType: String,
+addSalaryDaily : [],
 
 }]
 });
