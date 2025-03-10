@@ -1983,7 +1983,6 @@ addSalaryDaily = addSalary;
         cashWorkMul,
         cashOtMul,
         dayType ,
-        addSalaryDaily,
       };
     })
   );
