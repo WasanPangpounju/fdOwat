@@ -1949,7 +1949,7 @@ let addSalaryDaily = [];
           cashBeforeOtMul = dataRate?.dayoffRateOT ||  0;
           cashWorkMul = dataRate?.dayoffRateHour || 0;
           cashOtMul = dataRate?.dayoffRateOT || 0;
-          addSalaryDaily  = [];
+          addSalaryDaily  = addSalary;
     }else 
     if(dataRate?.dayType === 'specialDayOff') {
       cashBeforeOt = await ((record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.holidayOT || '0') * salary  || 0)) || '';
@@ -1959,7 +1959,7 @@ let addSalaryDaily = [];
        cashBeforeOtMul = dataRate?.holidayOT ||  0;
        cashWorkMul = dataRate?.holiday || 0;
        cashOtMul = dataRate?.holidayOT || 0;
-       addSalaryDaily  = [];
+       addSalaryDaily  = addSalary;
     } else {
 
        cashBeforeOt = await (record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.workRateOT || '0') * salary );
