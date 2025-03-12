@@ -90,7 +90,7 @@ router.get('/listempdeletexx', async (req, res) => {
     // Delete all data
     // await timerecordEmployee.deleteMany();
 
-    // console.log(`Deleted ${workplaceTimeRecordData.length} records.`);
+    console.log(`Deleted ${workplaceTimeRecordData.length} records.`);
     await res.json(workplaceTimeRecordData);
   } catch (err) {
     console.error(err);

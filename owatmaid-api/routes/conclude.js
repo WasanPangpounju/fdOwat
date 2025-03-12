@@ -2074,7 +2074,6 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         console.error("❌ Error in calculateCashValues:", error);
       }
     }
-    console.log(result .length)
     await res.status(200).json({ result });
 
   } catch (error) {
