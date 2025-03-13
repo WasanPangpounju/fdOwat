@@ -1924,7 +1924,7 @@ const workplaceId = employeeProfile[0].workplace === "10105" ? "10105" : record.
       let cashWorkMul = 0;
       let cashOtMul = 0;
       let dayType = '';
-let addSalaryDaily = [];
+let addSalaryDaily = null;
 
                 //check salary custom with profile or use with workplace
                 if(salaryTmp !== 0 ) {
