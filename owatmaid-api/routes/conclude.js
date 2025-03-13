@@ -1962,7 +1962,7 @@ let addSalaryDaily = [];
        addSalaryDaily  = addSalary;
     } else {
 
-      if(record.totalTime  !== null || record.totalTime  !== '') {
+      if(parseFloat(record.totalTime || '0') !== 0) {
        cashBeforeOt = await (record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.workRateOT || '0') * salary );
        cashWork = await (record.totalTime || 0) * salary;
        cashOt = await (record.totalOtTime || 0) * (parseFloat(dataRate?.workRateOT || '0') * salary );
