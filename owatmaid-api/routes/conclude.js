@@ -1970,7 +1970,7 @@ let addSalaryDaily = [];
 //        cashWorkMul = 1;
 //        cashOtMul = await dataRate?.workRateOT || 0;
 addSalaryDaily = await employeeProfile[0].addSalary;
-
+console.log(employeeProfile[0].addSalary);
     }
     
   }
