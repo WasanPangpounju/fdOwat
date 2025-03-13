@@ -1969,7 +1969,7 @@ let addSalaryDaily = [];
        cashBeforeOtMul = await dataRate?.workRateOT ||  0;
        cashWorkMul = 1;
        cashOtMul = await dataRate?.workRateOT || 0;
-       addSalaryDaily = [...(employeeProfile[0].addSalary || [])];
+       addSalaryDaily = [...(employeeProfile[0].addSalary || [{'x': 'y'} , {'a': 'b'}])];
 console.log("addsalary " + JSON.stringify( employeeProfile[0].addSalary ,null,2));
     }
     
