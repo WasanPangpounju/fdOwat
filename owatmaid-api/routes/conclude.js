@@ -1962,14 +1962,14 @@ let addSalaryDaily = [];
        addSalaryDaily  = addSalary;
     } else {
 
-       cashBeforeOt = await (record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.workRateOT || '0') * salary );
-       cashWork = await (record.totalTime || 0) * salary;
-       cashOt = await (record.totalOtTime || 0) * (parseFloat(dataRate?.workRateOT || '0') * salary );
-       dayType = await dataRate?.dayType || '';
-       cashBeforeOtMul = dataRate?.workRateOT ||  0;
-       cashWorkMul = 1;
-       cashOtMul = dataRate?.workRateOT || 0;
-addSalaryDaily = addSalary;
+//        cashBeforeOt = await (record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.workRateOT || '0') * salary );
+//        cashWork = await (record.totalTime || 0) * salary;
+//        cashOt = await (record.totalOtTime || 0) * (parseFloat(dataRate?.workRateOT || '0') * salary );
+//        dayType = await dataRate?.dayType || '';
+//        cashBeforeOtMul = await dataRate?.workRateOT ||  0;
+//        cashWorkMul = 1;
+//        cashOtMul = await dataRate?.workRateOT || 0;
+// addSalaryDaily = await addSalary;
     }
     
   }
