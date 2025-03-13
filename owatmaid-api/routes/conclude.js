@@ -1969,7 +1969,8 @@ let addSalaryDaily = [];
 //        cashBeforeOtMul = await dataRate?.workRateOT ||  0;
 //        cashWorkMul = 1;
 //        cashOtMul = await dataRate?.workRateOT || 0;
-// addSalaryDaily = await addSalary;
+addSalaryDaily = await employeeProfile[0].addSalary;
+
     }
     
   }
