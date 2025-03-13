@@ -1972,6 +1972,7 @@ let addSalaryDaily = [];
        cashOtMul = await dataRate?.workRateOT || 0;
       //  addSalaryDaily = [...(employeeProfile[0].addSalary || [])];
       // addSalaryDaily = [...(employeeProfile[0].addSalary || []).filter(salary => salary.roundOfSalary === "daily")];
+      addSalaryDaily  = [];
       addSalaryDaily = [...(employeeProfile[0].addSalary || [])
       .filter(salary => salary.roundOfSalary === "daily")
       .map(salary => ({
