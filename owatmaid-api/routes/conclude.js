@@ -1984,6 +1984,7 @@ console.log("addsalary " + JSON.stringify( employeeProfile[0].addSalary ,null,2)
         cashWorkMul,
         cashOtMul,
         dayType ,
+        addSalaryDaily,
       };
     })
   );
