@@ -1970,7 +1970,7 @@ let addSalaryDaily = [];
        cashWorkMul = 1;
        cashOtMul = await dataRate?.workRateOT || 0;
        addSalaryDaily = [...(employeeProfile[0].addSalary || [])];
-// console.log("addsalary " + JSON.stringify( employeeProfile[0].addSalary ,null,2));
+console.log("addsalary " + JSON.stringify( employeeProfile[0].addSalary ,null,2));
     }
     
   }
