@@ -33,8 +33,18 @@ specialtSalary: String,
 specialtSalaryOT: String,
         messageSalary: String,
         dayType: String,
-addSalaryDaily : [],
-
+        addSalary: [
+          {
+            id: String,
+            name: String,
+            SpSalary: String,
+            roundOfSalary: String,
+            StaffType: String,
+            nameType: String,
+            message: String,
+          },
+        ],
+    
 }]
 });
 
