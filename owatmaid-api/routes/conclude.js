@@ -1970,8 +1970,15 @@ let addSalaryDaily = [];
        cashWorkMul = 1;
        cashOtMul = await dataRate?.workRateOT || 0;
       //  addSalaryDaily = [...(employeeProfile[0].addSalary || [])];
-      addSalaryDaily = [...(employeeProfile[0].addSalary || []).filter(salary => salary.roundOfSalary === "daily")];
-
+      // addSalaryDaily = [...(employeeProfile[0].addSalary || []).filter(salary => salary.roundOfSalary === "daily")];
+      addSalaryDaily = [...(employeeProfile[0].addSalary || [])
+      .filter(salary => salary.roundOfSalary === "daily")
+      .map(salary => ({
+        ...salary,
+        SpSalary: parseFloat(salary.SpSalary) > 100 ? (parseFloat(salary.SpSalary) / 30).toFixed(2) : salary.SpSalary
+      }))
+    ];
+    
 // console.log("addsalary " + JSON.stringify( employeeProfile[0].addSalary ,null,2));
     }
     
