@@ -1962,6 +1962,7 @@ let addSalaryDaily = [];
        addSalaryDaily  = addSalary;
     } else {
 
+      if(record.totalTime  !== null || record.totalTime  !== '') {
        cashBeforeOt = await (record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.workRateOT || '0') * salary );
        cashWork = await (record.totalTime || 0) * salary;
        cashOt = await (record.totalOtTime || 0) * (parseFloat(dataRate?.workRateOT || '0') * salary );
@@ -1980,6 +1981,17 @@ let addSalaryDaily = [];
     ];
     
 // console.log("addsalary " + JSON.stringify( employeeProfile[0].addSalary ,null,2));
+  } else {
+    cashBeforeOt = '';
+    cashWork = '';
+    cashOt = '';
+    dayType = await dataRate?.dayType || '';
+    cashBeforeOtMul = '';
+    cashWorkMul = '';
+    cashOtMul = '';
+    addSalaryDaily = [];
+
+  }
     }
     
   }

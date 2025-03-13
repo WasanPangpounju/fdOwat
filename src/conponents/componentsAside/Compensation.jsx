@@ -1651,7 +1651,7 @@ function Compensation() {
 
       if (response.data?.result?.length > 0) {
         await setConcludeResultx(response.data.result);
-        alert(JSON.stringify(response.data?.result[0]?.employee_record[0].addSalary, null, 2));
+        // alert(JSON.stringify(response.data?.result[0]?.employee_record[0].addSalaryDaily, null, 2));
       } else {
         // alert("Conclude is null");
       }
@@ -1979,7 +1979,21 @@ function Compensation() {
               {matchedRecord.cashOt}
             </td>
             <td style={{ textAlign: "center", verticalAlign: "middle" }}>
-              {matchedRecord.addSalary}
+              {/* {matchedRecord.addSalaryDaily[0]} */}
+              
+              <div className="popup">
+              <h4>รายการเงินเพิ่ม</h4>
+              <ul style={{ listStyleType: "none", padding: 0, margin: 0 }}>
+                {
+                  matchedRecord.addSalaryDaily.map((addSalaryDay , index1) => (
+<li key={index1} style={{ marginBottom: "10px" }}>
+{addSalaryDay.name} {addSalaryDay.SpSalary} บาท
+  </li>
+
+                  ))
+                }
+              </ul>
+              </div>
             </td>
             <td style={{ textAlign: "center", verticalAlign: "middle" }}>
               <button
