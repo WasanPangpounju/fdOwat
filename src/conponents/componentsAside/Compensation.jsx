@@ -1238,7 +1238,7 @@ function Compensation() {
   const [editIndex, setEditIndex] = useState(null);
   const [loadStatus, setLoadStatus] = useState(null);
 
-  const handleInputChange = (e) => {
+  const handleInputChange_back = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
@@ -1697,7 +1697,60 @@ function Compensation() {
       sum(concludeResultx[0]);
     }
   }, [concludeResultx]);
+
   
+//edit table 
+
+const [editingIndex, setEditingIndex] = useState(null);
+const [editedData, setEditedData] = useState({});
+
+// Handle input change
+const handleInputChange = (event, field, index, subIndex, idx) => {
+  const newValue = event.target.value;
+  const key = `${index}-${subIndex}-${idx}_${field}_table`;
+
+  setEditedData((prev) => ({
+    ...prev,
+    [key]: newValue,
+  }));
+};
+
+// Handle delete for salary items
+const handleDeleteSalary = (index, subIndex, idx, salaryIndex) => {
+  alert(" index " + index + " subIndex " + " idx " + idx + " salaryIndex " + salaryIndex)
+  setEditedData((prev) => {
+    const key = `${index}-${subIndex}-${idx}_addSalaryDaily_table`;
+    const updatedSalaries = [...(prev[key] || [])];
+    updatedSalaries.splice(salaryIndex, 1);
+    return {
+      ...prev,
+      [key]: updatedSalaries,
+    };
+  });
+};
+
+// Handle save and update concludeResultx
+const handleSave = (index, subIndex, idx) => {
+  setConcludeResultx((prevData) => {
+    // Clone the array to trigger a re-render
+    const updatedData = JSON.parse(JSON.stringify(prevData));
+
+    // Find the correct record
+    const updatedRecord = updatedData[index]?.employee_record?.[idx];
+    if (updatedRecord) {
+      Object.keys(editedData).forEach((key) => {
+        const field = key.replace(/_\d+-\d+-\d+_table/, ""); // Remove index and "_table" suffix
+        if (updatedRecord[field] !== undefined) {
+          updatedRecord[field] = editedData[key]; // Update modified fields
+        }
+      });
+    }
+alert(JSON.stringify(updatedData,null,2))
+    return updatedData; // Return the new state
+  });
+
+  setEditingIndex(null); // Exit edit mode
+};
 
   return (
     // <div>
@@ -1898,136 +1951,142 @@ function Compensation() {
 
       {/* Loading Indicator */}
       {loading && <div className="mt-3 alert alert-info">Loading data...</div>}
+
 {/* Results Table */}
 {concludeResultx.length > 0 && (
-  <div className="mt-4">
-    <h3 className="text-center">Employee Records</h3>
-    <div className="table-responsive">
-      <table className="table table-bordered text-center">
-        <thead>
-          <tr>
-            <th style={{ textAlign: "center", verticalAlign: "middle" }}>วันที่</th>
-            <th style={{ textAlign: "center", verticalAlign: "middle" }}>รหัส</th>
-            <th style={{ textAlign: "center", verticalAlign: "middle" }}>ชื่อ</th>
-            <th style={{ textAlign: "center", verticalAlign: "middle" }}>กลุ่ม</th>
-            <th style={{ textAlign: "center", verticalAlign: "middle" }}>กะ</th>
-            <th style={{ textAlign: "center", verticalAlign: "middle" }}>OT ก่อน</th>
-            <th style={{ textAlign: "center", verticalAlign: "middle" }}>ค่าจ้าง</th>
-            <th style={{ textAlign: "center", verticalAlign: "middle" }}>เวลาทำงาน</th>
-            <th style={{ textAlign: "center", verticalAlign: "middle" }}>ค่าจ้าง</th>
-            <th style={{ textAlign: "center", verticalAlign: "middle" }}>OT หลัง</th>
-            <th style={{ textAlign: "center", verticalAlign: "middle" }}>ค่าจ้าง</th>
-            <th style={{ textAlign: "center", verticalAlign: "middle" }}>เงินเพิ่ม</th>
-            <th style={{ textAlign: "center", verticalAlign: "middle" }}>แก้ไข</th>
-          </tr>
-        </thead>
-        <tbody>
-          
-        {concludeResultx.map((record, index) => (
-  <>
-    {dataTable.map((workplaceRecord, subIndex) => {
-      const day = workplaceRecord.day.split("/")[0]; // ดึงวันที่
-      const matchedRecords = record.employee_record.filter(item => item.date === day); // ค้นหาข้อมูลที่ตรงกัน
-      let displayDay = day;
-      let displayMonth = record.month;
-      let displayYear = record.year;
 
-      // ปรับเดือนและปีตามเงื่อนไข
-      if (day >= 21 && day <= 31) {
-        if (displayMonth === "01") {
-          displayMonth = 12;
-          displayYear -= 1;
-        } else {
-          displayMonth = (parseInt(displayMonth, 10) - 1).toString().padStart(2, "0");
-        }
-      }
+      <div className="mt-4">
+      <div className="table-responsive">
+        <table className="table table-bordered text-center">
+          <thead>
+            <tr>
+              <th>วันที่</th>
+              <th>รหัส</th>
+              <th>ชื่อ</th>
+              <th>กลุ่ม</th>
+              <th>กะ</th>
+              <th>OT ก่อน</th>
+              <th>ค่าจ้าง</th>
+              <th>เวลาทำงาน</th>
+              <th>ค่าจ้าง</th>
+              <th>OT หลัง</th>
+              <th>ค่าจ้าง</th>
+              <th>เงินเพิ่ม</th>
+              <th>แก้ไข</th>
+            </tr>
+          </thead>
+          <tbody>
+            {concludeResultx.map((record, index) => (
+              <>
+                {dataTable.map((workplaceRecord, subIndex) => {
+                  const day = workplaceRecord.day.split("/")[0];
+                  const matchedRecords = record.employee_record.filter((item) => item.date === day);
 
-      return matchedRecords.length > 0 ? (
-        matchedRecords.map((matchedRecord, idx) => (
-          <tr key={`${index}-${subIndex}-${idx}`}>
-            <td style={{ textAlign: "center", verticalAlign: "middle" }}>
-              {`${displayDay} / ${displayMonth} / ${displayYear}`}
-            </td>
-            <td style={{ textAlign: "center", verticalAlign: "middle" }}>
-              {matchedRecord.workplaceId}
-            </td>
-            <td style={{ textAlign: "center", verticalAlign: "middle" }}>
-              {matchedRecord.workplaceName}
-            </td>
-            <td style={{ textAlign: "center", verticalAlign: "middle" }}>
-              {matchedRecord.wGroup}
-            </td>
-            <td style={{ textAlign: "center", verticalAlign: "middle" }}>
-              {shiftMapping[matchedRecord.shift]}
-            </td>
-            <td style={{ textAlign: "center", verticalAlign: "middle" }}>
-              {matchedRecord.beforeTotalOtTime}
-            </td>
-            <td style={{ textAlign: "center", verticalAlign: "middle" }}>
-              {matchedRecord.cashBeforeOt}
-            </td>
-            <td style={{ textAlign: "center", verticalAlign: "middle" }}>
-              {matchedRecord.totalTime}
-            </td>
-            <td style={{ textAlign: "center", verticalAlign: "middle" }}>
-              {matchedRecord.cashWork}
-            </td>
-            <td style={{ textAlign: "center", verticalAlign: "middle" }}>
-              {matchedRecord.totalOtTime}
-            </td>
-            <td style={{ textAlign: "center", verticalAlign: "middle" }}>
-              {matchedRecord.cashOt}
-            </td>
-            <td style={{ textAlign: "center", verticalAlign: "middle" }}>
-              {/* {matchedRecord.addSalaryDaily[0]} */}
-              
-              <div className="popup">
-              <h4>รายการเงินเพิ่ม</h4>
-              <ul style={{ listStyleType: "none", padding: 0, margin: 0 }}>
-                {
-                  matchedRecord.addSalaryDaily.map((addSalaryDay , index1) => (
-<li key={index1} style={{ marginBottom: "10px" }}>
-{addSalaryDay.name} {addSalaryDay.SpSalary} บาท
-  </li>
+                  return matchedRecords.length > 0 ? (
+                    matchedRecords.map((matchedRecord, idx) => {
+                      const isEditing = editingIndex === `${index}-${subIndex}-${idx}`;
 
-                  ))
-                }
-              </ul>
-              </div>
-            </td>
-            <td style={{ textAlign: "center", verticalAlign: "middle" }}>
-              <button
-                style={{
-                  border: "none",
-                  background: "none",
-                  padding: 0,
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  width: "100%",
-                  height: "100%",
-                }}
-                onClick={() => handleEdit(matchedRecord)}
-              >
-                <i className="bi bi-pencil-square text-danger" style={{ fontSize: "20px", display: "block" }}></i>
-              </button>
-            </td>
-          </tr>
-        ))
-      ) : (
-        <tr key={`${index}-${subIndex}-no-record`}>
-          {/* ถ้าไม่มีข้อมูล ให้ยังคงแสดงวัน / เดือน -1 / ปี -1 */}
-          <td style={{ textAlign: "center", verticalAlign: "middle" }}>
-            {`${displayDay} / ${displayMonth} / ${displayYear}`}
-          </td>
-          <td colSpan="12" style={{ textAlign: "center", verticalAlign: "middle" }}>-</td>
-        </tr>
-      );
-    })}
-  </>
-))}
+                      return (
+                        <tr key={`${index}-${subIndex}-${idx}`}>
+                          <td>{day}</td>
+                          <td>{matchedRecord.workplaceId}</td>
+                          <td>{matchedRecord.workplaceName}</td>
+                          <td>{matchedRecord.wGroup}</td>
+                          <td>{shiftMapping[matchedRecord.shift]}</td>
 
-          
+                          {/* Editable Fields */}
+                          {["beforeTotalOtTime", "cashBeforeOt", "totalTime", "cashWork", "totalOtTime", "cashOt"].map(
+                            (field) => (
+                              <td key={field}>
+                                {isEditing ? (
+                                  <input
+                                    type="text"
+                                    value={
+                                      editedData[`${index}-${subIndex}-${idx}_${field}_table`] ??
+                                      matchedRecord[field]
+                                    }
+                                    onChange={(e) => handleInputChange(e, field, index, subIndex, idx)}
+                                  />
+                                ) : (
+                                  matchedRecord[field]
+                                )}
+                              </td>
+                            )
+                          )}
+
+                          {/* เงินเพิ่ม (Show sum or detailed list) */}
+                          <td>
+                            {isEditing ? (
+                              <div>
+                                <p>รายการเงินเพิ่ม</p>
+                                <ul style={{ listStyleType: "none", padding: 0, margin: 0 }}>
+                                  {matchedRecord.addSalaryDaily.map((addSalaryDay, salaryIndex) => (
+                                    <li key={salaryIndex} style={{ marginBottom: "10px" }}>
+                                      {addSalaryDay.name} {addSalaryDay.SpSalary} บาท
+                                      <button
+                                        type="button"
+                                        className="ml-2 text-red-600 hover:text-red-800"
+                                        onClick={() => handleDeleteSalary(index, subIndex, idx, salaryIndex)}
+                                      >
+                                        ลบ
+                                      </button>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            ) : (
+                              matchedRecord.addSalaryDaily.reduce(
+                                (sum, salary) => sum + parseFloat(salary.SpSalary || 0),
+                                0
+                              ) + " บาท"
+                            )}
+                          </td>
+
+                          {/* แก้ไข / บันทึก */}
+                          <td>
+                            {isEditing ? (
+                              <>
+                                <button className="btn btn-success mr-2" onClick={() => handleSave(index, subIndex, idx)}>
+                                  บันทึก
+                                </button>
+                                <button className="btn btn-danger" onClick={() => setEditingIndex(null)}>
+                                  ยกเลิก
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                className="btn btn-warning"
+                                onClick={() => {
+                                  setEditingIndex(`${index}-${subIndex}-${idx}`);
+                                  setEditedData((prev) => ({
+                                    ...prev,
+                                    [`${index}-${subIndex}-${idx}_beforeTotalOtTime_table`]: matchedRecord.beforeTotalOtTime,
+                                    [`${index}-${subIndex}-${idx}_cashBeforeOt_table`]: matchedRecord.cashBeforeOt,
+                                    [`${index}-${subIndex}-${idx}_totalTime_table`]: matchedRecord.totalTime,
+                                    [`${index}-${subIndex}-${idx}_cashWork_table`]: matchedRecord.cashWork,
+                                    [`${index}-${subIndex}-${idx}_totalOtTime_table`]: matchedRecord.totalOtTime,
+                                    [`${index}-${subIndex}-${idx}_cashOt_table`]: matchedRecord.cashOt,
+                                    [`${index}-${subIndex}-${idx}_addSalaryDaily_table`]: matchedRecord.addSalaryDaily,
+                                  }));
+                                }}
+                              >
+                                แก้ไข
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr key={`${index}-${subIndex}-no-record`}>
+                      <td>{day}</td>
+                      <td colSpan="12">-</td>
+                    </tr>
+                  );
+                })}
+              </>
+            ))}
+
 <tr>
 <td style={{ textAlign: "center", verticalAlign: "middle" }}> รวม </td>
 <td style={{ textAlign: "center", verticalAlign: "middle" }}></td>
@@ -2045,10 +2104,12 @@ function Compensation() {
 <td style={{ textAlign: "center", verticalAlign: "middle" }}></td>
 
 </tr>
-        </tbody>
-      </table>
+
+          </tbody>
+        </table>
+      </div>
     </div>
-  </div>
+
 )}
 
                 <br />

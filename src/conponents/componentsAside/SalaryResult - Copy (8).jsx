@@ -1139,6 +1139,14 @@ function Salaryresult() {
   const thaiMonthName = getThaiMonthName(parseInt(CheckMonth, 10));
   const thaiMonthLowerName = getThaiMonthName(parseInt(countdownMonth, 10));
 
+  async function handleSearchAccounting() {
+    let tmp = await staffId;
+    await setStaffId("");
+    setTimeout(async () => {
+      await setStaffId(tmp);
+      // alert('Hi');
+    }, 1000); // Adjust the delay time as needed (1000 ms = 1 second)
+  }
 
   async function handleSearch(event) {
     event.preventDefault();
@@ -1800,59 +1808,6 @@ function Salaryresult() {
     setSelectedName2(selectedOption ? selectedOption : "");
     // alert(selectedOption.name );
   };
-
-
-  //latest code
-  const [accountingResult, setAccountingResult] = useState([]); // Store search results
-  const [loading, setLoading] = useState(false); // Track loading state
-  const [error, setError] = useState(null); // Store errors
-
-  async function handleSearchAccounting() {
-    event.preventDefault();
-
-setAccountingResult({});
-setLoading(true);
-setError(null);
-
-const data = {
-  employeeId: staffId,
-  month: month,
-  year: year,
-};
-
-alert(JSON.stringify(data ,null,2));
-
-try {
-  const response = await axios.post(
-    endpoint + "/accounting/searchtimerecordemployee",
-    data
-  );
-
-  if (response.data?.result?.length > 0) {
-    await setConcludeResultx(response.data.result);
-    // alert(JSON.stringify(response.data?.result[0]?.employee_record[0].addSalaryDaily, null, 2));
-  } else {
-    // alert("Conclude is null");
-  }
-
-} catch (e) {
-  setError("An error occurred while fetching data.");
-  console.error(e);
-} finally {
-  setLoading(false);
-}
-
-
-
-    // let tmp = await staffId;
-    // await setStaffId("");
-    // setTimeout(async () => {
-    //   await setStaffId(tmp);
-    //   alert('Hi');
-    // }, 1000); // Adjust the delay time as needed (1000 ms = 1 second)
-
-  }
-
   return (
     // <div>
 
