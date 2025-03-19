@@ -4262,6 +4262,8 @@ router.post('/searchtimerecordemployee', async (req, res) => {
       console.log("🚀 Checking first record:", JSON.stringify(doc.employee_record[0], null, 2));
     
       try {
+        console.log(doc.employeeId)
+
         // const updatedRecords = await calculateCashValues(employeeId, doc.employee_record, month, year);
         
         // if (JSON.stringify(updatedRecords) !== JSON.stringify(doc.employee_record)) {
