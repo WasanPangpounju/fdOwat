@@ -4259,7 +4259,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
       }
     
       // Debug: ดูค่า record แรกก่อนเรียก calculateCashValues
-      console.log("🚀 Checking first record:", JSON.stringify(doc.employee_record[0], null, 2));
+      // console.log("🚀 Checking first record:", JSON.stringify(doc.employee_record[0], null, 2));
     
       try {
         console.log(doc.employeeId)
