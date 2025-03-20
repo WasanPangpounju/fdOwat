@@ -4224,6 +4224,29 @@ router.post('/updateSpecialDay', async (req, res) => {
 
 //latest code
 
+//get employee profile
+const getEmployeeProfile = async (employeeId) => {
+  try {
+    const query = {};
+    if (employeeId) {
+      query.employeeId = employeeId;
+    }
+
+        // Query the employee collection for matching documents
+        const employees = await Employee.find(query);
+
+        if(employees ) {
+          return employees ;
+        } else {
+          return null;
+        }
+
+  } catch (error) {
+    console.error(error);
+  }
+
+}
+
 // Search timerecordEmployee
 router.post('/searchtimerecordemployee', async (req, res) => {
   try {
