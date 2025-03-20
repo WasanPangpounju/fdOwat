@@ -4351,12 +4351,8 @@ if (!sumCashWorkMul[record?.cashWorkMul]) {
           sumTimeOt = parseFloat(record.beforeTotalOtTime || '0') + parseFloat(record.totalTime || '0') + parseFloat(record.totalOtTime || '0')
           sumCashOt = parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0') 
 
-if(! record?.cashWorkMul   && record?.cashWorkMul  !== '0' ) {
-  sumCashWorkMul[record?.cashWorkMul] = sumCashWorkMul[record?.cashWorkMul] + record?.cashWorkMul;
-}
-if(! record?.cashOtMul && record?.cashOtMul !== '0' ) {
-  sumCashWorkMul[record?.cashOtMul ] = sumCashWorkMul[record?.cashOtMul ] + record?.cashOtMul;
-}
+  sumCashWorkMul[record?.cashWorkMul] += record?.cashWorkMul;
+  sumCashWorkMul[record?.cashOtMul ] += record?.cashOtMul;
 
     }else 
     if(record?.dayType === 'specialDayOff') {
@@ -4364,12 +4360,8 @@ specialDayOff += 1;
 sumTimeOt = parseFloat(record.beforeTotalOtTime || '0') + parseFloat(record.totalTime || '0') + parseFloat(record.totalOtTime || '0')
 sumCashOt = parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0') 
 
-if(! record?.cashWorkMul   && record?.cashWorkMul  !== '0' ) {
-sumCashWorkMul[record?.cashWorkMul] = sumCashWorkMul[record?.cashWorkMul] + record?.cashWorkMul;
-}
-if(! record?.cashOtMul && record?.cashOtMul !== '0' ) {
-sumCashWorkMul[record?.cashOtMul ] = sumCashWorkMul[record?.cashOtMul ] + record?.cashOtMul;
-}
+sumCashWorkMul[record?.cashWorkMul] += record?.cashWorkMul;
+sumCashWorkMul[record?.cashOtMul ] += record?.cashOtMul;
 
     } else {
 
@@ -4380,12 +4372,8 @@ sumTimeOt = sumTimeOt  + parseFloat(record.beforeTotalOtTime || '0') + parseFloa
         sumCashWork  = sumCashWork  + parseFloat(record?.cashWork || '0');
 sumCashOt  = sumCashOt  + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt  || '0');
 
-if(! record?.cashWorkMul   && record?.cashWorkMul  !== '0' ) {
-  sumCashWorkMul[record?.cashWorkMul] = sumCashWorkMul[record?.cashWorkMul] + record?.cashWorkMul;
-  }
-  if(! record?.cashOtMul && record?.cashOtMul !== '0' ) {
-  sumCashWorkMul[record?.cashOtMul ] = sumCashWorkMul[record?.cashOtMul ] + record?.cashOtMul;
-  }
+sumCashWorkMul[record?.cashWorkMul] += record?.cashWorkMul;
+sumCashWorkMul[record?.cashOtMul ] += record?.cashOtMul;
 
   }
     }
