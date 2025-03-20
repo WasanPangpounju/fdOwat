@@ -4452,7 +4452,7 @@ sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
     record.addSalaryDaily.forEach((salaryItem) => {
       const amount = parseFloat(salaryItem.SpSalary || '0');
       const existingIndex = addSalaryDailyList.findIndex(item => item.id === salaryItem.id);
-
+console.log('salaryItem.id ' + salaryItem.id)
       if (existingIndex !== -1) {
         // Clearly sum existing SpSalary
         addSalaryDailyList[existingIndex].SpSalary += amount;
