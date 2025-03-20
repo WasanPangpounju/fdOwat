@@ -4458,16 +4458,14 @@ sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
     console.log('Searching for id:', salaryItem.id);
     console.log('Existing index:', existingIndex);
 console.log('salaryItem.id ' + salaryItem.id)
-
-      if (existingIndex !== -1) {
-        // Clearly sum existing SpSalary
-        addSalaryDailyList[existingIndex].SpSalary += amount;
-      } else {
-        // Clearly push new salary item
-        addSalaryDailyList.push({
-          salaryItem
-        });
-      }
+if (existingIndex !== -1) {
+  addSalaryDailyList[existingIndex].SpSalary += amount;
+} else {
+  addSalaryDailyList.push({
+    ...salaryItem,
+    SpSalary: amount
+  });
+}
     });
   }
 //
