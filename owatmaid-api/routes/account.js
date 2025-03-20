@@ -4460,7 +4460,7 @@ sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
         // Clearly push new salary item
         addSalaryDailyList.push({
           ...salaryItem,
-          SpSalary: amount
+          // SpSalary: amount
         });
       }
     });
