@@ -1813,6 +1813,7 @@ function Salaryresult() {
 setAccountingResult({});
 setLoading(true);
 setError(null);
+if(staffId !== '') {
 
 const data = {
   employeeId: staffId,
@@ -1842,6 +1843,7 @@ try {
   setLoading(false);
 }
 
+}
 
 
     // let tmp = await staffId;

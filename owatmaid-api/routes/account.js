@@ -4264,7 +4264,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
       try {
         console.log(doc.employeeId)
 
-        // const updatedRecords = await calculateCashValues(employeeId, doc.employee_record, month, year);
+      const updatedRecords = await calculateCashValues(employeeId, doc.employee_record, month, year);
         
         // if (JSON.stringify(updatedRecords) !== JSON.stringify(doc.employee_record)) {
         //   doc.employee_record = updatedRecords;
@@ -4283,5 +4283,143 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+
+
+const calculateCashValues = async (employeeId, employee_record, month, year) => {
+  const employeeProfile = await getEmployeeProfile(employeeId);
+const salaryTmp = parseFloat(employeeProfile[0].salary || '0') || 0;
+let addSalary = employeeProfile?.[0]?.addSalary || [];
+let salary = 0;
+
+let dayWorkCount = 0;
+let dayOffCount = 0;
+let specialDayOff = 0;
+
+if(parseFloat(salaryTmp || '0')  > 1660) {
+  salary = await ((parseFloat(salaryTmp || '0') / 30)/ 8).toFixed(3);
+} else {
+  salary = await (parseFloat(salaryTmp || '0')/ 8).toFixed(3);
+}
+
+
+  return Promise.all(
+
+    employee_record.map(async (record) => {
+
+//check workplace 10105
+// console.log('employee workplace' + employeeProfile[0].workplace);
+const workplaceId = employeeProfile[0].workplace === "10105" ? "10105" : record.workplaceId;
+
+
+// console.log(record.date );
+// console.log('add salary' + JSON.stringify(addSalary,null,2) );
+
+
+      let cashBeforeOt = 0;
+      let cashWork = 0;
+      let cashOt = 0;
+      let cashBeforeOtMul = 0;
+      let cashWorkMul = 0;
+      let cashOtMul = 0;
+      let dayType = '';
+let addSalaryDaily = [];
+
+                //check salary custom with profile or use with workplace
+                if(salaryTmp !== 0 ) {
+                  // console.log(salary)
+                            } else {
+                              if(dataRate?.workRate ){
+                              salary = parseFloat(dataRate.workRate || '0');
+                            } else {
+                              salary = 0;
+                            }
+                            }
+                  
+      //check dayType
+        if (record?.dayType !== '') {
+        if (record?.dayType === 'stop') {
+          dayOffCount += 1;
+
+
+         cashBeforeOt = await ((record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.dayoffRateOT || '0') * salary || 0)) || '';
+         cashWork = await (record.totalTime || 0) * (parseFloat(salary || '0') * parseFloat(dataRate?.dayoffRateHour || '0')) || '';
+         cashOt = await (record.totalOtTime || 0) * (parseFloat(dataRate?.dayoffRateOT || '0') * salary ) || '';
+         dayType = await dataRate?.dayType || '';
+          cashBeforeOtMul = dataRate?.dayoffRateOT ||  0;
+          cashWorkMul = dataRate?.dayoffRateHour || 0;
+          cashOtMul = dataRate?.dayoffRateOT || 0;
+          addSalaryDaily  = [];
+
+    }else 
+    if(record?.dayType === 'specialDayOff') {
+specialDayOff += 1;
+
+
+      cashBeforeOt = await ((record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.holidayOT || '0') * salary  || 0)) || '';
+      cashWork = await (record.totalTime || 0) * (parseFloat(salary || '0') * parseFloat(dataRate?.holiday || '0')) || '';
+      cashOt = await (record.totalOtTime || 0) * (parseFloat(dataRate?.holidayOT || '0') * salary ) || '';
+      dayType = await dataRate?.dayType || '';
+       cashBeforeOtMul = dataRate?.holidayOT ||  0;
+       cashWorkMul = dataRate?.holiday || 0;
+       cashOtMul = dataRate?.holidayOT || 0;
+       addSalaryDaily  = [];
+    } else {
+
+      if(record?.dayType === "work") {
+        dayWorkCount += 1;
+
+
+       cashBeforeOt = await (record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.workRateOT || '0') * salary );
+       cashWork = await (record.totalTime || 0) * salary;
+       cashOt = await (record.totalOtTime || 0) * (parseFloat(dataRate?.workRateOT || '0') * salary );
+       dayType = await dataRate?.dayType || '';
+       cashBeforeOtMul = await dataRate?.workRateOT ||  0;
+       cashWorkMul = 1;
+       cashOtMul = await dataRate?.workRateOT || 0;
+      addSalaryDaily  = [];
+      addSalaryDaily = [...(employeeProfile[0].addSalary || [])
+      .filter(salary => salary.roundOfSalary === "daily")
+      .map(salary => ({
+        ...salary,
+        SpSalary: parseFloat(salary.SpSalary) > 100 ? (parseFloat(salary.SpSalary) / 30).toFixed(2) : salary.SpSalary
+      }))
+    ];
+    
+  } else {
+    cashBeforeOt = '';
+    cashWork = '';
+    cashOt = '';
+    dayType = await dataRate?.dayType || '';
+    cashBeforeOtMul = '';
+    cashWorkMul = '';
+    cashOtMul = '';
+    addSalaryDaily = [];
+
+  }
+    }
+    
+  }
+
+      // return {
+      //   ...record,
+      //   cashBeforeOt,
+      //   cashWork,
+      //   cashOt,
+      //   cashBeforeOtMul,
+      //   cashWorkMul,
+      //   cashOtMul,
+      //   dayType ,
+      //   addSalaryDaily,
+      // };
+
+    })
+  );
+
+  console.log('dayWorkCount : ' + dayWorkCount);
+  console.log();
+  console.log();
+
+};
+
 
 module.exports = router;
