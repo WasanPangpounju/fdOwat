@@ -4347,17 +4347,6 @@ const workplaceId = employeeProfile[0].workplace === "10105" ? "10105" : record.
       let dayType = '';
 let addSalaryDaily = [];
 
-                //check salary custom with profile or use with workplace
-                if(salaryTmp !== 0 ) {
-                  // console.log(salary)
-                            } else {
-                              if(dataRate?.workRate ){
-                              salary = parseFloat(dataRate.workRate || '0');
-                            } else {
-                              salary = 0;
-                            }
-                            }
-                  
       //check dayType
         if (record?.dayType !== '') {
         if (record?.dayType === 'stop') {
