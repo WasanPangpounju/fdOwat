@@ -2082,12 +2082,15 @@ try {
                           </td>
 
                           <td style={cellStyle}>
+                            {JSON.stringify(accountingResult?.[0]?.addSalaryList)}
                             <span
                               onClick={togglePopup}
                               style={{ color: color, cursor: "pointer" }}
                             >
-                              {/* {isNaN(Number(addAmountBeforeTax + addAmountAfterTax)) ? 0.00 : Number(addAmountBeforeTax + addAmountAfterTax).toFixed(2)}  */}
-                              {sumAddSalaryList.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+    {accountingResult?.[0]?.addSalaryList?.reduce(
+      (total, item) => total + parseFloat(item.SpSalary || '0'), 
+      0
+    ).toFixed(2)}                              
                             </span>
                             {showPopup && (
                               <div className="popup">
@@ -2099,8 +2102,8 @@ try {
                                     margin: 0,
                                   }}
                                 >
-                                  {addSalaryList &&
-                                    addSalaryList.map(
+                                  {accountingResult?.[0]?.addSalaryList &&
+                                    accountingResult?.[0]?.addSalaryList.map(
                                       (addsalary, index) =>
                                         addsalary.name !== "" && (
                                           <li
