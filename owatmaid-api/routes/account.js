@@ -4395,6 +4395,7 @@ let sumCashWorkMul = {};
 // Initialize sumAddSalaryDaily as an object and addSalaryDailyList as an array at the top:
 let sumAddSalaryDaily = {};
 let addSalaryDailyList = [];
+let monthlySalaries = [];
 
 
 if(parseFloat(salaryTmp || '0')  > 1660) {
@@ -4488,12 +4489,15 @@ sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
   //add addSalary Month to list 
   if (addSalary && addSalary.length > 0) {
 // console.log('addSalary.length  : ' + JSON.stringify(addSalary,null,2) );
-const monthlySalaries = addSalary.filter(salary => salary.roundOfSalary === 'monthly');
-console.log('Monthly addSalary.length:', monthlySalaries.length);
-console.log('Monthly addSalary:', monthlySalaries);
+monthlySalaries = addSalary.filter(salary => salary.roundOfSalary === 'monthly');
+// console.log('Monthly addSalary.length:', monthlySalaries.length);
+// console.log('Monthly addSalary:', monthlySalaries);
   }
-
-// console.log(JSON.stringify(addSalaryDailyList[0],null,2));
+  const addSalaryList = [
+    ...addSalaryDailyList,
+    ...monthlySalaries
+  ];
+// console.log(JSON.stringify(addSalaryList [0],null,2));
 
 if(salaryMonth !== 0) {
   dayWorkCount = 30;
