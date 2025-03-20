@@ -4432,6 +4432,7 @@ specialDayOff += 1;
   );
 
   return await {
+    'test' : 'test',
     dayWorkCount,
     dayOffCount,
     specialDayOff
