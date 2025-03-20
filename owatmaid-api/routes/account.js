@@ -4340,6 +4340,10 @@ if(parseFloat(salaryTmp || '0')  > 1660) {
 // console.log('employee workplace' + employeeProfile[0].workplace);
 const workplaceId = employeeProfile[0].workplace === "10105" ? "10105" : record.workplaceId;
 
+if (!sumCashWorkMul[record?.cashWorkMul]) {
+  sumCashWorkMul[record?.cashWorkMul] = 0;
+}
+
       //check dayType
         if (record?.dayType !== '') {
         if (record?.dayType === 'stop') {
