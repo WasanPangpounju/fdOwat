@@ -4467,7 +4467,6 @@ sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
       sumAddSalaryDailyObj[id].SpSalary += amount;
     });
   }
-}
 //
 
   }
@@ -4482,7 +4481,7 @@ sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
   console.log('dayWorkCount : ' + dayWorkCount);
   console.log('dayOffCount : ' + dayOffCount);
   console.log('specialDayOff  : ' + specialDayOff );
-
+console.log(JSON.stringify(addSalaryDailyList,null,2));
 if(salaryMonth !== 0) {
   dayWorkCount = 30;
   sumCashWork  = salaryMonth;  
