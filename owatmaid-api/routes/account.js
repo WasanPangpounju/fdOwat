@@ -4423,13 +4423,13 @@ specialDayOff += 1;
       //   dayType ,
       //   addSalaryDaily,
       // };
-
+      console.log('dayWorkCount : ' + dayWorkCount);
+      console.log();
+      console.log();
+    
     })
   );
 
-  console.log('dayWorkCount : ' + dayWorkCount);
-  console.log();
-  console.log();
 
 };
 
