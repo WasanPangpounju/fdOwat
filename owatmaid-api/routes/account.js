@@ -4486,8 +4486,8 @@ sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
   console.log('specialDayOff  : ' + specialDayOff );
 
   //add addSalary Month to list 
-  if (employeeProfile && employeeProfile.addSalary.length > 0) {
-console.log('addSalary.length  : ' + employeeProfile .addSalary.length );
+  if (addSalary && addSalary.length > 0) {
+console.log('addSalary.length  : ' + addSalary.addSalary.length );
 
   }
 
