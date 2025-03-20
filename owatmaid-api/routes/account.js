@@ -4374,7 +4374,7 @@ sumCashWorkMul[record?.cashOtMul ] = sumCashWorkMul[record?.cashOtMul ] + record
 sumTimeWork = sumTimeWork  + parseFloat(record.totalTime || '0');
 sumTimeOt = sumTimeOt  + parseFloat(record.beforeTotalOtTime || '0') + parseFloat(record.totalOtTime  || '0');
         sumCashWork  = sumCashWork  + parseFloat(record?.cashWork || '0');
-sumCashOt  = sumCashOt  + parseFloat(cashBeforeOt || '0') + parseFloat(cashOt  || '0');
+sumCashOt  = sumCashOt  + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt  || '0');
 
 if(! record?.cashWorkMul   && record?.cashWorkMul  !== '0' ) {
   sumCashWorkMul[record?.cashWorkMul] = sumCashWorkMul[record?.cashWorkMul] + record?.cashWorkMul;
