@@ -4493,6 +4493,7 @@ monthlySalaries = await addSalary.filter(salary => salary.roundOfSalary === 'mon
 // console.log('Monthly addSalary.length:', monthlySalaries.length);
 // console.log('Monthly addSalary:', monthlySalaries);
   }
+
   addSalaryList = await [
     ...addSalaryDailyList,
     ...monthlySalaries
