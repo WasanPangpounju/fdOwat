@@ -4424,8 +4424,8 @@ specialDayOff += 1;
       //   addSalaryDaily,
       // };
       console.log('dayWorkCount : ' + dayWorkCount);
-      console.log();
-      console.log();
+      console.log('dayOffCount : ' + dayOffCount);
+      console.log('specialDayOff  : ' + specialDayOff );
     
     })
   );
