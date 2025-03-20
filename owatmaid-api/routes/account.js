@@ -4288,7 +4288,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         console.log(doc.employeeId)
 
       const updatedRecords = await calculateCashValues(employeeId, doc.employee_record, month, year);
-        
+        console.log(JSON.stringify(updatedRecords ,null,2));
         // if (JSON.stringify(updatedRecords) !== JSON.stringify(doc.employee_record)) {
         //   doc.employee_record = updatedRecords;
         //   await doc.save();
@@ -4429,6 +4429,12 @@ specialDayOff += 1;
     
     })
   );
+
+  return {
+    dayWorkCount,
+    dayOffCount,
+    specialDayOff
+  };
 
 
 };
