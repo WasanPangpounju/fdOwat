@@ -4395,7 +4395,7 @@ let sumCashWorkMul = {};
 // Initialize sumAddSalaryDaily as an object and addSalaryDailyList as an array at the top:
 let sumAddSalaryDaily = {};
 let addSalaryDailyList = [];
-
+let sumAddSalaryDailyObj = {};
 
 if(parseFloat(salaryTmp || '0')  > 1660) {
   salaryMonth = parseFloat(salaryTmp || '0');
