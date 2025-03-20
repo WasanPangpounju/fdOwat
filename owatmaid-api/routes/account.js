@@ -4451,7 +4451,12 @@ sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
   if (record.addSalaryDaily && record.addSalaryDaily.length > 0) {
     record.addSalaryDaily.forEach((salaryItem) => {
       const amount = parseFloat(salaryItem.SpSalary || '0');
-      const existingIndex = addSalaryDailyList.findIndex(item => {console.log(JSON.stringify(item) ) });
+          // Corrected findIndex implementation:
+    const existingIndex = addSalaryDailyList.findIndex(item => item.id === salaryItem.id);
+
+    // Debugging logs clearly:
+    console.log('Searching for id:', salaryItem.id);
+    console.log('Existing index:', existingIndex);
 console.log('salaryItem.id ' + salaryItem.id)
 
       if (existingIndex !== -1) {
