@@ -4487,7 +4487,7 @@ sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
 
   //add addSalary Month to list 
   if (addSalary && addSalary.length > 0) {
-console.log('addSalary.length  : ' + addSalary.length );
+console.log('addSalary.length  : ' + JSON.stringify(addSalary,null,2) );
 
   }
 
