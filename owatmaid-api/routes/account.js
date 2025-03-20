@@ -4291,7 +4291,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         doc.sumTimeOt = String(calculatedValues.sumTimeOt);
         doc.sumCashWork = String(calculatedValues.sumCashWork);
         doc.sumCashOt = String(calculatedValues.sumCashOt);
-        doc.sumAddSalaryDaily = calculatedValues.sumAddSalaryDaily;
+        doc.addSalaryList= calculatedValues.addSalaryList;
         doc.sumCashWorkMul = calculatedValues.sumCashWorkMul;
 
         // Save the updated document
@@ -4497,7 +4497,7 @@ monthlySalaries = addSalary.filter(salary => salary.roundOfSalary === 'monthly')
     ...addSalaryDailyList,
     ...monthlySalaries
   ];
-console.log(JSON.stringify(addSalaryList[0].SpSalary ,null,2));
+// console.log(JSON.stringify(addSalaryList[0].SpSalary ,null,2));
 
 if(salaryMonth !== 0) {
   dayWorkCount = 30;
@@ -4515,7 +4515,7 @@ sumCashWork ,
 sumCashOt ,
 sumAddSalaryDaily ,
 sumCashWorkMul ,
-addSalaryDailyList,
+addSalaryList,
   };
 
 

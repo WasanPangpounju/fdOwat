@@ -54,7 +54,7 @@ sumTimeWork : String,
 sumTimeOt : String,
 sumCashWork : String,
 sumCashOt : String,
-sumAddSalaryDaily : [],
+addSalaryList: [],
 sumCashWorkMul : {},
 
 });
