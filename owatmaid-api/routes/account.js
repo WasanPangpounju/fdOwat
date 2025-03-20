@@ -4424,12 +4424,13 @@ specialDayOff += 1;
       //   dayType ,
       //   addSalaryDaily,
       // };
-      console.log('dayWorkCount : ' + dayWorkCount);
-      console.log('dayOffCount : ' + dayOffCount);
-      console.log('specialDayOff  : ' + specialDayOff );
     
     })
   );
+
+  console.log('dayWorkCount : ' + dayWorkCount);
+  console.log('dayOffCount : ' + dayOffCount);
+  console.log('specialDayOff  : ' + specialDayOff );
 
   return await {
     'test' : 'test',
