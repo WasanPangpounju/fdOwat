@@ -4497,7 +4497,7 @@ monthlySalaries = addSalary.filter(salary => salary.roundOfSalary === 'monthly')
     ...addSalaryDailyList,
     ...monthlySalaries
   ];
-console.log(JSON.stringify(addSalaryList[2].SpSalary ,null,2));
+console.log(JSON.stringify(addSalaryList[1].SpSalary ,null,2));
 
 if(salaryMonth !== 0) {
   dayWorkCount = 30;
