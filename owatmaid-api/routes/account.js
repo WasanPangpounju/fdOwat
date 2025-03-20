@@ -4395,7 +4395,7 @@ let sumCashWorkMul = {};
 // Initialize sumAddSalaryDaily as an object and addSalaryDailyList as an array at the top:
 let sumAddSalaryDaily = {};
 let addSalaryDailyList = [];
-let sumAddSalaryDailyObj = {};
+
 
 if(parseFloat(salaryTmp || '0')  > 1660) {
   salaryMonth = parseFloat(salaryTmp || '0');
@@ -4447,24 +4447,22 @@ sumCashOt  = sumCashOt  + parseFloat(record?.cashBeforeOt || '0') + parseFloat(r
 sumCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
 sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
 
-  // Add and summarize addSalaryDaily entries by id
+  // Handle addSalaryDailyList clearly:
   if (record.addSalaryDaily && record.addSalaryDaily.length > 0) {
     record.addSalaryDaily.forEach((salaryItem) => {
-      const { id, SpSalary } = salaryItem;
-      const amount = parseFloat(SpSalary || '0');
+      const amount = parseFloat(salaryItem.SpSalary || '0');
+      const existingIndex = addSalaryDailyList.findIndex(item => item.id === salaryItem.id);
 
-      // push detailed entry into addSalaryDailyList
-      addSalaryDailyList.push({
-        date: record.date,
-        ...salaryItem,
-        SpSalary: amount,
-      });
-
-      // sum salary by id into sumAddSalaryDailyObj
-      if (!sumAddSalaryDailyObj[id]) {
-        sumAddSalaryDailyObj[id] = { ...salaryItem, SpSalary: 0 };
+      if (existingIndex !== -1) {
+        // Clearly sum existing SpSalary
+        addSalaryDailyList[existingIndex].SpSalary += amount;
+      } else {
+        // Clearly push new salary item
+        addSalaryDailyList.push({
+          ...salaryItem,
+          SpSalary: amount
+        });
       }
-      sumAddSalaryDailyObj[id].SpSalary += amount;
     });
   }
 //
@@ -4481,8 +4479,7 @@ sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
   console.log('dayWorkCount : ' + dayWorkCount);
   console.log('dayOffCount : ' + dayOffCount);
   console.log('specialDayOff  : ' + specialDayOff );
-console.log(JSON.stringify(sumAddSalaryDailyObj,null,2));
-
+console.log(JSON.stringify(addSalaryDailyList,null,2));
 if(salaryMonth !== 0) {
   dayWorkCount = 30;
   sumCashWork  = salaryMonth;  
