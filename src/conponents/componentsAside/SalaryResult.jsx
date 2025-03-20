@@ -1821,7 +1821,7 @@ const data = {
   year: year,
 };
 
-alert(JSON.stringify(data ,null,2));
+// alert(JSON.stringify(data ,null,2));
 
 try {
   const response = await axios.post(
@@ -1830,7 +1830,9 @@ try {
   );
 
   if (response.data?.result?.length > 0) {
-    await setConcludeResultx(response.data.result);
+    await setAccountingResult(response.data.result);
+    // alert(JSON.stringify(accountingResult,null,2));
+
     // alert(JSON.stringify(response.data?.result[0]?.employee_record[0].addSalaryDaily, null, 2));
   } else {
     // alert("Conclude is null");
@@ -2043,16 +2045,13 @@ try {
                       </thead>
                       <tbody>
                         <tr>
-                          <td style={cellStyle}>{wsCountDayWork}</td>
+                          <td style={cellStyle}>{accountingResult?.[0]?.dayWorkCount || '0'}</td>
                           <td style={cellStyle}>
-                            {Number(wsCountHourWork).toFixed(2)}
-                          </td>
+                          {accountingResult?.[0]?.sumTimeWork || '0'}
+                                                    </td>
                           <td style={cellStyle}>
-                            {Number(wsCountOtHourWork).toFixed(2)}
+                          {accountingResult?.[0]?.sumTimeOt || '0'}
                           </td>
-
-                          {/* <td style={cellStyle}>{(overallAllTimesSum123).toFixed(2)}</td> */}
-                          {/* <td style={cellStyle}>{(overallOtTimesSum123).toFixed(2)}</td> */}
                         </tr>
                       </tbody>
                     </table>
@@ -2073,31 +2072,15 @@ try {
                         </tr>
                       </thead>
                       <tbody>
-                        {/* sumSpSalary */}
                         <tr>
-                          {/* <td style={cellStyle}>{(overWorkRateSum).toFixed(2)}</td>
-                          <td style={cellStyle}>{(overWorkRateOTSum).toFixed(2)}</td> */}
 
                           <td style={cellStyle}>
-                            {/* {isNaN(Number(wsAmountCountDayWork))
-                              ? 0.0
-                              : Number(wsAmountCountDayWork).toFixed(2)} */}
-                            {
-                              isNaN(Number(wsAmountCountDayWork))
-                                ? "0.00"
-                                : Number(wsAmountCountDayWork)
-                                  .toFixed(2)
-                                  .replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-                            }
+                          {accountingResult?.[0]?.sumCashWork || '0'}
                           </td>
                           <td style={cellStyle}>
-                            {isNaN(Number(wsAmountCountDayWorkOt))
-                              ? 0.0
-                              : Number(wsAmountCountDayWorkOt).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+                          {accountingResult?.[0]?.sumCashOt || '0'}
                           </td>
 
-                          {/* <td style={cellStyle}>{(overAddSalaryDaySum).toFixed(2) + (sumSpSalary).toFixed(2)}</td> */}
-                          {/* <td style={cellStyle}>{(overAddSalaryDaySum + sumSpSalaryResult).toFixed(2) + `(` + (overAddSalaryDaySum).toFixed(2) + `+` + (sumSpSalaryResult).toFixed(2) + `)`}</td> */}
                           <td style={cellStyle}>
                             <span
                               onClick={togglePopup}
@@ -2160,24 +2143,11 @@ try {
                             />
                           </td> */}
                           {/* <td style={cellStyle}>{(overWorkRateSum + overWorkRateOTSum + overAddSalaryDaySum + sumSpSalaryResult).toFixed(2)}</td> */}
-                          <td style={cellStyle}>
-                            {/* {(amountDay + amountOt + addAmountBeforeTax + addAmountAfterTax).toFixed(2)} */}
-                            {/* {isNaN( Number(wsAmountDay) + Number(wsAmountOt) + Number(wsAmountSpecialDay) +  Number(sumAddSalaryList)) ?
-                              '0' :
-                              (Number(wsAmountDay) + Number(wsAmountOt) + Number(wsAmountSpecialDay) + Number(sumAddSalaryList)).toFixed(2)
 
-                            } */}
-                            {isNaN(
-                              Number(wsAmountDay) +
-                              Number(wsAmountOt) +
-                              Number(sumAddSalaryList)
-                            )
-                              ? "0"
-                              : (
-                                Number(wsAmountDay) +
-                                Number(wsAmountOt) +
-                                Number(sumAddSalaryList)
-                              ).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+                          <td style={cellStyle}>
+                          { parseFloat(accountingResult?.[0]?.sumCashWork || '0') + 
+                          parseFloat(accountingResult?.[0]?.sumCashOt || '0')}
+
                           </td>
 
                           <td style={cellStyle}>
