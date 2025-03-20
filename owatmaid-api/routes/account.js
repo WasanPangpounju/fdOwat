@@ -4380,6 +4380,7 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
 const salaryTmp = parseFloat(employeeProfile[0].salary || '0') || 0;
 let addSalary = employeeProfile?.[0]?.addSalary || [];
 let salary = 0;
+let salaryMonth = 0;
 
 let dayWorkCount = 0;
 let dayOffCount = 0;
@@ -4388,11 +4389,16 @@ let sumTimeWork = 0;
 let sumTimeOt = 0;
 let sumCashWork = 0;
 let sumCashOt = 0;
-let sumAddSalaryDaily = [];
+// let sumAddSalaryDaily = [];
 let sumCashWorkMul = {};
+
+// Initialize sumAddSalaryDaily as an object and addSalaryDailyList as an array at the top:
+let sumAddSalaryDaily = {};
+let addSalaryDailyList = [];
 
 
 if(parseFloat(salaryTmp || '0')  > 1660) {
+  salaryMonth = parseFloat(salaryTmp || '0');
   salary = await ((parseFloat(salaryTmp || '0') / 30)/ 8).toFixed(3);
 } else {
   salary = await (parseFloat(salaryTmp || '0')/ 8).toFixed(3);
@@ -4441,22 +4447,34 @@ sumCashOt  = sumCashOt  + parseFloat(record?.cashBeforeOt || '0') + parseFloat(r
 sumCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
 sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
 
+  // Add and summarize addSalaryDaily entries by id
+  if (record.addSalaryDaily && record.addSalaryDaily.length > 0) {
+    record.addSalaryDaily.forEach((salaryItem) => {
+      const { id, SpSalary } = salaryItem;
+      const amount = parseFloat(SpSalary || '0');
+
+      // push detailed entry into addSalaryDailyList
+      addSalaryDailyList.push({
+        date: record.date,
+        ...salaryItem,
+        SpSalary: amount,
+      });
+
+      // sum salary by id into sumAddSalaryDailyObj
+      if (!sumAddSalaryDailyObj[id]) {
+        sumAddSalaryDailyObj[id] = { ...salaryItem, SpSalary: 0 };
+      }
+      sumAddSalaryDailyObj[id].SpSalary += amount;
+    });
+  }
+}
+//
+
   }
     }
     
   }
 
-      // return {
-      //   ...record,
-      //   cashBeforeOt,
-      //   cashWork,
-      //   cashOt,
-      //   cashBeforeOtMul,
-      //   cashWorkMul,
-      //   cashOtMul,
-      //   dayType ,
-      //   addSalaryDaily,
-      // };
     
     })
   );
@@ -4464,6 +4482,12 @@ sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
   console.log('dayWorkCount : ' + dayWorkCount);
   console.log('dayOffCount : ' + dayOffCount);
   console.log('specialDayOff  : ' + specialDayOff );
+
+if(salaryMonth !== 0) {
+  dayWorkCount = 30;
+  sumCashWork  = salaryMonth;  
+
+}
 
   return await {
     dayWorkCount,
