@@ -4481,7 +4481,7 @@ sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
   console.log('dayWorkCount : ' + dayWorkCount);
   console.log('dayOffCount : ' + dayOffCount);
   console.log('specialDayOff  : ' + specialDayOff );
-console.log(JSON.stringify(addSalaryDailyList,null,2));
+console.log(JSON.stringify(sumAddSalaryDailyObj,null,2));
 
 if(salaryMonth !== 0) {
   dayWorkCount = 30;
