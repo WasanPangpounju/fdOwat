@@ -2082,7 +2082,7 @@ try {
                           </td>
 
                           <td style={cellStyle}>
-                            {JSON.stringify(accountingResult?.[0]?.addSalaryList)}
+                            {JSON.stringify(accountingResult?.[0]?.addSalaryList.length)}
                             <span
                               onClick={togglePopup}
                               style={{ color: color, cursor: "pointer" }}
