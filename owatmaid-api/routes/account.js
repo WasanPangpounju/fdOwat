@@ -4460,8 +4460,7 @@ console.log('salaryItem.id ' + salaryItem.id)
       } else {
         // Clearly push new salary item
         addSalaryDailyList.push({
-          ...salaryItem,
-          // SpSalary: amount
+          salaryItem
         });
       }
     });
