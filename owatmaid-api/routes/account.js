@@ -4431,7 +4431,7 @@ specialDayOff += 1;
     })
   );
 
-  return {
+  return await {
     dayWorkCount,
     dayOffCount,
     specialDayOff
