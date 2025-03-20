@@ -45,7 +45,18 @@ specialtSalaryOT: String,
           },
         ],
     
-}]
+}],
+
+dayWorkCount : String,
+dayOffCount : String,
+specialDayOff : String,
+sumTimeWork : String,
+sumTimeOt : String,
+sumCashWork : String,
+sumCashOt : String,
+sumAddSalaryDaily : [],
+sumCashWorkMul : {},
+
 });
 
 // Create the workplace record time model based on the schema

@@ -4247,8 +4247,74 @@ const getEmployeeProfile = async (employeeId) => {
 
 }
 
-// Search timerecordEmployee
+
 router.post('/searchtimerecordemployee', async (req, res) => {
+  try {
+    const { employeeId, month, year } = req.body;
+    const query = {};
+
+    if (employeeId) query.employeeId = employeeId;
+    if (month) query.month = { $regex: new RegExp(month, 'i') };
+    if (year) query.year = { $regex: new RegExp(year, 'i') };
+
+    if (!employeeId && !month && !year) {
+      return res.status(200).json({ result: [], message: 'No query parameters provided' });
+    }
+
+    const records = await timerecordEmployee.find(query);
+
+    if (!records.length) {
+      return res.status(200).json({ result: [], message: 'No records found' });
+    }
+
+    const updatedRecords = [];
+
+    for (const doc of records) {
+      if (!doc || !Array.isArray(doc.employee_record) || doc.employee_record.length === 0) {
+        console.warn(`Skipping invalid or empty document: ${doc._id}`);
+        continue;
+      }
+
+      try {
+        const calculatedValues = await calculateCashValues(
+          doc.employeeId,
+          doc.employee_record,
+          doc.month,
+          doc.year
+        );
+
+        // Update doc fields directly
+        doc.dayWorkCount = String(calculatedValues.dayWorkCount);
+        doc.dayOffCount = String(calculatedValues.dayOffCount);
+        doc.specialDayOff = String(calculatedValues.specialDayOff);
+        doc.sumTimeWork = String(calculatedValues.sumTimeWork);
+        doc.sumTimeOt = String(calculatedValues.sumTimeOt);
+        doc.sumCashWork = String(calculatedValues.sumCashWork);
+        doc.sumCashOt = String(calculatedValues.sumCashOt);
+        doc.sumAddSalaryDaily = calculatedValues.sumAddSalaryDaily;
+        doc.sumCashWorkMul = calculatedValues.sumCashWorkMul;
+
+        // Save the updated document
+        await doc.save();
+
+        updatedRecords.push(doc);
+
+      } catch (error) {
+        console.error("❌ Error updating document:", error);
+      }
+    }
+
+    res.status(200).json({ result: updatedRecords });
+
+  } catch (error) {
+    console.error("❌ Server error:", error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+
+// Search timerecordEmployee
+router.post('/searchtimerecordemployee_back', async (req, res) => {
   try {
     const { employeeId, month, year } = await req.body;
     const query = {};
