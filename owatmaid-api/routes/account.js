@@ -4326,7 +4326,7 @@ if(parseFloat(salaryTmp || '0')  > 1660) {
 }
 
 
-  return Promise.all(
+  await Promise.all(
 
     employee_record.map(async (record) => {
 
