@@ -4487,8 +4487,10 @@ sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
 
   //add addSalary Month to list 
   if (addSalary && addSalary.length > 0) {
-console.log('addSalary.length  : ' + JSON.stringify(addSalary,null,2) );
-
+// console.log('addSalary.length  : ' + JSON.stringify(addSalary,null,2) );
+const monthlySalaries = addSalary.filter(salary => salary.roundOfSalary === 'monthly');
+console.log('Monthly addSalary.length:', monthlySalaries.length);
+console.log('Monthly addSalary:', monthlySalaries);
   }
 
 // console.log(JSON.stringify(addSalaryDailyList[0],null,2));
