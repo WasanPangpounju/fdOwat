@@ -4452,25 +4452,22 @@ sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
     record.addSalaryDaily.forEach((salaryItem) => {
       const amount = parseFloat(salaryItem.SpSalary || '0');
 
-      const cleanSalaryItemId = salaryItem.id.trim(); // Remove whitespace
+      const cleanSalaryItemId = salaryItem.id.trim(); // clean whitespace
 
-      // Robust index finding logic with debugging:
-      const existingIndex = addSalaryDailyList.findIndex((item) => {
-        const match = item.id.trim() === cleanSalaryItemId; 
-        console.log(`Comparing |${item.id.trim()}| with |${cleanSalaryItemId}| => Match: ${match}`);
-        return match;
-      });
+      // Use `.find()` clearly to locate existing item
+      const existingItem = addSalaryDailyList.find(
+        item => item.id.trim() === cleanSalaryItemId
+      );
   
-      console.log(`existingIndex for ID (${cleanSalaryItemId}):`, existingIndex);
-console.log('salaryItem.id ' + salaryItem.id)
-if (existingIndex !== -1) {
-  addSalaryDailyList[existingIndex].SpSalary += amount;
-} else {
-  addSalaryDailyList.push({
-    ...salaryItem,
-    SpSalary: amount
-  });
-}
+      if (existingItem) {
+        existingItem.SpSalary += amount;
+      } else {
+        addSalaryDailyList.push({
+          ...salaryItem,
+          id: cleanSalaryItemId,
+          SpSalary: amount,
+        });
+      }
     });
   }
 //
