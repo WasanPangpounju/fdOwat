@@ -4351,17 +4351,17 @@ if (!sumCashWorkMul[record?.cashWorkMul]) {
           sumTimeOt = parseFloat(record.beforeTotalOtTime || '0') + parseFloat(record.totalTime || '0') + parseFloat(record.totalOtTime || '0')
           sumCashOt = parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0') 
 
-  sumCashWorkMul[record?.cashWorkMul] += record?.cashWorkMul;
-  sumCashWorkMul[record?.cashOtMul ] += record?.cashOtMul;
-
+          sumCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
+          sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0');
+          
     }else 
     if(record?.dayType === 'specialDayOff') {
 specialDayOff += 1;
 sumTimeOt = parseFloat(record.beforeTotalOtTime || '0') + parseFloat(record.totalTime || '0') + parseFloat(record.totalOtTime || '0')
 sumCashOt = parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0') 
 
-sumCashWorkMul[record?.cashWorkMul] += record?.cashWorkMul;
-sumCashWorkMul[record?.cashOtMul ] += record?.cashOtMul;
+sumCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
+sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0');
 
     } else {
 
@@ -4372,8 +4372,8 @@ sumTimeOt = sumTimeOt  + parseFloat(record.beforeTotalOtTime || '0') + parseFloa
         sumCashWork  = sumCashWork  + parseFloat(record?.cashWork || '0');
 sumCashOt  = sumCashOt  + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt  || '0');
 
-sumCashWorkMul[record?.cashWorkMul] += record?.cashWorkMul;
-sumCashWorkMul[record?.cashOtMul ] += record?.cashOtMul;
+sumCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
+sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
 
   }
     }
