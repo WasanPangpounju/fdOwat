@@ -4408,6 +4408,7 @@ if(parseFloat(salaryTmp || '0')  > 1660) {
 
   await Promise.all(
     employee_record.map(async (record) => {
+      addSalaryDailyList = [];
 
 //check workplace 10105
 // console.log('employee workplace' + employeeProfile[0].workplace);
