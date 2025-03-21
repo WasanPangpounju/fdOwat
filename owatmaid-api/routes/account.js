@@ -4453,10 +4453,10 @@ sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
     record.addSalaryDaily.forEach((salaryItem) => {
       const amount = parseFloat(salaryItem.SpSalary || '0');
 
-      const cleanSalaryItemId = salaryItem.id.trim(); // clean whitespace
+      let cleanSalaryItemId = salaryItem.id.trim(); // clean whitespace
 
       // Use `.find()` clearly to locate existing item
-      const existingItem = addSalaryDailyList.find(
+      let existingItem = addSalaryDailyList.find(
         item => item.id.trim() === cleanSalaryItemId
       );
   
