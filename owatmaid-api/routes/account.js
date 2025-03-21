@@ -4467,7 +4467,7 @@ sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
           {
           ...salaryItem,
           id: cleanSalaryItemId,
-          SpSalary: amount,
+          SpSalary: parseFloat(amount || 0),
         });
 
       }
