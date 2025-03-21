@@ -4453,24 +4453,6 @@ sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
     record.addSalaryDaily.forEach((salaryItem) => {
       const amount = parseFloat(salaryItem.SpSalary || '0');
 
-      let cleanSalaryItemId = salaryItem.id.trim(); // clean whitespace
-
-      // Use `.find()` clearly to locate existing item
-      let existingItem = addSalaryDailyList.find(
-        item => item.id.trim() === cleanSalaryItemId
-      );
-  
-      if (existingItem) {
-        // existingItem.SpSalary = parseFloat(existingItem.SpSalary  || 0) + parseFloat(amount || 0);
-      } else {
-        addSalaryDailyList.push(
-          {
-          ...salaryItem,
-          id: cleanSalaryItemId,
-          SpSalary: parseFloat(amount || 0),
-        });
-
-      }
     });
   }
 //
