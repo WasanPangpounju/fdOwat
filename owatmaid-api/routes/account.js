@@ -4408,7 +4408,6 @@ if(parseFloat(salaryTmp || '0')  > 1660) {
 
   await Promise.all(
     employee_record.map(async (record) => {
-      addSalaryDailyList = [];
 
 //check workplace 10105
 // console.log('employee workplace' + employeeProfile[0].workplace);
@@ -4462,7 +4461,7 @@ sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
       );
   
       if (existingItem) {
-        existingItem.SpSalary =parseFloat(existingItem.SpSalary  || '0') + parseFloat(amount || '0');
+        existingItem.SpSalary += parseFloat(amount || '0');
       } else {
         addSalaryDailyList.push(salaryItem);
         //   {
