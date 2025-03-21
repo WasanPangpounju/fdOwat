@@ -4524,7 +4524,7 @@ sumCashWork ,
 sumCashOt ,
 sumAddSalaryDaily ,
 sumCashWorkMul ,
-addSalaryDailyList,
+addSalaryList: addSalaryDailyList,
   };
 
 
