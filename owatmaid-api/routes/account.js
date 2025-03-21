@@ -4461,7 +4461,8 @@ sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
       );
   
       if (existingItem) {
-        existingItem.SpSalary += amount;
+        existingItem.SpSalary = parseFloat(existingItem.SpSalary  || '0') + parseFloat(salaryItem.SpSalary || '0');
+        // amount;
       } else {
         addSalaryDailyList.push(salaryItem);
         //   {
