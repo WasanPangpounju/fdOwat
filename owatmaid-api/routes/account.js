@@ -4293,7 +4293,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         doc.sumCashOt = String(calculatedValues.sumCashOt);
         doc.addSalaryList= calculatedValues.addSalaryList;
         doc.sumCashWorkMul = calculatedValues.sumCashWorkMul;
-        
+
         // Save the updated document
         await doc.save();
 
@@ -4499,8 +4499,7 @@ monthlySalaries = await addSalary.filter(salary => salary.roundOfSalary === 'mon
   //   ...addSalaryDailyList,
   //   ...monthlySalaries
   // ];
-  addSalaryList = addSalaryDailyList;
-  // .concat(monthlySalaries);
+  addSalaryList = addSalaryDailyList.concat(monthlySalaries);
 
   addSalaryList.forEach(element => {
    console.log(element.SpSalary );
