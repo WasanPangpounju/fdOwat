@@ -4463,12 +4463,12 @@ sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
       if (existingItem) {
         // existingItem.SpSalary = parseFloat(existingItem.SpSalary  || '0') + parseFloat(amount || '0');
       } else {
-        addSalaryDailyList.push(salaryItem);
-        //   {
-        //   ...salaryItem,
-        //   id: cleanSalaryItemId,
-        //   SpSalary: amount,
-        // });
+        addSalaryDailyList.push(
+          {
+          ...salaryItem,
+          id: cleanSalaryItemId,
+          SpSalary: amount,
+        });
 
       }
     });
