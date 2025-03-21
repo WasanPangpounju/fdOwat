@@ -4448,6 +4448,7 @@ sumCashOt  = sumCashOt  + parseFloat(record?.cashBeforeOt || '0') + parseFloat(r
 sumCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
 sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
 
+addSalaryDailyList = [];
   // Handle addSalaryDailyList clearly:
   if (record.addSalaryDaily && record.addSalaryDaily.length > 0) {
     record.addSalaryDaily.forEach((salaryItem) => {
@@ -4497,11 +4498,7 @@ monthlySalaries = await addSalary.filter(salary => salary.roundOfSalary === 'mon
   }
 
 
-  // addSalaryList = await addSalaryDailyList.concat(monthlySalaries);
-  addSalaryList  = await [...
-    addSalaryDailyList,
-    ... monthlySalaries];
-
+  addSalaryList = await addSalaryDailyList.concat(monthlySalaries);
   
   addSalaryList.forEach(element => {
    console.log(element.SpSalary );
