@@ -4499,7 +4499,7 @@ monthlySalaries = await addSalary.filter(salary => salary.roundOfSalary === 'mon
   //   ...addSalaryDailyList,
   //   ...monthlySalaries
   // ];
-  addSalaryList = addSalaryDailyList.concat(monthlySalaries);
+  addSalaryList = await addSalaryDailyList.concat(monthlySalaries);
 
   addSalaryList.forEach(element => {
    console.log(element.SpSalary );
