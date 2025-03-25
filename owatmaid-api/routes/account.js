@@ -4469,7 +4469,7 @@ sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
         addSalaryList .push({
           ...salaryItem,
           id: cleanSalaryItemId,
-          SpSalary: existingItem.SpSalary.toFixed(2)),
+          SpSalary: existingItem.SpSalary.toFixed(2),
         });
       }      
     });
