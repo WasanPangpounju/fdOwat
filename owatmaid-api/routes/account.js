@@ -4468,10 +4468,7 @@ let amount = 0;
         // console.log('amount ' + x)
 
       } else {
-        amount = salaryItem.SpSalary;
-        if (isNaN(amount)) {
-          amount =0;
-        }
+        amount = parseFloat(salaryItem.SpSalary || '0');
 
         console.log('amount ' + salaryItem)
 // console.log(JSON.stringify(salaryItem.SpSalary ,null,2));
@@ -4479,7 +4476,7 @@ let amount = 0;
         addSalaryList .push({
           ...salaryItem,
           id: cleanSalaryItemId,
-          SpSalary: 0,
+          SpSalary: amount,
         });
       }      
     });
