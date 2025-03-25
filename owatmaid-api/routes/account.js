@@ -4473,7 +4473,7 @@ let amount = 0;
           amount =0;
         }
 
-        console.log('amount ' + salaryItem.SpSalary[0])
+        console.log('amount ' + salaryItem)
 // console.log(JSON.stringify(salaryItem.SpSalary ,null,2));
 
         addSalaryList .push({
