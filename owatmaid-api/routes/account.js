@@ -4452,23 +4452,23 @@ sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
   if (record.addSalaryDaily && record.addSalaryDaily.length > 0) {
     record.addSalaryDaily.forEach((salaryItem) => {
       const amount = parseFloat(salaryItem.SpSalary || '0');
+
       const cleanSalaryItemId = salaryItem.id.trim();
 
-      // Check for existing item by ID
       const existingItem = addSalaryDailyList.find(
         item => item.id.trim() === cleanSalaryItemId
       );
   
       if (existingItem) {
-        existingItem.SpSalary += amount; // sum amounts if exists
+        // clearly ensure numeric addition
+        existingItem.SpSalary = parseFloat((existingItem.SpSalary + amount).toFixed(2));
       } else {
-        addSalaryDailyList.push({        // push new if not exists
+        addSalaryDailyList.push({
           ...salaryItem,
           id: cleanSalaryItemId,
-          SpSalary: amount,
+          SpSalary: parseFloat(amount.toFixed(2)),
         });
-      }
-      
+      }      
     });
   }
 //
