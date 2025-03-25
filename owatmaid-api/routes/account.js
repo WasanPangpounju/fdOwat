@@ -4471,6 +4471,7 @@ let amount = 0;
         amount = parseFloat(salaryItem.SpSalary + '0');
 
         console.log('amount ' + salaryItem.SpSalary[0])
+console.log(JSON.stringify(salaryItem.SpSalary ,null,2));
 
         addSalaryList .push({
           ...salaryItem,
