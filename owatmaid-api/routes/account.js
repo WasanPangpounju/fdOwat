@@ -4463,13 +4463,13 @@ sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
         // clearly ensure numeric addition
         let x = parseFloat(existingItem.SpSalary || '0') + amount;
         existingItem.SpSalary  = x;
-
         console.log('amount ' + x)
+
       } else {
         addSalaryList .push({
           ...salaryItem,
           id: cleanSalaryItemId,
-          SpSalary: parseFloat(amount.toFixed(2)),
+          // SpSalary: parseFloat(amount.toFixed(2)),
         });
       }      
     });
