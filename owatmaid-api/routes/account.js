@@ -4470,7 +4470,7 @@ let amount = 0;
       } else {
         amount = salaryItem.SpSalary;
 
-        console.log('amount ' + amount)
+        console.log('amount ' + salaryItem.SpSalary)
 
         addSalaryList .push({
           ...salaryItem,
