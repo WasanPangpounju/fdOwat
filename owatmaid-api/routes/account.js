@@ -4464,7 +4464,7 @@ let amount = 0;
 
         // clearly ensure numeric addition
         let x = parseFloat(existingItem.SpSalary || '0') + amount;
-        existingItem.SpSalary  = x;
+        // existingItem.SpSalary  = x;
         // console.log('amount ' + x)
 
       } else {
