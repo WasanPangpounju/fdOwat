@@ -4396,7 +4396,7 @@ let sumCashWorkMul = {};
 let sumAddSalaryDaily = {};
 let addSalaryDailyList = [];
 let monthlySalaries = [];
-
+let addSalaryList = [];
 
 if(parseFloat(salaryTmp || '0')  > 1660) {
   salaryMonth = parseFloat(salaryTmp || '0');
