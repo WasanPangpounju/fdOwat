@@ -4455,15 +4455,15 @@ sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
 
       const cleanSalaryItemId = salaryItem.id.trim();
 
-      const existingItem = addSalaryDailyList.find(
+      const existingItem = addSalaryList.find(
         item => item.id.trim() === cleanSalaryItemId
       );
   
       if (existingItem) {
         // clearly ensure numeric addition
-        // existingItem.SpSalary = parseFloat((existingItem.SpSalary + amount).toFixed(2));
+        existingItem.SpSalary = parseFloat((existingItem.SpSalary + amount).toFixed(2));
       } else {
-        addSalaryDailyList.push({
+        addSalaryList .push({
           ...salaryItem,
           id: cleanSalaryItemId,
           SpSalary: parseFloat(amount.toFixed(2)),
@@ -4496,7 +4496,7 @@ monthlySalaries = await addSalary.filter(salary => salary.roundOfSalary === 'mon
   }
 
 
-  addSalaryList = await addSalaryDailyList.concat(monthlySalaries);
+  addSalaryList = await addSalaryList.concat(monthlySalaries);
   
   addSalaryList.forEach(element => {
    console.log(' * ' + element.SpSalary );
