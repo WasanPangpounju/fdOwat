@@ -4470,7 +4470,7 @@ let amount = 0;
       } else {
         amount = parseFloat(salaryItem.SpSalary + '0');
 
-        // console.log('amount ' + salaryItem.SpSalary)
+        console.log('amount ' + salaryItem.SpSalary)
 
         addSalaryList .push({
           ...salaryItem,
