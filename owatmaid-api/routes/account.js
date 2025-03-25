@@ -4463,9 +4463,11 @@ sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
         // clearly ensure numeric addition
         let x = parseFloat(existingItem.SpSalary || '0') + amount;
         existingItem.SpSalary  = x;
-        console.log('amount ' + x)
+        // console.log('amount ' + x)
 
       } else {
+        console.log('amount ' + amount)
+
         addSalaryList .push({
           ...salaryItem,
           id: cleanSalaryItemId,
