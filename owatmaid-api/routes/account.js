@@ -4468,9 +4468,9 @@ let amount = 0;
         // console.log('amount ' + x)
 
       } else {
-        amount = parseFloat(salaryItem.SpSalary + '0');
+        amount = salaryItem.SpSalary;
 
-        console.log('amount ' + salaryItem.SpSalary[0])
+        // console.log('amount ' + salaryItem.SpSalary[0])
 console.log(JSON.stringify(salaryItem.SpSalary ,null,2));
 
         addSalaryList .push({
