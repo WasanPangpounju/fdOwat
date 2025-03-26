@@ -4302,10 +4302,13 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           { upsert: true }
         );
     
-        // Push updated data for response clarity
-        updatedRecords.push({ ...doc.toObject(), ...updateData });
-    
-        console.log(`✅ Document ${doc._id} updated successfully`);
+            // Safely retrieve updated document again
+    const updatedDoc = await timerecordEmployee.findById(doc._id);
+
+    updatedRecords.push(updatedDoc);
+
+    console.log(`✅ Document ${doc._id} updated successfully`);
+
         // // Update doc fields directly
         // doc.dayWorkCount = await String(calculatedValues.dayWorkCount);
         // doc.dayOffCount = await String(calculatedValues.dayOffCount);
