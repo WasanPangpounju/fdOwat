@@ -4306,7 +4306,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         );
     
         // ✅ Log AFTER update
-        console.log(`🚀 AFTER update (doc ${doc._id}):`, JSON.stringify(updatedDoc.addSalaryList, null, 2));
+        // console.log(`🚀 AFTER update (doc ${doc._id}):`, JSON.stringify(updatedDoc.addSalaryList, null, 2));
     
         updatedRecords.push(updatedDoc);
     
