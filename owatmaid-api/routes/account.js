@@ -4294,18 +4294,24 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           addSalaryList: calculatedValues.addSalaryList,
           sumCashWorkMul: calculatedValues.sumCashWorkMul,
         };
-
-            // Update and directly retrieve updated doc
-    const updatedDoc = await timerecordEmployee.findByIdAndUpdate(
-      doc._id,
-      { $set: updateData },
-      { new: true, upsert: true }
-    );
-
-    updatedRecords.push(updatedDoc);
-
-    console.log(`✅ Document ${doc._id} updated successfully`);
-
+    
+        // ✅ Log BEFORE update
+        console.log(`🔍 BEFORE update (doc ${doc._id}):`, JSON.stringify(doc.addSalaryList, null, 2));
+    
+        // Update and get updated document
+        const updatedDoc = await timerecordEmployee.findByIdAndUpdate(
+          doc._id,
+          { $set: updateData },
+          { new: true, upsert: true }
+        );
+    
+        // ✅ Log AFTER update
+        console.log(`🚀 AFTER update (doc ${doc._id}):`, JSON.stringify(updatedDoc.addSalaryList, null, 2));
+    
+        updatedRecords.push(updatedDoc);
+    
+        console.log(`✅ Document ${doc._id} updated successfully`);
+    
         // // Update doc fields directly
         // doc.dayWorkCount = await String(calculatedValues.dayWorkCount);
         // doc.dayOffCount = await String(calculatedValues.dayOffCount);
