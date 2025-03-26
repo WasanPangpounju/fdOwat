@@ -4293,7 +4293,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         doc.sumCashOt = String(calculatedValues.sumCashOt);
         doc.addSalaryList= calculatedValues.addSalaryList;
         doc.sumCashWorkMul = calculatedValues.sumCashWorkMul;
-console.log('calculatedValues.addSalaryList ' + JSON.stringify(calculatedValues.addSalaryList.length));
+console.log('calculatedValues.addSalaryList ' + JSON.stringify(calculatedValues.addSalaryList[0].SpSalary));
 
         // Save the updated document
         await doc.save();
