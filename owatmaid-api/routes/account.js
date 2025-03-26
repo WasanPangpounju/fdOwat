@@ -4310,7 +4310,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     
         updatedRecords.push(updatedDoc);
     
-        console.log(`✅ Document ${doc._id} updated successfully`);
+        // console.log(`✅ Document ${doc._id} updated successfully`);
     
         // // Update doc fields directly
         // doc.dayWorkCount = await String(calculatedValues.dayWorkCount);
