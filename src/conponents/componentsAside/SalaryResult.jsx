@@ -1831,7 +1831,7 @@ try {
 
   if (response.data?.result?.length > 0) {
     await setAccountingResult(response.data.result);
-    // alert(JSON.stringify(accountingResult,null,2));
+    alert(JSON.stringify(accountingResult.addSalaryList[0].SpSalary,null,2));
 
     // alert(JSON.stringify(response.data?.result[0]?.employee_record[0].addSalaryDaily, null, 2));
   } else {
@@ -2112,7 +2112,7 @@ try {
                                           >
                                             {addsalary.name} - จำนวน:{" "}
                                             {addsalary.SpSalary}{" "}
-                                            
+
                                             {/* {addsalary.roundOfSalary ==
                                               "daily" && (
                                                 <>* {addsalary.message} วัน</>
