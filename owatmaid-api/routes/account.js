@@ -4294,16 +4294,13 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           addSalaryList: calculatedValues.addSalaryList,
           sumCashWorkMul: calculatedValues.sumCashWorkMul,
         };
-    
-        // Safe and clear update or insert ("upsert")
-        await timerecordEmployee.updateOne(
-          { _id: doc._id },
-          { $set: updateData },
-          { upsert: true }
-        );
-    
-            // Safely retrieve updated document again
-    const updatedDoc = await timerecordEmployee.findById(doc._id);
+
+            // Update and directly retrieve updated doc
+    const updatedDoc = await timerecordEmployee.findByIdAndUpdate(
+      doc._id,
+      { $set: updateData },
+      { new: true, upsert: true }
+    );
 
     updatedRecords.push(updatedDoc);
 
