@@ -4294,9 +4294,9 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           addSalaryList: calculatedValues.addSalaryList,
           sumCashWorkMul: calculatedValues.sumCashWorkMul,
         };
-    
+    console.log(JSON.stringify(calculatedValues.addSalaryList))
         // ✅ Log BEFORE update
-        console.log(`🔍 BEFORE update (doc ${doc._id}):`, JSON.stringify(doc.addSalaryList, null, 2));
+        // console.log(`🔍 BEFORE update (doc ${doc._id}):`, JSON.stringify(doc.addSalaryList, null, 2));
     
         // Update and get updated document
         const updatedDoc = await timerecordEmployee.findByIdAndUpdate(
