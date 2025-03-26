@@ -4284,15 +4284,15 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         );
 
         // Update doc fields directly
-        doc.dayWorkCount = String(calculatedValues.dayWorkCount);
-        doc.dayOffCount = String(calculatedValues.dayOffCount);
-        doc.specialDayOff = String(calculatedValues.specialDayOff);
-        doc.sumTimeWork = String(calculatedValues.sumTimeWork);
-        doc.sumTimeOt = String(calculatedValues.sumTimeOt);
-        doc.sumCashWork = String(calculatedValues.sumCashWork);
-        doc.sumCashOt = String(calculatedValues.sumCashOt);
-        doc.addSalaryList= calculatedValues.addSalaryList;
-        doc.sumCashWorkMul = calculatedValues.sumCashWorkMul;
+        doc.dayWorkCount = await String(calculatedValues.dayWorkCount);
+        doc.dayOffCount = await String(calculatedValues.dayOffCount);
+        doc.specialDayOff = await String(calculatedValues.specialDayOff);
+        doc.sumTimeWork = await String(calculatedValues.sumTimeWork);
+        doc.sumTimeOt = await String(calculatedValues.sumTimeOt);
+        doc.sumCashWork = await String(calculatedValues.sumCashWork);
+        doc.sumCashOt = await String(calculatedValues.sumCashOt);
+        doc.addSalaryList= await calculatedValues.addSalaryList;
+        doc.sumCashWorkMul = await calculatedValues.sumCashWorkMul;
 
         // Save the updated document
         await doc.save();

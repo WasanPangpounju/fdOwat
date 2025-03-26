@@ -1831,8 +1831,8 @@ try {
 
   if (response.data?.result?.length > 0) {
     await setAccountingResult(response.data.result);
-    alert(JSON.stringify(accountingResult.addSalaryList[0].SpSalary,null,2));
-
+    alert(JSON.stringify(accountingResult[0].addSalaryList,null,2));
+alert('hi' + accountingResult[0].addSalaryList[0].SpSalary)
     // alert(JSON.stringify(response.data?.result[0]?.employee_record[0].addSalaryDaily, null, 2));
   } else {
     // alert("Conclude is null");
