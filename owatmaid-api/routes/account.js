@@ -4283,21 +4283,44 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           doc.year
         );
 
-        // Update doc fields directly
-        doc.dayWorkCount = await String(calculatedValues.dayWorkCount);
-        doc.dayOffCount = await String(calculatedValues.dayOffCount);
-        doc.specialDayOff = await String(calculatedValues.specialDayOff);
-        doc.sumTimeWork = await String(calculatedValues.sumTimeWork);
-        doc.sumTimeOt = await String(calculatedValues.sumTimeOt);
-        doc.sumCashWork = await String(calculatedValues.sumCashWork);
-        doc.sumCashOt = await String(calculatedValues.sumCashOt);
-        doc.addSalaryList= await calculatedValues.addSalaryList;
-        doc.sumCashWorkMul = await calculatedValues.sumCashWorkMul;
+        const updateData = {
+          dayWorkCount: String(calculatedValues.dayWorkCount),
+          dayOffCount: String(calculatedValues.dayOffCount),
+          specialDayOff: String(calculatedValues.specialDayOff),
+          sumTimeWork: String(calculatedValues.sumTimeWork),
+          sumTimeOt: String(calculatedValues.sumTimeOt),
+          sumCashWork: String(calculatedValues.sumCashWork),
+          sumCashOt: String(calculatedValues.sumCashOt),
+          addSalaryList: calculatedValues.addSalaryList,
+          sumCashWorkMul: calculatedValues.sumCashWorkMul,
+        };
+    
+        // Safe and clear update or insert ("upsert")
+        await timerecordEmployee.updateOne(
+          { _id: doc._id },
+          { $set: updateData },
+          { upsert: true }
+        );
+    
+        // Push updated data for response clarity
+        updatedRecords.push({ ...doc.toObject(), ...updateData });
+    
+        console.log(`✅ Document ${doc._id} updated successfully`);
+        // // Update doc fields directly
+        // doc.dayWorkCount = await String(calculatedValues.dayWorkCount);
+        // doc.dayOffCount = await String(calculatedValues.dayOffCount);
+        // doc.specialDayOff = await String(calculatedValues.specialDayOff);
+        // doc.sumTimeWork = await String(calculatedValues.sumTimeWork);
+        // doc.sumTimeOt = await String(calculatedValues.sumTimeOt);
+        // doc.sumCashWork = await String(calculatedValues.sumCashWork);
+        // doc.sumCashOt = await String(calculatedValues.sumCashOt);
+        // doc.addSalaryList= await calculatedValues.addSalaryList;
+        // doc.sumCashWorkMul = await calculatedValues.sumCashWorkMul;
 
-        // Save the updated document
-        await doc.save();
+        // // Save the updated document
+        // await doc.save();
 
-        updatedRecords.push(doc);
+        // updatedRecords.push(doc);
 
       } catch (error) {
         console.error("❌ Error updating document:", error);
