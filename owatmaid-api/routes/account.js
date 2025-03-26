@@ -4293,6 +4293,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         doc.sumCashOt = String(calculatedValues.sumCashOt);
         doc.addSalaryList= calculatedValues.addSalaryList;
         doc.sumCashWorkMul = calculatedValues.sumCashWorkMul;
+console.log('calculatedValues.addSalaryList ' + JSON.stringify(calculatedValues.addSalaryList));
 
         // Save the updated document
         await doc.save();
@@ -4469,9 +4470,7 @@ let amount = 0;
 
       } else {
         amount = parseFloat(salaryItem.SpSalary || '0');
-
-        console.log('amount ' + salaryItem)
-// console.log(JSON.stringify(salaryItem.SpSalary ,null,2));
+        // console.log('amount ' + salaryItem)
 
         addSalaryList .push({
           ...salaryItem,

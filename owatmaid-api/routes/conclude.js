@@ -103,7 +103,7 @@ let upSalary_month  = '';
         }
       });
     }
-    const addSalaryList = [];
+    let addSalaryList = [];
 
 
     dataConclude.year = await year;

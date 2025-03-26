@@ -1650,6 +1650,8 @@ function Compensation() {
       );
 
       if (response.data?.result?.length > 0) {
+                // alert(response.data?.result?.length )
+
         await setConcludeResultx(response.data.result);
         // alert(JSON.stringify(response.data?.result[0]?.employee_record[0].addSalaryDaily, null, 2));
       } else {

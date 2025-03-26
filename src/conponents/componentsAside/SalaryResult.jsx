@@ -2102,7 +2102,7 @@ try {
                                     margin: 0,
                                   }}
                                 >
-                                  {accountingResult?.[0]?.addSalaryList &&
+                                  {accountingResult?.[0]?.addSalaryList&&
                                     accountingResult?.[0]?.addSalaryList.map(
                                       (addsalary, index) =>
                                         addsalary.name !== "" && (
@@ -2112,10 +2112,11 @@ try {
                                           >
                                             {addsalary.name} - จำนวน:{" "}
                                             {addsalary.SpSalary}{" "}
-                                            {addsalary.roundOfSalary ==
+                                            
+                                            {/* {addsalary.roundOfSalary ==
                                               "daily" && (
                                                 <>* {addsalary.message} วัน</>
-                                              )}
+                                              )} */}
                                           </li>
                                         )
                                     )}
