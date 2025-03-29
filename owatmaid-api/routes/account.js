@@ -4258,6 +4258,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     if (year) query.year = { $regex: new RegExp(year, 'i') };
 
     if (!employeeId && !month && !year) {
+      console.log('No query parameters provided');
       return res.status(200).json({ result: [], message: 'No query parameters provided' });
     }
 
