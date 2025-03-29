@@ -4311,21 +4311,6 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     
         // console.log(`✅ Document ${doc._id} updated successfully`);
     
-        // // Update doc fields directly
-        // doc.dayWorkCount = await String(calculatedValues.dayWorkCount);
-        // doc.dayOffCount = await String(calculatedValues.dayOffCount);
-        // doc.specialDayOff = await String(calculatedValues.specialDayOff);
-        // doc.sumTimeWork = await String(calculatedValues.sumTimeWork);
-        // doc.sumTimeOt = await String(calculatedValues.sumTimeOt);
-        // doc.sumCashWork = await String(calculatedValues.sumCashWork);
-        // doc.sumCashOt = await String(calculatedValues.sumCashOt);
-        // doc.addSalaryList= await calculatedValues.addSalaryList;
-        // doc.sumCashWorkMul = await calculatedValues.sumCashWorkMul;
-
-        // // Save the updated document
-        // await doc.save();
-
-        // updatedRecords.push(doc);
 
       } catch (error) {
         console.error("❌ Error updating document:", error);
@@ -4607,6 +4592,7 @@ sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
 
   // Handle addSalaryDailyList clearly:
   if (record.addSalaryDaily && record.addSalaryDaily.length > 0) {
+    addSalaryList = [];
     record.addSalaryDaily.forEach((salaryItem) => {
       // const amount = parseFloat(salaryItem.SpSalary || '0');
 let amount = 0;
