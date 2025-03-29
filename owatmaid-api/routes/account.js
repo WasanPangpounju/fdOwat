@@ -4283,7 +4283,14 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           doc.year
         );
 
-        const updateData = {
+        const newData = {
+          employeeId: doc.employeeId,
+          employeeName: doc.employeeName, // or fetch from doc as needed
+          year: doc.year,
+          month: doc.month,
+          status: doc.status, // preserve any fields you want from the original doc
+          employee_record: doc.employee_record, // retain existing records
+    
           dayWorkCount: String(calculatedValues.dayWorkCount),
           dayOffCount: String(calculatedValues.dayOffCount),
           specialDayOff: String(calculatedValues.specialDayOff),
@@ -4294,23 +4301,45 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           addSalaryList: calculatedValues.addSalaryList,
           sumCashWorkMul: calculatedValues.sumCashWorkMul,
         };
-        console.log('calculatedValues.addSalaryList ' + JSON.stringify(calculatedValues.addSalaryList[0],null,2))
-        // ✅ Log BEFORE update
-        // console.log(`🔍 BEFORE update (doc ${doc._id}):`, JSON.stringify(doc.addSalaryList, null, 2));
     
-        // Update and get updated document
-        const updatedDoc = await timerecordEmployee.findByIdAndUpdate(
-          doc._id,
-          { $set: updateData },
-          { new: true, upsert: true }
-        );
+        // ✅ Delete old document first clearly
+        await timerecordEmployee.deleteOne({ _id: doc._id });
     
-        // ✅ Log AFTER update
-        // console.log(`🚀 AFTER update (doc ${doc._id}):`, JSON.stringify(updatedDoc.addSalaryList, null, 2));
+        // ✅ Insert new document clearly
+        const newDoc = await timerecordEmployee.create(newData);
     
-        updatedRecords.push(updatedDoc);
+        updatedRecords.push(newDoc);
     
-        // console.log(`✅ Document ${doc._id} updated successfully`);
+        console.log(`✅ Document ${doc._id} replaced successfully`);
+    
+        // const updateData = {
+        //   dayWorkCount: String(calculatedValues.dayWorkCount),
+        //   dayOffCount: String(calculatedValues.dayOffCount),
+        //   specialDayOff: String(calculatedValues.specialDayOff),
+        //   sumTimeWork: String(calculatedValues.sumTimeWork),
+        //   sumTimeOt: String(calculatedValues.sumTimeOt),
+        //   sumCashWork: String(calculatedValues.sumCashWork),
+        //   sumCashOt: String(calculatedValues.sumCashOt),
+        //   addSalaryList: calculatedValues.addSalaryList,
+        //   sumCashWorkMul: calculatedValues.sumCashWorkMul,
+        // };
+        // console.log('calculatedValues.addSalaryList ' + JSON.stringify(calculatedValues.addSalaryList[0],null,2))
+        // // ✅ Log BEFORE update
+        // // console.log(`🔍 BEFORE update (doc ${doc._id}):`, JSON.stringify(doc.addSalaryList, null, 2));
+    
+        // // Update and get updated document
+        // const updatedDoc = await timerecordEmployee.findByIdAndUpdate(
+        //   doc._id,
+        //   { $set: updateData },
+        //   { new: true, upsert: true }
+        // );
+    
+        // // ✅ Log AFTER update
+        // // console.log(`🚀 AFTER update (doc ${doc._id}):`, JSON.stringify(updatedDoc.addSalaryList, null, 2));
+    
+        // updatedRecords.push(updatedDoc);
+    
+        // // console.log(`✅ Document ${doc._id} updated successfully`);
     
         // // Update doc fields directly
         // doc.dayWorkCount = await String(calculatedValues.dayWorkCount);
