@@ -4473,7 +4473,7 @@ let amount = 0;
       const existingItem = addSalaryList.find(
         item => item.id.trim() === cleanSalaryItemId
       );
-  
+  console.log('cleanSalaryItemId  ' + cleanSalaryItemId )
       if (existingItem) {
         amount = parseFloat(salaryItem.SpSalary || '0');
 
