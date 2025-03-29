@@ -4494,8 +4494,11 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
   );
 
   // Log final result clearly before returning
-  console.log('Final addSalaryList:', JSON.stringify(addSalaryList, null, 2));
-
+  // console.log('Final addSalaryList:', JSON.stringify(addSalaryList, null, 2));
+  addSalaryList.map(item => {
+    console.log(item.SpSalary)
+  }
+  )
   // Adjust if salaryMonth is set
   if (salaryMonth !== 0) {
     dayWorkCount = 30;
