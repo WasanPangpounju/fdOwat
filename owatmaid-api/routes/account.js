@@ -4480,7 +4480,7 @@ let amount = 0;
         // clearly ensure numeric addition
         let x = parseFloat(existingItem.SpSalary || '0') + amount;
         existingItem.SpSalary  = x;
-        // console.log('amount ' + x)
+        console.log('amount ' + x)
 
       } else {
         amount = parseFloat(salaryItem.SpSalary || '0');
@@ -4512,8 +4512,8 @@ let amount = 0;
 
   //add addSalary Month to list 
   if (addSalary && addSalary.length > 0) {
-// console.log('addSalary.length  : ' + JSON.stringify(addSalary,null,2) );
 monthlySalaries = await addSalary.filter(salary => salary.roundOfSalary === 'monthly');
+// console.log('addSalary.length  : ' + JSON.stringify(addSalary,null,2) );
 // console.log('Monthly addSalary.length:', monthlySalaries.length);
 // console.log('Monthly addSalary:', monthlySalaries);
   }
@@ -4530,7 +4530,6 @@ monthlySalaries = await addSalary.filter(salary => salary.roundOfSalary === 'mon
 if(salaryMonth !== 0) {
   dayWorkCount = 30;
   sumCashWork  = salaryMonth;  
-
 }
 
   return await {
