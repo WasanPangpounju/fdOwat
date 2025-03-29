@@ -4306,7 +4306,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         await timerecordEmployee.deleteOne({ _id: doc._id });
     
         // ✅ Insert new document clearly
-        const newDoc = await timerecordEmployee.save(newData);
+        const newDoc = await timerecordEmployee.create(newData);
     
         updatedRecords.push(newDoc);
     
@@ -4691,7 +4691,7 @@ monthlySalaries = await addSalary.filter(salary => salary.roundOfSalary === 'mon
   }
 
 
-  addSalaryList = await addSalaryList.concat(monthlySalaries);
+  // addSalaryList = await addSalaryList.concat(monthlySalaries);
   
   addSalaryList.forEach(element => {
    console.log(' * ' + element.SpSalary );
