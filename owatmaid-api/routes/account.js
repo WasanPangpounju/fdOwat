@@ -4471,7 +4471,7 @@ let amount = 0;
       const cleanSalaryItemId = salaryItem.id.trim();
 
       const existingItem = addSalaryList.find(
-        item => item.id.trim() === cleanSalaryItemId
+        item => item.id === cleanSalaryItemId
       );
       console.log('test ' + JSON.stringify(existingItem ))
       if (existingItem) {
