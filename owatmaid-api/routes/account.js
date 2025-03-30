@@ -4473,7 +4473,7 @@ sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
   
       const cleanSalaryItemId = salaryItem.id.trim();
       const amount = parseFloat(salaryItem.SpSalary || '0');
-  
+  console.log(JSON.stringify(salaryItem))
       const existingItem = addSalaryList.find(
         item => item.id.trim() === cleanSalaryItemId
       );
