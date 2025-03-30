@@ -4282,7 +4282,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           doc.month,
           doc.year
         );
-        const updateData = {
+        const updateData = await {
           dayWorkCount: String(calculatedValues.dayWorkCount),
           dayOffCount: String(calculatedValues.dayOffCount),
           specialDayOff: String(calculatedValues.specialDayOff),
