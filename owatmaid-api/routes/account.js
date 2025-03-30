@@ -4466,33 +4466,28 @@ sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
   if (record.addSalaryDaily && record.addSalaryDaily.length > 0) {
     addSalaryList = [];
     record.addSalaryDaily.forEach((salaryItem) => {
-      // const amount = parseFloat(salaryItem.SpSalary || '0');
-let amount = 0;
+      if (!salaryItem.id) {
+        console.warn('⚠️ Skipping item without id:', salaryItem);
+        return; // skip items without id
+      }
+  
       const cleanSalaryItemId = salaryItem.id.trim();
-
+      const amount = parseFloat(salaryItem.SpSalary || '0');
+  
       const existingItem = addSalaryList.find(
-        item => item.id === cleanSalaryItemId
+        item => item.id.trim() === cleanSalaryItemId
       );
-      console.log('test ' + JSON.stringify(existingItem ))
+  
       if (existingItem) {
-        amount = parseFloat(salaryItem.SpSalary || '0');
-
-        // clearly ensure numeric addition
-        let x = parseFloat(existingItem.SpSalary || '0') + amount;
-        existingItem.SpSalary  = x;
-        console.log('amount ' + x)
-
+        existingItem.SpSalary += amount;
       } else {
-        amount = parseFloat(salaryItem.SpSalary || '0');
-        // console.log('amount ' + salaryItem)
-
-        addSalaryList .push({
+        addSalaryList.push({
           ...salaryItem,
           id: cleanSalaryItemId,
           SpSalary: amount,
         });
-      }      
-    });
+      }
+        });
   }
 //
 
