@@ -4234,7 +4234,7 @@ router.post('/searchtimerecord', async (req, res) => {
   }
 
   try {
-    const records = await TimerecordEmployee.find({ year, month });
+    const records = await timerecordEmployee.find({ year, month });
     res.status(200).json(records);
   } catch (error) {
     console.error(error);
