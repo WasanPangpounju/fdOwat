@@ -54,7 +54,17 @@ sumTimeWork : String,
 sumTimeOt : String,
 sumCashWork : String,
 sumCashOt : String,
-addSalaryList: [],
+addSalaryList: [
+  {
+    id: String,
+    name: String,
+    SpSalary: String,  // problem here, you're storing numbers as strings
+    roundOfSalary: String,
+    StaffType: String,
+    nameType: String,
+    message: String,
+  }
+],
 sumCashWorkMul : {},
 
 });
