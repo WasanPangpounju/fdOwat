@@ -4294,7 +4294,8 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           addSalaryList: calculatedValues.addSalaryList,
           sumCashWorkMul: calculatedValues.sumCashWorkMul,
         };
-        console.log('calculatedValues.addSalaryList ' + JSON.stringify(calculatedValues.addSalaryList.length,null,2))
+        // console.log('calculatedValues.addSalaryList ' + JSON.stringify(calculatedValues.addSalaryList.length,null,2))
+        console.log(calculatedValues.addSalaryList.length)
         // ✅ Log BEFORE update
         // console.log(`🔍 BEFORE update (doc ${doc._id}):`, JSON.stringify(doc.addSalaryList, null, 2));
     
