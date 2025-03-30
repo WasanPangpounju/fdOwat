@@ -4492,7 +4492,7 @@ for (const record of employee_record) {
     });
   }
 }
-    // addSalaryList = [];
+    addSalaryList = [];
     // record.addSalaryDaily.forEach((salaryItem) => {
     //   if (!salaryItem.id) {
     //     console.warn('⚠️ Skipping item without id:', salaryItem);
