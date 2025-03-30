@@ -4224,6 +4224,24 @@ router.post('/updateSpecialDay', async (req, res) => {
 
 //latest code
 
+
+// POST API endpoint to get records by year and month
+router.post('/searchtimerecord', async (req, res) => {
+  const { year, month } = req.body;
+
+  if (!year || !month) {
+    return res.status(400).json({ message: "Year and month are required." });
+  }
+
+  try {
+    const records = await TimerecordEmployee.find({ year, month });
+    res.status(200).json(records);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server Error", error: error.message });
+  }
+});
+
 //get employee profile
 const getEmployeeProfile = async (employeeId) => {
   try {

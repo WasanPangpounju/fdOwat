@@ -1,4 +1,8 @@
 import endpoint from "../../config";
+import { Table } from "react-bootstrap";
+import "bootstrap/dist/css/bootstrap.min.css";
+import "./table.css";
+
 import { ThaiDatePicker } from "thaidatepicker-react";
 import { FaCalendarAlt } from "react-icons/fa"; // You can use any icon library
 
@@ -8926,6 +8930,19 @@ function WorktimeSheetWorkplace({ employeeList }) {
     setDate(value);
   };
 
+
+//latest code 
+
+const dayNumbers = [
+  "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31",
+  "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20"
+];
+const overtimeLabels = [
+    "ค่าทำงานวันหยุด","วันนักขัต","โอที 1.5","โอที 2","โอที 3","ค่ากะดึก","ค่าเดินทาง","เงินพิเศษ","เบี้ยขยัน",
+    "ค่านน้ำ/ไฟ/โทรศัพท์","ค่าวิชาชีพ","สาย","คืนเงินพักร้อน","จ่ายป่วยมีใบลา"
+];
+
+
   return (
     // <div>
     <body class="hold-transition sidebar-mini" className="editlaout">
@@ -8954,7 +8971,7 @@ function WorktimeSheetWorkplace({ employeeList }) {
           {/* <!-- /.content-header -->
 <!-- Main content --> */}
 
-          <section class="content">
+<section class="content">
             <div class="row">
               <div class="col-md-10">
                 <section class="Frame">
@@ -9243,6 +9260,203 @@ function WorktimeSheetWorkplace({ employeeList }) {
             </div>
             <br />
           </section>
+
+<div className="container-fluid d-flex justify-content-center align-items-center min-vh-100 ">
+      <div className="d-flex justify-content-center">
+        <Table 
+          bordered 
+          style={{ 
+            fontSize: "12px",
+            width: "100%",
+            margin: "0 auto"
+          }}
+          className="no-tbody-borders"
+        >
+          <thead>
+            {/* ---------------- แถวที่ 1 ---------------- */}
+            <tr >
+              <th rowSpan="4" className="text-center  ">ลำดับ</th>
+              <th rowSpan="4" colSpan="1" className="text-center">ชื่อ - สกุล</th>
+              {dayNumbers.map((day, idx) => (
+        <th key={idx} rowSpan={4} className="text-center ">
+          {day}
+        </th>
+      ))}
+              <th rowSpan="4" className="vertical-text">รวมวันทำงาน</th>
+
+              {/* ค่าล่วงเวลา → 5 คอลัมน์ */}
+              <th></th>
+              <th></th>
+              <th colSpan="3" className="text-center align-middle">ค่าล่วงเวลา</th>
+              <th colSpan="9" className="text-center p-2">สวัสดิการ</th>
+              <th rowSpan={4}  className="vertical-text ">หักประกันสังคม %</th>
+              <th rowSpan={4} >หมายเหตุ</th>
+            </tr>
+
+            {/* ---------------- แถวที่ 2 ---------------- */}
+            <tr>
+              <th>1441</th>
+              <th>1434</th>
+              <th>1120</th>
+              <th>1150</th>
+              <th>1130</th>
+              {Array.from({ length: 9 }).map((_, i) => (
+                    <th key={i} className="text-center "></th>
+                ))}
+            </tr>
+
+            {/* ---------------- แถวที่ 3 ---------------- */}
+            <tr>
+                <td></td>
+                {Array.from({ length: 13 }, (_, i) => (
+                    <th key={i}></th>
+                ))}
+            </tr>
+
+            {/* ---------------- แถวที่ 4 ---------------- */}
+                <tr>
+                    {overtimeLabels.map((label, index) => (
+                        <th key={index} className="vertical-text align-middle">
+                        {label}
+                        </th>
+                    ))}
+                </tr>
+          </thead>
+
+          <tbody>
+        
+          <tr>
+                <td className="text-center align-middle">1</td>
+                <td>
+                    ทดสอบ ทดสอบ <span style={{ float: "right" }}>เช้า</span>
+                </td>
+                {Array.from({ length: 10 }).map((_, i) => (
+                    <td key={i} className="text-center">1</td>
+                ))}
+                <td></td>
+                
+                {Array.from({ length: 19}).map((_, i) => (
+                    <td key={i} className="text-center">1</td>
+                ))}
+                {/* <tr></tr> */}
+                <td></td>
+
+                <td className="text-center align-middle">28</td>
+                <td className="text-center align-middle">4</td>
+
+                <td className="text-center align-middle"></td>
+                <td className="text-center align-middle">4</td>
+
+
+                {Array.from({ length: 12 }).map((_, i) => (
+                    <td key={i} className="text-center"></td>
+                ))}
+                </tr>
+            <tr>
+                <td></td>
+                <td>หัวหน้า <span style={{ float: "right" }}>ดึก</span></td>
+                <td className="no-x-border"></td>
+                {Array.from({ length:30}).map((_,i)=>(
+                    <td key={i} className="text-center"></td>
+                ))}
+                <td className="">12000</td>
+                <td className="">12240</td>
+
+                <td className=""></td>
+                <td className="">321.428</td>
+
+                {Array.from({ length:12}).map((_,i)=>(
+                    <td key={i} className="text-center"></td>
+                ))}
+               
+              
+              </tr>
+
+              {/*  */}
+              <tr  className="text-center align-middle">
+                <td ></td>
+                <td className="no-border"><span style={{ paddingLeft:"29px" }}>650153 โอที 1.5</span></td>
+                <td  className="text-center ">2</td>
+                <td></td>
+                <td></td>
+                <td>2</td>
+                {Array.from({ length:29}).map((_,i)=>(
+                    <td key={i} className="text-center"></td>
+                ))}                
+                <td className="text-center"></td>
+                {Array.from({ length:13}).map((_,i)=>(
+                    <td key={i} className="text-center"></td>
+                ))}
+              </tr>
+
+              {/*  */}
+              <tr className="pt">
+              <td></td>
+              <td><span style={{  paddingLeft:"75px"  }}>โอที 2 </span></td>
+            {Array.from({ length:47}).map((_,i)=>(
+                    <td key={i} className="text-center"></td>
+                ))}        
+                </tr>
+              {/*  */}
+              <tr>
+              <td></td>
+              <td   className="pb-5"><span style={{  paddingLeft:"75px" ,paddingBottom:"120px",display:"inline-block"}}>โอที 3 </span></td>
+              {Array.from({ length:47}).map((_,i)=>(
+                    <td key={i} className="text-center"></td>
+                ))}
+                
+              </tr>
+              {/*  */}
+              
+              
+              <tr>
+              <td  className="text-center align-middle">2</td>
+              <td >ทดสอบ ทดสอบ <span style={{ float: "right" }}>เช้า</span></td>
+              {Array.from({ length:30}).map((_,i)=>(
+                    <td key={i} className="text-center">1</td>
+                ))}
+
+              {Array.from({ length: 17 }).map((_, i) => (
+                    <td key={i} className="text-center"></td>
+                ))}
+              </tr>
+              <tr>
+                <td></td>
+                <td><span style={{ float: "right" }}>ดีก</span></td>
+                {Array.from({ length: 47 }).map((_, i) => (
+                    <td key={i} className="text-center"></td>
+                ))}              
+              </tr>
+              {/*  */}
+              <tr>
+                <td></td>
+                <td><span style={{  paddingLeft:"30px" }}>650154 โอที 1.5 </span></td>
+              {Array.from({ length: 47 }).map((_, i) => (
+                    <td key={i} className="text-center"></td>
+                ))}
+              </tr>
+              {/*  */}
+              <tr>
+              <td></td>
+              <td><span style={{  paddingLeft:"75px" }}>โอที 2 </span></td>
+              {Array.from({ length: 47 }).map((_, i) => (
+                    <td key={i} className="text-center"></td>
+                ))}              
+                </tr>
+              {/*  */}
+              <tr>
+                <td style={{ borderTop:0, borderBottom: "none" }}className="bordered"></td>
+                <td><span style={{  paddingLeft:"75px" ,paddingBottom:"120px",display:"inline-block"}}>โอที 3 </span></td>
+                {Array.from({ length: 47 }).map((_, i) => (
+                        <td key={i} className="text-center"></td>
+                    ))}
+              </tr>
+
+          </tbody>
+        </Table>
+      </div>
+    </div>
+
           {/* <!-- /.content --> */}
         </div>
       </div>
