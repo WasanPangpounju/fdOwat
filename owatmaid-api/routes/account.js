@@ -4294,6 +4294,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           addSalaryList: calculatedValues.addSalaryList,
           sumCashWorkMul: calculatedValues.sumCashWorkMul,
         };
+        console.log('calculatedValues.addSalaryList ' + JSON.stringify(calculatedValues.addSalaryList,null,2))
         // ✅ Log BEFORE update
         // console.log(`🔍 BEFORE update (doc ${doc._id}):`, JSON.stringify(doc.addSalaryList, null, 2));
     
@@ -4480,14 +4481,14 @@ for (const record of employee_record) {
 
       if (existingItem) {
         existingItem.SpSalary += amount;
-        console.log(`✅ Updated ID ${cleanSalaryItemId} to ${existingItem.SpSalary}`);
+        // console.log(`✅ Updated ID ${cleanSalaryItemId} to ${existingItem.SpSalary}`);
       } else {
         addSalaryList.push({
           ...salaryItem,
           id: cleanSalaryItemId,
           SpSalary: amount,
         });
-        console.log(`🚀 Added new ID ${cleanSalaryItemId} with ${amount}`);
+        // console.log(`🚀 Added new ID ${cleanSalaryItemId} with ${amount}`);
       }
     });
   }
