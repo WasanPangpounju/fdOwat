@@ -4282,7 +4282,6 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           doc.month,
           doc.year
         );
-
         const updateData = {
           dayWorkCount: String(calculatedValues.dayWorkCount),
           dayOffCount: String(calculatedValues.dayOffCount),
@@ -4291,9 +4290,27 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           sumTimeOt: String(calculatedValues.sumTimeOt),
           sumCashWork: String(calculatedValues.sumCashWork),
           sumCashOt: String(calculatedValues.sumCashOt),
-          addSalaryList: calculatedValues.addSalaryList,
+        
+          // clearly ensure all SpSalary are numbers
+          addSalaryList: calculatedValues.addSalaryList.map(item => ({
+            ...item,
+            SpSalary: parseFloat(item.SpSalary) || 0,
+          })),
+        
           sumCashWorkMul: calculatedValues.sumCashWorkMul,
         };
+        
+        // const updateData = {
+        //   dayWorkCount: String(calculatedValues.dayWorkCount),
+        //   dayOffCount: String(calculatedValues.dayOffCount),
+        //   specialDayOff: String(calculatedValues.specialDayOff),
+        //   sumTimeWork: String(calculatedValues.sumTimeWork),
+        //   sumTimeOt: String(calculatedValues.sumTimeOt),
+        //   sumCashWork: String(calculatedValues.sumCashWork),
+        //   sumCashOt: String(calculatedValues.sumCashOt),
+        //   addSalaryList: calculatedValues.addSalaryList,
+        //   sumCashWorkMul: calculatedValues.sumCashWorkMul,
+        // };
         console.log('calculatedValues.addSalaryList ' + JSON.stringify(calculatedValues.addSalaryList[0].SpSalary,null,2))
         console.log(calculatedValues.addSalaryList.length)
         // ✅ Log BEFORE update
