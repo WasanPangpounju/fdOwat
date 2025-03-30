@@ -4492,36 +4492,6 @@ for (const record of employee_record) {
     });
   }
 }
-    addSalaryList = [];
-    // record.addSalaryDaily.forEach((salaryItem) => {
-    //   if (!salaryItem.id) {
-    //     console.warn('⚠️ Skipping item without id:', salaryItem);
-    //     return; // skip items without id
-    //   }
-  
-    //   const cleanSalaryItemId = salaryItem.id.trim();
-    //   const amount = parseFloat(salaryItem.SpSalary || '0');
-
-    //   const existingItem = addSalaryList.find(item => {
-    //     console.log(`Comparing "${item.id.trim()}" to "${cleanSalaryItemId}"`, item.id.trim() === cleanSalaryItemId);
-    //     return item.id.trim() === cleanSalaryItemId;
-    //   });
-      
-    //   // const existingItem = addSalaryList.find(
-    //   //   item => item.id.trim() === cleanSalaryItemId
-    //   // );
-  
-    //   if (existingItem) {
-    //     existingItem.SpSalary += amount;
-    //     console.log('existingItem.SpSalary  ' + existingItem.SpSalary );
-    //   } else {
-    //     addSalaryList.push({
-    //       ...salaryItem,
-    //       id: cleanSalaryItemId,
-    //       SpSalary: amount,
-    //     });
-    //   }
-    //     });
   }
 //
 
