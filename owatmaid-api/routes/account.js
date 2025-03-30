@@ -4480,6 +4480,7 @@ sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
   
       if (existingItem) {
         existingItem.SpSalary += amount;
+        console.log('existingItem.SpSalary  ' + existingItem.SpSalary );
       } else {
         addSalaryList.push({
           ...salaryItem,
