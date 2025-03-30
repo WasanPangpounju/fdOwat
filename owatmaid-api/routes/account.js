@@ -4464,36 +4464,64 @@ sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
 
   // Handle addSalaryDailyList clearly:
   if (record.addSalaryDaily && record.addSalaryDaily.length > 0) {
-    addSalaryList = [];
+    let addSalaryList = [];
+
+for (const record of employee_record) {
+  if (Array.isArray(record.addSalaryDaily)) {
     record.addSalaryDaily.forEach((salaryItem) => {
-      if (!salaryItem.id) {
-        console.warn('⚠️ Skipping item without id:', salaryItem);
-        return; // skip items without id
-      }
-  
-      const cleanSalaryItemId = salaryItem.id.trim();
+      if (!salaryItem.id) return;
+
+      const cleanSalaryItemId = String(salaryItem.id).trim();
       const amount = parseFloat(salaryItem.SpSalary || '0');
 
-      const existingItem = addSalaryList.find(item => {
-        console.log(`Comparing "${item.id.trim()}" to "${cleanSalaryItemId}"`, item.id.trim() === cleanSalaryItemId);
-        return item.id.trim() === cleanSalaryItemId;
-      });
-      
-      // const existingItem = addSalaryList.find(
-      //   item => item.id.trim() === cleanSalaryItemId
-      // );
-  
+      const existingItem = addSalaryList.find(
+        item => String(item.id).trim() === cleanSalaryItemId
+      );
+
       if (existingItem) {
         existingItem.SpSalary += amount;
-        console.log('existingItem.SpSalary  ' + existingItem.SpSalary );
+        console.log(`✅ Updated ID ${cleanSalaryItemId} to ${existingItem.SpSalary}`);
       } else {
         addSalaryList.push({
           ...salaryItem,
           id: cleanSalaryItemId,
           SpSalary: amount,
         });
+        console.log(`🚀 Added new ID ${cleanSalaryItemId} with ${amount}`);
       }
-        });
+    });
+  }
+}
+    // addSalaryList = [];
+    // record.addSalaryDaily.forEach((salaryItem) => {
+    //   if (!salaryItem.id) {
+    //     console.warn('⚠️ Skipping item without id:', salaryItem);
+    //     return; // skip items without id
+    //   }
+  
+    //   const cleanSalaryItemId = salaryItem.id.trim();
+    //   const amount = parseFloat(salaryItem.SpSalary || '0');
+
+    //   const existingItem = addSalaryList.find(item => {
+    //     console.log(`Comparing "${item.id.trim()}" to "${cleanSalaryItemId}"`, item.id.trim() === cleanSalaryItemId);
+    //     return item.id.trim() === cleanSalaryItemId;
+    //   });
+      
+    //   // const existingItem = addSalaryList.find(
+    //   //   item => item.id.trim() === cleanSalaryItemId
+    //   // );
+  
+    //   if (existingItem) {
+    //     existingItem.SpSalary += amount;
+    //     console.log('existingItem.SpSalary  ' + existingItem.SpSalary );
+    //   } else {
+    //     addSalaryList.push({
+    //       ...salaryItem,
+    //       id: cleanSalaryItemId,
+    //       SpSalary: amount,
+    //     });
+    //   }
+    //     });
   }
 //
 
