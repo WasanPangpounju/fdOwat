@@ -4520,9 +4520,10 @@ let check = false;
 
       if (existingItem ) {
         if(cleanSalaryItemId === existingItem.id) {
+          console.log('test' + parseFloat(existingItem.SpSalary  || 0) + ' ' +  amount)
+
           existingItem.SpSalary = parseFloat(existingItem.SpSalary  || 0) + amount;
           existingItem.message = parseFloat(existingItem.message  || 0) + 1;
-  console.log('test' + parseFloat(existingItem.SpSalary  || 0) + ' ' +  amount)
   
         }
         // Find the exact index
