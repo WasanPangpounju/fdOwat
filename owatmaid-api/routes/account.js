@@ -4538,9 +4538,10 @@ let check =  0;
         }
       
       } else {
+        check = 1;
+
         // Otherwise push new
         addSalaryList.push(salaryItem);
-        check = 1;
       }
       // if (existingItem) {
       //   existingItem.SpSalary = parseFloat(existingItem.SpSalary  || 0) + amount;
