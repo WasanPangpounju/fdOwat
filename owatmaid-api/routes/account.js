@@ -4525,7 +4525,7 @@ for (const record of employee_record) {
 
           existingItem.SpSalary =  parseFloat(existingItem.SpSalary  || 0) + amount;
           existingItem.message = parseFloat(existingItem.message  || 0) + 1;
-  check = 1;
+  check += 1;
         // Find the exact index
         const index = addSalaryList.findIndex(item => item.id === existingItem.id);
       
