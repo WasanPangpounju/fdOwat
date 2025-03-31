@@ -4512,7 +4512,7 @@ let check =  0;
     record.addSalaryDaily .forEach((salaryItem) => {
       if (!salaryItem.id) return;
 console.log(check)
-check += 1;
+// check += 1;
       const cleanSalaryItemId = String(salaryItem.id).trim();
       const amount = parseFloat(salaryItem.SpSalary || 0);
 
