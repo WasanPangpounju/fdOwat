@@ -4521,7 +4521,7 @@ check += 1;
       );
 
       if (existingItem ) {
-        if(cleanSalaryItemId === existingItem.id && check <= 0 0) {
+        if(cleanSalaryItemId === existingItem.id && check <= 0) {
           console.log('test' + parseFloat(existingItem.SpSalary  || 0) + ' ' +  amount)
 
           existingItem.SpSalary =  + amount;
