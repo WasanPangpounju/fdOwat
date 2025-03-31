@@ -4518,10 +4518,10 @@ let check = false;
         item => String(item.id).trim() === cleanSalaryItemId
       );
 
-      if (existingItem && cleanSalaryItemId === existingItem.id) {
+      if (existingItem && cleanSalaryItemId === existingItem.id && check ) {
         existingItem.SpSalary = parseFloat(existingItem.SpSalary  || 0) + amount;
         existingItem.message = parseFloat(existingItem.message  || 0) + 1;
-
+check = false;
 console.log('test' + parseFloat(existingItem.SpSalary  || 0) + ' ' +  amount)
         // Find the exact index
         const index = addSalaryList.findIndex(item => item.id === existingItem.id);
@@ -4535,6 +4535,7 @@ console.log('test' + parseFloat(existingItem.SpSalary  || 0) + ' ' +  amount)
       } else {
         // Otherwise push new
         addSalaryList.push(salaryItem);
+        check = true;
         
       }
       // if (existingItem) {
