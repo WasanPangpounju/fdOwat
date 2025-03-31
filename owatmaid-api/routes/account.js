@@ -4313,7 +4313,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           // addSalaryList: calculatedValues.addSalaryList.map(item => ({
           //   ...item,
           //   SpSalary: parseFloat(item.SpSalary) || 0,
-          //   message : item.message,
+          //   message : parseF item.message,
           // })),
           addSalaryList: calculatedValues.addSalaryList        ,
           sumCashWorkMul: calculatedValues.sumCashWorkMul,
@@ -4519,7 +4519,7 @@ for (const record of employee_record) {
 
       if (existingItem) {
         existingItem.SpSalary = parseFloat(existingItem.SpSalary  || 0) + amount;
-        existingItem.message += 1;
+        existingItem.message = parseFloat(existingItem.message  || 0) + 1;
         // console.log(`✅ Updated ID ${cleanSalaryItemId} to ${existingItem.SpSalary}`);
       } else {
         addSalaryList.push(salaryItem);
