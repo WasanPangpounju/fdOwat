@@ -4525,7 +4525,7 @@ for (const record of employee_record) {
       
         if (index !== -1) {
           // Override existing item
-          addSalaryList[index] = salaryItem; 
+          addSalaryList[index] = existingItem; 
         }
       } else {
         // Otherwise push new
