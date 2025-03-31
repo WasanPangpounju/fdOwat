@@ -4520,8 +4520,8 @@ check += 1;
         item => String(item.id).trim() === cleanSalaryItemId
       );
 
-      if (existingItem && check == 0) {
-        if(cleanSalaryItemId === existingItem.id) {
+      if (existingItem ) {
+        if(cleanSalaryItemId === existingItem.id && check == 0) {
           console.log('test' + parseFloat(existingItem.SpSalary  || 0) + ' ' +  amount)
 
           existingItem.SpSalary =  + amount;
