@@ -4318,7 +4318,8 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         
           sumCashWorkMul: calculatedValues.sumCashWorkMul,
         };
-        
+        console.log('updateData  ' + JSON.stringify(updateData ));
+
         // const updateData = {
         //   dayWorkCount: String(calculatedValues.dayWorkCount),
         //   dayOffCount: String(calculatedValues.dayOffCount),
