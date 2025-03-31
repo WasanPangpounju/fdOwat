@@ -2082,7 +2082,7 @@ alert('hi' + accountingResult[0].addSalaryList[0].SpSalary)
                           </td>
 
                           <td style={cellStyle}>
-                            {JSON.stringify(accountingResult?.[0]?.addSalaryList[0])}
+                            {JSON.stringify(accountingResult?.[0]?.addSalaryList[0].message)}
                             <span
                               onClick={togglePopup}
                               style={{ color: color, cursor: "pointer" }}
