@@ -4520,7 +4520,7 @@ for (const record of employee_record) {
 
       if (existingItem ) {
 
-        if(cleanSalaryItemId === existingItem.id && check !== 0) {
+        if(cleanSalaryItemId === existingItem.id && check <=  1) {
           console.log('test' + parseFloat(existingItem.SpSalary  || 0) + ' ' +  amount)
 
           existingItem.SpSalary =  parseFloat(existingItem.SpSalary  || 0) + amount;
