@@ -4318,7 +4318,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           addSalaryList: calculatedValues.addSalaryList        ,
           sumCashWorkMul: calculatedValues.sumCashWorkMul,
         };
-        console.log('updateData  ' + JSON.stringify(updateData ));
+        // console.log('updateData  ' + JSON.stringify(updateData ));
 
         // const updateData = {
         //   dayWorkCount: String(calculatedValues.dayWorkCount),
@@ -4519,7 +4519,7 @@ for (const record of employee_record) {
       if (existingItem) {
                 existingItem.SpSalary = parseFloat(existingItem.SpSalary  || 0) + amount;
         existingItem.message = parseFloat(existingItem.message  || 0) + 1;
-
+console.log('test' + parseFloat(existingItem.SpSalary  || 0) + ' ' +  amount)
         // Find the exact index
         const index = addSalaryList.findIndex(item => item.id === existingItem.id);
       
