@@ -4517,7 +4517,18 @@ const existingItem = addSalaryList.find(
 console.log('cleanSalaryItemId ' + cleanSalaryItemId)
 if(existingItem ){
   console.log('existingItem  ' + existingItem?.id )
+  existingItem.SpSalary =  parseFloat(existingItem.SpSalary  || 0) + amount;
+  existingItem.message = parseFloat(existingItem.message  || 0) + 1;
 
+          // Find the exact index
+          const index = addSalaryList.findIndex(item => item.id === existingItem.id);
+      
+          if (index !== -1) {
+  
+            // Override existing item
+            addSalaryList[index] = existingItem; 
+          }
+  
 } else {
         // Otherwise push new
         addSalaryList.push(salaryItem);
