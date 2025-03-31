@@ -4517,13 +4517,15 @@ for (const record of employee_record) {
         item => String(item.id).trim() === cleanSalaryItemId
       );
       if (existingItem) {
-                existingItem.SpSalary = parseFloat(existingItem.SpSalary  || 0) + amount;
+                existingItem.SpSalary = parseFloat(existingItem.SpSalary  || 0) ;
         existingItem.message = parseFloat(existingItem.message  || 0) + 1;
 console.log('test' + parseFloat(existingItem.SpSalary  || 0) + ' ' +  amount)
+
         // Find the exact index
         const index = addSalaryList.findIndex(item => item.id === existingItem.id);
       
         if (index !== -1) {
+
           // Override existing item
           addSalaryList[index] = existingItem; 
         }
