@@ -4512,8 +4512,10 @@ const amount = parseFloat(salaryItem.SpSalary || 0);
 const existingItem = addSalaryList.find(
   item => String(item.id).trim() === cleanSalaryItemId
 );
+if(existingItem ){
+  console.log('existingItem  ' + existingItem?.id )
 
-console.log('existingItem  ' + existingItem.id )
+}
 }); //end foreach
 
   }
