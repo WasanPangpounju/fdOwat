@@ -4504,65 +4504,7 @@ sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
   // Handle addSalaryDailyList clearly:
   if (record.addSalaryDaily && record.addSalaryDaily.length > 0) {
      addSalaryList = [];
-
-for (const record of employee_record) {
-  if (Array.isArray(record.addSalaryDaily)) {
-    let check =  0;
-
-    record.addSalaryDaily .forEach((salaryItem) => {
-      if (!salaryItem.id) return;
-      const cleanSalaryItemId = String(salaryItem.id).trim();
-      const amount = parseFloat(salaryItem.SpSalary || 0);
-
-      const existingItem = addSalaryList.find(
-        item => String(item.id).trim() === cleanSalaryItemId
-      );
-
-      if (existingItem ) {
-
-        if(cleanSalaryItemId === existingItem.id && check ==  1) {
-          console.log('test' + parseFloat(existingItem.SpSalary  || 0) + ' ' +  amount)
-
-          existingItem.SpSalary =  parseFloat(existingItem.SpSalary  || 0) + amount;
-          existingItem.message = parseFloat(existingItem.message  || 0) + 1;
-  check += 1;
-        // Find the exact index
-        const index = addSalaryList.findIndex(item => item.id === existingItem.id);
-      
-        if (index !== -1) {
-
-          // Override existing item
-          addSalaryList[index] = existingItem; 
-        }
-
-        }
-      
-      } else {
-        check = 1;
-
-        // Otherwise push new
-        addSalaryList.push(salaryItem);
-      }
-      // if (existingItem) {
-      //   existingItem.SpSalary = parseFloat(existingItem.SpSalary  || 0) + amount;
-      //   existingItem.message = parseFloat(existingItem.message  || 0) + 1;
-      //   // console.log(`✅ Updated ID ${cleanSalaryItemId} to ${existingItem.SpSalary}`);
-      // } else {
-      //   addSalaryList.push(salaryItem);
-
-      //   // addSalaryList.push({
-      //   //   ...salaryItem,
-      //   //   id: cleanSalaryItemId,
-      //   //   SpSalary: amount,
-      //   //   message: 1,
-      //   // });
-      //   // console.log(`🚀 Added new ID ${cleanSalaryItemId} with ${amount}`);
-      // }
-    });
-  }
-  // break;
-
-}
+console.log('record.addSalaryDaily.length  ' + record.addSalaryDaily.length )
   }
 //
 
