@@ -4507,6 +4507,7 @@ sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
 
 for (const record of employee_record) {
   if (Array.isArray(record.addSalaryDaily)) {
+
     record.addSalaryDaily .forEach((salaryItem) => {
       if (!salaryItem.id) return;
 
@@ -4549,6 +4550,7 @@ console.log('test' + parseFloat(existingItem.SpSalary  || 0) + ' ' +  amount)
       //   // console.log(`🚀 Added new ID ${cleanSalaryItemId} with ${amount}`);
       // }
     });
+    continue;
   }
 }
   }
