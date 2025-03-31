@@ -4521,12 +4521,12 @@ let check =  0;
       if (existingItem ) {
         console.log(check)
 
-        if(cleanSalaryItemId === existingItem.id && check == 1) {
+        if(cleanSalaryItemId === existingItem.id && check == 0) {
           console.log('test' + parseFloat(existingItem.SpSalary  || 0) + ' ' +  amount)
 
           existingItem.SpSalary =  + amount;
           existingItem.message = parseFloat(existingItem.message  || 0) + 1;
-  check = 2;
+  check = 1;
         }
         // Find the exact index
         const index = addSalaryList.findIndex(item => item.id === existingItem.id);
