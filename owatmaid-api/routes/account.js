@@ -4507,7 +4507,7 @@ sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
 
 for (const record of employee_record) {
   if (Array.isArray(record.addSalaryDaily)) {
-
+let check = false;
     record.addSalaryDaily .forEach((salaryItem) => {
       if (!salaryItem.id) return;
 
@@ -4517,11 +4517,12 @@ for (const record of employee_record) {
       const existingItem = addSalaryList.find(
         item => String(item.id).trim() === cleanSalaryItemId
       );
-      if (existingItem) {
+
+      if (existingItem && ! check) {
                 existingItem.SpSalary = parseFloat(existingItem.SpSalary  || 0) + amount;
         existingItem.message = parseFloat(existingItem.message  || 0) + 1;
 console.log('test' + parseFloat(existingItem.SpSalary  || 0) + ' ' +  amount)
-
+check = true
         // Find the exact index
         const index = addSalaryList.findIndex(item => item.id === existingItem.id);
       
@@ -4533,6 +4534,7 @@ console.log('test' + parseFloat(existingItem.SpSalary  || 0) + ' ' +  amount)
       } else {
         // Otherwise push new
         addSalaryList.push(salaryItem);
+        
       }
       // if (existingItem) {
       //   existingItem.SpSalary = parseFloat(existingItem.SpSalary  || 0) + amount;
@@ -4550,7 +4552,6 @@ console.log('test' + parseFloat(existingItem.SpSalary  || 0) + ' ' +  amount)
       //   // console.log(`🚀 Added new ID ${cleanSalaryItemId} with ${amount}`);
       // }
     });
-    break;
   }
 }
   }
