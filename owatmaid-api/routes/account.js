@@ -4516,22 +4516,33 @@ for (const record of employee_record) {
       const existingItem = addSalaryList.find(
         item => String(item.id).trim() === cleanSalaryItemId
       );
-
       if (existingItem) {
-        existingItem.SpSalary = parseFloat(existingItem.SpSalary  || 0) + amount;
-        existingItem.message = parseFloat(existingItem.message  || 0) + 1;
-        // console.log(`✅ Updated ID ${cleanSalaryItemId} to ${existingItem.SpSalary}`);
+        // Find the exact index
+        const index = addSalaryList.findIndex(item => item.id === existingItem.id);
+      
+        if (index !== -1) {
+          // Override existing item
+          addSalaryList[index] = salaryItem; 
+        }
       } else {
+        // Otherwise push new
         addSalaryList.push(salaryItem);
-
-        // addSalaryList.push({
-        //   ...salaryItem,
-        //   id: cleanSalaryItemId,
-        //   SpSalary: amount,
-        //   message: 1,
-        // });
-        // console.log(`🚀 Added new ID ${cleanSalaryItemId} with ${amount}`);
       }
+      // if (existingItem) {
+      //   existingItem.SpSalary = parseFloat(existingItem.SpSalary  || 0) + amount;
+      //   existingItem.message = parseFloat(existingItem.message  || 0) + 1;
+      //   // console.log(`✅ Updated ID ${cleanSalaryItemId} to ${existingItem.SpSalary}`);
+      // } else {
+      //   addSalaryList.push(salaryItem);
+
+      //   // addSalaryList.push({
+      //   //   ...salaryItem,
+      //   //   id: cleanSalaryItemId,
+      //   //   SpSalary: amount,
+      //   //   message: 1,
+      //   // });
+      //   // console.log(`🚀 Added new ID ${cleanSalaryItemId} with ${amount}`);
+      // }
     });
   }
 }
