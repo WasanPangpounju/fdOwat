@@ -4511,7 +4511,7 @@ for (const record of employee_record) {
       if (!salaryItem.id) return;
 
       const cleanSalaryItemId = String(salaryItem.id).trim();
-      const amount = parseFloat(salaryItem.SpSalary || '0');
+      const amount = parseFloat(salaryItem.SpSalary || 0);
 
       const existingItem = addSalaryList.find(
         item => String(item.id).trim() === cleanSalaryItemId
