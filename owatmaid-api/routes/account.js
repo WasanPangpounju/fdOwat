@@ -4518,7 +4518,7 @@ let check = false;
         item => String(item.id).trim() === cleanSalaryItemId
       );
 
-      if (existingItem ) {
+      if (existingItem && cleanSalaryItemId == item.id) {
         existingItem.SpSalary = parseFloat(existingItem.SpSalary  || 0) + amount;
         existingItem.message = parseFloat(existingItem.message  || 0) + 1;
 
