@@ -4505,7 +4505,7 @@ sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
   if (record.addSalaryDaily && record.addSalaryDaily.length > 0) {
      addSalaryList = [];
 
-for (const record of employee_record) {
+for (const record of employee_record.addSalaryDaily) {
   if (Array.isArray(record.addSalaryDaily)) {
     record.addSalaryDaily.forEach((salaryItem) => {
       if (!salaryItem.id) return;
