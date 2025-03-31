@@ -4523,7 +4523,7 @@ for (const record of employee_record) {
         if(cleanSalaryItemId === existingItem.id && check !== 0) {
           console.log('test' + parseFloat(existingItem.SpSalary  || 0) + ' ' +  amount)
 
-          existingItem.SpSalary =  + amount;
+          existingItem.SpSalary =  parseFloat(existingItem.SpSalary  || 0) + amount;
           existingItem.message = parseFloat(existingItem.message  || 0) + 1;
   check = 1;
         // Find the exact index
