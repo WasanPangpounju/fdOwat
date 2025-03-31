@@ -4517,7 +4517,7 @@ sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
         item => String(item.id).trim() === cleanSalaryItemId
       );
       if (existingItem) {
-                existingItem.SpSalary = parseFloat(existingItem.SpSalary  || 0) ;
+                existingItem.SpSalary = parseFloat(existingItem.SpSalary  || 0) + amount;
         existingItem.message = parseFloat(existingItem.message  || 0) + 1;
 console.log('test' + parseFloat(existingItem.SpSalary  || 0) + ' ' +  amount)
 
