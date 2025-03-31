@@ -4511,8 +4511,6 @@ let check =  0;
 
     record.addSalaryDaily .forEach((salaryItem) => {
       if (!salaryItem.id) return;
-console.log(check)
-// check += 1;
       const cleanSalaryItemId = String(salaryItem.id).trim();
       const amount = parseFloat(salaryItem.SpSalary || 0);
 
@@ -4521,12 +4519,14 @@ console.log(check)
       );
 
       if (existingItem ) {
+        console.log(check)
+
         if(cleanSalaryItemId === existingItem.id && check == 1) {
           console.log('test' + parseFloat(existingItem.SpSalary  || 0) + ' ' +  amount)
 
           existingItem.SpSalary =  + amount;
           existingItem.message = parseFloat(existingItem.message  || 0) + 1;
-  check += 1;
+  check = 2;
         }
         // Find the exact index
         const index = addSalaryList.findIndex(item => item.id === existingItem.id);
