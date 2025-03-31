@@ -4518,11 +4518,14 @@ let check = false;
         item => String(item.id).trim() === cleanSalaryItemId
       );
 
-      if (existingItem && ! check) {
-                existingItem.SpSalary = parseFloat(existingItem.SpSalary  || 0) + amount;
+      if (existingItem ) {
+if(! check) {
+        existingItem.SpSalary = parseFloat(existingItem.SpSalary  || 0) + amount;
         existingItem.message = parseFloat(existingItem.message  || 0) + 1;
+        check = true
+
+}
 console.log('test' + parseFloat(existingItem.SpSalary  || 0) + ' ' +  amount)
-check = true
         // Find the exact index
         const index = addSalaryList.findIndex(item => item.id === existingItem.id);
       
