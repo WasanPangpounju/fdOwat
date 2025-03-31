@@ -4507,7 +4507,7 @@ sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
 
 for (const record of employee_record) {
   if (Array.isArray(record.addSalaryDaily)) {
-let check =  0 ;
+let check =  0;
 
     record.addSalaryDaily .forEach((salaryItem) => {
       if (!salaryItem.id) return;
@@ -4520,13 +4520,13 @@ check += 1;
         item => String(item.id).trim() === cleanSalaryItemId
       );
 
-      if (existingItem ) {
+      if (existingItem && check == 0) {
         if(cleanSalaryItemId === existingItem.id) {
           console.log('test' + parseFloat(existingItem.SpSalary  || 0) + ' ' +  amount)
 
           existingItem.SpSalary =  + amount;
           existingItem.message = parseFloat(existingItem.message  || 0) + 1;
-  
+  check += 1;
         }
         // Find the exact index
         const index = addSalaryList.findIndex(item => item.id === existingItem.id);
