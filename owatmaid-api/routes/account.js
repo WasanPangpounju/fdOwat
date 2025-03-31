@@ -4540,6 +4540,7 @@ check += 1;
       } else {
         // Otherwise push new
         addSalaryList.push(salaryItem);
+        check += 1;
       }
       // if (existingItem) {
       //   existingItem.SpSalary = parseFloat(existingItem.SpSalary  || 0) + amount;
