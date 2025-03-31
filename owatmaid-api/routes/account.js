@@ -4313,6 +4313,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           addSalaryList: calculatedValues.addSalaryList.map(item => ({
             ...item,
             SpSalary: parseFloat(item.SpSalary || 0) + parseFloat(item.SpSalary) || 0,
+            message : item.message,
           })),
         
           sumCashWorkMul: calculatedValues.sumCashWorkMul,
