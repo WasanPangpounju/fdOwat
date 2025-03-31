@@ -4519,10 +4519,8 @@ let check = false;
       );
 
       if (existingItem ) {
-if(! check) {
         existingItem.SpSalary = parseFloat(existingItem.SpSalary  || 0) + amount;
         existingItem.message = parseFloat(existingItem.message  || 0) + 1;
-        check = true
 
 console.log('test' + parseFloat(existingItem.SpSalary  || 0) + ' ' +  amount)
         // Find the exact index
@@ -4533,8 +4531,7 @@ console.log('test' + parseFloat(existingItem.SpSalary  || 0) + ' ' +  amount)
           // Override existing item
           addSalaryList[index] = existingItem; 
         }
-      }
-
+      
       } else {
         // Otherwise push new
         addSalaryList.push(salaryItem);
