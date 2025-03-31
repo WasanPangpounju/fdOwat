@@ -4522,12 +4522,14 @@ for (const record of employee_record) {
         existingItem.message += 1;
         // console.log(`✅ Updated ID ${cleanSalaryItemId} to ${existingItem.SpSalary}`);
       } else {
-        addSalaryList.push({
-          ...salaryItem,
-          id: cleanSalaryItemId,
-          SpSalary: amount,
-          message: 1,
-        });
+        addSalaryList.push(salaryItem);
+        
+        // addSalaryList.push({
+        //   ...salaryItem,
+        //   id: cleanSalaryItemId,
+        //   SpSalary: amount,
+        //   message: 1,
+        // });
         // console.log(`🚀 Added new ID ${cleanSalaryItemId} with ${amount}`);
       }
     });
