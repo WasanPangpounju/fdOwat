@@ -4518,12 +4518,12 @@ for (const record of employee_record) {
       );
 
       if (existingItem) {
-        existingItem.SpSalary += amount;
+        existingItem.SpSalary = parseFloat(existingItem.SpSalary  || 0) + amount;
         existingItem.message += 1;
         // console.log(`✅ Updated ID ${cleanSalaryItemId} to ${existingItem.SpSalary}`);
       } else {
         addSalaryList.push(salaryItem);
-        
+
         // addSalaryList.push({
         //   ...salaryItem,
         //   id: cleanSalaryItemId,
