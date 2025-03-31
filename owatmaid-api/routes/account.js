@@ -4519,7 +4519,7 @@ let check =  0;
       );
 
       if (existingItem ) {
-        console.log(check)
+        console.log(check +'*')
 
         if(cleanSalaryItemId === existingItem.id && check == 0) {
           console.log('test' + parseFloat(existingItem.SpSalary  || 0) + ' ' +  amount)
