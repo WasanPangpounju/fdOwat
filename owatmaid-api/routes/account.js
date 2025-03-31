@@ -4510,7 +4510,6 @@ for (const record of employee_record) {
 let check = false;
     record.addSalaryDaily .forEach((salaryItem) => {
       if (!salaryItem.id) return;
-      if (check) return;
 
       const cleanSalaryItemId = String(salaryItem.id).trim();
       const amount = parseFloat(salaryItem.SpSalary || 0);
@@ -4525,7 +4524,6 @@ if(! check) {
         existingItem.message = parseFloat(existingItem.message  || 0) + 1;
         check = true
 
-}
 console.log('test' + parseFloat(existingItem.SpSalary  || 0) + ' ' +  amount)
         // Find the exact index
         const index = addSalaryList.findIndex(item => item.id === existingItem.id);
@@ -4535,6 +4533,8 @@ console.log('test' + parseFloat(existingItem.SpSalary  || 0) + ' ' +  amount)
           // Override existing item
           addSalaryList[index] = existingItem; 
         }
+      }
+
       } else {
         // Otherwise push new
         addSalaryList.push(salaryItem);
