@@ -4310,12 +4310,12 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           sumCashOt: String(calculatedValues.sumCashOt),
         
           // clearly ensure all SpSalary are numbers
-          addSalaryList: calculatedValues.addSalaryList.map(item => ({
-            ...item,
-            SpSalary: parseFloat(item.SpSalary) || 0,
-            message : item.message,
-          })),
-        
+          // addSalaryList: calculatedValues.addSalaryList.map(item => ({
+          //   ...item,
+          //   SpSalary: parseFloat(item.SpSalary) || 0,
+          //   message : item.message,
+          // })),
+          addSalaryList: calculatedValues.addSalaryList        ,
           sumCashWorkMul: calculatedValues.sumCashWorkMul,
         };
         console.log('updateData  ' + JSON.stringify(updateData ));
