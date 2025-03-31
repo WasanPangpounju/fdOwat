@@ -4526,7 +4526,6 @@ for (const record of employee_record) {
           existingItem.SpSalary =  + amount;
           existingItem.message = parseFloat(existingItem.message  || 0) + 1;
   check = 1;
-        }
         // Find the exact index
         const index = addSalaryList.findIndex(item => item.id === existingItem.id);
       
@@ -4534,6 +4533,8 @@ for (const record of employee_record) {
 
           // Override existing item
           addSalaryList[index] = existingItem; 
+        }
+
         }
       
       } else {
