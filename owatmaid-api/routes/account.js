@@ -4312,7 +4312,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           // clearly ensure all SpSalary are numbers
           addSalaryList: calculatedValues.addSalaryList.map(item => ({
             ...item,
-            SpSalary: parseFloat(item.SpSalary) || 0,
+            SpSalary: parseFloat(SpSalary || 0) + parseFloat(item.SpSalary) || 0,
           })),
         
           sumCashWorkMul: calculatedValues.sumCashWorkMul,
