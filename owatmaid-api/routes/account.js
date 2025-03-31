@@ -4537,7 +4537,7 @@ let check =  0;
         }
       
       } else {
-        check = 0;
+        check = 1;
 
         // Otherwise push new
         addSalaryList.push(salaryItem);
