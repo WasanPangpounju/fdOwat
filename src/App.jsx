@@ -2,7 +2,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import endpoint from "./config";
 import { useLocation } from "react-router-dom";
-
 // import Posts from "./Post";
 // import Home from "./Home";
 // import Profile from './Profile';
@@ -10,6 +9,8 @@ import { useLocation } from "react-router-dom";
 import LoginForm from "./conponents/Login";
 
 import AsideLeft from "./conponents/AsideLeft";
+import Footer from "./conponents/Footer";
+
 import Top from "./conponents/Top";
 
 import Dashboard from "./conponents/componentsAside/Dashboard";
@@ -354,6 +355,8 @@ function App() {
       ) : (
         <LoginForm onLogin={handleLogin} />
       )}
+                  <Footer/>
+
     </div>
   );
 }

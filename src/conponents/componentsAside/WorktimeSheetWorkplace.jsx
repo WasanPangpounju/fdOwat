@@ -1,6 +1,6 @@
 import endpoint from "../../config";
 import { Table } from "react-bootstrap";
-import "bootstrap/dist/css/bootstrap.min.css";
+// import "bootstrap/dist/css/bootstrap.min.css";
 import "./table.css";
 
 import { ThaiDatePicker } from "thaidatepicker-react";

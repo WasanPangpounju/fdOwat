@@ -1,0 +1,199 @@
+@font-face {
+    font-family: 'sarabunregular';
+    src: url('../fonts/sarabun-regular-webfont.woff2') format('woff2'),
+         url('../fonts/sarabun-regular-webfont.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+
+}
+@font-face {
+    font-family: 'kanitregular';
+    src: url('../fonts/kanit-regular-webfont.woff2') format('woff2'),
+         url('../fonts/kanit-regular-webfont.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+}
+html {
+  font-family: 'Sarabun', sans-serif;
+  line-height: 1.15;
+}
+ *{
+     -webkit-box-sizing: border-box;
+     -moz-box-sizing: border-box;
+     box-sizing: border-box;
+}
+ *:before, *:after{
+     -webkit-box-sizing: border-box;
+     -moz-box-sizing: border-box;
+     box-sizing: border-box;
+}
+ ::-webkit-input-placeholder {
+    color:#000;
+}
+.Fullscreen{
+    background:#596e8c;
+    border-radius: 20px;
+    font-family: 'kanitregular';
+}
+.Fullscreen a{color:#fff!important;}
+.logo-login{text-align: center;}
+.txt-login {
+    font-family: 'kanitregular';
+    margin-top: 18px;
+    font-size:20px;
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+    padding-top: 8px;
+    text-align: center;
+    border-radius: 10px;
+    background: #ececec;
+}
+.btn-login{
+    background: #2B5D8E;
+    border-radius: 60px;
+    font-size: 16px;
+    color: #fff;
+    padding: 10px 10px 10px 10px;
+    border: none;
+    width:100%;
+    box-shadow: 0 0 5px #8da2ba;
+    font-family: 'kanitregular';
+    transition: all 0.5s;
+}
+.btn-login:hover{background:#19426A;}
+.forgotpassword{margin-top: 15px;}
+.forgotpassword a{padding-right: 15px;}
+.Copyright{margin-top: 30px; color:#fff;}
+.title-login{text-align: center;margin: 10px 0px;}
+.title-login h2 {
+    font-size: 1.4rem;
+    margin: 0;
+    font-family: 'kanitregular';
+}
+.Logo-w{background: #2B5D8E;padding: 10px 0;}
+.Logo-left {
+    height: 52px;
+    position: relative;
+    padding: 0px;
+    text-align: center;
+    background: #fff;
+    max-width:236px;
+    margin:auto;
+    border-radius: 10px;
+    transition: width 0.3s ease-in-out;
+}
+/*.sidebar-collapse .Logo-left{background-color: transparent!important;}*/
+.head-title{
+    font-size: 1.5rem;
+    margin:15px 0 20px;
+    font-family: 'kanitregular';
+    color:#19426A;
+}
+h2.title {
+    padding: 1px 0px 12px;
+    margin-bottom: 10px;
+    font-size:16px;
+    color:#19426A;
+    font-weight:700
+}
+.Frame{padding: 30px 20px 20px;margin-bottom: 30px; border-radius: 10px;border:1px Solid #DCDBDB;}
+.line_btn_search{text-align: center;margin: 15px 0px;}
+.btn_search {
+    background: #2B5D8E;
+    border-radius: 60px;
+    font-size: 17px;
+    color: #fff;
+    padding: 10px 0px 10px 0px;
+    border: none;
+    width: 150px;
+    font-family: 'kanitregular';
+    transition: all 0.5s;
+}
+.txt-red{color:red;}
+.btn_search:hover {
+    background: #144679;
+}
+.line_btn {
+    text-align: center;
+    margin: 50px 0 30px 0;
+}
+.line_btn button {
+    margin-left: 10px;
+}
+.line_btn a:hover{color:#fff!important;}
+.b_save {
+    background: #2B5D8E;
+    transition: all 0.5s;
+}
+.b_save:hover {
+    background: #144679;
+}
+.btn {
+    border-radius: 60px;
+    font-size: 16px;
+    color: #fff;
+    padding: 8px 10px 8px 10px;
+    border: none;
+    width: 140px;
+    box-shadow: 0 0 5px #8da2ba;
+}
+.btn:hover {
+    color: #fff;
+}
+.clean {
+    background:#F99800!important;transition: all 0.5s;
+}
+.clean:hover{
+    background:#ff8d08!important;
+}
+.label-txt{padding-left: 10px;padding-right: 10px;}
+.btn-app {
+  border-radius: 3px;
+  background-color: #f8f9fa;
+  border: 1px solid #AAC9D9;
+  color:#3A4957;
+  font-size: 12px;
+  height:80px;
+  margin: 0 0 40px 40px;
+  min-width: 270px;
+  padding: 15px 5px;
+  position: relative;
+  font-family: 'kanitregular';
+  box-shadow: 2px 2px 5px #8da2ba;
+}
+.btn-app > .fas{
+    display: inline-block;
+    font-size: 30px;
+    margin-right:15px;
+}
+.btn-d{
+    display: flex;
+    align-items: center;
+    font-weight: 400;
+    vertical-align: middle;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    background-color: transparent;
+    padding: 0.5rem 1rem 0.5rem 1.7rem;
+    font-size: 1.25rem;
+    line-height: 1.5;
+    border-radius: 0.55rem;
+    transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+}
+.Inner-dash{padding: 50px;}
+.Inner-dash .row{
+    align-items: center;
+    justify-content: center;
+}
+/*---------------------------------------------------------------*/
+@media only screen and (max-width:1200px){
+   .Inner-dash{padding: 0px;}
+}
+
+@media only screen and (max-width:900px){
+    
+}
+
+
