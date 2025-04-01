@@ -4523,7 +4523,6 @@ if(socialSecurity   !== 0 && socialSecurity   <= 83) {
   socialSecurity   = 83;
 }
 
-}
 
   return await {
     dayWorkCount,
