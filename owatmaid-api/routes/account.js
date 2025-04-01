@@ -4524,7 +4524,7 @@ if(salaryMonth !== 0) {
   //กรณีหักภาษี ณ ที่จ่าย 3% (ภ.ง.ด.)
   if(costtype === "ภ.ง.ด.3") {
     socialSecurity  =0;
-    tax = Math.ceil((parseFloat(sumCashWork || 0)+ parseFloat(sumCashOt  || 0) + parseFloat(addSalarySocialSecurity  || 0)) * socialSecurityP);
+    tax = Math.ceil((parseFloat(sumCashWork || 0)+ parseFloat(sumCashOt  || 0) + parseFloat(addSalarySocialSecurity  || 0)) * 0.03);
   } else {
     socialSecurity  = Math.ceil((parseFloat(sumCashWork || 0)+ parseFloat(addSalarySocialSecurity  || 0)) * socialSecurityP);
   }
