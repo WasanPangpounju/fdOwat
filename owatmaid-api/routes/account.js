@@ -4506,7 +4506,7 @@ monthlySalaries = await addSalary.filter(salary => salary.roundOfSalary === 'mon
   
   addSalaryList.forEach(element => {
    console.log(' * ' + element.id + ' ' +  element.SpSalary );
-let x = checkCalTax(element.id );
+let x = await checkCalTax(element.id );
 console.log(x)
   });
 
