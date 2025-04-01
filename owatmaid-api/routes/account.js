@@ -4504,11 +4504,17 @@ monthlySalaries = await addSalary.filter(salary => salary.roundOfSalary === 'mon
 
   addSalaryList = await addSalaryList.concat(monthlySalaries);
   
-  addSalaryList.forEach(element => {
-   console.log(' * ' + element.id + ' ' +  element.SpSalary );
-let x = await checkCalTax(element.id );
-console.log(x)
-  });
+  for (const element of addSalaryList) {
+    console.log(' * ' + element.id + ' ' + element.SpSalary);
+    let x = await checkCalTax(element.id);
+    console.log(x);
+  }
+  
+//   addSalaryList.forEach(element => {
+//    console.log(' * ' + element.id + ' ' +  element.SpSalary );
+// let x = await checkCalTax(element.id );
+// console.log(x)
+//   });
 
 // console.log(JSON.stringify(addSalaryList[0].SpSalary ,null,2));
 
