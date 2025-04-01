@@ -2251,22 +2251,9 @@ try {
                             {/* {isNaN(Number(deductBeforeTax) + Number(deductAfterTax)) ? 0.00 : (Number(deductBeforeTax) + Number(deductAfterTax)).toFixed(2)} */}
                           </td>
                           <td style={cellStyle}>
-                            {" "}
-                            {isNaN(
-                              Number(wsTax) +
-                              Number(wsSocialSecurity) +
-                              Number(deductBeforeTax) +
-                              Number(deductAfterTax)
-                            )
-                              ? 0.0
-                              : Math.ceil(
-                                Number(wsTax) +
-                                Number(wsSocialSecurity) +
-                                Number(deductBeforeTax) +
-                                Number(deductAfterTax)
-                              ).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+                                                    {parseFloat(accountingResult?.[0]?.socialSecurity || '0') + parseFloat(accountingResult?.[0]?.tax || '0')}
+
                           </td>
-                          {/* <td style={cellStyle}>({anyMinus} + {tax} + {((overWorkRateSum + overWorkRateOTSum + overAddSalaryDaySum + sumSpSalaryResult + anySpSalary) * socialSecurity).toFixed()} + {bankCustom} + {sumDeduct} + {sumDeductInstallment})</td> */}
                           <td style={cellStyle}>
                             <button
                               type="button"

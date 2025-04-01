@@ -4370,6 +4370,8 @@ if(settingResult ) {
 
   const employeeProfile = await getEmployeeProfile(employeeId);
 const salaryTmp = parseFloat(employeeProfile[0].salary || '0') || 0;
+const costtype  = employeeProfile[0].costtype  || '';
+
 let addSalary = employeeProfile?.[0]?.addSalary || [];
 let salary = 0;
 let salaryMonth = 0;
@@ -4512,12 +4514,6 @@ addSalarySocialSecurity = parseFloat(addSalarySocialSecurity  || 0) + parseFloat
 }
   }
   
-//   addSalaryList.forEach(element => {
-//    console.log(' * ' + element.id + ' ' +  element.SpSalary );
-// let x = await checkCalTax(element.id );
-// console.log(x)
-//   });
-
 // console.log(JSON.stringify(addSalaryList[0].SpSalary ,null,2));
 
 if(salaryMonth !== 0) {
@@ -4525,7 +4521,14 @@ if(salaryMonth !== 0) {
   sumCashWork  = salaryMonth;  
   socialSecurity  = Math.ceil((parseFloat(salaryMonth || 0) + parseFloat(addSalarySocialSecurity  || 0) )* socialSecurityP);
 } else {
-  socialSecurity  = Math.ceil((parseFloat(sumCashWork || 0)+ parseFloat(addSalarySocialSecurity  || 0)) * socialSecurityP);
+  //กรณีหักภาษี ณ ที่จ่าย 3% (ภ.ง.ด.)
+  if(costtype === "ภ.ง.ด.3") {
+    socialSecurity  =0;
+    tax = Math.ceil((parseFloat(sumCashWork || 0)+ parseFloat(sumCashOt  || 0) + parseFloat(addSalarySocialSecurity  || 0)) * socialSecurityP);
+  } else {
+    socialSecurity  = Math.ceil((parseFloat(sumCashWork || 0)+ parseFloat(addSalarySocialSecurity  || 0)) * socialSecurityP);
+  }
+
 
 }
 
