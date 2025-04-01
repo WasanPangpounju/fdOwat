@@ -4503,11 +4503,13 @@ monthlySalaries = await addSalary.filter(salary => salary.roundOfSalary === 'mon
 
 
   addSalaryList = await addSalaryList.concat(monthlySalaries);
-  
+
   for (const element of addSalaryList) {
     console.log(' * ' + element.id + ' ' + element.SpSalary);
-    let x = await checkCalTax(element.id);
-    console.log(x);
+    let check = await checkCalTax(element.id);
+if(check )  {
+addSalarySocialSecurity = parseFloat(addSalarySocialSecurity  || 0) + parseFloat(element.SpSalary);
+}
   }
   
 //   addSalaryList.forEach(element => {
@@ -4521,9 +4523,9 @@ monthlySalaries = await addSalary.filter(salary => salary.roundOfSalary === 'mon
 if(salaryMonth !== 0) {
   dayWorkCount = 30;
   sumCashWork  = salaryMonth;  
-  socialSecurity  = Math.ceil(parseFloat(salaryMonth || 0) * socialSecurityP);
+  socialSecurity  = Math.ceil((parseFloat(salaryMonth || 0) + parseFloat(addSalarySocialSecurity  || 0) )* socialSecurityP);
 } else {
-  socialSecurity  = Math.ceil(parseFloat(sumCashWork || 0) * socialSecurityP);
+  socialSecurity  = Math.ceil((parseFloat(sumCashWork || 0)+ parseFloat(addSalarySocialSecurity  || 0)) * socialSecurityP);
 
 }
 
