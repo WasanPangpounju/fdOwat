@@ -1831,8 +1831,8 @@ try {
 
   if (response.data?.result?.length > 0) {
     await setAccountingResult(response.data.result);
-    alert(JSON.stringify(accountingResult[0].addSalaryList,null,2));
-alert('hi' + accountingResult[0].addSalaryList[0].SpSalary)
+    // alert(JSON.stringify(accountingResult[0].addSalaryList,null,2));
+// alert('hi' + accountingResult[0].addSalaryList[0].SpSalary)
     // alert(JSON.stringify(response.data?.result[0]?.employee_record[0].addSalaryDaily, null, 2));
   } else {
     // alert("Conclude is null");
@@ -2082,7 +2082,6 @@ alert('hi' + accountingResult[0].addSalaryList[0].SpSalary)
                           </td>
 
                           <td style={cellStyle}>
-                            {JSON.stringify(accountingResult?.[0]?.addSalaryList[0].message)}
                             <span
                               onClick={togglePopup}
                               style={{ color: color, cursor: "pointer" }}
@@ -2150,8 +2149,12 @@ alert('hi' + accountingResult[0].addSalaryList[0].SpSalary)
 
                           <td style={cellStyle}>
                           { parseFloat(accountingResult?.[0]?.sumCashWork || '0') + 
-                          parseFloat(accountingResult?.[0]?.sumCashOt || '0')}
-
+                          parseFloat(accountingResult?.[0]?.sumCashOt || '0')
+                          + parseFloat( accountingResult?.[0]?.addSalaryList?.reduce(
+                            (total, item) => total + parseFloat(item.SpSalary || '0'), 
+                            0
+                          ))}                              
+                      
                           </td>
 
                           <td style={cellStyle}>

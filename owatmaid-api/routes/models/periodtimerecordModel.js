@@ -54,6 +54,9 @@ sumTimeWork : String,
 sumTimeOt : String,
 sumCashWork : String,
 sumCashOt : String,
+socialSecurity: String,
+tax: String,
+
 addSalaryList: [
   {
     id: String,

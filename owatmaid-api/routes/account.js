@@ -4320,17 +4320,6 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         };
         // console.log('updateData  ' + JSON.stringify(updateData ));
 
-        // const updateData = {
-        //   dayWorkCount: String(calculatedValues.dayWorkCount),
-        //   dayOffCount: String(calculatedValues.dayOffCount),
-        //   specialDayOff: String(calculatedValues.specialDayOff),
-        //   sumTimeWork: String(calculatedValues.sumTimeWork),
-        //   sumTimeOt: String(calculatedValues.sumTimeOt),
-        //   sumCashWork: String(calculatedValues.sumCashWork),
-        //   sumCashOt: String(calculatedValues.sumCashOt),
-        //   addSalaryList: calculatedValues.addSalaryList,
-        //   sumCashWorkMul: calculatedValues.sumCashWorkMul,
-        // };
         console.log('calculatedValues.addSalaryList ' + JSON.stringify(calculatedValues.addSalaryList[0].SpSalary,null,2))
         console.log(calculatedValues.addSalaryList.length)
         // ✅ Log BEFORE update
@@ -4365,70 +4354,17 @@ router.post('/searchtimerecordemployee', async (req, res) => {
 });
 
 
-// Search timerecordEmployee
-router.post('/searchtimerecordemployee_back', async (req, res) => {
-  try {
-    const { employeeId, month, year } = await req.body;
-    const query = {};
-
-    if (employeeId) {
-      query.employeeId = await employeeId;
-    }
-
-    if (month) {
-      query.month = await { $regex: new RegExp(month, 'i') };
-    }
-
-    if (year) {
-      query.year = await { $regex: new RegExp(year, 'i') };
-    }
-
-    if (!employeeId && !month && !year) {
-      return await res.status(200).json({});
-    }
-
-    // Query the collection
-    const result = await timerecordEmployee.find(query);
-// console.log("result  " , result[0].employee_record.length)
-    let updateNeeded = false;
-
-    for (const doc of result) {
-      
-      if (!doc || !Array.isArray(doc.employee_record) || doc.employee_record.length === 0) {
-        console.warn(`Skipping invalid or empty document: ${JSON.stringify(doc)}`);
-        continue;
-      }
-    
-      // Debug: ดูค่า record แรกก่อนเรียก calculateCashValues
-      // console.log("🚀 Checking first record:", JSON.stringify(doc.employee_record[0], null, 2));
-    
-      try {
-        console.log(doc.employeeId)
-
-      const updatedRecords = await calculateCashValues(employeeId, doc.employee_record, month, year);
-        await console.log(JSON.stringify(updatedRecords ,null,2));
-
-        // if (JSON.stringify(updatedRecords) !== JSON.stringify(doc.employee_record)) {
-        //   doc.employee_record = updatedRecords;
-        //   await doc.save();
-        //   updateNeeded = true;
-        // }
-
-      } catch (error) {
-        console.error("❌ Error in calculateCashValues:", error);
-      }
-    }
-    await res.status(200).json({ result });
-
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-});
-
-
-
 const calculateCashValues = async (employeeId, employee_record, month, year) => {
+  //get basic system setting
+  const settingResult = await axios.get(sURL + '/basicsetting/');
+  let socialSecurity = 0;
+  let socialSecurityP = 0;
+let tax = 0;
+
+if(settingResult ) {
+  socialSecurityP = parseFloat(settingResult?.data?.[settingResult.data.length - 1]?.social?.[0]?.socialPercent || '5') / 100;
+}
+
   const employeeProfile = await getEmployeeProfile(employeeId);
 const salaryTmp = parseFloat(employeeProfile[0].salary || '0') || 0;
 let addSalary = employeeProfile?.[0]?.addSalary || [];
@@ -4574,7 +4510,12 @@ monthlySalaries = await addSalary.filter(salary => salary.roundOfSalary === 'mon
 if(salaryMonth !== 0) {
   dayWorkCount = 30;
   sumCashWork  = salaryMonth;  
+  socialSecurity  = parseFloat(salaryMonth || 0) * socialSecurityP;
+} else {
+  socialSecurity  = parseFloat(sumCashWork || 0) * socialSecurityP;
+
 }
+
 
   return await {
     dayWorkCount,
@@ -4587,6 +4528,8 @@ sumCashOt ,
 sumAddSalaryDaily ,
 sumCashWorkMul ,
 addSalaryList,
+socialSecurity  ,
+tax,
   };
 
 
