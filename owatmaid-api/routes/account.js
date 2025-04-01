@@ -4512,12 +4512,18 @@ monthlySalaries = await addSalary.filter(salary => salary.roundOfSalary === 'mon
 if(salaryMonth !== 0) {
   dayWorkCount = 30;
   sumCashWork  = salaryMonth;  
-  socialSecurity  = parseFloat(salaryMonth || 0) * socialSecurityP;
+  socialSecurity  = Math.ceil(parseFloat(salaryMonth || 0) * socialSecurityP);
 } else {
   socialSecurity  = Math.ceil(parseFloat(sumCashWork || 0) * socialSecurityP);
 
 }
 
+//check socialSecurity   != 0 and < 83 set to 83
+if(socialSecurity   !== 0 && socialSecurity   <= 83) {
+  socialSecurity   = 83;
+}
+
+}
 
   return await {
     dayWorkCount,
