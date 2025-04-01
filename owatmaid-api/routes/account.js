@@ -4514,7 +4514,7 @@ if(salaryMonth !== 0) {
   sumCashWork  = salaryMonth;  
   socialSecurity  = parseFloat(salaryMonth || 0) * socialSecurityP;
 } else {
-  socialSecurity  = parseFloat(sumCashWork || 0) * socialSecurityP;
+  socialSecurity  = Math.ceil(parseFloat(sumCashWork || 0) * socialSecurityP);
 
 }
 

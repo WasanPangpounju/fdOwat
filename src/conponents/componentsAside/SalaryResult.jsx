@@ -2199,9 +2199,6 @@ try {
                           <td style={cellStyle}>
                           {accountingResult?.[0]?.socialSecurity || '0'}
 
-                            {isNaN(Number(wsSocialSecurity))
-                              ? 0
-                              : Math.ceil(Number(wsSocialSecurity))}
                           </td>
                           {/* <td style={cellStyle}>{isNaN(Number(bank)) ? 0.00 : Number(bank).toFixed(2)}</td> */}
                           {/* <td style={cellStyle}>
