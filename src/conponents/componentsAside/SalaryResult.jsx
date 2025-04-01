@@ -2197,6 +2197,8 @@ try {
                           {/* <td style={cellStyle}>{((overWorkRateSum + overWorkRateOTSum + overAddSalaryDaySum + sumSpSalaryResult + anySpSalary) * socialSecurity).toFixed(2)}</td> */}
                           {/* <td style={cellStyle}>{isNaN(Number(socialSecurity)) ? 0 : Number(socialSecurity).toFixed(0)}</td> */}
                           <td style={cellStyle}>
+                          {accountingResult?.[0]?.socialSecurity || '0'}
+
                             {isNaN(Number(wsSocialSecurity))
                               ? 0
                               : Math.ceil(Number(wsSocialSecurity))}

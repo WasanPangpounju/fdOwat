@@ -4308,6 +4308,8 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           sumTimeOt: String(calculatedValues.sumTimeOt),
           sumCashWork: String(calculatedValues.sumCashWork),
           sumCashOt: String(calculatedValues.sumCashOt),
+          socialSecurity: String(calculatedValues.socialSecurity),
+          tax: String(calculatedValues.tax),
         
           // clearly ensure all SpSalary are numbers
           // addSalaryList: calculatedValues.addSalaryList.map(item => ({
