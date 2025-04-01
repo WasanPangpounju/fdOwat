@@ -4360,6 +4360,7 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
   //get basic system setting
   const settingResult = await axios.get(sURL + '/basicsetting/');
   let socialSecurity = 0;
+  let addSalarySocialSecurity = 0;
   let socialSecurityP = 0;
 let tax = 0;
 
@@ -4505,7 +4506,8 @@ monthlySalaries = await addSalary.filter(salary => salary.roundOfSalary === 'mon
   
   addSalaryList.forEach(element => {
    console.log(' * ' + element.id + ' ' +  element.SpSalary );
-
+let x = checkCalTax(element.id );
+console.log(x)
   });
 
 // console.log(JSON.stringify(addSalaryList[0].SpSalary ,null,2));
