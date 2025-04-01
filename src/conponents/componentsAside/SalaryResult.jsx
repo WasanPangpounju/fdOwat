@@ -2190,15 +2190,10 @@ try {
                       <tbody>
                         <tr>
                           <td style={cellStyle}>
-                            {isNaN(Number(wsTax))
-                              ? 0.0
-                              : Number(wsTax).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+                          {accountingResult?.[0]?.tax || '0'}
                           </td>
-                          {/* <td style={cellStyle}>{((overWorkRateSum + overWorkRateOTSum + overAddSalaryDaySum + sumSpSalaryResult + anySpSalary) * socialSecurity).toFixed(2)}</td> */}
-                          {/* <td style={cellStyle}>{isNaN(Number(socialSecurity)) ? 0 : Number(socialSecurity).toFixed(0)}</td> */}
                           <td style={cellStyle}>
                           {accountingResult?.[0]?.socialSecurity || '0'}
-
                           </td>
                           {/* <td style={cellStyle}>{isNaN(Number(bank)) ? 0.00 : Number(bank).toFixed(2)}</td> */}
                           {/* <td style={cellStyle}>

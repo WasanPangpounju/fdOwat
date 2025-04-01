@@ -4504,7 +4504,8 @@ monthlySalaries = await addSalary.filter(salary => salary.roundOfSalary === 'mon
   addSalaryList = await addSalaryList.concat(monthlySalaries);
   
   addSalaryList.forEach(element => {
-   console.log(' * ' + element.SpSalary );
+   console.log(' * ' + element.id + ' ' +  element.SpSalary );
+
   });
 
 // console.log(JSON.stringify(addSalaryList[0].SpSalary ,null,2));
