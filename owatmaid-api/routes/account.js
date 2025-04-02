@@ -4225,10 +4225,6 @@ router.post('/updateSpecialDay', async (req, res) => {
 //latest code
 
 
-const express = require('express');
-const router = express.Router();
-const timerecordEmployee = require('../models/periodEmployeeTimerecord');
-const Employee = require('../models/Employee'); // Adjust path
 
 router.post('/searchtimerecordbyworkplace', async (req, res) => {
   try {
