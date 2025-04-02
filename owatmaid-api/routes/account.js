@@ -4363,6 +4363,8 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
   let addSalarySocialSecurity = 0;
   let socialSecurityP = 0;
 let tax = 0;
+let specialDay = 0;
+let cashSpecialDay = 0;
 
 if(settingResult ) {
   socialSecurityP = parseFloat(settingResult?.data?.[settingResult.data.length - 1]?.social?.[0]?.socialPercent || '5') / 100;
@@ -4399,6 +4401,33 @@ if(parseFloat(salaryTmp || '0')  > 1660) {
   salary = await (parseFloat(salaryTmp || '0')/ 8).toFixed(3);
 }
 
+if(employeeProfile[0].workplace) {
+// Construct the search query based on the provided parameters
+const query = {};
+query.workplaceId = employeeProfile[0].workplace;
+query.wGroup = employeeProfile[0].department || '';
+
+        // Query the workplace collection for matching documents
+        const workplaces = await Workplace.find(query);
+
+        if(workplaces.length > 0 ) {
+// dataCal?.daysOff
+const isDayOff = workplaces?.[0]?.daysOff?.some(d => 
+  new Date(d).toISOString().split('T')[0] === date.toISOString().split('T')[0]
+);
+
+if(isDayOff == true) {
+  console.log(date.toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }));
+  console.log('specialDayOff');
+
+} 
+
+        } //end if
+
+} //end if
+
+
+}
 
   await Promise.all(
     employee_record.map(async (record) => {

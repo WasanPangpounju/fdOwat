@@ -2286,10 +2286,7 @@ try {
                       </thead>
                       <tbody>
                         <tr>
-                          {/* <td style={cellStyle}>{isNaN((countSpecialDay - specialDayListWork) * specialDayRate) ? 0.00 : ((countSpecialDay - specialDayListWork) * specialDayRate).toFixed(2)}</td> */}
-                          {/* <td style={cellStyle}>{workHoliday}</td> */}
                           <td style={cellStyle}>
-                            {/* {amountSpecialDay} */}
                             <div class="row">
                               <div class="col-md-6">
                                 <input
@@ -2303,6 +2300,7 @@ try {
                               </div>
                             </div>
                           </td>
+                          
                           <td style={cellStyle}></td>
                           <td style={cellStyle}>
                             {isNaN(Number(wsAmountSpecialDay))
