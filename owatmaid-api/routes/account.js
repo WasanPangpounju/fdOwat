@@ -4427,7 +4427,6 @@ if(isDayOff == true) {
 } //end if
 
 
-}
 
   await Promise.all(
     employee_record.map(async (record) => {
