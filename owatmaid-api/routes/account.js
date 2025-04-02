@@ -4425,7 +4425,12 @@ query.wGroup = await employeeProfile[0].department || '';
 
 // console.log('workplaces?.[0]?.daysOff ' + JSON.stringify(workplaces?.[0]?.daysOff))
 let date = new Date(workplaces?.[0]?.daysOff[2] );
-console.log(date  + ' ' + date.toISOString().split('T')[0].toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }) )
+// Format the date in Thailand time and extract only date part
+const thDateString = date.toLocaleDateString("sv-SE", { timeZone: "Asia/Bangkok" });
+
+console.log(date + ' ' + thDateString); // will print 2025-02-18
+
+// console.log(date  + ' ' + date.toISOString().split('T')[0].toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }) )
         } //end if
 
 } //end if
