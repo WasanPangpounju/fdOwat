@@ -4414,25 +4414,30 @@ query.wGroup = await employeeProfile[0].department || '';
         // console.log('query ' + JSON.stringify(workplaces ) )
 
         if(workplaces.length > 0 ) {
-// const isDayOff = workplaces?.[0]?.daysOff?.some(d => 
-  // new Date(d).toISOString().split('T')[0] === date.toISOString().split('T')[0]
-// );
-
-// if(isDayOff == true) {
-  // console.log(date.toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }));
-  // console.log('specialDayOff');
-// } 
-
-// console.log('workplaces?.[0]?.daysOff ' + JSON.stringify(workplaces?.[0]?.daysOff))
-let date = new Date(workplaces?.[0]?.daysOff[2] );
-// Convert to Thailand time and get parts
+if(workplaces?.[0]?.daysOff.length >1){
+  // Convert to Thailand time and get parts
 const options = { timeZone: "Asia/Bangkok" };
 
-const yearTmp = date.toLocaleString("en-CA", { ...options, year: "numeric" });
-const monthTmp = date.toLocaleString("en-CA", { ...options, month: "2-digit" });
-const dayTmp = date.toLocaleString("en-CA", { ...options, day: "2-digit" });
+  workplaces[0].daysOff.forEach((tmpSpeDate) => {
+    console.log(tmpSpeDate);
+    let date = new Date(tmpSpeDate );
+    const yearTmp = date.toLocaleString("en-CA", { ...options, year: "numeric" });
+    const monthTmp = date.toLocaleString("en-CA", { ...options, month: "2-digit" });
+    const dayTmp = date.toLocaleString("en-CA", { ...options, day: "2-digit" });
+    
+    console.log(`Year: ${yearTmp}, Month: ${monthTmp}, Day: ${dayTmp}`);
+    
+  }); 
+}
+// let date = new Date(workplaces?.[0]?.daysOff[2] );
+// // Convert to Thailand time and get parts
+// const options = { timeZone: "Asia/Bangkok" };
 
-console.log(`Year: ${yearTmp}, Month: ${monthTmp}, Day: ${dayTmp}`);
+// const yearTmp = date.toLocaleString("en-CA", { ...options, year: "numeric" });
+// const monthTmp = date.toLocaleString("en-CA", { ...options, month: "2-digit" });
+// const dayTmp = date.toLocaleString("en-CA", { ...options, day: "2-digit" });
+
+// console.log(`Year: ${yearTmp}, Month: ${monthTmp}, Day: ${dayTmp}`);
 
 // Format the date in Thailand time and extract only date part
 // const thDateString = date.toLocaleDateString("sv-SE", { timeZone: "Asia/Bangkok" });
