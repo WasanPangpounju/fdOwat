@@ -4426,7 +4426,7 @@ const options = { timeZone: "Asia/Bangkok" };
     const dayTmp = date.toLocaleString("en-CA", { ...options, day: "2-digit" });
     
     console.log(`Year: ${yearTmp}, Month: ${monthTmp}, Day: ${dayTmp}`);
-    
+console.log(year + ' * ' + month)    
   }); 
 }
 
