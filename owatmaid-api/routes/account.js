@@ -4225,6 +4225,71 @@ router.post('/updateSpecialDay', async (req, res) => {
 //latest code
 
 
+const express = require('express');
+const router = express.Router();
+const timerecordEmployee = require('../models/periodEmployeeTimerecord');
+const Employee = require('../models/Employee'); // Adjust path
+
+router.post('/searchtimerecordbyworkplace', async (req, res) => {
+  try {
+    const { month, year, workplaceId } = req.body;
+
+    if (!month || !year) {
+      return res.status(400).json({ message: 'Month and year are required' });
+    }
+
+    // Step 1: Fetch all matching time records
+    const records = await timerecordEmployee.find({
+      month: { $regex: new RegExp(month, 'i') },
+      year: { $regex: new RegExp(year, 'i') },
+    });
+
+    if (!records.length) {
+      return res.status(200).json({ groupedResult: {}, message: 'No records found' });
+    }
+
+    // Step 2: Fetch all employee profiles to avoid repeated queries
+    const employeeIds = records.map(r => r.employeeId);
+    const employees = await Employee.find({ employeeId: { $in: employeeIds } });
+
+    const employeeMap = {};
+    employees.forEach(emp => {
+      if (emp.employeeId) {
+        employeeMap[emp.employeeId] = emp;
+      }
+    });
+
+    // Step 3: Group and filter by workplaceId (if provided)
+    const groupedResult = {};
+
+    for (const record of records) {
+      const employee = employeeMap[record.employeeId];
+
+      if (!employee || !employee.workplace) continue;
+
+      const empWorkplaceId = employee.workplace;
+
+      if (workplaceId && empWorkplaceId !== workplaceId) continue;
+
+      if (!groupedResult[empWorkplaceId]) {
+        groupedResult[empWorkplaceId] = [];
+      }
+
+      groupedResult[empWorkplaceId].push({
+        ...record.toObject(),
+        employeeName: employee.name,
+        workplaceName: employee.workplaceName || '', // if available
+      });
+    }
+
+    return res.status(200).json({ groupedResult });
+
+  } catch (error) {
+    console.error("❌ Error in searchtimerecordbyworkplace:", error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 // POST API endpoint to get records by year and month
 router.post('/searchtimerecord', async (req, res) => {
   const { year, month } = req.body;
