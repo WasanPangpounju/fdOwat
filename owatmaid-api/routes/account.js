@@ -4406,11 +4406,13 @@ if(employeeProfile[0].workplace) {
 const query = {};
 query.workplaceId = employeeProfile[0].workplace;
 query.wGroup = employeeProfile[0].department || '';
-console.log('query')
+
         // Query the workplace collection for matching documents
         const workplaces = await Workplace.find(query);
 
         if(workplaces.length > 0 ) {
+          console.log('workplaces.length ' + workplaces.length )
+
 // dataCal?.daysOff
 const isDayOff = workplaces?.[0]?.daysOff?.some(d => 
   new Date(d).toISOString().split('T')[0] === date.toISOString().split('T')[0]
