@@ -4424,7 +4424,8 @@ query.wGroup = await employeeProfile[0].department || '';
 // } 
 
 // console.log('workplaces?.[0]?.daysOff ' + JSON.stringify(workplaces?.[0]?.daysOff))
-console.log(new Date(workplaces?.[0]?.daysOff[2] ).toISOString().split('T')[0].toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }) )
+let date = new Date(workplaces?.[0]?.daysOff[2] );
+console.log(date.toISOString().split('T')[0].toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }) )
         } //end if
 
 } //end if
