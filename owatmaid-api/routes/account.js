@@ -4411,7 +4411,7 @@ query.wGroup = await employeeProfile[0].department || '';
 
         // Query the workplace collection for matching documents
         const workplaces = await Workplace.find(query);
-        await console.log('query ' + JSON.stringify(workplaces ) )
+        // console.log('query ' + JSON.stringify(workplaces ) )
 
         if(workplaces.length > 0 ) {
 // const isDayOff = workplaces?.[0]?.daysOff?.some(d => 
@@ -4422,7 +4422,9 @@ query.wGroup = await employeeProfile[0].department || '';
   // console.log(date.toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }));
   // console.log('specialDayOff');
 // } 
-console.log('workplaces?.[0]?.daysOff ' + JSON.stringify(workplaces?.[0]?.daysOff))
+
+// console.log('workplaces?.[0]?.daysOff ' + JSON.stringify(workplaces?.[0]?.daysOff))
+console.log(new Date(workplaces?.[0]?.daysOff[0] ).toISOString().split('T')[0] )
         } //end if
 
 } //end if
