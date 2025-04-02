@@ -4419,7 +4419,7 @@ if(workplaces?.[0]?.daysOff.length >1){
 const options = { timeZone: "Asia/Bangkok" };
 
   workplaces[0].daysOff.forEach((tmpSpeDate) => {
-    console.log(tmpSpeDate);
+    // console.log(tmpSpeDate);
     let date = new Date(tmpSpeDate );
     const yearTmp = date.toLocaleString("en-CA", { ...options, year: "numeric" });
     const monthTmp = date.toLocaleString("en-CA", { ...options, month: "2-digit" });
@@ -4429,21 +4429,7 @@ const options = { timeZone: "Asia/Bangkok" };
     
   }); 
 }
-// let date = new Date(workplaces?.[0]?.daysOff[2] );
-// // Convert to Thailand time and get parts
-// const options = { timeZone: "Asia/Bangkok" };
 
-// const yearTmp = date.toLocaleString("en-CA", { ...options, year: "numeric" });
-// const monthTmp = date.toLocaleString("en-CA", { ...options, month: "2-digit" });
-// const dayTmp = date.toLocaleString("en-CA", { ...options, day: "2-digit" });
-
-// console.log(`Year: ${yearTmp}, Month: ${monthTmp}, Day: ${dayTmp}`);
-
-// Format the date in Thailand time and extract only date part
-// const thDateString = date.toLocaleDateString("sv-SE", { timeZone: "Asia/Bangkok" });
-// console.log(thDateString);
-
-// console.log(date  + ' ' + date.toISOString().split('T')[0].toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }) )
         } //end if
 
 } //end if
