@@ -4405,7 +4405,7 @@ if(employeeProfile[0].workplace) {
 // Construct the search query based on the provided parameters
 const query = {};
 query.workplaceId = await employeeProfile[0].workplace;
-query.wGroup = await employeeProfile[0].department || '';
+// query.wGroup = await employeeProfile[0].department || '';
 
         // Query the workplace collection for matching documents
         const workplaces = await Workplace.find(query);
