@@ -1754,6 +1754,7 @@ router.post('/delete-records', async (req, res) => {
 });
 
 
+
 function groupByWorkplaceId(records) {
   return records.reduce((acc, record) => {
     const { workplaceId, workplaceName } = record;

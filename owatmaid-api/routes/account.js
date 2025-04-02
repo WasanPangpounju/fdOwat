@@ -4414,18 +4414,15 @@ query.wGroup = await employeeProfile[0].department || '';
         await console.log('query ' + JSON.stringify(workplaces ) )
 
         if(workplaces.length > 0 ) {
-          console.log('workplaces.length ' + workplaces.length )
+// const isDayOff = workplaces?.[0]?.daysOff?.some(d => 
+  // new Date(d).toISOString().split('T')[0] === date.toISOString().split('T')[0]
+// );
 
-// dataCal?.daysOff
-const isDayOff = workplaces?.[0]?.daysOff?.some(d => 
-  new Date(d).toISOString().split('T')[0] === date.toISOString().split('T')[0]
-);
-
-if(isDayOff == true) {
-  console.log(date.toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }));
-  console.log('specialDayOff');
-} 
-
+// if(isDayOff == true) {
+  // console.log(date.toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }));
+  // console.log('specialDayOff');
+// } 
+console.log('workplaces?.[0]?.daysOff ' + JSON.stringify(workplaces?.[0]?.daysOff))
         } //end if
 
 } //end if
