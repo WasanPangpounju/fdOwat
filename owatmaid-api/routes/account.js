@@ -4406,7 +4406,7 @@ if(employeeProfile[0].workplace) {
 const query = {};
 query.workplaceId = employeeProfile[0].workplace;
 query.wGroup = employeeProfile[0].department || '';
-
+console.log('query')
         // Query the workplace collection for matching documents
         const workplaces = await Workplace.find(query);
 
@@ -4419,7 +4419,6 @@ const isDayOff = workplaces?.[0]?.daysOff?.some(d =>
 if(isDayOff == true) {
   console.log(date.toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }));
   console.log('specialDayOff');
-
 } 
 
         } //end if
