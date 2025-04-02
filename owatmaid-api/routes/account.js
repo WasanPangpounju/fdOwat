@@ -4409,6 +4409,7 @@ query.wGroup = employeeProfile[0].department || '';
 
         // Query the workplace collection for matching documents
         const workplaces = await Workplace.find(query);
+        console.log('query ' + query)
 
         if(workplaces.length > 0 ) {
           console.log('workplaces.length ' + workplaces.length )
