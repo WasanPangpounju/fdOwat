@@ -4425,10 +4425,18 @@ query.wGroup = await employeeProfile[0].department || '';
 
 // console.log('workplaces?.[0]?.daysOff ' + JSON.stringify(workplaces?.[0]?.daysOff))
 let date = new Date(workplaces?.[0]?.daysOff[2] );
-// Format the date in Thailand time and extract only date part
-const thDateString = date.toLocaleDateString("sv-SE", { timeZone: "Asia/Bangkok" });
+// Convert to Thailand time and get parts
+const options = { timeZone: "Asia/Bangkok" };
 
-console.log(thDateString); // will print 2025-02-18
+const yearTmp = date.toLocaleString("en-CA", { ...options, year: "numeric" });
+const monthTmp = date.toLocaleString("en-CA", { ...options, month: "2-digit" });
+const dayTmp = date.toLocaleString("en-CA", { ...options, day: "2-digit" });
+
+console.log(`Year: ${yearTmp}, Month: ${monthTmp}, Day: ${dayTmp}`);
+
+// Format the date in Thailand time and extract only date part
+// const thDateString = date.toLocaleDateString("sv-SE", { timeZone: "Asia/Bangkok" });
+// console.log(thDateString);
 
 // console.log(date  + ' ' + date.toISOString().split('T')[0].toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }) )
         } //end if
