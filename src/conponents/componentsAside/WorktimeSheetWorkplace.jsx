@@ -386,37 +386,46 @@ function WorktimeSheetWorkplace({ employeeList }) {
   // const yeartest = 2023;
   const monthtest = 3; // 3 represents March using 1-based indexing
 
+  const [data, setData] = useState({});
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    const fetchData = () => {
-      const dataTest = {
-        year: year,
-        month: month,
-      };
+    const fetchData = async () => {
+
+
+      const dataSearch = {
+        year: year, 
+        month: month, 
+        workplaceId: searchWorkplaceId
+      }
+
 
       axios
-        .post(endpoint + "/accounting/calsalarylist", dataTest)
+        .post(endpoint + "/accounting/searchtimerecordbyworkplace", dataSearch )
         .then((response) => {
-          const responseData = response.data;
-          // const filteredData = searchWorkplaceId
-          //   ? responseData.filter(
-          //       (item) => item.workplace === searchWorkplaceId
-          //     )
-          //   : responseData;
+          const groupedResult = response.data.groupedResult;
+      // รวมข้อมูลทั้งหมดจากทุก workplace ให้กลายเป็น array เดียว
+      const allRecords = Object.values(groupedResult).flat();
 
-          // const filteredData = responseData.filter((item) => item.workplace);
-          const filteredData = searchWorkplaceId
-            ? responseData.filter((item) => item.workplace === searchWorkplaceId)
-            : responseData; // If no searchWorkplaceId, return all data
+      // จัดเรียงตาม employeeId
+      const sortedData = allRecords.sort((a, b) =>
+        a.employeeId.localeCompare(b.employeeId)
+      );
 
-          const sortedData = filteredData.sort(
-            (a, b) => a.employeeId - b.employeeId
-          );
+      // setResponseDataAll(sortedData);
+      setData(sortedData);
 
-          setResponseDataAll(sortedData);
+      // alert("✅ Sorted Records:"+ JSON.stringify(sortedData) );
+if(sortedData.length > 0) {
+  setLoading(false);
+}
+
+
         })
         .catch((error) => {
           console.error("Error:", error);
-        });
+        })
+        
     };
 
     // Call fetchData when year or month changes
@@ -9040,7 +9049,7 @@ const overtimeLabels = [
                                                     {workRateWorkplaceStage3} */}
                           <div class="col-md-3">
                             <div class="form-group">
-                              <label role="searchEmployeeId">เดือน</label>
+                              <label role="month">เดือน</label>
                               <select
                                 className="form-control"
                                 value={month}
@@ -9325,6 +9334,34 @@ const overtimeLabels = [
 
           <tbody>
         
+
+          {loading ? (
+  <tr>
+    <td colSpan="5">Loading...</td>
+  </tr>
+) : data.length === 0 ? (
+  <tr>
+    <td colSpan="5">No data found</td>
+  </tr>
+) : (
+  data.map((record, idx) => (
+    <tr key={idx}>
+                     <td className="text-center align-middle">1</td>
+                     <td>
+                     {record.employeeName} ทดสอบ <span style={{ float: "right" }}>เช้า</span>
+                </td>
+                {Array.from({ length: 31}).map((_, i) => (
+                    <td key={i} className="text-center">{record?.employee_record?.[i]?.workplaceId && record?.employee_record?.[i]?.workplaceId.trim() !== '' ? '1' : '' }</td>
+                ))}
+
+<td className="text-center align-middle">
+{record.dayWorkCount || ''}
+  </td>
+
+    </tr>
+  ))
+)}
+ 
           <tr>
                 <td className="text-center align-middle">1</td>
                 <td>
