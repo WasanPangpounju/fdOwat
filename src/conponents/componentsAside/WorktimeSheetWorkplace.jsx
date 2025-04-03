@@ -9442,18 +9442,18 @@ const overtimeLabels = [
                 ))}        
                 </tr>
               {/*  */}
-              {/* <tr>
+              <tr>
               <td></td>
               <td   className="pb-5"><span style={{  paddingLeft:"75px" ,paddingBottom:"120px",display:"inline-block"}}>โอที 3 </span></td>
               {Array.from({ length:47}).map((_,i)=>(
                     <td key={i} className="text-center"></td>
                 ))}
-เว้นระยะห่างของแต่ละคน                
-              </tr> */}
+
+              </tr>
               {/*  */}
               
               
-              <tr>
+              <tr className="pt">
               <td  className="text-center align-middle">2</td>
               <td >ทดสอบ ทดสอบ <span style={{ float: "right" }}>เช้า</span></td>
               {Array.from({ length:30}).map((_,i)=>(
