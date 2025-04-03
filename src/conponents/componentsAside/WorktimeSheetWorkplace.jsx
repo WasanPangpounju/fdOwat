@@ -9336,13 +9336,9 @@ const overtimeLabels = [
         
 
           {loading ? (
-  <tr>
-    <td colSpan="5">Loading...</td>
-  </tr>
+            <></>
 ) : data.length === 0 ? (
-  <tr>
-    <td colSpan="5">No data found</td>
-  </tr>
+<></>
 ) : (
   data.map((record, idx) => (
     <tr key={idx}>
