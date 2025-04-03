@@ -9348,7 +9348,7 @@ const overtimeLabels = [
     <tr key={idx}>
                      <td className="text-center align-middle">1</td>
                      <td>
-                     {record.employeeName} ทดสอบ <span style={{ float: "right" }}>เช้า</span>
+                     {record.employeeName} <span style={{ float: "right" }}>เช้า</span>
                 </td>
                 {Array.from({ length: 31}).map((_, i) => (
                     <td key={i} className="text-center">{record?.employee_record?.[i]?.workplaceId && record?.employee_record?.[i]?.workplaceId.trim() !== '' ? '1' : '' }</td>
