@@ -9346,7 +9346,7 @@ const overtimeLabels = [
 ) : (
   data.map((record, idx) => (
     <tr key={idx}>
-                     <td className="text-center align-middle">1</td>
+                     <td className="text-center align-middle">{idx}</td>
                      <td>
                      {record.employeeName} <span style={{ float: "right" }}>เช้า</span>
                 </td>
@@ -9357,6 +9357,16 @@ const overtimeLabels = [
 <td className="text-center align-middle">
 {record.dayWorkCount || ''}
   </td>
+
+<td className="text-center align-middle">4</td>
+
+<td className="text-center align-middle"></td>
+<td className="text-center align-middle">4</td>
+
+
+{Array.from({ length: 12 }).map((_, i) => (
+    <td key={i} className="text-center"></td>
+))}
 
     </tr>
   ))
@@ -9389,6 +9399,7 @@ const overtimeLabels = [
                     <td key={i} className="text-center"></td>
                 ))}
                 </tr>
+                
             <tr>
                 <td></td>
                 <td>หัวหน้า <span style={{ float: "right" }}>ดึก</span></td>
