@@ -9341,6 +9341,7 @@ const overtimeLabels = [
 <></>
 ) : (
   data.map((record, idx) => (
+    <>
     <tr key={idx}>
                      <td className="text-center align-middle">{idx}</td>
                      <td>
@@ -9365,6 +9366,48 @@ const overtimeLabels = [
 ))}
 
     </tr>
+
+<tr>
+<td></td>
+<td><span style={{ float: "right" }}>ดีก</span></td>
+{Array.from({ length: 47 }).map((_, i) => (
+    <td key={i} className="text-center"></td>
+))}              
+</tr>
+{/*  */}
+<tr>
+<td></td>
+<td><span style={{  paddingLeft:"30px" }}>650154 โอที 1.5 </span></td>
+{Array.from({ length: 47 }).map((_, i) => (
+    <td key={i} className="text-center"></td>
+))}
+</tr>
+{/*  */}
+<tr>
+<td></td>
+<td><span style={{  paddingLeft:"75px" }}>โอที 2 </span></td>
+{Array.from({ length: 47 }).map((_, i) => (
+    <td key={i} className="text-center"></td>
+))}              
+</tr>
+{/*  */}
+{/* <tr>
+<td style={{ borderTop:0, borderBottom: "none" }}className="bordered"></td>
+<td><span style={{  paddingLeft:"75px" ,paddingBottom:"120px",display:"inline-block"}}>โอที 3 </span></td>
+{Array.from({ length: 47 }).map((_, i) => (
+        <td key={i} className="text-center"></td>
+    ))}
+</tr> */}
+
+<tr className="pt">
+<td></td>
+<td><span style={{  paddingLeft:"75px"  }}>โอที 3 </span></td>
+{Array.from({ length:47}).map((_,i)=>(
+    <td key={i} className="text-center"></td>
+))}        
+</tr>
+</>
+
   ))
 )}
  
@@ -9495,13 +9538,22 @@ const overtimeLabels = [
                 ))}              
                 </tr>
               {/*  */}
-              <tr>
+              {/* <tr>
                 <td style={{ borderTop:0, borderBottom: "none" }}className="bordered"></td>
                 <td><span style={{  paddingLeft:"75px" ,paddingBottom:"120px",display:"inline-block"}}>โอที 3 </span></td>
                 {Array.from({ length: 47 }).map((_, i) => (
                         <td key={i} className="text-center"></td>
                     ))}
-              </tr>
+              </tr> */}
+
+<tr className="pt">
+              <td></td>
+              <td><span style={{  paddingLeft:"75px"  }}>โอที 3 </span></td>
+            {Array.from({ length:47}).map((_,i)=>(
+                    <td key={i} className="text-center"></td>
+                ))}        
+                </tr>
+              
 
           </tbody>
         </Table>
