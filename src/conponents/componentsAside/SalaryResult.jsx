@@ -1863,9 +1863,14 @@ try {
     // </div>
     // <div>
 
-    <body class="hold-transition sidebar-mini" className="editlaout">
-      <div class="wrapper">
-        <div class="content-wrapper">
+    // <body class="hold-transition sidebar-mini" className="editlaout">
+    //   <div class="wrapper">
+    //     <div class="content-wrapper">
+    <div className="hold-transition sidebar-mini editlaout">
+    <div className="wrapper">
+      <div className="content-wrapper">
+
+
           {/* <!-- Content Header (Page header) --> */}
           <ol class="breadcrumb">
             <li class="breadcrumb-item">
@@ -2671,7 +2676,8 @@ try {
           </section>
         </div>
       </div>
-    </body>
+    {/* </body> */}
+</div>
   );
 }
 

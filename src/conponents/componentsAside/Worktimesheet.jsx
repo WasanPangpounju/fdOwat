@@ -232,9 +232,13 @@ function Worktimesheet() {
 
   //view
   return (
-    <body class="hold-transition sidebar-mini" className='editlaout'>
-      <div class="wrapper">
-        <div class="content-wrapper">
+    // <body class="hold-transition sidebar-mini" className='editlaout'>
+    //   <div class="wrapper">
+    //     <div class="content-wrapper">
+    <div className="hold-transition sidebar-mini editlaout">
+    <div className="wrapper">
+      <div className="content-wrapper">
+
           {/* <!-- Content Header (Page header) --> */}
           <ol class="breadcrumb">
             <li class="breadcrumb-item"><i class="fas fa-home"></i> <a href="index.php">หน้าหลัก</a></li>
@@ -501,8 +505,8 @@ function Worktimesheet() {
       </div >
 
 
-    </body >
-
+    {/* </body > */}
+</div>
   );
 }
 

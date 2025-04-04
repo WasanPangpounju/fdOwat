@@ -8954,9 +8954,13 @@ const overtimeLabels = [
 
   return (
     // <div>
-    <body class="hold-transition sidebar-mini" className="editlaout">
-      <div class="wrapper">
-        <div class="content-wrapper">
+    // <body class="hold-transition sidebar-mini" className="editlaout">
+    //   <div class="wrapper">
+    //     <div class="content-wrapper">
+    <div className="hold-transition sidebar-mini editlaout">
+    <div className="wrapper">
+      <div className="content-wrapper">
+
           {/* <!-- Content Header (Page header) --> */}
           <ol class="breadcrumb">
             <li class="breadcrumb-item">
@@ -9267,8 +9271,8 @@ const overtimeLabels = [
                 )}
               </div>
             </div>
-            <br />
-          </section>
+            {/* <br /> */}
+          {/* </section> */}
 
 <div className="container-fluid d-flex justify-content-center align-items-center min-vh-100 ">
       <div className="d-flex justify-content-center">
@@ -9299,7 +9303,7 @@ const overtimeLabels = [
               <th colSpan="3" className="text-center align-middle">ค่าล่วงเวลา</th>
               <th colSpan="9" className="text-center p-2">สวัสดิการ</th>
               <th rowSpan={4}  className="vertical-text ">หักประกันสังคม %</th>
-              <th rowSpan={4} >หมายเหตุ</th>
+              <th rowSpan={4} className="vertical-text ">หมายเหตุ</th>
             </tr>
 
             {/* ---------------- แถวที่ 2 ---------------- */}
@@ -9565,12 +9569,14 @@ const overtimeLabels = [
         </Table>
       </div>
     </div>
+    </section>
 
           {/* <!-- /.content --> */}
         </div>
       </div>
       {/* {JSON.stringify(listDayOff,null,2)} */}
-    </body>
+    {/* </body> */}
+</div>
   );
 }
 

@@ -1,67 +1,86 @@
-// import React from 'react'
-import React, { useState, useEffect } from 'react';
-
-// import Top from "./Top"
-// import AsideLeft from './AsideLeft'
-import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
-import '../editwindowcss.css';
+import React, { useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import '../editwindowcss.css'; // CSS รวมของโปรเจกต์
 
 function Dashboard() {
-
   useEffect(() => {
     document.title = 'แดชบอร์ด';
-    // You can also return a cleanup function if needed
-    // return () => { /* cleanup code */ };
   }, []);
 
-  
-
-
-
   return (
-    <body class="hold-transition sidebar-mini" className='editlaout'>
-      <div class="wrapper">
-        <div class="content-wrapper">
-          {/* <!-- Content Header (Page header) --> */}
-          <ol class="breadcrumb">
-            <li class="breadcrumb-item"><i class="fas fa-home"></i> <a href="index.php">หน้าหลัก</a></li>
+    <div className="hold-transition sidebar-mini editlaout">
+      <div className="wrapper">
+        <div className="content-wrapper">
+          
+          {/* Breadcrumb */}
+          <ol className="breadcrumb">
+            <li className="breadcrumb-item">
+              <i className="fas fa-home"></i> <Link to="/">หน้าหลัก</Link>
+            </li>
+            <li className="breadcrumb-item active">แดชบอร์ด</li>
           </ol>
-          <div class="content-header">
-            <div class="container-fluid">
-              <div class="row mb-2">
-                <h1 class="m-0"><i class="far fa-arrow-alt-circle-right"></i> แดชบอร์ด</h1>
+
+          {/* Header */}
+          <div className="content-header">
+            <div className="container-fluid">
+              <div className="row mb-2">
+                <h1 className="m-0">
+                  <i className="far fa-arrow-alt-circle-right"></i> แดชบอร์ด
+                </h1>
               </div>
             </div>
           </div>
-          {/* <!-- /.content-header -->
-        <!-- Main content --> */}
-          <section class="content">
-            <div class="container-fluid">
-              <div class="Inner-dash">
-                <div class="row">
-                  {/* <a href="" class="btn-d btn-app" style={{ background: "#ff6c60" }}><i class="fas fa-business-time"></i> ระบบลงเวลา</a> */}
-                  <Link to="/addsettime" className="btn-d btn-app" style={{ background: "#ff6c60"  }}><i class="fas fa-business-time"></i> ระบบลงเวลา</Link>
-                  <Link to="/addEdit_Employee" className="btn-d btn-app" style={{ background: "#9DBAEA" }}><i class="fas fa-people-arrows"></i> ระบบ เพิ่ม/ลบ พนักงาน</Link>
-                  <Link to="/addEdit_SalaryEmployee" className="btn-d btn-app" style={{ background: "#A2B4D2" }}><i class="fas fa-money-bill-wave"></i> ระบบ เงินเพิ่ม/เงินหัก พนักงาน</Link>
-                  {/* <a href="" class="btn-d btn-app" style={{ background: "#9DBAEA" }}></a>
-                  <a href="" class="btn-d btn-app" style={{ background: "#A2B4D2" }}></a> */}
-                  <a href="" class="btn-d btn-app" style={{ background: "#58c9f3" }}><i class="fas fa-file-invoice-dollar"></i> ระบบเงินเดือน</a>
-                  <a href="" class="btn-d btn-app" style={{ background: "#41cac0" }}><i class="fas fa-paste"></i> ระบบออกเอกสาร</a>
-                  <a href="" class="btn-d btn-app" style={{ background: "#8175c7" }}><i class="fas fa-file-alt"></i> ระบบรายงานผู้บริหาร</a>
-                  {/* <a href="search.php" class="btn-d btn-app" style="background:#ffc107;"><i class="fas fa-network-wired"></i> ระบบบริหารจัดการ<br>พนักงาน</a> */}
-                  <Link to="/search" className="btn-d btn-app" style={{ background: "#ffc107" }}><i class="fas fa-network-wired"></i> ระบบบริหารจัดการ<br />พนักงาน</Link>
-                  <a href="" class="btn-d btn-app" style={{ background: "#aebece" }}><i class="fas fa-cog"></i> การตั้งค่า</a>
-                </div>
+
+          {/* Main content */}
+          <section className="content">
+            <div className="container-fluid">
+              <div className="row gy-4">
+                {dashboardItems.map((item, idx) => (
+                  <DashboardButton key={idx} {...item} />
+                ))}
               </div>
             </div>
-            {/* <!-- /.container-fluid --> */}
           </section>
-          {/* <!-- /.content --> */}
+
         </div>
       </div>
-    </body>
-
-  )
+    </div>
+  );
 }
 
-export default Dashboard
+// รายการปุ่มในแดชบอร์ด
+const dashboardItems = [
+  { to: "/addsettime", icon: "fas fa-business-time", text: "ระบบลงเวลา", color: "#ff6c60" },
+  { to: "/addEdit_Employee", icon: "fas fa-people-arrows", text: "เพิ่ม/ลบ พนักงาน", color: "#9DBAEA" },
+  { to: "/addEdit_SalaryEmployee", icon: "fas fa-money-bill-wave", text: "เงินเพิ่ม/เงินหัก", color: "#A2B4D2" },
+  { to: "#", icon: "fas fa-file-invoice-dollar", text: "ระบบเงินเดือน", color: "#58c9f3" },
+  { to: "#", icon: "fas fa-paste", text: "ระบบออกเอกสาร", color: "#41cac0" },
+  { to: "#", icon: "fas fa-file-alt", text: "รายงานผู้บริหาร", color: "#8175c7" },
+  { to: "/search", icon: "fas fa-network-wired", text: "จัดการพนักงาน", color: "#ffc107" },
+  { to: "#", icon: "fas fa-cog", text: "การตั้งค่า", color: "#aebece" }
+];
+
+// Component ปุ่มแต่ละอัน
+function DashboardButton({ to, icon, text, color }) {
+  return (
+    <div className="col-6 col-md-3 mb-3 d-flex justify-content-center">
+      <Link
+        to={to}
+        className="d-block text-white text-center rounded shadow-sm p-2 text-decoration-none h-100"
+        style={{
+          background: color,
+          minHeight: '90px',
+          maxWidth: '190px', // ✅ กว้างขึ้น
+          width: '100%',
+          fontSize: '1rem',
+          lineHeight: 1.4,
+        }}
+      >
+        <i className={`${icon} fa-2x mb-2 d-block`}></i>
+        {text}
+      </Link>
+    </div>
+  );
+}
+
+export default Dashboard;

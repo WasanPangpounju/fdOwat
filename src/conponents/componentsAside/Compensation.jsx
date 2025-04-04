@@ -1,5 +1,7 @@
 import endpoint from "../../config";
 import { Link } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import "../editwindowcss.css";
 
 import axios from "axios";
 import React, { useEffect, useState } from "react";
@@ -1756,9 +1758,12 @@ alert(JSON.stringify(updatedData,null,2))
 
   return (
     // <div>
-    <body class="hold-transition sidebar-mini" className="editlaout">
-      <div class="wrapper">
-        <div class="content-wrapper">
+    // <body class="hold-transition sidebar-mini" className="editlaout">
+    //   <div class="wrapper">
+    //     <div class="content-wrapper">
+    <div className="hold-transition sidebar-mini editlaout">
+    <div className="wrapper">
+      <div className="content-wrapper">
           {/* <!-- Content Header (Page header) --> */}
           <ol class="breadcrumb">
             <li class="breadcrumb-item">
@@ -2140,7 +2145,8 @@ alert(JSON.stringify(updatedData,null,2))
         </div>
       </div>
       {/* {JSON.stringify( dataTable[30])}{dataTable.length} */}
-    </body>
+    {/* </body> */}
+</div>
     // </div>  )
   );
 }
