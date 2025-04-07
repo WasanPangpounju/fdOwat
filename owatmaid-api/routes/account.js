@@ -4454,6 +4454,7 @@ let sumAddSalaryDaily = {};
 let addSalaryDailyList = [];
 let monthlySalaries = [];
 let addSalaryList = [];
+let selectedSpecialDays = [];
 
 if(parseFloat(salaryTmp || '0')  > 1660) {
   salaryMonth = parseFloat(salaryTmp || '0');
@@ -4488,6 +4489,17 @@ const options = { timeZone: "Asia/Bangkok" };
     
     console.log(`Year: ${yearTmp}, Month: ${monthTmp}, Day: ${dayTmp}`);
 console.log(year + ' * ' + month)    
+if (
+  (month === monthTmpInt && year === yearTmpInt) ||
+  (month === monthTmpInt - 1 && year === yearTmpInt) ||
+  (monthTmpInt === 1 && month === 12 && year === yearTmpInt - 1)
+) {
+  selectedSpecialDays.push(dayTmpInt);
+}
+
+// Verify the result
+console.log('Selected special days:', selectedSpecialDays);
+ 
   }); 
 }
 
