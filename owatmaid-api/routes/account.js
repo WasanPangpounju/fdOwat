@@ -4505,17 +4505,21 @@ const monthTmp = parseInt(date.toLocaleString("en-CA", { month: "2-digit" }), 10
 const dayTmp = parseInt(date.toLocaleString("en-CA", { day: "2-digit" }), 10);
 
 console.log(`Year: ${yearTmp}, Month: ${monthTmp}, Day: ${dayTmp}`);
-console.log(year + ' * ' + month);
 
-// Fix and simplify logic clearly:
-const isCurrentMonth = month === monthTmp && year === yearTmp;
+// Convert your 'year' and 'month' variables explicitly to integers
+const yearInt = parseInt(year, 10);
+const monthInt = parseInt(month, 10);
 
-let prevMonth = month - 1;
-let prevYear = year;
+console.log(yearInt + ' * ' + monthInt);
 
-if (month === 1) {
+const isCurrentMonth = monthInt === monthTmp && yearInt === yearTmp;
+
+let prevMonth = monthInt - 1;
+let prevYear = yearInt;
+
+if (monthInt === 1) {
   prevMonth = 12;
-  prevYear = year - 1;
+  prevYear = yearInt - 1;
 }
 
 const isPreviousMonth = monthTmp === prevMonth && yearTmp === prevYear;
