@@ -4490,11 +4490,11 @@ const options = { timeZone: "Asia/Bangkok" };
     console.log(`Year: ${yearTmp}, Month: ${monthTmp}, Day: ${dayTmp}`);
 console.log(year + ' * ' + month)    
 if (
-  (month === monthTmpInt && year === yearTmpInt) ||
-  (month === monthTmpInt - 1 && year === yearTmpInt) ||
-  (monthTmpInt === 1 && month === 12 && year === yearTmpInt - 1)
+  (month === monthTmp && year === yearTmp) ||
+  (month === monthTmp - 1 && year === yearTmp) ||
+  (monthTmp === 1 && month === 12 && year === yearTmp - 1)
 ) {
-  selectedSpecialDays.push(dayTmpInt);
+  selectedSpecialDays.push(dayTmp);
 }
 
 // Verify the result
