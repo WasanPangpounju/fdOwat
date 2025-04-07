@@ -4482,53 +4482,7 @@ const options = { timeZone: "Asia/Bangkok" };
 
   workplaces[0].daysOff.forEach((tmpSpeDate) => {
     // console.log(tmpSpeDate);
-//     let date = new Date(tmpSpeDate );
-//     const yearTmp = date.toLocaleString("en-CA", { ...options, year: "numeric" });
-//     const monthTmp = date.toLocaleString("en-CA", { ...options, month: "2-digit" });
-//     const dayTmp = date.toLocaleString("en-CA", { ...options, day: "2-digit" });
-    
-//     console.log(`Year: ${yearTmp}, Month: ${monthTmp}, Day: ${dayTmp}`);
-// console.log(year + ' * ' + month)    
-// if (
-//   (month === monthTmp && year === yearTmp) ||
-//   (month === monthTmp - 1 && year === yearTmp) ||
-//   (monthTmp === 1 && month === 12 && year === yearTmp - 1)
-// ) {
-//   selectedSpecialDays.push(dayTmp);
-// }
 
-// // Verify the result
-// console.log('Selected special days:', selectedSpecialDays);
-// let date = new Date(tmpSpeDate);
-// const yearTmp = parseInt(date.toLocaleString("en-CA", { year: "numeric" }), 10);
-// const monthTmp = parseInt(date.toLocaleString("en-CA", { month: "2-digit" }), 10);
-// const dayTmp = parseInt(date.toLocaleString("en-CA", { day: "2-digit" }), 10);
-
-// console.log(`Year: ${yearTmp}, Month: ${monthTmp}, Day: ${dayTmp}`);
-
-// // Convert your 'year' and 'month' variables explicitly to integers
-// const yearInt = parseInt(year, 10);
-// const monthInt = parseInt(month, 10);
-
-// console.log(yearInt + ' * ' + monthInt);
-
-// const isCurrentMonth = monthInt === monthTmp && yearInt === yearTmp;
-
-// let prevMonth = monthInt - 1;
-// let prevYear = yearInt;
-
-// if (monthInt === 1) {
-//   prevMonth = 12;
-//   prevYear = yearInt - 1;
-// }
-
-// const isPreviousMonth = monthTmp === prevMonth && yearTmp === prevYear;
-
-// if (isCurrentMonth || isPreviousMonth) {
-//   selectedSpecialDays.push(dayTmp);
-// }
-
-// console.log('Selected special days:', selectedSpecialDays);
 let date = new Date(tmpSpeDate);
 const yearTmp = parseInt(date.toLocaleString("en-CA", { year: "numeric" }), 10);
 const monthTmp = parseInt(date.toLocaleString("en-CA", { month: "2-digit" }), 10);
