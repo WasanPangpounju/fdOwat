@@ -4482,31 +4482,40 @@ const options = { timeZone: "Asia/Bangkok" };
 
   workplaces[0].daysOff.forEach((tmpSpeDate) => {
     // console.log(tmpSpeDate);
-    let date = new Date(tmpSpeDate );
-    const yearTmp = date.toLocaleString("en-CA", { ...options, year: "numeric" });
-    const monthTmp = date.toLocaleString("en-CA", { ...options, month: "2-digit" });
-    const dayTmp = date.toLocaleString("en-CA", { ...options, day: "2-digit" });
+//     let date = new Date(tmpSpeDate );
+//     const yearTmp = date.toLocaleString("en-CA", { ...options, year: "numeric" });
+//     const monthTmp = date.toLocaleString("en-CA", { ...options, month: "2-digit" });
+//     const dayTmp = date.toLocaleString("en-CA", { ...options, day: "2-digit" });
     
-    console.log(`Year: ${yearTmp}, Month: ${monthTmp}, Day: ${dayTmp}`);
-console.log(year + ' * ' + month)    
+//     console.log(`Year: ${yearTmp}, Month: ${monthTmp}, Day: ${dayTmp}`);
+// console.log(year + ' * ' + month)    
+// if (
+//   (month === monthTmp && year === yearTmp) ||
+//   (month === monthTmp - 1 && year === yearTmp) ||
+//   (monthTmp === 1 && month === 12 && year === yearTmp - 1)
+// ) {
+//   selectedSpecialDays.push(dayTmp);
+// }
 
-// Convert extracted strings to integers for comparison
-const yearTmpInt = parseInt(yearTmp, 10);
-const monthTmpInt = parseInt(monthTmp, 10);
-const dayTmpInt = parseInt(dayTmp, 10);
+// // Verify the result
+// console.log('Selected special days:', selectedSpecialDays);
+let date = new Date(tmpSpeDate);
+const yearTmp = parseInt(date.toLocaleString("en-CA", { year: "numeric" }), 10);
+const monthTmp = parseInt(date.toLocaleString("en-CA", { month: "2-digit" }), 10);
+const dayTmp = parseInt(date.toLocaleString("en-CA", { day: "2-digit" }), 10);
 
-// Check conditions
+console.log(`Year: ${yearTmp}, Month: ${monthTmp}, Day: ${dayTmp}`);
+console.log(year + ' * ' + month);
+
 if (
-  (month === monthTmpInt && year === yearTmpInt) ||
-  (month === monthTmpInt - 1 && year === yearTmpInt) ||
-  (monthTmpInt === 1 && month === 12 && year === yearTmpInt - 1)
+  (month === monthTmp && year === yearTmp) ||
+  (month === monthTmp - 1 && year === yearTmp) ||
+  (monthTmp === 1 && month === 12 && year === yearTmp - 1)
 ) {
-  selectedSpecialDays.push(dayTmpInt);
+  selectedSpecialDays.push(dayTmp);
 }
 
-// Verify the result
 console.log('Selected special days:', selectedSpecialDays);
- 
   }); 
 }
 
