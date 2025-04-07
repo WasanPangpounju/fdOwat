@@ -4507,11 +4507,20 @@ const dayTmp = parseInt(date.toLocaleString("en-CA", { day: "2-digit" }), 10);
 console.log(`Year: ${yearTmp}, Month: ${monthTmp}, Day: ${dayTmp}`);
 console.log(year + ' * ' + month);
 
-if (
-  (month === monthTmp && year === yearTmp) ||
-  (month === monthTmp - 1 && year === yearTmp) ||
-  (monthTmp === 1 && month === 12 && year === yearTmp - 1)
-) {
+// Fix and simplify logic clearly:
+const isCurrentMonth = month === monthTmp && year === yearTmp;
+
+let prevMonth = month - 1;
+let prevYear = year;
+
+if (month === 1) {
+  prevMonth = 12;
+  prevYear = year - 1;
+}
+
+const isPreviousMonth = monthTmp === prevMonth && yearTmp === prevYear;
+
+if (isCurrentMonth || isPreviousMonth) {
   selectedSpecialDays.push(dayTmp);
 }
 
