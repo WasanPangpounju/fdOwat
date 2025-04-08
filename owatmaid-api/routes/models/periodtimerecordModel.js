@@ -56,6 +56,7 @@ sumCashWork : String,
 sumCashOt : String,
 socialSecurity: String,
 tax: String,
+cashSpecialDay: String,
 
 addSalaryList: [
   {

@@ -4371,7 +4371,8 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           sumCashOt: String(calculatedValues.sumCashOt),
           socialSecurity: String(calculatedValues.socialSecurity),
           tax: String(calculatedValues.tax),
-        
+                    cashSpecialDay: String(calculatedValues.cashSpecialDay),
+
           // clearly ensure all SpSalary are numbers
           // addSalaryList: calculatedValues.addSalaryList.map(item => ({
           //   ...item,
@@ -4541,7 +4542,13 @@ if (!sumCashWorkMul[record?.cashWorkMul]) {
       //check dayType
         if (record?.dayType !== '') {
           // console.log('specialDay  ' + specialDay )
-console.log(record?.date )
+          if (selectedSpecialDays.includes(record?.date)) {
+            // console.log(`วันที่ ${record?.date} อยู่ใน selectedSpecialDays`);
+            specialDay   = specialDay   -1;
+          } else {
+            // console.log(`วันที่ ${record?.date} ไม่อยู่ใน selectedSpecialDays`);
+          }
+
         if (record?.dayType === 'stop') {
           dayOffCount += 1;
           sumTimeOt = parseFloat(record.beforeTotalOtTime || '0') + parseFloat(record.totalTime || '0') + parseFloat(record.totalOtTime || '0')
@@ -4620,6 +4627,9 @@ if(existingItem ){
     })
   );
 
+  //cal specialDay cash 
+  cashSpecialDay = await parseFloat(specialDay  || 0) * parseFloat(record?.cashWork || '0');
+
   console.log('dayWorkCount : ' + dayWorkCount);
   console.log('dayOffCount : ' + dayOffCount);
   console.log('specialDayOff  : ' + specialDayOff );
@@ -4653,9 +4663,9 @@ if(salaryMonth !== 0) {
   //กรณีหักภาษี ณ ที่จ่าย 3% (ภ.ง.ด.)
   if(costtype === "ภ.ง.ด.3") {
     socialSecurity  =0;
-    tax = Math.ceil((parseFloat(sumCashWork || 0)+ parseFloat(sumCashOt  || 0) + parseFloat(addSalarySocialSecurity  || 0)) * 0.03);
+    tax = Math.ceil((parseFloat(sumCashWork || 0)+ parseFloat(sumCashOt  || 0) + parseFloat(addSalarySocialSecurity  || 0) + parseFloat(cashSpecialDay || 0)) * 0.03);
   } else {
-    socialSecurity  = Math.ceil((parseFloat(sumCashWork || 0)+ parseFloat(addSalarySocialSecurity  || 0)) * socialSecurityP);
+    socialSecurity  = Math.ceil((parseFloat(sumCashWork || 0)+ parseFloat(addSalarySocialSecurity  || 0) + parseFloat(cashSpecialDay || 0)) * socialSecurityP);
   }
 
 
@@ -4680,6 +4690,7 @@ sumCashWorkMul ,
 addSalaryList,
 socialSecurity  ,
 tax,
+cashSpecialDay,
   };
 
 
