@@ -4675,6 +4675,10 @@ if(salaryMonth !== 0) {
 if(socialSecurity   !== 0 && socialSecurity   <= 83) {
   socialSecurity   = 83;
 }
+//check max socialSecurity   
+if(socialSecurity   !== 0 && socialSecurity   >= 750) {
+  socialSecurity   = 750;
+}
 
 
   return await {
