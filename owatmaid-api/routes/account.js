@@ -4488,12 +4488,12 @@ const yearTmp = parseInt(date.toLocaleString("en-CA", { year: "numeric" }), 10);
 const monthTmp = parseInt(date.toLocaleString("en-CA", { month: "2-digit" }), 10);
 const dayTmp = parseInt(date.toLocaleString("en-CA", { day: "2-digit" }), 10);
 
-console.log(`Year: ${yearTmp}, Month: ${monthTmp}, Day: ${dayTmp}`);
+// console.log(`Year: ${yearTmp}, Month: ${monthTmp}, Day: ${dayTmp}`);
 
 const yearInt = parseInt(year, 10);
 const monthInt = parseInt(month, 10);
 
-console.log(yearInt + ' * ' + monthInt);
+// console.log(yearInt + ' * ' + monthInt);
 
 // Determine previous month and year
 let prevMonth = monthInt - 1;
@@ -4514,7 +4514,7 @@ if (
   selectedSpecialDays.push(dayTmp);
 }
 
-console.log('Selected special days:', selectedSpecialDays);
+// console.log('Selected special days:', selectedSpecialDays);
  
 
   }); 
@@ -4524,7 +4524,8 @@ console.log('Selected special days:', selectedSpecialDays);
 
 } //end if
 
-
+//set count specialday
+specialDay = await selectedSpecialDays.length;
 
   await Promise.all(
     employee_record.map(async (record) => {
@@ -4539,6 +4540,8 @@ if (!sumCashWorkMul[record?.cashWorkMul]) {
 
       //check dayType
         if (record?.dayType !== '') {
+          console.log('specialDay  ' + specialDay )
+
         if (record?.dayType === 'stop') {
           dayOffCount += 1;
           sumTimeOt = parseFloat(record.beforeTotalOtTime || '0') + parseFloat(record.totalTime || '0') + parseFloat(record.totalOtTime || '0')
