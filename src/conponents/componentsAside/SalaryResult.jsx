@@ -2310,9 +2310,7 @@ try {
                           
                           <td style={cellStyle}></td>
                           <td style={cellStyle}>
-                            {isNaN(Number(wsAmountSpecialDay))
-                              ? 0.0
-                              : Number(wsAmountSpecialDay).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+                          {accountingResult?.[0]?.cashSpecialDay || '0'}
                           </td>
                         </tr>
                       </tbody>
