@@ -2299,8 +2299,10 @@ try {
                                   className="form-control"
                                   id="staffId"
                                   placeholder=""
-                                  value={wsAmountSpecialDay || ""}
-                                  onChange={handleTmpamountChange}
+                                  value=
+                                  {accountingResult?.[0]?.cashSpecialDay || '0'}
+
+                                  // onChange={handleTmpamountChange}
                                 />
                               </div>
                             </div>
