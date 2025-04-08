@@ -4540,8 +4540,8 @@ if (!sumCashWorkMul[record?.cashWorkMul]) {
 
       //check dayType
         if (record?.dayType !== '') {
-          console.log('specialDay  ' + specialDay )
-
+          // console.log('specialDay  ' + specialDay )
+console.log(record?.date )
         if (record?.dayType === 'stop') {
           dayOffCount += 1;
           sumTimeOt = parseFloat(record.beforeTotalOtTime || '0') + parseFloat(record.totalTime || '0') + parseFloat(record.totalOtTime || '0')
