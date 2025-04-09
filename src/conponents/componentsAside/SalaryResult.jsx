@@ -2339,45 +2339,43 @@ try {
                           <td style={cellStyle}>{isNaN(totalSumDeduct) ? 0.00 : (totalSumDeduct).toFixed(2)}</td>
                           <td style={cellStyle}>{isNaN(amountDay + amountOt + sumAddSalaryList - totalSumDeduct) ? 0.00 : (amountDay + amountOt + sumAddSalaryList - totalSumDeduct).toFixed(2)}</td> */}
 
-                          <td style={cellStyle}>{wsTotalSum}</td>
+                          <td style={cellStyle}>
+                          {
+                                                      (parseFloat(accountingResult?.[0]?.sumCashWork || 0) +
+                                                      parseFloat(accountingResult?.[0]?.sumCashOt || 0) +
+                                                      parseFloat(accountingResult?.[0]?.sumAddSalaryDaily || 0) +
+                          parseFloat(accountingResult?.[0]?.cashSpecialDay || 0)   
+                        ).toLocaleString()
+                          }
+
+                          </td>
                           {/* <td style={cellStyle}>{Math.ceil(wsTotalSumDeduct) }</td> */}
                           <td style={cellStyle}>
-                            {isNaN(
-                              Number(wsTax) +
-                              Number(wsSocialSecurity) +
-                              Number(deductBeforeTax) +
-                              Number(deductAfterTax)
-                            )
-                              ? 0.0
-                              : Math.ceil(
-                                Number(wsTax) +
-                                Number(wsSocialSecurity) +
-                                Number(deductBeforeTax) +
-                                Number(deductAfterTax)
-                              ).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+                          {
+                                                      (parseFloat(accountingResult?.[0]?.socialSecurity  || 0) +
+                                                      parseFloat(accountingResult?.[0]?.tax || 0) 
+
+                        ).toLocaleString()
+                          }
+
+
                           </td>
                           {/* <td style={cellStyle}>{totalSum - totalSumDeduct}</td> */}
                           <td style={cellStyle}>
-                            {/* {isNaN(Number(total)) ? 0.00 : Number(total).toFixed(2)} */}
-                            {/* {isNaN(Number(total)) ? 0.00 : (Math.ceil(Number(total) * 100) / 100).toFixed(2)} */}
-                            {/* {isNaN(Number(wsTotal)) ? 0.00 : (Number(wsTotal)).toFixed(2)} */}
-                            {/* {(Number(wsTotalSum) - Math.ceil(Number(wsTotalSumDeduct)) ).toFixed(2) || 0} */}
-                            {(
-                              Number(wsTotalSum) -
-                              (isNaN(
-                                Number(wsTax) +
-                                Number(wsSocialSecurity) +
-                                Number(deductBeforeTax) +
-                                Number(deductAfterTax)
-                              )
-                                ? 0.0
-                                : Math.ceil(
-                                  Number(wsTax) +
-                                  Number(wsSocialSecurity) +
-                                  Number(deductBeforeTax) +
-                                  Number(deductAfterTax)
-                                ).toFixed(2))
-                            ).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",") || 0}
+                          {
+                                                      ((parseFloat(accountingResult?.[0]?.sumCashWork || 0) +
+                                                      parseFloat(accountingResult?.[0]?.sumCashOt || 0) +
+                                                      parseFloat(accountingResult?.[0]?.sumAddSalaryDaily || 0) +
+                          parseFloat(accountingResult?.[0]?.cashSpecialDay || 0)   
+                        ) - 
+                        (parseFloat(accountingResult?.[0]?.socialSecurity  || 0) +
+                                                      parseFloat(accountingResult?.[0]?.tax || 0) 
+
+                        )
+                      ).toLocaleString()
+                          }
+
+                            
                           </td>
                         </tr>
                       </tbody>

@@ -9356,18 +9356,43 @@ const overtimeLabels = [
                 ))}
 
 <td className="text-center align-middle">
-{record.dayWorkCount || ''}
+  {/* รวมวันทำงาน */}
+{record.dayWorkCount || ''} 
   </td>
 
-<td className="text-center align-middle">4</td>
+<td className="text-center align-middle">
+  {/* รวมทำงานวันหยุด */}
+{record.dayOffCount || ''} 
+  </td>
 
-<td className="text-center align-middle"></td>
-<td className="text-center align-middle">4</td>
+<td className="text-center align-middle">
+{/* รวมวันหยุดนักขัต */}
+{record.specialDayOff || ''} 
+</td>
 
+<td className="text-center align-middle">
+  {/* เงิน 1.5 */}
+{record.sumCashWorkMul["1.5"] || ''} 
+</td>
 
-{Array.from({ length: 12 }).map((_, i) => (
+<td className="text-center align-middle">
+  {/* เงิน 2 */}
+{record.sumCashWorkMul["2"] || ''} 
+</td>
+<td className="text-center align-middle">
+  {/* เงิน 3 */}
+{record.sumCashWorkMul["3"] || ''} 
+</td>
+
+{Array.from({ length: 9 }).map((_, i) => (
     <td key={i} className="text-center"></td>
 ))}
+
+
+<td className="text-center align-middle">
+  {/* หักประกันสังคม  */}
+{record.socialSecurity   || ''} 
+</td>
 
     </tr>
 
