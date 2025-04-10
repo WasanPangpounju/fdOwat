@@ -8948,7 +8948,7 @@ const dayNumbers = [
 ];
 const overtimeLabels = [
     "ค่าทำงานวันหยุด","วันนักขัต","โอที 1.5","โอที 2","โอที 3","ค่ากะดึก","ค่าเดินทาง","เงินพิเศษ","เบี้ยขยัน",
-    "ค่านน้ำ/ไฟ/โทรศัพท์","ค่าวิชาชีพ","สาย","คืนเงินพักร้อน","จ่ายป่วยมีใบลา"
+    "ค่า น้ำ/ไฟ/โทรศัพท์","ค่าวิชาชีพ","สาย","คืนเงินพักร้อน","จ่ายป่วยมีใบลา"
 ];
 
 
@@ -9276,7 +9276,18 @@ const overtimeLabels = [
 
 <div className="container-fluid d-flex justify-content-center align-items-center min-vh-100 ">
       <div className="d-flex justify-content-center">
-        <Table 
+      <Table
+  className="excel-style-table"
+  style={{
+    fontSize: "12px",
+    width: "100%",
+    margin: "0 auto",
+    borderCollapse: "collapse",
+    border: "1px solid #000",
+  }}
+>
+
+        {/* <Table 
           bordered 
           style={{ 
             fontSize: "12px",
@@ -9285,7 +9296,7 @@ const overtimeLabels = [
           }}
           // className="no-tbody-borders"
           className="bordered"
-        >
+        > */}
           <thead>
             {/* ---------------- แถวที่ 1 ---------------- */}
             <tr >
@@ -9315,7 +9326,7 @@ const overtimeLabels = [
               <th>1150</th>
               <th>1130</th>
               {Array.from({ length: 9 }).map((_, i) => (
-                    <th key={i} className="text-center "></th>
+                    <th key={i} className="text-center ">xxxx</th>
                 ))}
             </tr>
 
