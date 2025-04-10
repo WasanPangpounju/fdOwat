@@ -182,8 +182,8 @@ function Compensation() {
         await setStaffId(savedEmployeeId);
         // setStaffFullName(savedEmployeeName);
 
-        const event = await new Event("submit"); // Creating a synthetic event object
-        await handleSearch(event); // Call handleSearch with the event
+        // const event = await new Event("submit"); // Creating a synthetic event object
+        // await handleSearch(event); // Call handleSearch with the event
 
         await localStorage.removeItem("employeeId");
       }
