@@ -9403,9 +9403,22 @@ const overtimeLabels = [
     <td key={i} className="text-center"></td>
 ))}              
 
-<td  className="text-center">{record.sumCashWork || ''}</td>
+<td  className="text-center">
+{/* เงินวันทำงาน */}
+  {record.sumCashWork || ''}
+  </td>
 
-{Array.from({ length: 15 }).map((_, i) => (
+<td  className="text-center">
+  {/* รวมเงินทำงานวันหยุด */}
+  {record.sumcashDayOffCount || ''}
+  </td>
+
+  <td  className="text-center">
+  {/* รวมเงินจ่ายนักขัต*/}
+  {record.cashSpecialDay || ''}
+  </td>
+
+{Array.from({ length: 14 }).map((_, i) => (
     <td key={i} className="text-center"></td>
 ))}              
 </tr>
