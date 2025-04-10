@@ -137,9 +137,14 @@ if (unmatchedWorkplaceIds.length > 0) {
 }
 
   return (
-    <body class="hold-transition sidebar-mini" className="editlaout">
-      <div class="wrapper">
-        <div class="content-wrapper">
+    // <body class="hold-transition sidebar-mini" className="editlaout">
+    //   <div class="wrapper">
+    //     <div class="content-wrapper">
+    <div className="hold-transition sidebar-mini editlaout">
+    <div className="wrapper">
+      <div className="content-wrapper">
+
+
           {/* <!-- Content Header (Page header) --> */}
           <ol class="breadcrumb">
             <li class="breadcrumb-item">
@@ -154,7 +159,7 @@ if (unmatchedWorkplaceIds.length > 0) {
             <div class="container-fluid">
               <div class="row mb-2">
                 <h1 class="m-0">
-                  <i class="far fa-arrow-alt-circle-right"></i> ตั้งค่าหน่วยงานที่หมด
+                  <i class="far fa-arrow-alt-circle-right"></i> ตั้งค่าหน่วยงานทั้งหมด
                 </h1>
               </div>
             </div>
@@ -258,7 +263,8 @@ if (unmatchedWorkplaceIds.length > 0) {
           </section>
         </div>
       </div>
-    </body>
+    {/* </body> */}
+    </div>
   );
 }
 

@@ -9283,7 +9283,8 @@ const overtimeLabels = [
             width: "100%",
             margin: "0 auto"
           }}
-          className="no-tbody-borders"
+          // className="no-tbody-borders"
+          className="bordered"
         >
           <thead>
             {/* ---------------- แถวที่ 1 ---------------- */}
