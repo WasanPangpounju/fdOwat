@@ -1265,7 +1265,8 @@ setLoading(false);
                                 <form >
                                 <section className="Frame">
       <div className="table-responsive">
-        <table className="table table-bordered table-sm text-center align-middle">
+      <table className="table table-bordered">
+        {/* <table className="table table-bordered table-sm text-center align-middle"> */}
           <thead>
             <tr>
               <th className="text-center">หน่วยงาน</th>

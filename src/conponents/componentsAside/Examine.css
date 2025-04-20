@@ -1,9 +1,18 @@
-@media (max-width: 375px) {
-    #test123 {
-        margin-left: 1388rem;
-    }
+/* ทำให้เส้นกรอบแสดงทั่วทุก cell */
+.table-bordered th,
+.table-bordered td {
+  border: 1px solid black;
+}
 
-    /* .test {
-        
-    } */
+.full-width-table {
+  width: 100% !important;
+  border-collapse: collapse;
+  border: 1px solid #ccc;
+}
+
+.full-width-table th,
+.full-width-table td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  text-align: left;
 }
