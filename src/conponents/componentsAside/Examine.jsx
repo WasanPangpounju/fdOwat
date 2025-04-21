@@ -1290,7 +1290,7 @@ setLoading(false);
             {rowDataList2.map((rowData2, index) => (
               <tr key={index} className="align-middle text-center">
                 {/* Editable Columns */}
-                <td>
+                <th>
                   {editingIndex === index ? (
                     <input
                       type="text"
@@ -1301,8 +1301,8 @@ setLoading(false);
                   ) : (
                     rowData2.workplaceId
                   )}
-                </td>
-                <td>
+                </th>
+                <th>
                   {editingIndex === index ? (
                     <input
                       type="text"
@@ -1313,8 +1313,8 @@ setLoading(false);
                   ) : (
                     rowData2.workplaceName
                   )}
-                </td>
-                <td>
+                </th>
+                <th>
                   {editingIndex === index ? (
                     <input
                       type="text"
@@ -1325,8 +1325,8 @@ setLoading(false);
                   ) : (
                     groupOptions[parseInt(rowData2.wGroup) - 1] || ""
                   )}
-                </td>
-                <td>
+                </th>
+                <th>
                   {editingIndex === index ? (
                     <input
                       type="text"
@@ -1337,8 +1337,8 @@ setLoading(false);
                   ) : (
                     rowData2.date
                   )}
-                </td>
-                <td>
+                </th>
+                <th>
                   {editingIndex === index ? (
                     <select
                       value={rowData2.shift}
@@ -1359,7 +1359,7 @@ setLoading(false);
                     : rowData2.shift === "specialt_shift"
                     ? "กะพิเศษ"
                     : ""}
-                </td>
+                </th>
 
                 {/* Editable Time Fields */}
                 {[
@@ -1373,7 +1373,7 @@ setLoading(false);
                   "endOtTime",
                   "totalOtTime",
                 ].map((field, i) => (
-                  <td key={i}>
+                  <th key={i}>
                     {editingIndex === index ? (
                       <input
                         type="text"
@@ -1384,7 +1384,7 @@ setLoading(false);
                     ) : (
                       rowData2[field]
                     )}
-                  </td>
+                  </th>
                 ))}
 
                 {/* Edit & Save Button */}
