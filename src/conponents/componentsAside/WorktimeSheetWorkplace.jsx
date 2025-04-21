@@ -8992,7 +8992,7 @@ const overtimeLabels = [
                     <h2 class="title">ค้นหา</h2>
                     <div class="col-md-12">
                       {/* <form onSubmit={handleSearch}> */}
-                      <form>
+                      <form className="container">
                         <div class="row">
                           <div class="col-md-3">
                             <div class="form-group">
@@ -9204,7 +9204,7 @@ const overtimeLabels = [
                         </div>
 
                         <div class="row">
-                          <div class="col-md-12" style={{ marginTop: "5rem" }}>
+                          <div class="col-md-12" style={{ marginTop: "1rem" }}>
                             <div
                               class="form-group"
                               style={{ position: "absolute", bottom: "0" }}
@@ -9230,16 +9230,7 @@ const overtimeLabels = [
                             </div>
                           </div>
                         </div>
-                      </form>
-                      {/* <button
-                        onClick={generatePDFTest123}
-                        type="button "
-                        class="btn b_save"
-                      >
-                        <i class="nav-icon fas fa-search"></i>
-                        พิมพ์รายงาน
-                      </button> */}
-                      <button
+                        <button
                         onClick={generatePDF987New}
                         type="button "
                         class="btn b_save"
@@ -9255,6 +9246,223 @@ const overtimeLabels = [
                         <i class="nav-icon fas fa-search"></i>
                         พิมพ์รายงานเก่า
                       </button>
+                      <div className="container-fluid d-flex justify-content-center align-items-center pt-3 boxText ">
+                          <div className="d-flex justify-content-center container " >
+                          <Table
+                      className="excel-style-table  table-responsive"
+                      style={{
+                        fontSize: "10px",
+                        width: "100%",
+                        margin: "0 auto",
+                        borderCollapse: "collapse",
+                        border: "1px solid #000",
+                      }}
+                    >
+
+                            {/* <Table 
+                              bordered 
+                              style={{ 
+                                fontSize: "12px",
+                                width: "100%",
+                                margin: "0 auto"
+                              }}
+                              // className="no-tbody-borders"
+                              className="bordered"
+                            > */}
+                              <thead>
+                                {/* ---------------- แถวที่ 1 ---------------- */}
+                                <tr >
+                                  <th rowSpan="4" className="text-center   ">ลำดับ</th>
+                                  <th rowSpan="4" colSpan="1" className="text-center">ชื่อ - สกุล</th>
+                                  {dayNumbers.map((day, idx) => (
+                            <th key={idx} rowSpan={4} className="text-center ">
+                              {day}
+                            </th>
+                          ))}
+                                  <th rowSpan="4" className="vertical-text">รวมวันทำงาน</th>
+
+                                  {/* ค่าล่วงเวลา → 5 คอลัมน์ */}
+                                  <th></th>
+                                  <th></th>
+                                  <th colSpan="3" className="text-center align-middle">ค่าล่วงเวลา</th>
+                                  <th colSpan="9" className="text-center p-2">สวัสดิการ</th>
+                                  <th rowSpan={4}  className="vertical-text ">หักประกันสังคม %</th>
+                                  <th rowSpan={4} className="vertical-text ">หมายเหตุ</th>
+                                </tr>
+
+                                {/* ---------------- แถวที่ 2 ---------------- */}
+                                <tr>
+                                  <th>1441</th>
+                                  <th>1434</th>
+                                  <th>1120</th>
+                                  <th>1150</th>
+                                  <th>1130</th>
+                                  {Array.from({ length: 9 }).map((_, i) => (
+                                        <th key={i} className="text-center ">xxxx</th>
+                                    ))}
+                                </tr>
+
+                                {/* ---------------- แถวที่ 3 ---------------- */}
+                                <tr>
+                                    <td></td>
+                                    {Array.from({ length: 13 }, (_, i) => (
+                                        <th key={i}></th>
+                                    ))}
+                                </tr>
+
+                                {/* ---------------- แถวที่ 4 ---------------- */}
+                                    <tr>
+                                        {overtimeLabels.map((label, index) => (
+                                            <th key={index} className="vertical-text align-middle">
+                                            {label}
+                                            </th>
+                                        ))}
+                                    </tr>
+                              </thead>
+
+                              <tbody>
+                            
+
+                              {loading ? (
+                                <></>
+                    ) : data.length === 0 ? (
+                    <></>
+                    ) : (
+                      data.map((record, idx) => (
+                        <>
+                        <tr key={idx}>
+                                        <td className="text-center align-middle">{idx + 1}</td>
+                                        <td>
+                                        {record.employeeName} <span style={{ float: "right" }}>เช้า</span>
+                                    </td>
+                                    {Array.from({ length: 31}).map((_, i) => (
+                                        <td key={i} className="text-center">{record?.employee_record?.[i]?.workplaceId && record?.employee_record?.[i]?.workplaceId.trim() !== '' ? '1' : '' }</td>
+                                    ))}
+
+                    <td className="text-center align-middle">
+                      {/* รวมวันทำงาน */}
+                    {record.dayWorkCount || ''} 
+                      </td>
+
+                    <td className="text-center align-middle">
+                      {/* รวมทำงานวันหยุด */}
+                    {record.dayOffCount || ''} 
+                      </td>
+
+                    <td className="text-center align-middle">
+                    {/* รวมวันหยุดนักขัต */}
+                    {record.specialDayOff || ''} 
+                    </td>
+
+                    <td className="text-center align-middle">
+                      {/* เงิน 1.5 */}
+                    {record.sumCashWorkMul["1.5"] || ''} 
+                    </td>
+
+                    <td className="text-center align-middle">
+                      {/* เงิน 2 */}
+                    {record.sumCashWorkMul["2"] || ''} 
+                    </td>
+                    <td className="text-center align-middle">
+                      {/* เงิน 3 */}
+                    {record.sumCashWorkMul["3"] || ''} 
+                    </td>
+
+                    {Array.from({ length: 9 }).map((_, i) => (
+                        <td key={i} className="text-center"></td>
+                    ))}
+
+
+                    <td className="text-center align-middle">
+                      {/* หักประกันสังคม  */}
+                    {record.socialSecurity   || ''} 
+                    </td>
+
+                        </tr>
+
+                    <tr>
+                    <td></td>
+                    <td><span style={{ float: "right" }}>ดึก</span></td>
+                    {Array.from({ length: 31 }).map((_, i) => (
+                        <td key={i} className="text-center"></td>
+                    ))}              
+
+                    <td  className="text-center">
+                    {/* เงินวันทำงาน */}
+                      {record.sumCashWork || ''}
+                      </td>
+
+                    <td  className="text-center">
+                      {/* รวมเงินทำงานวันหยุด */}
+                      {record.sumcashDayOffCount || ''}
+                      </td>
+
+                      <td  className="text-center">
+                      {/* รวมเงินจ่ายนักขัต*/}
+                      {record.cashSpecialDay || ''}
+                      </td>
+
+                    {Array.from({ length: 14 }).map((_, i) => (
+                        <td key={i} className="text-center"></td>
+                    ))}              
+                    </tr>
+                    {/*  */}
+                    <tr>
+                    <td></td>
+                    <td><span style={{  paddingLeft:"30px" }}>{record.employeeId} โอที 1.5 </span></td>
+
+                    {Array.from({ length: 47 }).map((_, i) => (
+                        <td key={i} className="text-center"></td>
+                    ))}
+                    </tr>
+                    {/*  */}
+                    <tr>
+                    <td></td>
+                    <td><span style={{  paddingLeft:"75px" }}>โอที 2 </span></td>
+                    {Array.from({ length: 47 }).map((_, i) => (
+                        <td key={i} className="text-center"></td>
+                    ))}              
+                    </tr>
+                    {/*  */}
+                    {/* <tr>
+                    <td style={{ borderTop:0, borderBottom: "none" }}className="bordered"></td>
+                    <td><span style={{  paddingLeft:"75px" ,paddingBottom:"120px",display:"inline-block"}}>โอที 3 </span></td>
+                    {Array.from({ length: 47 }).map((_, i) => (
+                            <td key={i} className="text-center"></td>
+                        ))}
+                    </tr> */}
+
+                    <tr className="pt">
+                    <td></td>
+                    <td><span style={{  paddingLeft:"75px"  }}>โอที 3 </span></td>
+                    {Array.from({ length:47}).map((_,i)=>(
+                        <td key={i} className="text-center"></td>
+                    ))}        
+                    </tr>
+
+                    </>
+
+                      ))
+                    )}
+                    
+
+                              </tbody>
+                            </Table>
+                          </div>
+                        </div>
+
+                      
+                    </form>
+
+                      {/* <button
+                        onClick={generatePDFTest123}
+                        type="button "
+                        class="btn b_save"
+                      >
+                        <i class="nav-icon fas fa-search"></i>
+                        พิมพ์รายงาน
+                      </button> */}
+                      
                     </div>
                   </div>
                 </section>
@@ -9274,210 +9482,7 @@ const overtimeLabels = [
             {/* <br /> */}
           {/* </section> */}
 
-<div className="container-fluid d-flex justify-content-center align-items-center min-vh-100 ">
-      <div className="d-flex justify-content-center">
-      <Table
-  className="excel-style-table"
-  style={{
-    fontSize: "12px",
-    width: "100%",
-    margin: "0 auto",
-    borderCollapse: "collapse",
-    border: "1px solid #000",
-  }}
->
-
-        {/* <Table 
-          bordered 
-          style={{ 
-            fontSize: "12px",
-            width: "100%",
-            margin: "0 auto"
-          }}
-          // className="no-tbody-borders"
-          className="bordered"
-        > */}
-          <thead>
-            {/* ---------------- แถวที่ 1 ---------------- */}
-            <tr >
-              <th rowSpan="4" className="text-center  ">ลำดับ</th>
-              <th rowSpan="4" colSpan="1" className="text-center">ชื่อ - สกุล</th>
-              {dayNumbers.map((day, idx) => (
-        <th key={idx} rowSpan={4} className="text-center ">
-          {day}
-        </th>
-      ))}
-              <th rowSpan="4" className="vertical-text">รวมวันทำงาน</th>
-
-              {/* ค่าล่วงเวลา → 5 คอลัมน์ */}
-              <th></th>
-              <th></th>
-              <th colSpan="3" className="text-center align-middle">ค่าล่วงเวลา</th>
-              <th colSpan="9" className="text-center p-2">สวัสดิการ</th>
-              <th rowSpan={4}  className="vertical-text ">หักประกันสังคม %</th>
-              <th rowSpan={4} className="vertical-text ">หมายเหตุ</th>
-            </tr>
-
-            {/* ---------------- แถวที่ 2 ---------------- */}
-            <tr>
-              <th>1441</th>
-              <th>1434</th>
-              <th>1120</th>
-              <th>1150</th>
-              <th>1130</th>
-              {Array.from({ length: 9 }).map((_, i) => (
-                    <th key={i} className="text-center ">xxxx</th>
-                ))}
-            </tr>
-
-            {/* ---------------- แถวที่ 3 ---------------- */}
-            <tr>
-                <td></td>
-                {Array.from({ length: 13 }, (_, i) => (
-                    <th key={i}></th>
-                ))}
-            </tr>
-
-            {/* ---------------- แถวที่ 4 ---------------- */}
-                <tr>
-                    {overtimeLabels.map((label, index) => (
-                        <th key={index} className="vertical-text align-middle">
-                        {label}
-                        </th>
-                    ))}
-                </tr>
-          </thead>
-
-          <tbody>
-        
-
-          {loading ? (
-            <></>
-) : data.length === 0 ? (
-<></>
-) : (
-  data.map((record, idx) => (
-    <>
-    <tr key={idx}>
-                     <td className="text-center align-middle">{idx + 1}</td>
-                     <td>
-                     {record.employeeName} <span style={{ float: "right" }}>เช้า</span>
-                </td>
-                {Array.from({ length: 31}).map((_, i) => (
-                    <td key={i} className="text-center">{record?.employee_record?.[i]?.workplaceId && record?.employee_record?.[i]?.workplaceId.trim() !== '' ? '1' : '' }</td>
-                ))}
-
-<td className="text-center align-middle">
-  {/* รวมวันทำงาน */}
-{record.dayWorkCount || ''} 
-  </td>
-
-<td className="text-center align-middle">
-  {/* รวมทำงานวันหยุด */}
-{record.dayOffCount || ''} 
-  </td>
-
-<td className="text-center align-middle">
-{/* รวมวันหยุดนักขัต */}
-{record.specialDayOff || ''} 
-</td>
-
-<td className="text-center align-middle">
-  {/* เงิน 1.5 */}
-{record.sumCashWorkMul["1.5"] || ''} 
-</td>
-
-<td className="text-center align-middle">
-  {/* เงิน 2 */}
-{record.sumCashWorkMul["2"] || ''} 
-</td>
-<td className="text-center align-middle">
-  {/* เงิน 3 */}
-{record.sumCashWorkMul["3"] || ''} 
-</td>
-
-{Array.from({ length: 9 }).map((_, i) => (
-    <td key={i} className="text-center"></td>
-))}
-
-
-<td className="text-center align-middle">
-  {/* หักประกันสังคม  */}
-{record.socialSecurity   || ''} 
-</td>
-
-    </tr>
-
-<tr>
-<td></td>
-<td><span style={{ float: "right" }}>ดึก</span></td>
-{Array.from({ length: 31 }).map((_, i) => (
-    <td key={i} className="text-center"></td>
-))}              
-
-<td  className="text-center">
-{/* เงินวันทำงาน */}
-  {record.sumCashWork || ''}
-  </td>
-
-<td  className="text-center">
-  {/* รวมเงินทำงานวันหยุด */}
-  {record.sumcashDayOffCount || ''}
-  </td>
-
-  <td  className="text-center">
-  {/* รวมเงินจ่ายนักขัต*/}
-  {record.cashSpecialDay || ''}
-  </td>
-
-{Array.from({ length: 14 }).map((_, i) => (
-    <td key={i} className="text-center"></td>
-))}              
-</tr>
-{/*  */}
-<tr>
-<td></td>
-<td><span style={{  paddingLeft:"30px" }}>{record.employeeId} โอที 1.5 </span></td>
-
-{Array.from({ length: 47 }).map((_, i) => (
-    <td key={i} className="text-center"></td>
-))}
-</tr>
-{/*  */}
-<tr>
-<td></td>
-<td><span style={{  paddingLeft:"75px" }}>โอที 2 </span></td>
-{Array.from({ length: 47 }).map((_, i) => (
-    <td key={i} className="text-center"></td>
-))}              
-</tr>
-{/*  */}
-{/* <tr>
-<td style={{ borderTop:0, borderBottom: "none" }}className="bordered"></td>
-<td><span style={{  paddingLeft:"75px" ,paddingBottom:"120px",display:"inline-block"}}>โอที 3 </span></td>
-{Array.from({ length: 47 }).map((_, i) => (
-        <td key={i} className="text-center"></td>
-    ))}
-</tr> */}
-
-<tr className="pt">
-<td></td>
-<td><span style={{  paddingLeft:"75px"  }}>โอที 3 </span></td>
-{Array.from({ length:47}).map((_,i)=>(
-    <td key={i} className="text-center"></td>
-))}        
-</tr>
-
-</>
-
-  ))
-)}
- 
-
-          </tbody>
-        </Table>
-      </div>
-    </div>
+                
     </section>
 
           {/* <!-- /.content --> */}
