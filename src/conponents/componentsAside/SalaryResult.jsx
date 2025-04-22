@@ -1807,12 +1807,74 @@ function Salaryresult() {
   const [loading, setLoading] = useState(false); // Track loading state
   const [error, setError] = useState(null); // Store errors
 
+  const [localSocialSecurity , setLocalSocialSecurity] = useState(0);
+  const [localCashSpecialDay , setLocalCashSpecialDay ] = useState(0);
+
+
+  const updateData = async () => {
+    if (accountingResult.length > 0) {
+      const updatedResult = [...accountingResult];
+  
+      // อัปเดตค่าภายใน object
+      updatedResult[0] = {
+        ...updatedResult[0],
+        socialSecurity: localSocialSecurity,
+      };
+  
+      setAccountingResult(updatedResult);
+  
+      // เตรียมข้อมูลสำหรับส่ง API
+      const updatePayload = {
+        _id: updatedResult[0]._id, // ต้องมี _id เพื่อให้อัปเดตถูก document
+        updates: {
+          socialSecurity: localSocialSecurity,
+          // หากต้องการส่งค่าอื่นเพิ่มเติม เช่น cashSpecialDay:
+          // cashSpecialDay: updatedResult[0].cashSpecialDay,
+        },
+      };
+  
+      try {
+        const response = await axios.post(
+          endpoint + "/accounting/updatetimerecord",
+          updatePayload
+        );
+  
+        if (response.data?.updatedRecord) {
+          alert("บันทึกข้อมูลสำเร็จ 🎉");
+        } else {
+          alert("ไม่สามารถอัปเดตข้อมูลได้");
+        }
+      } catch (error) {
+        console.error("เกิดข้อผิดพลาดขณะอัปเดตข้อมูล:", error);
+        alert("เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง");
+      }
+    }
+  };
+ 
+  
+  useEffect(() => {
+    if(accountingResult?.[0]?.socialSecurity ){
+    const ssBase = parseFloat(accountingResult?.[0]?.socialSecurity || 0);
+    const cash = parseFloat(localCashSpecialDay || 0);
+    const ss = ssBase + cash * 0.05;
+    const roundedSS = Math.round(ss); // หรือ .toFixed(2) ก็ได้
+  if(roundedSS  >750) {
+    roundedSS  = 750;
+  }
+    setLocalSocialSecurity(roundedSS);
+    }
+
+  }, [localCashSpecialDay]); // รันทุกครั้งที่ cash หรือ ss base เปลี่ยน
+
   async function handleSearchAccounting() {
     event.preventDefault();
 
 setAccountingResult({});
 setLoading(true);
 setError(null);
+setLocalCashSpecialDay(0);
+setLocalSocialSecurity(0);
+
 if(staffId !== '') {
 
 const data = {
@@ -1831,6 +1893,13 @@ try {
 
   if (response.data?.result?.length > 0) {
     await setAccountingResult(response.data.result);
+    let cash = await parseFloat(response.data.result[0]?.cashSpecialDay || 0);
+    let ss = await parseFloat(response.data.result[0]?.socialSecurity || 0) + cash * 0.05;
+  if(ss  > 750) {
+    ss  = 750;
+  }
+    await setLocalCashSpecialDay(cash);
+    await setLocalSocialSecurity(Math.round(ss) );
     // alert(JSON.stringify(accountingResult[0].addSalaryList,null,2));
 // alert('hi' + accountingResult[0].addSalaryList[0].SpSalary)
     // alert(JSON.stringify(response.data?.result[0]?.employee_record[0].addSalaryDaily, null, 2));
@@ -2198,7 +2267,8 @@ try {
                           {accountingResult?.[0]?.tax || '0'}
                           </td>
                           <td style={cellStyle}>
-                          {accountingResult?.[0]?.socialSecurity || '0'}
+                          {/*accountingResult?.[0]?.socialSecurity || '0'*/}
+{localSocialSecurity}
                           </td>
                           {/* <td style={cellStyle}>{isNaN(Number(bank)) ? 0.00 : Number(bank).toFixed(2)}</td> */}
                           {/* <td style={cellStyle}>
@@ -2256,7 +2326,7 @@ try {
                             {/* {isNaN(Number(deductBeforeTax) + Number(deductAfterTax)) ? 0.00 : (Number(deductBeforeTax) + Number(deductAfterTax)).toFixed(2)} */}
                           </td>
                           <td style={cellStyle}>
-                                                    {parseFloat(accountingResult?.[0]?.socialSecurity || '0') + parseFloat(accountingResult?.[0]?.tax || '0')}
+                                                    {parseFloat(localSocialSecurity || 0) + parseFloat(accountingResult?.[0]?.tax || '0')}
 
                           </td>
                           <td style={cellStyle}>
@@ -2300,8 +2370,20 @@ try {
                                   id="staffId"
                                   placeholder=""
                                   value=
-                                  {accountingResult?.[0]?.cashSpecialDay || '0'}
-
+                                  {localCashSpecialDay}
+                                  onChange={(e) => {
+                                    const newValue = e.target.value;
+setLocalCashSpecialDay(newValue )                                
+                                    // อัปเดตค่าตัวแปร accountingResult
+                                    setAccountingResult((prev) => {
+                                      const updated = [...prev]; // clone array
+                                      updated[0] = {
+                                        ...updated[0],
+                                        cashSpecialDay: newValue, // อัปเดตค่าเฉพาะที่ต้องการ
+                                      };
+                                      return updated;
+                                    });
+                                  }}
                                   // onChange={handleTmpamountChange}
                                 />
                               </div>
@@ -2401,7 +2483,7 @@ try {
               <div class="line_btn">
                 <button
                   type="button"
-                  onClick={handleSaveAccounting}
+                  onClick={updateData }
                   class="btn b_save"
                 >
                   <i class="nav-icon fas fa-save"></i> &nbsp;บันทึก

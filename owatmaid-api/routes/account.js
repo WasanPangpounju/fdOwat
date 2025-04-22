@@ -4225,6 +4225,31 @@ router.post('/updateSpecialDay', async (req, res) => {
 //latest code
 
 
+router.post('/updatetimerecord', async (req, res) => {
+  try {
+    const { _id, updates } = req.body;
+
+    if (!_id || !updates) {
+      return res.status(400).json({ message: 'Missing required fields (_id or updates)' });
+    }
+
+    const updatedRecord = await timerecordEmployee.findByIdAndUpdate(
+      _id,
+      { $set: updates },
+      { new: true } // ส่งค่าที่อัปเดตกลับมา
+    );
+
+    if (!updatedRecord) {
+      return res.status(404).json({ message: 'Record not found' });
+    }
+
+    res.status(200).json({ message: 'Record updated successfully', updatedRecord });
+
+  } catch (error) {
+    console.error('Error updating time record:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
 
 router.post('/searchtimerecordbyworkplace', async (req, res) => {
   try {

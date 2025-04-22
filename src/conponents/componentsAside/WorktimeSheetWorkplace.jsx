@@ -9259,16 +9259,6 @@ const overtimeLabels = [
                       }}
                     >
 
-                            {/* <Table 
-                              bordered 
-                              style={{ 
-                                fontSize: "12px",
-                                width: "100%",
-                                margin: "0 auto"
-                              }}
-                              // className="no-tbody-borders"
-                              className="bordered"
-                            > */}
                               <thead>
                                 {/* ---------------- แถวที่ 1 ---------------- */}
                                 <tr >
@@ -9535,4 +9525,3 @@ const getDateDayOfWeek = (dateString) => {
 // console.log('',getDateDayOfWeek);
 
 export default WorktimeSheetWorkplace;
-//update layout
