@@ -4304,12 +4304,12 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
                 });
       
                 // สมมติ API /conclude/searchtimerecordemployee ส่งข้อมูลที่อัปเดตกลับมา
-                const updatedData = apiRes.data;
+                // const updatedData = awaitapiRes.data;
+                record = await awaitapiRes.data;
       
                 // อัปเดตข้อมูลใน record (ถ้ามา)
                 // if (updatedData.dayWorkCount !== undefined) record.dayWorkCount = updatedData.dayWorkCount;
                 // if (updatedData.dayOffCount !== undefined) record.dayOffCount = updatedData.dayOffCount;
-      record = updatedData ;
               } catch (error) {
                 console.error(`❌ Error fetching updated timerecord for employeeId=${record.employeeId}`, error.message);
               }
