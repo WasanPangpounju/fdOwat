@@ -4297,7 +4297,7 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
               console.log(`🔍 Missing dayWorkCount or dayOffCount for employeeId=${record.employeeId}`);
       
               try {
-                const apiRes = await axios.post('http://localhost:3000/conclude/searchtimerecordemployee', {
+                const apiRes = await axios.post(sURL + '/conclude/searchtimerecordemployee', {
                   employeeId: record.employeeId,
                   month: record.month,
                   year: record.year,
@@ -4314,7 +4314,7 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
                 console.error(`❌ Error fetching updated timerecord for employeeId=${record.employeeId}`, error.message);
               }
             }
-            
+
       if (!groupedResult[empWorkplaceId]) {
         groupedResult[empWorkplaceId] = [];
       }
