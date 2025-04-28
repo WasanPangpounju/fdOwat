@@ -4294,7 +4294,7 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
 
             // 🔥 เพิ่มเช็ค dayWorkCount หรือ dayOffCount
             if (!record.dayWorkCount || !record.dayOffCount) {
-              console.log(`🔍 Missing dayWorkCount or dayOffCount for employeeId=${record.employeeId} month ${record.month} year ${record.myear}`);
+              console.log(`🔍 Missing dayWorkCount or dayOffCount for employeeId=${record.employeeId} month ${record.month} year ${record.year}`);
       
               try {
                 const apiRes = await axios.post(sURL + '/conclude/searchtimerecordemployee', {
