@@ -4305,7 +4305,7 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
       
                 // สมมติ API /conclude/searchtimerecordemployee ส่งข้อมูลที่อัปเดตกลับมา
                 // const updatedData = awaitapiRes.data;
-                record = await apiRes.data;
+                // record = await apiRes.data;
       
                 // อัปเดตข้อมูลใน record (ถ้ามา)
                 // if (updatedData.dayWorkCount !== undefined) record.dayWorkCount = updatedData.dayWorkCount;
