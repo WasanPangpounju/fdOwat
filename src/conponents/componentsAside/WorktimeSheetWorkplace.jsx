@@ -259,25 +259,25 @@ function WorktimeSheetWorkplace({ employeeList }) {
       });
   }, []);
 
-  useEffect(() => {
-    // Fetch data from the API when the component mounts
-    fetch(endpoint + "/leave/list")
-      .then((response) => response.json())
-      .then((data) => {
-        // Filter the data based on year, month, and employeeId array
-        const filteredData = data.filter((item) =>
-          item.year === year &&
-          item.month === month &&
-          responseDataAll.some((employee) => employee.employeeId === item.employeeId)
-        );
+  // useEffect(() => {
+  //   // Fetch data from the API when the component mounts
+  //   fetch(endpoint + "/leave/list")
+  //     .then((response) => response.json())
+  //     .then((data) => {
+  //       // Filter the data based on year, month, and employeeId array
+  //       const filteredData = data.filter((item) =>
+  //         item.year === year &&
+  //         item.month === month &&
+  //         responseDataAll.some((employee) => employee.employeeId === item.employeeId)
+  //       );
 
-        // Update the state with the filtered data
-        setLeaveSalary(filteredData);
-      })
-      .catch((error) => {
-        console.error("Error fetching data:", error);
-      });
-  }, [year, month, responseDataAll]);
+  //       // Update the state with the filtered data
+  //       setLeaveSalary(filteredData);
+  //     })
+  //     .catch((error) => {
+  //       console.error("Error fetching data:", error);
+  //     });
+  // }, [year, month, responseDataAll]);
 
   const [employeelist, setEmployeelist] = useState([]);
   const [employee, setEmployee] = useState([]);
@@ -388,17 +388,27 @@ function WorktimeSheetWorkplace({ employeeList }) {
 
   const [data, setData] = useState({});
   const [loading, setLoading] = useState(true);
+  const [workplaceAddsalary , setWorkplaceAddsalary ] = useState([]);
+
 
   useEffect(() => {
     const fetchData = async () => {
+      try {
+        setWorkplaceAddsalary([])
+        const response = await axios.get(`${endpoint}/workplace/${searchWorkplaceId}`);
+        await setWorkplaceAddsalary(response.data.addSalary)
+        // await alert(response.data.addSalary.length);
 
+        // Do something with the data, e.g., set state
+      } catch (error) {
+        console.error('Error fetching workplace:', error);
+      }
 
       const dataSearch = {
         year: year, 
         month: month, 
         workplaceId: searchWorkplaceId
       }
-
 
       axios
         .post(endpoint + "/accounting/searchtimerecordbyworkplace", dataSearch )
@@ -429,11 +439,48 @@ if(sortedData.length > 0) {
     };
 
     // Call fetchData when year or month changes
-    fetchData();
+    if(year !== '' &&  month !== '' &&  searchWorkplaceId !== '') {
+      fetchData();
+    }
   }, [year, month, searchWorkplaceId]);
+
 
   async function handleSearch(event) {
     event.preventDefault();
+
+      const dataSearch = {
+        year: year, 
+        month: month, 
+        workplaceId: searchWorkplaceId
+      }
+
+      axios
+        .post(endpoint + "/accounting/searchtimerecordbyworkplace", dataSearch )
+        .then((response) => {
+          const groupedResult = response.data.groupedResult;
+      // รวมข้อมูลทั้งหมดจากทุก workplace ให้กลายเป็น array เดียว
+      const allRecords = Object.values(groupedResult).flat();
+
+      // จัดเรียงตาม employeeId
+      const sortedData = allRecords.sort((a, b) =>
+        a.employeeId.localeCompare(b.employeeId)
+      );
+
+      // setResponseDataAll(sortedData);
+      setData(sortedData);
+
+      // alert("✅ Sorted Records:"+ JSON.stringify(sortedData) );
+if(sortedData.length > 0) {
+  setLoading(false);
+}
+
+
+        })
+        .catch((error) => {
+          console.error("Error:", error);
+        })
+        
+
     // get value from form search
     if (searchWorkplaceId === "" && searchWorkplaceName === "") {
       // Both employeeId and employeeName are null
@@ -8946,9 +8993,8 @@ const dayNumbers = [
   "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31",
   "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20"
 ];
-const overtimeLabels = [
-    "ค่าทำงานวันหยุด","วันนักขัต","โอที 1.5","โอที 2","โอที 3","ค่ากะดึก","ค่าเดินทาง","เงินพิเศษ","เบี้ยขยัน",
-    "ค่า น้ำ/ไฟ/โทรศัพท์","ค่าวิชาชีพ","สาย","คืนเงินพักร้อน","จ่ายป่วยมีใบลา"
+const overtimeLabels = [    "ค่าทำงานวันหยุด",
+    "วันนักขัต","โอที 1.5","โอที 2","โอที 3"
 ];
 
 
@@ -9231,12 +9277,13 @@ const overtimeLabels = [
                           </div>
                         </div>
                         <button
-                        onClick={generatePDF987New}
+                        onClick={handleSearch}
+                        // {generatePDF987New}
                         type="button "
                         class="btn b_save"
                       >
                         <i class="nav-icon fas fa-search"></i>
-                        พิมพ์รายงาน
+                        ค้นหา
                       </button>
                       <button
                         onClick={generatePDF987}
@@ -9244,10 +9291,11 @@ const overtimeLabels = [
                         class="btn b_save"
                       >
                         <i class="nav-icon fas fa-search"></i>
-                        พิมพ์รายงานเก่า
+                        ดาวน์โหลดไฟล์
                       </button>
                       <div className="container-fluid d-flex justify-content-center align-items-center pt-3 boxText ">
                           <div className="d-flex justify-content-center container " >
+                            {JSON.stringify(workplaceAddsalary,null,2)}
                           <Table
                       className="excel-style-table  table-responsive"
                       style={{
@@ -9275,7 +9323,7 @@ const overtimeLabels = [
                                   <th></th>
                                   <th></th>
                                   <th colSpan="3" className="text-center align-middle">ค่าล่วงเวลา</th>
-                                  <th colSpan="9" className="text-center p-2">สวัสดิการ</th>
+                                  <th colSpan={workplaceAddsalary.length} className="text-center p-2">สวัสดิการ</th>
                                   <th rowSpan={4}  className="vertical-text ">หักประกันสังคม %</th>
                                   <th rowSpan={4} className="vertical-text ">หมายเหตุ</th>
                                 </tr>
@@ -9287,15 +9335,15 @@ const overtimeLabels = [
                                   <th>1120</th>
                                   <th>1150</th>
                                   <th>1130</th>
-                                  {Array.from({ length: 9 }).map((_, i) => (
-                                        <th key={i} className="text-center ">xxxx</th>
+                                  {workplaceAddsalary.map((item, i) => (
+                                        <th key={i} className="text-center ">{item.codeSpSalary}</th>
                                     ))}
                                 </tr>
 
                                 {/* ---------------- แถวที่ 3 ---------------- */}
                                 <tr>
                                     <td></td>
-                                    {Array.from({ length: 13 }, (_, i) => (
+                                    {Array.from({ length: 4 }, (_, i) => (
                                         <th key={i}></th>
                                     ))}
                                 </tr>
@@ -9307,6 +9355,14 @@ const overtimeLabels = [
                                             {label}
                                             </th>
                                         ))}
+
+                                        {/* สวัสดิการตามหน่วยงาน */}
+                                        {workplaceAddsalary.map((item, index) => (
+                                            <th key={index} className="vertical-text align-middle">
+                                            {item.name}
+                                            </th>
+                                        ))}
+
                                     </tr>
                               </thead>
 
@@ -9358,11 +9414,11 @@ const overtimeLabels = [
                     {record.sumCashWorkMul["3"] || ''} 
                     </td>
 
-                    {Array.from({ length: 9 }).map((_, i) => (
+                    {workplaceAddsalary.map((item, i) => (
                         <td key={i} className="text-center"></td>
                     ))}
 
-
+<td></td>
                     <td className="text-center align-middle">
                       {/* หักประกันสังคม  */}
                     {record.socialSecurity   || ''} 
@@ -9392,26 +9448,41 @@ const overtimeLabels = [
                       {record.cashSpecialDay || ''}
                       </td>
 
-                    {Array.from({ length: 14 }).map((_, i) => (
+                    {Array.from({ length: 5 }).map((_, i) => (
                         <td key={i} className="text-center"></td>
                     ))}              
+
+{workplaceAddsalary.map((item, i) => (
+                        <td key={i} className="text-center"></td>
+                    ))}              
+
                     </tr>
                     {/*  */}
                     <tr>
                     <td></td>
                     <td><span style={{  paddingLeft:"30px" }}>{record.employeeId} โอที 1.5 </span></td>
 
-                    {Array.from({ length: 47 }).map((_, i) => (
+                    {Array.from({ length: 38 }).map((_, i) => (
                         <td key={i} className="text-center"></td>
                     ))}
+
+{workplaceAddsalary.map((item, i) => (
+                        <td key={i} className="text-center"></td>
+                    ))}
+
                     </tr>
                     {/*  */}
                     <tr>
                     <td></td>
                     <td><span style={{  paddingLeft:"75px" }}>โอที 2 </span></td>
-                    {Array.from({ length: 47 }).map((_, i) => (
+                    {Array.from({ length: 38 }).map((_, i) => (
                         <td key={i} className="text-center"></td>
                     ))}              
+
+{workplaceAddsalary.map((_, i) => (
+                        <td key={i} className="text-center"></td>
+                    ))}              
+
                     </tr>
                     {/*  */}
                     {/* <tr>
@@ -9425,9 +9496,14 @@ const overtimeLabels = [
                     <tr className="pt">
                     <td></td>
                     <td><span style={{  paddingLeft:"75px"  }}>โอที 3 </span></td>
-                    {Array.from({ length:47}).map((_,i)=>(
+                    {Array.from({ length:38}).map((_,i)=>(
                         <td key={i} className="text-center"></td>
                     ))}        
+
+{workplaceAddsalary.map((item,i)=>(
+                        <td key={i} className="text-center"></td>
+                    ))}        
+
                     </tr>
 
                     </>

@@ -4292,6 +4292,29 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
 
       if (workplaceId && empWorkplaceId !== workplaceId) continue;
 
+            // 🔥 เพิ่มเช็ค dayWorkCount หรือ dayOffCount
+            if (!record.dayWorkCount || !record.dayOffCount) {
+              console.log(`🔍 Missing dayWorkCount or dayOffCount for employeeId=${record.employeeId}`);
+      
+              try {
+                const apiRes = await axios.post('http://localhost:3000/conclude/searchtimerecordemployee', {
+                  employeeId: record.employeeId,
+                  month: record.month,
+                  year: record.year,
+                });
+      
+                // สมมติ API /conclude/searchtimerecordemployee ส่งข้อมูลที่อัปเดตกลับมา
+                const updatedData = apiRes.data;
+      
+                // อัปเดตข้อมูลใน record (ถ้ามา)
+                if (updatedData.dayWorkCount !== undefined) record.dayWorkCount = updatedData.dayWorkCount;
+                if (updatedData.dayOffCount !== undefined) record.dayOffCount = updatedData.dayOffCount;
+      
+              } catch (error) {
+                console.error(`❌ Error fetching updated timerecord for employeeId=${record.employeeId}`, error.message);
+              }
+            }
+            
       if (!groupedResult[empWorkplaceId]) {
         groupedResult[empWorkplaceId] = [];
       }
