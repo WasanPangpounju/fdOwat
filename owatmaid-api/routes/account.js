@@ -4299,9 +4299,9 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
               try {
                 const apiRes = await axios.post(sURL + '/conclude/searchtimerecordemployee', {
                   employeeId: record.employeeId,
-                  month: record.month,
-                  year: record.year,
-                });
+                  month: { $regex: new RegExp(month, 'i') },
+                  year: { $regex: new RegExp(year, 'i') },
+                            });
       
                 // สมมติ API /conclude/searchtimerecordemployee ส่งข้อมูลที่อัปเดตกลับมา
                 // const updatedData = awaitapiRes.data;
