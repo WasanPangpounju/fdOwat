@@ -4297,7 +4297,7 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
               console.log(`🔍 Missing dayWorkCount or dayOffCount for employeeId=${record.employeeId} month ${record.month} year ${record.year}`);
       
               try {
-                const apiRes = await axios.post(sURL + '/conclude/searchtimerecordemployee', {
+                const apiRes = await axios.post(sURL + 'accounting/searchtimerecordemployee', {
                   employeeId: record.employeeId,
                   month: record.month,
                   year: record.year,
