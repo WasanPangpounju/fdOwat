@@ -4297,12 +4297,17 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
               console.log(`🔍 Missing dayWorkCount or dayOffCount for employeeId=${record.employeeId} month ${record.month} year ${record.year}`);
       
               try {
-                const apiRes = await axios.post(sURL + '/accounting/searchtimerecordemployee', {
+                const apiRes = await axios.post(sURL + '/conclude/searchtimerecordemployee', {
                   employeeId: record.employeeId,
                   month: record.month,
                   year: record.year,
                             });
-      
+                            const apiRes1 = await axios.post(sURL + '/accounting/searchtimerecordemployee', {
+                              employeeId: record.employeeId,
+                              month: record.month,
+                              year: record.year,
+                                        });
+            
                 // สมมติ API /conclude/searchtimerecordemployee ส่งข้อมูลที่อัปเดตกลับมา
                 // const updatedData = awaitapiRes.data;
                 // record = await apiRes.data;
