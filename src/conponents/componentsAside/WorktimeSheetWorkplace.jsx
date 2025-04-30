@@ -9295,7 +9295,6 @@ const overtimeLabels = [    "ค่าทำงานวันหยุด",
                       </button>
                       <div className="container-fluid d-flex justify-content-center align-items-center pt-3 boxText ">
                           <div className="d-flex justify-content-center container " >
-                            {JSON.stringify(workplaceAddsalary,null,2)}
                           <Table
                       className="excel-style-table  table-responsive"
                       style={{
@@ -9381,9 +9380,14 @@ const overtimeLabels = [    "ค่าทำงานวันหยุด",
                                         <td>
                                         {record.employeeName} <span style={{ float: "right" }}>เช้า</span>
                                     </td>
-                                    {Array.from({ length: 31}).map((_, i) => (
-                                        <td key={i} className="text-center">{record?.employee_record?.[i]?.workplaceId && record?.employee_record?.[i]?.workplaceId.trim() !== '' ? '1' : '' }</td>
-                                    ))}
+                                    {dayNumbers.map((day, i) => {
+  const found = record?.employee_record?.find(itemx => itemx.date === day);
+  return (
+    <td key={i} className="text-center">
+      {found?.workplaceId?.trim() ? '1' : ''}
+    </td>
+  );
+})}
 
                     <td className="text-center align-middle">
                       {/* รวมวันทำงาน */}
@@ -9415,15 +9419,17 @@ const overtimeLabels = [    "ค่าทำงานวันหยุด",
                     </td>
 
                     {workplaceAddsalary.map((item, i) => (
-                        <td key={i} className="text-center"></td>
+                        <td key={i} className="text-center">
+                          {parseFloat(record.addSalaryList.find(itemx => itemx.id === item.codeSpSalary)?.SpSalary || 0 ).toFixed(2)}
+                          </td>
                     ))}
 
-<td></td>
                     <td className="text-center align-middle">
                       {/* หักประกันสังคม  */}
                     {record.socialSecurity   || ''} 
                     </td>
 
+                    <td></td>
                         </tr>
 
                     <tr>
