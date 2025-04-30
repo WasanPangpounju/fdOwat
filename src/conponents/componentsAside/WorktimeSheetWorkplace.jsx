@@ -9032,7 +9032,7 @@ const overtimeLabels = [    "ค่าทำงานวันหยุด",
 
 <section class="content">
             <div class="row">
-              <div class="col-md-10">
+              <div class="">
                 <section class="Frame">
                   <div class="col-md-12">
                     <h2 class="title">ค้นหา</h2>
@@ -9298,7 +9298,7 @@ const overtimeLabels = [    "ค่าทำงานวันหยุด",
                           <Table
                       className="excel-style-table  table-responsive"
                       style={{
-                        fontSize: "10px",
+                        fontSize: "8px",
                         width: "100%",
                         margin: "0 auto",
                         borderCollapse: "collapse",
@@ -9309,7 +9309,7 @@ const overtimeLabels = [    "ค่าทำงานวันหยุด",
                               <thead>
                                 {/* ---------------- แถวที่ 1 ---------------- */}
                                 <tr >
-                                  <th rowSpan="4" className="text-center   ">ลำดับ</th>
+                                  <th rowSpan="5" className="text-center   ">ลำดับ</th>
                                   <th rowSpan="4" colSpan="1" className="text-center">ชื่อ - สกุล</th>
                                   {dayNumbers.map((day, idx) => (
                             <th key={idx} rowSpan={4} className="text-center ">
@@ -9381,13 +9381,13 @@ const overtimeLabels = [    "ค่าทำงานวันหยุด",
                                         {record.employeeName} <span style={{ float: "right" }}>เช้า</span>
                                     </td>
                                     {dayNumbers.map((day, i) => {
-  const found = record?.employee_record?.find(itemx => itemx.date === day);
-  return (
-    <td key={i} className="text-center">
-      {found?.workplaceId?.trim() ? '1' : ''}
-    </td>
-  );
-})}
+    const found = record?.employee_record?.find(itemx => itemx.date === day);
+    return (
+      <td key={i} className="text-center">
+        {found?.workplaceId?.trim() ? '1' : ''}
+      </td>
+    );
+  })}
 
                     <td className="text-center align-middle">
                       {/* รวมวันทำงาน */}
@@ -9468,9 +9468,25 @@ const overtimeLabels = [    "ค่าทำงานวันหยุด",
                     <td></td>
                     <td><span style={{  paddingLeft:"30px" }}>{record.employeeId} โอที 1.5 </span></td>
 
-                    {Array.from({ length: 38 }).map((_, i) => (
-                        <td key={i} className="text-center"></td>
-                    ))}
+                    
+
+                    {dayNumbers.map((day, i) => {
+    const found = record?.employee_record?.find(itemx => itemx.date === day);
+return (
+  <td key={i} className="text-center">
+    {found?.cashOtMul?.trim()
+      ? [found.beforeTotalOtTime, found.totalOtTime].filter(Boolean).join(',')
+      : ''}
+  </td>
+);
+
+  })}
+
+
+
+
+
+
 
 {workplaceAddsalary.map((item, i) => (
                         <td key={i} className="text-center"></td>
