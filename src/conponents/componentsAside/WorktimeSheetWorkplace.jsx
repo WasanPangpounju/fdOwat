@@ -9470,17 +9470,17 @@ const overtimeLabels = [    "ค่าทำงานวันหยุด",
 
                     
 
-                    {dayNumbers.map((day, i) => {
-    const found = record?.employee_record?.find(itemx => itemx.date === day);
-return (
-  <td key={i} className="text-center">
-    {found?.cashOtMul?.trim()
-      ? [found.beforeTotalOtTime, found.totalOtTime].filter(Boolean).join(',')
-      : ''}
-  </td>
-);
+{dayNumbers.map((day, i) => {
+                        const found = record?.employee_record?.find(itemx => itemx.date === day);
+                    return (
+                      <td key={i} className="text-center">
+                        {found?.cashOtMul?.trim()
+                          ? [found.beforeTotalOtTime, found.totalOtTime].filter(Boolean).join(',')
+                          : ''}
+                      </td>
+                    );
 
-  })}
+                      })}
 
 
 
@@ -9497,7 +9497,7 @@ return (
                     <tr>
                     <td></td>
                     <td><span style={{  paddingLeft:"75px" }}>โอที 2 </span></td>
-                    {Array.from({ length: 38 }).map((_, i) => (
+                    {Array.from({ length: 39 }).map((_, i) => (
                         <td key={i} className="text-center"></td>
                     ))}              
 
@@ -9518,7 +9518,7 @@ return (
                     <tr className="pt">
                     <td></td>
                     <td><span style={{  paddingLeft:"75px"  }}>โอที 3 </span></td>
-                    {Array.from({ length:38}).map((_,i)=>(
+                    {Array.from({ length:39}).map((_,i)=>(
                         <td key={i} className="text-center"></td>
                     ))}        
 
