@@ -941,7 +941,7 @@ function SalaryAllResult({ employeeList, workplaceList }) {
           const y = startYTop + i * cellHeightTop;
 
           // Add text for each cell
-          const cellText = `เบิกบ่วงหน้า`;
+          const cellText = `เบิกล่วงหน้า`;
           drawCell(x, y, cellWidthAdvancePayment, cellHeightTop, cellText);
           const cellText2 = ``;
           // drawCell(x, 195, cellWidth, cellHeightTop, cellText2);
