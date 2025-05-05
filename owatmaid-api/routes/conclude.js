@@ -2078,7 +2078,12 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     let updateNeeded = false;
 
     for (const doc of result) {
-      
+        // ข้ามเอกสารที่ status มีค่า (ไม่ว่าง)
+  if (doc.status && doc.status.trim() !== "") {
+    console.log(`⏩ Skipping calculation for employeeId=${doc.employeeId} because status="${doc.status}"`);
+    continue;
+  }
+  
       if (!doc || !Array.isArray(doc.employee_record) || doc.employee_record.length === 0) {
         console.warn(`Skipping invalid or empty document: ${JSON.stringify(doc)}`);
         continue;

@@ -1721,7 +1721,7 @@ const handleInputChange = (event, field, index, subIndex, idx) => {
 
 // Handle delete for salary items
 const handleDeleteSalary = (index, subIndex, idx, salaryIndex) => {
-  alert(" index " + index + " subIndex " + " idx " + idx + " salaryIndex " + salaryIndex)
+  // alert(" index " + index + " subIndex " + " idx " + idx + " salaryIndex " + salaryIndex)
   setEditedData((prev) => {
     const key = `${index}-${subIndex}-${idx}_addSalaryDaily_table`;
     const updatedSalaries = [...(prev[key] || [])];
@@ -1732,9 +1732,39 @@ const handleDeleteSalary = (index, subIndex, idx, salaryIndex) => {
     };
   });
 };
+const handleSave = (index, subIndex, idx) => {
+  setConcludeResultx((prevData) => {
+    const updatedData = JSON.parse(JSON.stringify(prevData));
+
+    const updatedRecord = updatedData[index]?.employee_record?.[idx];
+    if (updatedRecord) {
+      Object.keys(editedData).forEach((key) => {
+        const match = key.match(/^(\d+)-(\d+)-(\d+)_(.+)_table$/);
+        if (match) {
+          const [, i, j, k, field] = match;
+
+          if (`${i}-${j}-${k}` === `${index}-${subIndex}-${idx}`) {
+            // Special handling for array field like addSalaryDaily
+            if (field === "addSalaryDaily") {
+              updatedRecord[field] = JSON.parse(
+                JSON.stringify(editedData[key])
+              );
+            } else {
+              updatedRecord[field] = editedData[key];
+            }
+          }
+        }
+      });
+    }
+
+    return updatedData;
+  });
+
+  setEditingIndex(null); // Exit edit mode
+};
 
 // Handle save and update concludeResultx
-const handleSave = (index, subIndex, idx) => {
+const handleSave_back = (index, subIndex, idx) => {
   setConcludeResultx((prevData) => {
     // Clone the array to trigger a re-render
     const updatedData = JSON.parse(JSON.stringify(prevData));
@@ -1749,7 +1779,7 @@ const handleSave = (index, subIndex, idx) => {
         }
       });
     }
-alert(JSON.stringify(updatedData,null,2))
+// alert(JSON.stringify(updatedData,null,2))
     return updatedData; // Return the new state
   });
 
@@ -2024,30 +2054,31 @@ alert(JSON.stringify(updatedData,null,2))
 
                           {/* เงินเพิ่ม (Show sum or detailed list) */}
                           <th>
-                            {isEditing ? (
-                              <div>
-                                <p>รายการเงินเพิ่ม</p>
-                                <ul style={{ listStyleType: "none", padding: 0, margin: 0 }}>
-                                  {matchedRecord.addSalaryDaily.map((addSalaryDay, salaryIndex) => (
-                                    <li key={salaryIndex} style={{ marginBottom: "10px" }}>
-                                      {addSalaryDay.name} {addSalaryDay.SpSalary} บาท
-                                      <button
-                                        type="button"
-                                        className="ml-2 text-red-600 hover:text-red-800"
-                                        onClick={() => handleDeleteSalary(index, subIndex, idx, salaryIndex)}
-                                      >
-                                        ลบ
-                                      </button>
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            ) : (
-                              matchedRecord.addSalaryDaily.reduce(
-                                (sum, salary) => sum + parseFloat(salary.SpSalary || 0),
-                                0
-                              ) + " บาท"
-                            )}
+                          {isEditing ? (
+  <div>
+    <p>รายการเงินเพิ่ม</p>
+    <ul style={{ listStyleType: "none", padding: 0, margin: 0 }}>
+      {(editedData[`${index}-${subIndex}-${idx}_addSalaryDaily_table`] || []).map((addSalaryDay, salaryIndex) => (
+        <li key={salaryIndex} style={{ marginBottom: "10px" }}>
+          {addSalaryDay.name} {addSalaryDay.SpSalary} บาท
+          <button
+            type="button"
+            className="ml-2 text-red-600 hover:text-red-800"
+            onClick={() => handleDeleteSalary(index, subIndex, idx, salaryIndex)}
+          >
+            ลบ
+          </button>
+        </li>
+      ))}
+    </ul>
+  </div>
+) : (
+  matchedRecord.addSalaryDaily.reduce(
+    (sum, salary) => sum + parseFloat(salary.SpSalary || 0),
+    0
+  ) + " บาท"
+)}
+
                           </th>
 
                           {/* แก้ไข / บันทึก */}
@@ -2123,8 +2154,8 @@ alert(JSON.stringify(updatedData,null,2))
                 <br />
 
                 
-
                 <div class="line_btn">
+                {! loading && 
                   <button
                     type="button"
                     onClick={saveconclude}
@@ -2132,6 +2163,7 @@ alert(JSON.stringify(updatedData,null,2))
                   >
                     <i class="nav-icon fas fa-save"></i> &nbsp;บันทึก
                   </button>
+}
 
                   <Link to="/Salaryresult">
                     <button type="button" class="btn clean">
