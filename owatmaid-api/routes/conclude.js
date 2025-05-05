@@ -2083,7 +2083,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     console.log(`⏩ Skipping calculation for employeeId=${doc.employeeId} because status="${doc.status}"`);
     continue;
   }
-  
+
       if (!doc || !Array.isArray(doc.employee_record) || doc.employee_record.length === 0) {
         console.warn(`Skipping invalid or empty document: ${JSON.stringify(doc)}`);
         continue;
@@ -2112,4 +2112,22 @@ router.post('/searchtimerecordemployee', async (req, res) => {
   }
 });
 
+router.put('/update1/:id', async (req, res) => {
+  try {
+    const updated = await timerecordEmployee.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true } // ให้คืนค่าหลังอัปเดต
+    );
+
+    if (!updated) {
+      return res.status(404).json({ message: 'ไม่พบข้อมูลที่ต้องการอัปเดต' });
+    }
+
+    res.status(200).json({ message: 'อัปเดตสำเร็จ', data: updated });
+  } catch (err) {
+    console.error('❌ PUT /conclude/update Error:', err);
+    res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: err.message });
+  }
+});
 module.exports = router;

@@ -1577,6 +1577,7 @@ function Compensation() {
       sumWorkRate: sumWorkRateX,
       sumWorkHourOt: sumWorkHourOtX,
       sumWorkRateOt: sumWorkRateOtX,
+      status: editStatus,
     };
 
     //ccc
@@ -1595,7 +1596,7 @@ function Compensation() {
     } else {
       try {
         const response = await axios.put(
-          endpoint + "/conclude/update/" + update,
+          endpoint + "/conclude/update1/" + update,
           data
         );
         if (response) {
@@ -1603,6 +1604,7 @@ function Compensation() {
           window.location.reload();
         }
       } catch (error) {
+        console.error("❌ Axios PUT error:", error.response?.data || error.message);
         alert("กรุณาตรวจสอบข้อมูลในช่องกรอกข้อมูล");
         // window.location.reload();
       }
@@ -1733,6 +1735,7 @@ const handleDeleteSalary = (index, subIndex, idx, salaryIndex) => {
   });
 };
 const handleSave = (index, subIndex, idx) => {
+  setEditStatus("update")
   setConcludeResultx((prevData) => {
     const updatedData = JSON.parse(JSON.stringify(prevData));
 
