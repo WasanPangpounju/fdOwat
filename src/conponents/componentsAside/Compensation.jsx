@@ -1599,10 +1599,19 @@ function Compensation() {
           endpoint + "/conclude/update1/" + update,
           data
         );
-        if (response) {
+
+        const updatedDoc = response?.data?.data;
+        if (updatedDoc) {
+          console.log("✅ ข้อมูลหลังอัปเดต:", updatedDoc);
           alert("บันทึกสำเร็จ");
-          window.location.reload();
+          // window.location.reload(); // หรือเรียก fetch ใหม่แทน reload
+        } else {
+          alert("❌ บันทึกล้มเหลว: ไม่พบข้อมูลที่อัปเดต");
         }
+        // if (response) {
+        //   alert("บันทึกสำเร็จ");
+        //   // window.location.reload();
+        // }
       } catch (error) {
         console.error("❌ Axios PUT error:", error.response?.data || error.message);
         alert("กรุณาตรวจสอบข้อมูลในช่องกรอกข้อมูล");
@@ -1657,6 +1666,7 @@ function Compensation() {
                 // alert(response.data?.result?.length )
 
         await setConcludeResultx(response.data.result);
+        await setUpdate(response.data?.result[0]?._id)
         // alert(JSON.stringify(response.data?.result[0]?.employee_record[0].addSalaryDaily, null, 2));
       } else {
         // alert("Conclude is null");

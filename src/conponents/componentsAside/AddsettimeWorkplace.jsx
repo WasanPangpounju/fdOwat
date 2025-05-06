@@ -1247,7 +1247,8 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
 
     const newRowData = {
       employeeId: staffId || "",
-      employeeName: staffName + " " + staffLastname || "",
+      employeeName: staffFullName,
+      // staffName + " " + staffLastname || "",
       shift: shift || "",
       startTime: startTime || "",
       endTime: endTime || "",
