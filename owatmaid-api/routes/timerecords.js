@@ -1177,7 +1177,7 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
       query.year = { $regex: new RegExp(year , 'i') };
     }
 
-    if (employeeId == '' && employeeName == '' && month == '' && year== '') {
+    if ( month == '' && year== '') {
       res.status(200).json({});
     }
 
