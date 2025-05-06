@@ -334,8 +334,8 @@ function SalaryAllResult({ employeeList, workplaceList }) {
         endpoint + "/timerecord/searchtimerecordmonthyear",
         dataTest
       );
-      const sumCashWorkValue = timeRecordResponse.data?.sumCashWork ?? 0;
-      setSumCashWork(sumCashWorkValue);
+      const sumCashWorkValue = timeRecordResponse.data?.result[0].sumCashWork ?? 0;
+      setSumCashWork(timeRecordResponse.data?.sumCashWork ?? 0);
       console.log("sumCashWorkValue222", sumCashWorkValue);
       JSON.stringify(timeRecordResponse.data)
       console.log(JSON.stringify(timeRecordResponse.data, null, 2))
