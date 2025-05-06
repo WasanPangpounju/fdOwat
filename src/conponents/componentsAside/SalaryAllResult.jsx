@@ -26,6 +26,9 @@ function SalaryAllResult({ employeeList, workplaceList }) {
   const [workplacrId, setWorkplacrId] = useState(""); //รหัสหน่วยงาน
   const [workplacrName, setWorkplacrName] = useState(""); //รหัสหน่วยงาน
 
+  const [sumCashWork, setSumCashWork] = useState(0);
+
+
   const [searchWorkplaceId, setSearchWorkplaceId] = useState("");
   const [workplaceListAll, setWorkplaceListAll] = useState([workplaceList]);
   console.log('workplaceListAll', workplaceListAll);
@@ -256,7 +259,97 @@ function SalaryAllResult({ employeeList, workplaceList }) {
   //     fetchData();
   // }, [year, month, searchWorkplaceId]);
 
+  // useEffect(() => {
+  //   const fetchData = () => {
+  //     const dataTest = {
+  //       year: year,
+  //       month: month,
+  //     };
+
+  //     axios
+  //       .post(endpoint + "/accounting/calsalarylist", dataTest)
+  //       .then((response) => {
+  //         const responseData = response.data;
+
+  //         console.log("searchWorkplaceId", searchWorkplaceId);
+  //         console.log("responseData", responseData);
+
+  //         // Filter the data by workplace and also ensure name and lastName exist
+  //         const filteredData = responseData
+  //           .filter((item) =>
+  //             searchWorkplaceId ? item.workplace === searchWorkplaceId : true
+  //           )
+  //           .filter((item) => item.name && item.lastName); // Only include items with both name and lastName
+
+  //         // const updatedData = filteredData.map((item) => {
+  //         //   const matchingEmployee = employeeList.find(
+  //         //     (emp) => emp.employeeId === item.employeeId
+  //         //   );
+
+  //         //   if (matchingEmployee && matchingEmployee.costtype === "ภ.ง.ด.3") {
+  //         //     // Modify the workplace by changing the first digit to '2'
+  //         //     item.workplace = "2" + item.workplace.slice(1);
+  //         //   }
+
+  //         //   return item;
+  //         // });
+  //         setResponseDataAll(filteredData);
+  //       })
+  //       .catch((error) => {
+  //         console.error("Error:", error);
+  //       });
+  //   };
+
+  //   fetchData();
+  // }, [year, month, searchWorkplaceId]);
+
+  // console.log("responseDataAll", responseDataAll);
+
   useEffect(() => {
+  const fetchData = async () => {
+    try {
+      const dataTest = {
+        year: year,
+        month: month,
+      };
+
+      // เรียก API แรก
+      const salaryResponse = await axios.post(
+        endpoint + "/accounting/calsalarylist",
+        dataTest
+      );
+
+      const responseData = salaryResponse.data;
+
+      const filteredData = responseData
+        .filter((item) =>
+          searchWorkplaceId ? item.workplace === searchWorkplaceId : true
+        )
+        .filter((item) => item.name && item.lastName);
+
+      setResponseDataAll(filteredData);
+
+      // เรียก API ที่สอง เพื่อดึง sumCashWork
+      const timeRecordResponse = await axios.post(
+        endpoint + "/timerecord/searchtimerecordmonthyear",
+        dataTest
+      );
+      const sumCashWorkValue = timeRecordResponse.data?.sumCashWork ?? 0;
+      setSumCashWork(sumCashWorkValue);
+      console.log("sumCashWorkValue222", sumCashWorkValue);
+      JSON.stringify(timeRecordResponse.data)
+      console.log(JSON.stringify(timeRecordResponse.data, null, 2))
+
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  };
+
+  fetchData();
+}, [year, month, searchWorkplaceId]);
+
+
+   useEffect(() => {
     const fetchData = () => {
       const dataTest = {
         year: year,
@@ -300,8 +393,6 @@ function SalaryAllResult({ employeeList, workplaceList }) {
     fetchData();
   }, [year, month, searchWorkplaceId]);
 
-  console.log("responseDataAll", responseDataAll);
-
 
   useEffect(() => {
     // Fetch data from the API when the component mounts
@@ -322,6 +413,8 @@ function SalaryAllResult({ employeeList, workplaceList }) {
         console.error("Error fetching data:", error);
       });
   }, [year, month, responseDataAll]);
+
+  
 
   console.log('leaveSalary', leaveSalary);
 
@@ -1651,9 +1744,9 @@ function SalaryAllResult({ employeeList, workplaceList }) {
               { align: "right" }
             );
 
-            // หักภาษี
+            // หักภาษี ทดล
             const formattedTax = Number(
-              accountingRecord?.[0]?.tax ?? 0
+              sumCashWork
             ).toLocaleString("en-US", {
               minimumFractionDigits: 0,
               maximumFractionDigits: 0,

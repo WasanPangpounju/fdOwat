@@ -9378,7 +9378,7 @@ const overtimeLabels = [    "ค่าทำงานวันหยุด",
                         <tr key={idx}>
                                         <td className="text-center align-middle">{idx + 1}</td>
                                         <td>
-                                        {record.employeeName} <span style={{ float: "right" }}>เช้า</span>
+                                        {record.employeeName}    <span style={{ float: "right" }}>เช้า</span>
                                     </td>
                                     {dayNumbers.map((day, i) => {
     const found = record?.employee_record?.find(itemx => itemx.date === day);
