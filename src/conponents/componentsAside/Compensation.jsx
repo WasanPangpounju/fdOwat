@@ -447,6 +447,33 @@ function Compensation() {
 
   //recreate conclude
   async function recal() {
+    alert('hi')
+    const data = await {
+      year: year,
+      month: month,
+      concludeDate: formattedDate,
+      employeeId: staffId,
+      concludeRecord: dataTable,
+      addSalary: addSalaryList,
+      createBy: jsonObject.name,
+      sumWorkHour: sumWorkHourX,
+      sumWorkRate: sumWorkRateX,
+      sumWorkHourOt: sumWorkHourOtX,
+      sumWorkRateOt: sumWorkRateOtX,
+      status: editStatus,
+    };
+
+    try {
+      const response = await axios.post(endpoint + "/conclude/create", data);
+
+      if (response) {
+        alert("บันทึกสำเร็จ");
+      }
+    } catch (e) {
+      alert("บันทึกไม่สำเร็จ");
+      alert(e);
+    }
+
     const serchConclude = await {
       year: year,
       month: month,
