@@ -1158,6 +1158,39 @@ router.get('/listmonth', async (req, res) => {
 
 // ==========
 
+router.post('/searchtimerecordmonthyear', async (req, res) => {
+  try {
+    const { 
+      month,
+     year} = req.body;
+
+    // Construct the search query based on the provided parameters
+    const query = {};
+
+
+    if (month !== '') {
+      //query.month = new Date(date);
+      query.month = { $regex: new RegExp(month , 'i') };
+    }
+
+    if (year!== '') {
+      query.year = { $regex: new RegExp(year , 'i') };
+    }
+
+    if (employeeId == '' && employeeName == '' && month == '' && year== '') {
+      res.status(200).json({});
+    }
+
+    // Query the workplace collection for matching documents
+    const result = await timerecordEmployee.find(query);
+
+    await res.status(200).json({ result});
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 //search timerecordEmployee 
 router.post('/searchtimerecordemployee', async (req, res) => {
   try {
