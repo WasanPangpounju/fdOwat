@@ -219,20 +219,20 @@ router.get('/listdelete', async (req, res) => {
 
 
 // Get  workplace time record by WorkplaceTimeRecord Id
-router.get('/:workplaceTimeRecordId', async (req, res) => {
-  try {
-    const workplaceTimeRecordData = await workplaceTimerecord.findOne({ workplaceTimeRecordId: req.params.workplaceTimeRecordId });
+// router.get('/:workplaceTimeRecordId', async (req, res) => {
+//   try {
+//     const workplaceTimeRecordData = await workplaceTimerecord.findOne({ workplaceTimeRecordId: req.params.workplaceTimeRecordId });
 
-    if (workplaceTimeRecordData) {
-      res.json(workplaceTimeRecordData );
-    } else {
-      res.status(404).json({ error: 'workplace not found' });
-    }
-  } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
-  }
+//     if (workplaceTimeRecordData) {
+//       res.json(workplaceTimeRecordData );
+//     } else {
+//       res.status(404).json({ error: 'workplace not found' });
+//     }
+//   } catch (error) {
+//     res.status(500).json({ error: 'Internal server error' });
+//   }
 
-});
+// });
 
 
 
