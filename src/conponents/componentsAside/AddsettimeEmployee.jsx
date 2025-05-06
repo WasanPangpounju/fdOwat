@@ -2105,7 +2105,7 @@ y = year
   async function handleCheckTimerecord() {
     const data = {
       employeeId: employeeId,
-      employeeName: staffFullName,
+      employeeName: name,
       month: month,
       year: year,
     };
@@ -2367,7 +2367,7 @@ y = year
     const data = {
       year: year,
       employeeId: employeeId,
-      employeeName: name,
+      employeeName: staffFullName,
       month: month,
       employee_record: rowDataList2,
     };
