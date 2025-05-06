@@ -88,7 +88,7 @@ router.get('/listempdeletexx', async (req, res) => {
     const workplaceTimeRecordData = await timerecordEmployee.find();
 
     // Delete all data
-    // await timerecordEmployee.deleteMany();
+    await timerecordEmployee.deleteMany();
 
     // console.log(`Deleted ${workplaceTimeRecordData.employee_record.length} records.`);
     workplaceTimeRecordData.map(item => {
@@ -122,7 +122,7 @@ router.get('/listdeletexx', async (req, res) => {
     const workplaceTimeRecordData = await workplaceTimerecords.find();
 
     // Delete all data
-    // await workplaceTimerecords.deleteMany();
+    await workplaceTimerecords.deleteMany();
 
     // console.log(`Deleted ${workplaceTimeRecordData.length} records.`);
     res.json(workplaceTimeRecordData);
