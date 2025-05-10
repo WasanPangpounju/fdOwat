@@ -17,6 +17,7 @@ import Dashboard from "./conponents/componentsAside/Dashboard";
 import Search from "./conponents/componentsAside/Search";
 import Employee from "./conponents/componentsAside/Employee";
 import EmployeesSelected from "./conponents/componentsAside/EmployeesSelected";
+import TestComponent from "./conponents/componentsAside/TestComponent";
 
 import Salary from "./conponents/componentsAside/Salary";
 // import Salary from "./conponents/Salary";

@@ -1388,7 +1388,7 @@ setLoading(false);
                 ))}
 
                 {/* Edit & Save Button */}
-                <td className="text-center">
+                <th className="text-center">
                   {editingIndex === index ? (
                     <button
                       type="button"
@@ -1408,7 +1408,7 @@ setLoading(false);
                       ✏️
                     </button>
                   )}
-                </td>
+                </th>
               </tr>
             ))}
           </tbody>

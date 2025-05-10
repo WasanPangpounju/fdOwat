@@ -1813,7 +1813,7 @@ const handleSave_back = (index, subIndex, idx) => {
     const updatedRecord = updatedData[index]?.employee_record?.[idx];
     if (updatedRecord) {
       Object.keys(editedData).forEach((key) => {
-        const field = key.replace(/_\d+-\d+-\d+_table/, ""); // Remove index and "_table" suffix
+        const field = key.replace(/_\d+-\d+-sd+_table/, ""); // Remove index and "_table" suffix
         if (updatedRecord[field] !== undefined) {
           updatedRecord[field] = editedData[key]; // Update modified fields
         }
@@ -2007,15 +2007,15 @@ const handleSave_back = (index, subIndex, idx) => {
                                     </div>
                                 )} */}
 
-                <div class="row">
-                  <td class="col-md-3">
+                <div class="d-flex justify-content-between ">
+                  <td class="">
                     ตั้งแต่วันที่ 21 {thaiMonthLowerName} - 20 {thaiMonthName}{" "}
                     ปี {parseInt(year, 10) + 543}
                   </td>
-                  <div class="col-md-8"></div>
-                  <div class="col-md-2">
-                    <div class="d-flex justify-content-center">
-                      <button type="button" onClick={recal} class="btn b_save">
+                  <div class=""></div>
+                  <div class="">
+                    <div class="">
+                      <button type="button" onClick={recal} class="btn b_save " >
                         {" "}
                         คำนวณใหม่
                       </button>
@@ -2034,10 +2034,10 @@ const handleSave_back = (index, subIndex, idx) => {
 
       <div className="mt-4">
       <div className="table-responsive">
-        <table className="table table-bordered text-center">
+        <table className="table table-bordered fw text-center">
           <thead>
-            <tr>
-              <th className="">วันที่</th>
+            <tr >
+              <th >วันที่</th>
               <th>รหัส</th>
               <th>ชื่อ</th>
               <th>กลุ่ม</th>
@@ -2065,17 +2065,17 @@ const handleSave_back = (index, subIndex, idx) => {
                       const isEditing = editingIndex === `${index}-${subIndex}-${idx}`;
 
                       return (
-                        <tr className="" key={`${index}-${subIndex}-${idx}`}>
-                          <th>{day}</th>
-                          <th>{matchedRecord.workplaceId}</th>
-                          <th>{matchedRecord.workplaceName}</th>
-                          <th>{matchedRecord.wGroup}</th>
-                          <th>{shiftMapping[matchedRecord.shift]}</th>
+                        <tr className="fw-normal" key={`${index}-${subIndex}-${idx}`}>
+                          <th className="fw-normal" >{day}</th>
+                          <th className="fw-normal">{matchedRecord.workplaceId}</th>
+                          <th className="fw-normal">{matchedRecord.workplaceName}</th>
+                          <th className="fw-normal">{matchedRecord.wGroup}</th>
+                          <th className="fw-normal">{shiftMapping[matchedRecord.shift]}</th>
 
                           {/* Editable Fields */}
                           {["beforeTotalOtTime", "cashBeforeOt", "totalTime", "cashWork", "totalOtTime", "cashOt"].map(
                             (field) => (
-                              <th key={field}>
+                              <th className="fw-normal" key={field}>
                                 {isEditing ? (
                                   <input
                                     type="text"
@@ -2093,7 +2093,7 @@ const handleSave_back = (index, subIndex, idx) => {
                           )}
 
                           {/* เงินเพิ่ม (Show sum or detailed list) */}
-                          <th>
+                          <th className="fw-normal">
                           {isEditing ? (
   <div>
     <p>รายการเงินเพิ่ม</p>
@@ -2122,7 +2122,7 @@ const handleSave_back = (index, subIndex, idx) => {
                           </th>
 
                           {/* แก้ไข / บันทึก */}
-                          <td>
+                          <th>
                             {isEditing ? (
                               <>
                                 <button className="btn btn-success mr-2" onClick={() => handleSave(index, subIndex, idx)}>
@@ -2133,8 +2133,10 @@ const handleSave_back = (index, subIndex, idx) => {
                                 </button>
                               </>
                             ) : (
+                              
                               <button
-                                className="btn btn-warning"
+                                className="btn btn-warning btn-sm"
+                                style={{ padding: "0.3rem", width: "3rem" }}
                                 onClick={() => {
                                   setEditingIndex(`${index}-${subIndex}-${idx}`);
                                   setEditedData((prev) => ({
@@ -2149,17 +2151,34 @@ const handleSave_back = (index, subIndex, idx) => {
                                   }));
                                 }}
                               >
-                                แก้ไข
+                               ✏️
                               </button>
                             )}
-                          </td>
+                          </th>
                         </tr>
                       );
                     })
                   ) : (
                     <tr key={`${index}-${subIndex}-no-record`}>
-                      <td>{day}</td>
-                      <td colSpan="12">-</td>
+                      <th className="fw-normal">{day}</th>
+                      <th ></th>
+                      <th ></th>
+                      <th ></th>
+                      <th ></th>
+                      <th ></th>
+                      <th ></th>
+                      <th ></th>
+                      <th ></th>
+                      <th ></th>
+                      <th ></th>
+                      <th ></th>
+                      <th>
+                        <button
+                        className="btn btn-warning btn-sm"
+                        style={{ padding: "0.3rem", width: "3rem" }}>
+                          ✏️
+                        </button>
+                      </th>
                     </tr>
                   );
                 })}
@@ -2167,20 +2186,20 @@ const handleSave_back = (index, subIndex, idx) => {
             ))}
 
 <tr>
-<td style={{ textAlign: "center", verticalAlign: "middle" }}> รวม </td>
-<td style={{ textAlign: "center", verticalAlign: "middle" }}></td>
-<td style={{ textAlign: "center", verticalAlign: "middle" }}></td>
-<td style={{ textAlign: "center", verticalAlign: "middle" }}></td>
-<td style={{ textAlign: "center", verticalAlign: "middle" }}></td>
-<td style={{ textAlign: "center", verticalAlign: "middle" }}>{dataTotals.beforeTotalOtTime || '0'} ชั่วโมง</td>
-<td style={{ textAlign: "center", verticalAlign: "middle" }}>{dataTotals.cashBeforeOt || '0'} บาท</td>
-<td style={{ textAlign: "center", verticalAlign: "middle" }}>{dataTotals.totalTime || '0'} ชั่วโมง</td>
-<td style={{ textAlign: "center", verticalAlign: "middle" }}>{dataTotals.cashWork || '0'} บาท</td>
-<td style={{ textAlign: "center", verticalAlign: "middle" }}>{dataTotals.totalOtTime || '0'} ชั่วโมง</td>
-<td style={{ textAlign: "center", verticalAlign: "middle" }}>{dataTotals.cashOt || '0'} บาท</td>
+<th colSpan={3} style={{ textAlign: "center", verticalAlign: "middle" }}> รวม </th>
 
-<td style={{ textAlign: "center", verticalAlign: "middle" }}></td>
-<td style={{ textAlign: "center", verticalAlign: "middle" }}></td>
+
+<th style={{ textAlign: "center", verticalAlign: "middle" }}></th>
+<th style={{ textAlign: "center", verticalAlign: "middle" }}></th>
+<th style={{ textAlign: "center", verticalAlign: "middle" }}>{dataTotals.beforeTotalOtTime || '0'} ชั่วโมง</th>
+<th style={{ textAlign: "center", verticalAlign: "middle" }}>{dataTotals.cashBeforeOt || '0'} บาท</th>
+<th style={{ textAlign: "center", verticalAlign: "middle" }}>{dataTotals.totalTime || '0'} ชั่วโมง</th>
+<th style={{ textAlign: "center", verticalAlign: "middle" }}>{dataTotals.cashWork || '0'} บาท</th>
+<th style={{ textAlign: "center", verticalAlign: "middle" }}>{dataTotals.totalOtTime || '0'} ชั่วโมง</th>
+<th style={{ textAlign: "center", verticalAlign: "middle" }}>{dataTotals.cashOt || '0'} บาท</th>
+
+<th style={{ textAlign: "center", verticalAlign: "middle" }}></th>
+<th style={{ textAlign: "center", verticalAlign: "middle" }}></th>
 
 </tr>
 
