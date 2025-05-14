@@ -2119,13 +2119,13 @@ try {
                       </thead>
                       <tbody>
                         <tr>
-                          <td style={cellStyle}>{accountingResult?.[0]?.dayWorkCount || '0'}</td>
-                          <td style={cellStyle}>
+                          <th style={cellStyle}>{accountingResult?.[0]?.dayWorkCount || '0'}</th>
+                          <th style={cellStyle}>
                           {accountingResult?.[0]?.sumTimeWork || '0'}
-                                                    </td>
-                          <td style={cellStyle}>
+                                                    </th>
+                          <th style={cellStyle}>
                           {accountingResult?.[0]?.sumTimeOt || '0'}
-                          </td>
+                          </th>
                         </tr>
                       </tbody>
                     </table>
@@ -2148,14 +2148,14 @@ try {
                       <tbody>
                         <tr>
 
-                          <td style={cellStyle}>
+                          <th style={cellStyle}>
                           {accountingResult?.[0]?.sumCashWork || '0'}
-                          </td>
-                          <td style={cellStyle}>
+                          </th>
+                          <th style={cellStyle}>
                           {accountingResult?.[0]?.sumCashOt || '0'}
-                          </td>
+                          </th>
 
-                          <td style={cellStyle}>
+                          <th style={cellStyle}>
                             <span
                               onClick={togglePopup}
                               style={{ color: color, cursor: "pointer" }}
@@ -2207,7 +2207,7 @@ try {
                               </tr>
                             ))} */}
                             {/* {isNaN(Number(addAmountBeforeTax + addAmountAfterTax)) ? 0.00 : Number(addAmountBeforeTax + addAmountAfterTax).toFixed(2)} */}
-                          </td>
+                          </th>
                           {/* <td style={cellStyle}>
                             <input
                               type="text"
@@ -2221,7 +2221,7 @@ try {
                           </td> */}
                           {/* <td style={cellStyle}>{(overWorkRateSum + overWorkRateOTSum + overAddSalaryDaySum + sumSpSalaryResult).toFixed(2)}</td> */}
 
-                          <td style={cellStyle}>
+                          <th style={cellStyle}>
                           { parseFloat(accountingResult?.[0]?.sumCashWork || '0') + 
                           parseFloat(accountingResult?.[0]?.sumCashOt || '0')
                           + parseFloat( accountingResult?.[0]?.addSalaryList?.reduce(
@@ -2229,9 +2229,9 @@ try {
                             0
                           ))}                              
                       
-                          </td>
+                          </th>
 
-                          <td style={cellStyle}>
+                          <th style={cellStyle}>
                             <button
                               type="button"
                               onClick={handleAddSalary}
@@ -2240,7 +2240,7 @@ try {
                             >
                               แก้ไข
                             </button>
-                          </td>
+                          </th>
                         </tr>
                       </tbody>
                     </table>
@@ -2263,13 +2263,13 @@ try {
                       </thead>
                       <tbody>
                         <tr>
-                          <td style={cellStyle}>
+                          <th style={cellStyle}>
                           {accountingResult?.[0]?.tax || '0'}
-                          </td>
-                          <td style={cellStyle}>
+                          </th>
+                          <th style={cellStyle}>
                           {/*accountingResult?.[0]?.socialSecurity || '0'*/}
 {localSocialSecurity}
-                          </td>
+                          </th>
                           {/* <td style={cellStyle}>{isNaN(Number(bank)) ? 0.00 : Number(bank).toFixed(2)}</td> */}
                           {/* <td style={cellStyle}>
                             <input
@@ -2282,7 +2282,7 @@ try {
                               onChange={handleAnyMinusChange}
                             />
                           </td> */}
-                          <td style={cellStyle}>
+                          <th style={cellStyle}>
                             <span
                               onClick={togglePopup}
                               style={{ color: color, cursor: "pointer" }}
@@ -2324,12 +2324,12 @@ try {
                               </div>
                             )}
                             {/* {isNaN(Number(deductBeforeTax) + Number(deductAfterTax)) ? 0.00 : (Number(deductBeforeTax) + Number(deductAfterTax)).toFixed(2)} */}
-                          </td>
-                          <td style={cellStyle}>
+                          </th>
+                          <th style={cellStyle}>
                                                     {parseFloat(localSocialSecurity || 0) + parseFloat(accountingResult?.[0]?.tax || '0')}
 
-                          </td>
-                          <td style={cellStyle}>
+                          </th>
+                          <th style={cellStyle}>
                             <button
                               type="button"
                               onClick={handleAddSalary}
@@ -2338,7 +2338,7 @@ try {
                             >
                               แก้ไข
                             </button>
-                          </td>
+                          </th>
                         </tr>
                       </tbody>
                     </table>

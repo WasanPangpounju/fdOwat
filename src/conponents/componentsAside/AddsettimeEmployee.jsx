@@ -3085,12 +3085,12 @@ y = year
           (rowData2, index) =>
             rowData2.workplaceId && (
               <tr key={index} className="align-middle text-center">
-                <td>{rowData2.workplaceId}</td>
-                <td>{rowData2.workplaceName}</td>
-                 <td>{groupOptions[parseInt(rowData2.wGroup) -1 ] || ""}</td> 
+                <th>{rowData2.workplaceId}</th>
+                <th>{rowData2.workplaceName}</th>
+                 <th>{groupOptions[parseInt(rowData2.wGroup) -1 ] || ""}</th> 
 
-                <td>{rowData2.date}</td>
-                <td>
+                <th>{rowData2.date}</th>
+                <th>
                   {rowData2.shift === "morning_shift"
                     ? "กะเช้า"
                     : rowData2.shift === "afternoon_shift"
@@ -3100,24 +3100,24 @@ y = year
                     : rowData2.shift === "specialt_shift"
                     ? "กะพิเศษ"
                     : ""}
-                </td>
-                <td>{rowData2.beforeStartOtTime}</td>
-                <td>{rowData2.beforeEndOtTime}</td>
-                <td>{rowData2.beforeTotalOtTime}</td>
+                </th>
+                <th>{rowData2.beforeStartOtTime}</th>
+                <th>{rowData2.beforeEndOtTime}</th>
+                <th>{rowData2.beforeTotalOtTime}</th>
 
-                <td>{rowData2.startTime}</td>
-                <td>{rowData2.endTime}</td>
-                <td>{rowData2.totalTime}</td>
-                <td>{rowData2.startOtTime}</td>
-                <td>{rowData2.endOtTime}</td>
-                <td>{rowData2.totalOtTime}</td>
+                <th>{rowData2.startTime}</th>
+                <th>{rowData2.endTime}</th>
+                <th>{rowData2.totalTime}</th>
+                <th>{rowData2.startOtTime}</th>
+                <th>{rowData2.endOtTime}</th>
+                <th>{rowData2.totalOtTime}</th>
 
-                <td>
+                <th>
                   {rowData2.specialtSalary !== "" 
                     ? `${parseFloat(rowData2.specialtSalary || '0') + parseFloat(rowData2.specialtSalaryOT || '0')} บาท`
                     : ""}
-                </td>
-                <td className="text-center">
+                </th>
+                <th className="text-center">
                   {/* <button
                     type="button"
                     className="btn btn-danger btn-sm"
@@ -3135,7 +3135,7 @@ y = year
 >
   <i className="fas fa-trash-alt"></i>
 </button>
-                </td>
+                </th>
               </tr>
             )
         )}

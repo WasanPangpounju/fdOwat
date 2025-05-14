@@ -1413,7 +1413,7 @@ const createWorkplaceTable = (doc, wpId, wpName, employees, startY) => {
     if (align === 'right') {
       doc.text(text, x + width - 2, centerY, textOptions);
     } else if (align === 'left') {
-      doc.text(text, x + 0, centerY, textOptions);
+      doc.text(text, x + 2, centerY, textOptions);
     } else {
       doc.text(text, centerX, centerY, textOptions);
     }
@@ -3347,7 +3347,7 @@ const generatePDF02 = async () => {
       if (align === 'right') {
         doc.text(text, x + width - 2, centerY, textOptions);
       } else if (align === 'left') {
-        doc.text(text, x + 0, centerY, textOptions);
+        doc.text(text, x + 2, centerY, textOptions);
       } else {
         doc.text(text, centerX, centerY, textOptions);
       }
@@ -5529,7 +5529,7 @@ const handleStaffIdChange = useCallback((e) => {
                 
                 {/* เพิ่มตารางแสดงข้อมูลพนักงาน */}
                 <div className="col-md-12 mt-4">
-                  <div className="card">
+                  {/* <div className="card">
                     <div className="card-header">
                       <h3 className="card-title">ข้อมูลพนักงานในหน่วยงาน {workplacrName} ({workplacrId})</h3>
                     </div>
@@ -5588,7 +5588,7 @@ const handleStaffIdChange = useCallback((e) => {
                         </div>
                       )}
                     </div>
-                  </div>
+                  </div> */}
                 </div>
                 {/* <label>Thai Date:</label> */}
                 {/* <DatePicker
