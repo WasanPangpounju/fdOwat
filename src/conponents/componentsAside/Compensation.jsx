@@ -2143,7 +2143,7 @@ const handleSave_back = (index, subIndex, idx) => {
                                   }));
                                 }}
                               >
-                               ✏️
+                               <i class="bi bi-pencil-square"></i>
                               </button>
                             )}
                           </th>
@@ -2168,7 +2168,7 @@ const handleSave_back = (index, subIndex, idx) => {
                         <button
                         className="btn btn-warning btn-sm"
                         style={{ padding: "0.3rem", width: "3rem" }}>
-                          ✏️
+                          <i class="bi bi-pencil-square"></i>
                         </button>
                       </th>
                     </tr>

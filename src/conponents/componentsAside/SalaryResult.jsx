@@ -2112,9 +2112,9 @@ try {
                     <table border="1" style={tableStyle}>
                       <thead>
                         <tr>
-                          <th style={headerCellStyle}>รวมวันทำงาน</th>
-                          <th style={headerCellStyle}>รวมชั่วโมงทำงาน</th>
-                          <th style={headerCellStyle}>รวมชั่วโมงOT</th>
+                          <th style={{...headerCellStyle,width:'34%'}} >รวมวันทำงาน</th>
+                          <th style={{...headerCellStyle,width:'33%'}}>รวมชั่วโมงทำงาน</th>
+                          <th style={{...headerCellStyle,width:'35%'}}>รวมชั่วโมงOT</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -2137,22 +2137,27 @@ try {
                     <table border="1" style={tableStyle}>
                       <thead>
                         <tr>
-                          <th style={headerCellStyle}>เงินค่าจ้างปกติ</th>
-                          <th style={headerCellStyle}>เงินค่าล่วงเวลา</th>
-                          <th style={headerCellStyle}>เงินเพิ่ม</th>
-                          {/* <th style={headerCellStyle}>เงินบวกอื่นๆ</th> */}
-                          <th style={headerCellStyle}>รวมเงินได้</th>
-                          <th style={headerCellStyle}>แก้ไข</th>
+                          <th style={{...headerCellStyle, width: '20%'}}>เงินค่าจ้างปกติ</th>
+                          <th style={{...headerCellStyle, width: '20%'}}>เงินค่าล่วงเวลา</th>
+                          <th style={{...headerCellStyle, width: '20%'}}>เงินเพิ่ม</th>
+                          <th style={{...headerCellStyle, width: '20%'}}>รวมเงินได้</th>
+                          <th style={{...headerCellStyle, width: '10%'}}>แก้ไข</th>
                         </tr>
                       </thead>
                       <tbody>
                         <tr>
 
                           <th style={cellStyle}>
-                          {accountingResult?.[0]?.sumCashWork || '0'}
+                            {parseFloat(accountingResult?.[0]?.sumCashWork || '0').toLocaleString('th-TH', {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2
+                            })}
                           </th>
                           <th style={cellStyle}>
-                          {accountingResult?.[0]?.sumCashOt || '0'}
+                          {parseFloat(accountingResult?.[0]?.sumCashOt || '0').toLocaleString('th-TH', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                          })}
                           </th>
 
                           <th style={cellStyle}>
@@ -2221,24 +2226,28 @@ try {
                           </td> */}
                           {/* <td style={cellStyle}>{(overWorkRateSum + overWorkRateOTSum + overAddSalaryDaySum + sumSpSalaryResult).toFixed(2)}</td> */}
 
-                          <th style={cellStyle}>
-                          { parseFloat(accountingResult?.[0]?.sumCashWork || '0') + 
-                          parseFloat(accountingResult?.[0]?.sumCashOt || '0')
-                          + parseFloat( accountingResult?.[0]?.addSalaryList?.reduce(
-                            (total, item) => total + parseFloat(item.SpSalary || '0'), 
-                            0
-                          ))}                              
-                      
-                          </th>
+                         <th style={cellStyle}>
+  {(
+    parseFloat(accountingResult?.[0]?.sumCashWork || '0') + 
+    parseFloat(accountingResult?.[0]?.sumCashOt || '0') + 
+    parseFloat(accountingResult?.[0]?.addSalaryList?.reduce(
+      (total, item) => total + parseFloat(item.SpSalary || '0'), 
+      0
+    ))
+  ).toLocaleString('th-TH', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })}
+</th>
 
                           <th style={cellStyle}>
                             <button
                               type="button"
                               onClick={handleAddSalary}
-                              class="btn btn-danger"
+                              class="btn btn-warning"
                               style={{ width: "4rem" }}
                             >
-                              แก้ไข
+                              <i class="bi bi-pencil-square"></i>
                             </button>
                           </th>
                         </tr>
@@ -2253,22 +2262,27 @@ try {
                     <table border="1" style={tableStyle}>
                       <thead>
                         <tr>
-                          <th style={headerCellStyle}>หักภาษี</th>
-                          <th style={headerCellStyle}>หักประกันสังคม</th>
-                          {/* <th style={headerCellStyle}>ธรรมเนียมธนาคาร</th> */}
-                          <th style={headerCellStyle}>เงินหัก</th>
-                          <th style={headerCellStyle}>รวมเงินหัก</th>
-                          <th style={headerCellStyle}>แก้ไข</th>
+                          <th style={{...headerCellStyle, width: '20%'}}>หักภาษี</th>
+                          <th style={{...headerCellStyle, width: '20%'}}>หักประกันสังคม</th>
+                          <th style={{...headerCellStyle, width: '20%'}}>เงินหัก</th>
+                          <th style={{...headerCellStyle, width: '20%'}}>รวมเงินหัก</th>
+                          <th style={{...headerCellStyle, width: '10%'}}>แก้ไข</th>
                         </tr>
                       </thead>
                       <tbody>
                         <tr>
                           <th style={cellStyle}>
-                          {accountingResult?.[0]?.tax || '0'}
+                          {parseFloat(accountingResult?.[0]?.tax || '0').toLocaleString('th-TH', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                          })}
                           </th>
                           <th style={cellStyle}>
                           {/*accountingResult?.[0]?.socialSecurity || '0'*/}
-{localSocialSecurity}
+                            {parseFloat(localSocialSecurity || 0).toLocaleString('th-TH', {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2
+                            })}
                           </th>
                           {/* <td style={cellStyle}>{isNaN(Number(bank)) ? 0.00 : Number(bank).toFixed(2)}</td> */}
                           {/* <td style={cellStyle}>
@@ -2326,17 +2340,20 @@ try {
                             {/* {isNaN(Number(deductBeforeTax) + Number(deductAfterTax)) ? 0.00 : (Number(deductBeforeTax) + Number(deductAfterTax)).toFixed(2)} */}
                           </th>
                           <th style={cellStyle}>
-                                                    {parseFloat(localSocialSecurity || 0) + parseFloat(accountingResult?.[0]?.tax || '0')}
+                                                    {parseFloat(localSocialSecurity || 0) + parseFloat(accountingResult?.[0]?.tax || '0').toLocaleString('th-TH', {
+                                                      minimumFractionDigits: 2,
+                                                      maximumFractionDigits: 2
+                                                    })}
 
                           </th>
                           <th style={cellStyle}>
                             <button
                               type="button"
                               onClick={handleAddSalary}
-                              class="btn btn-danger"
+                              class="btn btn-warning"
                               style={{ width: "4rem" }}
                             >
-                              แก้ไข
+                              <i class="bi bi-pencil-square"></i>
                             </button>
                           </th>
                         </tr>
@@ -2354,26 +2371,28 @@ try {
                     <table border="1" style={tableStyle}>
                       <thead>
                         <tr>
-                          <th style={headerCellStyle}>วันหยุดนักขัตฤกษ์</th>
-                          <th style={headerCellStyle}>สวัสดิการ</th>
+                          <th style={{...headerCellStyle,width:'34%'}}>วันหยุดนักขัตฤกษ์</th>
+                          <th style={{...headerCellStyle,width:'33%'}}>สวัสดิการ</th>
                           <th style={headerCellStyle}>ยอดรวม</th>
                         </tr>
                       </thead>
                       <tbody>
                         <tr>
-                          <td style={cellStyle}>
+                          <th style={cellStyle}>
                             <div class="row">
-                              <div class="col-md-6">
-                                <input
+                              <div >
+                               <input
                                   type="number"
-                                  className="form-control"
-                                  id="staffId"
-                                  placeholder=""
-                                  value=
-                                  {localCashSpecialDay}
+                                  className="form-control text-center" 
+                                  id="specialDay"
+                                  placeholder="0.00"
+                                  step="0.01"
+                                  min="0"
+                                  value={parseFloat(localCashSpecialDay || 0).toFixed(2)}
                                   onChange={(e) => {
                                     const newValue = e.target.value;
-setLocalCashSpecialDay(newValue )                                
+                                    setLocalCashSpecialDay(newValue);
+                                    
                                     // อัปเดตค่าตัวแปร accountingResult
                                     setAccountingResult((prev) => {
                                       const updated = [...prev]; // clone array
@@ -2384,16 +2403,17 @@ setLocalCashSpecialDay(newValue )
                                       return updated;
                                     });
                                   }}
-                                  // onChange={handleTmpamountChange}
                                 />
                               </div>
                             </div>
-                          </td>
+                          </th>
+
                           
-                          <td style={cellStyle}></td>
-                          <td style={cellStyle}>
+                          
+                          <th style={cellStyle}></th>
+                          <th style={cellStyle}>
                           {accountingResult?.[0]?.cashSpecialDay || '0'}
-                          </td>
+                          </th>
                         </tr>
                       </tbody>
                     </table>
@@ -2406,8 +2426,8 @@ setLocalCashSpecialDay(newValue )
                     <table border="1" style={tableStyle}>
                       <thead>
                         <tr>
-                          <th style={headerCellStyle}>รวมเงินได้</th>
-                          <th style={headerCellStyle}>รวมเงินหัก</th>
+                          <th style={{...headerCellStyle,width:'34%'}}>รวมเงินได้</th>
+                          <th style={{...headerCellStyle,width:'33%'}}>รวมเงินหัก</th>
                           <th style={headerCellStyle}>เงินสุทธิ</th>
                         </tr>
                       </thead>
@@ -2421,7 +2441,7 @@ setLocalCashSpecialDay(newValue )
                           <td style={cellStyle}>{isNaN(totalSumDeduct) ? 0.00 : (totalSumDeduct).toFixed(2)}</td>
                           <td style={cellStyle}>{isNaN(amountDay + amountOt + sumAddSalaryList - totalSumDeduct) ? 0.00 : (amountDay + amountOt + sumAddSalaryList - totalSumDeduct).toFixed(2)}</td> */}
 
-                          <td style={cellStyle}>
+                          <th style={cellStyle}>
                           {
                                                       (parseFloat(accountingResult?.[0]?.sumCashWork || 0) +
                                                       parseFloat(accountingResult?.[0]?.sumCashOt || 0) +
@@ -2430,9 +2450,9 @@ setLocalCashSpecialDay(newValue )
                         ).toLocaleString()
                           }
 
-                          </td>
+                          </th>
                           {/* <td style={cellStyle}>{Math.ceil(wsTotalSumDeduct) }</td> */}
-                          <td style={cellStyle}>
+                          <th style={cellStyle}>
                           {
                                                       (parseFloat(accountingResult?.[0]?.socialSecurity  || 0) +
                                                       parseFloat(accountingResult?.[0]?.tax || 0) 
@@ -2441,9 +2461,9 @@ setLocalCashSpecialDay(newValue )
                           }
 
 
-                          </td>
+                          </th>
                           {/* <td style={cellStyle}>{totalSum - totalSumDeduct}</td> */}
-                          <td style={cellStyle}>
+                          <th style={cellStyle}>
                           {
                                                       ((parseFloat(accountingResult?.[0]?.sumCashWork || 0) +
                                                       parseFloat(accountingResult?.[0]?.sumCashOt || 0) +
@@ -2458,7 +2478,7 @@ setLocalCashSpecialDay(newValue )
                           }
 
                             
-                          </td>
+                          </th>
                         </tr>
                       </tbody>
                     </table>
@@ -2539,13 +2559,13 @@ setLocalCashSpecialDay(newValue )
 
                           return (
                             <tr key={option.id}>
-                              <td style={cellStyle}>{option.id}</td>
-                              <td style={cellStyle}>{empDataValue}</td>
-                              <td style={cellStyle}>{welfareTypeCount}</td>
-                              <td style={cellStyle}>
+                              <th style={cellStyle}>{option.id}</th>
+                              <th style={cellStyle}>{empDataValue}</th>
+                              <th style={cellStyle}>{welfareTypeCount}</th>
+                              <th style={cellStyle}>
                                 {/* Display the subtraction result */}
                                 {empDataValue - welfareTypeCount}
-                              </td>
+                              </th>
                             </tr>
                           );
                         })}
