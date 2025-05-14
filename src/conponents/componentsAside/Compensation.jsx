@@ -447,53 +447,45 @@ function Compensation() {
 
   //recreate conclude
   async function recal() {
-    alert('hi')
     const data = await {
-      year: year,
-      month: month,
-      concludeDate: formattedDate,
-      employeeId: staffId,
-      concludeRecord: dataTable,
-      addSalary: addSalaryList,
-      createBy: jsonObject.name,
-      sumWorkHour: sumWorkHourX,
-      sumWorkRate: sumWorkRateX,
-      sumWorkHourOt: sumWorkHourOtX,
-      sumWorkRateOt: sumWorkRateOtX,
-      status: editStatus,
+      employeeId: searchEmployeeId, 
+      month: month, 
+      year: year 
     };
-
+      
     try {
-      const response = await axios.post(endpoint + "/conclude/create", data);
+      const response = await axios.post(endpoint + "/conclude/searchtimerecordemployee/", data);
+      alert('hi')
 
       if (response) {
         alert("บันทึกสำเร็จ");
       }
+
     } catch (e) {
       alert("บันทึกไม่สำเร็จ");
       alert(e);
     }
 
-    const serchConclude = await {
-      year: year,
-      month: month,
-      concludeDate: "",
-      employeeId: searchEmployeeId,
-      employeeName: searchEmployeeName,
-    };
-    // alert(serchConclude .month)
-    try {
-      //create conclude
-      const response = await axios.post(
-        endpoint + "/conclude/autocreate",
-        serchConclude
-      );
-      // alert(response .data);
-      alert("กำลังประมวลผล กรุณาค้นหาอีกครั้งหากยังไม่พบกรุณาตรวจสอบการลงเวลา");
-    } catch (e) {
-      console.log(e);
-      alert(e);
-    }
+    // const serchConclude = await {
+    //   year: year,
+    //   month: month,
+    //   concludeDate: "",
+    //   employeeId: searchEmployeeId,
+    //   employeeName: searchEmployeeName,
+    // };
+    // // alert(serchConclude .month)
+    // try {
+    //   //create conclude
+    //   const response = await axios.post(
+    //     endpoint + "/conclude/autocreate",
+    //     serchConclude
+    //   );
+    //   // alert(response .data);
+    //   alert("กำลังประมวลผล กรุณาค้นหาอีกครั้งหากยังไม่พบกรุณาตรวจสอบการลงเวลา");
+    // } catch (e) {
+    //   console.log(e);
+    //   alert(e);
+    // }
   }
 
   async function backup_handleSearch(event) {
