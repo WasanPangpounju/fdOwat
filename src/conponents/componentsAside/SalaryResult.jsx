@@ -2398,29 +2398,30 @@ try {
                           <th style={cellStyle}>
                             <div class="row">
                               <div >
-                               <input
-                                  type="number"
-                                  className="form-control text-center" 
-                                  id="specialDay"
-                                  placeholder="0.00"
-                                  step="0.01"
-                                  min="0"
-                                  value={parseFloat(localCashSpecialDay || 0).toFixed(2)}
-                                  onChange={(e) => {
-                                    const newValue = e.target.value;
-                                    setLocalCashSpecialDay(newValue);
-                                    
-                                    // อัปเดตค่าตัวแปร accountingResult
-                                    setAccountingResult((prev) => {
-                                      const updated = [...prev]; // clone array
-                                      updated[0] = {
-                                        ...updated[0],
-                                        cashSpecialDay: newValue, // อัปเดตค่าเฉพาะที่ต้องการ
-                                      };
-                                      return updated;
-                                    });
-                                  }}
-                                />
+                              <input
+  type="number"
+  className="form-control text-center" 
+  id="specialDay"
+  placeholder="0.00"
+  step="0.01"
+  min="0"
+  value={localCashSpecialDay} // ไม่ parse หรือ toFixed ที่นี่
+  onChange={(e) => {
+    const newValue = e.target.value;
+
+    setLocalCashSpecialDay(newValue);
+
+    // แปลงค่าก่อนเก็บใน accountingResult ให้เป็น float
+    setAccountingResult((prev) => {
+      const updated = [...prev];
+      updated[0] = {
+        ...updated[0],
+        cashSpecialDay: parseFloat(newValue || 0), // parse ตรงนี้
+      };
+      return updated;
+    });
+  }}
+/>
                               </div>
                             </div>
                           </th>
@@ -2482,13 +2483,18 @@ try {
                           </th>
                           {/* <td style={cellStyle}>{Math.ceil(wsTotalSumDeduct) }</td> */}
                           <th style={cellStyle}>
-                          {
-                                                      (parseFloat(accountingResult?.[0]?.socialSecurity  || 0) +
-                                                      parseFloat(accountingResult?.[0]?.tax || 0) 
-
-                        ).toLocaleString()
-                          }
-
+                                                      {(() => {
+  const total =
+    parseFloat(localSocialSecurity || 0) +
+    parseFloat(accountingResult?.[0]?.tax || '0');
+    
+  return isNaN(total)
+    ? ''
+    : total.toLocaleString('th-TH', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+})()}
 
                           </th>
                           {/* <td style={cellStyle}>{totalSum - totalSumDeduct}</td> */}
