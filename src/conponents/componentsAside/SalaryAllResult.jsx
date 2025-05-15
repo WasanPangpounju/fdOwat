@@ -914,7 +914,7 @@ const generatePDF01 = async () => {
 
       let currentPage = 1;
       let overallY = 10; // ตำแหน่ง Y เริ่มต้นบนหน้าแรก
-       let grandTotal = {
+      let grandTotal = {
         days: 0,
         salary: 0,
         ot: 0,
@@ -935,6 +935,104 @@ const generatePDF01 = async () => {
         employees: 0
       };
       
+      // ฟังก์ชันสำหรับวาดเซลล์ (ถ้ายังไม่มี)
+      const cellHeight = 9; // ความสูงของเซลล์หัวตาราง
+      const dataCellHeight = 6; // ความสูงของเซลล์ข้อมูล
+      
+      // กำหนดความกว้างของแต่ละคอลัมน์
+      const colWidths = [
+        15,  // รหัส
+        25,  // ชื่อ-สกุล
+        5,   // วัน
+        20,  // เงินเดือน
+        15,  // ค่าล่วงเวลา
+        15,  // ค่ารถ/โทร/ตน.
+        15,  // สวัสดิการ(ไม่คิด ปกส.)
+        15,  // เบี้ยขยัน
+        15,  // นักขัตฤกษ์
+        15,  // บวกอื่นๆ(คิด ปกส)
+        15,  // หักอื่นๆ(คิด ปกส)
+        15,  // บวกอื่นๆ(ไม่คิด ปกส)
+        15,  // หักอื่นๆ(ไม่คิด ปกส)
+        15,  // หักภาษี
+        14,  // หัก ปกส
+        14,  // บวกอื่นๆ
+        14,  // หักอื่นๆ
+        14,  // เบิกล่วงหน้า
+        15   // สุทธิ
+      ];
+      
+      // คำนวณตำแหน่ง x ของแต่ละคอลัมน์
+      const colPositions = [];
+      let currentX = 3; 
+      colWidths.forEach(width => {
+        colPositions.push(currentX);
+        currentX += width;
+      });
+      
+      // ฟังก์ชันสำหรับวาดเซลล์
+      const drawCell = (x, y, width, height, text, options = {}) => {
+        // วาดขอบเซลล์ (เฉพาะเมื่อ drawBorder=true หรือไม่ได้ระบุ)
+        if (options.drawBorder !== false) {
+          doc.rect(x, y, width, height);
+        }
+
+        // ถ้าไม่มีข้อความให้แสดง ไม่ต้องวาดข้อความ
+        if (text === undefined || text === null || text === '') {
+          return;
+        }
+        
+        // คำนวณจุดกึ่งกลางของเซลล์
+        const centerX = x + width / 2;
+        
+        // เพิ่ม paddingTop สำหรับหัวตาราง
+        const paddingTop = options.isHeader ? 2 : 0;
+        const centerY = y + height / 3;
+
+        // กำหนดขนาดตัวอักษรตามที่ระบุ หรือใช้ค่าเริ่มต้น
+        const fontSize = options.fontSize || 10;
+        doc.setFontSize(fontSize);
+        
+        // ตั้งค่าฟอนต์ - เฉพาะหัวตารางเท่านั้นที่เป็นตัวหนา
+        if (options.isHeader) {
+          doc.setFont("THSarabunNew Bold");
+        } else {
+          doc.setFont("THSarabunNew");
+        }
+
+        // กำหนด alignment (default: center)
+        const align = options.align || 'center';
+        const textOptions = { align: align, baseline: "middle" };
+
+        // ปรับตำแหน่งข้อความตาม alignment
+        if (align === 'right') {
+          doc.text(text, x + width - 2, centerY, textOptions);
+        } else if (align === 'left') {
+          doc.text(text, x + 2, centerY, textOptions);
+        } else {
+          doc.text(text, centerX, centerY, textOptions);
+        }
+      };
+      
+      // กำหนดหัวตาราง
+      const headers = [
+        "รหัส", "ชื่อ - สกุล", "วัน", "เงินเดือน", "ค่าล่วงเวลา", 
+        "ค่ารถ/โทร/\nตน.", "สวัสดิการ\n(ไม่คิด ปกส.)", "เบี้ยขยัน", "นักขัติ", 
+        "บวกอื่นๆ\n(คิด ปกส)", "หักอื่นๆ\n(คิด ปกส)", "บวกอื่นๆ\n(ไม่คิด ปกส)", 
+        "หักอื่นๆ\n(ไม่คิด ปกส)", "หักภาษี", "หัก ปกส", "บวกอื่นๆ", "หักอื่นๆ", 
+        "เบิกล่วงหน้า", "สุทธิ"
+      ];
+      
+      // วาดหัวตารางก่อนเริ่มวนลูป (สำคัญ!)
+      headers.forEach((header, index) => {
+        drawCell(colPositions[index], overallY, colWidths[index], cellHeight, header, {
+          isHeader: true,
+          fontSize: 10
+        });
+      });
+      
+      // เพิ่ม Y หลังจากวาดหัวตาราง
+      overallY += cellHeight;
       
       // เริ่มวนลูปสำหรับแต่ละหน่วยงาน
       for (const [wpId, employees] of Object.entries(groupedData)) {
@@ -949,6 +1047,16 @@ const generatePDF01 = async () => {
           doc.addPage();
           currentPage++;
           overallY = 10; // รีเซ็ต Y เมื่อขึ้นหน้าใหม่
+          
+          // วาดหัวตารางใหม่เฉพาะเมื่อขึ้นหน้าใหม่เท่านั้น
+          headers.forEach((header, index) => {
+            drawCell(colPositions[index], overallY, colWidths[index], cellHeight, header, {
+              isHeader: true,
+              fontSize: 10
+            });
+          });
+          
+          overallY += cellHeight; // เพิ่ม Y หลังจากวาดหัวตาราง
         }
         
         // หาชื่อหน่วยงาน
@@ -957,12 +1065,8 @@ const generatePDF01 = async () => {
         
         // สร้างตารางข้อมูลสำหรับหน่วยงานนี้
         const { newY, totalValues } = createWorkplaceTable(doc, wpId, wpName, employees, overallY);
-        overallY = newY + 10; // เพิ่มระยะห่างระหว่างตาราง
-        
+        overallY = newY + 1; // เพิ่มระยะห่างระหว่างตาราง
       }
-      
-
-
       
       // เพิ่มเลขหน้าสุดท้าย
       doc.setFont("THSarabunNew");
@@ -977,7 +1081,11 @@ const generatePDF01 = async () => {
       doc.text(`แฟ้มรายงาน ${presentfilm}`, 200, 200);
       
       // บันทึกไฟล์ PDF
-      doc.save(`รายงานพนักงานทุกหน่วยงาน_${month}_${year}.pdf`);
+
+      const pdfBlob = doc.output('blob');
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+      window.open(pdfUrl, '_blank');
+      // doc.save(`รายงานพนักงานทุกหน่วยงาน_${month}_${year}.pdf`);
     } else {
       // กรณีมีการระบุ workplacrId ทำเหมือนเดิม (สร้าง PDF เฉพาะหน่วยงานที่ระบุ)
       const doc = new jsPDF({ 
@@ -1325,7 +1433,12 @@ const employeeData = displayEmployees.map((emp) => {
       doc.text(`หน้า ${pageCount}`, 280, 200, { align: 'right' });
       
       // บันทึกไฟล์ PDF
-      doc.save(`รายงานพนักงาน_${workplacrName || workplacrId || ''}_${month}_${year}.pdf`);
+      // doc.save(`รายงานพนักงาน_${workplacrName || workplacrId || ''}_${month}_${year}.pdf`);
+       const pdfBlob = doc.output('blob');
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+      window.open(pdfUrl, '_blank');
+    
+     
     }
     
     // ซ่อน loading indicator เมื่อสร้าง PDF เสร็จสิ้น
@@ -1338,13 +1451,12 @@ const employeeData = displayEmployees.map((emp) => {
   }
 };
 
-// ฟังก์ชันสร้างตารางข้อมูลสำหรับแต่ละหน่วยงาน
 const createWorkplaceTable = (doc, wpId, wpName, employees, startY) => {
   // กำหนดขนาดของตาราง
   const cellHeight = 9; // ความสูงของเซลล์หัวตาราง
   const dataCellHeight = 6; // ความสูงของเซลล์ข้อมูล
   
-  // กำหนดความกว้างของแต่ละคอลัมน์ (คงเดิม)
+  // กำหนดความกว้างของแต่ละคอลัมน์
   const colWidths = [
     15,  // รหัส
     25,  // ชื่อ-สกุล
@@ -1367,7 +1479,7 @@ const createWorkplaceTable = (doc, wpId, wpName, employees, startY) => {
     15   // สุทธิ
   ];
   
-  // คำนวณตำแหน่ง x ของแต่ละคอลัมน์ (คงเดิม)
+  // คำนวณตำแหน่ง x ของแต่ละคอลัมน์
   const colPositions = [];
   let currentX = 3; 
   colWidths.forEach(width => {
@@ -1419,7 +1531,7 @@ const createWorkplaceTable = (doc, wpId, wpName, employees, startY) => {
     }
   };
   
-  // วาดหัวตาราง
+  // เก็บ headers ไว้เพื่ออ้างอิง แต่ไม่วาดในฟังก์ชันนี้
   const headers = [
     "รหัส", "ชื่อ - สกุล", "วัน", "เงินเดือน", "ค่าล่วงเวลา", 
     "ค่ารถ/โทร/\nตน.", "สวัสดิการ\n(ไม่คิด ปกส.)", "เบี้ยขยัน", "นักขัติ", 
@@ -1428,16 +1540,16 @@ const createWorkplaceTable = (doc, wpId, wpName, employees, startY) => {
     "เบิกล่วงหน้า", "สุทธิ"
   ];
   
-  // วาดหัวตาราง (คงเดิม)
-  headers.forEach((header, index) => {
-    drawCell(colPositions[index], startY, colWidths[index], cellHeight, header, {
-      isHeader: true,
-      fontSize: 10
-    });
-  });
+  // *** ลบโค้ดส่วนนี้ออก - ไม่วาดหัวตาราง ***
+  // headers.forEach((header, index) => {
+  //   drawCell(colPositions[index], startY, colWidths[index], cellHeight, header, {
+  //     isHeader: true,
+  //     fontSize: 10
+  //   });
+  // });
   
-  // ตำแหน่งเริ่มต้นสำหรับข้อมูลพนักงาน
-  let currentY = startY + cellHeight;
+  // ตำแหน่งเริ่มต้นสำหรับข้อมูลพนักงาน - ปรับให้เป็น startY เลย ไม่ต้องบวก cellHeight
+  let currentY = startY;
   
   // แสดงชื่อหน่วยงาน
   doc.setFontSize(10);
@@ -3725,9 +3837,13 @@ const generatePDF02 = async () => {
     // เพิ่มเลขหน้าสุดท้าย
     doc.setFontSize(10);
     doc.text(`หน้า ${pageCount}`, 280, 200, { align: 'right' });
+    const pdfBlob = doc.output('blob');
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+    window.open(pdfUrl, '_blank');
+
     
     // บันทึกไฟล์ PDF
-    doc.save(`สรุปรายงานเงินเดือนหน่วยงาน_${month}_${year}.pdf`);
+    // doc.save(`สรุปรายงานเงินเดือนหน่วยงาน_${month}_${year}.pdf`);
     
     // ซ่อน loading indicator
     setLoadingEmployees(false);

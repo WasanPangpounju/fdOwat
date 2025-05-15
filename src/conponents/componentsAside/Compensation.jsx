@@ -1750,6 +1750,7 @@ const handleInputChange = (event, field, index, subIndex, idx) => {
   }));
 };
 
+
 // Handle delete for salary items
 const handleDeleteSalary = (index, subIndex, idx, salaryIndex) => {
   // alert(" index " + index + " subIndex " + " idx " + idx + " salaryIndex " + salaryIndex)
@@ -2070,7 +2071,10 @@ const handleSave_back = (index, subIndex, idx) => {
                               <th className="fw-normal" key={field}>
                                 {isEditing ? (
                                   <input
-                                    type="text"
+                                    type="text "
+                                    className="form-control " 
+                                    style={{ width: "6rem", margin: "0 auto" }} 
+          
                                     value={
                                       editedData[`${index}-${subIndex}-${idx}_${field}_table`] ??
                                       matchedRecord[field]
@@ -2114,15 +2118,13 @@ const handleSave_back = (index, subIndex, idx) => {
                           </th>
 
                           {/* แก้ไข / บันทึก */}
-                          <th>
+                          <th className="fw-normal">
                             {isEditing ? (
                               <>
-                                <button className="btn btn-success mr-2" onClick={() => handleSave(index, subIndex, idx)}>
-                                  บันทึก
+                                <button className="btn btn-success btn-sm"  style={{ padding: "0.3rem", width: "3rem" }} onClick={() => handleSave(index, subIndex, idx)}>
+                                  ✅
                                 </button>
-                                <button className="btn btn-danger" onClick={() => setEditingIndex(null)}>
-                                  ยกเลิก
-                                </button>
+                              
                               </>
                             ) : (
                               
@@ -2153,7 +2155,7 @@ const handleSave_back = (index, subIndex, idx) => {
                   ) : (
                     <tr key={`${index}-${subIndex}-no-record`}>
                       <th className="fw-normal">{day}</th>
-                      <th ></th>
+                      <th className="text-danger"></th>
                       <th ></th>
                       <th ></th>
                       <th ></th>
