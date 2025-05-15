@@ -2227,17 +2227,25 @@ try {
                           {/* <td style={cellStyle}>{(overWorkRateSum + overWorkRateOTSum + overAddSalaryDaySum + sumSpSalaryResult).toFixed(2)}</td> */}
 
                          <th style={cellStyle}>
-  {(
+                         {(() => {
+  const total = 
     parseFloat(accountingResult?.[0]?.sumCashWork || '0') + 
     parseFloat(accountingResult?.[0]?.sumCashOt || '0') + 
-    parseFloat(accountingResult?.[0]?.addSalaryList?.reduce(
-      (total, item) => total + parseFloat(item.SpSalary || '0'), 
-      0
-    ))
-  ).toLocaleString('th-TH', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  })}
+    parseFloat(
+      accountingResult?.[0]?.addSalaryList?.reduce(
+        (total, item) => total + parseFloat(item.SpSalary || '0'),
+        0
+      ) || '0'
+    );
+
+  return isNaN(total)
+    ? ''
+    : total.toLocaleString('th-TH', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+})()}
+
 </th>
 
                           <th style={cellStyle}>
@@ -2340,10 +2348,19 @@ try {
                             {/* {isNaN(Number(deductBeforeTax) + Number(deductAfterTax)) ? 0.00 : (Number(deductBeforeTax) + Number(deductAfterTax)).toFixed(2)} */}
                           </th>
                           <th style={cellStyle}>
-                                                    {parseFloat(localSocialSecurity || 0) + parseFloat(accountingResult?.[0]?.tax || '0').toLocaleString('th-TH', {
-                                                      minimumFractionDigits: 2,
-                                                      maximumFractionDigits: 2
-                                                    })}
+                          {(() => {
+  const total =
+    parseFloat(localSocialSecurity || 0) +
+    parseFloat(accountingResult?.[0]?.tax || '0');
+    
+  return isNaN(total)
+    ? ''
+    : total.toLocaleString('th-TH', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+})()}
+
 
                           </th>
                           <th style={cellStyle}>
@@ -2442,13 +2459,25 @@ try {
                           <td style={cellStyle}>{isNaN(amountDay + amountOt + sumAddSalaryList - totalSumDeduct) ? 0.00 : (amountDay + amountOt + sumAddSalaryList - totalSumDeduct).toFixed(2)}</td> */}
 
                           <th style={cellStyle}>
-                          {
-                                                      (parseFloat(accountingResult?.[0]?.sumCashWork || 0) +
-                                                      parseFloat(accountingResult?.[0]?.sumCashOt || 0) +
-                                                      parseFloat(accountingResult?.[0]?.sumAddSalaryDaily || 0) +
-                          parseFloat(accountingResult?.[0]?.cashSpecialDay || 0)   
-                        ).toLocaleString()
-                          }
+                          {(() => {
+  const total = 
+    parseFloat(accountingResult?.[0]?.sumCashWork || '0') + 
+    parseFloat(accountingResult?.[0]?.sumCashOt || '0') +
+    parseFloat(accountingResult?.[0]?.cashSpecialDay || '0') + 
+    parseFloat(
+      accountingResult?.[0]?.addSalaryList?.reduce(
+        (total, item) => total + parseFloat(item.SpSalary || '0'),
+        0
+      ) || '0'
+    );
+
+  return isNaN(total)
+    ? ''
+    : total.toLocaleString('th-TH', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+})()}
 
                           </th>
                           {/* <td style={cellStyle}>{Math.ceil(wsTotalSumDeduct) }</td> */}
@@ -2464,18 +2493,31 @@ try {
                           </th>
                           {/* <td style={cellStyle}>{totalSum - totalSumDeduct}</td> */}
                           <th style={cellStyle}>
-                          {
-                                                      ((parseFloat(accountingResult?.[0]?.sumCashWork || 0) +
-                                                      parseFloat(accountingResult?.[0]?.sumCashOt || 0) +
-                                                      parseFloat(accountingResult?.[0]?.sumAddSalaryDaily || 0) +
-                          parseFloat(accountingResult?.[0]?.cashSpecialDay || 0)   
-                        ) - 
-                        (parseFloat(accountingResult?.[0]?.socialSecurity  || 0) +
-                                                      parseFloat(accountingResult?.[0]?.tax || 0) 
+                          {(() => {
+  const incomeTotal = 
+    parseFloat(accountingResult?.[0]?.sumCashWork || '0') + 
+    parseFloat(accountingResult?.[0]?.sumCashOt || '0') +
+    parseFloat(accountingResult?.[0]?.cashSpecialDay || '0') + 
+    parseFloat(
+      accountingResult?.[0]?.addSalaryList?.reduce(
+        (total, item) => total + parseFloat(item.SpSalary || '0'),
+        0
+      ) || '0'
+    );
 
-                        )
-                      ).toLocaleString()
-                          }
+  const deductionTotal =
+    parseFloat(accountingResult?.[0]?.socialSecurity || '0') +
+    parseFloat(accountingResult?.[0]?.tax || '0');
+
+  const netTotal = incomeTotal - deductionTotal;
+
+  return isNaN(netTotal)
+    ? ''
+    : netTotal.toLocaleString('th-TH', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+})()}
 
                             
                           </th>
