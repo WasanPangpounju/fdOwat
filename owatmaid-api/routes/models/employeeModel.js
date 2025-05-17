@@ -1,4 +1,6 @@
 const mongoose = require('mongoose');
+const { workplaceSchema } = require('./workplaceModel'); // 👈 export schema ด้วย
+
 // Define employee schema
 const employeeSchema = new mongoose.Schema({
     employeeId: {
@@ -422,6 +424,8 @@ const employeeSchema = new mongoose.Schema({
     sumAddSalary: String,
     sumSalaryForTax: String,
     tax: String,
+    
+      customWorkplace: workplaceSchema, // 👈 ใช้ schema ทั้งก้อนได้เลย
   });
   
   
