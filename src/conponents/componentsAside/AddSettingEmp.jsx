@@ -781,56 +781,6 @@ function AddSettingEmp({ workplaceList, employeeList }) {
   const [showEmployeeListResult, setShowEmployeeListResult] = useState([]);
   const [searchResult, setSearchResult] = useState([]);
 
-  // async function handleSearch(event) {
-  //   event.preventDefault();
-
-  //   //clean list employee
-  //   setShowEmployeeListResult([]);
-
-  //   //get value from form search
-  //   const data = {
-  //     searchWorkplaceId: searchWorkplaceId,
-  //     searchWorkplaceName: searchWorkplaceName,
-  //   };
-
-  //   try {
-  //     const response = await axios.post(endpoint + "/workplace/search", data);
-  //     setSearchResult(response.data.workplaces);
-  //     console.log("response", response);
-
-  //     if (response.data.workplaces.length < 1) {
-  //       window.location.reload();
-  //     } else {
-  //       const data1 = {
-  //         employeeId: "",
-  //         name: "",
-  //         idCard: "",
-  //         //   workPlace: searchWorkplaceId,
-  //         workPlace: searchResult.workplaceId,
-  //       };
-
-  //       const response1 = await axios.post(
-  //         endpoint + "/employee/search",
-  //         data1
-  //       );
-
-  //       const filteredEmployees = response1.data.employees.filter(
-  //         (employee) => employee.workplace === searchWorkplaceId
-  //       );
-
-  //       // await setEmployeeListResult(response1.data.employees);
-  //       await setEmployeeListResult(filteredEmployees);
-
-  //       // await alert(JSON.stringify(response1.data.employees , null ,2));
-  //       // alert(response1.data );
-  //       // alert(employeeListResult.length);
-  //     }
-  //   } catch (error) {
-  //     // setMessage('ไม่พบผลการค้นหา กรุณาตรวจสอบข้อมูลที่ใช้ในการค้นหาอีกครั้ง');
-  //     alert("กรุณาตรวจสอบข้อมูลในช่องค้นหา");
-  //     window.location.reload();
-  //   }
-  // }
   const [filteredWorkplaceList, setFilteredWorkplaceList] = useState([]);
   const [searchWorkplaceId, setSearchWorkplaceId] = useState(""); //รหัสหน่วยงาน
   const [searchWorkplaceName, setSearchWorkplaceName] = useState(""); //ชื่อหน่วยงาน
@@ -840,7 +790,10 @@ function AddSettingEmp({ workplaceList, employeeList }) {
     //clean list employee
     setShowEmployeeListResult([]);
     // setWorkTimeDay_specialwork([]);
-
+alert(searchEmployeeId)
+if(searchWorkplaceId == '') {
+  return ;
+}
     //get value from form search
     const data = {
       searchWorkplaceId: searchWorkplaceId,
@@ -1418,6 +1371,77 @@ setWorkRateChange(workplace.workRateChange)
     setWorkTimeDayList_specialwork((prev) => prev.filter((_, i) => i !== index));
   };
 
+// latest code==========
+
+  const [searchEmployeeId, setSearchEmployeeId] = useState("");
+  const [searchEmployeeName, setSearchEmployeeName] = useState("");
+  const [staffId, setStaffId] = useState(""); //รหัสหน่วยงาน
+  const [staffName, setStaffName] = useState(""); //รหัสหน่วยงาน
+  const [staffLastname, setStaffLastname] = useState(""); //รหัสหน่วยงาน
+  const [staffFullName, setStaffFullName] = useState(""); //รหัสหน่วยงาน
+
+
+  const handleStaffIdChange = (e) => {
+    const selectedStaffId = e.target.value;
+    setStaffId(selectedStaffId);
+    setSearchEmployeeId(selectedStaffId);
+
+    // Find the corresponding employee and set the staffName
+
+    const selectedEmployee = employeeList.find(
+      (employee) => employee.employeeId === selectedStaffId
+    );
+    if (selectedEmployee) {
+      // setStaffName(selectedEmployee.name);
+      // setStaffLastname(selectedEmployee.lastName);
+      setStaffFullName(selectedEmployee.name + " " + selectedEmployee.lastName);
+      setWorkplaceIdEMP(selectedEmployee.workplace);
+    } else {
+      setStaffName("");
+      setStaffFullName("");
+      setSearchEmployeeName("");
+    }
+  };
+
+  const callHandleStaffNameChangeWithEmployeeId = async (employeeId) => {
+    // Assuming you have access to the event object or you can create a synthetic event
+    // You can create a synthetic event using `new Event('change')`
+    const syntheticEvent = await new Event("change");
+
+    // You need to attach a `target` property to the synthetic event
+    // with a `value` property containing the employeeId
+    syntheticEvent.target = await { value: employeeId };
+
+    // Call handleStaffNameChange with the synthetic event
+    await handleStaffIdChange(syntheticEvent);
+  };
+
+  const handleStaffNameChange = (e) => {
+    const selectedStaffName = e.target.value;
+
+    // Find the corresponding employee and set the staffId
+    const selectedEmployee = employeeList.find(
+      (employee) =>
+        employee.name + " " + employee.lastName === selectedStaffName
+    );
+    const selectedEmployeeFName = employeeList.find(
+      (employee) => employee.name === selectedStaffName
+    );
+
+    if (selectedEmployee) {
+      setStaffId(selectedEmployee.employeeId);
+      setSearchEmployeeId(selectedEmployee.employeeId);
+      setWorkplaceIdEMP(selectedEmployee.workplace);
+    } else {
+      setStaffId("");
+      // searchEmployeeId('');
+    }
+
+    // setStaffName(selectedStaffName);
+    setStaffFullName(selectedStaffName);
+    setSearchEmployeeName(selectedStaffName);
+  };
+
   return (
     <body class="hold-transition sidebar-mini" className="editlaout">
       <div class="wrapper">
@@ -1430,13 +1454,13 @@ setWorkRateChange(workplace.workRateChange)
             <li class="breadcrumb-item">
               <a href="#"> การตั้งค่า</a>
             </li>
-            <li class="breadcrumb-item active">ตั้งค่าหน่วยงาน</li>
+            <li class="breadcrumb-item active">ตั้งค่าการทำงานเฉพาะบุคคล</li>
           </ol>
           <div class="content-header">
             <div class="container-fluid">
               <div class="row mb-2">
                 <h1 class="m-0">
-                  <i class="far fa-arrow-alt-circle-right"></i> ตั้งค่าหน่วยงาน
+                  <i class="far fa-arrow-alt-circle-right"></i> ตั้งค่าการทำงานเฉพาะบุคคล
                 </h1>
               </div>
             </div>
@@ -1445,34 +1469,21 @@ setWorkRateChange(workplace.workRateChange)
                     <!-- Main content --> */}
           <section class="content">
             <div class="container-fluid">
-              <h2 class="title">ตั้งค่าหน่วยงาน</h2>
+              <h2 class="title">ตั้งค่าการทำงานเฉพาะบุคคล</h2>
               <section class="Frame">
                 <div class="col-md-12">
                   <form onSubmit={handleSearch}>
-                    <div class="row">
+                                        <div class="row">
                       <div class="col-md-6">
                         <div class="form-group">
-                          <label role="searchWorkplaceId">รหัสหน่วยงาน</label>
-                          {/* <input
-                            type="text"
-                            class="form-control"
-                            id="searchWorkplaceId"
-                            placeholder="รหัสหน่วยงาน"
-                            value={searchWorkplaceId}
-                            onChange={(e) =>
-                              setSearchWorkplaceId(e.target.value)
-                            }
-                          /> */}
+                          <label role="searchEmployeeId">รหัสพนักงาน</label>
                           <input
                             type="text"
                             className="form-control"
-                            id="searchWorkplaceId"
-                            list="workplaceIds" // Associate the datalist with the input
-                            placeholder="รหัสหน่วยงาน"
-                            value={searchWorkplaceId}
-                            onChange={(e) =>
-                              setSearchWorkplaceId(e.target.value)
-                            }
+                            id="staffId"
+                            placeholder="รหัสพนักงาน"
+                            value={staffId == "null" ? "" : staffId}
+                            onChange={handleStaffIdChange}
                             onInput={(e) => {
                               // Remove any non-digit characters
                               e.target.value = e.target.value.replace(
@@ -1480,35 +1491,44 @@ setWorkRateChange(workplace.workRateChange)
                                 ""
                               );
                             }}
+                            list="staffIdList"
                           />
-                          <datalist id="workplaceIds">
-                            {workplaceList.map((workplace) => (
+                          <datalist id="staffIdList">
+                            {employeeList.map((employee) => (
                               <option
-                                key={workplace.workplaceId}
-                                value={workplace.workplaceId}
-                              >
-                                {workplace.workplaceId}
-                              </option>
+                                key={employee.employeeId}
+                                value={employee.employeeId}
+                              />
                             ))}
                           </datalist>
                         </div>
                       </div>
                       <div class="col-md-6">
                         <div class="form-group">
-                          <label role="searchWorkplaceName">ชื่อหน่วยงาน</label>
+                          <label role="searchname">ชื่อพนักงาน</label>
+                          {/* <input type="text" class="form-control" id="searchname" placeholder="ชื่อพนักงาน" value={searchEmployeeName} onChange={(e) => setSearchEmployeeName(e.target.value)} /> */}
                           <input
                             type="text"
-                            class="form-control"
-                            id="searchWorkplaceName"
-                            placeholder="ชื่อหน่วยงาน"
-                            value={searchWorkplaceName}
-                            onChange={(e) =>
-                              setSearchWorkplaceName(e.target.value)
-                            }
+                            className="form-control"
+                            id="staffName"
+                            placeholder="ชื่อพนักงาน"
+                            value={staffFullName}
+                            onChange={handleStaffNameChange}
+                            list="staffNameList"
                           />
+                          <datalist id="staffNameList">
+                            {employeeList.map((employee) => (
+                              <option
+                                key={employee.employeeId}
+                                value={employee.name + " " + employee.lastName}
+                              />
+                            ))}
+                          </datalist>
                         </div>
                       </div>
                     </div>
+
+
                     <div class="d-flex justify-content-center">
                       <button class="btn b_save">
                         <i class="nav-icon fas fa-search"></i> &nbsp; ค้นหา
@@ -1555,7 +1575,7 @@ setWorkRateChange(workplace.workRateChange)
               {/* <!--Frame--> */}
               {/* <form onSubmit={handleManageWorkplace}> */}
               <form onSubmit={handleFormSubmit}>
-                <h2 class="title">ตั้งค่าหน่วยงาน</h2>
+                <h2 class="title">ตั้งค่าการทำงานเฉพาะบุคคล</h2>
                 <section class="Frame">
                   <div class="col-md-12">
                     <div class="row">
