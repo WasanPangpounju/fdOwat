@@ -831,13 +831,118 @@ function AddSettingEmp({ workplaceList, employeeList }) {
       ...employee,
       effectiveWorkplace: finalWorkplace,
     };
-
+// alert(JSON.stringify(finalWorkplace,null,2))
+handleClickResult(finalWorkplace)
     setShowEmployeeListResult([employeeWithWorkplace]);
     console.log("✅ employeeWithWorkplace:", employeeWithWorkplace);
 
   } catch (err) {
     console.error("❌ handleSearch error:", err);
     alert('เกิดข้อผิดพลาดในการค้นหา');
+  }
+}
+
+
+async function handleSaveCustomWorkplace() {
+  if (!showEmployeeListResult || showEmployeeListResult.length === 0) {
+    alert("ไม่พบพนักงานที่ต้องการบันทึก");
+    return;
+  }
+
+  const employeeId = showEmployeeListResult[0].employeeId;
+
+  // ✅ เตรียม customWorkplace จาก state ทั้งหมด (เหมือนใน handleManageWorkplace)
+  const customWorkplace = {
+    workplaceId,
+    workplaceName,
+    workplaceArea,
+    workOfWeek,
+    workStart1,
+    workEnd1,
+    workStart2,
+    workEnd2,
+    workStart3,
+    workEnd3,
+    workStartOt1,
+    workEndOt1,
+    workStartOt2,
+    workEndOt2,
+    workStartOt3,
+    workEndOt3,
+    workOfHour: (parseInt(workOfHour || '0') + (parseFloat(workOfMinute || '0') / 60)),
+    workOfOT: parseFloat(workOfOTMinute || '0') === 0
+      ? ((parseInt(workOfOT || '0') * 60 - parseInt(breakOfOT || '0')) / 60).toFixed(4)
+      : (parseInt(workOfOT || '0') + (parseFloat(workOfOTMinute || '0') - parseInt(breakOfOT || '0')) / 60).toFixed(4),
+    workOfHour_subHour: workOfHour || 0,
+    workOfHour_subMinute: workOfMinute || 0,
+    startWorkOfOT_subHour: startWorkOfOT || 0,
+    startWorkOfOT_subMinute: startWorkOfOTMinute || 0,
+    workOfOT_subHour: workOfOT || 0,
+    workOfOT_subMinute: workOfOTMinute || 0,
+    workOfOT_breakHour: '',
+    workOfOT_breakMinute: breakOfOT || 0,
+    workRate,
+    addWorkRate,
+    workRateOT,
+    workTotalPeople,
+    dayoffRate,
+    dayoffRateOT,
+    dayoffRateHour,
+    holiday,
+    holidayOT,
+    holidayHour,
+    salaryadd1,
+    salaryadd2,
+    salaryadd3,
+    salaryadd4,
+    salaryadd5,
+    salaryadd6,
+    personalLeave,
+    personalLeaveNumber,
+    personalLeaveRate,
+    sickLeave,
+    sickLeaveNumber,
+    sickLeaveRate,
+    workRateDayoff,
+    workRateDayoffNumber,
+    workRateDayoffRate,
+    daysOff: selectedDates,
+    workRateChange,
+    reason,
+    workday1,
+    workday2,
+    workday3,
+    workday4,
+    workday5,
+    workday6,
+    workday7,
+    workcount1,
+    workcount2,
+    workcount3,
+    workcount4,
+    workcount5,
+    workcount6,
+    workcount7,
+    addSalary: formData.addSalary,
+    employeeIdList,
+    employeeNameList,
+    listEmployeeDay,
+    listSpecialWorktime,
+    workTimeDay: workTimeDayList,
+    workTimeDayPerson: workTimeDayPersonList,
+    specialWorkTimeDay: workTimeDayList_specialwork || [],
+  };
+
+  try {
+    const res = await axios.put(`${endpoint}/employee/${employeeId}/custom-workplace`, {
+      customWorkplace,
+    });
+
+    alert("✅ บันทึก customWorkplace สำเร็จ");
+    console.log("📦 บันทึกแล้ว:", res.data.customWorkplace);
+  } catch (err) {
+    console.error("❌ บันทึก customWorkplace ล้มเหลว:", err);
+    alert("เกิดข้อผิดพลาด กรุณาตรวจสอบข้อมูล");
   }
 }
 
@@ -3822,25 +3927,26 @@ setWorkRateChange(workplace.workRateChange)
                 {/* <!--Frame--> */}
                 <div class="line_btn">
                   {newWorkplace ? (
-                    <button
-                      type="button"
-                      onClick={handleManageWorkplace}
-                      class="btn b_save"
-                    >
-                      <i class="nav-icon fas fa-save"></i>{" "}
-                      &nbsp;สร้างหน่วยงานใหม่
-                    </button>
+                    <p>ค้นหาพนักงานเพื่อเพิ่มการตั้งค่าเฉพาะบุคคล</p>
+                    // <button
+                    //   type="button"
+                    //   onClick={handleManageWorkplace}
+                    //   class="btn b_save"
+                    // >
+                    //   <i class="nav-icon fas fa-save"></i>{" "}
+                    //   &nbsp;สร้างหน่วยงานใหม่
+                    // </button>
                   ) : (
                     <button
                       type="button"
-                      onClick={handleManageWorkplace}
+                      onClick={handleSaveCustomWorkplace}
                       class="btn b_save"
                     >
                       <i class="nav-icon fas fa-save"></i> &nbsp;บันทึก
                     </button>
                   )}
                   <button class="btn clean">
-                    <i class="far fa-window-close" onClick={() => window.location.reload()}></i> &nbsp;ยกเลิก
+                    <i class="far fa-window-close" onClick={() => window.location.reload()}></i> &nbsp;ล้างการตั้งค่า
                   </button>
                 </div>
               </form>
