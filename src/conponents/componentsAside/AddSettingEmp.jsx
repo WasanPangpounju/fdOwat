@@ -784,13 +784,70 @@ function AddSettingEmp({ workplaceList, employeeList }) {
   const [filteredWorkplaceList, setFilteredWorkplaceList] = useState([]);
   const [searchWorkplaceId, setSearchWorkplaceId] = useState(""); //รหัสหน่วยงาน
   const [searchWorkplaceName, setSearchWorkplaceName] = useState(""); //ชื่อหน่วยงาน
-  
+
   async function handleSearch(event) {
+  event.preventDefault();
+  setShowEmployeeListResult([]);
+
+  if (!searchEmployeeId) {
+    alert('กรุณากรอกรหัสพนักงาน');
+    return;
+  }
+
+  try {
+    // 🔍 Step 1: ค้นหาพนักงานจาก employeeId
+    const empRes = await axios.post(endpoint + "/employee/search", {
+      employeeId: searchEmployeeId,
+      name: "",
+      idCard: "",
+      workPlace: "",
+    });
+
+    const employee = empRes.data.employees?.[0];
+
+    if (!employee) {
+      alert('ไม่พบพนักงาน');
+      return;
+    }
+
+    let finalWorkplace = {};
+
+    // ✅ Step 2: ถ้ามี customWorkplace → ใช้เลย
+    if (employee.customWorkplace && Object.keys(employee.customWorkplace).length > 0) {
+      finalWorkplace = employee.customWorkplace;
+    } else {
+      // 🔁 Step 3: ไม่มี custom → ดึง workplace ปกติ
+      if (!employee.workplace) {
+        alert("พนักงานไม่มีข้อมูล workplace");
+        return;
+      }
+
+      const wpRes = await axios.get(`${endpoint}/workplace/${employee.workplace}`);
+      finalWorkplace = wpRes.data || {};
+    }
+
+    // 🧾 รวมข้อมูลกลับเป็นชุดเดียว
+    const employeeWithWorkplace = {
+      ...employee,
+      effectiveWorkplace: finalWorkplace,
+    };
+
+    setShowEmployeeListResult([employeeWithWorkplace]);
+    console.log("✅ employeeWithWorkplace:", employeeWithWorkplace);
+
+  } catch (err) {
+    console.error("❌ handleSearch error:", err);
+    alert('เกิดข้อผิดพลาดในการค้นหา');
+  }
+}
+
+  async function handleSearchBack(event) {
     event.preventDefault();
     //clean list employee
     setShowEmployeeListResult([]);
     // setWorkTimeDay_specialwork([]);
 alert(searchEmployeeId)
+
 if(searchWorkplaceId == '') {
   return ;
 }
