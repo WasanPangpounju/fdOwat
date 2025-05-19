@@ -986,10 +986,10 @@ const SendEmployeePDF2 = ({ employeeList }) => {
                       ></textarea>
                     </div>
                   </div>
-                  <br />
+                  <br /><br />
                   <div className="row">
                     <div className="col-md-2">
-                      <label role="searchname" style={absoluteBottomStyle}>
+                      <label role="searchname" style={absoluteBottomStyle} className="mb-3">
                         แสดงความนับถือ
                       </label>
                     </div>
