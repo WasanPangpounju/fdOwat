@@ -938,11 +938,37 @@ async function handleSaveCustomWorkplace() {
       customWorkplace,
     });
 
-    alert("✅ บันทึก customWorkplace สำเร็จ");
+    alert("✅ บันทึก ตั้งค่าการทำงานเฉพาะบุคคลสำเร็จ");
     console.log("📦 บันทึกแล้ว:", res.data.customWorkplace);
   } catch (err) {
     console.error("❌ บันทึก customWorkplace ล้มเหลว:", err);
     alert("เกิดข้อผิดพลาด กรุณาตรวจสอบข้อมูล");
+  }
+}
+
+async function handleDeleteCustomWorkplace() {
+  if (!showEmployeeListResult || showEmployeeListResult.length === 0) {
+    alert("ไม่พบพนักงานที่ต้องการลบ customWorkplace");
+    return;
+  }
+
+  const employeeId = showEmployeeListResult[0].employeeId;
+
+  const confirmDelete = window.confirm(
+    `คุณแน่ใจหรือไม่ว่าต้องการลบ customWorkplace ของพนักงานรหัส ${employeeId}?`
+  );
+
+  if (!confirmDelete) return;
+
+  try {
+    await axios.delete(`${endpoint}/employee/${employeeId}/custom-workplace`);
+    alert("✅ ลบ การตั้งค่าเฉพาะบุคคลสำเร็จ");
+
+    // 🌀 รีโหลดใหม่ เพื่อให้กลับไปใช้ workplace ปกติ
+    await handleSearch({ preventDefault: () => {} }); // 👈 reuse การค้นหาปัจจุบัน
+  } catch (error) {
+    console.error("❌ ลบ customWorkplace ไม่สำเร็จ:", error);
+    alert("เกิดข้อผิดพลาดในการลบ");
   }
 }
 
@@ -3946,7 +3972,7 @@ setWorkRateChange(workplace.workRateChange)
                     </button>
                   )}
                   <button class="btn clean">
-                    <i class="far fa-window-close" onClick={() => window.location.reload()}></i> &nbsp;ล้างการตั้งค่า
+                    <i class="far fa-window-close" onClick={handleDeleteCustomWorkplace}></i> &nbsp;ล้างการตั้งค่า
                   </button>
                 </div>
               </form>

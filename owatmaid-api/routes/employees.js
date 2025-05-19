@@ -361,6 +361,29 @@ router.put('/:employeeId/custom-workplace', async (req, res) => {
   }
 });
 
+// ✅ DELETE /api/employees/:employeeId/custom-workplace
+// 👉 ลบ field customWorkplace ใน employee
+router.delete('/:employeeId/custom-workplace', async (req, res) => {
+  const { employeeId } = req.params;
+
+  try {
+    const employee = await Employee.findOne({ employeeId });
+
+    if (!employee) {
+      return res.status(404).json({ message: 'ไม่พบพนักงาน' });
+    }
+
+    // ❌ ลบ field customWorkplace
+    employee.customWorkplace = undefined;
+    await employee.save();
+
+    res.status(200).json({ message: 'ลบ customWorkplace สำเร็จ' });
+  } catch (err) {
+    console.error('❌ Error deleting customWorkplace:', err);
+    res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: err.message });
+  }
+});
+
 router.post("/search", async (req, res) => {
   try {
     const { employeeId, name, idCard, workPlace } = req.body;
