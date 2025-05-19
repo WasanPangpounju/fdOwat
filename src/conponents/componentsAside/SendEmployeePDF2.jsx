@@ -370,7 +370,7 @@ const SendEmployeePDF2 = ({ employeeList }) => {
 
         doc.setFontSize(14);
         doc.text(`${index + 1}. ${value.Name}`, x, y);
-        doc.text(`ตำแหน่ง              ${value.position}`, x + 60, y);
+        doc.text(`ตำแหน่ง               ${value.position}`, x + 60, y);
         doc.text(codeClose, 160, 290);
 
         // doc.text(`ประวัติการศึกษา: ${value.educational}`, x, y2); // Adding 30 to the Y-coordinate
@@ -796,7 +796,7 @@ const SendEmployeePDF2 = ({ employeeList }) => {
                                                 <button className="btn b_save" onClick={addInput}>Add Input</button> */}
                   <div className="row">
                     <div className="col-md-2">
-                      <label role="searchname" style={absoluteBottomStyle}>
+                      <label role="searchname" style={absoluteBottomStyle} className="mb-3">
                         วันที่
                       </label>
                     </div>
@@ -955,7 +955,7 @@ const SendEmployeePDF2 = ({ employeeList }) => {
                       </datalist>
                     </div>
                     <div className="col-md-3">
-                        <label>ตำเเหน่ง</label>
+                        <label>ตำเเหน่ง:</label>
                         <input type="text" className="form-control" value={position} onChange={(e) => setPosition(e.target.value)} />
                         
                     </div>
