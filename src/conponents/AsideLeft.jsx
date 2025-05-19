@@ -264,6 +264,8 @@ function AsideLeft() {
                   </p>
                 </a>
                 {showSubMenu && (
+
+                  
                   <ul className="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
                     <li className="nav-item">
                       <Link to="/search" className="nav-link"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px" }}></i> ค้นหาพนักงาน</Link>
@@ -311,6 +313,9 @@ function AsideLeft() {
                         </li>
                         <li className="nav-item">
                           <Link to="/salary" className="nav-link"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px" }}></i> ข้อมูลเงินเดือน</Link>
+                        </li>
+                                                <li className="nav-item">
+                          <Link to="/addsettingemp" className="nav-link"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px" }}></i> การทำงานเฉพาะบุคคล</Link>
                         </li>
                         <li className="nav-item">
                           <Link to="/income_tax" className="nav-link"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px" }}></i> ภาษีเงินได้</Link>

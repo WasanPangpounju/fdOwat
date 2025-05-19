@@ -9296,7 +9296,7 @@ const overtimeLabels = [    "ค่าทำงานวันหยุด",
                       <div className="container-fluid d-flex justify-content-center align-items-center pt-3 boxText ">
                           <div className="d-flex justify-content-center container " >
                           <Table
-                      className="excel-style-table  table-responsive"
+                      className="excel-style-table  "
                       style={{
                         fontSize: "8px",
                         width: "100%",

@@ -1405,7 +1405,7 @@ setLoading(false);
                       style={{ padding: "0.3rem", width: "3rem" }}
                       onClick={() => handleEditRow(index)}
                     >
-                      <i class="bi bi-pencil-square"></i>
+                      ✏️
                     </button>
                   )}
                 </th>

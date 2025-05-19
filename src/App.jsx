@@ -41,6 +41,7 @@ import Application4 from "./conponents/componentsAside/Application4";
 import ApplicationSummary from "./conponents/componentsAside/ApplicationSummary";
 import AddEditEmployee from "./conponents/componentsAside/AddEditEmployee";
 import AddEditSalaryEmployee from "./conponents/componentsAside/AddEditSalaryEmployee";
+import AddSettingEmp from "./conponents/componentsAside/AddSettingEmp";
 
 import BasicSetting from "./conponents/componentsAside/BasicSetting";
 import Setting from "./conponents/componentsAside/Setting";
@@ -200,6 +201,16 @@ function App() {
               <Route path="/employee" element={<Employee />} />
 
               <Route path="/salary" element={<Salary />} />
+                            <Route
+                path="/addsettingemp"
+                element={
+                  <AddSettingEmp
+                    workplaceList={workplaceList}
+                    employeeList={employeeList}
+                  />
+                }
+              />
+
               <Route path="/salarysummary" element={<Salarysummary />} />
 
               <Route path="/examine" element={<Examine />} />

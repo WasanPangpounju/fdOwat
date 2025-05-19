@@ -306,6 +306,84 @@ router.get("/:employeeId", async (req, res) => {
   }
 });
 
+// ✅ [API #1] GET /api/employees/:employeeId/custom-workplace
+// 🔍 ดึง customWorkplace จาก employeeId
+router.get('/:employeeId/custom-workplace', async (req, res) => {
+  const { employeeId } = req.params;
+
+  try {
+    const employee = await Employee.findOne({ employeeId });
+
+    if (!employee) {
+      return res.status(404).json({ message: 'ไม่พบพนักงาน' });
+    }
+
+    if (!employee.customWorkplace) {
+      return res.status(404).json({ message: 'ไม่มีข้อมูล customWorkplace' });
+    }
+
+    res.status(200).json({ customWorkplace: employee.customWorkplace });
+  } catch (err) {
+    console.error('❌ Error fetching customWorkplace:', err);
+    res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: err.message });
+  }
+});
+
+
+// ✅ [API #2] PUT /api/employees/:employeeId/custom-workplace
+// 📝 รับ customWorkplace จาก frontend แล้วบันทึกลงในพนักงาน
+router.put('/:employeeId/custom-workplace', async (req, res) => {
+  const { employeeId } = req.params;
+  const { customWorkplace } = req.body;
+
+  // ตรวจสอบว่า customWorkplace เป็น object ที่ส่งมาจาก frontend
+  if (!customWorkplace || typeof customWorkplace !== 'object') {
+    return res.status(400).json({ message: 'กรุณาส่ง customWorkplace ที่ถูกต้อง' });
+  }
+
+  try {
+    const employee = await Employee.findOne({ employeeId });
+
+    if (!employee) {
+      return res.status(404).json({ message: 'ไม่พบพนักงาน' });
+    }
+
+    employee.customWorkplace = customWorkplace;
+    await employee.save();
+
+    res.status(200).json({
+      message: 'บันทึก customWorkplace สำเร็จ',
+      customWorkplace: employee.customWorkplace,
+    });
+  } catch (err) {
+    console.error('❌ Error saving customWorkplace:', err);
+    res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: err.message });
+  }
+});
+
+// ✅ DELETE /api/employees/:employeeId/custom-workplace
+// 👉 ลบ field customWorkplace ใน employee
+router.delete('/:employeeId/custom-workplace', async (req, res) => {
+  const { employeeId } = req.params;
+
+  try {
+    const employee = await Employee.findOne({ employeeId });
+
+    if (!employee) {
+      return res.status(404).json({ message: 'ไม่พบพนักงาน' });
+    }
+
+    // ❌ ลบ field customWorkplace
+    employee.customWorkplace = undefined;
+    await employee.save();
+
+    res.status(200).json({ message: 'ลบ customWorkplace สำเร็จ' });
+  } catch (err) {
+    console.error('❌ Error deleting customWorkplace:', err);
+    res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: err.message });
+  }
+});
+
 router.post("/search", async (req, res) => {
   try {
     const { employeeId, name, idCard, workPlace } = req.body;

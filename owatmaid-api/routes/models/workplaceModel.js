@@ -277,4 +277,9 @@ const workplaceSchema = new mongoose.Schema({
 const Workplace = mongoose.model('Workplace', workplaceSchema);
 
 
-module.exports = Workplace;
+// module.exports = Workplace;
+
+module.exports = {
+  Workplace,        // model
+  workplaceSchema   // schema
+};
