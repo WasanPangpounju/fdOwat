@@ -1063,7 +1063,7 @@ function Employee() {
   console.log("subDistrict", subDistrict);
 
   return (
-    <body class="hold-transition sidebar-mini" className="editlaout">
+    <div class="hold-transition sidebar-mini" className="editlaout">
       <div class="wrapper">
         <div class="content-wrapper">
           <ol class="breadcrumb">
@@ -2565,7 +2565,7 @@ function Employee() {
           {/* <!-- /.content --> */}
         </div>
       </div>
-    </body>
+    </div>
   );
 }
 

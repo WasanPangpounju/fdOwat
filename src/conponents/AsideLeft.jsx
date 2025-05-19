@@ -99,12 +99,14 @@ function AsideLeft() {
 
   return (
     <>
-      <aside className="main-sidebar sidebar-dark-primary elevation-4" style={fixedSidebarStyle}>
+      <aside className="main-sidebar sidebar-dark-primary elevation-1" style={fixedSidebarStyle}>
+        
         <div className="sidebar">
-          <div className="Logo-w">
+          <div className="Logo">
             <a href="dashboard.php" className="brand-link logo-switch">
               <img src="assets/images/logo-xs.png" alt="Logo Small" className="brand-image-xl logo-xs" />
-              <img src="assets/images/logo.png" alt=" Docs Logo Large" className="brand-image-xl logo-xl" style={{ borderRadius: "8px", width: '92%' }} />
+              {/* <img src="assets/images/logo.png" alt=" Docs Logo Large" className="brand-image-xl logo-xl" style={{ borderRadius: "8px", width: '92%' }} /> */}
+              <img src="assets/images/logo.png" alt=" Docs Logo Large" className="" style={{ borderRadius: "8px", width: '92%' }} />
             </a>
           </div>
           <div className="user-panel mt-3 pb-3 mb-3 d-flex">

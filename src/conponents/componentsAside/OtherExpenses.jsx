@@ -379,7 +379,7 @@ function OtherExpenses() {
     //         setDivideAll(sumall2 / divide);
     //     }, [employeeData.sumall2, employeeData.divide]);
     return (
-        <body class="hold-transition sidebar-mini" className='editlaout'>
+        <div class="hold-transition sidebar-mini" className='editlaout'>
             <div class="wrapper">
                 <div class="content-wrapper">
                     {/* <!-- Content Header (Page header) --> */}
@@ -966,7 +966,7 @@ function OtherExpenses() {
                     {/* <!-- /.content --> */}
                 </div>
             </div>
-        </body>
+        </div>
 
     )
 }
