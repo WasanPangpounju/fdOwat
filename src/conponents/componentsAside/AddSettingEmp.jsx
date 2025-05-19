@@ -1630,6 +1630,19 @@ setWorkRateChange(workplace.workRateChange)
     setSearchEmployeeName(selectedStaffName);
   };
 
+
+  function calculateMultiplier(amount, baseRate, setStateFn) {
+  const numAmount = parseFloat(amount || "0");
+  const numBase = parseFloat(baseRate || "0");
+
+  if (numBase > 0) {
+    const multiplier = (numAmount / numBase).toFixed(2);
+    setStateFn(multiplier);
+  } else {
+    setStateFn("0");
+  }
+}
+
   return (
     <div class="hold-transition sidebar-mini" className="editlaout">
       <div class="wrapper">
@@ -2086,12 +2099,17 @@ setWorkRateChange(workplace.workRateChange)
                           OT รายชั่วโมง
                         </label>
                         <input
-                          type="text"
-                          class="form-control"
-                          id="workRateOT"
-                          placeholder="กี่บาท"
-                          value={ ((parseFloat(workRate || '0')/ 8)* parseFloat(workRateOT || '0')) || '' }
-                        readOnly/>
+  type="text"
+  className="form-control"
+  id="workRateOT"
+  placeholder="กี่บาท"
+  value={
+    parseFloat(workRateOT || "0") > 10
+      ? parseFloat(workRateOT).toFixed(2) // กรณีเป็นยอดเงิน (มากกว่า 10)
+      : ((parseFloat(workRate || "0") / 8) * parseFloat(workRateOT || "0")).toFixed(2) // กรณีเป็นจำนวนเท่า
+  }
+  readOnly
+/>
                       </div>
                     </div>
                 </div>
@@ -2131,12 +2149,17 @@ setWorkRateChange(workplace.workRateChange)
                           วันหยุดประจำสัปดาห์รายชั่วโมง
                         </label>
                         <input
-                          type="text"
-                          class="form-control"
-                          id="dayoffRateHour"
-                          placeholder="กี่บาท"
-                          value={ ((parseFloat(workRate || '0')/ 8)* parseFloat(dayoffRateHour || '0')) || '' }
-                                                readOnly />
+  type="text"
+  className="form-control"
+  id="dayoffRateHour"
+  placeholder="กี่บาท"
+  value={
+    parseFloat(dayoffRateHour || "0") > 10
+      ? parseFloat(dayoffRateHour).toFixed(2)
+      : ((parseFloat(workRate || "0") / 8) * parseFloat(dayoffRateHour || "0")).toFixed(2)
+  }
+  readOnly
+/>
                       </div>
                     </div>
                     <div class="col-md-3">
@@ -2173,12 +2196,17 @@ setWorkRateChange(workplace.workRateChange)
                           OT วันหยุดประจำสัปดาห์รายชั่วโมง
                         </label>
                         <input
-                          type="text"
-                          class="form-control"
-                          id="dayoffRateOT"
-                          placeholder="กี่บาท"
-                          value={ ((parseFloat(workRate || '0')/ 8)* parseFloat(dayoffRateOT || '0')) || '' }
-                        readOnly />
+  type="text"
+  className="form-control"
+  id="dayoffRateOT"
+  placeholder="กี่บาท"
+  value={
+    parseFloat(dayoffRateOT || "0") > 10
+      ? parseFloat(dayoffRateOT).toFixed(2)
+      : ((parseFloat(workRate || "0") / 8) * parseFloat(dayoffRateOT || "0")).toFixed(2)
+  }
+  readOnly
+/>
                       </div>
                     </div>
                 </div>
@@ -2218,12 +2246,17 @@ setWorkRateChange(workplace.workRateChange)
                           วันหยุดนักขัตฤกษ์ รายชั่วโมง
                         </label>
                         <input
-                          type="text"
-                          class="form-control"
-                          id="holidayHour"
-                          placeholder=""
-                          value={ ((parseFloat(workRate || '0')/ 8)* parseFloat(holidayHour || '0')) || '' }
-                        readOnly />
+  type="text"
+  className="form-control"
+  id="holidayHour"
+  placeholder=""
+  value={
+    parseFloat(holidayHour || "0") > 10
+      ? parseFloat(holidayHour).toFixed(2)
+      : ((parseFloat(workRate || "0") / 8) * parseFloat(holidayHour || "0")).toFixed(2)
+  }
+  readOnly
+/>
                       </div>
                     </div>
                     <div class="col-md-3">
@@ -2260,12 +2293,17 @@ setWorkRateChange(workplace.workRateChange)
                           วันหยุดนักขัตฤกษ์ OT รายชั่วโมง
                         </label>
                         <input
-                          type="text"
-                          class="form-control"
-                          id="holidayOT"
-                          placeholder="กี่บาท"
-                          value={ ((parseFloat(workRate || '0')/ 8)* parseFloat(holidayOT || '0')) || '' }
-                        readOnly />
+  type="text"
+  className="form-control"
+  id="holidayOT"
+  placeholder="กี่บาท"
+  value={
+    parseFloat(holidayOT || "0") > 10
+      ? parseFloat(holidayOT).toFixed(2)
+      : ((parseFloat(workRate || "0") / 8) * parseFloat(holidayOT || "0")).toFixed(2)
+  }
+  readOnly
+/>
                       </div>
                     </div>
                 </div>
