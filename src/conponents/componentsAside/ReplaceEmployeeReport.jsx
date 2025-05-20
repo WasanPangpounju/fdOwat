@@ -386,7 +386,7 @@ function ReplaceEmployeeReport({ employeeList, workplaceList }) {
     event.preventDefault(); // Prevent the form from submitting on Enter key press
   }
   return (
-    <body class="hold-transition sidebar-mini" className="editlaout">
+    <div class="hold-transition sidebar-mini" className="editlaout">
       <div class="wrapper">
         <div class="content-wrapper">
           {/* <!-- Content Header (Page header) --> */}
@@ -703,7 +703,7 @@ function ReplaceEmployeeReport({ employeeList, workplaceList }) {
         </div>
 
       </div>
-    </body>
+    </div>
     // </div>
   );
 }
