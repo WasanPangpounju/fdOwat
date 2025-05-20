@@ -896,7 +896,9 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
             // let otTime = parseFloat(`${hours1}.${scaledMinutes1}`).toFixed(2) || 0;
             let scaledMinutes1 = minutes1;
             let otTime = `${parseFloat(hours1 || 0)}.${parseFloat(scaledMinutes1 || 0 ) } `;
-
+if(str1  === '26') {
+  console.log(JSON.stringify(element))
+}
             if (element.specialtSalary !== '' || element.specialtSalaryOT !== '') {
               tmp.workRate = element.specialtSalary || '';
               tmp.workRateMultiply = Number(element.specialtSalary || 0) / Number(wpResponse.data.workRate || 0);
@@ -926,7 +928,7 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
                 }
 
                 let workRate = ((parseFloat(tmpWP.data.holidayHour) * (salary / 8)) * parseFloat(allTime)).toFixed(3);
-                console.log(' test ' + tmpWP.data.holidayHour + ' ' + specialDayOff);
+                // console.log(' test ' + tmpWP.data.holidayHour + ' ' + specialDayOff);
 
                 tmp.workRate = workRate || 0;
                 tmp.workRateMultiply = tmpWP.data.holiday || 0;
