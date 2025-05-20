@@ -2185,12 +2185,12 @@ const handleSave_back = (index, subIndex, idx) => {
 
 <th style={{ textAlign: "center", verticalAlign: "middle" }}></th>
 <th style={{ textAlign: "center", verticalAlign: "middle" }}></th>
-<th style={{ textAlign: "center", verticalAlign: "middle" }}>{dataTotals.beforeTotalOtTime || '0'} ชั่วโมง</th>
-<th style={{ textAlign: "center", verticalAlign: "middle" }}>{dataTotals.cashBeforeOt || '0'} บาท</th>
-<th style={{ textAlign: "center", verticalAlign: "middle" }}>{dataTotals.totalTime || '0'} ชั่วโมง</th>
-<th style={{ textAlign: "center", verticalAlign: "middle" }}>{dataTotals.cashWork || '0'} บาท</th>
-<th style={{ textAlign: "center", verticalAlign: "middle" }}>{dataTotals.totalOtTime || '0'} ชั่วโมง</th>
-<th style={{ textAlign: "center", verticalAlign: "middle" }}>{dataTotals.cashOt || '0'} บาท</th>
+<th style={{ textAlign: "center", verticalAlign: "middle" }}>{(parseFloat(dataTotals.beforeTotalOtTime || 0).toFixed(2))} ชั่วโมง</th>
+<th style={{ textAlign: "center", verticalAlign: "middle" }}>{(parseFloat(dataTotals.cashBeforeOt || 0).toFixed(2))} บาท</th>
+<th style={{ textAlign: "center", verticalAlign: "middle" }}>{(parseFloat(dataTotals.totalTime || 0).toFixed(2))} ชั่วโมง</th>
+<th style={{ textAlign: "center", verticalAlign: "middle" }}>{(parseFloat(dataTotals.cashWork || 0).toFixed(2))} บาท</th>
+<th style={{ textAlign: "center", verticalAlign: "middle" }}>{(parseFloat(dataTotals.totalOtTime || 0).toFixed(2))} ชั่วโมง</th>
+<th style={{ textAlign: "center", verticalAlign: "middle" }}>{(parseFloat(dataTotals.cashOt || 0).toFixed(2))} บาท</th>
 
 <th style={{ textAlign: "center", verticalAlign: "middle" }}></th>
 <th style={{ textAlign: "center", verticalAlign: "middle" }}></th>
