@@ -4,7 +4,7 @@ const sURL = 'http://localhost:3000';
 //require timerecordEmployee 
 const timerecordEmployee = require('./models/periodtimerecordModel');
 //require Workplace 
-const Workplace = require('./models/workplaceModel');
+const {Workplace} = require('./models/workplaceModel');
 const Employee = require('./models/employeeModel');
 
 

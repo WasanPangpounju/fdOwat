@@ -1605,7 +1605,12 @@ y = year
       try {
         setGroupOptions1 (null);            
 
-        const workplacesearch = workplaceList.find(
+        const workplacesearch 
+        
+        
+        
+        
+        = workplaceList.find(
           (workplace) => workplace.workplaceId === wId);
         if (workplacesearch) {
           //department: employee department process
