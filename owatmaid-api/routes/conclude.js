@@ -897,7 +897,8 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
             let scaledMinutes1 = minutes1;
             let otTime = `${parseFloat(hours1 || 0)}.${parseFloat(scaledMinutes1 || 0 ) } `;
 if(str1  === '26') {
-  console.log(JSON.stringify(element))
+  // console.log(JSON.stringify(element))
+  console.log(str1  )
 }
             if (element.specialtSalary !== '' || element.specialtSalaryOT !== '') {
               tmp.workRate = element.specialtSalary || '';
