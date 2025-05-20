@@ -1800,8 +1800,8 @@ return true;
 }
 
 const checkDayRate = async (workplaceId, wGroup, date ) => {
-console.log("test" , workplaceId, wGroup, date );
-console.log(date.getDay() );
+// console.log("test" , workplaceId, wGroup, date );
+// console.log(date.getDay() );
 
 //data for cal
 const dataCal = {};
