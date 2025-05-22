@@ -1865,7 +1865,7 @@ for(let itemDay of workplaces?.[0]?.daysOff){
   if(toBangkokDate(itemDay) === date) {
   console.log('special day off ' + toBangkokDate(itemDay)+  ' = '+ date)
   isDayOff   = true
-continue;  
+break;  
   }
 }
 // dataCal?.daysOff
@@ -1885,9 +1885,7 @@ for(const workTimeDay of workplaces[0].workTimeDay) {
   const [y, m, d] = date.split('-').map(Number);
 const paddedMonth = String(m - 1).padStart(2, '0');  
     let dateString = y + '-' + paddedMonth  + '-' + d + 'T00:00:00';
-if(dayNumber < 21 ) {
-  console.log(m + ' ' + paddedMonth )
-}
+
 const dateObj = new Date(dateString );
 const dayNumberx = dateObj.getDay(); // 0 = อาทิตย์, ..., 6 = เสาร์
 const dateOfMonth = dateObj.getDate(); // 1 - 31
