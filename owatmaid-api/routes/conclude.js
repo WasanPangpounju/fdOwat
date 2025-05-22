@@ -1893,17 +1893,11 @@ const dateOfMonth = dateObj.getDate(); // 1 - 31
 if (dateOfMonth === 23) {
   console.log(dateString )
   console.log(dayNumberx + ' ' + dateObj.getMonth() + ' ' + dateObj.getFullYear() + ' = ' + dateOfMonth + ' ' + m);
-//   const testDate = new Date('2025-03-23T00:00:00'); // ระบุเวลา 00:00:00 เพื่อเลี่ยงปัญหา Time Zone
-// console.log('--- Test Date 2025-03-23 ---');
-// console.log('getDay():', testDate.getDay()); // ควรได้ 0
-// console.log('getMonth():', testDate.getMonth()); // ควรได้ 2
-// console.log('getDate():', testDate.getDate()); // ควรได้ 23
-// console.log('getFullYear():', testDate.getFullYear()); // ควรได้ 2025
  
 }
 
 
-let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumber );
+let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumberx );
 
   if(check === true) {
     // console.log(date +workTimeDay.workOrStop )
