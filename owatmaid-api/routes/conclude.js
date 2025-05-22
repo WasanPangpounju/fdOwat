@@ -1861,7 +1861,7 @@ let isDayOff  = false;
 for(let itemDay of workplaces?.[0]?.daysOff){
   // console.log(itemDay.toISOString().split('T')[0])
   // console.log(date.toISOString().split('T')[0])
-  // console.log( ' = '+ date)
+  console.log( ' = '+ date)
   if(toBangkokDate(itemDay) == date) {
   console.log(date.toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }) )
 isDayOff   = true
@@ -1886,7 +1886,7 @@ const dayNumber = dateObj.getDay();
 let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumber);
 
   if(check === true) {
-    console.log(date +workTimeDay.workOrStop )
+    // console.log(date +workTimeDay.workOrStop )
     dataCal.dayType = await workTimeDay.workOrStop;
 
 // console.log("data " ,workTimeDay.startDay, workTimeDay.endDay , date.getDay() );
