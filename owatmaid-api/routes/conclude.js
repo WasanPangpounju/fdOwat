@@ -1805,14 +1805,21 @@ const createBangkokDate = (yyyyMMdd) => {
 const toBangkokDate = (input) => {
   const utcDate = new Date(input);
   const utcTime = utcDate.getTime();
-  const bangkokOffset = 7 * 60 * 60 * 1000; // UTC+7 in ms
+  const bangkokOffset = 7 * 60 * 60 * 1000; // UTC+7 in milliseconds
 
+  // Add the Bangkok offset to the UTC time
   const bangkokTime = utcTime + bangkokOffset;
-  const adjusted = new Date(bangkokTime);
 
-  // ล้างเวลาให้เป็น 00:00 ของวันไทย
-  return new Date(adjusted.getFullYear(), adjusted.getMonth(), adjusted.getDate());
+  // Convert to a Date object and extract the date in Bangkok time
+  const bangkokDateObj = new Date(bangkokTime);
+  const y = bangkokDateObj.getUTCFullYear();
+  const m = String(bangkokDateObj.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(bangkokDateObj.getUTCDate()).padStart(2, '0');
+
+  // Return a new Date object set to 00:00:00 in Bangkok time
+  return new Date(`${y}-${m}-${d}T00:00:00+07:00`);
 };
+
 
 
 const checkDayRate = async (workplaceId, wGroup, date ) => {
@@ -1854,7 +1861,7 @@ let isDayOff  = false;
 for(let itemDay of workplaces?.[0]?.daysOff){
   // console.log(itemDay.toISOString().split('T')[0])
   // console.log(date.toISOString().split('T')[0])
-  console.log( ' = '+ createBangkokDate (date))
+  console.log( ' = '+ date)
   if(toBangkokDate(itemDay) == date) {
   console.log(date.toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }) )
 isDayOff   = true
