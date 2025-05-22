@@ -1882,7 +1882,11 @@ if(isDayOff == true) {
 //check day type
 for(const workTimeDay of workplaces[0].workTimeDay) {
   // let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay , date.getDay());
-let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumber);
+  // แปลงวันที่แบบ string yyyy-mm-dd กลับเป็น Date object
+const dateObj = new Date(date); // สมมุติว่า parameter ชื่อ date
+const dayNumber = dateObj.getDay(); // 0 = อาทิตย์, 1 = จันทร์, ..., 6 = เสาร์
+
+let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumber );
 
   if(check === true) {
     console.log(date +workTimeDay.workOrStop )
