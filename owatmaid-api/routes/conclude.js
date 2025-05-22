@@ -1805,9 +1805,8 @@ const toBangkokDate = (input) => {
 };
 
 const checkDayRate = async (workplaceId, wGroup, date ) => {
-  date  = await toBangkokDate(date);
-  
-console.log("test" , workplaceId, wGroup, date );
+  // date  = await toBangkokDate(date);
+// console.log("test" , workplaceId, wGroup, date );
 // console.log(date.getDay() );
 
 //data for cal
@@ -1930,7 +1929,11 @@ month = 12;
 // console.log('employee workplace' + employeeProfile[0].workplace);
 const workplaceId = employeeProfile[0].workplace === "10105" ? "10105" : record.workplaceId;
 
-      const dataRate = await checkDayRate(workplaceId,  record.wGroup, new Date(year, month - 1, record.date));
+      // const dataRate = await checkDayRate(workplaceId,  record.wGroup, new Date(year, month - 1, record.date));
+const rawDate = new Date(year, month - 1, record.date); // สร้างวันที่จากปี/เดือน/วัน
+const bangkokDate = toBangkokDate(rawDate); // ปรับให้ตรงกับเวลาไทย
+
+const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate);
 
 // console.log(record.date );
 // console.log(employeeId + JSON.stringify(employeeProfile[0].salary,null,2))
