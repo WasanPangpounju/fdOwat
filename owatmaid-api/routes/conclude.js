@@ -1822,7 +1822,7 @@ const toBangkokDate = (input) => {
 
 
 
-const checkDayRate = async (workplaceId, wGroup, date ) => {
+const checkDayRate = async (workplaceId, wGroup, date , dayNumber ) => {
 // console.log("test" , workplaceId, wGroup, date );
 // console.log(date.getDay() );
 
@@ -1882,8 +1882,6 @@ if(isDayOff == true) {
 //check day type
 for(const workTimeDay of workplaces[0].workTimeDay) {
   // let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay , date.getDay());
-  const dateObj = new Date(date);
-const dayNumber = dateObj.getDay();
 let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumber);
 
   if(check === true) {
@@ -1956,9 +1954,9 @@ const workplaceId = employeeProfile[0].workplace === "10105" ? "10105" : record.
 const rawDate = new Date(year, month - 1, record.date); // สร้างวันที่จากปี/เดือน/วัน
 const bangkokDate = toBangkokDate(rawDate); // ปรับให้ตรงกับเวลาไทย
 
-const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate);
+const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate , record.date );
 
-console.log(record.date );
+// console.log(record.date );
 // console.log(employeeId + JSON.stringify(employeeProfile[0].salary,null,2))
 // console.log('add salary' + JSON.stringify(addSalary,null,2) );
 
@@ -2071,7 +2069,7 @@ const calculateCashValues_back = (employee_record, month, year ) => {
 const rawDate = new Date(year, month - 1, record.date); // สร้างวันที่จากปี/เดือน/วัน
 const bangkokDate = toBangkokDate(rawDate); // ปรับให้ตรงกับเวลาไทย
 
-const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate);
+const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate , record.date );
 
 // await console.log(JSON.stringify(dataRate ,null,2))
 
