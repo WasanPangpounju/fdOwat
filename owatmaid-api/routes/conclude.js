@@ -1886,13 +1886,13 @@ for(const workTimeDay of workplaces[0].workTimeDay) {
 const paddedMonth = String(m - 1).padStart(2, '0');  
     let dateString = y + '-' + paddedMonth  + '-' + d + 'T00:00:00';
 
-const dateObj = new Date(y, m - 1, d);
+const dateObj = new Date(dateString );
 const dayNumberx = dateObj.getDay(); // 0 = อาทิตย์, ..., 6 = เสาร์
 const dateOfMonth = dateObj.getDate(); // 1 - 31
 
 if (dateOfMonth === 23) {
   console.log(dateString )
-//   console.log(dayNumberx + ' ' + dateObj.getMonth() + ' ' + dateObj.getFullYear() + ' = ' + dateOfMonth + ' ' + m);
+  console.log(dayNumberx + ' ' + dateObj.getMonth() + ' ' + dateObj.getFullYear() + ' = ' + dateOfMonth + ' ' + m);
 //   const testDate = new Date('2025-03-23T00:00:00'); // ระบุเวลา 00:00:00 เพื่อเลี่ยงปัญหา Time Zone
 // console.log('--- Test Date 2025-03-23 ---');
 // console.log('getDay():', testDate.getDay()); // ควรได้ 0
