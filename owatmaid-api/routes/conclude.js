@@ -1895,7 +1895,7 @@ let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumber );
     // console.log(date +workTimeDay.workOrStop )
     dataCal.dayType = await workTimeDay.workOrStop;
 
-// console.log("data " ,workTimeDay.startDay, workTimeDay.endDay , date.getDay() );
+console.log("data " ,workTimeDay.startDay, workTimeDay.endDay , date.getDay() );
 
   }
 
