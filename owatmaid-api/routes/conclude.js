@@ -1888,7 +1888,7 @@ const [y, m, d] = date.split('-').map(Number);
 const dateObj = new Date(y, m - 1, d);
 const dayNumberx  = dateObj.getDay(); // 0 = อาทิตย์, 1 = จันทร์, ..., 6 = เสาร์
 if(dayNumber  == 23 ){
-console.log(dayNumberx  + ' ' + dateObj.getMonth() + ' ' + dateObj.getFullYear() + ' = ' +  dayNumber )
+console.log(dayNumberx  + ' ' + dateObj.getMonth() + ' ' + dateObj.getFullYear() + ' = ' +  dayNumber  + ' ' + m)
 
 }
 
