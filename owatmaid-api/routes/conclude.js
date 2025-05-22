@@ -1863,9 +1863,9 @@ for(let itemDay of workplaces?.[0]?.daysOff){
   // console.log(date.toISOString().split('T')[0])
   // console.log(toBangkokDate(itemDay)+  ' = '+ date)
   if(toBangkokDate(itemDay) === date) {
-  console.log(toBangkokDate(itemDay)+  ' = '+ date)
+  console.log('special day off ' + toBangkokDate(itemDay)+  ' = '+ date)
+  isDayOff   = true
 break;  
-isDayOff   = true
   }
 }
 // dataCal?.daysOff
