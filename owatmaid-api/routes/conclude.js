@@ -1832,8 +1832,12 @@ dataCal.holidayOT = await workplaces?.[0]?.holidayOT || 0;
 
 // console.log(JSON.stringify(workplaces?.[0]?.daysOff,null,2))
 for(let itemDay of workplaces?.[0]?.daysOff){
-  console.log(itemDay.toISOString().split('T')[0])
+  // console.log(itemDay.toISOString().split('T')[0])
   // console.log(date.toISOString().split('T')[0])
+  if(itemDay.toISOString().split('T')[0] == date.toISOString().split('T')[0]) {
+  console.log(date.toISOString().split('T')[0])
+
+  }
 }
 // dataCal?.daysOff
 const isDayOff = workplaces?.[0]?.daysOff?.some(d => 
