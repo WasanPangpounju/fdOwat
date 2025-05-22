@@ -1883,18 +1883,15 @@ if(isDayOff == true) {
 for(const workTimeDay of workplaces[0].workTimeDay) {
   // let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay , date.getDay());
   const [y, m, d] = date.split('-').map(Number);
-const paddedMonth = String(m ).padStart(2, '0');  
+const paddedMonth = String(m - 1).padStart(2, '0');  
     let dateString = y + '-' + paddedMonth  + '-' + d + 'T00:00:00';
-
+if(dayNumber < 21 ) {
+  console.log(m + ' ' + paddedMonth )
+}
 const dateObj = new Date(dateString );
 const dayNumberx = dateObj.getDay(); // 0 = อาทิตย์, ..., 6 = เสาร์
 const dateOfMonth = dateObj.getDate(); // 1 - 31
 
-if (dateOfMonth < 20 ) {
-  console.log(dateString )
-  console.log(dayNumberx + ' ' + dateObj.getMonth() + ' ' + dateObj.getFullYear() + ' = ' + dateOfMonth + ' ' + m);
-// console.log('m ' + m) 
-}
 
 
 let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumberx );
