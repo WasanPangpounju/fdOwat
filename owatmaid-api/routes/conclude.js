@@ -1816,8 +1816,8 @@ const toBangkokDate = (input) => {
   const m = String(bangkokDateObj.getUTCMonth() + 1).padStart(2, '0');
   const d = String(bangkokDateObj.getUTCDate()).padStart(2, '0');
 
-  // Return a new Date object set to 00:00:00 in Bangkok time
-  return new Date(`${y}-${m}-${d}T00:00:00+07:00`);
+  // Return a string in yyyy-mm-dd format
+  return `${y}-${m}-${d}`;
 };
 
 
