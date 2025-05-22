@@ -1863,7 +1863,8 @@ for(let itemDay of workplaces?.[0]?.daysOff){
   // console.log(date.toISOString().split('T')[0])
   console.log(toBangkokDate(itemDay)+  ' = '+ date)
   if(toBangkokDate(itemDay) == date) {
-  console.log(date.toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }) )
+  console.log(toBangkokDate(itemDay)+  ' = '+ date)
+break;  
 isDayOff   = true
   }
 }
