@@ -1886,7 +1886,7 @@ for(const workTimeDay of workplaces[0].workTimeDay) {
 const dateObj = new Date(date); // สมมุติว่า parameter ชื่อ date
 const dayNumberx  = dateObj.getDay(); // 0 = อาทิตย์, 1 = จันทร์, ..., 6 = เสาร์
 if(dayNumber  > 20 ){
-console.log(dayNumberx  + ' ' + dateObj.getMonth() + ' = ' +  dayNumber )
+console.log(dayNumberx  + ' ' + dateObj.getMonth() + ' ' + dateObj.getFullYear() + ' = ' +  dayNumber )
 
 }
 
