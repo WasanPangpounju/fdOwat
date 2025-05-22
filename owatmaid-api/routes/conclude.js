@@ -1859,9 +1859,6 @@ dataCal.holidayOT = await workplaces?.[0]?.holidayOT || 0;
 let isDayOff  = false;
 // console.log(JSON.stringify(workplaces?.[0]?.daysOff,null,2))
 for(let itemDay of workplaces?.[0]?.daysOff){
-  // console.log(itemDay.toISOString().split('T')[0])
-  // console.log(date.toISOString().split('T')[0])
-  // console.log(toBangkokDate(itemDay)+  ' = '+ date)
   if(toBangkokDate(itemDay) === date) {
   console.log('special day off ' + toBangkokDate(itemDay)+  ' = '+ date)
   isDayOff   = true
@@ -1891,9 +1888,10 @@ const dayNumberx = dateObj.getDay(); // 0 = อาทิตย์, ..., 6 = เ�
 const dateOfMonth = dateObj.getDate(); // 1 - 31
 
 
-
 let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumberx );
-
+if(dayNumber < 10) {
+  console.log(dayNumber)
+}
   if(check === true) {
     // console.log(date +workTimeDay.workOrStop )
     dataCal.dayType = await workTimeDay.workOrStop;
