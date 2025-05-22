@@ -1806,7 +1806,7 @@ const toBangkokDate = (input) => {
 
 const checkDayRate = async (workplaceId, wGroup, date ) => {
   // date  = await toBangkokDate(date);
-// console.log("test" , workplaceId, wGroup, date );
+console.log("test" , workplaceId, wGroup, date );
 // console.log(date.getDay() );
 
 //data for cal
