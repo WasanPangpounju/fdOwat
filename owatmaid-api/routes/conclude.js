@@ -1796,6 +1796,12 @@ return true;
 
 }
 
+const createBangkokDate = (yyyyMMdd) => {
+  // สร้าง Date โดยระบุว่าเป็นเวลาเที่ยงคืนของไทย
+  const [year, month, day] = yyyyMMdd.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day, 0, 0, 0)); // ใช้ UTC เพื่อความแม่นยำ แล้วค่อยแปลง
+};
+
 const toBangkokDate = (input) => {
   const utcDate = new Date(input);
   const utcTime = utcDate.getTime();
@@ -1848,7 +1854,7 @@ let isDayOff  = false;
 for(let itemDay of workplaces?.[0]?.daysOff){
   // console.log(itemDay.toISOString().split('T')[0])
   // console.log(date.toISOString().split('T')[0])
-  console.log(toBangkokDate(itemDay)  + ' = '+ date)
+  console.log(createBangkokDate (toBangkokDate(itemDay))  + ' = '+ createBangkokDate (date))
   if(toBangkokDate(itemDay) == date) {
   console.log(date.toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }) )
 isDayOff   = true
