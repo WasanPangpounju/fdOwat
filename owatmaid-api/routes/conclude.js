@@ -1834,8 +1834,8 @@ dataCal.holidayOT = await workplaces?.[0]?.holidayOT || 0;
 for(let itemDay of workplaces?.[0]?.daysOff){
   // console.log(itemDay.toISOString().split('T')[0])
   // console.log(date.toISOString().split('T')[0])
-  if(itemDaytoLocaleString("th-TH", { timeZone: "Asia/Bangkok" }) == date.toLocaleString("th-TH", { timeZone: "Asia/Bangkok" })) {
-  console.log(date.toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }))
+  if(itemDay.toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }) == date.toLocaleString("th-TH", { timeZone: "Asia/Bangkok" })) {
+  console.log(date.toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }) )
 
   }
 }
