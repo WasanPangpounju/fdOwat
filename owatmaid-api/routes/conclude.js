@@ -1796,10 +1796,18 @@ return true;
 
 }
 
+
+const toBangkokDate = (input) => {
+  const date = new Date(input);
+  // Offset Bangkok คือ +7 ชั่วโมง = 7 * 60 * 60 * 1000 ms
+  const bangkokOffset = 7 * 60 * 60 * 1000;
+  return new Date(date.getTime() + bangkokOffset);
+};
+
 const checkDayRate = async (workplaceId, wGroup, date ) => {
-  date  = await date.toLocaleString("th-TH", { timeZone: "Asia/Bangkok" });
+  date  = await toBangkokDate(date);
+  
 console.log("test" , workplaceId, wGroup, date );
-return;
 // console.log(date.getDay() );
 
 //data for cal
