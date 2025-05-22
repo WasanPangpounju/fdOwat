@@ -1831,22 +1831,13 @@ dataCal.holiday = await workplaces?.[0]?.holiday || 0;
 dataCal.holidayOT = await workplaces?.[0]?.holidayOT || 0;
 
 // console.log(JSON.stringify(workplaces?.[0]?.daysOff,null,2))
+for(let itemDay of workplaces?.[0]?.daysOff){
+  console.log(itemDay)
+}
 // dataCal?.daysOff
-// const isDayOff = workplaces?.[0]?.daysOff?.some(d => 
-//   new Date(d).toISOString().split('T')[0] === date.toISOString().split('T')[0]
-// );
-
-const formatDate = (d) => {
-  const dateObj = new Date(d);
-  const year = dateObj.getFullYear();
-  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-  const day = String(dateObj.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
-
-const formattedTargetDate = formatDate(date);
-
-const isDayOff = workplaces?.[0]?.daysOff?.some(d => formatDate(d) === formattedTargetDate);
+const isDayOff = workplaces?.[0]?.daysOff?.some(d => 
+  new Date(d).toISOString().split('T')[0] === date.toISOString().split('T')[0]
+);
 
 if(isDayOff == true) {
   console.log(date.toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }));
