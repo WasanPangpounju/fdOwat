@@ -2044,7 +2044,12 @@ const calculateCashValues_back = (employee_record, month, year ) => {
 // console.log(record.workplaceId|| 0);
 // console.log(record.wGroup || '');
 // console.log(record.date || '');
-const dataRate = await checkDayRate(record.workplaceId, record.wGroup , new Date(year, month -1, record.date ));
+// const dataRate = await checkDayRate(record.workplaceId, record.wGroup , new Date(year, month -1, record.date ));
+const rawDate = new Date(year, month - 1, record.date); // สร้างวันที่จากปี/เดือน/วัน
+const bangkokDate = toBangkokDate(rawDate); // ปรับให้ตรงกับเวลาไทย
+
+const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate);
+
 // await console.log(JSON.stringify(dataRate ,null,2))
 
 let cashBeforeOt = await (record.beforeTotalOtTime || 0) * parseFloat(dataRate.workRateOT || '0');
