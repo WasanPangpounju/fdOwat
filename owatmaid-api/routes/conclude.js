@@ -1890,11 +1890,11 @@ const dateObj = new Date(dateString );
 const dayNumberx = dateObj.getDay(); // 0 = อาทิตย์, ..., 6 = เสาร์
 const dateOfMonth = dateObj.getDate(); // 1 - 31
 
-// if (dateOfMonth < 11 ) {
+if (dateOfMonth < 20 ) {
   console.log(dateString )
   console.log(dayNumberx + ' ' + dateObj.getMonth() + ' ' + dateObj.getFullYear() + ' = ' + dateOfMonth + ' ' + m);
 console.log('m ' + m) 
-// }
+}
 
 
 let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumberx );
