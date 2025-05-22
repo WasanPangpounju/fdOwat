@@ -1958,7 +1958,7 @@ const bangkokDate = toBangkokDate(rawDate); // ปรับให้ตรงก
 
 const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate);
 
-// console.log(record.date );
+console.log(record.date );
 // console.log(employeeId + JSON.stringify(employeeProfile[0].salary,null,2))
 // console.log('add salary' + JSON.stringify(addSalary,null,2) );
 
