@@ -1883,7 +1883,7 @@ if(isDayOff == true) {
 for(const workTimeDay of workplaces[0].workTimeDay) {
   // let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay , date.getDay());
   const [y, m, d] = date.split('-').map(Number);
-const dateObj = new Date(y, m - 1, d);
+const dateObj = new Date(y, '03', d);
 const dayNumberx = dateObj.getDay(); // 0 = อาทิตย์, ..., 6 = เสาร์
 const dateOfMonth = dateObj.getDate(); // 1 - 31
 
