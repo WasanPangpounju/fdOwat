@@ -1882,15 +1882,15 @@ if(isDayOff == true) {
 //check day type
 for(const workTimeDay of workplaces[0].workTimeDay) {
   // let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay , date.getDay());
-  // แปลงวันที่แบบ string yyyy-mm-dd กลับเป็น Date object
-// const dateObj = new Date(date); // สมมุติว่า parameter ชื่อ date
-const [y, m, d] = date.split('-').map(Number);
+  const [y, m, d] = date.split('-').map(Number);
 const dateObj = new Date(y, m - 1, d);
-const dayNumberx  = dateObj.getDay(); // 0 = อาทิตย์, 1 = จันทร์, ..., 6 = เสาร์
-if(dayNumber  == 23 ){
-console.log(dayNumberx  + ' ' + dateObj.getMonth() + ' ' + dateObj.getFullYear() + ' = ' +  dayNumber  + ' ' + m)
+const dayNumberx = dateObj.getDay(); // 0 = อาทิตย์, ..., 6 = เสาร์
+const dateOfMonth = dateObj.getDate(); // 1 - 31
 
+if (dateOfMonth === 23) {
+  console.log(dayNumberx + ' ' + dateObj.getMonth() + ' ' + dateObj.getFullYear() + ' = ' + dateOfMonth + ' ' + m);
 }
+
 
 let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumber );
 
