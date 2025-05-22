@@ -1882,7 +1882,7 @@ if(isDayOff == true) {
 for(const workTimeDay of workplaces[0].workTimeDay) {
   let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay , date.getDay());
   if(check === true) {
-    console.log(date.getDay() +workTimeDay.workOrStop )
+    console.log(date +workTimeDay.workOrStop )
     dataCal.dayType = await workTimeDay.workOrStop;
 
 // console.log("data " ,workTimeDay.startDay, workTimeDay.endDay , date.getDay() );
