@@ -1890,7 +1890,7 @@ const dateObj = new Date(dateString );
 const dayNumberx = dateObj.getDay(); // 0 = อาทิตย์, ..., 6 = เสาร์
 const dateOfMonth = dateObj.getDate(); // 1 - 31
 
-if (dateOfMonth === 23) {
+if (dateOfMonth < 11 ) {
   console.log(dateString )
   console.log(dayNumberx + ' ' + dateObj.getMonth() + ' ' + dateObj.getFullYear() + ' = ' + dateOfMonth + ' ' + m);
  
