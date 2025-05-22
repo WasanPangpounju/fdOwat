@@ -1842,7 +1842,7 @@ if (wGroup !== '') {
         const workplaces = await Workplace.find(query);
 
 if(workplaces.length > 0 ) {
-dataCal.workRate = await parseFloat(workplaces?.[0]?.workRate || '0') / 8 || 0;;
+dataCal.workRate = await parseFloat(workplaces?.[0]?.workRate || '0') / 8 || 0;
 dataCal.worktTime = await parseFloat(workplaces?.[0]?.workOfHour_subHour || '0') + parseFloat(workplaces?.[0]?.workOfHour_subMinute || '0');
 dataCal.workRateOT = await workplaces?.[0]?.workRateOT || 0;
 let tmp_OT = await (parseFloat(workplaces?.[0]?.workOfOT_subHour || '0')* 60 + parseFloat(workplaces?.[0]?.workOfOT_subMinute || '0')) -
@@ -1889,9 +1889,11 @@ const dateOfMonth = dateObj.getDate(); // 1 - 31
 
 
 let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumberx );
+
 if(dayNumber < 10) {
   console.log(dayNumber)
 }
+
   if(check === true) {
     // console.log(date +workTimeDay.workOrStop )
     dataCal.dayType = await workTimeDay.workOrStop;
