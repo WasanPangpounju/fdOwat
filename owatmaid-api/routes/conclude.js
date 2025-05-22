@@ -1865,7 +1865,7 @@ for(let itemDay of workplaces?.[0]?.daysOff){
   if(toBangkokDate(itemDay) === date) {
   console.log('special day off ' + toBangkokDate(itemDay)+  ' = '+ date)
   isDayOff   = true
-break;  
+continue;  
   }
 }
 // dataCal?.daysOff
