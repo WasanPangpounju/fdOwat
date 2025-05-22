@@ -1830,19 +1830,20 @@ dataCal.dayoffRateOT = await workplaces?.[0]?.dayoffRateOT || 0;
 dataCal.holiday = await workplaces?.[0]?.holiday || 0;
 dataCal.holidayOT = await workplaces?.[0]?.holidayOT || 0;
 
+let isDayOff  = false;
 // console.log(JSON.stringify(workplaces?.[0]?.daysOff,null,2))
 for(let itemDay of workplaces?.[0]?.daysOff){
   // console.log(itemDay.toISOString().split('T')[0])
   // console.log(date.toISOString().split('T')[0])
   if(itemDay.toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }) == date.toLocaleString("th-TH", { timeZone: "Asia/Bangkok" })) {
   console.log(date.toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }) )
-
+isDayOff   = true
   }
 }
 // dataCal?.daysOff
-const isDayOff = workplaces?.[0]?.daysOff?.some(d => 
-  new Date(d).toISOString().split('T')[0] === date.toISOString().split('T')[0]
-);
+// const isDayOff = workplaces?.[0]?.daysOff?.some(d => 
+  // new Date(d).toISOString().split('T')[0] === date.toISOString().split('T')[0]
+// );
 
 if(isDayOff == true) {
   console.log(date.toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }));
