@@ -1885,7 +1885,7 @@ for(const workTimeDay of workplaces[0].workTimeDay) {
   // แปลงวันที่แบบ string yyyy-mm-dd กลับเป็น Date object
 const dateObj = new Date(date); // สมมุติว่า parameter ชื่อ date
 const dayNumberx  = dateObj.getDay(); // 0 = อาทิตย์, 1 = จันทร์, ..., 6 = เสาร์
-console.log(dayNumberx  + dayNumber )
+console.log(dayNumberx  + ' ' + dayNumber )
 let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumber );
 
   if(check === true) {
