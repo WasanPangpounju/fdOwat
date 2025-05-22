@@ -1893,7 +1893,7 @@ const dateOfMonth = dateObj.getDate(); // 1 - 31
 if (dateOfMonth < 11 ) {
   console.log(dateString )
   console.log(dayNumberx + ' ' + dateObj.getMonth() + ' ' + dateObj.getFullYear() + ' = ' + dateOfMonth + ' ' + m);
- 
+console.log('m ' + m) 
 }
 
 
