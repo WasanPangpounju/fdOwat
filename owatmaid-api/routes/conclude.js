@@ -2079,7 +2079,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     for (const doc of result) {
         // ข้ามเอกสารที่ status มีค่า (ไม่ว่าง)
   if (doc.status && doc.status.trim() !== "") {
-    console.log(`⏩ Skipping calculation for employeeId=${doc.employeeId} because status="${doc.status}"`);
+    // console.log(`⏩ Skipping calculation for employeeId=${doc.employeeId} because status="${doc.status}"`);
     continue;
   }
 
@@ -2089,7 +2089,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
       }
     
       // Debug: ดูค่า record แรกก่อนเรียก calculateCashValues
-      console.log("🚀 Checking first record:", JSON.stringify(doc.employee_record[0], null, 2));
+      // console.log("🚀 Checking first record:", JSON.stringify(doc.employee_record[0], null, 2));
     
       try {
         const updatedRecords = await calculateCashValues(employeeId, doc.employee_record, month, year);
