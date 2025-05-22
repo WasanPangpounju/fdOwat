@@ -1884,8 +1884,8 @@ for(const workTimeDay of workplaces[0].workTimeDay) {
   // let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay , date.getDay());
   // แปลงวันที่แบบ string yyyy-mm-dd กลับเป็น Date object
 // const dateObj = new Date(date); // สมมุติว่า parameter ชื่อ date
-const [year, month, day] = date.split('-').map(Number); // date = 'yyyy-mm-dd'
-const dateObj = new Date(year, month - 1, day); // บังคับไม่ใช้ UTC
+const [y, m, d] = date.split('-').map(Number);
+const dateObj = new Date(y, m - 1, d);
 const dayNumberx  = dateObj.getDay(); // 0 = อาทิตย์, 1 = จันทร์, ..., 6 = เสาร์
 if(dayNumber  == 23 ){
 console.log(dayNumberx  + ' ' + dateObj.getMonth() + ' ' + dateObj.getFullYear() + ' = ' +  dayNumber )
