@@ -1797,8 +1797,8 @@ return true;
 }
 
 const checkDayRate = async (workplaceId, wGroup, date ) => {
+  date  = await date.toLocaleString("th-TH", { timeZone: "Asia/Bangkok" });
 console.log("test" , workplaceId, wGroup, date );
-return;
 
 // console.log(date.getDay() );
 
