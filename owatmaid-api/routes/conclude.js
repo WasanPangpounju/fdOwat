@@ -1885,11 +1885,14 @@ for(const workTimeDay of workplaces[0].workTimeDay) {
   // แปลงวันที่แบบ string yyyy-mm-dd กลับเป็น Date object
 const dateObj = new Date(date); // สมมุติว่า parameter ชื่อ date
 const dayNumberx  = dateObj.getDay(); // 0 = อาทิตย์, 1 = จันทร์, ..., 6 = เสาร์
+if(dayNumber  > 20 ){
 console.log(dayNumberx  + ' ' + dayNumber )
+}
+
 let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumber );
 
   if(check === true) {
-    console.log(date +workTimeDay.workOrStop )
+    // console.log(date +workTimeDay.workOrStop )
     dataCal.dayType = await workTimeDay.workOrStop;
 
 // console.log("data " ,workTimeDay.startDay, workTimeDay.endDay , date.getDay() );
