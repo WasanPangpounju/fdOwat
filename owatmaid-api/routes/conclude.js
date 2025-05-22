@@ -1796,13 +1796,18 @@ return true;
 
 }
 
-
 const toBangkokDate = (input) => {
-  const date = new Date(input);
-  // Offset Bangkok คือ +7 ชั่วโมง = 7 * 60 * 60 * 1000 ms
-  const bangkokOffset = 7 * 60 * 60 * 1000;
-  return new Date(date.getTime() + bangkokOffset);
+  const utcDate = new Date(input);
+  const utcTime = utcDate.getTime();
+  const bangkokOffset = 7 * 60 * 60 * 1000; // UTC+7 in ms
+
+  const bangkokTime = utcTime + bangkokOffset;
+  const adjusted = new Date(bangkokTime);
+
+  // ล้างเวลาให้เป็น 00:00 ของวันไทย
+  return new Date(adjusted.getFullYear(), adjusted.getMonth(), adjusted.getDate());
 };
+
 
 const checkDayRate = async (workplaceId, wGroup, date ) => {
 // console.log("test" , workplaceId, wGroup, date );
@@ -1841,8 +1846,8 @@ dataCal.holidayOT = await workplaces?.[0]?.holidayOT || 0;
 let isDayOff  = false;
 // console.log(JSON.stringify(workplaces?.[0]?.daysOff,null,2))
 for(let itemDay of workplaces?.[0]?.daysOff){
-  // console.log(itemDay.toISOString().split('T')[0])
-  // console.log(date.toISOString().split('T')[0])
+  console.log(itemDay.toISOString().split('T')[0])
+  console.log(date.toISOString().split('T')[0])
   if(itemDay.toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }) == date.toLocaleString("th-TH", { timeZone: "Asia/Bangkok" })) {
   console.log(date.toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }) )
 isDayOff   = true
