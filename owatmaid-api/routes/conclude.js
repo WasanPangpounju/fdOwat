@@ -1890,20 +1890,21 @@ const dateOfMonth = dateObj.getDate(); // 1 - 31
 
 let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumberx );
 
-if(dayNumber < 10) {
-  console.log(dayNumber)
-}
 
   if(check === true) {
     // console.log(date +workTimeDay.workOrStop )
     dataCal.dayType = await workTimeDay.workOrStop;
-
+break;
 // console.log("data " ,workTimeDay.startDay, workTimeDay.endDay );
 // console.log("data " ,workTimeDay.startDay, workTimeDay.endDay , date.getDay() );
 
   }
+else {
+      dataCal.dayType = 'work';
 
+}
 } //end for
+
 }
 
 // await console.log("wr "+ JSON.stringify(dataCal,null,2));
@@ -1966,7 +1967,7 @@ const rawDate = new Date(year, month - 1, record.date); // สร้างวั
 const bangkokDate = toBangkokDate(rawDate); // ปรับให้ตรงกับเวลาไทย
 
 const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate , record.date );
-if(record.date == 29 ) {
+if(record.date == 31 ) {
   console.log(dataRate?.dayType )
 }
 
