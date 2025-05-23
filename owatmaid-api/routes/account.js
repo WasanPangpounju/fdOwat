@@ -4605,6 +4605,7 @@ if (!sumCashWorkMul[record?.cashWorkMul]) {
           }
 
         if (record?.dayType === 'stop') {
+          console.log(record?.dayType );
           dayOffCount += 1;
           sumcashDayOffCount= parseFloat(sumcashDayOffCount || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0') 
 
