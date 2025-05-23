@@ -2008,8 +2008,8 @@ let addSalaryDaily = [];
     }else 
     if(dataRate?.dayType === 'specialDayOff') {
       cashBeforeOt = await ((record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.holidayOT || '0') * salary  || 0)) || '';
-      cashWork = await (parseFloat(record.totalTime || 0) * parseFloat(salary || 0) * parseFloat(dataRate?.holiday || 0)) || 0;
-      console.log('totalTime ' + parseFloat(record.totalTime || 0) + ' salary ' +   parseFloat(salary || 0) + ' dataRate ' + parseFloat(dataRate?.holiday || 1)) 
+      cashWork = await (parseFloat(record.totalTime || 0) * parseFloat(salary || 0) * parseFloat(dataRate?.holidayHour|| 1)) || 0;
+      console.log('totalTime ' + parseFloat(record.totalTime || 0) + ' salary ' +   parseFloat(salary || 0) + ' dataRate ' + parseFloat(dataRate?.holidayHour || 1)) 
       cashOt = await (record.totalOtTime || 0) * (parseFloat(dataRate?.holidayOT || '0') * salary ) || '';
       dayType = await dataRate?.dayType || '';
        cashBeforeOtMul = dataRate?.holidayOT ||  0;
