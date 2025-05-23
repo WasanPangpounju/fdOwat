@@ -4597,7 +4597,8 @@ if (!sumCashWorkMul[record?.cashWorkMul]) {
       //check dayType
         if (record?.dayType !== '') {
           // console.log('specialDay  ' + specialDay )
-          if (selectedSpecialDays.includes(record?.date)) {
+          // if (selectedSpecialDays.includes(record?.date)) {
+          if (selectedSpecialDays.includes(Number(record?.date))) {
             // console.log(`วันที่ ${record?.date} อยู่ใน selectedSpecialDays`);
             specialDay   = specialDay   -1;
                       console.log(JSON.stringify(selectedSpecialDays,null,2))
