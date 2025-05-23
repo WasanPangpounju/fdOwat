@@ -9108,13 +9108,13 @@ const overtimeLabels = [    "ค่าทำงานวันหยุด",
                                         {record.employeeName} <span style={{ float: "right" }}>เช้า</span>
                                     </td>
                                     {dayNumbers.map((day, i) => {
-    const found = record?.employee_record?.find(itemx => itemx.date === day);
-    return (
-      <td key={i} className="text-center">
-        {found?.workplaceId?.trim() ? '1' : ''}
-      </td>
-    );
-  })}
+  const found = record?.employee_record?.find(itemx => itemx.date === day);
+  return (
+    <td key={i} className="text-center text-danger">
+      {found?.dayType === "work" ? '1' : ''}
+    </td>
+  );
+})}     
 
                     <td className="text-center align-middle">
                       {/* รวมวันทำงาน */}
@@ -9201,7 +9201,7 @@ const overtimeLabels = [    "ค่าทำงานวันหยุด",
 {dayNumbers.map((day, i) => {
                         const found = record?.employee_record?.find(itemx => itemx.date === day);
                     return (
-                      <td key={i} className="text-center">
+                      <td key={i} className="text-red">
                         {found?.cashOtMul?.trim()
                           ? [found.beforeTotalOtTime, found.totalOtTime].filter(Boolean).join(',')
                           : ''}
@@ -9229,9 +9229,14 @@ const overtimeLabels = [    "ค่าทำงานวันหยุด",
                     <tr>
                     <td></td>
                     <td><span style={{  paddingLeft:"75px" }}>โอที 2 </span></td>
-                    {Array.from({ length: 39 }).map((_, i) => (
-                        <td key={i} className="text-center"></td>
-                    ))}              
+                    {dayNumbers.map((day, i) => {
+  const found = record?.employee_record?.find(itemx => itemx.date === day);
+  return (
+    <td key={i} className="text-center text-danger">
+      {found?.dayType === "stop" ? found.totalTime : ''}
+    </td>
+  );
+})}                  
 
 {workplaceAddsalary.map((_, i) => (
                         <td key={i} className="text-center"></td>
