@@ -896,10 +896,6 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
             // let otTime = parseFloat(`${hours1}.${scaledMinutes1}`).toFixed(2) || 0;
             let scaledMinutes1 = minutes1;
             let otTime = `${parseFloat(hours1 || 0)}.${parseFloat(scaledMinutes1 || 0 ) } `;
-if(str1  === '26') {
-  // console.log(JSON.stringify(element))
-  console.log(str1  )
-}
             if (element.specialtSalary !== '' || element.specialtSalaryOT !== '') {
               tmp.workRate = element.specialtSalary || '';
               tmp.workRateMultiply = Number(element.specialtSalary || 0) / Number(wpResponse.data.workRate || 0);
@@ -1800,7 +1796,33 @@ return true;
 
 }
 
-const checkDayRate = async (workplaceId, wGroup, date ) => {
+const createBangkokDate = (yyyyMMdd) => {
+  // สร้าง Date โดยระบุว่าเป็นเวลาเที่ยงคืนของไทย
+  const [year, month, day] = yyyyMMdd.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day, 0, 0, 0)); // ใช้ UTC เพื่อความแม่นยำ แล้วค่อยแปลง
+};
+
+const toBangkokDate = (input) => {
+  const utcDate = new Date(input);
+  const utcTime = utcDate.getTime();
+  const bangkokOffset = 7 * 60 * 60 * 1000; // UTC+7 in milliseconds
+
+  // Add the Bangkok offset to the UTC time
+  const bangkokTime = utcTime + bangkokOffset;
+
+  // Convert to a Date object and extract the date in Bangkok time
+  const bangkokDateObj = new Date(bangkokTime);
+  const y = bangkokDateObj.getUTCFullYear();
+  const m = String(bangkokDateObj.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(bangkokDateObj.getUTCDate()).padStart(2, '0');
+
+  // Return a string in yyyy-mm-dd format
+  return `${y}-${m}-${d}`;
+};
+
+
+
+const checkDayRate = async (workplaceId, wGroup, date , dayNumber ) => {
 // console.log("test" , workplaceId, wGroup, date );
 // console.log(date.getDay() );
 
@@ -1820,7 +1842,7 @@ if (wGroup !== '') {
         const workplaces = await Workplace.find(query);
 
 if(workplaces.length > 0 ) {
-dataCal.workRate = await parseFloat(workplaces?.[0]?.workRate || '0') / 8 || 0;;
+dataCal.workRate = await parseFloat(workplaces?.[0]?.workRate || '0') / 8 || 0;
 dataCal.worktTime = await parseFloat(workplaces?.[0]?.workOfHour_subHour || '0') + parseFloat(workplaces?.[0]?.workOfHour_subMinute || '0');
 dataCal.workRateOT = await workplaces?.[0]?.workRateOT || 0;
 let tmp_OT = await (parseFloat(workplaces?.[0]?.workOfOT_subHour || '0')* 60 + parseFloat(workplaces?.[0]?.workOfOT_subMinute || '0')) -
@@ -1829,15 +1851,24 @@ let tmp_OT = await (parseFloat(workplaces?.[0]?.workOfOT_subHour || '0')* 60 + p
 dataCal.worktTimeOT = await Math.floor(tmp_OT / 60) + tmp_OT % 60;
 dataCal.worktTimeStartOT = await parseFloat(workplaces?.[0]?.startWorkOfOT_subHour || '0') + parseFloat(workplaces?.[0]?.startWorkOfOT_subMinute || '0');
 
-dataCal.dayoffRateHour = await workplaces?.[0]?.dayoffRateHour || 0;
-dataCal.dayoffRateOT = await workplaces?.[0]?.dayoffRateOT || 0;
-dataCal.holiday = await workplaces?.[0]?.holiday || 0;
-dataCal.holidayOT = await workplaces?.[0]?.holidayOT || 0;
+dataCal.dayoffRateHour = await workplaces?.[0]?.dayoffRateHour || 1;
+dataCal.dayoffRateOT = await workplaces?.[0]?.dayoffRateOT || 1;
+dataCal.holidayHour= await workplaces?.[0]?.holidayHour|| 1;
+dataCal.holidayOT = await workplaces?.[0]?.holidayOT || 1;
 
+let isDayOff  = false;
+// console.log(JSON.stringify(workplaces?.[0]?.daysOff,null,2))
+for(let itemDay of workplaces?.[0]?.daysOff){
+  if(toBangkokDate(itemDay) === date) {
+  console.log('special day off ' + toBangkokDate(itemDay)+  ' = '+ date)
+  isDayOff   = true
+break;  
+  }
+}
 // dataCal?.daysOff
-const isDayOff = workplaces?.[0]?.daysOff?.some(d => 
-  new Date(d).toISOString().split('T')[0] === date.toISOString().split('T')[0]
-);
+// const isDayOff = workplaces?.[0]?.daysOff?.some(d => 
+  // new Date(d).toISOString().split('T')[0] === date.toISOString().split('T')[0]
+// );
 
 if(isDayOff == true) {
   console.log(date.toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }));
@@ -1847,16 +1878,33 @@ if(isDayOff == true) {
 // console.log(JSON.stringify(workplaces,null,2) );
 //check day type
 for(const workTimeDay of workplaces[0].workTimeDay) {
-  let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay , date.getDay());
-  if(check === true) {
-    // console.log(workTimeDay.workOrStop )
-    dataCal.dayType = await workTimeDay.workOrStop;
+  // let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay , date.getDay());
+  const [y, m, d] = date.split('-').map(Number);
+const paddedMonth = String(m - 1).padStart(2, '0');  
+    let dateString = y + '-' + paddedMonth  + '-' + d + 'T00:00:00';
 
+const dateObj = new Date(dateString );
+const dayNumberx = dateObj.getDay(); // 0 = อาทิตย์, ..., 6 = เสาร์
+const dateOfMonth = dateObj.getDate(); // 1 - 31
+
+
+let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumberx );
+
+
+  if(check === true) {
+    // console.log(date +workTimeDay.workOrStop )
+    dataCal.dayType = await workTimeDay.workOrStop;
+break;
+// console.log("data " ,workTimeDay.startDay, workTimeDay.endDay );
 // console.log("data " ,workTimeDay.startDay, workTimeDay.endDay , date.getDay() );
 
   }
+else {
+      dataCal.dayType = 'work';
 
+}
 } //end for
+
 }
 
 // await console.log("wr "+ JSON.stringify(dataCal,null,2));
@@ -1914,7 +1962,14 @@ month = 12;
 // console.log('employee workplace' + employeeProfile[0].workplace);
 const workplaceId = employeeProfile[0].workplace === "10105" ? "10105" : record.workplaceId;
 
-      const dataRate = await checkDayRate(workplaceId,  record.wGroup, new Date(year, month - 1, record.date));
+      // const dataRate = await checkDayRate(workplaceId,  record.wGroup, new Date(year, month - 1, record.date));
+const rawDate = new Date(year, month - 1, record.date); // สร้างวันที่จากปี/เดือน/วัน
+const bangkokDate = toBangkokDate(rawDate); // ปรับให้ตรงกับเวลาไทย
+
+const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate , record.date );
+if(record.date == 31 ) {
+  console.log(dataRate?.dayType )
+}
 
 // console.log(record.date );
 // console.log(employeeId + JSON.stringify(employeeProfile[0].salary,null,2))
@@ -1946,20 +2001,21 @@ let addSalaryDaily = [];
         if (dataRate?.dayType !== '') {
         if (dataRate?.dayType === 'stop') {
           
-         cashBeforeOt = await ((record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.dayoffRateOT || '0') * salary || 0)) || '';
-         cashWork = await (record.totalTime || 0) * (parseFloat(salary || '0') * parseFloat(dataRate?.dayoffRateHour || '0')) || '';
-         cashOt = await (record.totalOtTime || 0) * (parseFloat(dataRate?.dayoffRateOT || '0') * salary ) || '';
-         dayType = await dataRate?.dayType || '';
+         cashBeforeOt = await ((record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.dayoffRateOT || '0') * salary || 0)) || 0;
+         cashWork = await (record.totalTime || 0) * (parseFloat(salary || '0') * parseFloat(dataRate?.dayoffRateHour || '0')) || 0;
+         cashOt = await (record.totalOtTime || 0) * (parseFloat(dataRate?.dayoffRateOT || '0') * salary ) || 0;
+         dayType = await dataRate?.dayType || 0;
           cashBeforeOtMul = dataRate?.dayoffRateOT ||  0;
           cashWorkMul = dataRate?.dayoffRateHour || 0;
           cashOtMul = dataRate?.dayoffRateOT || 0;
           addSalaryDaily  = [];
     }else 
     if(dataRate?.dayType === 'specialDayOff') {
-      cashBeforeOt = await ((record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.holidayOT || '0') * salary  || 0)) || '';
-      cashWork = await (record.totalTime || 0) * (parseFloat(salary || '0') * parseFloat(dataRate?.holiday || '0')) || '';
-      cashOt = await (record.totalOtTime || 0) * (parseFloat(dataRate?.holidayOT || '0') * salary ) || '';
-      dayType = await dataRate?.dayType || '';
+      cashBeforeOt = await ((record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.holidayOT || '0') * salary  || 0)) || 0;
+      cashWork = await (parseFloat(record.totalTime || 0) * parseFloat(salary || 0) * parseFloat(dataRate?.holidayHour || 1)) || 0;
+      console.log('totalTime ' + parseFloat(record.totalTime || 0) + ' salary ' +   parseFloat(salary || 0) + ' dataRate ' + parseFloat(dataRate?.holidayHour || 1)) 
+      cashOt = await (record.totalOtTime || 0) * (parseFloat(dataRate?.holidayOT || '0') * salary ) || 0;
+      dayType = await dataRate?.dayType || 0;
        cashBeforeOtMul = dataRate?.holidayOT ||  0;
        cashWorkMul = dataRate?.holiday || 0;
        cashOtMul = dataRate?.holidayOT || 0;
@@ -1967,9 +2023,9 @@ let addSalaryDaily = [];
     } else {
 
       if(dataRate?.dayType === "work") {
-       cashBeforeOt = await (record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.workRateOT || '0') * salary );
+       cashBeforeOt = await (record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.workRateOT || '0') * salary ) || 0;
        cashWork = await (record.totalTime || 0) * salary;
-       cashOt = await (record.totalOtTime || 0) * (parseFloat(dataRate?.workRateOT || '0') * salary );
+       cashOt = await (record.totalOtTime || 0) * (parseFloat(dataRate?.workRateOT || '0') * salary ) || 0;
        dayType = await dataRate?.dayType || '';
        cashBeforeOtMul = await dataRate?.workRateOT ||  0;
        cashWorkMul = 1;
@@ -2025,7 +2081,12 @@ const calculateCashValues_back = (employee_record, month, year ) => {
 // console.log(record.workplaceId|| 0);
 // console.log(record.wGroup || '');
 // console.log(record.date || '');
-const dataRate = await checkDayRate(record.workplaceId, record.wGroup , new Date(year, month -1, record.date ));
+// const dataRate = await checkDayRate(record.workplaceId, record.wGroup , new Date(year, month -1, record.date ));
+const rawDate = new Date(year, month - 1, record.date); // สร้างวันที่จากปี/เดือน/วัน
+const bangkokDate = toBangkokDate(rawDate); // ปรับให้ตรงกับเวลาไทย
+
+const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate , record.date );
+
 // await console.log(JSON.stringify(dataRate ,null,2))
 
 let cashBeforeOt = await (record.beforeTotalOtTime || 0) * parseFloat(dataRate.workRateOT || '0');
@@ -2083,7 +2144,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     for (const doc of result) {
         // ข้ามเอกสารที่ status มีค่า (ไม่ว่าง)
   if (doc.status && doc.status.trim() !== "") {
-    console.log(`⏩ Skipping calculation for employeeId=${doc.employeeId} because status="${doc.status}"`);
+    // console.log(`⏩ Skipping calculation for employeeId=${doc.employeeId} because status="${doc.status}"`);
     continue;
   }
 
@@ -2093,7 +2154,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
       }
     
       // Debug: ดูค่า record แรกก่อนเรียก calculateCashValues
-      console.log("🚀 Checking first record:", JSON.stringify(doc.employee_record[0], null, 2));
+      // console.log("🚀 Checking first record:", JSON.stringify(doc.employee_record[0], null, 2));
     
       try {
         const updatedRecords = await calculateCashValues(employeeId, doc.employee_record, month, year);
