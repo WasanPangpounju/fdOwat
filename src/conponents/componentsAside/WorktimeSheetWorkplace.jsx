@@ -9022,7 +9022,7 @@ const overtimeLabels = [    "ค่าทำงานวันหยุด",
                         ดาวน์โหลดไฟล์
                       </button>
                       <div className="container-fluid d-flex justify-content-center align-items-center pt-3 boxText ">
-                          <div className="table-responsive" >
+                          <div className="" >
                           <table
                       className="excel-style-table  "
                       style={{
@@ -9105,7 +9105,7 @@ const overtimeLabels = [    "ค่าทำงานวันหยุด",
                         <><tr className="" key={idx}>
                                         <td className="text-center align-middle">{idx + 1}</td>
                                         <td>
-                                        {record.employeeName}  <span style={{ float: "right" }}>เช้า</span>
+                                        {record.employeeName} <span style={{ float: "right" }}>เช้า</span>
                                     </td>
                                     {dayNumbers.map((day, i) => {
     const found = record?.employee_record?.find(itemx => itemx.date === day);
@@ -9153,7 +9153,7 @@ const overtimeLabels = [    "ค่าทำงานวันหยุด",
 
                     <td className="text-center align-middle">
                       {/* หักประกันสังคม  */}
-                    {record.socialSecurity   || ''} 
+                    {record.socialSecurity ? parseFloat(record.socialSecurity).toFixed(2):''} 
                     </td>
 
                    

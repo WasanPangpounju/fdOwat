@@ -801,7 +801,15 @@ function Salaryresult() {
   }, [wsSocialSecurity, wsTax]);
 
 
-  const createDate = calsalarylist ? calsalarylist[0]?.createDate : null;
+  // const createDate = calsalarylist ? calsalarylist[0]?.createDate : null;
+  const createDate = new Date().toLocaleString('th-TH', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false
+});
 
   const countDay = calsalarylist
     ? calsalarylist[0]?.accountingRecord.countDay
@@ -2081,8 +2089,8 @@ try {
               <section class="Frame">
                 {staffFullName ? (
                   <div class="row">
-                    <div class="col-md-10">ชื่อ: {staffFullName}</div>
-                    <div class="col-md-2">คำนวณเมื่อ {createDate}</div>
+                    <div class="">ชื่อ: {staffFullName}</div>
+                    <div class="text-right">คำนวณเมื่อ {createDate}</div>
                   </div>
                 ) : (
                   <div>

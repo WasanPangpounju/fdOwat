@@ -3475,7 +3475,7 @@ function SalaryAllResultAudit({ employeeList, workplaceList }) {
   };
 
   return (
-    <body class="hold-transition sidebar-mini" className="editlaout">
+    <div class="hold-transition sidebar-mini" className="editlaout">
       <div class="wrapper">
         <div class="content-wrapper">
           {/* <!-- Content Header (Page header) --> */}
@@ -3729,7 +3729,7 @@ function SalaryAllResultAudit({ employeeList, workplaceList }) {
           </section>
         </div>
       </div>
-    </body>
+    </div>
     // </div>
   );
 }
