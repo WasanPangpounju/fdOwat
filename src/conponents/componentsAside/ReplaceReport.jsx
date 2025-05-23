@@ -336,7 +336,7 @@ function ReplaceReport({ employeeList, workplaceList }) {
                       </tbody>
                     </table>
                   </div> */}
-                  <table className="table table-bordered">
+                  <table className="table table-bordered ">
                     <thead>
                       <tr>
                         <th>หน่วยงาน</th>

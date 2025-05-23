@@ -77,10 +77,10 @@ body {
 
 .no-x-border {
     border-top: none !important;
-    border-bottom: none !important;
+   
   }
   
-.no-tbody-borders tbody td {
+/* .no-tbody-borders tbody td {
   border: none !important;
 }
 
@@ -88,30 +88,22 @@ tbody td,
 tbody tr td,
 tbody tr {
   border-top: 0 !important;
-  border-bottom: none !important;
+ 
+} */
+
+.excel-style-table tbody td,
+.excel-style-table tbody tr td {
+  border: 1px solid #000 !important;
 }
 
-
-.table-bordered > tbody > tr > td {
-  border-left: 1px solid #dee2e6 !important;
-  border-right: 1px solid #dee2e6 !important;
+.excel-style-table .employee-last-row td {
+  border-bottom: 2px solid #000 !important;
 }
-
 
 .table-bordered {
-  border-top: 1px solid #dee2e6;
-  border-bottom: 1px solid #dee2e6;
-}
-tbody td,
-tbody tr td,
-tbody tr {
-  border: none !important;
+  border: 1px solid #dee2e6;
 }
 
-
-tbody tr:nth-child(5) td {  
-  border-bottom: 1px solid #dee2e6 !important;
-}
 
 
 .table-bordered {
