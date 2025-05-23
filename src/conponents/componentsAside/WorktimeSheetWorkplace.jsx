@@ -9022,7 +9022,7 @@ const overtimeLabels = [    "ค่าทำงานวันหยุด",
                         ดาวน์โหลดไฟล์
                       </button>
                       <div className="container-fluid d-flex justify-content-center align-items-center pt-3 boxText ">
-                          <div className="" >
+                          <div className="table-responsive" >
                           <table
                       className="excel-style-table  "
                       style={{
@@ -9194,9 +9194,7 @@ const overtimeLabels = [    "ค่าทำงานวันหยุด",
                     <tr>
                     <td></td>
                     <td><span style={{  paddingLeft:"30px" }}>{record.employeeId} โอที 1.5 </span></td>
-                    {Array.from({ length: 7 }).map((_, i) => (
-                        <td key={i} className="text-center"></td>
-                    ))}
+                    
 
                     
 
