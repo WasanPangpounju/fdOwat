@@ -1966,7 +1966,10 @@ const rawDate = new Date(year, month - 1, record.date); // สร้างวั
 const bangkokDate = toBangkokDate(rawDate); // ปรับให้ตรงกับเวลาไทย
 
 const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate , record.date );
-console.log('test ' + dataRate?.holidayHour)
+if(record.date == 31 ) {
+  dataRate?.dayType 
+}
+
 // console.log(record.date );
 // console.log(employeeId + JSON.stringify(employeeProfile[0].salary,null,2))
 // console.log('add salary' + JSON.stringify(addSalary,null,2) );
