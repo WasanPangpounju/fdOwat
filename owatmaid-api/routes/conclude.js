@@ -1851,10 +1851,10 @@ let tmp_OT = await (parseFloat(workplaces?.[0]?.workOfOT_subHour || '0')* 60 + p
 dataCal.worktTimeOT = await Math.floor(tmp_OT / 60) + tmp_OT % 60;
 dataCal.worktTimeStartOT = await parseFloat(workplaces?.[0]?.startWorkOfOT_subHour || '0') + parseFloat(workplaces?.[0]?.startWorkOfOT_subMinute || '0');
 
-dataCal.dayoffRateHour = await workplaces?.[0]?.dayoffRateHour || 0;
-dataCal.dayoffRateOT = await workplaces?.[0]?.dayoffRateOT || 0;
-dataCal.holiday = await workplaces?.[0]?.holiday || 0;
-dataCal.holidayOT = await workplaces?.[0]?.holidayOT || 0;
+dataCal.dayoffRateHour = await workplaces?.[0]?.dayoffRateHour || 1;
+dataCal.dayoffRateOT = await workplaces?.[0]?.dayoffRateOT || 1;
+dataCal.holidayHour= await workplaces?.[0]?.holidayHour|| 1;
+dataCal.holidayOT = await workplaces?.[0]?.holidayOT || 1;
 
 let isDayOff  = false;
 // console.log(JSON.stringify(workplaces?.[0]?.daysOff,null,2))
