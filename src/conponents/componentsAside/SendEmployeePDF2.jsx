@@ -76,6 +76,8 @@ const SendEmployeePDF2 = ({ employeeList }) => {
 
   const [inputValuesTest, setInputValuesTest] = useState([]);
   const [inputValuesFirst, setInputValuesFirst] = useState([]);
+  const [profilePicture, setProfilePicture] = useState(null);
+const [signatureFile, setSignatureFile] = useState(null);
 
   const [workDate, setWorkDate] = useState(new Date());
   // const formattedWorkDate = moment(workDate).format('DD/MM/YYYY');
@@ -174,48 +176,50 @@ const SendEmployeePDF2 = ({ employeeList }) => {
   }, [input1, employeeList]);
 
   const addInput = () => {
-    // e.preventDefault();
-    setInputValuesTest([
-      ...inputValuesTest,
-      {
-        Id: input1,
-        Name: prefix + input2 + " " + lastName,
-        age: age,
-        dateOfBirth: dateOfBirth,
-        idCard: idCard,
-        address: address,
-        currentAddress: currentAddress,
-        phoneNumber: phoneNumber,
-        maritalStatus: maritalStatus,
-        emergencyContactNumber: emergencyContactNumber,
-      },
-    ]);
-    setInputValuesFirst([
-      ...inputValuesFirst,
-      {
-        Id: input1,
-        Name: prefix + input2 + " " + lastName,
-        position: position,
-        educational: educational,
-      },
-    ]);
+  setInputValuesTest([
+    ...inputValuesTest,
+    {
+      Id: input1,
+      Name: prefix + input2 + " " + lastName,
+      age: age,
+      dateOfBirth: dateOfBirth,
+      idCard: idCard,
+      address: address,
+      currentAddress: currentAddress,
+      phoneNumber: phoneNumber,
+      maritalStatus: maritalStatus,
+      emergencyContactNumber: emergencyContactNumber,
+      profileImage: profilePicture // เก็บข้อมูลรูปภาพ
+    },
+  ]);
+  
+  setInputValuesFirst([
+    ...inputValuesFirst,
+    {
+      Id: input1,
+      Name: prefix + input2 + " " + lastName,
+      position: position,
+      educational: educational,
+    },
+  ]);
 
-    setInput1(""); // Clear the input1 field after adding
-    setInput2(""); // Clear the input2 field after adding
+  // ล้างค่าหลังจากเพิ่มข้อมูล
+  setInput1("");
+  setInput2("");
+  setPrefix("");
+  setLastName("");
+  setAge("");
+  setDateOfBirth("");
+  setIdCard("");
+  setAddress("");
+  setCurrentAddress("");
+  setPhoneNumber("");
+  setMaritalStatus("");
+  setEmergencyContactNumber("");
+  setPosition("");
+  setProfilePicture(null); // เพิ่มการล้างค่ารูปภาพ
+};
 
-    setPrefix("");
-    setLastName("");
-    setAge("");
-    setDateOfBirth("");
-    setIdCard("");
-    setAddress("");
-    setCurrentAddress("");
-    setPhoneNumber("");
-    setMaritalStatus("");
-    setEmergencyContactNumber("");
-
-    setPosition("");
-  };
   useEffect(() => {
     const handleKeyPress = (event) => {
       if (event.key === "Enter") {
@@ -239,492 +243,403 @@ const SendEmployeePDF2 = ({ employeeList }) => {
   };
 
   console.log("formattedDate321", formattedDate321);
-  const generatePDF2 = () => {
-    // const doc = new jsPDF();
-    const doc = new jsPDF({
-      orientation: "portrait", // 'portrait' or 'landscape'
-      unit: "mm", // measurement unit (you can choose from 'pt', 'mm', 'cm', or 'in')
-      format: "a4", // sets the document format to A4
+const generatePDF2 = async () => {
+  const doc = new jsPDF({
+    orientation: "portrait",
+    unit: "mm",
+    format: "a4",
+  });
+  
+  // เตรียมฟอนต์และรูปภาพพื้นฐาน
+  const fontPath = "/assets/fonts/THSarabunNew Bold.ttf";
+  doc.addFileToVFS(fontPath);
+  doc.addFont(fontPath, "THSarabunNew-Bold", "normal");
+  doc.setFont("THSarabunNew-Bold");
+  doc.setFontSize(14);
+
+  const OwatAddress = "/assets/images/new/OwatAddress.png";
+  const OwatIcon = "/assets/images/new/OwatIcon.png";
+  const OwatSupport = "/assets/images/new/icon_under.png";
+  
+  // ฟังก์ชันสำหรับแปลงรูปเป็น base64
+  const getImageData = (file) => {
+    return new Promise((resolve) => {
+      if (!file) {
+        resolve(null);
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target.result);
+      reader.readAsDataURL(file);
     });
-    // const fontPath = '/assets/fonts/THSarabunNew.ttf';
-    // doc.addFileToVFS(fontPath);
-    // doc.addFont(fontPath, 'THSarabunNew', 'normal');
-    const fontPath = "/assets/fonts/THSarabunNew Bold.ttf";
-    doc.addFileToVFS(fontPath);
-    doc.addFont(fontPath, "THSarabunNew-Bold", "normal");
-    doc.setFont("THSarabunNew-Bold");
-    doc.setFontSize(14);
+  };
 
-    const OwatAddress = "/assets/images/new/OwatAddress.png"; // Replace with the path to your PNG file
-    const OwatIcon = "/assets/images/new/OwatIcon.png"; // Replace with the path to your PNG file
-    // const OwatSupport = "/assets/images/OwatSupport.png"; // Replace with the path to your PNG file
-    const OwatSupport = "/assets/images/new/icon_under.png"; // Replace with the path to your PNG file
+  // สร้างหน้าแรกของ PDF
+  const maxWidth = 150;
+  const inviteLines = doc.splitTextToSize(`เรื่อง:     ` + title, maxWidth);
+  const titleLines = doc.splitTextToSize(`เรียน:     ` + invite, maxWidth);
+  const contentLines = doc.splitTextToSize(content, maxWidth);
 
-    const xx = 140; // X-coordinate
-    const yy = 10; // Y-coordinate
+  // Set the initial coordinates
+  let x = 30;
+  let y = 60;
+  
+  doc.addImage(OwatAddress, "PNG", 140, 10, 61.5, 28.4);
+  doc.addImage(OwatIcon, "PNG", 10, 10, 68, 30);
+  doc.addImage(OwatSupport, "PNG", 10, 270, 190, 16.4);
 
-    // Add the image to the PDF document
-    // doc.addImage(OwatAddress, 'PNG', xx, yy, 615, 284);
-    // doc.addImage(OwatIcon, 'PNG', xx, yy, 612, 270);
-    // doc.addImage(OwatSupport, 'PNG', xx, yy, 1130, 164);
+  
 
+  
+  
+  // Loop through each line and draw it on the PDF
+  inviteLines.forEach((line, index) => {
+    if (index > 0) {
+      x = 20;
+    }
+    doc.text(line, x, y);
+    y += 8;
+  });
+  
+  x = 30;
+  titleLines.forEach((line, index) => {
+    if (index > 0) {
+      x = 20;
+    }
+    doc.text(line, x, y + inviteLines.length);
+    y += 8;
+  });
+  
+  x = 30;
+  contentLines.forEach((line, index) => {
+    if (index > 0) {
+      x = 20;
+    }
+    doc.text(line, x, y + inviteLines.length + titleLines.length);
+    y += 8;
+  });
+  
+  x = 40;
+  doc.text(
+    `บริษัทฯ ใคร่ขอแจ้งให้ท่านทรบว่าพนักงานมรามีรายชื่อดั้งต่อไปนี้`,
+    x,
+    y + inviteLines.length + titleLines.length
+  );
+  
+  doc.text(`วันที่ : ${formattedDate321}`, 130, 50);
+  doc.text(codeClose, 160, 290);
+
+  // แสดงรายชื่อพนักงาน
+  inputValuesFirst.forEach((value, index) => {
+    if (index < 15) {
+      const x = 40;
+      const y =
+        70 +
+        10 * (titleLines.length + inviteLines.length + contentLines.length) +
+        index * 10;
+      
+      doc.setFontSize(14);
+      doc.text(`${index + 1}. ${value.Name}`, x, y);
+      doc.text(`ตำแหน่ง               ${value.position}`, x + 60, y);
+      doc.text(codeClose, 160, 290);
+    }
+  });
+
+  // แสดงเนื้อหาส่วนท้าย
+  const autoContent2 = doc.splitTextToSize(content2, maxWidth);
+  
+  // ส่วนการแสดงเนื้อหาส่วนท้ายและลายเซ็นในหน้าแรก
+if (inputValuesFirst.length < 16) {
+  const lengthFirst = inputValuesFirst.length;
+  
+  if (inputValuesFirst.length + autoContent2.length > 10) {
+    doc.addPage();
     doc.addImage(OwatAddress, "PNG", 140, 10, 61.5, 28.4);
     doc.addImage(OwatIcon, "PNG", 10, 10, 68, 30);
     doc.addImage(OwatSupport, "PNG", 10, 270, 190, 16.4);
-
-    // doc.setFont('THSarabunNew');
-    // const formatDateThai = (dateOfBirth) => {
-    //   if (!dateOfBirth) {
-    //     return "";
-    //   }
-    //   const thaiMonthNames = new Intl.DateTimeFormat("th-TH", { month: "long" })
-    //     .format;
-    //   const formattedDate = new Date(dateOfBirth);
-
-    //   const day = formattedDate.getDate();
-    //   const month = thaiMonthNames(formattedDate);
-    //   const year = formattedDate.getFullYear();
-
-    //   return `${day} ${month} ${year}`;
-    // };
-
-    // const formatDateThaiFirst = (workDate) => {
-    //   const thaiMonthNames = new Intl.DateTimeFormat("th-TH", { month: "long" })
-    //     .format;
-    //   const formattedDate = new Date(workDate);
-
-    //   const day = formattedDate.getDate();
-    //   const month = thaiMonthNames(formattedDate);
-    //   const year = formattedDate.getFullYear();
-
-    //   return `${day} ${month} ${year + 543}`;
-    // };
-
-    // doc.addPage(); // Add a new page for each set of inputs after the first
-    const maxWidth = 150; // Define the maximum width for the text
-    // const invite = 'This is a long text that needs to be wrapped to a new line when it reaches the maximum width to ensure readability and proper formatting.';
-    // const inviteLines = doc.splitTextToSize(`เรื่อง: ThisThability and proper formatting. is a lnd proper formatting. is a long text thong text thato ensure readability and proper formatting.     ` + invite, maxWidth);
-    // const titleLines = doc.splitTextToSize(`เรียน:  บริษัทฯ จึงขอรับรองตำแหน่องทำความสะอาดทดแทนงาน พนักงานมีประสบการณ์ทำงานด้สนทำความสะอาดไม่ต่ำกว่า 1 ปี สามารถใช้อุปกรณ์การทำความสะอาดได้เป็นอย่างดีและสามารถอ่านและเขียนภาษาไทยได้ดี    ` + title, maxWidth);
-    // const contentLines = doc.splitTextToSize(`This iThiadability and proper formattind proper formattihe maximum width the maximum width to ensure readability and proper formatt` + content, maxWidth);
-
-    // const invite = 'This is a long text that needs to be wrapped to a new line when it reaches the maximum width to ensure readability and proper formatting.';
-    const inviteLines = doc.splitTextToSize(`เรื่อง:     ` + title, maxWidth);
-    const titleLines = doc.splitTextToSize(`เรียน:     ` + invite, maxWidth);
-    const contentLines = doc.splitTextToSize(content, maxWidth);
-    // const inviteLines = doc.splitTextToSize(`เรื่อง:  and proper formatting.     ` + invite, maxWidth);
-    // const inviteLines = doc.splitTextToSize(`เรื่อง:  and proper formatting.     ` + invite, maxWidth);
-    // const titleLines = doc.splitTextToSize(`เรียน:  This iThiadabilityformatting.    ` + title, maxWidth);
-
-    // Set the initial coordinates
-    let x = 30;
-    let y = 60;
-    // Loop through each line and draw it on the PDF
-    inviteLines.forEach((line, index) => {
+    y = 50;
+    x = 30;
+    
+    autoContent2.forEach((line, index) => {
       if (index > 0) {
-        x = 20; // For lines after the first line, start at x = 10
+        x = 20;
       }
       doc.text(line, x, y);
-      y += 8; // Increase the Y-coordinate for the next line
+      y += 10;
     });
-    x = 30;
-    titleLines.forEach((line, index) => {
-      if (index > 0) {
-        x = 20; // For lines after the first line, start at x = 10
-      }
-      doc.text(line, x, y + inviteLines.length);
-      y += 8; // Increase the Y-coordinate for the next line
-    });
-    x = 30;
-    contentLines.forEach((line, index) => {
-      if (index > 0) {
-        x = 20; // For lines after the first line, start at x = 10
-      }
-      doc.text(line, x, y + inviteLines.length + titleLines.length);
-      y += 8; // Increase the Y-coordinate for the next line
-    });
-    // const y = 50;
-    x = 40;
 
-    doc.text(
-      `บริษัทฯ ใคร่ขอแจ้งให้ท่านทรบว่าพนักงานมรามีรายชื่อดั้งต่อไปนี้`,
-      x,
-      y + inviteLines.length + titleLines.length
-    ); // Adding 30 to the Y-coordinate
-
-    // doc.text(`วันที่ : ${formatDateThaiFirst(workDate)}`, 130, 50); // Adding 30 to the Y-coordinate
-    doc.text(`วันที่ : ${formattedDate321}`, 130, 50); // Adding 30 to the Y-coordinate
+    // ส่วนแสดงลายเซ็น
+    doc.text("ขอแสดงความนับถือ", 100 + x, 15 + y + 10 * autoContent2.length);
+  
+// แก้ไขส่วนที่มีปัญหา
+if (signatureFile) {
+  try {
+    const signatureData = await getImageData(signatureFile);
+    if (signatureData) {
+      doc.addImage(signatureData, "JPEG", 95 + x, 20 + y + 10 * autoContent2.length, 40, 20);
+      doc.text("(" + signature + ")", 100 + x, 40 + y + 10 * autoContent2.length);
+      doc.text(positionHead, 100 + x, 45 + y + 10 * autoContent2.length);
+    } else {
+      // ถ้าไม่สามารถแปลงรูปได้ ให้แสดงชื่อในวงเล็บตามเดิม
+      doc.text("(" + signature + ")", 100 + x, 35 + y + 10 * autoContent2.length);
+      doc.text(positionHead, 100 + x, 40 + y + 10 * autoContent2.length);
+    }
+  } catch (error) {
+    console.error("Error adding signature to PDF:", error);
+    // กรณีเกิดข้อผิดพลาด แสดงชื่อในวงเล็บตามเดิม
+    doc.text("(" + signature + ")", 100 + x, 35 + y + 10 * autoContent2.length);
+    doc.text(positionHead, 100 + x, 40 + y + 10 * autoContent2.length);
+  }
+} else {
+  
+  doc.text("(" + signature + ")", 100 + x, 35 + y + 100 * autoContent2.length);
+  doc.text(positionHead, 100 + x, 40 + y + 10 * autoContent2.length);
+}
+    
     doc.text(codeClose, 160, 290);
-
-    // doc.text(`เรีอง:      ${invite}`, 40, 50); // Adding 30 to the Y-coordinate
-    // doc.text(`เรียน:      ${title}`, 40, 60); // Adding 30 to the Y-coordinate
-
-    inputValuesFirst.forEach((value, index) => {
-      if (index < 15) {
-        // To skip the first array
-        const x = 40; // X-coordinate for starting point
-        const y =
-          70 +
-          10 * (titleLines.length + inviteLines.length + contentLines.length) +
-          index * 10; // Y-coordinate, with 20 pixels separation for each item
-        // const y2 = 65 + (10 * (titleLines.length + inviteLines.length + contentLines.length)) + (index) * 15; // Y-coordinate, with 20 pixels separation for each item
-
-        doc.setFontSize(14);
-        doc.text(`${index + 1}. ${value.Name}`, x, y);
-        doc.text(`ตำแหน่ง               ${value.position}`, x + 60, y);
-        doc.text(codeClose, 160, 290);
-
-        // doc.text(`ประวัติการศึกษา: ${value.educational}`, x, y2); // Adding 30 to the Y-coordinate
+  } else {
+    x = 30;
+    autoContent2.forEach((line, index) => {
+      if (index > 0) {
+        x = 20;
       }
+      doc.text(
+        line,
+        x,
+        y +
+        10 *
+        (titleLines.length +
+          inviteLines.length +
+          contentLines.length +
+          lengthFirst -
+          2)
+      );
+      y += 10;
     });
+    
+    // กำหนดตำแหน่งสำหรับส่วนท้าย
+    const signatureY = 15 + y + 10 * (titleLines.length + inviteLines.length + contentLines.length + lengthFirst + autoContent2.length - 2);
+    
+    doc.text(
+      "ขอแสดงความนับถือ",
+      100 + x,
+      signatureY
+    );
+    
+    
+    if (signatureFile) {
+      try {
+        const signatureData = await getImageData(signatureFile);
+          if (signatureData) {
+            // เพิ่มรูปลายเซ็นที่อัปโหลด
+            doc.addImage(signatureData, "JPEG", 95 + x, signatureY + 5, 40, 20);
+            
 
-    // const autoText1 = doc.splitTextToSize(`จากการสอบถามพนักงานแจ้งว่าได้จบการศึกษาตามที่บริษัทฯ แจ้งให้ทราบแล้วนั้น สืบเนื่องมาจาก พนักงานได้จบการศึกษา มานานแล้วทำให้เอกสารสูญหาย`, maxWidth);
-    // const autoText2 = doc.splitTextToSize(`บริษัทฯ จึงขอรับรองตำแหน่องทำความสะอาดทดแทนงาน พนักงานมีประสบการณ์ทำงานด้านทำความสะอาด ไม่ต่ำกว่า 1 ปี สามารถใช้อุปกรณ์การทำความสะอาดได้เป็นอย่างดีและสามารถอ่านและเขียนภาษาไทยได้ดี`, maxWidth);
-    // const autoText3 = doc.splitTextToSize(`จึงเรียนมาเพื่อพิจารณาอนุญาต`, maxWidth);
-    const autoContent2 = doc.splitTextToSize(content2, maxWidth);
+            doc.text("(" + signature + ")", 100 + x, signatureY + 30);
+            
 
-    // if (inputValuesFirst.length === 1) {
-    if (inputValuesFirst.length < 16) {
-      const lengthFirst = inputValuesFirst.length;
-      x = 30;
-      // autoText1.forEach((line, index) => {
-      //     if (index > 0) {
-      //         x = 20; // For lines after the first line, start at x = 10
-      //     }
-      //     doc.text(line, x, y + (5 * ((titleLines.length + inviteLines.length + contentLines.length) + lengthFirst * 3)));
-      //     y += 8; // Increase the Y-coordinate for the next line
-      // });
-      // x = 30;
-      // autoText2.forEach((line, index) => {
-      //     if (index > 0) {
-      //         x = 20; // For lines after the first line, start at x = 10
-      //     }
-      //     doc.text(line, x, y + (5 * ((titleLines.length + inviteLines.length + contentLines.length) + lengthFirst * 3)));
-      //     y += 8; // Increase the Y-coordinate for the next line
-      // });
-      // x = 30;
-      // autoText3.forEach((line, index) => {
-      //     if (index > 0) {
-      //         x = 20; // For lines after the first line, start at x = 10
-      //     }
-      //     doc.text(line, x, y + (5 * ((titleLines.length + inviteLines.length + contentLines.length) + lengthFirst * 3)));
-      //     y += 8; // Increase the Y-coordinate for the next line
-      // });
-      // doc.text('ขอแสดงความนับถือ', 100 + x, 15 + y + (4 * ((titleLines.length + inviteLines.length + contentLines.length + autoText1.length + autoText2.length + autoText3.length) + lengthFirst * 3)));
-      // doc.text('(' + signature + ')', 100 + x, 35 + y + (4 * ((titleLines.length + inviteLines.length + contentLines.length + autoText1.length + autoText2.length + autoText3.length) + lengthFirst * 3)));
-      // doc.text(positionHead, 100 + x, 40 + y + (4 * ((titleLines.length + inviteLines.length + contentLines.length + autoText1.length + autoText2.length + autoText3.length) + lengthFirst * 3)));
-      if (inputValuesFirst.length + autoContent2.length > 10) {
-        doc.addPage(); // Add a new page for each set of inputs after the first
-        doc.addImage(OwatAddress, "PNG", 140, 10, 61.5, 28.4);
-        doc.addImage(OwatIcon, "PNG", 10, 10, 68, 30);
-        doc.addImage(OwatSupport, "PNG", 10, 270, 190, 16.4);
-        y = 50;
-        autoContent2.forEach((line, index) => {
-          if (index > 0) {
-            x = 20; // For lines after the first line, start at x = 10
-          }
-          doc.text(line, x, y);
-          // doc.text(line, x, y + (5 * ((titleLines.length + inviteLines.length + contentLines.length) + lengthFirst * 3)));
-
-          y += 10; // Increase the Y-coordinate for the next line
-        });
-
-        doc.text(
-          "ขอแสดงความนับถือ",
-          100 + x,
-          15 + y + 10 * autoContent2.length
-        );
-        doc.text(
-          "(" + signature + ")",
-          100 + x,
-          35 + y + 10 * autoContent2.length
-        );
-        doc.text(positionHead, 100 + x, 40 + y + 10 * autoContent2.length);
-        doc.text(codeClose, 160, 290);
-        doc.addImage(OwatSupport, "PNG", 10, 270, 190, 16.4);
-      } else {
-        autoContent2.forEach((line, index) => {
-          if (index > 0) {
-            x = 20; // For lines after the first line, start at x = 10
-          }
+            doc.text(
+              positionHead,
+              103 + x,
+              signatureY + 35
+            );
+          } else {
+          // ถ้าไม่สามารถแปลงรูปได้ ให้แสดงชื่อในวงเล็บตามเดิม
           doc.text(
-            line,
-            x,
-            y +
-            10 *
-            (titleLines.length +
-              inviteLines.length +
-              contentLines.length +
-              lengthFirst -
-              2)
+            "(" + signature + ")",
+            100 + x,
+            signatureY + 20
           );
-          // doc.text(line, x, y + (5 * ((titleLines.length + inviteLines.length + contentLines.length) + lengthFirst * 3)));
-
-          y += 10; // Increase the Y-coordinate for the next line
-        });
-        doc.text(
-          "ขอแสดงความนับถือ",
-          100 + x,
-          15 +
-          y +
-          10 *
-          (titleLines.length +
-            inviteLines.length +
-            contentLines.length +
-            lengthFirst +
-            autoContent2.length -
-            2)
-        );
+          doc.text(
+            positionHead,
+            100 + x,
+            signatureY + 25
+          );
+        }
+      } catch (error) {
+        console.error("Error adding signature to PDF:", error);
+      
         doc.text(
           "(" + signature + ")",
           100 + x,
-          35 +
-          y +
-          10 *
-          (titleLines.length +
-            inviteLines.length +
-            contentLines.length +
-            lengthFirst +
-            autoContent2.length -
-            2)
+          signatureY + 20
         );
         doc.text(
           positionHead,
           100 + x,
-          40 +
-          y +
-          10 *
-          (titleLines.length +
-            inviteLines.length +
-            contentLines.length +
-            lengthFirst +
-            autoContent2.length -
-            2)
+          signatureY + 25
         );
-        doc.text(codeClose, 160, 290);
-        doc.addImage(OwatSupport, "PNG", 10, 270, 190, 16.4);
       }
     } else {
-      // doc.addPage(); // Add a new page for each set of inputs after the first
-      // doc.addImage(OwatAddress, 'PNG', 140, 10, 61.5, 28.4);
-      // doc.addImage(OwatIcon, 'PNG', 10, 10, 68, 30);
-      // doc.addImage(OwatSupport, 'PNG', 85, 275, 113.0, 16.4);
-      doc.addPage(); // Add a new page for each set of inputs after the first
+
+      doc.text(
+        "(" + signature + ")",
+        100 + x,
+        signatureY + 20
+      );
+      doc.text(
+        positionHead,
+        100 + x,
+        signatureY + 25
+      );
     }
+  }
+} else {
+  doc.addPage();
+}
 
-    const arrayChunks = [];
-    const chunkSize = 20;
-    const initialIndex = 15;
 
-    for (let i = initialIndex; i < inputValuesFirst.length; i += chunkSize) {
-      arrayChunks.push(inputValuesFirst.slice(i, i + chunkSize));
+  const arrayChunks = [];
+  const chunkSize = 20;
+  const initialIndex = 15;
+
+  for (let i = initialIndex; i < inputValuesFirst.length; i += chunkSize) {
+    arrayChunks.push(inputValuesFirst.slice(i, i + chunkSize));
+  }
+
+  arrayChunks.forEach((chunk, pageIndex) => {
+    if (pageIndex > 0) {
+      doc.addPage();
     }
+    doc.addImage(OwatAddress, "PNG", 140, 10, 61.5, 28.4);
+    doc.addImage(OwatIcon, "PNG", 10, 10, 68, 30);
+    doc.addImage(OwatSupport, "PNG", 10, 270, 190, 16.4);
+    
+    chunk.forEach((value, index) => {
+      x = 40;
+      const y = 50 + index * 10;
+      
+      doc.setFontSize(14);
+      const currentIndex = index + initialIndex + pageIndex * chunkSize;
+      doc.text(`${currentIndex + 1}. ${value.Name}`, x, y);
+      doc.text(`ตำแหน่ง: ${value.position}`, x + 60, y);
+      doc.text(codeClose, 160, 290);
+      
+      const isLastPage = pageIndex === arrayChunks.length - 1;
+      const isLastElement = index === chunk.length - 1;
 
-    arrayChunks.forEach((chunk, pageIndex) => {
-      if (pageIndex > 0) {
-        doc.addPage();
+      if (isLastPage && isLastElement) {
+        if (chunk.length > 15) {
+          const yMultiplier = 10;
+          let y = 30;
+          doc.addPage();
+          autoContent2.forEach((line, index) => {
+            if (index > 0) {
+              x = 20;
+            }
+            doc.text(line, x, y + yMultiplier * index);
+            y += yMultiplier;
+          });
+
+          y = 30;
+          doc.text("ขอแสดงความนับถือ", 100 + x, y + yMultiplier * autoContent2.length);
+          doc.text("(" + signature + ")", 100 + x, 20 + y + yMultiplier * autoContent2.length);
+          doc.text(positionHead, 100 + x, 30 + y + yMultiplier * autoContent2.length);
+          doc.text(codeClose, 160, 290);
+          doc.addImage(OwatSupport, "PNG", 10, 270, 190, 16.4);
+        } else {
+          const yMultiplier = 10;
+          let y = 50;
+          autoContent2.forEach((line, index) => {
+            if (index > 0) {
+              x = 20;
+            }
+            doc.text(line, x, y + yMultiplier * chunk.length);
+            y += yMultiplier;
+          });
+
+          doc.text("ขอแสดงความนับถือ", 100 + x, y + yMultiplier * chunk.length);
+          doc.text("(" + signature + ")", 100 + x, 20 + y + yMultiplier * chunk.length);
+          doc.text(positionHead, 100 + x, 30 + y + yMultiplier * chunk.length);
+          doc.text(codeClose, 160, 290);
+          doc.addImage(OwatSupport, "PNG", 10, 270, 190, 16.4);
+        }
       }
-      doc.addImage(OwatAddress, "PNG", 140, 10, 61.5, 28.4);
-      doc.addImage(OwatIcon, "PNG", 10, 10, 68, 30);
-      doc.addImage(OwatSupport, "PNG", 10, 270, 190, 16.4);
-      chunk.forEach((value, index) => {
-        x = 40; // X-coordinate for starting point
-        const y = 50 + index * 10;
-        // const y2 = 30 + index * 20;
+    });
+  });
 
-        doc.setFontSize(14);
-        const currentIndex = index + initialIndex + pageIndex * chunkSize;
-        doc.text(`${currentIndex + 1}. ${value.Name}`, x, y);
-        doc.text(`ตำแหน่ง: ${value.position}`, x + 60, y);
-        doc.text(codeClose, 160, 290);
-        // doc.text(`ประวัติการศึกษา: ${value.educational}`, x, y2);
+  doc.addPage();
 
-        // Check if it's the last page and the last element in the chunk
-        const isLastPage = pageIndex === arrayChunks.length - 1;
-        const isLastElement = index === chunk.length - 1;
-
-        if (isLastPage && isLastElement) {
-          if (chunk.length > 15) {
-            const yMultiplier = 10; // Adjust this multiplier as needed
-            let y = 30; // Initialize y as a variable
-            doc.addPage();
-            autoContent2.forEach((line, index) => {
-              if (index > 0) {
-                x = 20; // For lines after the first line, start at x = 10
-              }
-
-              // Adjust the Y-coordinate calculation
-              doc.text(line, x, y + yMultiplier * index);
-
-              y += yMultiplier; // Increase the Y-coordinate for the next line
-            });
-
-            y = 30;
-            doc.text(
-              "ขอแสดงความนับถือ",
-              100 + x,
-              y + yMultiplier * autoContent2.length
-            );
-            doc.text(
-              "(" + signature + ")",
-              100 + x,
-              20 + y + yMultiplier * autoContent2.length
-            );
-            doc.text(
-              positionHead,
-              100 + x,
-              30 + y + yMultiplier * autoContent2.length
-            );
-            doc.text(codeClose, 160, 290);
-            doc.addImage(OwatSupport, "PNG", 10, 270, 190, 16.4);
-          } else {
-            const yMultiplier = 10; // Adjust this multiplier as needed
-            let y = 50; // Initialize y as a variable
-            autoContent2.forEach((line, index) => {
-              if (index > 0) {
-                x = 20; // For lines after the first line, start at x = 10
-              }
-
-              // Adjust the Y-coordinate calculation
-              doc.text(line, x, y + yMultiplier * chunk.length);
-
-              y += yMultiplier; // Increase the Y-coordinate for the next line
-            });
-
-            doc.text(
-              "ขอแสดงความนับถือ",
-              100 + x,
-              y + yMultiplier * chunk.length
-            );
-            doc.text(
-              "(" + signature + ")",
-              100 + x,
-              20 + y + yMultiplier * chunk.length
-            );
-            doc.text(
-              positionHead,
-              100 + x,
-              30 + y + yMultiplier * chunk.length
-            );
-            doc.text(codeClose, 160, 290);
-            doc.addImage(OwatSupport, "PNG", 10, 270, 190, 16.4);
+ 
+  for (let i = 0; i < inputValuesTest.length; i++) {
+    const value = inputValuesTest[i];
+    
+    if (i > 0) {
+      doc.addPage();
+    }
+    
+    const x = 55;
+    const x2 = 95;
+    const y = 60;
+    const y2 = 10;
+    
+    doc.addImage(OwatAddress, "PNG", 140, 10, 61.5, 28.4);
+    doc.addImage(OwatIcon, "PNG", 10, 10, 68, 30);
+    doc.addImage(OwatSupport, "PNG", 10, 270, 190, 16.4);
+    
+    const maxWidth = 70;
+    const textLines = doc.splitTextToSize(value.address + "", maxWidth);
+    const textLines2 = doc.splitTextToSize(value.currentAddress + "", maxWidth);
+    
+    
+        if (value.profileImage) {
+          try {
+            const imgData = await getImageData(value.profileImage);
+            if (imgData) {
+              doc.addImage(imgData, "JPEG", 145, 60, 32.5, 25);
+              
+            }
+          } catch (error) {
+            console.error("Error adding image to PDF:", error);
           }
         }
-      });
+    
+    doc.setFontSize(20);
+    doc.setLineWidth(1);
+    doc.rect(45, 50, 130, 120 + y2 * (textLines.length + textLines2.length));
+    
+    doc.text(`ประวัติพนักงาน`, 95, y);
+    const textWidth = (doc.getStringUnitWidth("ประวัติพนักงาน") * doc.internal.getFontSize()) / doc.internal.scaleFactor;
+    doc.setLineWidth(0.1);
+    doc.line(95, y + 3, 125, y + 3);
+    
+    doc.setFontSize(14);
+    doc.text(codeClose, 160, 290);
+    doc.text(`ไอดี: `, x, y + y2 * 2);
+    doc.text(`ชื่อ/นามสกุล: `, x, y + y2 * 3);
+    doc.text(`อายุ: `, x, y + y2 * 4);
+    doc.text(`วัน/เดือน/ปี เกิด: `, x, y + y2 * 5);
+    doc.text(`เลขบัตรประชาชน: `, x, y + y2 * 6);
+    doc.text(`ที่อยู่(ตามบัตรประชาชน): `, x, y + y2 * 7);
+    doc.text(`ที่อยู่(ที่สามารถติดต่อได้): `, x, y + y2 * (7 + textLines.length));
+    doc.text(`เบอร์โทรศัพท์: `, x, y + y2 * (7 + textLines.length + textLines2.length));
+    doc.text(`สถานะภาพ: `, x, y + y2 * (8 + textLines.length + textLines2.length));
+    doc.text(`กรณีฉุกเฉินติดต่อได้: `, x, y + y2 * (9 + textLines.length + textLines2.length));
+    
+    doc.text(`${value.Id}`, x2, y + y2 * 2);
+    doc.text(`${value.Name}`, x2, y + y2 * 3);
+    doc.text(`${value.age}`, x2, y + y2 * 4);
+    doc.text(`${formattedDate321}`, x2, y + y2 * 5);
+    doc.text(`${value.idCard}`, x2, y + y2 * 6);
+    
+    textLines.forEach((line, index) => {
+      doc.text(line, x2, y + y2 * 7 + index * 10);
     });
-
-    doc.addPage(); // Add a new page for each set of inputs after the first
-
-    inputValuesTest.forEach((value, index) => {
-      if (index > 0) {
-        doc.addPage(); // Add a new page for each set of inputs after the first
-      }
-      const x = 55;
-      const x2 = 95;
-      const y = 60;
-      const y2 = 10;
-      doc.addImage(OwatAddress, "PNG", 140, 10, 61.5, 28.4);
-      doc.addImage(OwatIcon, "PNG", 10, 10, 68, 30);
-      doc.addImage(OwatSupport, "PNG", 10, 270, 190, 16.4);
-
-      const maxWidth = 70; // Adjust the width as needed
-      // const text = 'Some text that might be really long and is intended to exceed the maximum width, causing it to be split into multiple lines because it is too long to fit on a single line.';
-      // const textLines2 = doc.splitTextToSize(text + 'Extra long string', maxWidth);
-      // console.log(textLines2.length);
-      // doc.text(`${textLines2.length}`, x2, y + 10);
-      const textLines = doc.splitTextToSize(value.address + "", maxWidth);
-      const textLines2 = doc.splitTextToSize(
-        value.currentAddress + "",
-        maxWidth
-      );
-
-      // const textLines = doc.splitTextToSize(value.address , maxWidth);
-
-      // doc.text(textLines.length, x, y + 10);
-
-      textLines.forEach((line, index) => {
-        doc.text(line, x2, y + y2 * 7 + index * 10); // Use appropriate Y positioning for each line
-      });
-      textLines2.forEach((line, index) => {
-        doc.text(line, x2, y + y2 * (7 + textLines.length) + index * 10); // Use appropriate Y positioning for each line
-      });
-
-      doc.setFontSize(20);
-      // doc.setFontStyle('bold');
-      doc.setLineWidth(1); // Increase line width for boldness
-      doc.rect(45, 50, 130, 120 + y2 * (textLines.length + textLines2.length)); // (x, y, width, height)กรอบข้อความ
-
-      doc.text(`ประวัติพนักงาน`, 95, y);
-
-      const textWidth =
-        (doc.getStringUnitWidth("ประวัติพนักงาน") *
-          doc.internal.getFontSize()) /
-        doc.internal.scaleFactor;
-      // Add an underline
-      doc.setLineWidth(0.1);
-      doc.line(95, y + 3, 125, y + 3);
-
-      doc.setFontSize(14);
-      // doc.text(textLines.length, x, y + 10);
-      doc.text(codeClose, 160, 290);
-      doc.text(`ไอดี: `, x, y + y2 * 2);
-      doc.text(`ชื่อ/นามสกุล: `, x, y + y2 * 3);
-      doc.text(`อายุ: `, x, y + y2 * 4);
-      doc.text(`วัน/เดือน/ปี เกิด: `, x, y + y2 * 5);
-      doc.text(`เลขบัตรประชาชน: `, x, y + y2 * 6);
-      doc.text(`ที่อยู่(ตามบัตรประชาชน): `, x, y + y2 * 7);
-      doc.text(
-        `ที่อยู่(ที่สามารถติดต่อได้): `,
-        x,
-        y + y2 * (7 + textLines.length)
-      );
-      doc.text(
-        `เบอร์โทรศัพท์: `,
-        x,
-        y + y2 * (7 + textLines.length + textLines2.length)
-      );
-      doc.text(
-        `สถานะภาพ: `,
-        x,
-        y + y2 * (8 + textLines.length + textLines2.length)
-      );
-      doc.text(
-        `กรณีฉุกเฉินติดต่อได้: `,
-        x,
-        y + y2 * (9 + textLines.length + textLines2.length)
-      );
-
-      doc.text(`${value.Id}`, x2, y + y2 * 2);
-      doc.text(`${value.Name}`, x2, y + y2 * 3);
-      doc.text(`${value.age}`, x2, y + y2 * 4);
-      // const formattedDate = formatDateThai(value.dateOfBirth);
-
-      // doc.text(`${formatDateThai(value.dateOfBirth)}`, x2, y + (y2 * 5));
-      // doc.text(`${formattedDate}`, x2, y + y2 * 5);
-      doc.text(`${formattedDate321}`, x2, y + y2 * 5);
-
-      doc.text(`${value.idCard}`, x2, y + y2 * 6);
-      // doc.text(`${value.address}`, x2, y + 70);
-      // doc.text(`${value.currentAddress}`, x2, y + (y2 * (7 + textLines.length)));
-      doc.text(
-        `${value.phoneNumber}`,
-        x2,
-        y + y2 * (7 + textLines.length + textLines2.length)
-      );
-      doc.text(
-        `${value.maritalStatus}`,
-        x2,
-        y + y2 * (8 + textLines.length + textLines2.length)
-      );
-      doc.text(
-        `${value.emergencyContactNumber}`,
-        x2,
-        y + y2 * (9 + textLines.length + textLines2.length)
-      );
+    
+    textLines2.forEach((line, index) => {
+      doc.text(line, x2, y + y2 * (7 + textLines.length) + index * 10);
     });
-
-    const pdfContent = doc.output("bloburl");
-    window.open(pdfContent, "_blank");
-  };
+    
+    doc.text(`${value.phoneNumber}`, x2, y + y2 * (7 + textLines.length + textLines2.length));
+    doc.text(`${value.maritalStatus}`, x2, y + y2 * (8 + textLines.length + textLines2.length));
+    doc.text(`${value.emergencyContactNumber}`, x2, y + y2 * (9 + textLines.length + textLines2.length));
+  }
+  
+  // แสดง PDF
+  const pdfContent = doc.output("bloburl");
+  window.open(pdfContent, "_blank");
+};
 
   // Handle employeeId input change
   const handleEmployeeIdChange = (e) => {
@@ -913,7 +828,7 @@ const SendEmployeePDF2 = ({ employeeList }) => {
                   </div>
                   <br />
                   <div className="row">
-                    <div className="col-md-3">
+                    <div className="col-md-2">
                       <label>รหัสพนักงาน:</label>
                       <input
                         type="text"
@@ -936,7 +851,7 @@ const SendEmployeePDF2 = ({ employeeList }) => {
                       </datalist>
                     </div>
 
-                    <div className="col-md-3">
+                    <div className="col-md-2">
                       <label>ชื่อ:</label>
                       <input
                         type="text"
@@ -954,10 +869,14 @@ const SendEmployeePDF2 = ({ employeeList }) => {
                         ))}
                       </datalist>
                     </div>
-                    <div className="col-md-3">
+                    <div className="col-md-2">
                         <label>ตำเเหน่ง:</label>
                         <input type="text" className="form-control" value={position} onChange={(e) => setPosition(e.target.value)} />
-                        
+
+                    </div>
+                    <div className="col-md-3">
+                        <label>รูปประจำตัว:</label>
+                        <input type="file" className="form-control" onChange={(e) => setProfilePicture(e.target.files[0])} />
                     </div>
                     <div className="col-md-3">
                       <button
@@ -1022,6 +941,9 @@ const SendEmployeePDF2 = ({ employeeList }) => {
                         value={codeClose}
                         onChange={handleCodeCloseChange}
                       />
+                    </div>
+                    <div className="col-md-4">
+                      <input type="file" className="form-control" onChange={(e) => setSignatureFile(e.target.files[0])} />
                     </div>
                   </div>
                   <br />
@@ -1120,44 +1042,56 @@ const SendEmployeePDF2 = ({ employeeList }) => {
                   </div> */}
                   <br />
                   {inputValuesTest.map((value, index) => (
-                    <div
-                      className="row"
-                      key={index}
-                      style={{
-                        border: "1px solid #000",
-                        padding: "5px",
-                        marginBottom: "5px",
-                      }}
-                    >
-                      <div
-                        className="col-md-1"
-                        style={{ borderRight: "1px solid #000" }}
-                      >
-                        {index + 1}
-                      </div>
-                      <div
-                        className="col-md-4"
-                        style={{ borderRight: "1px solid #000" }}
-                      >
-                        {value.Id}
-                      </div>
-                      <div
-                        className="col-md-4"
-                        style={{ borderRight: "1px solid #000" }}
-                      >
-                        {value.Name}
-                      </div>
-                      <div className="col-md-2">
-                        <button
-                          className="btn b_save"
-                          style={{ width: "5rem" }}
-                          onClick={() => deleteInput(index)}
+                        <div
+                          className="row"
+                          key={index}
+                          style={{
+                            border: "1px solid #000",
+                            padding: "5px",
+                            marginBottom: "5px",
+                          }}
                         >
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                          <div
+                            className="col-md-1"
+                            style={{ borderRight: "1px solid #000" }}
+                          >
+                            {index + 1}
+                          </div>
+                          <div
+                            className="col-md-2"
+                            style={{ borderRight: "1px solid #000" }}
+                          >
+                            {value.Id}
+                          </div>
+                          <div
+                            className="col-md-3"
+                            style={{ borderRight: "1px solid #000" }}
+                          >
+                            {value.Name}
+                          </div>
+                          <div
+                            className="col-md-3"
+                            style={{ borderRight: "1px solid #000" }}
+                          >
+                            {value.profileImage ? (
+                              <img 
+                                src={URL.createObjectURL(value.profileImage)} 
+                                alt="Profile" 
+                                style={{ width: "50px", height: "50px" }} 
+                              />
+                            ) : "ไม่มีรูปภาพ"}
+                          </div>
+                          <div className="col-md-3 text-center">
+                            <button
+                              className="btn b_save"
+                              style={{ width: "5rem" }}
+                              onClick={() => deleteInput(index)}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      ))}
                   <br />
                   <br />
                   <div className="row">
