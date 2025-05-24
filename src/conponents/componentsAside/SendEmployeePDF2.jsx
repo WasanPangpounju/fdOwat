@@ -203,7 +203,7 @@ const [signatureFile, setSignatureFile] = useState(null);
     },
   ]);
 
-  // ล้างค่าหลังจากเพิ่มข้อมูล
+
   setInput1("");
   setInput2("");
   setPrefix("");
@@ -217,7 +217,7 @@ const [signatureFile, setSignatureFile] = useState(null);
   setMaritalStatus("");
   setEmergencyContactNumber("");
   setPosition("");
-  setProfilePicture(null); // เพิ่มการล้างค่ารูปภาพ
+  setProfilePicture(null);
 };
 
   useEffect(() => {
@@ -250,7 +250,7 @@ const generatePDF2 = async () => {
     format: "a4",
   });
   
-  // เตรียมฟอนต์และรูปภาพพื้นฐาน
+
   const fontPath = "/assets/fonts/THSarabunNew Bold.ttf";
   doc.addFileToVFS(fontPath);
   doc.addFont(fontPath, "THSarabunNew-Bold", "normal");
@@ -261,7 +261,7 @@ const generatePDF2 = async () => {
   const OwatIcon = "/assets/images/new/OwatIcon.png";
   const OwatSupport = "/assets/images/new/icon_under.png";
   
-  // ฟังก์ชันสำหรับแปลงรูปเป็น base64
+
   const getImageData = (file) => {
     return new Promise((resolve) => {
       if (!file) {
@@ -293,7 +293,7 @@ const generatePDF2 = async () => {
 
   
   
-  // Loop through each line and draw it on the PDF
+
   inviteLines.forEach((line, index) => {
     if (index > 0) {
       x = 20;
@@ -330,7 +330,7 @@ const generatePDF2 = async () => {
   doc.text(`วันที่ : ${formattedDate321}`, 130, 50);
   doc.text(codeClose, 160, 290);
 
-  // แสดงรายชื่อพนักงาน
+
   inputValuesFirst.forEach((value, index) => {
     if (index < 15) {
       const x = 40;
@@ -346,10 +346,10 @@ const generatePDF2 = async () => {
     }
   });
 
-  // แสดงเนื้อหาส่วนท้าย
+
   const autoContent2 = doc.splitTextToSize(content2, maxWidth);
   
-  // ส่วนการแสดงเนื้อหาส่วนท้ายและลายเซ็นในหน้าแรก
+
 if (inputValuesFirst.length < 16) {
   const lengthFirst = inputValuesFirst.length;
   
@@ -369,10 +369,10 @@ if (inputValuesFirst.length < 16) {
       y += 10;
     });
 
-    // ส่วนแสดงลายเซ็น
+
     doc.text("ขอแสดงความนับถือ", 100 + x, 15 + y + 10 * autoContent2.length);
   
-// แก้ไขส่วนที่มีปัญหา
+
 if (signatureFile) {
   try {
     const signatureData = await getImageData(signatureFile);
@@ -381,13 +381,13 @@ if (signatureFile) {
       doc.text("(" + signature + ")", 100 + x, 40 + y + 10 * autoContent2.length);
       doc.text(positionHead, 100 + x, 45 + y + 10 * autoContent2.length);
     } else {
-      // ถ้าไม่สามารถแปลงรูปได้ ให้แสดงชื่อในวงเล็บตามเดิม
+
       doc.text("(" + signature + ")", 100 + x, 35 + y + 10 * autoContent2.length);
       doc.text(positionHead, 100 + x, 40 + y + 10 * autoContent2.length);
     }
   } catch (error) {
     console.error("Error adding signature to PDF:", error);
-    // กรณีเกิดข้อผิดพลาด แสดงชื่อในวงเล็บตามเดิม
+
     doc.text("(" + signature + ")", 100 + x, 35 + y + 10 * autoContent2.length);
     doc.text(positionHead, 100 + x, 40 + y + 10 * autoContent2.length);
   }
@@ -418,7 +418,7 @@ if (signatureFile) {
       y += 10;
     });
     
-    // กำหนดตำแหน่งสำหรับส่วนท้าย
+    
     const signatureY = 15 + y + 10 * (titleLines.length + inviteLines.length + contentLines.length + lengthFirst + autoContent2.length - 2);
     
     doc.text(
@@ -432,7 +432,7 @@ if (signatureFile) {
       try {
         const signatureData = await getImageData(signatureFile);
           if (signatureData) {
-            // เพิ่มรูปลายเซ็นที่อัปโหลด
+          
             doc.addImage(signatureData, "JPEG", 95 + x, signatureY + 5, 40, 20);
             
 
@@ -445,7 +445,7 @@ if (signatureFile) {
               signatureY + 35
             );
           } else {
-          // ถ้าไม่สามารถแปลงรูปได้ ให้แสดงชื่อในวงเล็บตามเดิม
+       
           doc.text(
             "(" + signature + ")",
             100 + x,
