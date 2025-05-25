@@ -1969,17 +1969,19 @@ month = 12;
 const workplaceId = employeeProfile[0].workplace === "10105" ? "10105" : record.workplaceId;
 
       // const dataRate = await checkDayRate(workplaceId,  record.wGroup, new Date(year, month - 1, record.date));
-      if(record.date > 20) {
-const rawDate = new Date(year, month - 1, record.date); // สร้างวันที่จากปี/เดือน/วัน
-const bangkokDate = toBangkokDate(rawDate); // ปรับให้ตรงกับเวลาไทย
-const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate , record.date );
+// const rawDate = new Date(year, month - 1, record.date); // สร้างวันที่จากปี/เดือน/วัน
+// const bangkokDate = toBangkokDate(rawDate); // ปรับให้ตรงกับเวลาไทย
+// const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate , record.date );
 
-      } else {
-const rawDate = new Date(year, month , record.date); // สร้างวันที่จากปี/เดือน/วัน
-const bangkokDate = toBangkokDate(rawDate); // ปรับให้ตรงกับเวลาไทย
-const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate , record.date );
+let rawDate;
+if (record.date > 20) {
+  rawDate = new Date(year, month - 1, record.date); // ปกติเดือนเริ่มที่ 0
+} else {
+  rawDate = new Date(year, month, record.date); // บวกเดือนอีก 1
+}
+const bangkokDate = toBangkokDate(rawDate);
 
-      }
+const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate, record.date);
 
 
 if(record.date == 30 || record.date == 20 ) {
