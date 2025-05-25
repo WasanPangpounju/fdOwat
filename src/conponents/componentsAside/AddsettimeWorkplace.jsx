@@ -655,8 +655,9 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
     setStartjob3(date);
   };
 
+  //create template data 
   // const numberOfRows = 30; // Fixed number of rows
-  const numberOfRows = 1; // Fixed number of rows
+  const numberOfRows = 0; // Fixed number of rows
 
   const initialRowData = {
     staffId: "",

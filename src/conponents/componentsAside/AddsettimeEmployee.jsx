@@ -141,6 +141,7 @@ tmp = [];
   //////////////////////////////
   const [employeeList, setEmployeeList] = useState([]);
   const [workplaceList, setWorkplaceList] = useState([]);
+const [customWorkplace , setCustomWorkplace] = useState({});
 
   useEffect(() => {
     // Fetch data from the API when the component mounts
@@ -285,12 +286,20 @@ tmp = [];
         await setWBeforeOtTime("");
 
         const workplaceUsed = await {};
-
+        
         if (wId !== "" && wName !== "") {
-          const workplacesearch = await workplaceList.find(
-            (workplace) => workplace.workplaceId === wId
-          );
+          // const workplacesearch = await workplaceList.find(
+          //   (workplace) => workplace.workplaceId === wId
+          // );
+
+          const workplacesearch =
+  Object.keys(customWorkplace).length !== 0
+    ? customWorkplace
+    : await workplaceList.find((workplace) => workplace.workplaceId === wId);
+
           if (workplacesearch) {
+                        // alert(JSON.stringify(customWorkplace,null,2))
+
             // alert('wId ' + wId);
             // alert(workplacesearch.workplaceGroup.length);
 
@@ -2058,6 +2067,7 @@ y = year
 
   async function handleSearch(event) {
     event.preventDefault();
+setCustomWorkplace({});
 
     // get value from form search
     const data = await {
@@ -2091,6 +2101,12 @@ y = year
         setEmployeeId(response.data.employees[0].employeeId);
         setName(response.data.employees[0].name);
         setLastname(response.data.employees[0].lastName);
+
+        //ตรวจสอบและเรียกข้อมูล customWorkplace ตั้งค่าการทำงานเฉพาะบุคคล
+if(response?.data?.employees?.[0]?.customWorkplace) {
+// alert(JSON.stringify(response?.data?.employees?.[0]?.customWorkplace,null,2))
+setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
+}
 
         // setSearchEmployeeId(response.data.employees[0].employeeId);
         // setSearchEmployeeName(response.data.employees[0].name);
@@ -2188,6 +2204,7 @@ y = year
   async function handleManageWorkplace(event) {
     event.preventDefault();
     //get data from input in useState to data
+if(wAllTime == 0) return;
 
     const newRowData = await {
       tmpIndex    : tmpIndex || "",

@@ -1822,12 +1822,9 @@ const toBangkokDate = (input) => {
 
 
 
-const checkDayRate = async (workplaceId, wGroup, date , dayNumber ) => {
+const checkDayRate = async (workplaceId, wGroup, date , dayNumber , customWorkplace = null ) => {
 // console.log("test" , workplaceId, wGroup, date );
 // console.log(date.getDay() );
-if(Number == '19') {
-  console.log(workTimeDay.workOrStop + ' ' + dayNumberx )
-}
 
 //data for cal
 const dataCal = {};
@@ -1842,7 +1839,16 @@ if (wGroup !== '') {
 }
 
         // Query the workplace collection for matching documents
-        const workplaces = await Workplace.find(query);
+        // const workplaces = await Workplace.find(query);
+
+          let workplaces = [];
+
+  // ✅ ถ้า customWorkplace ถูกส่งมาและไม่ว่าง → ใช้แทนการ query
+  if (customWorkplace && Object.keys(customWorkplace).length > 0) {
+    workplaces = [customWorkplace];
+  } else {
+    workplaces = await Workplace.find(query);
+  }
 
 if(workplaces.length > 0 ) {
 dataCal.workRate = await parseFloat(workplaces?.[0]?.workRate || '0') / 8 || 0;
@@ -1983,7 +1989,9 @@ if (record.date > 20) {
 }
 const bangkokDate = toBangkokDate(rawDate);
 
-const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate, record.date);
+// const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate, record.date);
+const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate, record.date , 
+  employeeProfile?.[0]?.customWorkplace);
 
 // test
 // if(record.date == 30 || record.date == 20 ) {
@@ -2106,7 +2114,10 @@ const calculateCashValues_back = (employee_record, month, year ) => {
 const rawDate = new Date(year, month - 1, record.date); // สร้างวันที่จากปี/เดือน/วัน
 const bangkokDate = toBangkokDate(rawDate); // ปรับให้ตรงกับเวลาไทย
 
-const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate , record.date );
+// const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate , record.date );
+const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate , record.date ,
+  employeeProfile?.[0]?.customWorkplace );
+
 
 // await console.log(JSON.stringify(dataRate ,null,2))
 
