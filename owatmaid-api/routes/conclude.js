@@ -1889,10 +1889,12 @@ const paddedMonth = String(m - 1).padStart(2, '0');
 const dateObj = new Date(dateString );
 const dayNumberx = dateObj.getDay(); // 0 = อาทิตย์, ..., 6 = เสาร์
 const dateOfMonth = dateObj.getDate(); // 1 - 31
-if(dateOfMonth == 30 || dateOfMonth == 20) {
-  console.log(dateOfMonth )
-  console.log('paddedMonth ' + paddedMonth )
-}
+
+// test
+// if(dateOfMonth == 30 || dateOfMonth == 20) {
+//   console.log(dateOfMonth )
+//   console.log('paddedMonth ' + paddedMonth )
+// }
 
 let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumberx );
 
@@ -1983,12 +1985,12 @@ const bangkokDate = toBangkokDate(rawDate);
 
 const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate, record.date);
 
-
-if(record.date == 30 || record.date == 20 ) {
-  console.log(record.date + ' ' + dataRate?.dayType )
-  console.log('bangkokDate  ' + bangkokDate )
-  console.log('rawDate  ' + rawDate )
-}
+// test
+// if(record.date == 30 || record.date == 20 ) {
+//   console.log(record.date + ' ' + dataRate?.dayType )
+//   console.log('bangkokDate  ' + bangkokDate )
+//   console.log('rawDate  ' + rawDate )
+// }
 
 // console.log(record.date );
 // console.log(employeeId + JSON.stringify(employeeProfile[0].salary,null,2))
