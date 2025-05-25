@@ -1972,6 +1972,7 @@ const bangkokDate = toBangkokDate(rawDate); // ปรับให้ตรงก
 const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate , record.date );
 if(record.date == 20 ) {
   console.log(record.date + ' ' + dataRate?.dayType )
+  console.log('bangkokDate  ' + bangkokDate )
 }
 
 // console.log(record.date );
