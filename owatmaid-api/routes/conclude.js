@@ -1889,7 +1889,7 @@ const paddedMonth = String(m - 1).padStart(2, '0');
 const dateObj = new Date(dateString );
 const dayNumberx = dateObj.getDay(); // 0 = อาทิตย์, ..., 6 = เสาร์
 const dateOfMonth = dateObj.getDate(); // 1 - 31
-// if(Number == 30 && Number == 20) {
+// if(dateOfMonth == 30 && dateOfMonth == 20) {
   console.log(dateOfMonth )
   console.log('paddedMonth ' + paddedMonth )
 // }
