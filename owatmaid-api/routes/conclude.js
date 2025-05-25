@@ -1973,6 +1973,7 @@ const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate , re
 if(record.date == 30 || record.date == 20 ) {
   console.log(record.date + ' ' + dataRate?.dayType )
   console.log('bangkokDate  ' + bangkokDate )
+  console.log('rawDate  ' + rawDate )
 }
 
 // console.log(record.date );
