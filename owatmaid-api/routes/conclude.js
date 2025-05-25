@@ -1825,6 +1825,9 @@ const toBangkokDate = (input) => {
 const checkDayRate = async (workplaceId, wGroup, date , dayNumber ) => {
 // console.log("test" , workplaceId, wGroup, date );
 // console.log(date.getDay() );
+if(Number == '19') {
+  console.log(workTimeDay.workOrStop + ' ' + dayNumberx )
+}
 
 //data for cal
 const dataCal = {};
@@ -1889,9 +1892,6 @@ const dateOfMonth = dateObj.getDate(); // 1 - 31
 
 
 let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumberx );
-if(Number == '19') {
-  console.log(workTimeDay.workOrStop + ' ' + dayNumberx )
-}
 
 
   if(check === true) {
