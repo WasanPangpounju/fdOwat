@@ -1970,7 +1970,7 @@ const rawDate = new Date(year, month - 1, record.date); // สร้างวั
 const bangkokDate = toBangkokDate(rawDate); // ปรับให้ตรงกับเวลาไทย
 
 const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate , record.date );
-if(record.date == 31 ) {
+if(record.date == 20 ) {
   console.log(record.date + ' ' + dataRate?.dayType )
 }
 
