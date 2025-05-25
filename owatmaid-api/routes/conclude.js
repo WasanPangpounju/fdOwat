@@ -1890,7 +1890,7 @@ const dateObj = new Date(dateString );
 const dayNumberx = dateObj.getDay(); // 0 = อาทิตย์, ..., 6 = เสาร์
 const dateOfMonth = dateObj.getDate(); // 1 - 31
 // if(Number == 30 && Number == 20) {
-  console.log(number)
+  console.log(dateOfMonth )
   console.log('paddedMonth ' + paddedMonth )
 // }
 
