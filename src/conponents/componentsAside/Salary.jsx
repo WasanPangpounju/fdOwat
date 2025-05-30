@@ -1569,42 +1569,42 @@ function Salary() {
                                     value={employeeData.salarybank || ""}
                                     onChange={(e) => handleChange(e, "salarybank")}
                                   >
-                                    <option value="">ไม่ระบุ</option>
-                                    <option value="ธนาคารกรุงเทพ">
-                                      ธนาคาร กรุงเทพ
+                                     <option value="">ไม่ระบุ</option>
+                                    <option value="ธนาคารกรุงเทพ (มหาชน)">
+                                      ธนาคาร กรุงเทพ (มหาชน)
                                     </option>
-                                    <option value="ธนาคารกสิกรไทย">
-                                      ธนาคาร กสิกรไทย
+                                    <option value="ธนาคารกสิกรไทย (มหาชน)">
+                                      ธนาคาร กสิกรไทย (มหาชน)
                                     </option>
-                                    <option value="ธนาคารกรุงไทย">
-                                      ธนาคาร กรุงไทย
+                                    <option value="ธนาคารกรุงไทย (มหาชน)">
+                                      ธนาคาร กรุงไทย (มหาชน)
                                     </option>
-                                    <option value="ธนาคารทหารไทยธนชาต">
-                                      ธนาคาร ทหารไทยธนชาต
+                                    <option value="ธนาคารทหารไทยธนชาต (มหาชน)">
+                                      ธนาคาร ทหารไทยธนชาต (มหาชน)
                                     </option>
-                                    <option value="ธนาคารไทยพาณิชย์">
-                                      ธนาคาร ไทยพาณิชย์
+                                    <option value="ธนาคารไทยพาณิชย์ (มหาชน)">
+                                      ธนาคาร ไทยพาณิชย์ (มหาชน)
                                     </option>
-                                    <option value="ธนาคารกรุงศรีอยุธยา">
-                                      ธนาคาร กรุงศรีอยุธยา
+                                    <option value="ธนาคารกรุงศรีอยุธยา (มหาชน)">
+                                      ธนาคาร กรุงศรีอยุธยา (มหาชน)
                                     </option>
-                                    <option value="ธนาคารเกียรตินาคินภัทร">
-                                      ธนาคาร เกียรตินาคินภัทร
+                                    <option value="ธนาคารเกียรตินาคินภัทร (มหาชน)">
+                                      ธนาคาร เกียรตินาคินภัทร (มหาชน)
                                     </option>
-                                    <option value="ธนาคารซีไอเอ็มบีไทย">
-                                      ธนาคาร ซีไอเอ็มบีไทย
+                                    <option value="ธนาคารซีไอเอ็มบีไทย (มหาชน)">
+                                      ธนาคาร ซีไอเอ็มบีไทย (มหาชน)
                                     </option>
-                                    <option value="ธนาคาร ทิสโก้">
-                                      ธนาคาร ทิสโก้
+                                    <option value="ธนาคารทิสโก้ (มหาชน)">
+                                      ธนาคาร ทิสโก้ (มหาชน)
                                     </option>
-                                    <option value="ธนาคารยูโอบี">
-                                      ธนาคาร ยูโอบี
+                                    <option value="ธนาคารยูโอบี (มหาชน)">
+                                      ธนาคาร ยูโอบี (มหาชน)
                                     </option>
-                                    <option value="ธนาคารไทยเครดิตเพื่อรายย่อย">
-                                      ธนาคาร ไทยเครดิตเพื่อรายย่อย
+                                    <option value="ธนาคารไทยเครดิตเพื่อรายย่อย (มหาชน)">
+                                      ธนาคารไทยเครดิตเพื่อรายย่อย (มหาชน)
                                     </option>
-                                    <option value="ธนาคารแลนด์ แอนด์ เฮ้าส์">
-                                      ธนาคาร แลนด์ แอนด์ เฮ้าส์
+                                    <option value="ธนาคารแลนด์แอนด์เฮ้าส์ (มหาชน)">
+                                      ธนาคารแลนด์แอนด์เฮ้าส์ (มหาชน)
                                     </option>
                                     <option value="ธนาคารไอซีบีซี (ไทย)">
                                       ธนาคาร ไอซีบีซี (ไทย)
@@ -1644,10 +1644,7 @@ function Salary() {
                                     placeholder="เลขที่บัญชี"
                                     value={employeeData.banknumber || ""}
                                     onChange={(e) => handleChange(e, "banknumber")}
-                                    onInput={(e) => {
-                                      // Remove any non-digit characters
-                                      e.target.value = e.target.value.replace(/\D/g, "");
-                                    }}
+                                   
                                   />
                                 </div>
                               </div>

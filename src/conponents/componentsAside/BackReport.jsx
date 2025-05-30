@@ -11,6 +11,8 @@ import "jspdf-autotable";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import * as XLSX from "xlsx";
+import { PDFViewer, Document, Page, Text, View, StyleSheet as PDFStyleSheet } from '@react-pdf/renderer';
+
 
 import moment from "moment";
 import "moment/locale/th"; // Import the Thai locale data
@@ -25,23 +27,61 @@ function BackReport({ employeeList, workplaceList }) {
     })
   );
 
+
+  const [bankFullName, setBankFullName] = useState("");
+const [allBankNames, setAllBankNames] = useState([]);
+
+  const [showPdfPreview, setShowPdfPreview] = useState(false);
+  const [bankEmployees, setBankEmployees] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+
   const [dataAccounting, setDataAccounting] = useState(""); //รหัสหน่วยงาน
   const [workplacrId, setWorkplacrId] = useState(""); //รหัสหน่วยงาน
   const [workplacrName, setWorkplacrName] = useState(""); //รหัสหน่วยงาน
   console.log('filteredEmployeeList', filteredEmployeeList);
 
-  const extractBankNames = (list) => {
-    const bankNames = list
-      .map((employee) => {
-        if (employee.branchBank) {
-          return employee.branchBank.split(/\d/)[0].trim(); // Extract text before the first number
-        }
-        return null; // Return null for invalid entries
-      })
-      .filter((name) => name !== null); // Remove null entries
-
-    return [...new Set(bankNames)]; // Remove duplicates
+  useEffect(() => {
+  const fetchBankNames = async () => {
+    try {
+      // เรียกใช้ API เพื่อดึงข้อมูลพนักงานทั้งหมด
+      const response = await axios.post(endpoint + "/employee/search", {});
+      
+      if (response.data && response.data.employees) {
+        // รวบรวมชื่อธนาคาร (salarybank) ที่ไม่ซ้ำกัน
+        const bankNames = response.data.employees
+          .map(employee => employee.salarybank)
+          .filter(name => name) // กรองค่า null หรือ undefined ออก
+          .map(name => name.trim()); // ตัดช่องว่างหน้า-หลัง
+        
+        // กำจัดค่าที่ซ้ำกัน
+        const uniqueBankNames = [...new Set(bankNames)];
+        
+        // เรียงลำดับตามตัวอักษร
+        uniqueBankNames.sort();
+        
+        setAllBankNames(uniqueBankNames);
+      }
+    } catch (error) {
+      console.error("Error fetching bank names:", error);
+    }
   };
+
+  fetchBankNames();
+}, []);
+
+const extractBankNames = (list) => {
+  const bankNames = list
+    .map((employee) => {
+      // ใช้ salarybank แทน branchBank
+      if (employee.salarybank) {
+        return employee.salarybank.trim();
+      }
+      return null; // Return null for invalid entries
+    })
+    .filter((name) => name !== null); // Remove null entries
+
+  return [...new Set(bankNames)]; // Remove duplicates
+};
 
   const uniqueBankNames = extractBankNames(filteredEmployeeList);
 
@@ -212,21 +252,57 @@ function BackReport({ employeeList, workplaceList }) {
   console.log('dataAccounting', dataAccounting);
 
   // Handle dropdown change
-  const handleChange = (event) => {
-    const selectedValue = event.target.value;
-    setSelectedBank(selectedValue);
+ // ฟังก์ชัน handleChange สำหรับการเลือกธนาคาร
+// ฟังก์ชัน handleChange สำหรับการเลือกธนาคาร
+// ฟังก์ชัน handleChange สำหรับการเลือกธนาคาร
+const handleChange = async (event) => {
+  const selectedValue = event.target.value;
+  setSelectedBank(selectedValue);
+  setBankFullName(selectedValue); // ใช้ชื่อธนาคารที่เลือกเป็นชื่อเต็มเลย
+  setIsLoading(true);
 
-    // Filter filteredEmployeeList based on the selected bank
-    const filteredData = filteredEmployeeList.filter((employee) => {
-      if (employee.branchBank) {
-        const bankName = employee.branchBank.split(/\d/)[0].trim();
-        return bankName === selectedValue;
-      }
-      return false;
-    });
+  try {
+    // สร้างข้อมูลสำหรับส่งไปยัง API employee/search
+    const searchData = {
+      salarybank: selectedValue // ใช้ชื่อธนาคารที่เลือกเป็นเงื่อนไขในการค้นหา
+    };
 
-    setResponseDataAll(filteredData); // Update filtered data
-  };
+    // เรียกใช้ API employee/search
+    const response = await axios.post(endpoint + "/employee/search", searchData);
+    
+    if (response.data && response.data.employees) {
+      // กรองข้อมูลพนักงานที่มี salarybank ตรงกับที่เลือก
+      const filteredEmployees = response.data.employees.filter(employee => 
+        employee.salarybank === selectedValue
+      );
+      
+      console.log("พบข้อมูลพนักงาน:", filteredEmployees.length, "คน");
+      
+      // รวมข้อมูลพนักงานกับข้อมูลบัญชี
+      const mergedEmployeeData = filteredEmployees.map((employee) => {
+        const accounting = dataAccounting.find(
+          (record) => record.employeeId === employee.employeeId
+        );
+        
+        return { 
+          ...employee, 
+          accountingRecord: accounting ? accounting.accountingRecord : [] 
+        };
+      });
+
+      // อัปเดตข้อมูลที่จะแสดงในรายงาน
+      setResponseDataAll(mergedEmployeeData);
+    } else {
+      console.log("ไม่พบข้อมูลพนักงานสำหรับธนาคารที่เลือก");
+      setResponseDataAll([]);
+    }
+  } catch (error) {
+    console.error("เกิดข้อผิดพลาดในการดึงข้อมูล:", error);
+    setResponseDataAll([]);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
 
   const startToggleDatePicker = () => {
@@ -804,300 +880,320 @@ function BackReport({ employeeList, workplaceList }) {
     XLSX.writeFile(workbook, "SalaryData.xlsx");
   };
 
+ const BankReportPDF = () => {
+  // คำนวณยอดรวม
+  const totalAmount = mergedData.reduce((sum, item) => {
+    const amount = item.accountingRecord?.[0]?.total 
+      ? Number(item.accountingRecord[0].total) 
+      : 0;
+    return sum + amount;
+  }, 0);
 
   return (
-    // <body class="hold-transition sidebar-mini" className="editlaout">
-    //   <div class="wrapper">
-    //     <div class="content-wrapper">
-    <div className="hold-transition sidebar-mini editlaout">
+    <Document>
+      <Page size="A4" style={{padding: 30, fontFamily: 'THSarabunNew'}}>
+        <View style={{marginBottom: 20}}>
+          <Text style={{fontSize: 16, fontWeight: 'bold'}}>บริษัท โอวาท โปร แอนด์ ควิก จำกัด</Text>
+          <Text style={{fontSize: 14}}>รายงานโอนเงินเข้าธนาคาร {selectedBank}</Text>
+          <Text style={{fontSize: 12}}>สำหรับงวดวันที่ {startFormattedDate321} ถึง {endFormattedDate321}</Text>
+        </View>
+        
+        <View style={{marginBottom: 10}}>
+          <View style={{flexDirection: 'row', borderBottomWidth: 1, padding: 5, backgroundColor: '#e4e4e4'}}>
+            <Text style={{flex: 0.5}}>ลำดับ</Text>
+            <Text style={{flex: 1.5}}>เลขที่บัญชี</Text>
+            <Text style={{flex: 1}}>รหัสพนักงาน</Text>
+            <Text style={{flex: 2}}>ชื่อ-นามสกุล</Text>
+            <Text style={{flex: 1}}>ยอดเงิน</Text>
+          </View>
+          
+          {mergedData.length > 0 ? (
+            mergedData.map((item, index) => (
+              <View key={index} style={{flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#cccccc', padding: 5}}>
+                <Text style={{flex: 0.5}}>{index + 1}</Text>
+                <Text style={{flex: 1.5}}>{item.banknumber || 'N/A'}</Text>
+                <Text style={{flex: 1}}>{item.employeeId || 'N/A'}</Text>
+                <Text style={{flex: 2}}>{`${item.name || ''} ${item.lastName || ''}`}</Text>
+                <Text style={{flex: 1}}>{item.accountingRecord?.[0]?.total ? `฿${Number(item.accountingRecord[0].total).toLocaleString()}` : '฿0.00'}</Text>
+              </View>
+            ))
+          ) : (
+            <View style={{flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#cccccc', padding: 5}}>
+              <Text style={{flex: 1, textAlign: 'center'}}>ไม่พบข้อมูลพนักงาน</Text>
+            </View>
+          )}
+          
+          {mergedData.length > 0 && (
+            <View style={{flexDirection: 'row', borderTopWidth: 1, borderTopColor: '#000', padding: 5, marginTop: 10}}>
+              <Text style={{flex: 0.5}}></Text>
+              <Text style={{flex: 1.5}}></Text>
+              <Text style={{flex: 1, fontWeight: 'bold'}}>รวมพนักงาน</Text>
+              <Text style={{flex: 2, fontWeight: 'bold'}}>{mergedData.length} คน</Text>
+              <Text style={{flex: 1, fontWeight: 'bold'}}>฿{totalAmount.toLocaleString()}</Text>
+            </View>
+          )}
+        </View>
+        
+        <View style={{position: 'absolute', bottom: 30, left: 30, right: 30}}>
+          <Text style={{fontSize: 10}}>พิมพ์วันที่ {formattedDate321} - รายงานโดย {present}</Text>
+        </View>
+      </Page>
+    </Document>
+  );
+};
+
+
+  return (
+  <div className="hold-transition sidebar-mini editlaout">
     <div className="wrapper">
       <div className="content-wrapper">
-
-          {/* <!-- Content Header (Page header) --> */}
-          <ol class="breadcrumb">
-            <li class="breadcrumb-item">
-              <i class="fas fa-home"></i> <a href="index.php">หน้าหลัก</a>
-            </li>
-            <li class="breadcrumb-item">
-              <a href="#"> ระบบเงินเดือน</a>
-            </li>
-            <li class="breadcrumb-item active">ออกรายงานธนาคาร</li>
-          </ol>
-          <div class="content-header">
-            <div class="container-fluid">
-              <div class="row mb-2">
-                <h1 class="m-0">
-                  <i class="far fa-arrow-alt-circle-right"></i> ออกรายงานธนาคาร
-                </h1>
-              </div>
+        {/* <!-- Content Header (Page header) --> */}
+        <ol className="breadcrumb">
+          <li className="breadcrumb-item">
+            <i className="fas fa-home"></i> <a href="index.php">หน้าหลัก</a>
+          </li>
+          <li className="breadcrumb-item">
+            <a href="#"> ระบบเงินเดือน</a>
+          </li>
+          <li className="breadcrumb-item active">ออกรายงานธนาคาร</li>
+        </ol>
+        <div className="content-header">
+          <div className="container-fluid">
+            <div className="row mb-2">
+              <h1 className="m-0">
+                <i className="far fa-arrow-alt-circle-right"></i> ออกรายงานธนาคาร
+              </h1>
             </div>
           </div>
-          <section class="content">
-            <div class="container-fluid">
-              <h2 class="title">ออกรายงานธนาคาร</h2>
-              <section class="Frame">
-                <div class="form-group">
-
-                  {/* Conditionally render content based on the selected option */}
-                  <div>
-                    <div class="row">
-                      <div class="col-md-3">
-                        <label role="searchEmployeeId">ธนาคาร</label>
-                        <select
-                          id="salarybank"
-                          name="salarybank"
-                          className="form-control"
-                          value={selectedBank}
-                          onChange={handleChange}
-                        >
-                          {/* <option value="">ไม่ระบุ</option>
-                          <option value="ธนาคารกรุงเทพ">
-                            ธนาคาร กรุงเทพ
-                          </option>
-                          <option value="ธนาคารกสิกรไทย">
-                            ธนาคาร กสิกรไทย
-                          </option>
-                          <option value="ธนาคารกรุงไทย">
-                            ธนาคาร กรุงไทย
-                          </option>
-                          <option value="ธนาคารทหารไทยธนชาต">
-                            ธนาคาร ทหารไทยธนชาต
-                          </option>
-                          <option value="ธนาคารไทยพาณิชย์">
-                            ธนาคาร ไทยพาณิชย์
-                          </option>
-                          <option value="ธนาคารกรุงศรีอยุธยา">
-                            ธนาคาร กรุงศรีอยุธยา
-                          </option>
-                          <option value="ธนาคารเกียรตินาคินภัทร">
-                            ธนาคาร เกียรตินาคินภัทร
-                          </option>
-                          <option value="ธนาคารซีไอเอ็มบีไทย">
-                            ธนาคาร ซีไอเอ็มบีไทย
-                          </option>
-                          <option value="ธนาคาร ทิสโก้">
-                            ธนาคาร ทิสโก้
-                          </option>
-                          <option value="ธนาคารยูโอบี">
-                            ธนาคาร ยูโอบี
-                          </option>
-                          <option value="ธนาคารไทยเครดิตเพื่อรายย่อย">
-                            ธนาคาร ไทยเครดิตเพื่อรายย่อย
-                          </option>
-                          <option value="ธนาคารแลนด์ แอนด์ เฮ้าส์">
-                            ธนาคาร แลนด์ แอนด์ เฮ้าส์
-                          </option>
-                          <option value="ธนาคารไอซีบีซี (ไทย)">
-                            ธนาคาร ไอซีบีซี (ไทย)
-                          </option>
-                          <option value="ธนาคารพัฒนาวิสาหกิจขนาดกลางและขนาดย่อมแห่งประเทศไทย">
-                            ธนาคาร พัฒนาวิสาหกิจขนาดกลางและขนาดย่อมแห่งประเทศไทย
-                          </option>
-                          <option value="ธนาคารเพื่อการเกษตรและสหกรณ์การเกษตร">
-                            ธนาคาร เพื่อการเกษตรและสหกรณ์การเกษตร
-                          </option>
-                          <option value="ธนาคารเพื่อการส่งออกและนำเข้าแห่งประเทศไทย">
-                            ธนาคาร เพื่อการส่งออกและนำเข้าแห่งประเทศไทย
-                          </option>
-                          <option value="ธนาคารออมสิน">
-                            ธนาคาร ออมสิน
-                          </option>
-                          <option value="ธนาคารอาคารสงเคราะห์">
-                            ธนาคาร อาคารสงเคราะห์
-                          </option> */}
-                          {uniqueBankNames.map((bankName, index) => (
-                            <option key={index} value={bankName}>
-                              {bankName}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                    </div>
-                  </div>
-
-
-                  <div class="row">
-                    <div class="col-md-3">
-                      <label role="agencyname">เดือน</label>
-                      <select
-                        className="form-control"
-                        value={month}
-                        onChange={(e) => setMonth(e.target.value)}
-                      >
-                        <option value="01">มกราคม</option>
-                        <option value="02">กุมภาพันธ์</option>
-                        <option value="03">มีนาคม</option>
-                        <option value="04">เมษายน</option>
-                        <option value="05">พฤษภาคม</option>
-                        <option value="06">มิถุนายน</option>
-                        <option value="07">กรกฎาคม</option>
-                        <option value="08">สิงหาคม</option>
-                        <option value="09">กันยายน</option>
-                        <option value="10">ตุลาคม</option>
-                        <option value="11">พฤศจิกายน</option>
-                        <option value="12">ธันวาคม</option>
-                      </select>
-                    </div>
-
-                    <div class="col-md-3">
-                      <label>ปี</label>
-
-                      <select
-                        className="form-control"
-                        value={year}
-                        onChange={(e) => setYear(e.target.value)}
-                      >
-                        {years.map((y) => (
-                          <option key={y} value={y}>
-                            {y + 543}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                </div>
-                <br />
-                <div class="row align-items-end">
-                  <div class="col-md-3">
-                    <label role="datetime">งวด</label>
-                    <div
-                      onClick={startToggleDatePicker}
-                      style={{
-                        position: "relative",
-                        zIndex: 9999,
-                        marginLeft: "0rem",
-                      }}
-                    >
-                      <FaCalendarAlt size={20} />
-                      <span style={{ marginLeft: "8px" }}>
-                        {startFormattedDate321 ? startFormattedDate321 : "Select Date"}
-                      </span>
-                    </div>
-
-                    {startShowDatePicker && (
-                      <div style={{ position: "absolute", zIndex: 1000 }}>
-                        <ThaiDatePicker
-                          className="form-control"
-                          value={startSelectedDate}
-                          onChange={handleDatePickerStartChange}
-                        />
-                      </div>
-                    )}
-                  </div>
-                  <div class="col-md-1">
-                    ถึง</div>
-                  <div class="col-md-3">
-                    <label role="datetime"></label>
-                    <div
-                      onClick={enDToggleDatePicker}
-                      style={{
-                        position: "relative",
-                        zIndex: 9999,
-                        marginLeft: "0rem",
-                      }}
-                    >
-                      <FaCalendarAlt size={20} />
-                      <span style={{ marginLeft: "8px" }}>
-                        {endFormattedDate321 ? endFormattedDate321 : "Select Date"}
-                      </span>
-                    </div>
-
-                    {endShowDatePicker && (
-                      <div style={{ position: "absolute", zIndex: 1000 }}>
-                        <ThaiDatePicker
-                          className="form-control"
-                          value={endSelectedDate}
-                          onChange={handleDatePickerEndChange}
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <br />
-                <div class="row ">
-                  <div class="col-md-3">
-                    <label role="datetime">พิมพ์วันที่</label>
-                    <div
-                      onClick={toggleDatePicker}
-                      style={{
-                        position: "relative",
-                        zIndex: 9999,
-                        marginLeft: "0rem",
-                      }}
-                    >
-                      <FaCalendarAlt size={20} />
-                      <span style={{ marginLeft: "8px" }}>
-                        {formattedDate321 ? formattedDate321 : "Select Date"}
-                      </span>
-                    </div>
-
-                    {showDatePicker && (
-                      <div style={{ position: "absolute", zIndex: 1000 }}>
-                        <ThaiDatePicker
-                          className="form-control"
-                          value={selectedDate}
-                          onChange={handleDatePickerChange}
-                        />
-                      </div>
-                    )}
-                  </div>
-                  <div class="col-md-3">
-                    <label role="datetime">ลงชื่อ</label>
-
-                    <input
-                      type="text"
-                      class="form-control"
-                      id="searchWorkplaceId"
-                      placeholder="รายงานโดย"
-                      value={present}
-                      onChange={(e) => setPresent(e.target.value)}
-                    />
-                  </div>
-
-                  <div class="col-md-3">
-                    <label role="datetime">รหัส</label>
-
-                    <input
-                      type="text"
-                      class="form-control"
-                      id="searchWorkplaceId"
-                      placeholder="แฟ้มรายงาน"
-                      value={presentfilm}
-                      onChange={(e) => setPresentfilm(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <br />
-                <div class="row">
-                  <div class="col-md-3">
-                    <button onClick={generatePDF} class="btn b_save">
-                      ออกรายงานธนาคาร
-                    </button>
-                  </div>
-                  <div class="col-md-3">
-                    <button onClick={generatePDFAudit} class="btn b_save">
-                      ออกรายงานธนาคาร(ออดิท)
-                    </button>
-                  </div>
-
-                </div>
-                <br />
-                <div class="row">
-                  <div class="col-md-3">
-                    <button onClick={exportToExcel} class="btn b_save">ออก Excel</button>
-
-                  </div>
-
-                </div>
-              </section>
-            </div>
-          </section>
         </div>
+        <section className="content">
+          <div className="container-fluid">
+            <h2 className="title">ออกรายงานธนาคาร</h2>
+            <section className="Frame">
+              <div className="form-group">
+                {/* Conditionally render content based on the selected option */}
+                <div>
+                  <div className="row">
+                    <div className="col-md-3">
+                      <label role="searchEmployeeId">ธนาคาร</label>
+                      <select
+                  id="salarybank"
+                  name="salarybank"
+                  className="form-control"
+                  value={selectedBank}
+                  onChange={handleChange}
+                  disabled={isLoading}
+                >
+                  <option value="">เลือกธนาคาร</option>
+                  {/* ใช้ allBankNames แทน uniqueBankNames หากใช้วิธีดึงจาก API */}
+                  {allBankNames.map((bankName, index) => (
+                    <option key={index} value={bankName}>
+                      {bankName}
+                    </option>
+                  ))}
+                </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="row">
+                  <div className="col-md-3">
+                    <label role="agencyname">เดือน</label>
+                    <select
+                      className="form-control"
+                      value={month}
+                      onChange={(e) => setMonth(e.target.value)}
+                    >
+                      <option value="01">มกราคม</option>
+                      <option value="02">กุมภาพันธ์</option>
+                      <option value="03">มีนาคม</option>
+                      <option value="04">เมษายน</option>
+                      <option value="05">พฤษภาคม</option>
+                      <option value="06">มิถุนายน</option>
+                      <option value="07">กรกฎาคม</option>
+                      <option value="08">สิงหาคม</option>
+                      <option value="09">กันยายน</option>
+                      <option value="10">ตุลาคม</option>
+                      <option value="11">พฤศจิกายน</option>
+                      <option value="12">ธันวาคม</option>
+                    </select>
+                  </div>
+
+                  <div className="col-md-3">
+                    <label>ปี</label>
+                    <select
+                      className="form-control"
+                      value={year}
+                      onChange={(e) => setYear(e.target.value)}
+                    >
+                      {years.map((y) => (
+                        <option key={y} value={y}>
+                          {y + 543}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <br />
+              <div className="row align-items-end">
+                <div className="col-md-3">
+                  <label role="datetime">งวด</label>
+                  <div
+                    onClick={startToggleDatePicker}
+                    style={{
+                      position: "relative",
+                      zIndex: 9999,
+                      marginLeft: "0rem",
+                    }}
+                  >
+                    <FaCalendarAlt size={20} />
+                    <span style={{ marginLeft: "8px" }}>
+                      {startFormattedDate321 ? startFormattedDate321 : "Select Date"}
+                    </span>
+                  </div>
+
+                  {startShowDatePicker && (
+                    <div style={{ position: "absolute", zIndex: 1000 }}>
+                      <ThaiDatePicker
+                        className="form-control"
+                        value={startSelectedDate}
+                        onChange={handleDatePickerStartChange}
+                      />
+                    </div>
+                  )}
+                </div>
+                <div className="col-md-1">ถึง</div>
+                <div className="col-md-3">
+                  <label role="datetime"></label>
+                  <div
+                    onClick={enDToggleDatePicker}
+                    style={{
+                      position: "relative",
+                      zIndex: 9999,
+                      marginLeft: "0rem",
+                    }}
+                  >
+                    <FaCalendarAlt size={20} />
+                    <span style={{ marginLeft: "8px" }}>
+                      {endFormattedDate321 ? endFormattedDate321 : "Select Date"}
+                    </span>
+                  </div>
+
+                  {endShowDatePicker && (
+                    <div style={{ position: "absolute", zIndex: 1000 }}>
+                      <ThaiDatePicker
+                        className="form-control"
+                        value={endSelectedDate}
+                        onChange={handleDatePickerEndChange}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+              <br />
+              <div className="row">
+                <div className="col-md-3">
+                  <label role="datetime">พิมพ์วันที่</label>
+                  <div
+                    onClick={toggleDatePicker}
+                    style={{
+                      position: "relative",
+                      zIndex: 9999,
+                      marginLeft: "0rem",
+                    }}
+                  >
+                    <FaCalendarAlt size={20} />
+                    <span style={{ marginLeft: "8px" }}>
+                      {formattedDate321 ? formattedDate321 : "Select Date"}
+                    </span>
+                  </div>
+
+                  {showDatePicker && (
+                    <div style={{ position: "absolute", zIndex: 1000 }}>
+                      <ThaiDatePicker
+                        className="form-control"
+                        value={selectedDate}
+                        onChange={handleDatePickerChange}
+                      />
+                    </div>
+                  )}
+                </div>
+                <div className="col-md-3">
+                  <label role="datetime">ลงชื่อ</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="searchWorkplaceId"
+                    placeholder="รายงานโดย"
+                    value={present}
+                    onChange={(e) => setPresent(e.target.value)}
+                  />
+                </div>
+
+                <div className="col-md-3">
+                  <label role="datetime">รหัส</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="searchWorkplaceId"
+                    placeholder="แฟ้มรายงาน"
+                    value={presentfilm}
+                    onChange={(e) => setPresentfilm(e.target.value)}
+                  />
+                </div>
+              </div>
+              <br />
+              <div className="row">
+                <div className="col-md-3">
+                  <button onClick={generatePDF} className="btn b_save">
+                    ออกรายงานธนาคาร
+                  </button>
+                </div>
+                <div className="col-md-3">
+                  <button onClick={generatePDFAudit} className="btn b_save">
+                    ออกรายงานธนาคาร(ออดิท)
+                  </button>
+                </div>
+                <div className="col-md-3">
+                  <button onClick={() => setShowPdfPreview(!showPdfPreview)} className="btn b_save">
+                    {showPdfPreview ? "ซ่อนตัวอย่าง" : "แสดงตัวอย่าง PDF"}
+                  </button>
+                </div>
+              </div>
+              <br />
+              <div className="row">
+                <div className="col-md-3">
+                  <button onClick={exportToExcel} className="btn b_save">ออก Excel</button>
+                </div>
+              </div>
+              
+              {/* เพิ่มส่วนแสดงตัวอย่าง PDF */}
+              {showPdfPreview && (
+                <div className="row mt-4">
+                  <div className="col-12">
+                    <div className="card">
+                      <div className="card-header">
+                        <h3 className="card-title">ตัวอย่างรายงาน PDF</h3>
+                      </div>
+                      <div className="card-body">
+                        <div style={{ height: '600px', border: '1px solid #dee2e6', borderRadius: '0.25rem' }}>
+                          <PDFViewer width="100%" height="100%">
+                            <BankReportPDF />
+                          </PDFViewer>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </section>
+          </div>
+        </section>
       </div>
-    {/* </body> */}
     </div>
-  );
+  </div>
+);
 }
 
 export default BackReport;

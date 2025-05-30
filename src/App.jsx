@@ -20,6 +20,7 @@ import EmployeesSelected from "./conponents/componentsAside/EmployeesSelected";
 import TestComponent from "./conponents/componentsAside/TestComponent";
 
 import Salary from "./conponents/componentsAside/Salary";
+import BankReportComponent from "./conponents/componentsAside/BankReportComponent";
 // import Salary from "./conponents/Salary";
 
 import IncomeTax from "./conponents/componentsAside/IncomeTax";
@@ -229,7 +230,7 @@ function App() {
                 element={<SalarySlipPDF employeeList={employeeList} workplaceList={workplaceList}/>}
               />
               <Route
-                path="/backReport"
+                path="/bankReport"
                 element={<BackReport employeeList={employeeList} workplaceList={workplaceList}/>}
               />
                <Route
