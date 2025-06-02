@@ -8,6 +8,8 @@ import { useLocation } from "react-router-dom";
 
 import LoginForm from "./conponents/Login";
 
+import BankReport from "./conponents/componentsAside/BankReport";
+
 import AsideLeft from "./conponents/AsideLeft";
 import Footer from "./conponents/Footer";
 
@@ -231,7 +233,7 @@ function App() {
               />
               <Route
                 path="/bankReport"
-                element={<BackReport employeeList={employeeList} workplaceList={workplaceList}/>}
+                element={<BankReport employeeList={employeeList} workplaceList={workplaceList}/>}
               />
                <Route
                 path="/replaceReport"

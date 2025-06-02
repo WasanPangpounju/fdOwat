@@ -2099,10 +2099,10 @@ const handleSave_back = (index, subIndex, idx) => {
           {addSalaryDay.name} {addSalaryDay.SpSalary} บาท
           <button
             type="button"
-            className="ml-2 text-red-600 hover:text-red-800"
+            className="btn btn-danger btn-sm w-75"
             onClick={() => handleDeleteSalary(index, subIndex, idx, salaryIndex)}
           >
-            ลบ
+            <i class="bi bi-trash3"></i>
           </button>
         </li>
       ))}

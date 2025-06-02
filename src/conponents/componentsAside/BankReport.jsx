@@ -1,29 +1,15 @@
 import endpoint from "../../config";
-
 import axios from "axios";
-import React, { useEffect, useState } from "react";
-import { jsPDF } from "jspdf";
+import { useEffect, useState, Suspense, lazy } from "react";
 import { ThaiDatePicker } from "thaidatepicker-react";
-import { FaCalendarAlt } from "react-icons/fa"; // You can use any icon library
-
-import "jspdf-autotable";
-
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
+import { FaCalendarAlt } from "react-icons/fa"; 
 import * as XLSX from "xlsx";
-import { PDFViewer, Document, Page, Text, View, StyleSheet as PDFStyleSheet } from '@react-pdf/renderer';
+import { PDFViewer, Document, Page, Text, View, StyleSheet as PDFStyleSheet, pdf } from '@react-pdf/renderer';
+import "moment/locale/th"; 
 
 
-import moment from "moment";
-import "moment/locale/th"; // Import the Thai locale data
-// เพิ่มที่ด้านบนไฟล์หลังจาก import
+
 import { Font } from '@react-pdf/renderer';
-
-// ลงทะเบียนฟอนต์
-
-
-// ลงทะเบียนฟอนต์
-
 Font.register({
   family: 'THSarabunNew',
   fonts: [
@@ -32,7 +18,6 @@ Font.register({
     { src: '/assets/fonts/THSarabunNew-Italic.ttf', fontStyle: 'italic' },
   ]
 });
-
 Font.register({
   family: 'CourierPrime',
   fonts: [
@@ -42,8 +27,7 @@ Font.register({
   ]
 });
 
-
-function BackReport({ employeeList, workplaceList }) {
+function BankReport({ employeeList, workplaceList }) {
 
   const filteredEmployeeList = employeeList.map(
     ({ name, lastName, employeeId, branchBank }) => ({
@@ -53,11 +37,13 @@ function BackReport({ employeeList, workplaceList }) {
       branchBank,
     })
   );
-
-
-  const [bankFullName, setBankFullName] = useState("");
+const [bankFullName, setBankFullName] = useState("");
 const [allBankNames, setAllBankNames] = useState([]);
 const [timeRecordData, setTimeRecordData] = useState([]);
+  const [isReady, setIsReady] = useState(false);
+  
+  // คงค่า state เดิมไว้
+
 
 
   const [showPdfPreview, setShowPdfPreview] = useState(false);
@@ -70,17 +56,15 @@ const [timeRecordData, setTimeRecordData] = useState([]);
   const [workplacrName, setWorkplacrName] = useState(""); //รหัสหน่วยงาน
   console.log('filteredEmployeeList', filteredEmployeeList);
 
-  
-
-const extractBankNames = (list) => {
-  const bankNames = list
-    .map((employee) => {
-      // ใช้ salarybank แทน branchBank
-      if (employee.salarybank) {
-        return employee.salarybank.trim();
-      }
-      return null; // Return null for invalid entries
-    })
+  const extractBankNames = (list) => {
+    const bankNames = list
+      .map((employee) => {
+        // ใช้ salarybank แทน branchBank
+        if (employee.salarybank) {
+          return employee.salarybank.trim();
+        }
+        return null; // Return null for invalid entries
+      })
     .filter((name) => name !== null); // Remove null entries
 
   return [...new Set(bankNames)]; // Remove duplicates
@@ -205,39 +189,14 @@ const [filteredByBankAndDate, setFilteredByBankAndDate] = useState([]);
     (employee) => employee.branchBank === selectedBank
   );
 
-  console.log('filteredEmployees', filteredEmployees);
-
-  // useEffect(() => {
-  //   const fetchData = () => {
-  //     const dataTest = {
-  //       year: year,
-  //       month: month,
-  //     };
-
-  //     axios
-  //       .post(endpoint + "/accounting/calsalarylist", dataTest)
-  //       .then((response) => {
-  //         const responseData = response.data;
-
-  //         setDataAccounting(responseData);
-  //       })
-  //       .catch((error) => {
-  //         console.error("Error:", error);
-  //       });
-  //   };
-
-  //   fetchData();
-  // }, [year, month]);
-
- // เพิ่ม state สำหรับเก็บข้อมูลพนักงานจาก timerecord API
 
 
-// เพิ่ม useEffect เพื่อดึงข้อมูลจาก timerecord API
-// แก้ไข useEffect เพื่อดึงข้อมูลจาก timerecord API และแสดงทุกคนก่อนเลือกธนาคาร
-// แก้ไข useEffect เพื่อดึงข้อมูลจาก timerecord API และแสดงทุกคนก่อนเลือกธนาคาร
 useEffect(() => {
   const fetchTimeRecordData = async () => {
-    if (!year || !month) return;
+    if (!year || !month) {
+        setIsLoading(false);
+      return;
+    }
     
     try {
       // แสดง log เพื่อตรวจสอบการส่งค่า
@@ -338,9 +297,11 @@ const fetchEmployeeDetails = async () => {
     // อัปเดต state หรือใช้ข้อมูลนี้แทน filteredByBankAndDate
     setCompleteEmployeeData(completeEmployeeData);
     console.log("ข้อมูลพนักงานที่สมบูรณ์:", completeEmployeeData);
+    setIsLoading(false);
 
   } catch (error) {
     console.error("เกิดข้อผิดพลาดในการดึงข้อมูลละเอียดของพนักงาน:", error);
+    setIsLoading(false);
   }
 };
 
@@ -514,32 +475,6 @@ const handleChange = async (event) => {
     setShowDatePicker(!showDatePicker);
   };
 
-  // useEffect(() => {
-  //   const generateRandomData = () => {
-  //     const randomNames = ["สมชาย", "กิตทิมา", "สิริพา", "ไกลนิมาร", "ไหรามา", "อิริสา"];
-  //     const randomLastNames = [
-  //       "สาศิมาไร",
-  //       "รืมากา",
-  //       "การิมาร",
-  //       "ไซนยะนะ",
-  //       "คงสงไทย",
-  //       "สงพารี",
-  //     ];
-
-  //     const randomArray = Array.from({ length: 150 }, () => ({
-  //       name: randomNames[Math.floor(Math.random() * randomNames.length)],
-  //       lastName:
-  //         randomLastNames[Math.floor(Math.random() * randomLastNames.length)],
-  //       banknumber: Math.floor(1000000000 + Math.random() * 9000000000).toString(), // Convert 10-digit number to string
-  //       employee: Math.floor(100000 + Math.random() * 900000).toString(), // Convert amount to string
-  //       total: Math.floor(10000 + Math.random() * 90000).toString(), // Convert amount to string
-  //     }));
-
-  //     setResponseDataAll(randomArray);
-  //   };
-
-  //   generateRandomData();
-  // }, []);
 
 
   console.log('responseDataAll', responseDataAll);
@@ -561,496 +496,6 @@ const handleChange = async (event) => {
 
   console.log('mergedData', mergedData);
 
-  // const generatePDF = () => {
-  //   const names = ["Alice", "Bob", "Charlie", "David", "Eva"];
-  //   const ages = [25, 30, 22, 35, 28];
-
-  //   // Create a new instance of jsPDF
-  //   const pdf = new jsPDF();
-
-  //   const fontPath = "/assets/fonts/THSarabunNew.ttf";
-  //   pdf.addFileToVFS(fontPath);
-  //   pdf.addFont(fontPath, "THSarabunNew", "normal");
-
-  //   // Add bold font
-  //   const boldFontPath = "/assets/fonts/THSarabunNew Bold.ttf";
-  //   pdf.addFileToVFS(boldFontPath);
-  //   pdf.addFont(boldFontPath, "THSarabunNew Bold", "normal");
-
-  //   // const boldFontPath = '/assets/fonts/THSarabunNew Bold.ttf';
-  //   // pdf.addFileToVFS(boldFontPath);
-  //   // pdf.addFont(boldFontPath, 'THSarabunNew Bold', 'normal');
-
-  //   // Override the default stylestable for jspdf-autotable
-
-  //   pdf.setFont("THSarabunNew", "normal");
-  // pdf.setFontSize(16);
-
-  //   const stylestable = {
-  //     font: "THSarabunNew",
-  //     fontStyle: "normal",
-  //     fontSize: 10,
-  //   };
-  //   const tableOptions = {
-  //     styles: stylestable,
-  //     startY: 25,
-  //     // margin: { top: 10 },
-  //   };
-
-  //   // let x = 20; // Left margin
-  //   // let y = 20; // Top margin
-
-  //   // Set the initial position for text and frame
-
-  //   // y += 10; // Add space after the title
-
-  //   // Add table headers
-  //   pdf.setFontSize(12);
-  //   pdf.setFont("THSarabunNew", "bold");
-
-  //   // pdf.text("No.", x, y);
-  //   // pdf.text("Bank Number", x + 20, y);
-  //   // pdf.text("Name + Last Name", x + 70, y);
-  //   // pdf.text("Total", x + 150, y);
-
-  //   // y += 5; // Move to the next line
-
-  //   // // Reset font for table content
-  //   // pdf.setFont("THSarabunNew", "normal");
-
-  //   // // Loop through data and add rows
-  //   // responseDataAll.forEach((item, index) => {
-  //   //   const fullName = `${item.name} ${item.lastName}`;
-  //   //   const formattedTotal = item.total.toLocaleString(); // Format total with commas
-
-  //   //   pdf.text((index + 1).toString(), x, y); // Number
-  //   //   pdf.text(item.banknumber, x + 20, y); // Bank Number
-  //   //   pdf.text(fullName, x + 70, y); // Full Name
-  //   //   pdf.text(formattedTotal, x + 150, y, { align: "right" }); // Total (right-aligned)
-
-  //   //   y += 5; // Move to the next row
-  //   // });
-
-  //   const marginTop = 20;
-  //   const marginBottom = 20;
-  //   const pageHeight = pdf.internal.pageSize.height;
-  //   const maxContentHeight = pageHeight - marginTop - marginBottom;
-  //   let y = marginTop;
-
-  //   const x = 20;
-
-  //   // Title and table headers
-  //   pdf.setFont("THSarabunNew Bold", "normal");
-  //   pdf.setFontSize(12);
-
-
-  //   pdf.text("No.", x, y);
-  //   pdf.text("Bank Number", x + 20, y);
-  //   pdf.text("Name + Last Name", x + 70, y);
-  //   pdf.text("Total", x + 150, y);
-
-  //   y += 5; // Move to the next line
-
-  //   // Reset font for table content
-  //   pdf.setFont("THSarabunNew", "normal");
-  //   pdf.setFontSize(10);
-
-  //   let totalSum = 0; // Variable to keep track of the total sum
-
-  //   // Loop through data and add rows
-  //   responseDataAll.forEach((item, index) => {
-  //     // Check if we need a new page
-
-  //     pdf.text("บริษัท โอวาท โปร แอน์ ควิก จำกัด", 10, 10);
-  //     pdf.text(`รายงานโอนเงินเข้าธนาคาร ${selectedBank}`, 10, 16);
-  //     pdf.text(`สำหรับงวดวันที่`, 10, 22);
-
-  //     if (y + 10 > maxContentHeight) {
-  //       pdf.addPage();
-  //       y = marginTop;
-
-  //       // Add table headers on new page
-
-  //       pdf.setFont("THSarabunNew Bold", "normal");
-  //       pdf.setFontSize(12);
-  //       pdf.text("No.", x, y);
-  //       pdf.text("Bank Number", x + 20, y);
-  //       pdf.text("Name + Last Name", x + 70, y);
-  //       pdf.text("Total", x + 150, y);
-
-  //         totalSum += item.total; // Add item total to the sum
-
-  //       y += 5; // Move to the next line
-
-  //       // pdf.setFont("THSarabunNew", "normal");
-  //       // pdf.setFontSize(10);
-
-  //     }
-
-
-  //     // Add row data
-  //     const fullName = `${item.name} ${item.lastName}`;
-  //     const formattedTotal = item.total.toLocaleString(); // Format total with commas
-
-  //     pdf.text((index + 1).toString(), x, y); // Number
-  //     pdf.text(item.banknumber, x + 20, y); // Bank Number
-  //     pdf.text(fullName, x + 70, y); // Full Name
-  //     pdf.text(formattedTotal, x + 150, y, { align: "right" }); // Total (right-aligned)
-
-  //     y += 5; // Move to the next row
-  //   });
-
-  //   const formattedTotalSum = totalSum.toLocaleString(); // Format total with commas
-  //   pdf.setFont("THSarabunNew Bold", "normal");
-  //   pdf.text("Total Sum:", x + 100, y); // Position of "Total Sum" text
-  //   pdf.text(formattedTotalSum, x + 180, y, { align: "right" }); // Position of total sum value
-
-
-  //   // pdf.setFont('THSarabunNew');
-  //   pdf.setFont("THSarabunNew Bold");
-
-  //   // Loop through the names and ages arrays to add content to the PDF
-
-
-  //   // Open the generated PDF in a new tab
-  //   window.open(pdf.output("bloburl"), "_blank");
-  // };
-
-  const generatePDF = () => {
-    // Create a new instance of jsPDF
-    const pdf = new jsPDF(
-      {
-        format: "a4", // Set page size to A4
-        unit: "mm",   // Use millimeters as the unit
-        orientation: "portrait", // Orientation can be 'portrait' or 'landscape'
-      }
-    );
-
-    // Add the Thai fonts to jsPDF
-    const fontPath = "/assets/fonts/THSarabunNew.ttf";
-    pdf.addFileToVFS(fontPath);
-    pdf.addFont(fontPath, "THSarabunNew", "normal");
-
-    // Add bold font
-    const boldFontPath = "/assets/fonts/THSarabunNew-Bold.ttf";
-    pdf.addFileToVFS(boldFontPath);
-    pdf.addFont(boldFontPath, "THSarabunNew-Bold", "bold");
-
-    // Set initial styles and positions
-    const marginTop = 30;
-    const marginBottom = 5;
-    const pageHeight = pdf.internal.pageSize.height;
-    const maxContentHeight = pageHeight - marginTop - marginBottom + 200;
-    const itemsPerPage = Math.floor(maxContentHeight / 10); // Adjust row height (e.g., 10 for this example)
-    const totalPages = Math.ceil(mergedData.length / itemsPerPage);
-    let currentPage = 1;
-
-    let y = marginTop;
-
-    const x = 10;
-
-    // Title and table headers
-    pdf.setFont("THSarabunNew Bold", "normal");
-    pdf.setFontSize(12);
-    pdf.setLineWidth(0.6); // Set the line width
-    pdf.line(x, y - 5, 205, y - 5); // Line from (20, 50) to (190, 50)
-    pdf.text("ลำดับ", x, y);
-    pdf.text("เลขที่บัญชี", x + 20, y);
-    pdf.text("รหัสพนักงาน", x + 45, y);
-    pdf.text("ชื่อ-นามสกุล", x + 90, y);
-    pdf.text("ยอดเงิน", x + 180, y);
-    pdf.line(x, y + 2, 205, y + 2); // Line from (20, 50) to (190, 50)
-
-    pdf.line(x, 290 - 5, 205, 290 - 5); // Line from (20, 50) to (190, 50)
-    pdf.text(`พิมพ์วันที่ ${formattedDate321}`, x, 290);
-    pdf.text(`รายงานโดน ${present}`, x + 30, 290);
-    pdf.text(`แฟ้มรายงาน ${presentfilm}`, x + 80, 290);
-
-    y += 5; // Move to the next line
-
-    // Reset font for table content
-    pdf.setFont("THSarabunNew", "normal");
-    pdf.setFontSize(10);
-
-    let totalSum = 0; // Variable to keep track of the total sum
-    let allperson = 0; // Variable to keep track of the total sum
-
-    // Loop through data and add rows
-    mergedData.forEach((item, index) => {
-      if ((index % itemsPerPage === 0) && index !== 0) {
-        // Add footer with page number
-
-        pdf.setFont("THSarabunNew Bold", "normal");
-        pdf.setFontSize(12);
-        y = marginTop;
-
-        // Add a new page
-        pdf.addPage();
-        currentPage++;
-
-        pdf.setLineWidth(0.6); // Set the line width
-        pdf.line(x, y - 5, 205, y - 5); // Line from (20, 50) to (190, 50)
-        pdf.text("ลำดับ", x, y);
-        pdf.text("เลขที่บัญชี", x + 20, y);
-        pdf.text("รหัสพนักงาน", x + 45, y);
-        pdf.text("ชื่อ-นามสกุล", x + 90, y);
-        pdf.text("ยอดเงิน", x + 180, y);
-        pdf.line(x, y + 2, 205, y + 2); // Line from (20, 50) to (190, 50)
-        pdf.text(`หน้าที่ ${currentPage}/${totalPages}`, 200, 22, { align: "right" });
-        // y = marginTop; // Reset y-coordinate for the new page
-
-        pdf.line(x, 290 - 5, 205, 290 - 5); // Line from (20, 50) to (190, 50)
-        pdf.text(`พิมพ์วันที่ ${formattedDate321}`, x, 290);
-        pdf.text(`รายงานโดน ${present}`, x + 30, 290);
-        pdf.text(`แฟ้มรายงาน ${presentfilm}`, x + 80, 290);
-        y += 5; // Move to the next line
-      }
-
-      // Check if we need a new page
-
-      pdf.text("บริษัท โอวาท โปร แอน์ ควิก จำกัด", 10, 10);
-      pdf.text(`รายงานโอนเงินเข้าธนาคาร ${selectedBank}`, 10, 16);
-      pdf.text(`สำหรับงวดวันที่ ${startFormattedDate321} ถึง ${endFormattedDate321}`, 10, 22);
-      // pdf.text(`หน้าที่ ${currentPage}/${totalPages}`, 200, 22, { align: "right" });
-
-
-      // if (y + 10 > maxContentHeight) {
-      //   pdf.addPage();
-      //   y = marginTop;
-
-      //   // Add table headers on new page
-      //   pdf.setFont("THSarabunNew Bold", "normal");
-      //   pdf.setFontSize(12);
-
-      //   pdf.setLineWidth(0.6); // Set the line width
-      //   pdf.line(x, y - 5, 205, y - 5); // Line from (20, 50) to (190, 50)
-      //   pdf.text("ลำดับ", x, y);
-      //   pdf.text("เลขที่บัญชี", x + 20, y);
-      //   pdf.text("รหัสพนักงาน", x + 45, y);
-      //   pdf.text("ชื่อ-นามสกุล", x + 90, y);
-      //   pdf.text("ยอดเงิน", x + 180, y);
-      //   pdf.line(x, y + 2, 205, y + 2); // Line from (20, 50) to (190, 50)
-
-      //   y += 5; // Move to the next line
-
-      //   pdf.setFont("THSarabunNew", "normal");
-      //   pdf.setFontSize(10);
-      // }
-
-      // Add row data
-      // const fullName = `${item.name} ${item.lastName}`;
-      // // const formattedTotal = Number(item.total.toLocaleString()); // Format total with commas
-      // const formattedTotal = Number(item.total).toLocaleString(); // e.g., "123,456"
-
-      const fullName = `${item.name ?? ""} ${item.lastName ?? ""}`;
-      // const bankNumber = item.branchBank ?? "Unknown"; // Ensure bankNumber is defined
-      const bankNumber = item.branchBank
-        ? item.branchBank.match(/\d{3}-\d{1}-\d{5}-\d{1}/)?.[0] ?? "Unknown"
-        : "Unknown";
-      const employee = item.employeeId ?? "Unknown"; // Ensure bankNumber is defined
-      // const formattedTotal = item.total?.toLocaleString() ?? "0";
-      // const formattedTotal = item.accountingRecord.total?.toLocaleString() ?? "0";
-      const formattedTotal = item.accountingRecord?.[0]?.total ? Number(item.accountingRecord[0].total).toLocaleString() : "0";
-
-      pdf.text((index + 1).toString(), x + 3, y, { align: "center" }); // Number
-      pdf.text(bankNumber, x + 20, y); // Bank Number (displayed as string)
-      pdf.text(employee, x + 46, y); // Bank Number (displayed as string)
-      pdf.text(fullName, x + 90, y); // Full Name
-      pdf.text(formattedTotal, x + 185, y, { align: "center" }); // 
-
-      allperson = (index + 1).toString();
-      // totalSum += Number(formattedTotal); // Add item total to the sum (ensure it's treated as a number)
-      totalSum += Number(item.accountingRecord?.[0]?.total || 0); // Ensure total is treated as a number
-
-      y += 5; // Move to the next row
-    });
-
-    // Add total sum to the last page
-    const formattedTotalSum = totalSum.toLocaleString(); // Format total with commas
-    pdf.setFont("THSarabunNew Bold", "normal");
-    // pdf.text("Total Sum:", x + 150, y); // Position of "Total Sum" text
-    pdf.text(`รวมพนักงาน`, 45, y, { align: "right" }); // Position of total sum value
-    pdf.text(`${allperson} คน`, 70, y, { align: "right" }); // Position of total sum value
-    pdf.text(formattedTotalSum, x + 190, y, { align: "right" }); // Position of total sum value
-
-    pdf.line(x, y - 3, 205, y - 3); // Line from (20, 50) to (190, 50)
-
-    // Open the generated PDF in a new tab
-    window.open(pdf.output("bloburl"), "_blank");
-  };
-
-  const generatePDFAudit = () => {
-    // Create a new instance of jsPDF
-    const pdf = new jsPDF(
-      {
-        format: "a4", // Set page size to A4
-        unit: "mm",   // Use millimeters as the unit
-        orientation: "portrait", // Orientation can be 'portrait' or 'landscape'
-      }
-    );
-
-    // Add the Thai fonts to jsPDF
-    const fontPath = "/assets/fonts/THSarabunNew.ttf";
-    pdf.addFileToVFS(fontPath);
-    pdf.addFont(fontPath, "THSarabunNew", "normal");
-
-    // Add bold font
-    const boldFontPath = "/assets/fonts/THSarabunNew Bold.ttf";
-    pdf.addFileToVFS(boldFontPath);
-    pdf.addFont(boldFontPath, "THSarabunNew-Bold", "Bold");
-
-    // Set initial styles and positions
-    const marginTop = 30;
-    const marginBottom = 5;
-    const pageHeight = pdf.internal.pageSize.height;
-    const maxContentHeight = pageHeight - marginTop - marginBottom + 200;
-    const itemsPerPage = Math.floor(maxContentHeight / 10); // Adjust row height (e.g., 10 for this example)
-    const totalPages = Math.ceil(mergedData.length / itemsPerPage);
-    let currentPage = 1;
-
-    let y = marginTop;
-
-    const x = 10;
-
-    // Title and table headers
-    pdf.setFont("THSarabunNew Bold", "normal");
-    pdf.setFontSize(12);
-    pdf.setLineWidth(0.6); // Set the line width
-    pdf.line(x, y - 5, 205, y - 5); // Line from (20, 50) to (190, 50)
-    pdf.text("ลำดับ", x, y);
-    pdf.text("เลขที่บัญชี", x + 20, y);
-    pdf.text("รหัสพนักงาน", x + 45, y);
-    pdf.text("ชื่อ-นามสกุล", x + 90, y);
-    pdf.text("ยอดเงิน", x + 180, y);
-    pdf.line(x, y + 2, 205, y + 2); // Line from (20, 50) to (190, 50)
-
-    pdf.line(x, 290 - 5, 205, 290 - 5); // Line from (20, 50) to (190, 50)
-    pdf.text(`พิมพ์วันที่ ${formattedDate321}`, x, 290);
-    pdf.text(`รายงานโดน ${present}`, x + 30, 290);
-    pdf.text(`แฟ้มรายงาน ${presentfilm}`, x + 80, 290);
-
-    y += 5; // Move to the next line
-
-    // Reset font for table content
-    pdf.setFont("THSarabunNew", "normal");
-    pdf.setFontSize(10);
-
-    let totalSum = 0; // Variable to keep track of the total sum
-    let allperson = 0; // Variable to keep track of the total sum
-
-    // Loop through data and add rows
-    mergedData.forEach((item, index) => {
-      if ((index % itemsPerPage === 0) && index !== 0) {
-        // Add footer with page number
-
-        pdf.setFont("THSarabunNew Bold", "normal");
-        pdf.setFontSize(12);
-        y = marginTop;
-
-        // Add a new page
-        pdf.addPage();
-        currentPage++;
-
-        pdf.setLineWidth(0.6); // Set the line width
-        pdf.line(x, y - 5, 205, y - 5); // Line from (20, 50) to (190, 50)
-        pdf.text("ลำดับ", x, y);
-        pdf.text("เลขที่บัญชี", x + 20, y);
-        pdf.text("รหัสพนักงาน", x + 45, y);
-        pdf.text("ชื่อ-นามสกุล", x + 90, y);
-        pdf.text("ยอดเงิน", x + 180, y);
-        pdf.line(x, y + 2, 205, y + 2); // Line from (20, 50) to (190, 50)
-        pdf.text(`หน้าที่ ${currentPage}/${totalPages}`, 200, 22, { align: "right" });
-        // y = marginTop; // Reset y-coordinate for the new page
-
-        pdf.line(x, 290 - 5, 205, 290 - 5); // Line from (20, 50) to (190, 50)
-        pdf.text(`พิมพ์วันที่ ${formattedDate321}`, x, 290);
-        pdf.text(`รายงานโดน ${present}`, x + 30, 290);
-        pdf.text(`แฟ้มรายงาน ${presentfilm}`, x + 80, 290);
-        y += 5; // Move to the next line
-      }
-
-      // Check if we need a new page
-
-      pdf.text("บริษัท โอวาท โปร แอน์ ควิก จำกัด", 10, 10);
-      pdf.text(`รายงานโอนเงินเข้าธนาคาร ${selectedBank}`, 10, 16);
-      pdf.text(`สำหรับงวดวันที่ ${startFormattedDate321} ถึง ${endFormattedDate321}`, 10, 22);
-      // pdf.text(`หน้าที่ ${currentPage}/${totalPages}`, 200, 22, { align: "right" });
-
-
-      // if (y + 10 > maxContentHeight) {
-      //   pdf.addPage();
-      //   y = marginTop;
-
-      //   // Add table headers on new page
-      //   pdf.setFont("THSarabunNew Bold", "normal");
-      //   pdf.setFontSize(12);
-
-      //   pdf.setLineWidth(0.6); // Set the line width
-      //   pdf.line(x, y - 5, 205, y - 5); // Line from (20, 50) to (190, 50)
-      //   pdf.text("ลำดับ", x, y);
-      //   pdf.text("เลขที่บัญชี", x + 20, y);
-      //   pdf.text("รหัสพนักงาน", x + 45, y);
-      //   pdf.text("ชื่อ-นามสกุล", x + 90, y);
-      //   pdf.text("ยอดเงิน", x + 180, y);
-      //   pdf.line(x, y + 2, 205, y + 2); // Line from (20, 50) to (190, 50)
-
-      //   y += 5; // Move to the next line
-
-      //   pdf.setFont("THSarabunNew", "normal");
-      //   pdf.setFontSize(10);
-      // }
-
-      // Add row data
-      // const fullName = `${item.name} ${item.lastName}`;
-      // // const formattedTotal = Number(item.total.toLocaleString()); // Format total with commas
-      // const formattedTotal = Number(item.total).toLocaleString(); // e.g., "123,456"
-
-      const fullName = `${item.name ?? ""} ${item.lastName ?? ""}`;
-      // const bankNumber = item.branchBank ?? "Unknown"; // Ensure bankNumber is defined
-      const bankNumber = item.branchBank
-        ? item.branchBank.match(/\d{3}-\d{1}-\d{5}-\d{1}/)?.[0] ?? "Unknown"
-        : "Unknown";
-      const employee = item.employeeId ?? "Unknown"; // Ensure bankNumber is defined
-      // const formattedTotal = item.total?.toLocaleString() ?? "0";
-      // const formattedTotal = item.accountingRecord.total?.toLocaleString() ?? "0";
-      const formattedTotal = item.accountingRecord?.[0]?.total
-        ? Number(item.accountingRecord[0].total)
-        : 0;
-
-      const formattedTotalAdvancePayment = item.deductSalary?.find((deduction) => deduction.id === "2124")
-        ? Number(item.deductSalary.find((deduction) => deduction.id === "2124").amount)
-        : 0;
-
-      const sumTotalAndAdvancePayment = formattedTotal + formattedTotalAdvancePayment;
-
-      const formattedSum = sumTotalAndAdvancePayment.toLocaleString();
-
-      pdf.text((index + 1).toString(), x + 3, y, { align: "center" }); // NumberdeductSalary
-      pdf.text(bankNumber, x + 20, y); // Bank Number (displayed as string)
-      pdf.text(employee, x + 46, y); // Bank Number (displayed as string)
-      pdf.text(fullName, x + 90, y); // Full Name
-      pdf.text(formattedSum, x + 185, y, { align: "center" }); // 
-
-      allperson = (index + 1).toString();
-      // totalSum += Number(formattedTotal); // Add item total to the sum (ensure it's treated as a number)
-      // totalSum += Number(item.accountingRecord?.[0]?.total || 0); // Ensure total is treated as a number
-      totalSum += Number(formattedSum);
-      y += 5; // Move to the next row
-    });
-
-    // Add total sum to the last page
-    const formattedTotalSum = totalSum.toLocaleString(); // Format total with commas
-    pdf.setFont("THSarabunNew Bold", "normal");
-    // pdf.text("Total Sum:", x + 150, y); // Position of "Total Sum" text
-    pdf.text(`รวมพนักงาน`, 45, y, { align: "right" }); // Position of total sum value
-    pdf.text(`${allperson} คน`, 70, y, { align: "right" }); // Position of total sum value
-    pdf.text(formattedTotalSum, x + 190, y, { align: "right" }); // Position of total sum value
-
-    pdf.line(x, y - 3, 205, y - 3); // Line from (20, 50) to (190, 50)
-
-    // Open the generated PDF in a new tab
-    window.open(pdf.output("bloburl"), "_blank");
-  };
 
   const exportToExcel = () => {
     // Define the headers
@@ -1078,6 +523,105 @@ const handleChange = async (event) => {
     // Export to Excel file
     XLSX.writeFile(workbook, "SalaryData.xlsx");
   };
+
+
+const handleDownloadPDF = async () => {
+  try {
+    // ตรวจสอบเงื่อนไขที่จำเป็นก่อนสร้าง PDF
+    if (!selectedBank || !month || !year) {
+      alert("กรุณาเลือกธนาคาร เดือน และปีให้ครบถ้วน");
+      return;
+    }
+    
+    if (completeEmployeeData.length === 0) {
+      alert("ไม่พบข้อมูลพนักงานที่ตรงตามเงื่อนไข");
+      return;
+    }
+    
+    // แสดงสถานะกำลังโหลด
+    setIsLoading(true);
+
+    console.log("กำลังสร้าง PDF...");
+    const blob = await pdf(<BankReportPDF />).toBlob();
+    console.log("สร้าง PDF Blob สำเร็จ");
+    
+    // สร้างลิงก์สำหรับดาวน์โหลด
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    
+    // กำหนดชื่อไฟล์ PDF
+    const filename = `รายงานธนาคาร_${selectedBank.replace(/[\/\\:*?"<>|]/g, '_') || 'ทั้งหมด'}_${month}_${year}.pdf`;
+    link.download = filename;
+    
+    // กระตุ้นการดาวน์โหลด
+    document.body.appendChild(link);
+    link.click();
+    
+    // ล้างลิงก์หลังจากดาวน์โหลด
+    setTimeout(() => {
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      setIsLoading(false);
+    }, 100);
+    
+  } catch (error) {
+    console.error("เกิดข้อผิดพลาดในการสร้างไฟล์ PDF:", error);
+    alert(`เกิดข้อผิดพลาดในการสร้างไฟล์ PDF: ${error.message}`);
+    setIsLoading(false);
+  }
+};
+
+const handlePreviewPDF = async () => {
+  try {
+    // ตรวจสอบเงื่อนไขที่จำเป็นก่อนสร้าง PDF
+    if (!selectedBank || !month || !year) {
+      alert("กรุณาเลือกธนาคาร เดือน และปีให้ครบถ้วน");
+      return;
+    }
+    
+    if (completeEmployeeData.length === 0) {
+      alert("ไม่พบข้อมูลพนักงานที่ตรงตามเงื่อนไข");
+      return;
+    }
+    
+    // แสดงสถานะกำลังโหลด
+    setIsLoading(true);
+    
+    // สร้าง PDF blob จากฟังก์ชัน BankReportPDF
+    console.log("กำลังสร้าง PDF...");
+    const blob = await pdf(<BankReportPDF />).toBlob();
+    console.log("สร้าง PDF Blob สำเร็จ");
+    
+    // สร้าง URL สำหรับการเปิดในแท็บใหม่
+    const url = URL.createObjectURL(blob);
+    
+    // เปิด PDF ในแท็บใหม่
+    window.open(url, '_blank');
+    
+    // ทำความสะอาด URL หลังจากเปิดแท็บใหม่
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+      setIsLoading(false);
+    }, 100);
+    
+  } catch (error) {
+    console.error("เกิดข้อผิดพลาดในการสร้างไฟล์ PDF:", error);
+    alert(`เกิดข้อผิดพลาดในการสร้างไฟล์ PDF: ${error.message}`);
+    setIsLoading(false);
+  }
+};
+
+const handleMonthChange = (e) => {
+  // แสดงสถานะกำลังโหลด
+  setIsLoading(true);
+  // เปลี่ยนค่าเดือน
+  setMonth(e.target.value);
+  // ล้างข้อมูลเดิม (ถ้าต้องการ)
+  setCompleteEmployeeData([]);
+};
+
+
 
 const BankReportPDF = () => {
   console.log("ข้อมูลพนักงานที่สมบูรณ์:", completeEmployeeData.length);
@@ -1132,7 +676,7 @@ const BankReportPDF = () => {
           <Page key={pageNum} size="A4" style={{padding: 30, fontFamily: 'THSarabunNew'}}>
             <View style={{marginBottom: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end'}}>
               <View>
-                <Text style={{fontSize: 16,fontFamily:'THSarabunNew' }}>บริษัท โอวาท โปร แอนด์ ควิก จำกัด</Text>
+                <Text style={{fontSize: 16,fontStyle:'italic', fontFamily: 'THSarabunNew' }}>บริษัท โอวาท โปร แอนด์ ควิก จำกัด</Text>
                 <Text style={{fontSize: 14,  fontWeight: 'bold', fontFamily: 'THSarabunNew' }}>รายงานโอนเงินเข้า {selectedBank}</Text>
                 <Text style={{fontSize: 10}}>สำหรับงวดวันที่ {startFormattedDate321} ถึง {endFormattedDate321}</Text>
               </View>
@@ -1145,7 +689,7 @@ const BankReportPDF = () => {
                 <Text style={{width: '18%'}}>เลขที่บัญชี</Text>
                 <Text style={{width: '20%'}}>รหัสพนักงาน</Text>
                 <Text style={{width: '45%'}}>ชื่อ-นามสกุล</Text>
-                <Text style={{width: '5%' ,textAlign:'center', paddingLeft:'8px'}}>ยอดเงิน</Text>
+                <Text style={{width: '7%', textAlign: 'right'}}>ยอดเงิน</Text>
               </View>
               
               {pageItems.map((item, index) => {
@@ -1177,7 +721,7 @@ const BankReportPDF = () => {
                     <Text style={{width: '45%'}}>
                       {employeeName} {employeeLastName} 
                     </Text>
-                    <Text style={{width: '7%' ,}}>
+                    <Text style={{width: '7%', textAlign: 'right', paddingRight: '5px'}}>
                       {item.employeeDetails ? 
                         (() => {
                           const accountingResult = [item];
@@ -1200,15 +744,18 @@ const BankReportPDF = () => {
                           const netTotal = incomeTotal - deductionTotal;
 
                           return isNaN(netTotal)
-                            ? '฿0.00'
-                            : `${netTotal.toLocaleString('th-TH', {
+                            ? '0.00'
+                            : netTotal.toLocaleString('th-TH', {
                                 minimumFractionDigits: 2,
                                 maximumFractionDigits: 2
-                              })}`;
+                              });
                         })() 
                         : (item.sumCashWork 
-                            ? `฿${Number(item.sumCashWork).toLocaleString()}` 
-                            : '฿0.00')}
+                            ? Number(item.sumCashWork).toLocaleString('th-TH', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2
+                              })
+                            : '0.00')}
                     </Text>
                     
                   </View>
@@ -1219,11 +766,15 @@ const BankReportPDF = () => {
               {isLastPage && (
                 <View style={{flexDirection: 'row', fontSize: 12, borderTopWidth: 1, borderTopColor: '#000', padding: 1, marginTop: 5}}>
                   <Text style={{width: '10%'}}></Text>
-                  <Text style={{width: '13%' , fontWeight: 'bold'}}>รวมพนักงาน</Text>
-                  <Text style={{width: '20%' , fontWeight: 'bold'}}>{completeEmployeeData.length} คน</Text>
-                  <Text style={{width: '10%'}}></Text>
-                  <Text style={{width: '39%', fontWeight: 'bold'}}></Text>
-                  <Text style={{width: '6%', fontWeight: 'bold'}}>{totalCashAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</Text>
+                  <Text style={{width: '13%', fontWeight: 'bold'}}>รวมพนักงาน</Text>
+                  <Text style={{width: '20%', fontWeight: 'bold'}}>{completeEmployeeData.length} คน</Text>
+                  <Text style={{width: '50%', fontWeight: 'bold'}}></Text>
+                  <Text style={{width: '7%', fontWeight: 'bold', textAlign: 'right', paddingRight: '5px'}}>
+                    {totalCashAmount.toLocaleString('th-TH', {
+                      minimumFractionDigits: 2, 
+                      maximumFractionDigits: 2
+                    })}
+                  </Text>
                 </View>
               )}
             </View>
@@ -1277,6 +828,9 @@ const BankReportPDF = () => {
                       value={selectedBank}
                       onChange={handleChange}
                     >
+                    <option value="Null">
+                                      เลือกธนาคาร
+                                    </option>   
                     <option value="ธนาคารกรุงเทพ (มหาชน)">
                                       ธนาคาร กรุงเทพ (มหาชน)
                                     </option>
@@ -1342,7 +896,8 @@ const BankReportPDF = () => {
                     <select
                       className="form-control"
                       value={month}
-                      onChange={(e) => setMonth(e.target.value)}
+                      onChange={handleMonthChange}
+                      disabled={isLoading}
                     >
                       <option value="01">มกราคม</option>
                       <option value="02">กุมภาพันธ์</option>
@@ -1487,20 +1042,20 @@ const BankReportPDF = () => {
               <br />
               <div className="row">
                 <div className="col-md-3">
-                  <button onClick={generatePDF} className="btn b_save">
-                    ออกรายงานธนาคาร
-                  </button>
+                   <button 
+        onClick={handlePreviewPDF}
+        className="btn b_save "
+        disabled={isLoading}
+      >
+        {isLoading ? "กำลังสร้างไฟล์..." : "ออกรายงานธนาคาร"}
+      </button>
                 </div>
                 <div className="col-md-3">
-                  <button onClick={generatePDFAudit} className="btn b_save">
+                  <button className="btn b_save">
                     ออกรายงานธนาคาร(ออดิท)
                   </button>
                 </div>
-                <div className="col-md-3">
-                  <button onClick={() => setShowPdfPreview(!showPdfPreview)} className="btn b_save">
-                    {showPdfPreview ? "ซ่อนตัวอย่าง" : "แสดงตัวอย่าง PDF"}
-                  </button>
-                </div>
+                
               </div>
               <br />
               <div className="row">
@@ -1537,4 +1092,4 @@ const BankReportPDF = () => {
 );
 }
 
-export default BackReport;
+export default BankReport;

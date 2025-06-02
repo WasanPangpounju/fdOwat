@@ -147,9 +147,9 @@ function AsideLeft() {
                       <li className="nav-item">
                         <Link to="/salarysummary" className="nav-link"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px" }}></i> สรุปเงินเดือน</Link>
                       </li> */}
-                      <li className="nav-item">
+                      {/* <li className="nav-item">
                         <Link to="/examine" className="nav-link"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px", marginLeft: '1rem' }}></i> เวลาทำงานรายบุคคล</Link>
-                      </li>
+                      </li> */}
                       <li className="nav-item">
                         <Link to="/compensation" className="nav-link"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px", marginLeft: '1rem' }}></i> ค่าตอบแทนรายบุคคล</Link>
                       </li>
@@ -169,7 +169,7 @@ function AsideLeft() {
                         <Link to="/salarySlipPDF" className="nav-link"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px", marginLeft: '1rem' }}></i> ออกสลิปเงินเดือน</Link>
                       </li>
                       <li className="nav-item">
-                        <Link to="/backReport" className="nav-link"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px", marginLeft: '1rem' }}></i> ออกรายงานธนาคาร</Link>
+                        <Link to="/bankReport" className="nav-link"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px", marginLeft: '1rem' }}></i> ออกรายงานธนาคาร</Link>
                       </li>
                     </>
                   </ul>

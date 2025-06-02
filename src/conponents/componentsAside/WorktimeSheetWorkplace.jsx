@@ -9022,7 +9022,7 @@ const overtimeLabels = [    "ค่าทำงานวันหยุด",
                         ดาวน์โหลดไฟล์
                       </button>
                       <div className="pt-3">
-                          <div className="table" >
+                          <div className="table table-responsive" >
                           <table
                       className="excel-style-table  "
                       style={{
@@ -9144,7 +9144,7 @@ const overtimeLabels = [    "ค่าทำงานวันหยุด",
 
                     <td className="text-center align-middle">
                     {/* รวมวันหยุดนักขัต */}
-                    {record.specialDayOff - 1|| ''} 
+                    {record.specialDayOff || ''} 
                     </td>
                     <td></td>
 
