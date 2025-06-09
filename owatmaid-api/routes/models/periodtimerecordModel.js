@@ -71,6 +71,7 @@ addSalaryList: [
   }
 ],
 sumCashWorkMul : {},
+timeCashWorkMul : {},
 
 });
 

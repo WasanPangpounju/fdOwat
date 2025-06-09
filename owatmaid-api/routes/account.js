@@ -4504,6 +4504,7 @@ let sumCashOt = 0;
 let sumcashDayOffCount = 0;
 // let sumAddSalaryDaily = [];
 let sumCashWorkMul = {};
+let timeCashWorkMul = {};
 
 // Initialize sumAddSalaryDaily as an object and addSalaryDailyList as an array at the top:
 let sumAddSalaryDaily = {};
@@ -4593,6 +4594,9 @@ const workplaceId = employeeProfile[0].workplace === "10105" ? "10105" : record.
 if (!sumCashWorkMul[record?.cashWorkMul]) {
   sumCashWorkMul[record?.cashWorkMul] = 0;
 }
+if (!timeCashWorkMul[record?.cashWorkMul]) {
+  timeCashWorkMul[record?.cashWorkMul] = 0;
+}
 
       //check dayType
         if (record?.dayType !== '') {
@@ -4618,7 +4622,10 @@ if (!sumCashWorkMul[record?.cashWorkMul]) {
 
           sumCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
           sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0');
-          
+
+          timeCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
+          timeCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0');
+
     }else 
     if(record?.dayType === 'specialDayOff') {
 specialDayOff += 1;
@@ -4627,6 +4634,9 @@ sumCashOt = parseFloat(sumCashOt  || 0) + parseFloat(record?.cashBeforeOt || '0'
 
 sumCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
 sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0');
+
+timeCashWorkMul[record?.cashWorkMul] += parseFloat(record.totalTime || '0');
+timeCashWorkMul[record?.cashOtMul ] += parseFloat(record.beforeTotalOtTime || '0') + parseFloat(record.totalOtTime || '0');
 
     } else {
 
@@ -4639,6 +4649,9 @@ sumCashOt  = sumCashOt  + parseFloat(record?.cashBeforeOt || '0') + parseFloat(r
 
 sumCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
 sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
+
+timeCashWorkMul[record?.cashWorkMul] += parseFloat(record.totalTime || '0');
+timeCashWorkMul[record?.cashOtMul ] += parseFloat(record.beforeTotalOtTime || '0') + parseFloat(record.totalOtTime  || '0');
 
   // Handle addSalaryDailyList clearly:
   if (record.addSalaryDaily && record.addSalaryDaily.length > 0) {
@@ -4755,6 +4768,7 @@ sumCashOt ,
 sumcashDayOffCount,
 sumAddSalaryDaily ,
 sumCashWorkMul ,
+timeCashWorkMul ,
 addSalaryList,
 socialSecurity  ,
 tax,
