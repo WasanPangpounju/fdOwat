@@ -77,6 +77,7 @@ function WorktimeSheetWorkplace({ employeeList }) {
   const [workRateWorkplaceStage1, setWorkRateWorkplaceStage1] = useState(0); //ค่าจ้างต่อวัน
   const [workRateWorkplaceStage2, setWorkRateWorkplaceStage2] = useState(0); //ค่าจ้างต่อวัน
   const [workRateWorkplaceStage3, setWorkRateWorkplaceStage3] = useState(0);
+const [weekendData, setWeekendData] = useState([]);
 
   const [year, setYear] = useState("");
   const [month, setMonth] = useState("");
@@ -106,6 +107,20 @@ function WorktimeSheetWorkplace({ employeeList }) {
       gregorianDate.getDate()
     );
   };
+
+  // ย้ายฟังก์ชันนี้ไปไว้หลัง useState declarations (หลัง line 108)
+const fetchWeekendData = async (year, month, workplaceId) => {
+  try {
+    const response = await fetch(
+      `${endpoint}/conclude/getWeekendDates?yyyy=${year}&mm=${month.padStart(2, '0')}&workplaceId=${workplaceId}`
+    );
+    const data = await response.json();
+    setWeekendData(data.weekends || []);
+  } catch (error) {
+    console.error('Error fetching weekend data:', error);
+    setWeekendData([]);
+  }
+};
 
   const ThaiBuddhistToGregorian = (thaiDate) => {
     const gregorianYear = thaiDate.getFullYear() - 543;
@@ -398,6 +413,9 @@ function WorktimeSheetWorkplace({ employeeList }) {
         const response = await axios.get(`${endpoint}/workplace/${searchWorkplaceId}`);
         await setWorkplaceAddsalary(response.data.addSalary)
         // await alert(response.data.addSalary.length);
+         if (year && month && searchWorkplaceId) {
+        await fetchWeekendData(year, month, searchWorkplaceId);
+      }
 
         // Do something with the data, e.g., set state
       } catch (error) {
@@ -447,6 +465,10 @@ if(sortedData.length > 0) {
 
   async function handleSearch(event) {
     event.preventDefault();
+
+    if (year && month && searchWorkplaceId) {
+    await fetchWeekendData(year, month, searchWorkplaceId);
+  }
 
       const dataSearch = {
         year: year, 
@@ -523,6 +545,8 @@ if(sortedData.length > 0) {
 
     // Create a Date object for the first day of data.month
     const firstDayOfMonth2 = new Date(yeartest, parsedNumber2, 1);
+    // เพิ่มฟังก์ชันสำหรับเรียก API วันหยุด
+
 
     const daysOfWeek = [
       "Sunday",
@@ -898,6 +922,45 @@ if(sortedData.length > 0) {
       return updatedData;
     });
   };
+  // เพิ่มฟังก์ชันสำหรับกำหนดสีตามประเภทวัน
+
+const getDateStyle = (day) => {
+  // ตรวจสอบว่ามี year และ month หรือไม่
+  if (!year || !month) return {};
+  
+  // แปลง day เป็น number และใส่ leading zero
+  const dayNum = parseInt(day);
+  let targetMonth = parseInt(month);
+  let targetYear = parseInt(year);
+  
+  // ถ้าวันที่ 21-31 ให้เป็นเดือนก่อนหน้า
+  if (dayNum >= 21) {
+    targetMonth = targetMonth === 1 ? 12 : targetMonth - 1;
+    if (targetMonth === 12) {
+      targetYear = targetYear - 1;
+    }
+  }
+  
+  // สร้างวันที่ในรูปแบบ YYYY-MM-DD
+  const formattedMonth = targetMonth.toString().padStart(2, '0');
+  const formattedDay = dayNum.toString().padStart(2, '0');
+  const dateString = `${targetYear}-${formattedMonth}-${formattedDay}`;
+  
+  console.log('Checking date:', dateString, 'for day:', day); // เพิ่ม log เพื่อ debug
+  
+  const weekendInfo = weekendData.find(item => item.date === dateString);
+  
+  if (weekendInfo) {
+    console.log('Found weekend info:', weekendInfo); // เพิ่ม log เพื่อ debug
+    if (weekendInfo.type === 'weekend') {
+      return { backgroundColor: '#ffcccc', color: '#000' }; // สีแดงอ่อน
+    } else if (weekendInfo.type === 'dayOff') {
+      return { backgroundColor: '#ffff99', color: '#000' }; // สีเหลืองอ่อน
+    }
+  }
+  
+  return {}; // ไม่มีสี
+};
 
   ///PDF///////////////////////
   // const [dataset, setDataset] = useState([]);
@@ -9040,10 +9103,15 @@ const overtimeLabels = [    "ค่าทำงานวันหยุด",
                                   <th rowSpan="5" className="text-center   ">ลำดับ</th>
                                   <th rowSpan="4" colSpan="1" className="text-center">ชื่อ - สกุล</th>
                                   {dayNumbers.map((day, idx) => (
-                            <th key={idx} rowSpan={4} className="text-center ">
-                              {day}
-                            </th>
-                          ))}
+                                      <th 
+                                        key={idx} 
+                                        rowSpan={4} 
+                                        className="text-center" 
+                                        style={getDateStyle(day)}
+                                      >
+                                        {day}
+                                      </th>
+                                    ))}
                                   <th rowSpan="4" className="vertical-text">รวมวันทำงาน</th>
 
                                   {/* ค่าล่วงเวลา → 5 คอลัมน์ */}
@@ -9121,14 +9189,18 @@ const overtimeLabels = [    "ค่าทำงานวันหยุด",
                                         <td>
                                         {record.employeeName} <span style={{ float: "right" }}>เช้า</span>
                                     </td>
-                                    {dayNumbers.map((day, i) => {
+
+{dayNumbers.map((day, i) => {
   const found = record?.employee_record?.find(itemx => itemx.date === day);
   return (
-    <td key={i} className="text-center ">
+    <td 
+      key={i} 
+      className="text-center" 
+    >
       {found?.dayType === "work" ? '1' : ''}
     </td>
   );
-})}     
+})}
 
                     <td className="text-center align-middle">
                       {/* รวมวันทำงาน */}
