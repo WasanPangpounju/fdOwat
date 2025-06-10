@@ -1794,32 +1794,44 @@ function groupByWorkplaceId(records) {
 
 //========== latest code
 
-const getWeekendDates = (yyyyMm) => {
-  const [year, month] = yyyyMm.split('-').map(Number); // e.g. "2025-06" → 2025, 6
-  const result = [];
+function getWeekendDates(yyyy, mm) {
+  // mm เป็น string หรือ number แบบ '06' หรือ 6
+  const year = Number(yyyy);
+  const month = Number(mm);
 
-  // เริ่มจากวันที่ 1 ของเดือนนั้น
-  let date = new Date(Date.UTC(year, month - 1, 1)); // ใช้ UTC แล้วค่อยปรับเวลาไทย
-
-  while (date.getUTCMonth() === month - 1) {
-    // ปรับเวลาให้เป็นเวลาประเทศไทย
-    const bangkokTime = new Date(date.getTime() + 7 * 60 * 60 * 1000);
-    const dayOfWeek = bangkokTime.getUTCDay(); // 0 = Sunday, 6 = Saturday
-
-    if (dayOfWeek === 0 || dayOfWeek === 6) {
-      const y = bangkokTime.getUTCFullYear();
-      const m = String(bangkokTime.getUTCMonth() + 1).padStart(2, '0');
-      const d = String(bangkokTime.getUTCDate()).padStart(2, '0');
-      result.push(`${y}-${m}-${d}`);
-    }
-
-    // ไปวันถัดไป
-    date.setUTCDate(date.getUTCDate() + 1);
+  // กำหนดช่วงวันที่ 21 เดือนก่อน ถึง 20 เดือนปัจจุบัน
+  // เดือนก่อนหน้า
+  let prevMonth = month - 1;
+  let prevYear = year;
+  if (prevMonth === 0) {
+    prevMonth = 12;
+    prevYear = year - 1;
   }
 
-  return result;
-};
+  // สร้างวันที่เริ่มต้น 21 เดือนก่อนหน้า
+  const startDate = new Date(prevYear, prevMonth - 1, 21);
+  // วันที่สิ้นสุด 20 เดือนปัจจุบัน
+  const endDate = new Date(year, month - 1, 20);
 
+  const weekends = [];
+
+  for (
+    let d = new Date(startDate);
+    d <= endDate;
+    d.setDate(d.getDate() + 1)
+  ) {
+    const day = d.getDay();
+    if (day === 6 || day === 0) { // เสาร์ = 6, อาทิตย์ = 0
+      // format yyyy-mm-dd
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      weekends.push(`${yyyy}-${mm}-${dd}`);
+    }
+  }
+
+  return weekends;
+}
 
 const checkdayType = (startText , endText , dayNumber ) => {
 const dayList = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัส", "ศุกร์", "เสาร์"];
