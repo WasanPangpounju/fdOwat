@@ -1795,8 +1795,10 @@ function getWeekendDates(yyyyMm) {
   const [yyyy, mm] = yyyyMm.split('/').map(Number);
 
   // หาวันเริ่มต้น: 21 ของเดือนก่อนหน้า
-  const startDate = new Date(yyyy, mm - 2, 21 + 'T00:00:00'); // เดือน -1 เพราะ JS เดือนเริ่มที่ 0, และ -1 เพิ่มอีก 1 เพื่อให้เป็นเดือนก่อน
-  const endDate = new Date(yyyy, mm - 1, 20 + 'T00:00:00'); // วันที่ 20 ของเดือนปัจจุบัน
+  // const startDate = new Date(yyyy, mm - 2, 21 + 'T00:00:00'); // เดือน -1 เพราะ JS เดือนเริ่มที่ 0, และ -1 เพิ่มอีก 1 เพื่อให้เป็นเดือนก่อน
+  // const endDate = new Date(yyyy, mm - 1, 20 + 'T00:00:00'); // วันที่ 20 ของเดือนปัจจุบัน
+  const startDate = new Date(`${yyyy}-${String(mm - 1).padStart(2, '0')}-21T00:00:00`);
+  const endDate = new Date(`${yyyy}-${String(mm).padStart(2, '0')}-20T00:00:00`);
 
   const weekends = [];
 
