@@ -1468,14 +1468,17 @@ let addSalaryDailyx = await addSalaryDaily.filter(item1 => item1.id !== '1210');
 router.get('/getWeekendDates', async (req, res) => {
   const { yyyy, mm } = req.query;
 
-  if (!yyyy || !mm) {
-    return res.status(400).json({ error: 'Missing yyyy or mm parameter' });
+  // ตรวจสอบว่ามีค่าทั้ง yyyy และ mm และเป็นตัวเลข
+  if (!yyyy || !mm || isNaN(yyyy) || isNaN(mm)) {
+    return res.status(400).json({ error: 'Missing or invalid yyyy or mm parameter' });
   }
 
   try {
-    const yyyyMm = `${yyyy}/${mm}`;
-    const result = getWeekendDates(yyyyMm);
-    res.json({ weekends: result });
+    // แปลงเป็นรูปแบบ yyyy-mm และเติมเลข 0 ด้านหน้าเดือนถ้าจำเป็น
+    const yyyyMm = `${yyyy}-${String(mm).padStart(2, '0')}`;
+
+    const weekends = getWeekendDates(yyyyMm);
+    res.json({ weekends });
   } catch (error) {
     res.status(500).json({ error: 'Internal Server Error', detail: error.message });
   }
