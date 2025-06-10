@@ -1774,6 +1774,43 @@ function groupByWorkplaceId(records) {
 
 //========== latest code
 
+function getWeekendDates(yyyyMm) {
+  const [yyyy, mm] = yyyyMm.split('/').map(Number);
+
+  // หาวันเริ่มต้น: 21 ของเดือนก่อนหน้า
+  const startDate = new Date(yyyy, mm - 2, 21); // เดือน -1 เพราะ JS เดือนเริ่มที่ 0, และ -1 เพิ่มอีก 1 เพื่อให้เป็นเดือนก่อน
+  const endDate = new Date(yyyy, mm - 1, 20); // วันที่ 20 ของเดือนปัจจุบัน
+
+  const weekends = [];
+
+  for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+    const day = d.getDay(); // 0 = อาทิตย์, 6 = เสาร์
+    if (day === 0 || day === 6) {
+      // Clone วันที่เพื่อไม่ให้ d เปลี่ยน
+      weekends.push(new Date(d).toISOString().slice(0, 10)); // แปลงเป็น yyyy-mm-dd
+    }
+  }
+
+  return weekends;
+}
+
+
+// 📌 GET /getWeekendDates?yyyy=2025&mm=06
+router.get('/getWeekendDates', async (req, res) => {
+  const { yyyy, mm } = req.query;
+
+  if (!yyyy || !mm) {
+    return res.status(400).json({ error: 'Missing yyyy or mm parameter' });
+  }
+
+  try {
+    const yyyyMm = `${yyyy}/${mm}`;
+    const result = getWeekendDates(yyyyMm);
+    res.json({ weekends: result });
+  } catch (error) {
+    res.status(500).json({ error: 'Internal Server Error', detail: error.message });
+  }
+});
 
 const checkdayType = (startText , endText , dayNumber ) => {
 const dayList = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัส", "ศุกร์", "เสาร์"];
