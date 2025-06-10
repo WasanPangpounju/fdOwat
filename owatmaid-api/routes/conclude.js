@@ -1791,28 +1791,31 @@ function groupByWorkplaceId(records) {
 
 //========== latest code
 
-function getWeekendDates(yyyyMm) {
-  const [yyyy, mm] = yyyyMm.split('/').map(Number);
+const getWeekendDates = (yyyyMm) => {
+  const [year, month] = yyyyMm.split('-').map(Number); // e.g. "2025-06" → 2025, 6
+  const result = [];
 
-  // หาวันเริ่มต้น: 21 ของเดือนก่อนหน้า
-  // const startDate = new Date(yyyy, mm - 2, 21 + 'T00:00:00'); // เดือน -1 เพราะ JS เดือนเริ่มที่ 0, และ -1 เพิ่มอีก 1 เพื่อให้เป็นเดือนก่อน
-  // const endDate = new Date(yyyy, mm - 1, 20 + 'T00:00:00'); // วันที่ 20 ของเดือนปัจจุบัน
-  const startDate = new Date(`${yyyy}-${String(mm - 1).padStart(2, '0')}-21T00:00:00`);
-  const endDate = new Date(`${yyyy}-${String(mm).padStart(2, '0')}-20T00:00:00`);
+  // เริ่มจากวันที่ 1 ของเดือนนั้น
+  let date = new Date(Date.UTC(year, month - 1, 1)); // ใช้ UTC แล้วค่อยปรับเวลาไทย
 
-  const weekends = [];
+  while (date.getUTCMonth() === month - 1) {
+    // ปรับเวลาให้เป็นเวลาประเทศไทย
+    const bangkokTime = new Date(date.getTime() + 7 * 60 * 60 * 1000);
+    const dayOfWeek = bangkokTime.getUTCDay(); // 0 = Sunday, 6 = Saturday
 
-  for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-    const day = d.getDay(); // 0 = อาทิตย์, 6 = เสาร์
-    if (day === 0 || day === 6) {
-      // Clone วันที่เพื่อไม่ให้ d เปลี่ยน
-      weekends.push(new Date(d).toISOString().slice(0, 10)); // แปลงเป็น yyyy-mm-dd
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+      const y = bangkokTime.getUTCFullYear();
+      const m = String(bangkokTime.getUTCMonth() + 1).padStart(2, '0');
+      const d = String(bangkokTime.getUTCDate()).padStart(2, '0');
+      result.push(`${y}-${m}-${d}`);
     }
+
+    // ไปวันถัดไป
+    date.setUTCDate(date.getUTCDate() + 1);
   }
 
-  return weekends;
-}
-
+  return result;
+};
 
 
 const checkdayType = (startText , endText , dayNumber ) => {
