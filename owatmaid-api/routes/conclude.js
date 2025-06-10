@@ -1464,25 +1464,23 @@ let addSalaryDailyx = await addSalaryDaily.filter(item1 => item1.id !== '1210');
 });
 
 
-// 📌 GET /getWeekendDates?yyyy=2025&mm=06
+// ตัวอย่าง router ที่ใช้ฟังก์ชันข้างบน
 router.get('/getWeekendDates', async (req, res) => {
   const { yyyy, mm } = req.query;
 
-  // ตรวจสอบว่ามีค่าทั้ง yyyy และ mm และเป็นตัวเลข
-  if (!yyyy || !mm || isNaN(yyyy) || isNaN(mm)) {
-    return res.status(400).json({ error: 'Missing or invalid yyyy or mm parameter' });
+  if (!yyyy || !mm) {
+    return res.status(400).json({ error: 'Missing yyyy or mm parameter' });
   }
 
   try {
-    // แปลงเป็นรูปแบบ yyyy-mm และเติมเลข 0 ด้านหน้าเดือนถ้าจำเป็น
-    const yyyyMm = `${yyyy}-${String(mm).padStart(2, '0')}`;
-
-    const weekends = getWeekendDates(yyyyMm);
-    res.json({ weekends });
+    // เรียกใช้ getWeekendDates โดยส่ง yyyy กับ mm แยกกัน ไม่ใช่รวมกัน
+    const result = getWeekendDates(yyyy, mm);
+    res.json({ weekends: result });
   } catch (error) {
     res.status(500).json({ error: 'Internal Server Error', detail: error.message });
   }
 });
+
 
 // Get list of conclude 
 router.get('/list', async (req, res) => {
@@ -1825,22 +1823,6 @@ function getWeekendDates(yyyy, mm) {
   return weekends;
 }
 
-// ตัวอย่าง router ที่ใช้ฟังก์ชันข้างบน
-router.get('/getWeekendDates', async (req, res) => {
-  const { yyyy, mm } = req.query;
-
-  if (!yyyy || !mm) {
-    return res.status(400).json({ error: 'Missing yyyy or mm parameter' });
-  }
-
-  try {
-    // เรียกใช้ getWeekendDates โดยส่ง yyyy กับ mm แยกกัน ไม่ใช่รวมกัน
-    const result = getWeekendDates(yyyy, mm);
-    res.json({ weekends: result });
-  } catch (error) {
-    res.status(500).json({ error: 'Internal Server Error', detail: error.message });
-  }
-});
 
 const checkdayType = (startText , endText , dayNumber ) => {
 const dayList = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัส", "ศุกร์", "เสาร์"];
