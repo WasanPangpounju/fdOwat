@@ -1464,6 +1464,23 @@ let addSalaryDailyx = await addSalaryDaily.filter(item1 => item1.id !== '1210');
 });
 
 
+// 📌 GET /getWeekendDates?yyyy=2025&mm=06
+router.get('/getWeekendDates', async (req, res) => {
+  const { yyyy, mm } = req.query;
+
+  if (!yyyy || !mm) {
+    return res.status(400).json({ error: 'Missing yyyy or mm parameter' });
+  }
+
+  try {
+    const yyyyMm = `${yyyy}/${mm}`;
+    const result = getWeekendDates(yyyyMm);
+    res.json({ weekends: result });
+  } catch (error) {
+    res.status(500).json({ error: 'Internal Server Error', detail: error.message });
+  }
+});
+
 // Get list of conclude 
 router.get('/list', async (req, res) => {
 
@@ -1795,22 +1812,6 @@ function getWeekendDates(yyyyMm) {
 }
 
 
-// 📌 GET /getWeekendDates?yyyy=2025&mm=06
-router.get('/getWeekendDates', async (req, res) => {
-  const { yyyy, mm } = req.query;
-
-  if (!yyyy || !mm) {
-    return res.status(400).json({ error: 'Missing yyyy or mm parameter' });
-  }
-
-  try {
-    const yyyyMm = `${yyyy}/${mm}`;
-    const result = getWeekendDates(yyyyMm);
-    res.json({ weekends: result });
-  } catch (error) {
-    res.status(500).json({ error: 'Internal Server Error', detail: error.message });
-  }
-});
 
 const checkdayType = (startText , endText , dayNumber ) => {
 const dayList = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัส", "ศุกร์", "เสาร์"];
