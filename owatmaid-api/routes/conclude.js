@@ -1464,19 +1464,25 @@ let addSalaryDailyx = await addSalaryDaily.filter(item1 => item1.id !== '1210');
 });
 
 
-// ตัวอย่าง router ที่ใช้ฟังก์ชันข้างบน
 router.get('/getWeekendDates', async (req, res) => {
-  const { yyyy, mm } = req.query;
+  const { yyyy, mm, workplaceId } = req.query;
 
-  if (!yyyy || !mm) {
-    return res.status(400).json({ error: 'Missing yyyy or mm parameter' });
+  if (!yyyy || !mm || !workplaceId) {
+    return res.status(400).json({ error: 'Missing required query parameters: yyyy, mm, workplaceId' });
   }
 
   try {
-    // เรียกใช้ getWeekendDates โดยส่ง yyyy กับ mm แยกกัน ไม่ใช่รวมกัน
-    const result = getWeekendDates(yyyy, mm);
+    const workplace = await Workplace.findOne({ workplaceId });
+    if (!workplace) {
+      return res.status(404).json({ error: 'Workplace not found' });
+    }
+
+    const daysOff = workplace.daysOff || [];
+    const result = getWeekendDates(yyyy, mm, daysOff);
+
     res.json({ weekends: result });
   } catch (error) {
+    console.error('❌ Error in /getWeekendDates:', error);
     res.status(500).json({ error: 'Internal Server Error', detail: error.message });
   }
 });
@@ -1792,37 +1798,62 @@ function groupByWorkplaceId(records) {
 
 //========== latest code
 
-// ฟังก์ชันคำนวณวันเสาร์-อาทิตย์ ระหว่างวันที่ 21 เดือนก่อน ถึง 20 เดือนนี้
-function getWeekendDates(yyyy, mm) {
+
+function getWeekendDates(yyyy, mm, daysOff = []) {
   const year = Number(yyyy);
   const month = Number(mm);
 
-  // กำหนดวันที่เริ่มต้น = 21 ของเดือนก่อนหน้า
   let prevMonth = month - 1;
   let prevYear = year;
   if (prevMonth === 0) {
     prevMonth = 12;
-    prevYear = year - 1;
+    prevYear -= 1;
   }
 
   const startDate = new Date(prevYear, prevMonth - 1, 21);
   const endDate = new Date(year, month - 1, 20);
 
-  const weekends = [];
+  const resultMap = new Map(); // ใช้ Map เพื่อเก็บวันไม่ซ้ำและระบุประเภท
+
+  // ✅ สร้าง Set ของ daysOff ที่แปลงเป็น yyyy-mm-dd แล้ว
+  const daysOffSet = new Set(
+    daysOff
+      .map(d => {
+        const date = new Date(d);
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const dd = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${dd}`;
+      })
+      .filter(dateStr => {
+        const d = new Date(dateStr);
+        return d >= startDate && d <= endDate;
+      })
+  );
 
   for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-    const day = d.getDay();
-    if (day === 6 || day === 0) {  // 6 = เสาร์, 0 = อาทิตย์
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      const dd = String(d.getDate()).padStart(2, '0');
-      weekends.push(`${yyyy}-${mm}-${dd}`);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const dateStr = `${y}-${m}-${dd}`;
+    const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+    const isDayOff = daysOffSet.has(dateStr);
+
+    if (isWeekend && isDayOff) {
+      resultMap.set(dateStr, 'weekend+dayOff');
+    } else if (isWeekend) {
+      resultMap.set(dateStr, 'weekend');
+    } else if (isDayOff) {
+      resultMap.set(dateStr, 'dayOff');
     }
   }
 
-  return weekends;
+  // แปลงเป็น array
+  return Array.from(resultMap.entries()).map(([date, type]) => ({
+    date,
+    type
+  })).sort((a, b) => a.date.localeCompare(b.date));
 }
-
 
 const checkdayType = (startText , endText , dayNumber ) => {
 const dayList = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัส", "ศุกร์", "เสาร์"];
