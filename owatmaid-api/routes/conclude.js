@@ -1795,12 +1795,9 @@ function groupByWorkplaceId(records) {
 //========== latest code
 
 function getWeekendDates(yyyy, mm) {
-  // mm เป็น string หรือ number แบบ '06' หรือ 6
   const year = Number(yyyy);
   const month = Number(mm);
 
-  // กำหนดช่วงวันที่ 21 เดือนก่อน ถึง 20 เดือนปัจจุบัน
-  // เดือนก่อนหน้า
   let prevMonth = month - 1;
   let prevYear = year;
   if (prevMonth === 0) {
@@ -1808,25 +1805,18 @@ function getWeekendDates(yyyy, mm) {
     prevYear = year - 1;
   }
 
-  // สร้างวันที่เริ่มต้น 21 เดือนก่อนหน้า
   const startDate = new Date(prevYear, prevMonth - 1, 21);
-  // วันที่สิ้นสุด 20 เดือนปัจจุบัน
   const endDate = new Date(year, month - 1, 20);
 
   const weekends = [];
 
-  for (
-    let d = new Date(startDate);
-    d <= endDate;
-    d.setDate(d.getDate() + 1)
-  ) {
+  for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
     const day = d.getDay();
-    if (day === 6 || day === 0) { // เสาร์ = 6, อาทิตย์ = 0
-      // format yyyy-mm-dd
+    if (day === 6 || day === 0) {
       const yyyy = d.getFullYear();
       const mm = String(d.getMonth() + 1).padStart(2, '0');
       const dd = String(d.getDate()).padStart(2, '0');
-      weekends.push(`${yyyy}-${mm}-${dd}`);
+      weekends.push(`${yyyy}-${mm}-${dd}`);  // ต้องเป็น string แบบนี้
     }
   }
 
