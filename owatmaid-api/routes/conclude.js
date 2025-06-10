@@ -1794,10 +1794,12 @@ function groupByWorkplaceId(records) {
 
 //========== latest code
 
+// ฟังก์ชันคำนวณวันเสาร์-อาทิตย์ ระหว่างวันที่ 21 เดือนก่อน ถึง 20 เดือนนี้
 function getWeekendDates(yyyy, mm) {
   const year = Number(yyyy);
   const month = Number(mm);
 
+  // กำหนดวันที่เริ่มต้น = 21 ของเดือนก่อนหน้า
   let prevMonth = month - 1;
   let prevYear = year;
   if (prevMonth === 0) {
@@ -1812,16 +1814,33 @@ function getWeekendDates(yyyy, mm) {
 
   for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
     const day = d.getDay();
-    if (day === 6 || day === 0) {
+    if (day === 6 || day === 0) {  // 6 = เสาร์, 0 = อาทิตย์
       const yyyy = d.getFullYear();
       const mm = String(d.getMonth() + 1).padStart(2, '0');
       const dd = String(d.getDate()).padStart(2, '0');
-      weekends.push(`${yyyy}-${mm}-${dd}`);  // ต้องเป็น string แบบนี้
+      weekends.push(`${yyyy}-${mm}-${dd}`);
     }
   }
 
   return weekends;
 }
+
+// ตัวอย่าง router ที่ใช้ฟังก์ชันข้างบน
+router.get('/getWeekendDates', async (req, res) => {
+  const { yyyy, mm } = req.query;
+
+  if (!yyyy || !mm) {
+    return res.status(400).json({ error: 'Missing yyyy or mm parameter' });
+  }
+
+  try {
+    // เรียกใช้ getWeekendDates โดยส่ง yyyy กับ mm แยกกัน ไม่ใช่รวมกัน
+    const result = getWeekendDates(yyyy, mm);
+    res.json({ weekends: result });
+  } catch (error) {
+    res.status(500).json({ error: 'Internal Server Error', detail: error.message });
+  }
+});
 
 const checkdayType = (startText , endText , dayNumber ) => {
 const dayList = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัส", "ศุกร์", "เสาร์"];
