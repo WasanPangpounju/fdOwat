@@ -1478,15 +1478,80 @@ router.get('/getWeekendDates', async (req, res) => {
     }
 
     const daysOff = workplace.daysOff || [];
-    const result = getWeekendDates(yyyy, mm, daysOff);
+    const grouped = getWeekendDatesGrouped(yyyy, mm, daysOff);
 
-    res.json({ weekends: result });
+    res.json(grouped);
   } catch (error) {
     console.error('❌ Error in /getWeekendDates:', error);
     res.status(500).json({ error: 'Internal Server Error', detail: error.message });
   }
 });
 
+function getWeekendDatesGrouped(yyyy, mm, daysOff = []) {
+  const year = Number(yyyy);
+  const month = Number(mm);
+
+  let prevMonth = month - 1;
+  let prevYear = year;
+  if (prevMonth === 0) {
+    prevMonth = 12;
+    prevYear -= 1;
+  }
+
+  const startDate = new Date(prevYear, prevMonth - 1, 21);
+  const endDate = new Date(year, month - 1, 20);
+
+  const weekendSet = new Set();
+  const dayOffSet = new Set();
+
+  // สร้าง Set ของวันหยุดพิเศษ (ในช่วงเวลาเท่านั้น)
+  for (const item of daysOff) {
+    const d = new Date(item);
+    if (d >= startDate && d <= endDate) {
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      dayOffSet.add(`${yyyy}-${mm}-${dd}`);
+    }
+  }
+
+  // ตรวจสอบวันเสาร์-อาทิตย์ในช่วงเวลา
+  for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+    const day = d.getDay(); // 0 = อาทิตย์, 6 = เสาร์
+    if (day === 0 || day === 6) {
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      weekendSet.add(`${yyyy}-${mm}-${dd}`);
+    }
+  }
+
+  // แยกกลุ่ม
+  const weekendOnly = [];
+  const dayOffOnly = [];
+  const weekendAndDayOff = [];
+
+  const allDates = new Set([...weekendSet, ...dayOffSet]);
+  for (const date of allDates) {
+    const isWeekend = weekendSet.has(date);
+    const isDayOff = dayOffSet.has(date);
+
+    if (isWeekend && isDayOff) {
+      weekendAndDayOff.push(date);
+    } else if (isWeekend) {
+      weekendOnly.push(date);
+    } else if (isDayOff) {
+      dayOffOnly.push(date);
+    }
+  }
+
+  // เรียงลำดับทั้งหมดก่อนคืนค่า
+  return {
+    weekendOnly: weekendOnly.sort(),
+    dayOffOnly: dayOffOnly.sort(),
+    weekendAndDayOff: weekendAndDayOff.sort(),
+  };
+}
 
 // Get list of conclude 
 router.get('/list', async (req, res) => {
