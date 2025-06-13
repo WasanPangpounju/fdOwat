@@ -117,19 +117,44 @@ function App() {
     return null;
   };
   const [workplaceList, setWorkplaceList] = useState([]);
-  useEffect(() => {
-    // Fetch data from the API when the component mounts
-    fetch(endpoint + "/workplace/list")
-      .then((response) => response.json())
-      .then((data) => {
-        // Update the state with the fetched data
-        setWorkplaceList(data);
-        // alert(data[0].workplaceName);
-      })
-      .catch((error) => {
-        console.error("Error fetching data:", error);
+useEffect(() => {
+  // Fetch data from the API when the component mounts
+  fetch(endpoint + "/workplace/list")
+    .then((response) => response.json())
+    .then((data) => {
+      // Sort data by workplaceId (handle numbers with parentheses)
+      const sortedData = data.sort((a, b) => {
+        // Extract main number and number in parentheses
+        const parseWorkplaceId = (id) => {
+          const match = id.match(/^(\d+)(?:\((\d+)\))?$/);
+          if (match) {
+            return {
+              main: parseInt(match[1]),
+              sub: match[2] ? parseInt(match[2]) : 0
+            };
+          }
+          return { main: parseInt(id), sub: 0 };
+        };
+        
+        const aData = parseWorkplaceId(a.workplaceId);
+        const bData = parseWorkplaceId(b.workplaceId);
+        
+        // Compare main number first
+        if (aData.main !== bData.main) {
+          return aData.main - bData.main;
+        }
+        
+        // If main numbers are equal, compare sub numbers
+        return aData.sub - bData.sub;
       });
-  }, []);
+      
+      // Update the state with the sorted data
+      setWorkplaceList(sortedData);
+    })
+    .catch((error) => {
+      console.error("Error fetching data:", error);
+    });
+}, []);
 
   const [employeeList, setEmployeeList] = useState([]);
 
