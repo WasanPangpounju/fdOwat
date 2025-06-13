@@ -2750,6 +2750,12 @@ function SettingEdit({ workplaceList, employeeList }) {
                               <option value="เจ้าหน้าที่ซ่อมบำรุง">
                                 เจ้าหน้าที่ซ่อมบำรุง
                               </option>
+                              <option value="พนักงานคัดแยกขยะ">
+                                พนักงานคัดแยกขยะ
+                              </option>
+                              <option value="พนักงานคัดแยกสารเคมี">
+                                พนักงานคัดแยกสารเคมี
+                              </option>
                             </select>
                           </div>
                           <div className="col-md-2">

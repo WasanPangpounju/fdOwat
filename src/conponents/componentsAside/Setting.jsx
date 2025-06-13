@@ -2357,6 +2357,12 @@ setWorkRateChange(workplace.workRateChange)
                                     <option value="หัวหน้าฝ่ายสโตร์">
                                       หัวหน้าฝ่ายสโตร์
                                     </option>
+                                     <option value="พนักงานคัดแยกขยะ">
+                                       พนักงานคัดแยกขยะ
+                                     </option>
+                              <option value="พนักงานคัดแยกสารเคมี">
+                                      พนักงานคัดแยกสารเคมี
+                              </option>
 
                             </select>
                           </div>
