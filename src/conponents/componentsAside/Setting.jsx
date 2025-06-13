@@ -3189,6 +3189,12 @@ setWorkRateChange(workplace.workRateChange)
                               <option value="หัวหน้าฝ่ายสโตร์">
                                 หัวหน้าฝ่ายสโตร์
                               </option>
+                              <option value="แม่บ้านจุดล้างจาน">
+                                แม่บ้านจุดล้างจาน
+                              </option>
+                              <option value="เจ้าหน้าที่ซ่อมบำรุง">
+                                เจ้าหน้าที่ซ่อมบำรุง
+                              </option>
                             </select>
                           </div>
                           <div className="col-md-2">
