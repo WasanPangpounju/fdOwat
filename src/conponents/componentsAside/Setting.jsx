@@ -3536,6 +3536,7 @@ setWorkRateChange(workplace.workRateChange)
       <select className="form-control">
         <option value="clear">เคลียร์</option>
         <option value="job">จ๊อบ</option>
+        <option value="job-speacial">OT จ้างเสริมนอกเวลาสัญญา</option>
       </select>
     </div>
 

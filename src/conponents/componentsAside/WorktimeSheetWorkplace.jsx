@@ -111,11 +111,38 @@ const [weekendData, setWeekendData] = useState([]);
   // ย้ายฟังก์ชันนี้ไปไว้หลัง useState declarations (หลัง line 108)
 const fetchWeekendData = async (year, month, workplaceId) => {
   try {
+    console.log('Fetching weekend data:', { year, month, workplaceId }); // Debug log
     const response = await fetch(
       `${endpoint}/conclude/getWeekendDates?yyyy=${year}&mm=${month.padStart(2, '0')}&workplaceId=${workplaceId}`
     );
     const data = await response.json();
-    setWeekendData(data.weekends || []);
+    console.log('Weekend data received:', data); // Debug log
+    
+    // แปลงข้อมูลใหม่ให้เป็นรูปแบบเดิม
+    const weekends = [];
+    
+    // เพิ่มข้อมูล weekendOnly
+    if (data.weekendOnly) {
+      data.weekendOnly.forEach(date => {
+        weekends.push({ date, type: 'weekend' });
+      });
+    }
+    
+    // เพิ่มข้อมูล dayOffOnly
+    if (data.dayOffOnly) {
+      data.dayOffOnly.forEach(date => {
+        weekends.push({ date, type: 'dayOff' });
+      });
+    }
+    
+    // เพิ่มข้อมูล weekendAndDayOff (วันที่เป็นทั้งวันหยุดและวันลา)
+    if (data.weekendAndDayOff) {
+      data.weekendAndDayOff.forEach(date => {
+        weekends.push({ date, type: 'weekendAndDayOff' });
+      });
+    }
+    
+    setWeekendData(weekends);
   } catch (error) {
     console.error('Error fetching weekend data:', error);
     setWeekendData([]);
@@ -926,7 +953,12 @@ if(sortedData.length > 0) {
 
 const getDateStyle = (day) => {
   // ตรวจสอบว่ามี year และ month หรือไม่
-  if (!year || !month) return {};
+  if (!year || !month) {
+    console.log('No year or month:', { year, month });
+    return {};
+  }
+  
+  console.log('weekendData:', weekendData); // Debug log
   
   // แปลง day เป็น number และใส่ leading zero
   const dayNum = parseInt(day);
@@ -946,16 +978,35 @@ const getDateStyle = (day) => {
   const formattedDay = dayNum.toString().padStart(2, '0');
   const dateString = `${targetYear}-${formattedMonth}-${formattedDay}`;
   
-  console.log('Checking date:', dateString, 'for day:', day); // เพิ่ม log เพื่อ debug
+  console.log('Checking date:', dateString, 'for day:', day); // Debug log
   
   const weekendInfo = weekendData.find(item => item.date === dateString);
   
   if (weekendInfo) {
-    console.log('Found weekend info:', weekendInfo); // เพิ่ม log เพื่อ debug
-    if (weekendInfo.type === 'weekend') {
-      return { backgroundColor: '#ffcccc', color: '#000' }; // สีแดงอ่อน
-    } else if (weekendInfo.type === 'dayOff') {
-      return { backgroundColor: '#ffff99', color: '#000' }; // สีเหลืองอ่อน
+    console.log('Found weekend info:', weekendInfo); // Debug log
+    
+    switch (weekendInfo.type) {
+      case 'weekend':
+        // สร้าง Date object เพื่อตรวจสอบวันในสัปดาห์
+        const date = new Date(targetYear, targetMonth - 1, dayNum);
+        const dayOfWeek = date.getDay(); // 0 = อาทิตย์, 6 = เสาร์
+        
+        if (dayOfWeek === 6) {
+          // วันเสาร์ - สีฟ้า
+          return { backgroundColor: '#ADD8E6', color: '#000' }; 
+        } else if (dayOfWeek === 0) {
+          // วันอาทิตย์ - สีแดง
+          return { backgroundColor: '#ffcccc', color: '#000' }; 
+        } else {
+          // วันหยุดอื่นๆ - สีแดง
+          return { backgroundColor: '#ffcccc', color: '#000' }; 
+        }
+      case 'dayOff':
+        return { backgroundColor: '#ffff99', color: '#000' }; 
+      case 'weekendAndDayOff':
+        return { backgroundColor: '#ffaa99', color: '#000' }; 
+      default:
+        return {};
     }
   }
   
