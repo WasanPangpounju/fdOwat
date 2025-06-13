@@ -1419,7 +1419,7 @@ setWorkRateChange(workplace.workRateChange)
   };
 
   return (
-    <body class="hold-transition sidebar-mini" className="editlaout">
+    <div class="hold-transition sidebar-mini" className="editlaout">
       <div class="wrapper">
         <div class="content-wrapper">
           {/* <!-- Content Header (Page header) --> */}
@@ -3780,7 +3780,7 @@ setWorkRateChange(workplace.workRateChange)
         </div>
       </div>
       {/* {JSON.stringify(workTimeDayPersonList, null, 2)} */}
-    </body>
+    </div>
   );
 }
 
