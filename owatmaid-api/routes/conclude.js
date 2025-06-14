@@ -2042,7 +2042,7 @@ const dayNumberx = dateObj.getDay(); // 0 = อาทิตย์, ..., 6 = เ�
 const dateOfMonth = dateObj.getDate(); // 1 - 31
 
 // test
-// if(dateOfMonth == 3 || dateOfMonth == 10) {
+// if(dateOfMonth == 3 ) {
   // console.log(dateOfMonth )
   // console.log('paddedMonth ' + paddedMonth )
 // }
@@ -2052,7 +2052,7 @@ let check = await checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumb
 if(dayNumberx   === 0) {
   console.log('dayNumberx  ' + dayNumberx );
 
-      console.log(date +workTimeDay.workOrStop )
+      console.log('*' + date +workTimeDay.workOrStop )
 
 }
 
