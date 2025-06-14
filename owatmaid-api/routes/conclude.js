@@ -2039,7 +2039,7 @@ let paddedMonth = String(m - 1).padStart(2, '0');
 
 let dateObj = await new Date(dateString );
 let dayNumberx = await dateObj.getDay(); // 0 = อาทิตย์, ..., 6 = เสาร์
-let dateOfMonth = dateObj.getDate(); // 1 - 31
+let dateOfMonth = await dateObj.getDate(); // 1 - 31
 
 // test
 // if(dateOfMonth == 3 ) {
