@@ -2047,7 +2047,7 @@ const dateOfMonth = dateObj.getDate(); // 1 - 31
 //   console.log('paddedMonth ' + paddedMonth )
 // }
 
-let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumberx );
+let check = await checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumberx );
 
 
   if(check === true) {
