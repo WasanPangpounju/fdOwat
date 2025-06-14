@@ -2034,7 +2034,7 @@ if(isDayOff == true) {
 for(const workTimeDay of workplaces[0].workTimeDay) {
   // let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay , date.getDay());
   const [y, m, d] = date.split('-').map(Number);
-const paddedMonth = String(m - 1).padStart(2, '0');  
+const paddedMonth = String(m - 2).padStart(2, '0');  
     let dateString = y + '-' + paddedMonth  + '-' + d + 'T00:00:00';
 
 const dateObj = new Date(dateString );
