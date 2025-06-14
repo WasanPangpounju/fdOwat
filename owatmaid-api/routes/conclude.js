@@ -2042,16 +2042,16 @@ const dayNumberx = dateObj.getDay(); // 0 = อาทิตย์, ..., 6 = เ�
 const dateOfMonth = dateObj.getDate(); // 1 - 31
 
 // test
-// if(dateOfMonth == 30 || dateOfMonth == 20) {
-//   console.log(dateOfMonth )
-//   console.log('paddedMonth ' + paddedMonth )
-// }
+if(dateOfMonth == 1 || dateOfMonth == 10) {
+  console.log(dateOfMonth )
+  console.log('paddedMonth ' + paddedMonth )
+}
 
 let check = await checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumberx );
 
 
   if(check === true) {
-    console.log(date +workTimeDay.workOrStop )
+    // console.log(date +workTimeDay.workOrStop )
     dataCal.dayType = await workTimeDay.workOrStop;
 break;
 // console.log("data " ,workTimeDay.startDay, workTimeDay.endDay );
