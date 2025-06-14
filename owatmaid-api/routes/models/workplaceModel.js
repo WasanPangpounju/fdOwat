@@ -176,6 +176,11 @@ const workplaceSchema = new mongoose.Schema({
   daysOff: [{
       type: Date
   }],
+  daysOffMap: [{
+      dayOff: String,
+      comment: String,
+  }],
+
   workplaceAddress: {
       type: String
   },
