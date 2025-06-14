@@ -1972,10 +1972,10 @@ const checkDayRate = async (workplaceId, wGroup, date , dayNumber , customWorkpl
 // console.log(date.getDay() );
 
 //data for cal
-const dataCal = {};
+let dataCal = {};
 
 // Construct the search query based on the provided parameters
-const query = {};
+let query = {};
 if (workplaceId !== '') {
   query.workplaceId = workplaceId;
 }
@@ -2025,7 +2025,7 @@ break;
 // );
 
 if(isDayOff == true) {
-  console.log(date.toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }));
+  // console.log(date.toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }));
   dataCal.dayType = await 'specialDayOff';
 
 } else {
@@ -2057,7 +2057,7 @@ if(dayNumberx   === 0) {
 }
 
   if(check === true) {
-    console.log(date +workTimeDay.workOrStop )
+    // console.log(date +workTimeDay.workOrStop )
     dataCal.dayType = await workTimeDay.workOrStop;
 break;
 // console.log("data " ,workTimeDay.startDay, workTimeDay.endDay );
