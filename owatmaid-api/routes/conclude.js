@@ -2042,7 +2042,7 @@ const dayNumberx = dateObj.getDay(); // 0 = อาทิตย์, ..., 6 = เ�
 const dateOfMonth = dateObj.getDate(); // 1 - 31
 
 // test
-if(dateOfMonth == 1 || dateOfMonth == 10) {
+if(dateOfMonth == 3 || dateOfMonth == 10) {
   console.log(dateOfMonth )
   console.log('paddedMonth ' + paddedMonth )
 }
