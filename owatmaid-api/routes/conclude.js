@@ -2049,15 +2049,15 @@ let dateOfMonth = await dateObj.getDate(); // 1 - 31
 
 let check = await checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumberx );
 
-if(dayNumberx   === 0) {
-  console.log('dayNumberx  ' + dayNumberx );
+// if(dayNumberx   === 0) {
+  // console.log('dayNumberx  ' + dayNumberx );
 
-      console.log('*' + date +workTimeDay.workOrStop )
+      // console.log('*' + date +workTimeDay.workOrStop )
 
-}
+// }
 
   if(check === true) {
-    // console.log(date +workTimeDay.workOrStop )
+    console.log(date +workTimeDay.workOrStop )
     dataCal.dayType = await workTimeDay.workOrStop;
 break;
 // console.log("data " ,workTimeDay.startDay, workTimeDay.endDay );
