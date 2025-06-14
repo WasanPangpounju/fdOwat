@@ -2049,7 +2049,7 @@ const dateOfMonth = dateObj.getDate(); // 1 - 31
 
 let check = await checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumberx );
 
-if(dayNumberx   == 3) {
+if(dayNumberx   === 0) {
   console.log('dayNumberx  ' + dayNumberx );
 
       console.log(date +workTimeDay.workOrStop )
