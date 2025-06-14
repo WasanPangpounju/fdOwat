@@ -1,11 +1,12 @@
 import endpoint from "../../config";
 import axios from "axios";
-import { useEffect, useState, Suspense, lazy } from "react";
+import { useEffect, useState, Suspense, lazy,useMemo } from "react";
 import { ThaiDatePicker } from "thaidatepicker-react";
 import { FaCalendarAlt } from "react-icons/fa"; 
 import * as XLSX from "xlsx";
 import { PDFViewer, Document, Page, Text, View, StyleSheet as PDFStyleSheet, pdf } from '@react-pdf/renderer';
 import "moment/locale/th"; 
+
 
 
 
@@ -29,14 +30,20 @@ Font.register({
 
 function BankReport({ employeeList, workplaceList }) {
 
-  const filteredEmployeeList = employeeList.map(
-    ({ name, lastName, employeeId, branchBank }) => ({
-      name,
-      lastName,
-      employeeId,
-      branchBank,
-    })
-  );
+  const filteredEmployeeList = useMemo(() => {
+    if (!employeeList || !Array.isArray(employeeList)) {
+      return [];
+    }
+    return employeeList.map(
+      ({ name, lastName, employeeId, branchBank, salarybank }) => ({
+        name,
+        lastName,
+        employeeId,
+        branchBank,
+        salarybank // เพิ่ม salarybank ด้วย
+      })
+    );
+  }, [employeeList]);
 const [bankFullName, setBankFullName] = useState("");
 const [allBankNames, setAllBankNames] = useState([]);
 const [timeRecordData, setTimeRecordData] = useState([]);
@@ -788,7 +795,6 @@ const BankReportPDF = () => {
     </Document>
   );
 };
-
 
   return (
   <div className="hold-transition sidebar-mini editlaout">

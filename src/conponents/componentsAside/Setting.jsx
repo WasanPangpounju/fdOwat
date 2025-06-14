@@ -3597,44 +3597,48 @@ if (newWorkplace) {
                       </div>
                     )} */}
 
-                    {selectedDates.length > 0 && (
-                      <div>
-                        วันหยุดหน่วยงาน (เดือน/วัน/ปี)
-                        <br />
-                        <ol>
-                          {selectedDates.map((date, index) => (
-                            <li key={index}>
-                              <div className="row">
-                                <div
-                                  className="col-md-1"
-                                  style={{ borderTop: "2px solid black" }}
-                                >
-                                  {date instanceof Date &&
-                                    !isNaN(date.getTime())
-                                    ? `${date.getDate()}/${date.getMonth() + 1
-                                    }/${date.getFullYear() + 543}`
-                                    : `${day}/${month}/${year + 543
-                                    } (Invalid Date)`}
-                                </div>
-                                <div
-                                  className="col-md-1"
-                                  style={{ borderTop: "2px solid black" }}
-                                >
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRemoveDate(date)}
-                                    className="btn clean"
-                                    style={{ margin: "0.5rem", width: "6rem" }}
-                                  >
-                                    ลบออก
-                                  </button>
-                                </div>
-                              </div>
-                            </li>
-                          ))}
-                        </ol>
-                      </div>
-                    )}
+                
+{selectedDates.length > 0 && (
+  <div>
+    วันหยุดหน่วยงาน (เดือน/วัน/ปี)
+    <br />
+    <ol>
+      {selectedDates
+        .sort((a, b) => new Date(a) - new Date(b)) // เรียงลำดับจากน้อยไปมาก
+        .map((date, index) => (
+          <li key={index}>
+            <div className="row">
+              <div
+                className="col-md-1"
+                style={{ borderTop: "2px solid black" }}
+              >
+                {date instanceof Date &&
+                  !isNaN(date.getTime())
+                  ? `${date.getDate()}/${date.getMonth() + 1
+                  }/${date.getFullYear() + 543}`
+                  : `${day}/${month}/${year + 543
+                  } (Invalid Date)`}
+              </div>
+              <div
+                className="col-md-1"
+                style={{ borderTop: "2px solid black" }}
+              >
+                <button
+                  type="button"
+                  onClick={() => handleRemoveDate(date)}
+                  className="btn clean"
+                  style={{ margin: "0.5rem", width: "6rem" }}
+                >
+                  ลบออก
+                </button>
+              </div>
+            </div>
+          </li>
+        ))}
+    </ol>
+  </div>
+)}
+
                   </div>
                   {/* <div>
                     <label>หมายเหตุ:</label>
