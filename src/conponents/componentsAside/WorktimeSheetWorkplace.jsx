@@ -254,15 +254,57 @@ const fetchWeekendData = async (year, month, workplaceId) => {
     อาทิตย์: ["Sun"],
   };
 
-  useEffect(() => {
+useEffect(() => {
     // Fetch data from the API when the component mounts
     fetch(endpoint + "/workplace/list")
       .then((response) => response.json())
       .then((data) => {
+        console.log("Original data:", data.map(item => item.workplaceId));
+        
+        // Sort data by workplaceId (handle numbers with parentheses) - ASCENDING ORDER
+        const sortedData = [...data].sort((a, b) => {
+          // Extract main number and number in parentheses
+          const parseWorkplaceId = (id) => {
+            const idStr = String(id).trim();
+            
+            // Handle numbers with parentheses like "10296(1)"
+            const matchWithParens = idStr.match(/^(\d+)\((\d+)\)$/);
+            if (matchWithParens) {
+              return {
+                main: parseInt(matchWithParens[1], 10),
+                sub: parseInt(matchWithParens[2], 10)
+              };
+            }
+            
+            // Handle pure numbers like "10296" - treat as if it has (0)
+            const matchPureNumber = idStr.match(/^\d+$/);
+            if (matchPureNumber) {
+              return { 
+                main: parseInt(idStr, 10), 
+                sub: 0
+              };
+            }
+            
+            return { main: 0, sub: 0 };
+          };
+          
+          const aData = parseWorkplaceId(a.workplaceId);
+          const bData = parseWorkplaceId(b.workplaceId);
+          
+          // Compare main number first - ASCENDING (น้อยไปมาก)
+          if (aData.main !== bData.main) {
+            return aData.main - bData.main;
+          }
+          
+          // If main numbers are equal, compare sub numbers - ASCENDING (น้อยไปมาก)  
+          return aData.sub - bData.sub;
+        });
+        
+        console.log("Sorted data (ASCENDING):", sortedData.map(item => item.workplaceId));
+        
         // Update the state with the fetched data
-        setWorkplaceList(data);
-        setWorkplaceListAll(data);
-        // alert(data[0].workplaceName);
+        setWorkplaceList(sortedData);
+        setWorkplaceListAll(sortedData);
       })
       .catch((error) => {
         console.error("Error fetching data:", error);

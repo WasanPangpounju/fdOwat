@@ -85,20 +85,7 @@ function SettingAllList({ workplaceList, employeeList }) {
   // Sort by number of digits first, then by numeric value
  // ...existing code...
 // Sort by number of digits first, then by numeric value
-filteredData.sort((a, b) => {
-  const lengthA = a.workplaceId.length;
-  const lengthB = b.workplaceId.length;
-  
-  // If different lengths, sort by length (4 digits before 5 digits)
-  if (lengthA !== lengthB) {
-    return lengthA - lengthB;
-  }
-  
-  // If same length, sort by numeric value
-  const numA = parseInt(a.workplaceId);
-  const numB = parseInt(b.workplaceId);
-  return numA - numB;
-});
+
 // ...existing code...
 // ...existing code...
 

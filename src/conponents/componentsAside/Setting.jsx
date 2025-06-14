@@ -1,5 +1,5 @@
 import endpoint from "../../config";
-
+import Swal from 'sweetalert2'
 import axios from "axios";
 import React, { useEffect, useState } from "react";
 
@@ -1216,28 +1216,159 @@ setWorkRateChange(workplace.workRateChange)
     // await alert(JSON.stringify(formData.addSalary,null,2));
 
     //check create or update Employee
-    if (newWorkplace) {
-      // alert('Create Workplace');
-      try {
-        const response = await axios.post(endpoint + "/workplace/create", data);
-        // setEmployeesResult(response.data.employees);
-        if (response) {
-          alert("บันทึกสำเร็จ");
-        }
-      } catch (error) {
-        alert("กรุณาตรวจสอบข้อมูลในช่องกรอกข้อมูล");
-        // window.location.reload();
+    //check create or update Employee
+if (newWorkplace) {
+  // เพิ่มก่อน try block
+  const requiredFields = {
+    workplaceId: "รหัสหน่วยงาน",
+    workplaceName: "ชื่อหน่วยงาน", 
+    workplaceArea: "สถานที่ปฏิบัติงาน",
+    workOfWeek: "จำนวนวันทำงานต่อสัปดาห์",
+    workOfHour: "ชั่วโมงทำงาน",
+    workRate: "ค่าจ้างรายวัน"
+  };
+
+  const missingFields = [];
+  Object.entries(requiredFields).forEach(([key, label]) => {
+    if (!data[key] || data[key].toString().trim() === "") {
+      missingFields.push(label);
+    }
+  });
+
+  if (missingFields.length > 0) {
+  Swal.fire({
+    icon: "error",
+    title: "บันทึกไม่สำเร็จ",
+    text: `กรุณากรอกข้อมูลต่อไปนี้: ${missingFields.join(", ")}`,
+    footer: '<a href="#" id="scroll-to-missing-field">คลิกที่นี่เพื่อไปยังฟิลด์ที่ขาดหายไป</a>',
+    didOpen: () => {
+      const footerLink = document.getElementById('scroll-to-missing-field');
+      if (footerLink) {
+        footerLink.addEventListener('click', (e) => {
+          e.preventDefault();
+          
+          const requiredFieldKeys = Object.keys(requiredFields);
+          for (const fieldKey of requiredFieldKeys) {
+            if (!data[fieldKey] || data[fieldKey].toString().trim() === "") {
+              // ลองหาด้วย id ก่อน
+              let element = document.getElementById(fieldKey);
+              
+              // ถ้าไม่เจอ ลองหาด้วย name attribute
+              if (!element) {
+                element = document.querySelector(`input[name="${fieldKey}"]`);
+              }
+              
+              // ถ้ายังไม่เจอ ลองหาด้วย placeholder
+              if (!element) {
+                const placeholderMap = {
+                  workplaceId: "รหัสหน่วยงาน",
+                  workplaceName: "ชื่อหน่วยงาน",
+                  workplaceArea: "สถานที่ปฏิบัติงาน",
+                  workOfWeek: "จำนวนวันทำงานต่อสัปดาห์",
+                  workOfHour: "ชั่วโมงทำงาน",
+                  workRate: "บาท"
+                };
+                element = document.querySelector(`input[placeholder="${placeholderMap[fieldKey]}"]`);
+              }
+              
+              console.log(`Field: ${fieldKey}, Element found:`, element);
+              
+              if (element) {
+                element.scrollIntoView({ 
+                  behavior: 'smooth', 
+                  block: 'center' 
+                });
+                
+                setTimeout(() => {
+                  element.focus();
+                  element.style.border = '3px solid red';
+                  element.style.backgroundColor = '#ffe6e6';
+                  
+                  setTimeout(() => {
+                    element.style.border = '';
+                    element.style.backgroundColor = '';
+                  }, 3000);
+                }, 500);
+                
+                break;
+              }
+            }
+          }
+          
+          Swal.close();
+        });
+      }
+    }
+  });
+  return;
+}
+
+  // ตรวจสอบรหัสหน่วยงานซ้ำ
+  const existingWorkplace = workplaceList.find(workplace => 
+    workplace.workplaceId === data.workplaceId
+  );
+  
+  if (existingWorkplace) {
+    alert(`รหัสหน่วยงาน ${data.workplaceId} มีอยู่แล้วในระบบ กรุณาใช้รหัสอื่น`);
+    return;
+  }
+      
+  try {
+    const response = await axios.post(endpoint + "/workplace/create", data);
+    if (response) {
+          Swal.fire({
+        title: "บันทึกสำเร็จ",
+        text: "ข้อมูลหน่วยงานถูกบันทึกเรียบร้อยแล้ว",
+        icon: "success",
+        draggable: true
+});
+    }
+  } catch (error) {
+    console.error("Error details:", error);
+    console.log("Response data:", error.response?.data);
+    console.log("Status code:", error.response?.status);
+    
+    // แสดง error message จาก API response (ถ้ามี)
+    if (error.response && error.response.data) {
+      const apiErrorMessage = error.response.data.message || 
+                             error.response.data.error || 
+                             error.response.data.details ||
+                             JSON.stringify(error.response.data);
+      
+      // ตรวจสอบ duplicate key error
+      if (apiErrorMessage.includes("E11000") && apiErrorMessage.includes("workplaceId")) {
+        alert(`รหัสหน่วยงาน ${data.workplaceId} มีอยู่แล้วในระบบ กรุณาใช้รหัสอื่น`);
+      } else {
+        alert(`เกิดข้อผิดพลาดจาก Server: ${apiErrorMessage}`);
+      }
+      
+      // ถ้า API ส่ง validation errors มา (เช่น required fields)
+      if (error.response.data.validationErrors) {
+        console.log("Validation errors:", error.response.data.validationErrors);
+        const validationErrors = error.response.data.validationErrors;
+        const errorList = Object.keys(validationErrors).map(key => 
+          `${key}: ${validationErrors[key]}`
+        ).join('\n');
+        alert(`ข้อมูลที่จำเป็นต้องกรอก:\n${errorList}`);
       }
     } else {
-      //update workplace data
+      // Network error หรือ error อื่นๆ
+      alert("เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง");
+    }
+    
+    // แสดงข้อมูลที่ส่งไปให้ API เพื่อช่วยในการ debug
+    console.log("Data sent to API:", data);
+  }
+} else {
+  //update workplace data
 
-      // Make the API call to update the resource by ID
-      try {
-        const response = await axios.put(
-          endpoint + "/workplace/update/" + _id,
-          data
-        );
-        // setEmployeesResult(response.data.employees);
+  // Make the API call to update the resource by ID
+  try {
+    const response = await axios.put(
+      endpoint + "/workplace/update/" + _id,
+      data
+    );
+    // setEmployeesResult(response.data.employees);
         if (response) {
           alert("บันทึกสำเร็จ");
           // Clear the query parameters
@@ -1561,7 +1692,7 @@ setWorkRateChange(workplace.workRateChange)
                     <div class="row">
                       <div class="col-md-6">
                         <div class="form-group">
-                          <label role="workplaceId">รหัสหน่วยงาน</label>
+                          <label role="workplaceId">รหัสหน่วยงาน<span style={{ color: "red" }}>*</span></label>
                           <input
                             type="text"
                             class="form-control"
@@ -1581,7 +1712,7 @@ setWorkRateChange(workplace.workRateChange)
                       </div>
                       <div class="col-md-6">
                         <div class="form-group">
-                          <label role="workplaceName">ชื่อหน่วยงาน</label>
+                          <label role="workplaceName">ชื่อหน่วยงาน<span style={{ color: "red" }}>*</span></label>
                           <input
                             type="text"
                             class="form-control"
@@ -1596,7 +1727,7 @@ setWorkRateChange(workplace.workRateChange)
                     <div class="row">
                       <div class="col-md-6">
                         <div class="form-group">
-                          <label role="workplaceArea">สถานที่ปฏิบัติงาน</label>
+                          <label role="workplaceArea">สถานที่ปฏิบัติงาน<span style={{ color: "red" }}>*</span></label>
                           <input
                             type="text"
                             class="form-control"
@@ -1610,7 +1741,7 @@ setWorkRateChange(workplace.workRateChange)
                       <div class="col-md-6">
                         <div class="form-group">
                           <label role="workOfWeek">
-                            จำนวนวันทำงานต่อสัปดาห์
+                            จำนวนวันทำงานต่อสัปดาห์<span style={{ color: "red" }}>*</span>
                           </label>
                           <input
                             type="text"
@@ -1676,7 +1807,7 @@ setWorkRateChange(workplace.workRateChange)
                   <div class="row align-items-end">
                     <div class="col-md-3">
                       <div class="form-group">
-                        <label role="workOfHour">ชั่วโมงทำงาน</label>
+                        <label role="workOfHour">ชั่วโมงทำงาน<span style={{ color: "red" }}>*</span></label>
                         <input
                           type="text"
                           class="form-control"
@@ -1808,7 +1939,7 @@ setWorkRateChange(workplace.workRateChange)
                 <div class="row">
                 <div class="col-md-3">
                       <div class="form-group">
-                        <label role="workRate">ค่าจ้าง รายวัน</label>
+                        <label role="workRate">ค่าจ้าง รายวัน<span style={{ color: "red" }}>*</span></label>
                         <input
                           type="text"
                           class="form-control"
