@@ -2030,7 +2030,7 @@ if(isDayOff == true) {
 
 } else {
 // console.log(JSON.stringify(workplaces,null,2) );
-console.log(workplaces[0].workTimeDay);
+console.log(workplaces[0].workTimeDay.length);
 //check day type
 for(const workTimeDay of workplaces[0].workTimeDay) {
   // let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay , date.getDay());
