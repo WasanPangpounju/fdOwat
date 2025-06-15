@@ -2043,7 +2043,7 @@ let dayNumberx = await dateObj.getDay(); // 0 = อาทิตย์, ..., 6 = 
 let dateOfMonth = await dateObj.getDate(); // 1 - 31
 console.log(dayNumberx )
 // test
-if(dateOfMonth == '0' ) {
+if(dateOfMonth == 'NaN' ) {
   console.log(dateString )
   // console.log('paddedMonth ' + paddedMonth )
 }
