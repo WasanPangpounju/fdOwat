@@ -2058,7 +2058,7 @@ let check = await checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumb
 // }
 
   if(check === true) {
-    console.log(date +workTimeDay.workOrStop )
+    // console.log(date +workTimeDay.workOrStop )
     dataCal.dayType = await workTimeDay.workOrStop;
 break;
 // console.log("data " ,workTimeDay.startDay, workTimeDay.endDay );
