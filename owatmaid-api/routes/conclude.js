@@ -2043,7 +2043,7 @@ let dayNumberx = await dateObj.getDay(); // 0 = อาทิตย์, ..., 6 = 
 let dateOfMonth = await dateObj.getDate(); // 1 - 31
 // console.log(dayNumberx )
 // test
-if(isNaN(dayNumberx) || isNaN(dateOfMonth)) {
+if(!(isNaN(dayNumberx) || isNaN(dateOfMonth)) ) {
   console.log('* ' + dayNumberx )
 
   console.log(dateString )
