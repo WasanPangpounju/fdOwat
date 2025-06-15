@@ -2044,9 +2044,9 @@ let dateOfMonth = await dateObj.getDate(); // 1 - 31
 console.log(dayNumberx )
 // test
 if(dateOfMonth == 'NaN' ) {
-  console.log(dayNumberx )
+  console.log('* ' + dayNumberx )
 
-  console.log(dateString )
+  // console.log(dateString )
   // console.log('paddedMonth ' + paddedMonth )
 }
 
