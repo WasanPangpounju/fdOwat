@@ -2036,14 +2036,16 @@ for(const workTimeDay of workplaces[0].workTimeDay) {
   // let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay , date.getDay());
   const [y, m, d] = date.split('-').map(Number);
 let paddedMonth = String(m - 1).padStart(2, '0');  
-    let dateString = y + '-' + paddedMonth  + '-' + d + 'T00:00:00';
+let paddedDay = String(d).padStart(2, '0');  
+
+    let dateString = y + '-' + paddedMonth  + '-' + paddedDay  + 'T00:00:00';
 
 let dateObj = await new Date(dateString );
 let dayNumberx = await dateObj.getDay(); // 0 = อาทิตย์, ..., 6 = เสาร์
 let dateOfMonth = await dateObj.getDate(); // 1 - 31
 // console.log(dayNumberx )
 // test
-if(!(isNaN(dayNumberx) || isNaN(dateOfMonth)) ) {
+if(isNaN(dayNumberx) || isNaN(dateOfMonth) ) {
   console.log('* ' + dayNumberx )
 
   console.log(dateString )
