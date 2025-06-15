@@ -2041,7 +2041,7 @@ let paddedMonth = String(m - 1).padStart(2, '0');
 let dateObj = await new Date(dateString );
 let dayNumberx = await dateObj.getDay(); // 0 = อาทิตย์, ..., 6 = เสาร์
 let dateOfMonth = await dateObj.getDate(); // 1 - 31
-console.log(dateOfMonth )
+console.log(dayNumberx )
 // test
 if(dateOfMonth == '0' ) {
   console.log(dateString )
