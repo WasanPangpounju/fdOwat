@@ -2044,7 +2044,7 @@ let dateOfMonth = await dateObj.getDate(); // 1 - 31
 
 // test
 if(dateOfMonth == 0 ) {
-  // console.log(dateString )
+  console.log(dateString )
   // console.log('paddedMonth ' + paddedMonth )
 }
 
