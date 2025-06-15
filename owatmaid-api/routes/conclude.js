@@ -2011,7 +2011,7 @@ dataCal.holidayHour= await workplaces?.[0]?.holidayHour|| 1;
 dataCal.holidayOT = await workplaces?.[0]?.holidayOT || 1;
 
 let isDayOff  = false;
-// console.log(JSON.stringify(workplaces?.[0]?.daysOff,null,2))
+console.log(JSON.stringify(workplaces?.[0]?.daysOff,null,2))
 for(let itemDay of workplaces?.[0]?.daysOff){
   if(toBangkokDate(itemDay) === date) {
   console.log('special day off ' + toBangkokDate(itemDay)+  ' = '+ date)
