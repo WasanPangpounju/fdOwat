@@ -2030,7 +2030,7 @@ if(isDayOff == true) {
 
 } else {
 // console.log(JSON.stringify(workplaces,null,2) );
-console.log(workplaces[0].workTimeDay.length);
+// console.log(workplaces[0].workTimeDay.length);
 //check day type
 for(const workTimeDay of workplaces[0].workTimeDay) {
   // let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay , date.getDay());
@@ -2043,10 +2043,10 @@ let dayNumberx = await dateObj.getDay(); // 0 = อาทิตย์, ..., 6 = 
 let dateOfMonth = await dateObj.getDate(); // 1 - 31
 
 // test
-// if(dateOfMonth == 3 ) {
-  // console.log(dateOfMonth )
+if(dateOfMonth == 0 ) {
+  // console.log(dateString )
   // console.log('paddedMonth ' + paddedMonth )
-// }
+}
 
 let check = await checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumberx );
 
