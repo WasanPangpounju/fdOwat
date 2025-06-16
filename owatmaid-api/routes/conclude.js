@@ -1972,10 +1972,10 @@ const checkDayRate = async (workplaceId, wGroup, date , dayNumber , customWorkpl
 // console.log(date.getDay() );
 
 //data for cal
-let dataCal = {};
+const dataCal = {};
 
 // Construct the search query based on the provided parameters
-let query = {};
+const query = {};
 if (workplaceId !== '') {
   query.workplaceId = workplaceId;
 }
@@ -2010,79 +2010,69 @@ dataCal.dayoffRateOT = await workplaces?.[0]?.dayoffRateOT || 1;
 dataCal.holidayHour= await workplaces?.[0]?.holidayHour|| 1;
 dataCal.holidayOT = await workplaces?.[0]?.holidayOT || 1;
 
-const [y, m, d] = date.split('-').map(Number);
-let paddedMonth = String(m).padStart(2, '0');  
-let paddedDay = String(d).padStart(2, '0');  
-
-    let dateString = y + '-' + paddedMonth  + '-' + paddedDay;
-
-let dateObj = await new Date(y, m - 1, d);
-let dayNumberx = await dateObj.getDay(); // 0 = อาทิตย์, ..., 6 = เสาร์
-let dateOfMonth = await dateObj.getDate(); // 1 - 31
-// console.log(dayNumberx )
-
-//
 let isDayOff  = false;
 // console.log(JSON.stringify(workplaces?.[0]?.daysOff,null,2))
 for(let itemDay of workplaces?.[0]?.daysOff){
-
-  if(toBangkokDate(itemDay) === dateString ) {
-  console.log('special day off ' + toBangkokDate(itemDay)+  ' = '+ dateString)
-  isDayOff = true;
-  break;  
+  if(toBangkokDate(itemDay) === date) {
+  console.log('special day off ' + toBangkokDate(itemDay)+  ' = '+ date)
+  isDayOff   = true
+break;  
   }
 }
-
-// เช็คจาก API getWeekendDates สำหรับ weekendAndDayOff
-// เช็คจาก API getWeekendDates สำหรับ weekendAndDayOff
-let isWeekendAndDayOff = false;
-try {
-  const [yyyy, mm, dd] = date.split('-');
-  const axios = require('axios');
-  const weekendResponse = await axios.get(`http://localhost:3000/conclude/getWeekendDates?yyyy=${yyyy}&mm=${mm}&workplaceId=${workplaceId}`);
-  
-  if (weekendResponse.data && weekendResponse.data.weekendAndDayOff) {
-    isWeekendAndDayOff = weekendResponse.data.weekendAndDayOff.includes(date);
-    if (isWeekendAndDayOff) {
-      console.log('weekendAndDayOff found for date: ' + date);
-    }
-  }
-} catch (error) {
-  console.log('Error checking weekendAndDayOff:', error.message);
-}
-
 // dataCal?.daysOff
 // const isDayOff = workplaces?.[0]?.daysOff?.some(d => 
   // new Date(d).toISOString().split('T')[0] === date.toISOString().split('T')[0]
 // );
 
-if(isDayOff == true || isWeekendAndDayOff == true) {
+if(isDayOff == true) {
   console.log(date.toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }));
-  dataCal.dayType = 'specialDayOff';
-} else {
-  // ถ้าไม่ใช่วันหยุดพิเศษ ให้เช็คตามปกติ
-  dataCal.dayType = 'work'; // ค่าเริ่มต้น
-  
-  // เช็ค workTimeDay
-  for(const workTimeDay of workplaces[0].workTimeDay) {
-    let check = await checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumberx);
-    
-    if(check === true) {
-      dataCal.dayType = await workTimeDay.workOrStop;
-      break;
-    }
-  } //end for
-}
+  dataCal.dayType = await 'specialDayOff';
 
 } else {
-  // ถ้าไม่มี workplace data
-  dataCal.dayType = 'work';
+// console.log(JSON.stringify(workplaces,null,2) );
+//check day type
+for(const workTimeDay of workplaces[0].workTimeDay) {
+  // let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay , date.getDay());
+  const [y, m, d] = date.split('-').map(Number);
+const paddedMonth = String(m - 1).padStart(2, '0');  
+    let dateString = y + '-' + paddedMonth  + '-' + d + 'T00:00:00';
+
+const dateObj = new Date(dateString );
+const dayNumberx = dateObj.getDay(); // 0 = อาทิตย์, ..., 6 = เสาร์
+const dateOfMonth = dateObj.getDate(); // 1 - 31
+
+// test
+// if(dateOfMonth == 30 || dateOfMonth == 20) {
+//   console.log(dateOfMonth )
+//   console.log('paddedMonth ' + paddedMonth )
+// }
+
+let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumberx );
+
+
+  if(check === true) {
+    // console.log(date +workTimeDay.workOrStop )
+    dataCal.dayType = await workTimeDay.workOrStop;
+break;
+// console.log("data " ,workTimeDay.startDay, workTimeDay.endDay );
+// console.log("data " ,workTimeDay.startDay, workTimeDay.endDay , date.getDay() );
+
+  }
+else {
+      dataCal.dayType = 'work';
+
+}
+} //end for
+
 }
 
+// await console.log("wr "+ JSON.stringify(dataCal,null,2));
+
+}        
 // console.log("dataCal", JSON.stringify(dataCal,null,2))
 return dataCal;
 
-
+}
 
 
 //get employee profile
