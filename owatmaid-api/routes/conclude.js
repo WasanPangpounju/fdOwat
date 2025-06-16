@@ -2094,11 +2094,20 @@ const getEmployeeProfile = async (employeeId) => {
   }
 
 }
-
-// แก้ไขใน calculateCashValues function
+// แก้ไขฟังก์ชัน calculateCashValues
 
 const calculateCashValues = async (employeeId, employee_record, month, year) => {
+  // ✅ เพิ่มการดึงข้อมูล employee profile
   const employeeProfile = await getEmployeeProfile(employeeId);
+  
+  if (!employeeProfile || employeeProfile.length === 0) {
+    console.error(`❌ No employee profile found for employeeId: ${employeeId}`);
+    return {
+      employee_record: employee_record,
+      summary: { dayWorkCount: 0, dayOffCount: 0, daySpecialCount: 0, dayStopCount: 0, totalDays: 0 }
+    };
+  }
+
   const salaryTmp = parseFloat(employeeProfile[0].salary || '0') || 0;
   let addSalary = employeeProfile?.[0]?.addSalary || [];
   let salary = 0;
@@ -2110,15 +2119,26 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
   let dayStopCount = 0;
 
   if(parseFloat(salaryTmp || '0') > 1660) {
-    salary = await ((parseFloat(salaryTmp || '0') / 30)/ 8).toFixed(3);
+    salary = ((parseFloat(salaryTmp || '0') / 30) / 8).toFixed(3);
   } else {
-    salary = await (parseFloat(salaryTmp || '0')/ 8).toFixed(3);
+    salary = (parseFloat(salaryTmp || '0') / 8).toFixed(3);
   }
 
   const results = await Promise.all(
     employee_record.map(async (record) => {
-      // ...existing code...
+      // ✅ เพิ่มการประกาศตัวแปร workplaceId
+      const workplaceId = record.workplaceId || employeeProfile[0].workplace || '';
+      
+      // ✅ เพิ่มการสร้าง bangkokDate
+      let rawDate;
+      if (record.date > 20) {
+        rawDate = new Date(year, month - 1, record.date); // ปกติเดือนเริ่มที่ 0
+      } else {
+        rawDate = new Date(year, month - 1, record.date); // ✅ แก้ไขให้ใช้ month - 1 ด้วย
+      }
+      const bangkokDate = toBangkokDate(rawDate);
 
+      // ✅ เรียกใช้ checkDayRate
       const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate, record.date, 
         employeeProfile?.[0]?.customWorkplace);
 
@@ -2140,16 +2160,25 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
         }
       }
 
-      // ...rest of calculations...
+      // ✅ คำนวณค่าจ้าง
+      let cashBeforeOt = (record.beforeTotalOtTime || 0) * parseFloat(dataRate.workRateOT || '0');
+      let cashWork = (record.totalTime || 0) * parseFloat(dataRate.workRate || '0');
+      let cashOt = (record.totalOtTime || 0) * parseFloat(dataRate.workRateOT || '0');
+
+      // ✅ คำนวณ addSalaryDaily
+      let addSalaryDaily = [];
+      if (addSalary && Array.isArray(addSalary)) {
+        addSalaryDaily = addSalary.filter(item => item.roundOfSalary === 'daily');
+      }
 
       return {
         ...record,
-        cashBeforeOt,
-        cashWork,
-        cashOt,
-        cashBeforeOtMul,
-        cashWorkMul,
-        cashOtMul,
+        cashBeforeOt: cashBeforeOt.toFixed(2),
+        cashWork: cashWork.toFixed(2),
+        cashOt: cashOt.toFixed(2),
+        cashBeforeOtMul: dataRate.workRateOT || 0,
+        cashWorkMul: dataRate.workRate || 0,
+        cashOtMul: dataRate.workRateOT || 0,
         dayType: dataRate?.dayType || 'work',
         addSalaryDaily,
       };
@@ -2161,7 +2190,7 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
     employee_record: results,
     summary: {
       dayWorkCount,
-      dayOffCount: dayOffCount + daySpecialCount + dayStopCount, // รวมวันหยุดทั้งหมด
+      dayOffCount: dayOffCount + daySpecialCount + dayStopCount,
       daySpecialCount,
       dayStopCount,
       totalDays: employee_record.length
@@ -2206,31 +2235,60 @@ let cashOt = await (record.totalOtTime || 0) * parseFloat(dataRate.workRateOT ||
 // Search timerecordEmployee
 // แก้ไขใน router.post('/searchtimerecordemployee')
 
+// แก้ไขใน router.post('/searchtimerecordemployee')
+
 router.post('/searchtimerecordemployee', async (req, res) => {
   try {
-    const { employeeId, month, year } = await req.body;
-    // ...existing query code...
+    const { employeeId, month, year } = req.body;
+    console.log(`🔍 Searching for employeeId: ${employeeId}, month: ${month}, year: ${year}`);
+
+    // ✅ สร้าง query object
+    const query = {};
+    if (employeeId && employeeId.trim() !== '') {
+      query.employeeId = employeeId;
+    }
+    if (month && month.trim() !== '') {
+      query.month = month;
+    }
+    if (year && year.trim() !== '') {
+      query.year = year;
+    }
+
+    // ✅ ค้นหาข้อมูล
+    const result = await timerecordEmployee.find(query);
+    console.log(`📊 Found ${result.length} records`);
+
+    if (!result || result.length === 0) {
+      return res.status(200).json({ result: [] });
+    }
 
     let updateNeeded = false;
 
     for (const doc of result) {
+      // ✅ ข้าม document ที่มี status
       if (doc.status && doc.status.trim() !== "") {
         continue;
       }
 
+      // ✅ ตรวจสอบ employee_record
       if (!doc || !Array.isArray(doc.employee_record) || doc.employee_record.length === 0) {
-        console.warn(`Skipping invalid or empty document: ${JSON.stringify(doc)}`);
+        console.warn(`⚠️  Skipping invalid or empty document for employeeId: ${doc.employeeId}`);
         continue;
       }
 
       try {
-        const calculationResult = await calculateCashValues(employeeId, doc.employee_record, month, year);
+        console.log(`🔄 Processing document for employeeId: ${doc.employeeId}`);
+        
+        const calculationResult = await calculateCashValues(doc.employeeId, doc.employee_record, month, year);
         
         // ✅ แยกข้อมูล employee_record และ summary
         const updatedRecords = calculationResult.employee_record || calculationResult;
         const summary = calculationResult.summary || {};
         
-        if (JSON.stringify(updatedRecords) !== JSON.stringify(doc.employee_record)) {
+        // ✅ เปรียบเทียบและอัปเดตเฉพาะที่เปลี่ยนแปลง
+        const hasChanges = JSON.stringify(updatedRecords) !== JSON.stringify(doc.employee_record);
+        
+        if (hasChanges) {
           doc.employee_record = updatedRecords;
           
           // ✅ เพิ่มข้อมูลสรุปลงใน document
@@ -2243,18 +2301,30 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           await doc.save();
           updateNeeded = true;
           
-          console.log(`✅ Updated employeeId=${employeeId}: workDays=${summary.dayWorkCount}, offDays=${summary.dayOffCount}`);
+          console.log(`✅ Updated employeeId=${doc.employeeId}: workDays=${summary.dayWorkCount}, offDays=${summary.dayOffCount}`);
+        } else {
+          console.log(`📋 No changes needed for employeeId=${doc.employeeId}`);
         }
+        
       } catch (error) {
-        console.error("❌ Error in calculateCashValues:", error);
+        console.error(`❌ Error processing employeeId=${doc.employeeId}:`, error.message);
+        // ✅ ไม่ return error ทันที ให้ประมวลผล document อื่นต่อ
       }
     }
 
-    await res.status(200).json({ result });
+    if (updateNeeded) {
+      console.log(`🎉 Successfully updated records`);
+    }
+
+    res.status(200).json({ result });
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Internal server error' });
+    console.error('❌ Fatal error in /searchtimerecordemployee:', error);
+    res.status(500).json({ 
+      message: 'Internal server error', 
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 
