@@ -2032,34 +2032,27 @@ try {
   
   const formattedDate = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
   
-  // First check if this date is in the weekendAndDayOff array (highest priority)
+  // Check only weekendAndDayOff and dayOffOnly, ignore weekendOnly
   if (response.data && Array.isArray(response.data.weekendAndDayOff)) {
     console.log(`🔎 Checking if ${formattedDate} is in weekendAndDayOff list`);
-    
     if (response.data.weekendAndDayOff.includes(formattedDate)) {
-      // This is both a weekend and official day off - mark as "stop"
       dataCal.dayType = 'stop';
       console.log(`✅ MATCH FOUND: Date ${formattedDate} is both weekend and day off`);
       console.log(`✅ Setting dayType to "stop" for ${formattedDate}`);
       return dataCal;
     }
   }
-  
-  // Then check if this date is in the weekendOnly array (second priority)
-  if (response.data && Array.isArray(response.data.weekendOnly)) {
-    console.log(`🔎 Checking if ${formattedDate} is in weekendOnly list`);
-    
-    if (response.data.weekendOnly.includes(formattedDate)) {
-      // This is a weekend day - also mark as "stop"
+  if (response.data && Array.isArray(response.data.dayOffOnly)) {
+    console.log(`🔎 Checking if ${formattedDate} is in dayOffOnly list`);
+    if (response.data.dayOffOnly.includes(formattedDate)) {
       dataCal.dayType = 'stop';
-      console.log(`✅ MATCH FOUND: Date ${formattedDate} is a weekend day`);
+      console.log(`✅ MATCH FOUND: Date ${formattedDate} is a day off only`);
       console.log(`✅ Setting dayType to "stop" for ${formattedDate}`);
       return dataCal;
     }
   }
-  
   // If the date is not in either list, continue with normal processing
-  console.log(`❌ ${formattedDate} is NOT in weekend lists, continuing with normal day type check`);
+  console.log(`❌ ${formattedDate} is NOT in weekendAndDayOff or dayOffOnly, continuing with normal day type check`);
   
 } catch (error) {
   console.error(`❌ ERROR: Failed to fetch weekend dates from API: ${error.message}`);
