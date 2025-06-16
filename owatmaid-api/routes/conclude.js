@@ -2059,59 +2059,26 @@ try {
 if(isDayOff == true || isWeekendAndDayOff == true) {
   console.log(date.toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }));
   dataCal.dayType = 'specialDayOff';
-}
 } else {
-// console.log(JSON.stringify(workplaces,null,2) );
-// console.log(workplaces[0].workTimeDay.length);
-//check day type
-for(const workTimeDay of workplaces[0].workTimeDay) {
-  // let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay , date.getDay());
-//   const [y, m, d] = date.split('-').map(Number);
-// let paddedMonth = String(m - 1).padStart(2, '0');  
-// let paddedDay = String(d).padStart(2, '0');  
-
-//     let dateString = y + '-' + paddedMonth  + '-' + paddedDay  + 'T00:00:00';
-
-// let dateObj = await new Date(dateString );
-// let dayNumberx = await dateObj.getDay(); // 0 = อาทิตย์, ..., 6 = เสาร์
-// let dateOfMonth = await dateObj.getDate(); // 1 - 31
-// // console.log(dayNumberx )
-
-// // test
-// if(isNaN(dayNumberx) || isNaN(dateOfMonth) ) {
-  // console.log('* ' + dayNumberx )
-  // console.log(dateString )
-  // console.log('paddedMonth ' + paddedMonth )
-// }
-
-let check = await checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumberx );
-
-// if(dayNumberx   === 0) {
-  // console.log('dayNumberx  ' + dayNumberx );
-
-      // console.log('*' + date +workTimeDay.workOrStop )
-
-// }
-
-  if(check === true) {
-    // console.log(date +workTimeDay.workOrStop )
-    dataCal.dayType = await workTimeDay.workOrStop;
-break;
-// console.log("data " ,workTimeDay.startDay, workTimeDay.endDay );
-// console.log("data " ,workTimeDay.startDay, workTimeDay.endDay , date.getDay() );
-
-  }
-else {
-      dataCal.dayType = 'work';
-
-}
-} //end for
-
+  // ถ้าไม่ใช่วันหยุดพิเศษ ให้เช็คตามปกติ
+  dataCal.dayType = 'work'; // ค่าเริ่มต้น
+  
+  // เช็ค workTimeDay
+  for(const workTimeDay of workplaces[0].workTimeDay) {
+    let check = await checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumberx);
+    
+    if(check === true) {
+      dataCal.dayType = await workTimeDay.workOrStop;
+      break;
+    }
+  } //end for
 }
 
-// await console.log("wr "+ JSON.stringify(dataCal,null,2));
+} else {
+  // ถ้าไม่มี workplace data
+  dataCal.dayType = 'work';
+}
 
-}        
 // console.log("dataCal", JSON.stringify(dataCal,null,2))
 return dataCal;
 
