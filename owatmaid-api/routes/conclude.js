@@ -2011,14 +2011,33 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
       
       // Call the getWeekendDates API
       const apiUrl = `http://10.10.110.7:3000/conclude/getWeekendDates?yyyy=${year}&mm=${month}&workplaceId=${workplaceId}`;
+      console.log(`🔍 Calling API: ${apiUrl}`);
       const weekendResponse = await axios.get(apiUrl);
       const weekendData = weekendResponse.data;
       
+      // Log formats for comparison
+      console.log(`📅 Current date to check: ${dateStr} (format: YYYY-MM-DD)`);
+      if (weekendData.dayOffOnly.length > 0) {
+        console.log(`📅 First date in dayOffOnly: ${weekendData.dayOffOnly[0]} (format: ${determineFormat(weekendData.dayOffOnly[0])})`);
+      }
+      if (weekendData.weekendAndDayOff.length > 0) {
+        console.log(`📅 First date in weekendAndDayOff: ${weekendData.weekendAndDayOff[0]} (format: ${determineFormat(weekendData.weekendAndDayOff[0])})`);
+      }
+      
       // Check if the date is in dayOffOnly or weekendAndDayOff arrays
-      if (weekendData.dayOffOnly.includes(dateStr) || weekendData.weekendAndDayOff.includes(dateStr)) {
+      if (weekendData.dayOffOnly.includes(dateStr)) {
+        console.log(`✅ Date ${dateStr} found in dayOffOnly`);
+        dataCal.dayType = 'stop';
+        return dataCal;
+      } 
+      
+      if (weekendData.weekendAndDayOff.includes(dateStr)) {
+        console.log(`✅ Date ${dateStr} found in weekendAndDayOff`);
         dataCal.dayType = 'stop';
         return dataCal;
       }
+      
+      console.log(`❌ Date ${dateStr} not found in special day off lists`);
     } catch (error) {
       console.error('Error fetching weekend dates:', error.message);
       // Continue with normal processing if API call fails
@@ -2062,6 +2081,17 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
   }
   
   return dataCal;
+}
+
+// Helper function to determine date format
+function determineFormat(dateString) {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+    return 'YYYY-MM-DD';
+  } else if (/^\d{2}-\d{2}-\d{4}$/.test(dateString)) {
+    return 'DD-MM-YYYY';
+  } else {
+    return 'unknown format';
+  }
 }
 
 
