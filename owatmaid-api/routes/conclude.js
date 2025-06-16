@@ -2011,42 +2011,10 @@ dataCal.holidayHour= await workplaces?.[0]?.holidayHour|| 1;
 dataCal.holidayOT = await workplaces?.[0]?.holidayOT || 1;
 
 const [y, m, d] = date.split('-').map(Number);
-
-// เช็ค weekendAndDayOff และ dayOffOnly จาก API ก่อน
-try {
-  const apiUrl = `http://10.10.110.7:3000/conclude/getWeekendDates?yyyy=${y}&mm=${String(m).padStart(2, '0')}&workplaceId=${workplaceId}`;
-  console.log(`🔍 เช็ควันที่ ${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')} จาก API ${apiUrl}`);
-  const response = await axios.get(apiUrl);
-  const formattedDate = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-  
-  // เช็ควันที่อยู่ใน weekendAndDayOff
-  if (response.data && Array.isArray(response.data.weekendAndDayOff)) {
-    if (response.data.weekendAndDayOff.includes(formattedDate)) {
-      console.log(`✅ วันที่ ${formattedDate} อยู่ใน weekendAndDayOff - กำหนด dayType = 'stop'`);
-      dataCal.dayType = 'stop';
-      return dataCal;
-    }
-  }
-  
-  // เช็ควันที่อยู่ใน dayOffOnly
-  if (response.data && Array.isArray(response.data.dayOffOnly)) {
-    if (response.data.dayOffOnly.includes(formattedDate)) {
-      console.log(`✅ วันที่ ${formattedDate} อยู่ใน dayOffOnly - กำหนด dayType = 'stop'`);
-      dataCal.dayType = 'stop';
-      return dataCal;
-    }
-  }
-  
-  console.log(`❌ วันที่ ${formattedDate} ไม่อยู่ใน weekendAndDayOff หรือ dayOffOnly - ดำเนินการตรวจสอบปกติ`);
-} catch (e) {
-  console.error(`❌ เกิดข้อผิดพลาดในการเรียก API: ${e.message}`);
-  // ถ้า API error ให้ข้ามไปใช้ logic ปกติ
-}
-
 let paddedMonth = String(m - 1).padStart(2, '0');  
 let paddedDay = String(d).padStart(2, '0');  
 
-let dateString = y + '-' + paddedMonth  + '-' + paddedDay  + 'T00:00:00';
+    let dateString = y + '-' + paddedMonth  + '-' + paddedDay  + 'T00:00:00';
 
 let dateObj = await new Date(dateString );
 let dayNumberx = await dateObj.getDay(); // 0 = อาทิตย์, ..., 6 = เสาร์
@@ -2074,18 +2042,49 @@ if(isDayOff == true) {
   dataCal.dayType = await 'specialDayOff';
 
 } else {
-let matched = false;
+// console.log(JSON.stringify(workplaces,null,2) );
+// console.log(workplaces[0].workTimeDay.length);
+//check day type
 for(const workTimeDay of workplaces[0].workTimeDay) {
-  let check = await checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumberx );
+  // let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay , date.getDay());
+//   const [y, m, d] = date.split('-').map(Number);
+// let paddedMonth = String(m - 1).padStart(2, '0');  
+// let paddedDay = String(d).padStart(2, '0');  
+
+//     let dateString = y + '-' + paddedMonth  + '-' + paddedDay  + 'T00:00:00';
+
+// let dateObj = await new Date(dateString );
+// let dayNumberx = await dateObj.getDay(); // 0 = อาทิตย์, ..., 6 = เสาร์
+// let dateOfMonth = await dateObj.getDate(); // 1 - 31
+// // console.log(dayNumberx )
+
+// // test
+// if(isNaN(dayNumberx) || isNaN(dateOfMonth) ) {
+  // console.log('* ' + dayNumberx )
+  // console.log(dateString )
+  // console.log('paddedMonth ' + paddedMonth )
+// }
+
+let check = await checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumberx );
+
+// if(dayNumberx   === 0) {
+  // console.log('dayNumberx  ' + dayNumberx );
+
+      // console.log('*' + date +workTimeDay.workOrStop )
+
+// }
 
   if(check === true) {
+    // console.log(date +workTimeDay.workOrStop )
     dataCal.dayType = await workTimeDay.workOrStop;
-    matched = true;
-    break;
+break;
+// console.log("data " ,workTimeDay.startDay, workTimeDay.endDay );
+// console.log("data " ,workTimeDay.startDay, workTimeDay.endDay , date.getDay() );
+
   }
-}
-if (!matched) {
-  dataCal.dayType = 'work';
+else {
+      dataCal.dayType = 'work';
+
 }
 } //end for
 
@@ -2097,7 +2096,7 @@ if (!matched) {
 // console.log("dataCal", JSON.stringify(dataCal,null,2))
 return dataCal;
 
-
+}
 
 
 //get employee profile
