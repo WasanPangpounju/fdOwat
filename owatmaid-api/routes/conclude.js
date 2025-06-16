@@ -1920,26 +1920,29 @@ function getWeekendDates(yyyy, mm, daysOff = []) {
   })).sort((a, b) => a.date.localeCompare(b.date));
 }
 
-const checkdayType = (startText , endText , dayNumber ) => {
-const dayList = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัส", "ศุกร์", "เสาร์"];
-const start = dayList.indexOf(startText);
-const end = dayList.indexOf(endText);
-// console.log(start , end , dayNumber)
+const checkdayType = (startText, endText, dayNumber) => {
+  const dayList = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัส", "ศุกร์", "เสาร์"];
+  const start = dayList.indexOf(startText);
+  const end = dayList.indexOf(endText);
+  // console.log(start , end , dayNumber)
 
-if((start == end) && (end == dayNumber) ) {
-return true;
-} else {
-  if((start <= dayNumber )  && (dayNumber <= end)) {
-    return true;
-  } else 
-  if(((0 <= dayNumber) &&   (dayNumber <= start)) && ((end <= dayNumber) && (dayNumber <= 6)) ) {
-    // return true;
-  } else {
+  if ((start === -1) || (end === -1)) {
+    // ถ้าไม่พบชื่อวันใน list
     return false;
+  }
+
+  if ((start === end) && (end === dayNumber)) {
+    return true;
+  } else if (start <= end) {
+    // กรณีช่วงวันปกติ เช่น จันทร์-ศุกร์
+    return (start <= dayNumber) && (dayNumber <= end);
+  } else {
+    // กรณีช่วงวันข้ามสัปดาห์ เช่น ศุกร์-จันทร์
+    return (dayNumber >= start) || (dayNumber <= end);
   }
 }
 
-}
+
 
 const createBangkokDate = (yyyyMMdd) => {
   // สร้าง Date โดยระบุว่าเป็นเวลาเที่ยงคืนของไทย
