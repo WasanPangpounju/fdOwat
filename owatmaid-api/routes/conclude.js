@@ -2011,6 +2011,10 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
       const month = parseInt(monthWithZero, 10); // ลบศูนย์นำหน้า
       const dayOfMonth = parseInt(day, 10);
       
+      // สร้าง Date object เพื่อตรวจสอบว่าเป็นวันอะไรในสัปดาห์
+      const dateObj = new Date(dateStr);
+      const dayOfWeek = dateObj.getDay(); // 0 = อาทิตย์, ..., 6 = เสาร์
+      
       // คำนวณเดือนและปีสำหรับการเรียก API ตามกฎการจ่ายเงินเดือน
       // - วันที่ 21-31: ต้องดึงข้อมูลของเดือนถัดไป
       // - วันที่ 1-20: ต้องดึงข้อมูลของเดือนปัจจุบัน
@@ -2090,6 +2094,13 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
           dataCal.dayType = 'stop';
           return dataCal;
         }
+      }
+      
+      // ตรวจสอบว่าเป็นวันทำงานปกติหรือไม่ (จันทร์-ศุกร์)
+      if (dayOfWeek >= 1 && dayOfWeek <= 5) { // 1 = จันทร์, 5 = ศุกร์
+        console.log(`✅ วันที่ ${dateStr} เป็นวันทำงานปกติ (${['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'][dayOfWeek]}) -> dayType = work`);
+        dataCal.dayType = 'work';
+        return dataCal;
       }
       
       console.log(`❌ ไม่พบวันที่ ${dateStr} ในรายการวันหยุดพิเศษ`);
