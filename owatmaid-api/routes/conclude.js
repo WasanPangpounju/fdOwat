@@ -2127,11 +2127,11 @@ const getEmployeeProfile = async (employeeId) => {
 }
 
 // แก้ไขฟังก์ชัน calculateCashValues
-// แก้ไขฟังก์ชัน calculateCashValues
 const calculateCashValues = async (employeeId, employee_record, month, year) => {
+  console.log(`🚀 calculateCashValues called for employeeId: ${employeeId}, month: ${month}, year: ${year}`);
+  
   const employeeProfile = await getEmployeeProfile(employeeId);
   const salaryTmp = parseFloat(employeeProfile[0].salary || '0') || 0;
-  let addSalary = employeeProfile?.[0]?.addSalary || [];
   let salary = 0;
 
   if(parseFloat(salaryTmp || '0') > 1660) {
@@ -2140,52 +2140,40 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
     salary = await (parseFloat(salaryTmp || '0')/ 8).toFixed(3);
   }
 
-  // เพิ่มการดึงข้อมูล weekendAndDayOff
-  let weekendAndDayOffDates = [];
-  try {
-    const workplaceId = employeeProfile[0].workplace || employee_record[0]?.workplaceId;
-    if (workplaceId) {
-      const workplace = await Workplace.findOne({ workplaceId });
-      if (workplace) {
-        const daysOff = workplace.daysOff || [];
-        const weekendData = getWeekendDatesGrouped(year, month, daysOff);
-        weekendAndDayOffDates = weekendData.weekendAndDayOff || [];
-        console.log(`🔍 Weekend and DayOff dates for workplaceId ${workplaceId}:`, weekendAndDayOffDates);
-      }
-    }
-  } catch (error) {
-    console.error('❌ Error fetching weekend data:', error);
-  }
-
   return Promise.all(
     employee_record.map(async (record) => {
-      let currentYear = year;
-      let currentMonth = month;
+      let currentYear = parseInt(year);
+      let currentMonth = parseInt(month);
       
-      // ปรับปีและเดือนสำหรับวันที่ 21-31
-      if((record.date >= 21 && record.date <= 31) && month == 1) {
-        currentYear = year - 1;
-        currentMonth = 12;
+      console.log(`📅 Processing record: date=${record.date}, original month: ${currentMonth}, year: ${currentYear}`);
+      
+      // **แก้ไขการคำนวณวันที่ให้ถูกต้อง**
+      // ถ้าวันที่ > 20 = เป็นของเดือนก่อน
+      // ถ้าวันที่ <= 20 = เป็นของเดือนปัจจุบัน
+      if (record.date > 20) {
+        // วันที่ 21-31 = เดือนก่อน
+        currentMonth = currentMonth - 1;
+        if (currentMonth <= 0) {
+          currentMonth = 12;
+          currentYear = currentYear - 1;
+        }
       }
+      
+      console.log(`📅 Adjusted: date=${record.date}, adjusted month: ${currentMonth}, year: ${currentYear}`);
 
       const workplaceId = employeeProfile[0].workplace === "10105" ? "10105" : record.workplaceId;
 
-      // สร้างวันที่ให้ถูกต้อง
-      let rawDate;
-      if (record.date > 20) {
-        rawDate = new Date(currentYear, currentMonth - 1, record.date);
-      } else {
-        rawDate = new Date(currentYear, currentMonth, record.date);
-      }
-      const bangkokDate = toBangkokDate(rawDate);
-
-      // ตรวจสอบว่าวันนี้เป็น weekendAndDayOff หรือไม่
-      const isWeekendAndDayOff = weekendAndDayOffDates.includes(bangkokDate);
-      console.log(`📅 Date: ${bangkokDate} (day ${record.date}), isWeekendAndDayOff: ${isWeekendAndDayOff}`);
+      // **สร้างวันที่ให้ถูกต้อง**
+      const bangkokDate = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(record.date).padStart(2, '0')}`;
+      
+      console.log(`📅 Final bangkokDate: ${bangkokDate} for record.date: ${record.date}`);
 
       const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate, record.date, 
         employeeProfile?.[0]?.customWorkplace);
 
+      console.log(`📊 dataRate for ${bangkokDate}: dayType=${dataRate.dayType}`);
+
+      // ส่วนที่เหลือของโค้ดเดิม...
       let cashBeforeOt = 0;
       let cashWork = 0;
       let cashOt = 0;
@@ -2209,6 +2197,8 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
       // คำนวณค่าจ้างตาม dayType
       if (dataRate?.dayType !== '') {
         if (dataRate?.dayType === 'stop') {
+          console.log(`💰 Calculating STOP rates for ${bangkokDate}`);
+          
           cashBeforeOt = await (
             parseFloat(dataRate?.dayoffRateOT || '0') > 5
               ? parseFloat(dataRate?.dayoffRateOT || '0') || 0
@@ -2229,6 +2219,8 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
           addSalaryDaily = [];
 
         } else if(dataRate?.dayType === 'specialDayOff') {
+          console.log(`💰 Calculating SPECIAL DAY OFF rates for ${bangkokDate}`);
+          
           cashBeforeOt = await (
             parseFloat(dataRate?.holidayOT || '0') > 5
               ? parseFloat(dataRate?.holidayOT || '0') || 0
@@ -2250,6 +2242,8 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
 
         } else {
           if(dataRate?.dayType === "work") {
+            console.log(`💰 Calculating WORK rates for ${bangkokDate}`);
+            
             cashBeforeOt = await (
               parseFloat(dataRate?.workRateOT || '0') > 5
                 ? parseFloat(dataRate?.workRateOT || '0') || 0
@@ -2289,40 +2283,7 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
         }
       }
 
-      // **เพิ่มการตรวจสอบ weekendAndDayOff และคำนวณค่าจ้าง x2**
-      if (isWeekendAndDayOff) {
-        console.log(`🎯 Applying x2 multiplier for date: ${bangkokDate}`);
-        
-        // คูณค่าจ้างด้วย 2 สำหรับวัน weekendAndDayOff
-        if (cashBeforeOt && typeof cashBeforeOt === 'number' && cashBeforeOt > 0) {
-          const originalValue = cashBeforeOt;
-          cashBeforeOt = cashBeforeOt * 2;
-          console.log(`💰 cashBeforeOt: ${originalValue} → ${cashBeforeOt} (x2)`);
-        }
-        
-        if (cashWork && typeof cashWork === 'number' && cashWork > 0) {
-          const originalValue = cashWork;
-          cashWork = cashWork * 2;
-          console.log(`💰 cashWork: ${originalValue} → ${cashWork} (x2)`);
-        }
-        
-        if (cashOt && typeof cashOt === 'number' && cashOt > 0) {
-          const originalValue = cashOt;
-          cashOt = cashOt * 2;
-          console.log(`💰 cashOt: ${originalValue} → ${cashOt} (x2)`);
-        }
-        
-        // อัพเดต multiplier เพื่อแสดงว่าถูกคูณด้วย 2
-        if (cashBeforeOtMul && typeof cashBeforeOtMul === 'number') {
-          cashBeforeOtMul = cashBeforeOtMul * 2;
-        }
-        if (cashWorkMul && typeof cashWorkMul === 'number') {
-          cashWorkMul = cashWorkMul * 2;
-        }
-        if (cashOtMul && typeof cashOtMul === 'number') {
-          cashOtMul = cashOtMul * 2;
-        }
-      }
+      console.log(`💰 Final calculation for ${bangkokDate}: cashWork=${cashWork}, dayType=${dayType}`);
 
       return {
         ...record,
@@ -2333,8 +2294,7 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
         cashWorkMul,
         cashOtMul,
         dayType,
-        addSalaryDaily,
-        isWeekendAndDayOff: isWeekendAndDayOff // เพิ่มข้อมูลเพื่อ debug
+        addSalaryDaily
       };
     })
   );
