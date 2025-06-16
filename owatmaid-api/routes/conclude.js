@@ -2011,12 +2011,12 @@ dataCal.holidayHour= await workplaces?.[0]?.holidayHour|| 1;
 dataCal.holidayOT = await workplaces?.[0]?.holidayOT || 1;
 
 const [y, m, d] = date.split('-').map(Number);
-let paddedMonth = String(m - 1).padStart(2, '0');  
+let paddedMonth = String(m).padStart(2, '0');  
 let paddedDay = String(d).padStart(2, '0');  
 
-    let dateString = y + '-' + paddedMonth  + '-' + paddedDay  + 'T00:00:00';
+    let dateString = y + '-' + paddedMonth  + '-' + paddedDay;
 
-let dateObj = await new Date(dateString );
+let dateObj = await new Date(y, m - 1, d);
 let dayNumberx = await dateObj.getDay(); // 0 = อาทิตย์, ..., 6 = เสาร์
 let dateOfMonth = await dateObj.getDate(); // 1 - 31
 // console.log(dayNumberx )
@@ -2027,9 +2027,9 @@ let isDayOff  = false;
 for(let itemDay of workplaces?.[0]?.daysOff){
 
   if(toBangkokDate(itemDay) === dateString ) {
-  console.log('special day off ' + toBangkokDate(itemDay)+  ' = '+ date)
-  // isDayOff   = true
-// break;  
+  console.log('special day off ' + toBangkokDate(itemDay)+  ' = '+ dateString)
+  isDayOff = true;
+  break;  
   }
 }
 
