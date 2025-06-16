@@ -2186,10 +2186,27 @@ if (record.date > 20) {
     prevMonth = 12;
     prevYear--;
   }
-  rawDate = new Date(prevYear, prevMonth - 1, record.date); // เดือนเริ่มที่ 0
+  // สร้างวันที่ในรูปแบบ YYYY-MM-DD
+  const paddedMonth = String(prevMonth).padStart(2, '0');
+  const paddedDay = String(record.date).padStart(2, '0');
+  const bangkokDate = `${prevYear}-${paddedMonth}-${paddedDay}`;
+  
+  // ล็อกเพื่อตรวจสอบ
+  console.log(`📅 วันที่ ${record.date} > 20: ${bangkokDate}`);
+  
+  return checkDayRate(workplaceId, record.wGroup, bangkokDate, record.date, 
+    employeeProfile?.[0]?.customWorkplace);
 } else {
   // วันที่ 1-20 ใช้เดือนปัจจุบัน
-  rawDate = new Date(year, month - 1, record.date); // เดือนเริ่มที่ 0
+  const paddedMonth = String(month).padStart(2, '0');
+  const paddedDay = String(record.date).padStart(2, '0');
+  const bangkokDate = `${year}-${paddedMonth}-${paddedDay}`;
+  
+  // ล็อกเพื่อตรวจสอบ
+  console.log(`📅 วันที่ ${record.date} <= 20: ${bangkokDate}`);
+  
+  return checkDayRate(workplaceId, record.wGroup, bangkokDate, record.date, 
+    employeeProfile?.[0]?.customWorkplace);
 }
 const bangkokDate = toBangkokDate(rawDate);
 
