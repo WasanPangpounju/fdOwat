@@ -2015,34 +2015,33 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
       const dateObj = new Date(dateStr);
       const dayOfWeek = dateObj.getDay(); // 0 = อาทิตย์, ..., 6 = เสาร์
       
-      // คำนวณเดือนและปีสำหรับการเรียก API ตามกฎการจ่ายเงินเดือน
-      // - วันที่ 21-31: ต้องดึงข้อมูลของเดือนถัดไป
-      // - วันที่ 1-20: ต้องดึงข้อมูลของเดือนปัจจุบัน
-      let payrollMonth, payrollYear;
+      // คำนวณเดือนที่ถูกต้องสำหรับการเรียก API ตามกฎการจ่ายเงินเดือน
+      // ต้องตรวจสอบว่าวันที่อยู่ในรอบเงินเดือนไหน:
+      // - วันที่ 21-31 ของเดือนก่อนหน้า (เช่น เมษายน) ต้องใช้ข้อมูลของเดือนถัดไป (เช่น พฤษภาคม)
+      // - วันที่ 1-20 ของเดือนปัจจุบัน (เช่น พฤษภาคม) ต้องใช้ข้อมูลของเดือนปัจจุบัน (เช่น พฤษภาคม)
+      let apiMonth, apiYear;
       
       if (dayOfMonth >= 21) {
-        // วันที่ 21-31 จะอยู่ในรอบเงินเดือนของเดือนถัดไป
+        // วันที่ 21-31 ของเดือนนี้ (เช่น เมษายน)
+        // ต้องใช้ข้อมูลของเดือนถัดไป (เช่น พฤษภาคม)
         if (month === 12) {
-          payrollMonth = 1;
-          payrollYear = parseInt(year) + 1;
+          apiMonth = "1";
+          apiYear = (parseInt(year) + 1).toString();
         } else {
-          payrollMonth = month + 1;
-          payrollYear = parseInt(year);
+          apiMonth = (month + 1).toString();
+          apiYear = year;
         }
       } else {
-        // วันที่ 1-20 จะอยู่ในรอบเงินเดือนของเดือนนั้นๆ
-        payrollMonth = month;
-        payrollYear = parseInt(year);
+        // วันที่ 1-20 ของเดือนนี้ (เช่น พฤษภาคม)
+        // ใช้ข้อมูลของเดือนนี้ (เช่น พฤษภาคม)
+        apiMonth = month.toString();
+        apiYear = year;
       }
       
-      // แปลงกลับเป็น string สำหรับเรียก API
-      const apiMonth = payrollMonth.toString();
-      const apiYear = payrollYear.toString();
-      
-      // เรียก API โดยส่งค่า year และ month ตามรอบเงินเดือน
+      // เรียก API โดยส่งค่า year และ month ที่ถูกต้อง
       const apiUrl = `http://10.10.110.7:3000/conclude/getWeekendDates?yyyy=${apiYear}&mm=${apiMonth}&workplaceId=${workplaceId}`;
-      console.log(`🔍 เรียก API รอบเงินเดือน: ${apiUrl}`);
-      console.log(`📅 วันที่ ${dayOfMonth} เดือน ${month} ปี ${year} อยู่ในรอบเงินเดือนเดือน ${payrollMonth} ปี ${payrollYear}`);
+      console.log(`🔍 เรียก API: ${apiUrl}`);
+      console.log(`📅 วันที่ ${dayOfMonth} เดือน ${month} ปี ${year} ใช้ข้อมูลเดือน ${apiMonth} ปี ${apiYear}`);
       
       const weekendResponse = await axios.get(apiUrl);
       const weekendData = weekendResponse.data;
