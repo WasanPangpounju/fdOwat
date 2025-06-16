@@ -2015,15 +2015,15 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
       const dateObj = new Date(dateStr);
       const dayOfWeek = dateObj.getDay(); // 0 = อาทิตย์, ..., 6 = เสาร์
       
-      // คำนวณเดือนที่ถูกต้องสำหรับการเรียก API ตามกฎการจ่ายเงินเดือน
-      // ต้องตรวจสอบว่าวันที่อยู่ในรอบเงินเดือนไหน:
-      // - วันที่ 21-31 ของเดือนก่อนหน้า (เช่น เมษายน) ต้องใช้ข้อมูลของเดือนถัดไป (เช่น พฤษภาคม)
-      // - วันที่ 1-20 ของเดือนปัจจุบัน (เช่น พฤษภาคม) ต้องใช้ข้อมูลของเดือนปัจจุบัน (เช่น พฤษภาคม)
+      // คำนวณเดือนที่ต้องใช้ในการเรียก API ตามเงื่อนไขรอบเงินเดือน
+      // - วันที่ 21-31 ของเดือน 4 (เมษายน) อยู่ในรอบเงินเดือนเดือน 5 (พฤษภาคม)
+      // - วันที่ 1-20 ของเดือน 5 (พฤษภาคม) อยู่ในรอบเงินเดือนเดือน 5 (พฤษภาคม)
       let apiMonth, apiYear;
       
+      // เช็คว่าวันที่กำลังตรวจสอบเป็นวันที่ 21-31 หรือไม่
       if (dayOfMonth >= 21) {
-        // วันที่ 21-31 ของเดือนนี้ (เช่น เมษายน)
-        // ต้องใช้ข้อมูลของเดือนถัดไป (เช่น พฤษภาคม)
+        // วันที่ 21-31 ของเดือนปัจจุบัน
+        // ต้องใช้ข้อมูลของเดือนถัดไป
         if (month === 12) {
           apiMonth = "1";
           apiYear = (parseInt(year) + 1).toString();
@@ -2032,13 +2032,13 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
           apiYear = year;
         }
       } else {
-        // วันที่ 1-20 ของเดือนนี้ (เช่น พฤษภาคม)
-        // ใช้ข้อมูลของเดือนนี้ (เช่น พฤษภาคม)
+        // วันที่ 1-20 ของเดือนปัจจุบัน
+        // ใช้ข้อมูลของเดือนปัจจุบัน
         apiMonth = month.toString();
         apiYear = year;
       }
       
-      // เรียก API โดยส่งค่า year และ month ที่ถูกต้อง
+      // เรียก API โดยส่งค่า year และ month ที่คำนวณได้
       const apiUrl = `http://10.10.110.7:3000/conclude/getWeekendDates?yyyy=${apiYear}&mm=${apiMonth}&workplaceId=${workplaceId}`;
       console.log(`🔍 เรียก API: ${apiUrl}`);
       console.log(`📅 วันที่ ${dayOfMonth} เดือน ${month} ปี ${year} ใช้ข้อมูลเดือน ${apiMonth} ปี ${apiYear}`);
@@ -2056,7 +2056,6 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
         // ตรวจสอบว่าวันที่อยู่ใน weekendOnly หรือไม่
         if (weekendData.weekendOnly.includes(dateStr)) {
           // สร้าง Date object เพื่อตรวจสอบว่าเป็นวันเสาร์หรือวันอาทิตย์
-          const dateObj = new Date(dateStr);
           const dayOfWeek = dateObj.getDay(); // 0 = อาทิตย์, 6 = เสาร์
           
           if (dayOfWeek === 6) { // วันเสาร์
@@ -2110,42 +2109,6 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
       // ดำเนินการต่อหากการเรียก API ล้มเหลว
       dataCal.dayType = 'work'; // กำหนดค่าเริ่มต้นเป็น work กรณีมีข้อผิดพลาด
       return dataCal;
-    }
-
-    const [y, m, d] = date.split('-').map(Number);
-    let paddedMonth = String(m - 1).padStart(2, '0');  
-    let paddedDay = String(d).padStart(2, '0');  
-
-    let dateString = y + '-' + paddedMonth + '-' + paddedDay + 'T00:00:00';
-
-    let dateObj = await new Date(dateString);
-    let dayNumberx = await dateObj.getDay(); // 0 = อาทิตย์, ..., 6 = เสาร์
-    let dateOfMonth = await dateObj.getDate(); // 1 - 31
-
-    // Check for special day off
-    let isDayOff = false;
-    for(let itemDay of workplaces?.[0]?.daysOff || []) {
-      if(toBangkokDate(itemDay) === dateString) {
-        console.log('special day off ' + toBangkokDate(itemDay) + ' = ' + date);
-        isDayOff = true;
-        break;  
-      }
-    }
-
-    if(isDayOff == true) {
-      dataCal.dayType = await 'specialDayOff';
-    } else {
-      // Check day type
-      for(const workTimeDay of workplaces[0].workTimeDay) {
-        let check = await checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumberx);
-
-        if(check === true) {
-          dataCal.dayType = await workTimeDay.workOrStop;
-          break;
-        } else {
-          dataCal.dayType = 'work';
-        }
-      }
     }
   }
   
