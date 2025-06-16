@@ -2179,9 +2179,17 @@ const workplaceId = employeeProfile[0].workplace === "10105" ? "10105" : record.
 
 let rawDate;
 if (record.date > 20) {
-  rawDate = new Date(year, month - 1, record.date); // ปกติเดือนเริ่มที่ 0
+  // วันที่ 21-31 ใช้เดือนก่อนหน้า
+  let prevMonth = month - 1;
+  let prevYear = year;
+  if (prevMonth === 0) {
+    prevMonth = 12;
+    prevYear--;
+  }
+  rawDate = new Date(prevYear, prevMonth - 1, record.date); // เดือนเริ่มที่ 0
 } else {
-  rawDate = new Date(year, month, record.date); // บวกเดือนอีก 1
+  // วันที่ 1-20 ใช้เดือนปัจจุบัน
+  rawDate = new Date(year, month - 1, record.date); // เดือนเริ่มที่ 0
 }
 const bangkokDate = toBangkokDate(rawDate);
 
