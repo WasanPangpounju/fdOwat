@@ -1973,20 +1973,15 @@ const toBangkokDate = (input) => {
 
 // แก้ไขในฟังก์ชัน checkDayRate บรรทัด 2006-2020
 
+// แก้ไขในฟังก์ชัน checkDayRate
+
 const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplace = null) => {
-  let dataCal = {
-    workRate: 0,
-    workRateOT: 0,
-    dayoffRateOT: 0,
-    dayoffRateHour: 0,
-    holiday: 0,
-    holidayOT: 0,
-    holidayHour: 0,
-    dayType: 'work'
-  };
+  // ✅ เพิ่ม debug logs
+  if (date.includes('2025-05-08') || date.includes('08')) {
+    console.log(`🔍 DEBUG checkDayRate for date: ${date}`);
+  }
 
   try {
-    // ✅ เพิ่มการดึงข้อมูล workplace
     const workplaces = await Workplace.find({ workplaceId: workplaceId });
     
     if (!workplaces || workplaces.length === 0) {
@@ -1994,79 +1989,62 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
       return dataCal;
     }
 
-    // ✅ เอา comment ออกและแก้ไขการเช็ค daysOff
+    // ✅ เช็ค daysOff
     let isDayOff = false;
     for(let itemDay of workplaces?.[0]?.daysOff){
       if(toBangkokDate(itemDay) === date) {
-        console.log('✅ special day off ' + toBangkokDate(itemDay) + ' = ' + date);
-        isDayOff = true;   // ✅ เอา comment ออก
-        break;             // ✅ เอา comment ออก
+        console.log(`🎯 Day ${date} found in daysOff: ${toBangkokDate(itemDay)}`);
+        isDayOff = true;
+        break;
       }
     }
 
-    // ✅ เรียกใช้ API endpoint getWeekendDates แทน internal function
+    // ✅ เช็ค weekendAndDayOff
     let isWeekendAndDayOff = false;
     try {
       const [yyyy, mm, dd] = date.split('-');
-      
-      // ✅ เรียกใช้ API endpoint
       const weekendResponse = await axios.get(`http://10.10.110.7:3000/conclude/getWeekendDates?yyyy=${yyyy}&mm=${mm}&workplaceId=${workplaceId}`);
       
       if (weekendResponse.data && weekendResponse.data.weekendAndDayOff) {
         isWeekendAndDayOff = weekendResponse.data.weekendAndDayOff.includes(date);
-        if (isWeekendAndDayOff) {
-          console.log('✅ weekendAndDayOff found for date: ' + date);
+        
+        // ✅ Debug logs สำหรับวันที่ 8
+        if (date.includes('08')) {
+          console.log(`🔍 weekendAndDayOff array:`, weekendResponse.data.weekendAndDayOff);
+          console.log(`🔍 Date ${date} in weekendAndDayOff: ${isWeekendAndDayOff}`);
         }
       }
     } catch (error) {
       console.log('❌ Error checking weekendAndDayOff:', error.message);
     }
 
-    // ✅ ตรวจสอบเงื่อนไข
+    // ✅ ตรวจสอบเงื่อนไขและ debug
     if(isDayOff == true || isWeekendAndDayOff == true) {
-      console.log('🎯 ' + date + ' is holiday or weekendAndDayOff');
+      if (date.includes('08')) {
+        console.log(`🚨 Date ${date} classified as holiday! isDayOff: ${isDayOff}, isWeekendAndDayOff: ${isWeekendAndDayOff}`);
+      }
       
       if (isWeekendAndDayOff == true) {
         dataCal.dayType = 'stop';
-        dataCal.dayoffRateOT = workplaces[0].dayoffRateOT || 0;
-        dataCal.dayoffRateHour = workplaces[0].dayoffRateHour || 0;
-        console.log('✅ Setting dayType to "stop" for weekendAndDayOff: ' + date);
+        console.log(`✅ Setting dayType to "stop" for ${date}`);
       } else {
         dataCal.dayType = 'specialDayOff';
-        dataCal.holidayOT = workplaces[0].holidayOT || 0;
-        dataCal.holidayHour = workplaces[0].holidayHour || 0;
-        dataCal.holiday = workplaces[0].holiday || 0;
-        console.log('✅ Setting dayType to "specialDayOff" for daysOff: ' + date);
+        console.log(`✅ Setting dayType to "specialDayOff" for ${date}`);
       }
     } else {
-      // ตรวจสอบ workTimeDay ต่อไป...
-      if (workplaces[0].workTimeDay && workplaces[0].workTimeDay.length > 0) {
-        for(const workTimeDay of workplaces[0].workTimeDay) {
-          const [y, m, d] = date.split('-').map(Number);
-          const dateObj = new Date(y, m - 1, d);
-          const dayNumberx = dateObj.getDay();
-          
-          let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumberx);
-          
-          if(check === true) {
-            dataCal.dayType = workTimeDay.workOrStop;
-            break;
-          } else {
-            dataCal.dayType = 'work';
-          }
-        }
-      } else {
-        dataCal.dayType = 'work';
-      }
-      
-      // ✅ กำหนดค่าอัตราสำหรับวันทำงานปกติ
+      // วันทำงานปกติ
+      dataCal.dayType = 'work';
       dataCal.workRate = workplaces[0].workRate || 0;
       dataCal.workRateOT = workplaces[0].workRateOT || 0;
+      
+      if (date.includes('08')) {
+        console.log(`✅ Date ${date} classified as WORK day`);
+      }
     }
 
   } catch (error) {
     console.error('❌ Error in checkDayRate:', error);
-    dataCal.dayType = 'work'; // fallback
+    dataCal.dayType = 'work';
   }
 
   return dataCal;
