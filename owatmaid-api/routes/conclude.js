@@ -2046,6 +2046,29 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
       // แสดงข้อมูลเพื่อตรวจสอบ
       console.log(`📅 วันที่ต้องการตรวจสอบ: ${dateStr} (รูปแบบ: YYYY-MM-DD)`);
       
+      // ตรวจสอบ weekendOnly ก่อน และตรวจสอบว่าเป็นวันเสาร์หรือวันอาทิตย์
+      if (weekendData.weekendOnly && weekendData.weekendOnly.length > 0) {
+        console.log(`📅 วันแรกใน weekendOnly: ${weekendData.weekendOnly[0]}`);
+        
+        // ตรวจสอบว่าวันที่อยู่ใน weekendOnly หรือไม่
+        if (weekendData.weekendOnly.includes(dateStr)) {
+          // สร้าง Date object เพื่อตรวจสอบว่าเป็นวันเสาร์หรือวันอาทิตย์
+          const dateObj = new Date(dateStr);
+          const dayOfWeek = dateObj.getDay(); // 0 = อาทิตย์, 6 = เสาร์
+          
+          if (dayOfWeek === 6) { // วันเสาร์
+            console.log(`✅ พบวันที่ ${dateStr} ใน weekendOnly เป็นวันเสาร์ -> dayType = work`);
+            dataCal.dayType = 'work';
+            return dataCal;
+          } else if (dayOfWeek === 0) { // วันอาทิตย์
+            console.log(`✅ พบวันที่ ${dateStr} ใน weekendOnly เป็นวันอาทิตย์ -> dayType = stop`);
+            dataCal.dayType = 'stop';
+            return dataCal;
+          }
+        }
+      }
+      
+      // ตรวจสอบ dayOffOnly
       if (weekendData.dayOffOnly && weekendData.dayOffOnly.length > 0) {
         console.log(`📅 วันแรกใน dayOffOnly: ${weekendData.dayOffOnly[0]}`);
         
@@ -2057,6 +2080,7 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
         }
       }
       
+      // ตรวจสอบ weekendAndDayOff
       if (weekendData.weekendAndDayOff && weekendData.weekendAndDayOff.length > 0) {
         console.log(`📅 วันแรกใน weekendAndDayOff: ${weekendData.weekendAndDayOff[0]}`);
         
@@ -2178,21 +2202,12 @@ const workplaceId = employeeProfile[0].workplace === "10105" ? "10105" : record.
 // const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate , record.date );
 
 let rawDate;
-let targetMonth = month;
-let targetYear = year;
-
-// ถ้า record.date มากกว่า 20 และเลยวันในเดือนนี้ไป อาจจะหมายถึงต้นเดือนถัดไป
 if (record.date > 20) {
-  targetMonth -= 1;
-  if (targetMonth < 0) {
-    targetMonth = 11;
-    targetYear -= 1;
-  }
+  rawDate = new Date(year, month - 1, record.date); // ปกติเดือนเริ่มที่ 0
+} else {
+  rawDate = new Date(year, month, record.date); // บวกเดือนอีก 1
 }
-
-rawDate = new Date(targetYear, targetMonth, record.date);
 const bangkokDate = toBangkokDate(rawDate);
-
 
 // const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate, record.date);
 const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate, record.date , 
