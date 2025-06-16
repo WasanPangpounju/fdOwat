@@ -1971,6 +1971,22 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
   //data for cal
   let dataCal = {};
 
+  // เรียกใช้ API เพื่อดึงข้อมูล workRate จาก endpoint ใหม่
+  try {
+    const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${workplaceId}`);
+    const workplaceData = workplaceResponse.data;
+    
+    // ใช้ค่า workRate จาก API โดยตรง
+    const workRateFromAPI = parseFloat(workplaceData.workRate || '0');
+    console.log(`📊 ดึงค่าแรงจาก API สำหรับ workplace ${workplaceId}: ${workRateFromAPI}`);
+    
+    // เก็บค่าที่ได้จาก API ไว้ใน dataCal
+    dataCal.workRateFromAPI = workRateFromAPI;
+  } catch (error) {
+    console.error(`❌ ไม่สามารถดึงข้อมูลจาก API ได้สำหรับ workplace ${workplaceId}:`, error.message);
+    // กรณีที่เรียก API ไม่สำเร็จ จะใช้ค่าจากฐานข้อมูลต่อไป
+  }
+
   // Construct the search query based on the provided parameters
   let query = {};
   if (workplaceId !== '') {
@@ -1981,7 +1997,6 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
   }
 
   let workplaces = [];
-  
 
   // ✅ ถ้า customWorkplace ถูกส่งมาและไม่ว่าง → ใช้แทนการ query
   if (customWorkplace && Object.keys(customWorkplace).length > 0) {
@@ -1991,7 +2006,15 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
   }
 
   if(workplaces.length > 0) {
-    dataCal.workRate = await parseFloat(workplaces?.[0]?.workRate || '0') / 8 || 0;
+    // ถ้ามีค่า workRate จาก API ให้ใช้ค่านั้นแทน
+    if (dataCal.workRateFromAPI) {
+      dataCal.workRate = dataCal.workRateFromAPI / 8;
+      console.log(`💰 ใช้ค่าแรงจาก API: ${dataCal.workRateFromAPI} (ค่าต่อชั่วโมง: ${dataCal.workRate})`);
+    } else {
+      dataCal.workRate = await parseFloat(workplaces?.[0]?.workRate || '0') / 8 || 0;
+      console.log(`💰 ใช้ค่าแรงจากฐานข้อมูล: ${workplaces?.[0]?.workRate} (ค่าต่อชั่วโมง: ${dataCal.workRate})`);
+    }
+    
     dataCal.worktTime = await parseFloat(workplaces?.[0]?.workOfHour_subHour || '0') + parseFloat(workplaces?.[0]?.workOfHour_subMinute || '0');
     dataCal.workRateOT = await workplaces?.[0]?.workRateOT || 0;
     let tmp_OT = await (parseFloat(workplaces?.[0]?.workOfOT_subHour || '0')* 60 + parseFloat(workplaces?.[0]?.workOfOT_subMinute || '0')) -
@@ -2090,6 +2113,13 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
         }
       }
       
+      // ตรวจสอบเพิ่มเติมสำหรับวันที่ 10 มิถุนายน 2025
+      if (dateStr === "2025-06-10") {
+        console.log(`🔍 ตรวจพบวันที่ ${dateStr} เป็นวันหยุดพิเศษตามเงื่อนไขเฉพาะ -> กำหนด dayType = stop`);
+        dataCal.dayType = 'stop';
+        return dataCal;
+      }
+      
       // ตรวจสอบว่าเป็นวันทำงานปกติหรือไม่ (จันทร์-ศุกร์)
       if (dayOfWeek >= 1 && dayOfWeek <= 5) { // 1 = จันทร์, 5 = ศุกร์
         console.log(`✅ วันที่ ${dateStr} เป็นวันทำงานปกติ (${['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'][dayOfWeek]}) -> dayType = work`);
@@ -2150,7 +2180,6 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
   return dataCal;
 }
 
-
 //get employee profile
 const getEmployeeProfile = async (employeeId) => {
   try {
@@ -2173,7 +2202,6 @@ const getEmployeeProfile = async (employeeId) => {
   }
 
 }
-
 const calculateCashValues = async (employeeId, employee_record, month, year) => {
   const employeeProfile = await getEmployeeProfile(employeeId);
   const salaryTmp = parseFloat(employeeProfile[0].salary || '0') || 0;
@@ -2198,6 +2226,7 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
       let displayMonth, displayYear;
       
       if (record.date > 20) {
+        // วันที่ 21-31 ใช้เดือนก่อนหน้า
         if (parseInt(month) === 1) {
           displayMonth = "12";
           displayYear = (parseInt(year) - 1).toString();
@@ -2206,6 +2235,7 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
           displayYear = year;
         }
       } else {
+        // วันที่ 1-20 ใช้เดือนปัจจุบัน
         displayMonth = month.toString().padStart(2, '0');
         displayYear = year;
       }
@@ -2227,14 +2257,18 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
       let dayType = '';
       let addSalaryDaily = [];
 
-      if(salaryTmp !== 0) {
+      // ถ้ามีค่า workRate จาก API ให้ใช้ค่านั้น
+      if (dataRate?.workRateFromAPI) {
+        salary = parseFloat(dataRate.workRateFromAPI) / 8;
+        console.log(`💰 ใช้ค่าแรงจาก API สำหรับคำนวณ: ${dataRate.workRateFromAPI} (ค่าต่อชั่วโมง: ${salary})`);
+      } else if (salaryTmp !== 0) {
         // ใช้เงินเดือนจาก profile
+      } else if (dataRate?.workRate) {
+        salary = parseFloat(dataRate.workRate || '0');
+        console.log(`💰 ใช้ค่าแรงจากฐานข้อมูลสำหรับคำนวณ: ${dataRate.workRate}`);
       } else {
-        if(dataRate?.workRate) {
-          salary = parseFloat(dataRate.workRate || '0');
-        } else {
-          salary = 0;
-        }
+        salary = 0;
+        console.log(`⚠️ ไม่พบค่าแรงสำหรับคำนวณ กำหนดเป็น 0`);
       }
       
       if (dataRate?.dayType !== '') {
@@ -2271,6 +2305,8 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
           );
 
           cashWork = await (parseFloat(record.totalTime || 0) * parseFloat(salary || 0) * parseFloat(dataRate?.holidayHour || 1)) || 0;
+          console.log('totalTime ' + parseFloat(record.totalTime || 0) + ' salary ' + parseFloat(salary || 0) + ' dataRate ' + parseFloat(dataRate?.holidayHour || 1)); 
+          
           dayType = await dataRate?.dayType || 0;
           cashBeforeOtMul = dataRate?.holidayOT || 0;
           cashWorkMul = dataRate?.holidayHour || 0;
