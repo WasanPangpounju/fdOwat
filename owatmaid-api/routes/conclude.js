@@ -2173,28 +2173,28 @@ let addSalaryDaily = [];
                   
       //check dayType
         if (dataRate?.dayType !== '') {
-        if (dataRate?.dayType === 'stop') {
-          cashBeforeOt = await (
-  parseFloat(dataRate?.dayoffRateOT || '0') > 5
-    ? parseFloat(dataRate?.dayoffRateOT || '0') || 0
-    : ((record.beforeTotalOtTime || 0) * ((parseFloat(dataRate?.dayoffRateOT || '0')) * salary || 0)) || 0
-);
+        // แก้ไขบรรทัด 2175-2185
 
-cashOt = await (
-  parseFloat(dataRate?.dayoffRateOT || '0') > 5
-    ? parseFloat(dataRate?.dayoffRateOT || '0') || 0
-    : ((record.totalOtTime || 0) * ((parseFloat(dataRate?.dayoffRateOT || '0')) * salary || 0)) || 0
-);
-
-        //  cashBeforeOt = await ((record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.dayoffRateOT || '0') * salary || 0)) || 0;
-         cashWork = await (record.totalTime || 0) * (parseFloat(salary || '0') * parseFloat(dataRate?.dayoffRateHour || '0')) || 0;
-        //  cashOt = await (record.totalOtTime || 0) * (parseFloat(dataRate?.dayoffRateOT || '0') * salary ) || 0;
-         dayType = await dataRate?.dayType || 0;
-          cashBeforeOtMul = dataRate?.dayoffRateOT ||  0;
-          cashWorkMul = dataRate?.dayoffRateHour || 0;
-          cashOtMul = dataRate?.dayoffRateOT || 0;
-          addSalaryDaily  = [];
-    }else 
+if (dataRate?.dayType === 'stop') {
+  // ✅ วันหยุดพิเศษ (เสาร์-อาทิตย์ + วันหยุด) = ได้สองเท่า
+  
+  // เอาเงื่อนไข > 5 ออก และใช้สูตรง่ายๆ
+  cashBeforeOt = (record.beforeTotalOtTime || 0) * parseFloat(salary || '0') * parseFloat(dataRate?.dayoffRateOT || '1.5');
+  
+  // ✅ วันหยุดได้สองเท่า (dayoffRateHour = 2.0)
+  cashWork = (record.totalTime || 0) * parseFloat(salary || '0') * parseFloat(dataRate?.dayoffRateHour || '2.0');
+  
+  cashOt = (record.totalOtTime || 0) * parseFloat(salary || '0') * parseFloat(dataRate?.dayoffRateOT || '1.5');
+  
+  dayType = dataRate?.dayType || 'stop';
+  cashBeforeOtMul = dataRate?.dayoffRateOT || '1.5';
+  cashWorkMul = dataRate?.dayoffRateHour || '2.0'; // ✅ สองเท่า
+  cashOtMul = dataRate?.dayoffRateOT || '1.5';
+  addSalaryDaily = [];
+  
+  console.log(`💰 STOP Day Calculation for date ${record.date}:`);
+  console.log(`   cashWork: ${record.totalTime} × ${salary} × ${dataRate?.dayoffRateHour} = ${cashWork}`);
+}else 
     if(dataRate?.dayType === 'specialDayOff') {
       cashBeforeOt = await (
   parseFloat(dataRate?.holidayOT || '0') > 5
