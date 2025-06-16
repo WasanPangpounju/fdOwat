@@ -1,6 +1,6 @@
 const connectionString = require('../config');
 const sURL = 'http://localhost:3000';
-const { groupByWorkplaceId2 } = require('../utils/groupByWorkplaceId');
+
 //require timerecordEmployee 
 const timerecordEmployee = require('./models/periodtimerecordModel');
 //require Workplace 
