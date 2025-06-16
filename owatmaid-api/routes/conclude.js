@@ -1965,8 +1965,7 @@ const toBangkokDate = (input) => {
   return `${y}-${m}-${d}`;
 };
 
-
-// แก้ไขฟังก์ชัน checkDayRate ให้เรียกใช้ API
+// แก้ไขฟังก์ชัน checkDayRate
 const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplace = null) => {
   console.log(`🔍 checkDayRate called with: workplaceId=${workplaceId}, date=${date}`);
 
@@ -2006,23 +2005,16 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
     dataCal.holidayHour = await workplaces?.[0]?.holidayHour || 1;
     dataCal.holidayOT = await workplaces?.[0]?.holidayOT || 1;
 
-    // **แก้ไขให้เรียกใช้ API /getWeekendDates**
+    // **เพิ่มการตรวจสอบ weekendAndDayOff**
     try {
       console.log(`🎯 Checking weekendAndDayOff for workplaceId: ${workplaceId}, date: ${date}`);
-      
-      // ตรวจสอบเฉพาะกรณีที่ต้องการ (สำหรับทดสอบ)
-      if (workplaceId === '10751' && date === '2025-05-10') {
-        console.log(`🚨 FORCE STOP: Date ${date} in workplace ${workplaceId} - forcing dayType to 'stop'`);
-        dataCal.dayType = 'stop';
-        return dataCal;
-      }
       
       // ดึงปี/เดือนจากวันที่
       const [year, month] = date.split('-').map(Number);
       const monthStr = String(month).padStart(2, '0');
       const yearStr = String(year);
       
-      console.log(`📅 Calling API for year: ${yearStr}, month: ${monthStr}, workplaceId: ${workplaceId}`);
+      console.log(`📅 API call params: year=${yearStr}, month=${monthStr}, workplaceId=${workplaceId}`);
       
       // **เรียกใช้ API /getWeekendDates**
       try {
@@ -2041,19 +2033,11 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
           console.log(`🎯 Date ${date} is in weekendAndDayOff, forcing dayType to 'stop'`);
           dataCal.dayType = 'stop';
           return dataCal; // return เลยไม่ต้องตรวจสอบต่อ
+        } else {
+          console.log(`ℹ️ Date ${date} is NOT in weekendAndDayOff, proceeding with normal dayType check`);
         }
       } catch (apiError) {
         console.error('❌ Error calling /getWeekendDates API:', apiError.message);
-        // ถ้า API ไม่ทำงาน ใช้ฟังก์ชันเดิมเป็น fallback
-        const daysOff = workplaces[0].daysOff || [];
-        const weekendData = getWeekendDatesGrouped(year, monthStr, daysOff);
-        const weekendAndDayOffDates = weekendData.weekendAndDayOff || [];
-        
-        if (weekendAndDayOffDates.includes(date)) {
-          console.log(`🎯 Date ${date} is in weekendAndDayOff (fallback), forcing dayType to 'stop'`);
-          dataCal.dayType = 'stop';
-          return dataCal;
-        }
       }
     } catch (error) {
       console.error('❌ Error checking weekendAndDayOff:', error);
@@ -2125,7 +2109,6 @@ const getEmployeeProfile = async (employeeId) => {
   }
 
 }
-
 // แก้ไขฟังก์ชัน calculateCashValues
 const calculateCashValues = async (employeeId, employee_record, month, year) => {
   console.log(`🚀 calculateCashValues called for employeeId: ${employeeId}, month: ${month}, year: ${year}`);
@@ -2148,23 +2131,25 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
       console.log(`📅 Processing record: date=${record.date}, original month: ${currentMonth}, year: ${currentYear}`);
       
       // **แก้ไขการคำนวณวันที่ให้ถูกต้อง**
-      // ถ้าวันที่ > 20 = เป็นของเดือนก่อน
-      // ถ้าวันที่ <= 20 = เป็นของเดือนปัจจุบัน
+      let targetYear = currentYear;
+      let targetMonth = currentMonth;
+      
       if (record.date > 20) {
-        // วันที่ 21-31 = เดือนก่อน
-        currentMonth = currentMonth - 1;
-        if (currentMonth <= 0) {
-          currentMonth = 12;
-          currentYear = currentYear - 1;
+        // วันที่ 21-31 = เป็นของเดือนก่อนหน้า
+        targetMonth = currentMonth - 1;
+        if (targetMonth <= 0) {
+          targetMonth = 12;
+          targetYear = currentYear - 1;
         }
       }
+      // วันที่ 1-20 = เป็นของเดือนปัจจุบัน (ไม่เปลี่ยน)
       
-      console.log(`📅 Adjusted: date=${record.date}, adjusted month: ${currentMonth}, year: ${currentYear}`);
+      console.log(`📅 Target date mapping: day=${record.date} → year=${targetYear}, month=${targetMonth}`);
 
       const workplaceId = employeeProfile[0].workplace === "10105" ? "10105" : record.workplaceId;
 
       // **สร้างวันที่ให้ถูกต้อง**
-      const bangkokDate = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(record.date).padStart(2, '0')}`;
+      const bangkokDate = `${targetYear}-${String(targetMonth).padStart(2, '0')}-${String(record.date).padStart(2, '0')}`;
       
       console.log(`📅 Final bangkokDate: ${bangkokDate} for record.date: ${record.date}`);
 
