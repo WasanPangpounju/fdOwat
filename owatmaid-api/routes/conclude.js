@@ -1969,26 +1969,45 @@ const toBangkokDate = (input) => {
 
 // แก้ไขใน checkDayRate function บรรทัด 2019-2080
 
-const checkDayRate = async (workplaceId, wGroup, date , dayNumber , customWorkplace = null ) => {
-  
+// แก้ไขฟังก์ชัน checkDayRate บรรทัด 1975
 
-  if(workplaces.length > 0 ) {
+const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplace = null) => {
+  let dataCal = {
+    workRate: 0,
+    workRateOT: 0,
+    dayoffRateOT: 0,
+    dayoffRateHour: 0,
+    holiday: 0,
+    holidayOT: 0,
+    holidayHour: 0,
+    dayType: 'work'
+  };
+
+  try {
+    // ✅ เพิ่มการดึงข้อมูล workplace
+    const workplaces = await Workplace.find({ workplaceId: workplaceId });
+    
+    if (!workplaces || workplaces.length === 0) {
+      console.log(`❌ No workplace found for workplaceId: ${workplaceId}`);
+      return dataCal;
+    }
+
     // ✅ เอา comment ออกและแก้ไขการเช็ค daysOff
     let isDayOff = false;
     for(let itemDay of workplaces?.[0]?.daysOff){
       if(toBangkokDate(itemDay) === date) {
-        console.log('special day off ' + toBangkokDate(itemDay) + ' = ' + date);
+        console.log('✅ special day off ' + toBangkokDate(itemDay) + ' = ' + date);
         isDayOff = true;   // ✅ เอา comment ออก
         break;             // ✅ เอา comment ออก
       }
     }
 
-    // ✅ เช็คจาก API getWeekendDates หรือใช้วิธีอื่น
+    // ✅ เช็คจาก getWeekendDatesGrouped
     let isWeekendAndDayOff = false;
     try {
       const [yyyy, mm, dd] = date.split('-');
       
-      // ✅ เปลี่ยนจาก localhost:3000 เป็น internal call
+      // ✅ ใช้ internal call แทน axios
       const daysOffArray = workplaces?.[0]?.daysOff || [];
       const grouped = getWeekendDatesGrouped(yyyy, mm, daysOffArray);
       
@@ -2008,28 +2027,45 @@ const checkDayRate = async (workplaceId, wGroup, date , dayNumber , customWorkpl
       
       if (isWeekendAndDayOff == true) {
         dataCal.dayType = 'stop';
+        dataCal.dayoffRateOT = workplaces[0].dayoffRateOT || 0;
+        dataCal.dayoffRateHour = workplaces[0].dayoffRateHour || 0;
         console.log('✅ Setting dayType to "stop" for weekendAndDayOff: ' + date);
       } else {
         dataCal.dayType = 'specialDayOff';
+        dataCal.holidayOT = workplaces[0].holidayOT || 0;
+        dataCal.holidayHour = workplaces[0].holidayHour || 0;
+        dataCal.holiday = workplaces[0].holiday || 0;
         console.log('✅ Setting dayType to "specialDayOff" for daysOff: ' + date);
       }
     } else {
       // ตรวจสอบ workTimeDay ต่อไป...
-      for(const workTimeDay of workplaces[0].workTimeDay) {
-        const [y, m, d] = date.split('-').map(Number);
-        const dateObj = new Date(y, m - 1, d);
-        const dayNumberx = dateObj.getDay();
-        
-        let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumberx);
-        
-        if(check === true) {
-          dataCal.dayType = workTimeDay.workOrStop;
-          break;
-        } else {
-          dataCal.dayType = 'work';
+      if (workplaces[0].workTimeDay && workplaces[0].workTimeDay.length > 0) {
+        for(const workTimeDay of workplaces[0].workTimeDay) {
+          const [y, m, d] = date.split('-').map(Number);
+          const dateObj = new Date(y, m - 1, d);
+          const dayNumberx = dateObj.getDay();
+          
+          let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumberx);
+          
+          if(check === true) {
+            dataCal.dayType = workTimeDay.workOrStop;
+            break;
+          } else {
+            dataCal.dayType = 'work';
+          }
         }
+      } else {
+        dataCal.dayType = 'work';
       }
+      
+      // ✅ กำหนดค่าอัตราสำหรับวันทำงานปกติ
+      dataCal.workRate = workplaces[0].workRate || 0;
+      dataCal.workRateOT = workplaces[0].workRateOT || 0;
     }
+
+  } catch (error) {
+    console.error('❌ Error in checkDayRate:', error);
+    dataCal.dayType = 'work'; // fallback
   }
 
   return dataCal;
