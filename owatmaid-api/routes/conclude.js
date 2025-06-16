@@ -1966,7 +1966,6 @@ const toBangkokDate = (input) => {
 };
 
 
-
 const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplace = null) => {
   // console.log("test" , workplaceId, wGroup, date );
   // console.log(date.getDay() );
@@ -2063,6 +2062,13 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
     let dateObj = await new Date(dateString);
     let dayNumberx = await dateObj.getDay(); // 0 = อาทิตย์, ..., 6 = เสาร์
     let dateOfMonth = await dateObj.getDate(); // 1 - 31
+    
+    // เพิ่มการเช็ควันอาทิตย์ ถ้าเป็นวันอาทิตย์ (dayNumberx = 0) ให้เป็น stop เสมอ
+    if (dayNumberx === 0) {
+      console.log(`🔆 วันที่ ${date} เป็นวันอาทิตย์ (dayNumber=${dayNumberx}) - กำหนด dayType = 'stop'`);
+      dataCal.dayType = 'stop';
+      return dataCal;
+    }
 
     // เช็ควันหยุดพิเศษ
     let isDayOff = false;
