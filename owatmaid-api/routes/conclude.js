@@ -2123,6 +2123,7 @@ const getEmployeeProfile = async (employeeId) => {
 }
 
 // แก้ไขฟังก์ชัน calculateCashValues
+// แก้ไขฟังก์ชัน calculateCashValues
 const calculateCashValues = async (employeeId, employee_record, month, year) => {
   const employeeProfile = await getEmployeeProfile(employeeId);
   const salaryTmp = parseFloat(employeeProfile[0].salary || '0') || 0;
@@ -2145,32 +2146,38 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
         const daysOff = workplace.daysOff || [];
         const weekendData = getWeekendDatesGrouped(year, month, daysOff);
         weekendAndDayOffDates = weekendData.weekendAndDayOff || [];
+        console.log(`🔍 Weekend and DayOff dates for workplaceId ${workplaceId}:`, weekendAndDayOffDates);
       }
     }
   } catch (error) {
-    console.error('Error fetching weekend data:', error);
+    console.error('❌ Error fetching weekend data:', error);
   }
 
   return Promise.all(
     employee_record.map(async (record) => {
+      let currentYear = year;
+      let currentMonth = month;
+      
+      // ปรับปีและเดือนสำหรับวันที่ 21-31
       if((record.date >= 21 && record.date <= 31) && month == 1) {
-        year = year -1;
-        month = 12;
+        currentYear = year - 1;
+        currentMonth = 12;
       }
 
       const workplaceId = employeeProfile[0].workplace === "10105" ? "10105" : record.workplaceId;
 
+      // สร้างวันที่ให้ถูกต้อง
       let rawDate;
       if (record.date > 20) {
-        rawDate = new Date(year, month - 1, record.date);
+        rawDate = new Date(currentYear, currentMonth - 1, record.date);
       } else {
-        rawDate = new Date(year, month, record.date);
+        rawDate = new Date(currentYear, currentMonth, record.date);
       }
       const bangkokDate = toBangkokDate(rawDate);
 
       // ตรวจสอบว่าวันนี้เป็น weekendAndDayOff หรือไม่
       const isWeekendAndDayOff = weekendAndDayOffDates.includes(bangkokDate);
-      console.log(`Date: ${bangkokDate}, isWeekendAndDayOff: ${isWeekendAndDayOff}`);
+      console.log(`📅 Date: ${bangkokDate} (day ${record.date}), isWeekendAndDayOff: ${isWeekendAndDayOff}`);
 
       const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate, record.date, 
         employeeProfile?.[0]?.customWorkplace);
@@ -2231,10 +2238,9 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
           );
 
           cashWork = await (parseFloat(record.totalTime || 0) * parseFloat(salary || 0) * parseFloat(dataRate?.holidayHour || 1)) || 0;
-          console.log('totalTime ' + parseFloat(record.totalTime || 0) + ' salary ' + parseFloat(salary || 0) + ' dataRate ' + parseFloat(dataRate?.holidayHour || 1));
           dayType = await dataRate?.dayType || 0;
           cashBeforeOtMul = dataRate?.holidayOT ||  0;
-          cashWorkMul = dataRate?.holiday || 0;
+          cashWorkMul = dataRate?.holidayHour || 0;
           cashOtMul = dataRate?.holidayOT || 0;
           addSalaryDaily = [];
 
@@ -2281,17 +2287,25 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
 
       // **เพิ่มการตรวจสอบ weekendAndDayOff และคำนวณค่าจ้าง x2**
       if (isWeekendAndDayOff) {
-        console.log(`Applying x2 multiplier for date: ${bangkokDate}`);
+        console.log(`🎯 Applying x2 multiplier for date: ${bangkokDate}`);
         
         // คูณค่าจ้างด้วย 2 สำหรับวัน weekendAndDayOff
-        if (cashBeforeOt && typeof cashBeforeOt === 'number') {
+        if (cashBeforeOt && typeof cashBeforeOt === 'number' && cashBeforeOt > 0) {
+          const originalValue = cashBeforeOt;
           cashBeforeOt = cashBeforeOt * 2;
+          console.log(`💰 cashBeforeOt: ${originalValue} → ${cashBeforeOt} (x2)`);
         }
-        if (cashWork && typeof cashWork === 'number') {
+        
+        if (cashWork && typeof cashWork === 'number' && cashWork > 0) {
+          const originalValue = cashWork;
           cashWork = cashWork * 2;
+          console.log(`💰 cashWork: ${originalValue} → ${cashWork} (x2)`);
         }
-        if (cashOt && typeof cashOt === 'number') {
+        
+        if (cashOt && typeof cashOt === 'number' && cashOt > 0) {
+          const originalValue = cashOt;
           cashOt = cashOt * 2;
+          console.log(`💰 cashOt: ${originalValue} → ${cashOt} (x2)`);
         }
         
         // อัพเดต multiplier เพื่อแสดงว่าถูกคูณด้วย 2
