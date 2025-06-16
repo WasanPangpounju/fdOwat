@@ -2013,10 +2013,10 @@ dataCal.holidayOT = await workplaces?.[0]?.holidayOT || 1;
 let isDayOff  = false;
 // console.log(JSON.stringify(workplaces?.[0]?.daysOff,null,2))
 for(let itemDay of workplaces?.[0]?.daysOff){
-  if(toBangkokDate(itemDay) === date) {
+  if(toBangkokDate(itemDay) !== date) {
   console.log('special day off ' + toBangkokDate(itemDay)+  ' = '+ date)
-  isDayOff   = true
-break;  
+  // isDayOff   = true
+// break;  
   }
 }
 // dataCal?.daysOff
