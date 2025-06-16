@@ -2155,12 +2155,11 @@ const workplaceId = employeeProfile[0].workplace === "10105" ? "10105" : record.
 // const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate , record.date );
 
 let rawDate;
+// วันที่ > 20 เป็นเดือนปัจจุบัน ไม่ต้องลบเพิ่ม
 if (record.date > 20) {
-  // สำหรับวันที่ > 20 ใช้เดือนก่อนหน้า
-  rawDate = new Date(year, month - 2, record.date); // ลบ 2 เพราะต้องลบเพิ่มอีก 1 จาก zero-based
+  rawDate = new Date(year, month - 1, record.date); // ลบแค่ 1 เพราะเดือนใน JavaScript เริ่มที่ 0
 } else {
-  // สำหรับวันที่ <= 20 ใช้เดือนปัจจุบัน
-  rawDate = new Date(year, month - 1, record.date); // ลบ 1 เพราะเดือนใน JavaScript เริ่มที่ 0
+  rawDate = new Date(year, month - 1, record.date);
 }
 const bangkokDate = toBangkokDate(rawDate);
 
