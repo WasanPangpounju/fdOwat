@@ -2049,13 +2049,25 @@ if(isDayOff == true || isWeekendAndDayOff == true) {
 //check day type
 for(const workTimeDay of workplaces[0].workTimeDay) {
   // let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay , date.getDay());
-  const [y, m, d] = date.split('-').map(Number);
-const paddedMonth = String(m - 1).padStart(2, '0');  
-    let dateString = y + '-' + paddedMonth  + '-' + d + 'T00:00:00';
+// แก้ไขใน checkDayRate function บรรทัด 2047-2055
 
-const dateObj = new Date(dateString );
-const dayNumberx = dateObj.getDay(); // 0 = อาทิตย์, ..., 6 = เสาร์
-const dateOfMonth = dateObj.getDate(); // 1 - 31
+const [y, m, d] = date.split('-').map(Number);
+// ✅ ไม่ต้องลบ 1 เพราะ date parameter มาในรูปแบบ "2025-05-10" แล้ว
+const paddedMonth = String(m).padStart(2, '0');
+const paddedDay = String(d).padStart(2, '0');
+let dateString = y + '-' + paddedMonth + '-' + paddedDay; // ✅ ไม่ใส่ T00:00:00
+
+const dateObj = new Date(y, m - 1, d); // ✅ ใช้ m - 1 เฉพาะใน Date constructor
+const dayNumberx = dateObj.getDay();
+
+let isDayOff = false;
+for(let itemDay of workplaces?.[0]?.daysOff){
+  if(toBangkokDate(itemDay) === dateString) { // ✅ ตอนนี้จะเปรียบเทียบ "2025-05-10" === "2025-05-10"
+    console.log('special day off ' + toBangkokDate(itemDay) + ' = ' + dateString);
+    isDayOff = true;
+    break;  
+  }
+}
 
 // test
 // if(dateOfMonth == 30 || dateOfMonth == 20) {
