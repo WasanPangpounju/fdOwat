@@ -2006,28 +2006,48 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
     dataCal.holidayOT = await workplaces?.[0]?.holidayOT || 1;
 
     // Extract year and month from the date string
-    const [y, m, d] = date.split('-').map(Number);
+   // Extract year and month from the date string
+const [y, m, d] = date.split('-').map(Number);
+
+// Check if this date is in the weekendAndDayOff list from API
+try {
+  // Call the API to get weekend and dayoff information
+  const apiUrl = `http://10.10.110.7:3000/conclude/getWeekendDates?yyyy=${y}&mm=${String(m).padStart(2, '0')}&workplaceId=${workplaceId}`;
+  console.log(`🔍 API CALL: Checking weekend dates for ${date} at workplace ${workplaceId}`);
+  console.log(`🔗 URL: ${apiUrl}`);
+  
+  const response = await axios.get(apiUrl);
+  
+  // Log summary of API response
+  if (response.data) {
+    console.log(`📊 API RESPONSE SUMMARY for workplace ${workplaceId}, year ${y}, month ${m}:`);
+    console.log(`   - Weekend only days: ${response.data.weekendOnly?.length || 0}`);
+    console.log(`   - Day off only days: ${response.data.dayOffOnly?.length || 0}`);
+    console.log(`   - Weekend+DayOff days: ${response.data.weekendAndDayOff?.length || 0}`);
+  }
+  
+  // Check if this date is in the weekendAndDayOff array
+  if (response.data && Array.isArray(response.data.weekendAndDayOff)) {
+    const formattedDate = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    console.log(`🔎 Checking if ${formattedDate} is in weekendAndDayOff list`);
     
-    // Check if this date is in the weekendAndDayOff list from API
-    try {
-      // Call the API to get weekend and dayoff information
-      const apiUrl = `http://10.10.110.7:3000/conclude/getWeekendDates?yyyy=${y}&mm=${String(m).padStart(2, '0')}&workplaceId=${workplaceId}`;
-      const response = await axios.get(apiUrl);
-      
-      // Check if this date is in the weekendAndDayOff array
-      if (response.data && Array.isArray(response.data.weekendAndDayOff)) {
-        const formattedDate = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-        
-        if (response.data.weekendAndDayOff.includes(formattedDate)) {
-          // This is both a weekend and official day off - mark as "stop"
-          dataCal.dayType = 'stop';
-          console.log(`Date ${formattedDate} is both weekend and day off - setting dayType to "stop"`);
-          return dataCal;
-        }
-      }
-    } catch (error) {
-      console.error(`Error fetching weekend dates from API: ${error.message}`);
+    if (response.data.weekendAndDayOff.includes(formattedDate)) {
+      // This is both a weekend and official day off - mark as "stop"
+      dataCal.dayType = 'stop';
+      console.log(`✅ MATCH FOUND: Date ${formattedDate} is both weekend and day off`);
+      console.log(`✅ Setting dayType to "stop" for ${formattedDate}`);
+      return dataCal;
+    } else {
+      console.log(`❌ ${formattedDate} is NOT in weekendAndDayOff list, continuing with normal day type check`);
     }
+  } else {
+    console.log(`⚠️ Invalid or empty weekendAndDayOff data in API response for ${y}-${String(m).padStart(2, '0')}`);
+  }
+} catch (error) {
+  console.error(`❌ ERROR: Failed to fetch weekend dates from API: ${error.message}`);
+  console.error(`   URL: ${apiUrl}`);
+  console.error(`   Date: ${date}, Workplace: ${workplaceId}`);
+}
 
     // Continue with existing logic if not in weekendAndDayOff
     let paddedMonth = String(m - 1).padStart(2, '0');  
