@@ -1,6 +1,6 @@
 const connectionString = require('../config');
 const sURL = 'http://localhost:3000';
-
+const { groupByWorkplaceId2 } = require('../utils/groupByWorkplaceId');
 //require timerecordEmployee 
 const timerecordEmployee = require('./models/periodtimerecordModel');
 //require Workplace 
@@ -1981,6 +1981,7 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
   }
 
   let workplaces = [];
+  
 
   // ✅ ถ้า customWorkplace ถูกส่งมาและไม่ว่าง → ใช้แทนการ query
   if (customWorkplace && Object.keys(customWorkplace).length > 0) {
