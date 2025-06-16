@@ -2019,12 +2019,30 @@ for(let itemDay of workplaces?.[0]?.daysOff){
 break;  
   }
 }
+
+// เช็คจาก API getWeekendDates สำหรับ weekendAndDayOff
+let isWeekendAndDayOff = false;
+try {
+  const [yyyy, mm, dd] = date.split('-');
+  const axios = require('axios');
+  const weekendResponse = await axios.get(`http://localhost:3000/conclude/getWeekendDates?yyyy=${yyyy}&mm=${mm}&workplaceId=${workplaceId}`);
+  
+  if (weekendResponse.data && weekendResponse.data.weekendAndDayOff) {
+    isWeekendAndDayOff = weekendResponse.data.weekendAndDayOff.includes(date);
+    if (isWeekendAndDayOff) {
+      console.log('weekendAndDayOff found for date: ' + date);
+    }
+  }
+} catch (error) {
+  console.log('Error checking weekendAndDayOff:', error.message);
+}
+
 // dataCal?.daysOff
 // const isDayOff = workplaces?.[0]?.daysOff?.some(d => 
   // new Date(d).toISOString().split('T')[0] === date.toISOString().split('T')[0]
 // );
 
-if(isDayOff == true) {
+if(isDayOff == true || isWeekendAndDayOff == true) {
   console.log(date.toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }));
   dataCal.dayType = await 'specialDayOff';
 
