@@ -1971,6 +1971,8 @@ const toBangkokDate = (input) => {
 
 // แก้ไขฟังก์ชัน checkDayRate บรรทัด 1975
 
+// แก้ไขในฟังก์ชัน checkDayRate บรรทัด 2006-2020
+
 const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplace = null) => {
   let dataCal = {
     workRate: 0,
@@ -2002,17 +2004,16 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
       }
     }
 
-    // ✅ เช็คจาก getWeekendDatesGrouped
+    // ✅ เรียกใช้ API endpoint getWeekendDates แทน internal function
     let isWeekendAndDayOff = false;
     try {
       const [yyyy, mm, dd] = date.split('-');
       
-      // ✅ ใช้ internal call แทน axios
-      const daysOffArray = workplaces?.[0]?.daysOff || [];
-      const grouped = getWeekendDatesGrouped(yyyy, mm, daysOffArray);
+      // ✅ เรียกใช้ API endpoint
+      const weekendResponse = await axios.get(`http://10.10.110.7:3000/conclude/getWeekendDates?yyyy=${yyyy}&mm=${mm}&workplaceId=${workplaceId}`);
       
-      if (grouped && grouped.weekendAndDayOff) {
-        isWeekendAndDayOff = grouped.weekendAndDayOff.includes(date);
+      if (weekendResponse.data && weekendResponse.data.weekendAndDayOff) {
+        isWeekendAndDayOff = weekendResponse.data.weekendAndDayOff.includes(date);
         if (isWeekendAndDayOff) {
           console.log('✅ weekendAndDayOff found for date: ' + date);
         }
@@ -2070,7 +2071,6 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
 
   return dataCal;
 }
-
 
 //get employee profile
 const getEmployeeProfile = async (employeeId) => {
