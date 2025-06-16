@@ -1920,29 +1920,26 @@ function getWeekendDates(yyyy, mm, daysOff = []) {
   })).sort((a, b) => a.date.localeCompare(b.date));
 }
 
-const checkdayType = (startText, endText, dayNumber) => {
-  const dayList = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัส", "ศุกร์", "เสาร์"];
-  const start = dayList.indexOf(startText);
-  const end = dayList.indexOf(endText);
-  // console.log(start , end , dayNumber)
+const checkdayType = (startText , endText , dayNumber ) => {
+const dayList = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัส", "ศุกร์", "เสาร์"];
+const start = dayList.indexOf(startText);
+const end = dayList.indexOf(endText);
+// console.log(start , end , dayNumber)
 
-  if ((start === -1) || (end === -1)) {
-    // ถ้าไม่พบชื่อวันใน list
-    return false;
-  }
-
-  if ((start === end) && (end === dayNumber)) {
+if((start == end) && (end == dayNumber) ) {
+return true;
+} else {
+  if((start <= dayNumber )  && (dayNumber <= end)) {
     return true;
-  } else if (start <= end) {
-    // กรณีช่วงวันปกติ เช่น จันทร์-ศุกร์
-    return (start <= dayNumber) && (dayNumber <= end);
+  } else 
+  if(((0 <= dayNumber) &&   (dayNumber <= start)) && ((end <= dayNumber) && (dayNumber <= 6)) ) {
+    // return true;
   } else {
-    // กรณีช่วงวันข้ามสัปดาห์ เช่น ศุกร์-จันทร์
-    return (dayNumber >= start) || (dayNumber <= end);
+    return false;
   }
 }
 
-
+}
 
 const createBangkokDate = (yyyyMMdd) => {
   // สร้าง Date โดยระบุว่าเป็นเวลาเที่ยงคืนของไทย
@@ -1970,21 +1967,26 @@ const toBangkokDate = (input) => {
 
 
 
-const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplace = null) => {
+const checkDayRate = async (workplaceId, wGroup, date , dayNumber , customWorkplace = null ) => {
+// console.log("test" , workplaceId, wGroup, date );
+// console.log(date.getDay() );
 
-  //data for cal
-  let dataCal = {};
+//data for cal
+let dataCal = {};
 
-  // Construct the search query based on the provided parameters
-  let query = {};
-  if (workplaceId !== '') {
-    query.workplaceId = workplaceId;
-  }
-  if (wGroup !== '') {
-    query.wGroup = wGroup;
-  }
+// Construct the search query based on the provided parameters
+let query = {};
+if (workplaceId !== '') {
+  query.workplaceId = workplaceId;
+}
+if (wGroup !== '') {
+  query.wGroup = wGroup;
+}
 
-  let workplaces = [];
+        // Query the workplace collection for matching documents
+        // const workplaces = await Workplace.find(query);
+
+          let workplaces = [];
 
   // ✅ ถ้า customWorkplace ถูกส่งมาและไม่ว่าง → ใช้แทนการ query
   if (customWorkplace && Object.keys(customWorkplace).length > 0) {
@@ -1993,113 +1995,109 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
     workplaces = await Workplace.find(query);
   }
 
-  if(workplaces.length > 0) {
-    dataCal.workRate = await parseFloat(workplaces?.[0]?.workRate || '0') / 8 || 0;
-    dataCal.worktTime = await parseFloat(workplaces?.[0]?.workOfHour_subHour || '0') + parseFloat(workplaces?.[0]?.workOfHour_subMinute || '0');
-    dataCal.workRateOT = await workplaces?.[0]?.workRateOT || 0;
-    let tmp_OT = await (parseFloat(workplaces?.[0]?.workOfOT_subHour || '0')* 60 + parseFloat(workplaces?.[0]?.workOfOT_subMinute || '0')) -
-      (parseFloat(workplaces?.[0]?.workOfOT_breakHour || '0')* 60 + parseFloat(workplaces?.[0]?.workOfOT_breakMinute || '0'));
+if(workplaces.length > 0 ) {
+dataCal.workRate = await parseFloat(workplaces?.[0]?.workRate || '0') / 8 || 0;
+dataCal.worktTime = await parseFloat(workplaces?.[0]?.workOfHour_subHour || '0') + parseFloat(workplaces?.[0]?.workOfHour_subMinute || '0');
+dataCal.workRateOT = await workplaces?.[0]?.workRateOT || 0;
+let tmp_OT = await (parseFloat(workplaces?.[0]?.workOfOT_subHour || '0')* 60 + parseFloat(workplaces?.[0]?.workOfOT_subMinute || '0')) -
+(parseFloat(workplaces?.[0]?.workOfOT_breakHour || '0')* 60 + parseFloat(workplaces?.[0]?.workOfOT_breakMinute || '0'));
 
-    dataCal.worktTimeOT = await Math.floor(tmp_OT / 60) + tmp_OT % 60;
-    dataCal.worktTimeStartOT = await parseFloat(workplaces?.[0]?.startWorkOfOT_subHour || '0') + parseFloat(workplaces?.[0]?.startWorkOfOT_subMinute || '0');
+dataCal.worktTimeOT = await Math.floor(tmp_OT / 60) + tmp_OT % 60;
+dataCal.worktTimeStartOT = await parseFloat(workplaces?.[0]?.startWorkOfOT_subHour || '0') + parseFloat(workplaces?.[0]?.startWorkOfOT_subMinute || '0');
 
-    dataCal.dayoffRateHour = await workplaces?.[0]?.dayoffRateHour || 1;
-    dataCal.dayoffRateOT = await workplaces?.[0]?.dayoffRateOT || 1;
-    dataCal.holidayHour= await workplaces?.[0]?.holidayHour|| 1;
-    dataCal.holidayOT = await workplaces?.[0]?.holidayOT || 1;
+dataCal.dayoffRateHour = await workplaces?.[0]?.dayoffRateHour || 1;
+dataCal.dayoffRateOT = await workplaces?.[0]?.dayoffRateOT || 1;
+dataCal.holidayHour= await workplaces?.[0]?.holidayHour|| 1;
+dataCal.holidayOT = await workplaces?.[0]?.holidayOT || 1;
 
-    // Extract year and month from the date string
-   // Extract year and month from the date string
 const [y, m, d] = date.split('-').map(Number);
 
-// Check if this date is in the weekendAndDayOff list from API
-// Check if this date is in the weekendAndDayOff or weekendOnly list from API
+// เช็ค weekendAndDayOff และ dayOffOnly จาก API ก่อน
 try {
-  // Call the API to get weekend and dayoff information
   const apiUrl = `http://10.10.110.7:3000/conclude/getWeekendDates?yyyy=${y}&mm=${String(m).padStart(2, '0')}&workplaceId=${workplaceId}`;
-  console.log(`🔍 API CALL: Checking weekend dates for ${date} at workplace ${workplaceId}`);
-  console.log(`🔗 URL: ${apiUrl}`);
-  
+  console.log(`🔍 เช็ควันที่ ${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')} จาก API ${apiUrl}`);
   const response = await axios.get(apiUrl);
-  
-  // Log summary of API response
-  if (response.data) {
-    console.log(`📊 API RESPONSE SUMMARY for workplace ${workplaceId}, year ${y}, month ${m}:`);
-    console.log(`   - Weekend only days: ${response.data.weekendOnly?.length || 0}`);
-    console.log(`   - Day off only days: ${response.data.dayOffOnly?.length || 0}`);
-    console.log(`   - Weekend+DayOff days: ${response.data.weekendAndDayOff?.length || 0}`);
-  }
-  
   const formattedDate = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
   
-  // Check only weekendAndDayOff and dayOffOnly, ignore weekendOnly
+  // เช็ควันที่อยู่ใน weekendAndDayOff
   if (response.data && Array.isArray(response.data.weekendAndDayOff)) {
-    console.log(`🔎 Checking if ${formattedDate} is in weekendAndDayOff list`);
     if (response.data.weekendAndDayOff.includes(formattedDate)) {
+      console.log(`✅ วันที่ ${formattedDate} อยู่ใน weekendAndDayOff - กำหนด dayType = 'stop'`);
       dataCal.dayType = 'stop';
-      console.log(`✅ MATCH FOUND: Date ${formattedDate} is both weekend and day off`);
-      console.log(`✅ Setting dayType to "stop" for ${formattedDate}`);
       return dataCal;
     }
   }
-  if (response.data && Array.isArray(response.data.dayOffOnly)) {
-    console.log(`🔎 Checking if ${formattedDate} is in dayOffOnly list`);
-    if (response.data.dayOffOnly.includes(formattedDate)) {
-      dataCal.dayType = 'stop';
-      console.log(`✅ MATCH FOUND: Date ${formattedDate} is a day off only`);
-      console.log(`✅ Setting dayType to "stop" for ${formattedDate}`);
-      return dataCal;
-    }
-  }
-  // If the date is not in either list, continue with normal processing
-  console.log(`❌ ${formattedDate} is NOT in weekendAndDayOff or dayOffOnly, continuing with normal day type check`);
   
-} catch (error) {
-  console.error(`❌ ERROR: Failed to fetch weekend dates from API: ${error.message}`);
-  console.error(`   URL: ${apiUrl}`);
-  console.error(`   Date: ${date}, Workplace: ${workplaceId}`);
+  // เช็ควันที่อยู่ใน dayOffOnly
+  if (response.data && Array.isArray(response.data.dayOffOnly)) {
+    if (response.data.dayOffOnly.includes(formattedDate)) {
+      console.log(`✅ วันที่ ${formattedDate} อยู่ใน dayOffOnly - กำหนด dayType = 'stop'`);
+      dataCal.dayType = 'stop';
+      return dataCal;
+    }
+  }
+  
+  console.log(`❌ วันที่ ${formattedDate} ไม่อยู่ใน weekendAndDayOff หรือ dayOffOnly - ดำเนินการตรวจสอบปกติ`);
+} catch (e) {
+  console.error(`❌ เกิดข้อผิดพลาดในการเรียก API: ${e.message}`);
+  // ถ้า API error ให้ข้ามไปใช้ logic ปกติ
 }
 
-    // Continue with existing logic if not in weekendAndDayOff
-    let paddedMonth = String(m - 1).padStart(2, '0');  
-    let paddedDay = String(d).padStart(2, '0');  
+let paddedMonth = String(m - 1).padStart(2, '0');  
+let paddedDay = String(d).padStart(2, '0');  
 
-    let dateString = y + '-' + paddedMonth + '-' + paddedDay + 'T00:00:00';
+let dateString = y + '-' + paddedMonth  + '-' + paddedDay  + 'T00:00:00';
 
-    let dateObj = await new Date(dateString);
-    let dayNumberx = await dateObj.getDay(); // 0 = อาทิตย์, ..., 6 = เสาร์
-    let dateOfMonth = await dateObj.getDate(); // 1 - 31
-    
-    // ...existing code continues...
+let dateObj = await new Date(dateString );
+let dayNumberx = await dateObj.getDay(); // 0 = อาทิตย์, ..., 6 = เสาร์
+let dateOfMonth = await dateObj.getDate(); // 1 - 31
+// console.log(dayNumberx )
 
-    let isDayOff = false;
-    for(let itemDay of workplaces?.[0]?.daysOff){
-      if(toBangkokDate(itemDay) === dateString) {
-        console.log('special day off ' + toBangkokDate(itemDay) + ' = ' + date);
-        // isDayOff = true
-      }
-    }
+//
+let isDayOff  = false;
+// console.log(JSON.stringify(workplaces?.[0]?.daysOff,null,2))
+for(let itemDay of workplaces?.[0]?.daysOff){
 
-    if(isDayOff == true) {
-      dataCal.dayType = await 'specialDayOff';
-    } else {
-      let matched = false;
-      for(const workTimeDay of workplaces[0].workTimeDay) {
-        let check = await checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumberx);
-        if(check === true) {
-          dataCal.dayType = await workTimeDay.workOrStop;
-          matched = true;
-          break;
-        }
-      }
-      if (!matched) {
-        dataCal.dayType = 'work';
-      }
-    }
+  if(toBangkokDate(itemDay) === dateString ) {
+  console.log('special day off ' + toBangkokDate(itemDay)+  ' = '+ date)
+  // isDayOff   = true
+// break;  
   }
-  
-  return dataCal;
-};
+}
+// dataCal?.daysOff
+// const isDayOff = workplaces?.[0]?.daysOff?.some(d => 
+  // new Date(d).toISOString().split('T')[0] === date.toISOString().split('T')[0]
+// );
+
+if(isDayOff == true) {
+  // console.log(date.toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }));
+  dataCal.dayType = await 'specialDayOff';
+
+} else {
+let matched = false;
+for(const workTimeDay of workplaces[0].workTimeDay) {
+  let check = await checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumberx );
+
+  if(check === true) {
+    dataCal.dayType = await workTimeDay.workOrStop;
+    matched = true;
+    break;
+  }
+}
+if (!matched) {
+  dataCal.dayType = 'work';
+}
+} //end for
+
+}
+
+// await console.log("wr "+ JSON.stringify(dataCal,null,2));
+
+}        
+// console.log("dataCal", JSON.stringify(dataCal,null,2))
+return dataCal;
+
+}
 
 
 //get employee profile
@@ -2155,9 +2153,9 @@ const workplaceId = employeeProfile[0].workplace === "10105" ? "10105" : record.
 
 let rawDate;
 if (record.date > 20) {
-  rawDate = new Date(year, month - 1 - 1, record.date); // For previous month (adjust for 0-based indexing)
+  rawDate = new Date(year, month - 1, record.date); // ปกติเดือนเริ่มที่ 0
 } else {
-  rawDate = new Date(year, month - 1, record.date); // For current month (adjust for 0-based indexing)
+  rawDate = new Date(year, month, record.date); // บวกเดือนอีก 1
 }
 const bangkokDate = toBangkokDate(rawDate);
 
