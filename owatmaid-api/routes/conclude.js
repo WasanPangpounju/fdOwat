@@ -2179,37 +2179,11 @@ const workplaceId = employeeProfile[0].workplace === "10105" ? "10105" : record.
 
 let rawDate;
 if (record.date > 20) {
-  // วันที่ 21-31 ใช้เดือนก่อนหน้า
-  let prevMonth = month - 1;
-  let prevYear = year;
-  if (prevMonth === 0) {
-    prevMonth = 12;
-    prevYear--;
-  }
-  // สร้างวันที่ในรูปแบบ YYYY-MM-DD
-  const paddedMonth = String(prevMonth).padStart(2, '0');
-  const paddedDay = String(record.date).padStart(2, '0');
-  const bangkokDate = `${prevYear}-${paddedMonth}-${paddedDay}`;
-  
-  // ล็อกเพื่อตรวจสอบ
-  console.log(`📅 วันที่ ${record.date} > 20: ${bangkokDate}`);
-  
-  return checkDayRate(workplaceId, record.wGroup, bangkokDate, record.date, 
-    employeeProfile?.[0]?.customWorkplace);
+  rawDate = new Date(year, month - 1, record.date); // เดือนเริ่มที่ 0
 } else {
-  // วันที่ 1-20 ใช้เดือนปัจจุบัน
-  const paddedMonth = String(month).padStart(2, '0');
-  const paddedDay = String(record.date).padStart(2, '0');
-  const bangkokDate = `${year}-${paddedMonth}-${paddedDay}`;
-  
-  // ล็อกเพื่อตรวจสอบ
-  console.log(`📅 วันที่ ${record.date} <= 20: ${bangkokDate}`);
-  
-  return checkDayRate(workplaceId, record.wGroup, bangkokDate, record.date, 
-    employeeProfile?.[0]?.customWorkplace);
+  rawDate = new Date(year, month - 1, record.date); // เดือนเริ่มที่ 0 เช่นกัน
 }
 const bangkokDate = toBangkokDate(rawDate);
-
 // const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate, record.date);
 const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate, record.date , 
   employeeProfile?.[0]?.customWorkplace);
