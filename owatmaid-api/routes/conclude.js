@@ -2012,6 +2012,9 @@ const [y, m, d] = date.split('-').map(Number);
 // Check if this date is in the weekendAndDayOff list from API
 try {
   // Call the API to get weekend and dayoff information
+ // Check if this date is in the weekendAndDayOff or weekendOnly list from API
+try {
+  // Call the API to get weekend and dayoff information
   const apiUrl = `http://10.10.110.7:3000/conclude/getWeekendDates?yyyy=${y}&mm=${String(m).padStart(2, '0')}&workplaceId=${workplaceId}`;
   console.log(`🔍 API CALL: Checking weekend dates for ${date} at workplace ${workplaceId}`);
   console.log(`🔗 URL: ${apiUrl}`);
@@ -2026,9 +2029,10 @@ try {
     console.log(`   - Weekend+DayOff days: ${response.data.weekendAndDayOff?.length || 0}`);
   }
   
+  const formattedDate = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  
   // Check if this date is in the weekendAndDayOff array
   if (response.data && Array.isArray(response.data.weekendAndDayOff)) {
-    const formattedDate = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
     console.log(`🔎 Checking if ${formattedDate} is in weekendAndDayOff list`);
     
     if (response.data.weekendAndDayOff.includes(formattedDate)) {
@@ -2037,11 +2041,24 @@ try {
       console.log(`✅ MATCH FOUND: Date ${formattedDate} is both weekend and day off`);
       console.log(`✅ Setting dayType to "stop" for ${formattedDate}`);
       return dataCal;
+    }
+  }
+  
+  // Check if this date is in the weekendOnly array
+  if (response.data && Array.isArray(response.data.weekendOnly)) {
+    console.log(`🔎 Checking if ${formattedDate} is in weekendOnly list`);
+    
+    if (response.data.weekendOnly.includes(formattedDate)) {
+      // This is a weekend day - also mark as "stop"
+      dataCal.dayType = 'stop';
+      console.log(`✅ MATCH FOUND: Date ${formattedDate} is a weekend day`);
+      console.log(`✅ Setting dayType to "stop" for ${formattedDate}`);
+      return dataCal;
     } else {
-      console.log(`❌ ${formattedDate} is NOT in weekendAndDayOff list, continuing with normal day type check`);
+      console.log(`❌ ${formattedDate} is NOT in weekendOnly list, continuing with normal day type check`);
     }
   } else {
-    console.log(`⚠️ Invalid or empty weekendAndDayOff data in API response for ${y}-${String(m).padStart(2, '0')}`);
+    console.log(`⚠️ Invalid or empty weekend data in API response for ${y}-${String(m).padStart(2, '0')}`);
   }
 } catch (error) {
   console.error(`❌ ERROR: Failed to fetch weekend dates from API: ${error.message}`);
