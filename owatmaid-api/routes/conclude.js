@@ -2179,11 +2179,12 @@ const workplaceId = employeeProfile[0].workplace === "10105" ? "10105" : record.
 
 let rawDate;
 if (record.date > 20) {
-  rawDate = new Date(year, month - 1, record.date); // เดือนเริ่มที่ 0
+  rawDate = new Date(year, month - 1, record.date); // ปกติเดือนเริ่มที่ 0
 } else {
-  rawDate = new Date(year, month - 1, record.date); // เดือนเริ่มที่ 0 เช่นกัน
+  rawDate = new Date(year, month, record.date); // บวกเดือนอีก 1
 }
 const bangkokDate = toBangkokDate(rawDate);
+
 // const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate, record.date);
 const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate, record.date , 
   employeeProfile?.[0]?.customWorkplace);
