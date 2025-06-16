@@ -2152,54 +2152,39 @@ const getEmployeeProfile = async (employeeId) => {
 
 const calculateCashValues = async (employeeId, employee_record, month, year) => {
   const employeeProfile = await getEmployeeProfile(employeeId);
-const salaryTmp = parseFloat(employeeProfile[0].salary || '0') || 0;
-let addSalary = employeeProfile?.[0]?.addSalary || [];
-let salary = 0;
+  const salaryTmp = parseFloat(employeeProfile[0].salary || '0') || 0;
+  let addSalary = employeeProfile?.[0]?.addSalary || [];
+  let salary = 0;
 
-if(parseFloat(salaryTmp || '0')  > 1660) {
-  salary = await ((parseFloat(salaryTmp || '0') / 30)/ 8).toFixed(3);
-} else {
-  salary = await (parseFloat(salaryTmp || '0')/ 8).toFixed(3);
-}
+  if(parseFloat(salaryTmp || '0') > 1660) {
+    salary = await ((parseFloat(salaryTmp || '0') / 30)/ 8).toFixed(3);
+  } else {
+    salary = await (parseFloat(salaryTmp || '0')/ 8).toFixed(3);
+  }
 
   return Promise.all(
     employee_record.map(async (record) => {
-if((record.date >= 21 && record.date <= 31) && month == 1) {
-year = year -1;
-month = 12;
-}
+      if((record.date >= 21 && record.date <= 31) && month == 1) {
+        year = year - 1;
+        month = 12;
+      }
 
-//check workplace 10105
-// console.log('employee workplace' + employeeProfile[0].workplace);
-const workplaceId = employeeProfile[0].workplace === "10105" ? "10105" : record.workplaceId;
+      //check workplace 10105
+      const workplaceId = employeeProfile[0].workplace === "10105" ? "10105" : record.workplaceId;
 
-      // const dataRate = await checkDayRate(workplaceId,  record.wGroup, new Date(year, month - 1, record.date));
-// แก้ไขตรงส่วนการสร้างวันที่
-let rawDate;
-if (record.date > 20) {
-  // วันที่ 21-31 อยู่ในเดือนปัจจุบัน
-  rawDate = new Date(year, month - 1, record.date); // เดือนเริ่มที่ 0 ใน JavaScript
-} else {
-  // วันที่ 1-20 ก็อยู่ในเดือนปัจจุบันเช่นกัน
-  rawDate = new Date(year, month - 1, record.date); // เดือนเริ่มที่ 0 ใน JavaScript
-}
-const bangkokDate = toBangkokDate(rawDate);
+      // แก้ไขตรงส่วนการสร้างวันที่
+      let rawDate;
+      if (record.date > 20) {
+        // วันที่ 21-31 อยู่ในเดือนปัจจุบัน
+        rawDate = new Date(year, month - 1, record.date); // เดือนเริ่มที่ 0 ใน JavaScript
+      } else {
+        // วันที่ 1-20 ก็อยู่ในเดือนปัจจุบันเช่นกัน
+        rawDate = new Date(year, month - 1, record.date); // เดือนเริ่มที่ 0 ใน JavaScript
+      }
+      const bangkokDate = toBangkokDate(rawDate);
 
-// const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate, record.date);
-const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate, record.date , 
-  employeeProfile?.[0]?.customWorkplace);
-
-// test
-// if(record.date == 30 || record.date == 20 ) {
-//   console.log(record.date + ' ' + dataRate?.dayType )
-//   console.log('bangkokDate  ' + bangkokDate )
-//   console.log('rawDate  ' + rawDate )
-// }
-
-// console.log(record.date );
-// console.log(employeeId + JSON.stringify(employeeProfile[0].salary,null,2))
-// console.log('add salary' + JSON.stringify(addSalary,null,2) );
-
+      const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate, record.date, 
+        employeeProfile?.[0]?.customWorkplace);
 
       let cashBeforeOt = 0;
       let cashWork = 0;
@@ -2208,114 +2193,101 @@ const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate, rec
       let cashWorkMul = 0;
       let cashOtMul = 0;
       let dayType = '';
-let addSalaryDaily = [];
+      let addSalaryDaily = [];
 
-                //check salary custom with profile or use with workplace
-                if(salaryTmp !== 0 ) {
-                  // salary = parseFloat(salary || '0') / 8;
-                  // console.log(salary)
-                            } else {
-                              if(dataRate?.workRate ){
-                              salary = parseFloat(dataRate.workRate || '0');
-                            } else {
-                              salary = 0;
-                            }
-                            }
+      //check salary custom with profile or use with workplace
+      if(salaryTmp !== 0) {
+        // salary = parseFloat(salary || '0') / 8;
+      } else {
+        if(dataRate?.workRate) {
+          salary = parseFloat(dataRate.workRate || '0');
+        } else {
+          salary = 0;
+        }
+      }
                   
       //check dayType
-        if (dataRate?.dayType !== '') {
+      if (dataRate?.dayType !== '') {
         if (dataRate?.dayType === 'stop') {
           cashBeforeOt = await (
-  parseFloat(dataRate?.dayoffRateOT || '0') > 5
-    ? parseFloat(dataRate?.dayoffRateOT || '0') || 0
-    : ((record.beforeTotalOtTime || 0) * ((parseFloat(dataRate?.dayoffRateOT || '0')) * salary || 0)) || 0
-);
+            parseFloat(dataRate?.dayoffRateOT || '0') > 5
+              ? parseFloat(dataRate?.dayoffRateOT || '0') || 0
+              : ((record.beforeTotalOtTime || 0) * ((parseFloat(dataRate?.dayoffRateOT || '0')) * salary || 0)) || 0
+          );
 
-cashOt = await (
-  parseFloat(dataRate?.dayoffRateOT || '0') > 5
-    ? parseFloat(dataRate?.dayoffRateOT || '0') || 0
-    : ((record.totalOtTime || 0) * ((parseFloat(dataRate?.dayoffRateOT || '0')) * salary || 0)) || 0
-);
+          cashOt = await (
+            parseFloat(dataRate?.dayoffRateOT || '0') > 5
+              ? parseFloat(dataRate?.dayoffRateOT || '0') || 0
+              : ((record.totalOtTime || 0) * ((parseFloat(dataRate?.dayoffRateOT || '0')) * salary || 0)) || 0
+          );
 
-        //  cashBeforeOt = await ((record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.dayoffRateOT || '0') * salary || 0)) || 0;
-         cashWork = await (record.totalTime || 0) * (parseFloat(salary || '0') * parseFloat(dataRate?.dayoffRateHour || '0')) || 0;
-        //  cashOt = await (record.totalOtTime || 0) * (parseFloat(dataRate?.dayoffRateOT || '0') * salary ) || 0;
-         dayType = await dataRate?.dayType || 0;
-          cashBeforeOtMul = dataRate?.dayoffRateOT ||  0;
+          cashWork = await (record.totalTime || 0) * (parseFloat(salary || '0') * parseFloat(dataRate?.dayoffRateHour || '0')) || 0;
+          dayType = await dataRate?.dayType || 0;
+          cashBeforeOtMul = dataRate?.dayoffRateOT || 0;
           cashWorkMul = dataRate?.dayoffRateHour || 0;
           cashOtMul = dataRate?.dayoffRateOT || 0;
-          addSalaryDaily  = [];
-    }else 
-    if(dataRate?.dayType === 'specialDayOff') {
-      cashBeforeOt = await (
-  parseFloat(dataRate?.holidayOT || '0') > 5
-    ? parseFloat(dataRate?.holidayOT || '0') || 0
-    : ((record.beforeTotalOtTime || 0) * ((parseFloat(dataRate?.holidayOT || '0')) * salary || 0)) || 0
-);
+          addSalaryDaily = [];
+        } else if(dataRate?.dayType === 'specialDayOff') {
+          cashBeforeOt = await (
+            parseFloat(dataRate?.holidayOT || '0') > 5
+              ? parseFloat(dataRate?.holidayOT || '0') || 0
+              : ((record.beforeTotalOtTime || 0) * ((parseFloat(dataRate?.holidayOT || '0')) * salary || 0)) || 0
+          );
 
-cashOt = await (
-  parseFloat(dataRate?.holidayOT || '0') > 5
-    ? parseFloat(dataRate?.holidayOT || '0') || 0
-    : ((record.totalOtTime || 0) * ((parseFloat(dataRate?.holidayOT || '0')) * salary || 0)) || 0
-);
+          cashOt = await (
+            parseFloat(dataRate?.holidayOT || '0') > 5
+              ? parseFloat(dataRate?.holidayOT || '0') || 0
+              : ((record.totalOtTime || 0) * ((parseFloat(dataRate?.holidayOT || '0')) * salary || 0)) || 0
+          );
 
-      // cashBeforeOt = await ((record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.holidayOT || '0') * salary  || 0)) || 0;
-      cashWork = await (parseFloat(record.totalTime || 0) * parseFloat(salary || 0) * parseFloat(dataRate?.holidayHour || 1)) || 0;
-      console.log('totalTime ' + parseFloat(record.totalTime || 0) + ' salary ' +   parseFloat(salary || 0) + ' dataRate ' + parseFloat(dataRate?.holidayHour || 1)) 
-      // cashOt = await (record.totalOtTime || 0) * (parseFloat(dataRate?.holidayOT || '0') * salary ) || 0;
-      dayType = await dataRate?.dayType || 0;
-       cashBeforeOtMul = dataRate?.holidayOT ||  0;
-       cashWorkMul = dataRate?.holiday || 0;
-       cashOtMul = dataRate?.holidayOT || 0;
-       addSalaryDaily  = [];
-    } else {
+          cashWork = await (parseFloat(record.totalTime || 0) * parseFloat(salary || 0) * parseFloat(dataRate?.holidayHour || 1)) || 0;
+          console.log('totalTime ' + parseFloat(record.totalTime || 0) + ' salary ' + parseFloat(salary || 0) + ' dataRate ' + parseFloat(dataRate?.holidayHour || 1)); 
+          
+          dayType = await dataRate?.dayType || 0;
+          cashBeforeOtMul = dataRate?.holidayOT || 0;
+          cashWorkMul = dataRate?.holiday || 0;
+          cashOtMul = dataRate?.holidayOT || 0;
+          addSalaryDaily = [];
+        } else {
+          if(dataRate?.dayType === "work") {
+            cashBeforeOt = await (
+              parseFloat(dataRate?.workRateOT || '0') > 5
+                ? parseFloat(dataRate?.workRateOT || '0') || 0
+                : ((record.beforeTotalOtTime || 0) * ((parseFloat(dataRate?.workRateOT || '0')) * salary || 0)) || 0
+            );
 
-      if(dataRate?.dayType === "work") {
-        cashBeforeOt = await (
-  parseFloat(dataRate?.workRateOT || '0') > 5
-    ? parseFloat(dataRate?.workRateOT || '0') || 0
-    : ((record.beforeTotalOtTime || 0) * ((parseFloat(dataRate?.workRateOT || '0')) * salary || 0)) || 0
-);
+            cashOt = await (
+              parseFloat(dataRate?.workRateOT || '0') > 5
+                ? parseFloat(dataRate?.workRateOT || '0') || 0
+                : ((record.totalOtTime || 0) * ((parseFloat(dataRate?.workRateOT || '0')) * salary || 0)) || 0
+            );
 
-cashOt = await (
-  parseFloat(dataRate?.workRateOT || '0') > 5
-    ? parseFloat(dataRate?.workRateOT || '0') || 0
-    : ((record.totalOtTime || 0) * ((parseFloat(dataRate?.workRateOT || '0')) * salary || 0)) || 0
-);
-
-      //  cashBeforeOt = await (record.beforeTotalOtTime || 0) * (parseFloat(dataRate?.workRateOT || '0') * salary ) || 0;
-       cashWork = await (record.totalTime || 0) * salary;
-      //  cashOt = await (record.totalOtTime || 0) * (parseFloat(dataRate?.workRateOT || '0') * salary ) || 0;
-       dayType = await dataRate?.dayType || '';
-       cashBeforeOtMul = await dataRate?.workRateOT ||  0;
-       cashWorkMul = 1;
-       cashOtMul = await dataRate?.workRateOT || 0;
-      //  addSalaryDaily = [...(employeeProfile[0].addSalary || [])];
-      // addSalaryDaily = [...(employeeProfile[0].addSalary || []).filter(salary => salary.roundOfSalary === "daily")];
-      addSalaryDaily  = [];
-      addSalaryDaily = [...(employeeProfile[0].addSalary || [])
-      .filter(salary => salary.roundOfSalary === "daily")
-      .map(salary => ({
-        ...salary,
-        SpSalary: parseFloat(salary.SpSalary) > 100 ? (parseFloat(salary.SpSalary) / 30).toFixed(2) : salary.SpSalary
-      }))
-    ];
-    
-// console.log("addsalary " + JSON.stringify( employeeProfile[0].addSalary ,null,2));
-  } else {
-    cashBeforeOt = '';
-    cashWork = '';
-    cashOt = '';
-    dayType = await dataRate?.dayType || '';
-    cashBeforeOtMul = '';
-    cashWorkMul = '';
-    cashOtMul = '';
-    addSalaryDaily = [];
-
-  }
-    }
-    
-  }
+            cashWork = await (record.totalTime || 0) * salary;
+            dayType = await dataRate?.dayType || '';
+            cashBeforeOtMul = await dataRate?.workRateOT || 0;
+            cashWorkMul = 1;
+            cashOtMul = await dataRate?.workRateOT || 0;
+            
+            addSalaryDaily = [];
+            addSalaryDaily = [...(employeeProfile[0].addSalary || [])
+              .filter(salary => salary.roundOfSalary === "daily")
+              .map(salary => ({
+                ...salary,
+                SpSalary: parseFloat(salary.SpSalary) > 100 ? (parseFloat(salary.SpSalary) / 30).toFixed(2) : salary.SpSalary
+              }))
+            ];
+          } else {
+            cashBeforeOt = '';
+            cashWork = '';
+            cashOt = '';
+            dayType = await dataRate?.dayType || '';
+            cashBeforeOtMul = '';
+            cashWorkMul = '';
+            cashOtMul = '';
+            addSalaryDaily = [];
+          }
+        }
+      }
 
       return {
         ...record,
@@ -2325,12 +2297,11 @@ cashOt = await (
         cashBeforeOtMul,
         cashWorkMul,
         cashOtMul,
-        dayType ,
+        dayType,
         addSalaryDaily,
       };
     })
   );
-
 };
 
 
