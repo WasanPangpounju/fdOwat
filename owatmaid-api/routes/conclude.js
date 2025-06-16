@@ -2007,11 +2007,43 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
     // Check against getWeekendDates API
     try {
       const dateStr = date; // date is already in YYYY-MM-DD format
-      const [year, monthWithZero] = dateStr.split('-');
+      const [year, monthWithZero, day] = dateStr.split('-');
       const month = parseInt(monthWithZero, 10); // ลบศูนย์นำหน้า
       
+      // ต้องตรวจสอบว่าวันที่นี้อยู่ในช่วงเวลาที่สนใจหรือไม่
+      // ข้อมูลเดือนที่เรากำลังดู คือ month (เช่น 5)
+      // วันที่ 21-31 ของเดือนก่อนหน้า (เช่น เดือน 4)
+      // และวันที่ 1-20 ของเดือนปัจจุบัน (เช่น เดือน 5)
+      
+      // เดือนที่ควรเรียก API getWeekendDates
+      const currentMonth = month;
+      
+      // คำนวณเดือนก่อนหน้า
+      let prevMonth = currentMonth - 1;
+      let yearForPrevMonth = parseInt(year);
+      if (prevMonth === 0) {
+        prevMonth = 12;
+        yearForPrevMonth -= 1;
+      }
+      
+      // ดูว่าวันที่เราตรวจสอบอยู่ในเดือนไหน
+      const dayOfMonth = parseInt(day, 10);
+      
+      // ถ้าเป็นวันที่ 21-31 ของเดือนก่อนหน้า หรือวันที่ 1-20 ของเดือนปัจจุบัน
+      let apiMonth, apiYear;
+      
+      if (dayOfMonth >= 21) {
+        // วันที่ 21-31 ต้องใช้เดือนของวันที่นั้นๆ
+        apiMonth = month;
+        apiYear = year;
+      } else {
+        // วันที่ 1-20 ต้องใช้เดือนของวันที่นั้นๆ
+        apiMonth = month;
+        apiYear = year;
+      }
+      
       // เรียก API โดยส่งค่า year และ month ที่ถูกต้อง
-      const apiUrl = `http://10.10.110.7:3000/conclude/getWeekendDates?yyyy=${year}&mm=${month}&workplaceId=${workplaceId}`;
+      const apiUrl = `http://10.10.110.7:3000/conclude/getWeekendDates?yyyy=${apiYear}&mm=${apiMonth}&workplaceId=${workplaceId}`;
       console.log(`🔍 เรียก API: ${apiUrl}`);
       
       const weekendResponse = await axios.get(apiUrl);
