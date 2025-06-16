@@ -2010,9 +2010,7 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
 const [y, m, d] = date.split('-').map(Number);
 
 // Check if this date is in the weekendAndDayOff list from API
-try {
-  // Call the API to get weekend and dayoff information
- // Check if this date is in the weekendAndDayOff or weekendOnly list from API
+// Check if this date is in the weekendAndDayOff or weekendOnly list from API
 try {
   // Call the API to get weekend and dayoff information
   const apiUrl = `http://10.10.110.7:3000/conclude/getWeekendDates?yyyy=${y}&mm=${String(m).padStart(2, '0')}&workplaceId=${workplaceId}`;
@@ -2031,7 +2029,7 @@ try {
   
   const formattedDate = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
   
-  // Check if this date is in the weekendAndDayOff array
+  // First check if this date is in the weekendAndDayOff array (highest priority)
   if (response.data && Array.isArray(response.data.weekendAndDayOff)) {
     console.log(`🔎 Checking if ${formattedDate} is in weekendAndDayOff list`);
     
@@ -2044,7 +2042,7 @@ try {
     }
   }
   
-  // Check if this date is in the weekendOnly array
+  // Then check if this date is in the weekendOnly array (second priority)
   if (response.data && Array.isArray(response.data.weekendOnly)) {
     console.log(`🔎 Checking if ${formattedDate} is in weekendOnly list`);
     
@@ -2054,12 +2052,12 @@ try {
       console.log(`✅ MATCH FOUND: Date ${formattedDate} is a weekend day`);
       console.log(`✅ Setting dayType to "stop" for ${formattedDate}`);
       return dataCal;
-    } else {
-      console.log(`❌ ${formattedDate} is NOT in weekendOnly list, continuing with normal day type check`);
     }
-  } else {
-    console.log(`⚠️ Invalid or empty weekend data in API response for ${y}-${String(m).padStart(2, '0')}`);
   }
+  
+  // If the date is not in either list, continue with normal processing
+  console.log(`❌ ${formattedDate} is NOT in weekend lists, continuing with normal day type check`);
+  
 } catch (error) {
   console.error(`❌ ERROR: Failed to fetch weekend dates from API: ${error.message}`);
   console.error(`   URL: ${apiUrl}`);
