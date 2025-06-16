@@ -2132,8 +2132,31 @@ if (record.date > 20) {
 const bangkokDate = toBangkokDate(rawDate);
 
 // const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate, record.date);
-const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate, record.date , 
+const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate, record.date, 
   employeeProfile?.[0]?.customWorkplace);
+
+// ✅ เพิ่ม fallback สำหรับ dayType
+if (!dataRate || !dataRate.dayType) {
+  console.warn('⚠️  No dataRate or dayType for date ' + record.date + ', setting to "work"');
+  dataRate.dayType = 'work';
+}
+
+// ✅ เพิ่ม debug log
+console.log(`📅 Date ${record.date}: dayType = "${dataRate.dayType}"`);
+
+// ...rest of calculations...
+
+return {
+  ...record,
+  cashBeforeOt,
+  cashWork,
+  cashOt,
+  cashBeforeOtMul,
+  cashWorkMul,
+  cashOtMul,
+  dayType: dataRate?.dayType || 'work', // ✅ ใส่ fallback
+  addSalaryDaily,
+};
 
 // test
 // if(record.date == 30 || record.date == 20 ) {
