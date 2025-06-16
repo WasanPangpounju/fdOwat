@@ -1968,14 +1968,10 @@ const toBangkokDate = (input) => {
 
 
 const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplace = null) => {
-  // console.log("test" , workplaceId, wGroup, date );
-  // console.log(date.getDay() );
+  // console.log("test", workplaceId, wGroup, date);
 
-  //data for cal
+  // data for cal
   let dataCal = {};
-  
-  // กำหนดค่าเริ่มต้นให้ dayType เป็น 'work'
-  dataCal.dayType = 'work';
 
   // Construct the search query based on the provided parameters
   let query = {};
@@ -2012,7 +2008,7 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
 
     const [y, m, d] = date.split('-').map(Number);
     
-    // เช็ค API weekendAndDayOff และ dayOffOnly
+    // เพิ่มการเช็ค API weekendAndDayOff และ dayOffOnly ก่อน logic ปกติ
     try {
       const apiUrl = `http://10.10.110.7:3000/conclude/getWeekendDates?yyyy=${y}&mm=${String(m).padStart(2, '0')}&workplaceId=${workplaceId}`;
       console.log(`🔍 เช็ควันที่ ${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')} จาก API ${apiUrl}`);
@@ -2020,7 +2016,7 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
       const formattedDate = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
       
       if (response.data) {
-        console.log(`📊 API RESPONSE SUMMARY for workplace ${workplaceId}, year ${y}, month ${m}:`);
+        console.log(`📊 API RESPONSE for workplace ${workplaceId}, year ${y}, month ${m}:`);
         console.log(`   - Weekend only days: ${response.data.weekendOnly?.length || 0}`);
         console.log(`   - Day off only days: ${response.data.dayOffOnly?.length || 0}`);
         console.log(`   - Weekend+DayOff days: ${response.data.weekendAndDayOff?.length || 0}`);
@@ -2063,6 +2059,13 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
     let dateObj = await new Date(dateString);
     let dayNumberx = await dateObj.getDay(); // 0 = อาทิตย์, ..., 6 = เสาร์
     let dateOfMonth = await dateObj.getDate(); // 1 - 31
+    
+    // เพิ่มการเช็คเฉพาะวันที่ 4/5/2025 หรือวันอาทิตย์ทั่วไป
+    if (formattedDate === "2025-05-04" || dayNumberx === 0) {
+      console.log(`🔆 วันที่ ${formattedDate} เป็นวันอาทิตย์ (dayNumber=${dayNumberx}) - กำหนด dayType = 'stop'`);
+      dataCal.dayType = 'stop';
+      return dataCal;
+    }
 
     // เช็ควันหยุดพิเศษ
     let isDayOff = false;
@@ -2077,19 +2080,18 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
     if(isDayOff == true) {
       dataCal.dayType = 'specialDayOff';
     } else {
-      // เช็ควันทำงาน/วันหยุดตามตาราง workTimeDay
-      let matched = false;
+      // ตั้งค่าเริ่มต้นให้เป็น work
+      dataCal.dayType = 'work';
+      
+      // เช็ค workTimeDay
       for(const workTimeDay of workplaces[0].workTimeDay) {
         let check = await checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumberx);
         
         if(check === true) {
           dataCal.dayType = workTimeDay.workOrStop;
-          matched = true;
           break;
         }
       }
-      
-      // ถ้าไม่ match กับเงื่อนไขใดเลย ค่า dayType จะเป็น 'work' ตามที่กำหนดไว้ตั้งแต่ต้น
     }
   }
   
@@ -2150,11 +2152,9 @@ const workplaceId = employeeProfile[0].workplace === "10105" ? "10105" : record.
 
 let rawDate;
 if (record.date > 20) {
-  // สำหรับวันที่ > 20 ใช้เดือนก่อนหน้า
-  rawDate = new Date(year, month - 2, record.date); // ลบ 2 เพราะต้องลบเพิ่มอีก 1 จาก zero-based
+  rawDate = new Date(year, month - 1, record.date); // ปกติเดือนเริ่มที่ 0
 } else {
-  // สำหรับวันที่ <= 20 ใช้เดือนปัจจุบัน
-  rawDate = new Date(year, month - 1, record.date); // ลบ 1 เพราะเดือนใน JavaScript เริ่มที่ 0
+  rawDate = new Date(year, month, record.date); // บวกเดือนอีก 1
 }
 const bangkokDate = toBangkokDate(rawDate);
 
