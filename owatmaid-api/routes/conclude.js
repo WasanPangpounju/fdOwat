@@ -2093,9 +2093,13 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
       }
       
       console.log(`❌ ไม่พบวันที่ ${dateStr} ในรายการวันหยุดพิเศษ`);
+      dataCal.dayType = 'work'; // กำหนดค่าเริ่มต้นเป็น work เมื่อไม่พบในรายการวันหยุดพิเศษ
+      return dataCal; // ส่งค่ากลับทันที
     } catch (error) {
       console.error('เกิดข้อผิดพลาดในการเรียก API วันหยุด:', error.message);
       // ดำเนินการต่อหากการเรียก API ล้มเหลว
+      dataCal.dayType = 'work'; // กำหนดค่าเริ่มต้นเป็น work กรณีมีข้อผิดพลาด
+      return dataCal;
     }
 
     const [y, m, d] = date.split('-').map(Number);
