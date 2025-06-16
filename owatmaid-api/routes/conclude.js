@@ -2197,15 +2197,14 @@ month = 12;
 const workplaceId = employeeProfile[0].workplace === "10105" ? "10105" : record.workplaceId;
 
       // const dataRate = await checkDayRate(workplaceId,  record.wGroup, new Date(year, month - 1, record.date));
-// const rawDate = new Date(year, month - 1, record.date); // สร้างวันที่จากปี/เดือน/วัน
-// const bangkokDate = toBangkokDate(rawDate); // ปรับให้ตรงกับเวลาไทย
-// const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate , record.date );
-
+// แก้ไขตรงส่วนการสร้างวันที่
 let rawDate;
 if (record.date > 20) {
-  rawDate = new Date(year, month - 1, record.date); // ปกติเดือนเริ่มที่ 0
+  // วันที่ 21-31 อยู่ในเดือนปัจจุบัน
+  rawDate = new Date(year, month - 1, record.date); // เดือนเริ่มที่ 0 ใน JavaScript
 } else {
-  rawDate = new Date(year, month, record.date); // บวกเดือนอีก 1
+  // วันที่ 1-20 ก็อยู่ในเดือนปัจจุบันเช่นกัน
+  rawDate = new Date(year, month - 1, record.date); // เดือนเริ่มที่ 0 ใน JavaScript
 }
 const bangkokDate = toBangkokDate(rawDate);
 
