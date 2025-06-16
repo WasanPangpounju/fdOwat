@@ -2090,15 +2090,17 @@ try {
     if(isDayOff == true) {
       dataCal.dayType = await 'specialDayOff';
     } else {
+      let matched = false;
       for(const workTimeDay of workplaces[0].workTimeDay) {
         let check = await checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumberx);
-
         if(check === true) {
           dataCal.dayType = await workTimeDay.workOrStop;
+          matched = true;
           break;
-        } else {
-          dataCal.dayType = 'work';
         }
+      }
+      if (!matched) {
+        dataCal.dayType = 'work';
       }
     }
   }
