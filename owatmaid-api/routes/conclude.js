@@ -1966,7 +1966,7 @@ const toBangkokDate = (input) => {
 };
 
 
-
+// แก้ไขฟังก์ชัน checkDayRate ให้เรียกใช้ API
 const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplace = null) => {
   console.log(`🔍 checkDayRate called with: workplaceId=${workplaceId}, date=${date}`);
 
@@ -1984,7 +1984,7 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
 
   let workplaces = [];
 
-  // ✅ ถ้า customWorkplace ถูกส่งมาและไม่ว่าง → ใช้แทนการ query
+  // ถ้า customWorkplace ถูกส่งมาและไม่ว่าง → ใช้แทนการ query
   if (customWorkplace && Object.keys(customWorkplace).length > 0) {
     workplaces = [customWorkplace];
   } else {
@@ -2006,7 +2006,7 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
     dataCal.holidayHour = await workplaces?.[0]?.holidayHour || 1;
     dataCal.holidayOT = await workplaces?.[0]?.holidayOT || 1;
 
-    // **เพิ่มการตรวจสอบ weekendAndDayOff ก่อนตรวจสอบอย่างอื่น**
+    // **แก้ไขให้เรียกใช้ API /getWeekendDates**
     try {
       console.log(`🎯 Checking weekendAndDayOff for workplaceId: ${workplaceId}, date: ${date}`);
       
@@ -2017,23 +2017,43 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
         return dataCal;
       }
       
-      const daysOff = workplaces[0].daysOff || [];
+      // ดึงปี/เดือนจากวันที่
       const [year, month] = date.split('-').map(Number);
       const monthStr = String(month).padStart(2, '0');
+      const yearStr = String(year);
       
-      console.log(`📅 Getting weekend data for year: ${year}, month: ${monthStr}`);
+      console.log(`📅 Calling API for year: ${yearStr}, month: ${monthStr}, workplaceId: ${workplaceId}`);
       
-      const weekendData = getWeekendDatesGrouped(year, monthStr, daysOff);
-      const weekendAndDayOffDates = weekendData.weekendAndDayOff || [];
-      
-      console.log(`🔍 Weekend and DayOff dates:`, weekendAndDayOffDates);
-      console.log(`🔍 Checking if ${date} is in weekendAndDayOff`);
-      
-      // ถ้าวันนี้อยู่ใน weekendAndDayOff ให้บังคับเป็น stop
-      if (weekendAndDayOffDates.includes(date)) {
-        console.log(`🎯 Date ${date} is in weekendAndDayOff, forcing dayType to 'stop'`);
-        dataCal.dayType = 'stop';
-        return dataCal; // return เลยไม่ต้องตรวจสอบต่อ
+      // **เรียกใช้ API /getWeekendDates**
+      try {
+        const apiUrl = `http://localhost:3000/conclude/getWeekendDates?yyyy=${yearStr}&mm=${monthStr}&workplaceId=${workplaceId}`;
+        console.log(`🌐 API URL: ${apiUrl}`);
+        
+        const apiResponse = await axios.get(apiUrl);
+        const weekendData = apiResponse.data;
+        const weekendAndDayOffDates = weekendData.weekendAndDayOff || [];
+        
+        console.log(`🔍 API Response - Weekend and DayOff dates:`, weekendAndDayOffDates);
+        console.log(`🔍 Checking if ${date} is in weekendAndDayOff`);
+        
+        // ถ้าวันนี้อยู่ใน weekendAndDayOff ให้บังคับเป็น stop
+        if (weekendAndDayOffDates.includes(date)) {
+          console.log(`🎯 Date ${date} is in weekendAndDayOff, forcing dayType to 'stop'`);
+          dataCal.dayType = 'stop';
+          return dataCal; // return เลยไม่ต้องตรวจสอบต่อ
+        }
+      } catch (apiError) {
+        console.error('❌ Error calling /getWeekendDates API:', apiError.message);
+        // ถ้า API ไม่ทำงาน ใช้ฟังก์ชันเดิมเป็น fallback
+        const daysOff = workplaces[0].daysOff || [];
+        const weekendData = getWeekendDatesGrouped(year, monthStr, daysOff);
+        const weekendAndDayOffDates = weekendData.weekendAndDayOff || [];
+        
+        if (weekendAndDayOffDates.includes(date)) {
+          console.log(`🎯 Date ${date} is in weekendAndDayOff (fallback), forcing dayType to 'stop'`);
+          dataCal.dayType = 'stop';
+          return dataCal;
+        }
       }
     } catch (error) {
       console.error('❌ Error checking weekendAndDayOff:', error);
