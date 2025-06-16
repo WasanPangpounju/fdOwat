@@ -2041,9 +2041,17 @@ try {
 // );
 
 if(isDayOff == true || isWeekendAndDayOff == true) {
-  console.log(date.toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }));
-  dataCal.dayType = await 'specialDayOff';
-
+  console.log(date + ' is holiday or weekendAndDayOff');
+  
+  // ✅ ถ้าเป็น weekendAndDayOff ให้เป็น "stop" 
+  // ✅ ถ้าเป็น daysOff ปกติให้เป็น "specialDayOff"
+  if (isWeekendAndDayOff == true) {
+    dataCal.dayType = 'stop';
+    console.log('Setting dayType to "stop" for weekendAndDayOff: ' + date);
+  } else {
+    dataCal.dayType = 'specialDayOff';
+    console.log('Setting dayType to "specialDayOff" for daysOff: ' + date);
+  }
 } else {
 // console.log(JSON.stringify(workplaces,null,2) );
 //check day type
