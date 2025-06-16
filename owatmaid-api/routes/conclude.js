@@ -1966,6 +1966,7 @@ const toBangkokDate = (input) => {
 };
 
 
+
 const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplace = null) => {
   // console.log("test" , workplaceId, wGroup, date );
   // console.log(date.getDay() );
@@ -2062,14 +2063,6 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
     let dateObj = await new Date(dateString);
     let dayNumberx = await dateObj.getDay(); // 0 = อาทิตย์, ..., 6 = เสาร์
     let dateOfMonth = await dateObj.getDate(); // 1 - 31
-    
-    // เพิ่มการเช็ควันอาทิตย์ ถ้าเป็นวันอาทิตย์ (dayNumberx = 0) ให้เป็น stop เสมอ
- // เพิ่มการเช็ควันอาทิตย์ ถ้าเป็นวันอาทิตย์ (dayNumberx = 0) ให้เป็น stop เสมอ
-if (dayNumberx === 0) {
-  console.log(`🔆 วันที่ ${date} เป็นวันอาทิตย์ (dayNumber=${dayNumberx}) - กำหนด dayType = 'stop'`);
-  dataCal.dayType = 'stop';
-  return dataCal;
-}
 
     // เช็ควันหยุดพิเศษ
     let isDayOff = false;
@@ -2150,13 +2143,18 @@ month = 12;
 // console.log('employee workplace' + employeeProfile[0].workplace);
 const workplaceId = employeeProfile[0].workplace === "10105" ? "10105" : record.workplaceId;
 
+      // const dataRate = await checkDayRate(workplaceId,  record.wGroup, new Date(year, month - 1, record.date));
+// const rawDate = new Date(year, month - 1, record.date); // สร้างวันที่จากปี/เดือน/วัน
+// const bangkokDate = toBangkokDate(rawDate); // ปรับให้ตรงกับเวลาไทย
+// const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate , record.date );
+
 let rawDate;
 if (record.date > 20) {
   // สำหรับวันที่ > 20 ใช้เดือนก่อนหน้า
-  rawDate = new Date(Date.UTC(year, month - 2, record.date)); // ใช้ UTC เพื่อความแม่นยำ
+  rawDate = new Date(year, month - 2, record.date); // ลบ 2 เพราะต้องลบเพิ่มอีก 1 จาก zero-based
 } else {
   // สำหรับวันที่ <= 20 ใช้เดือนปัจจุบัน
-  rawDate = new Date(Date.UTC(year, month - 1, record.date)); // ใช้ UTC เพื่อความแม่นยำ
+  rawDate = new Date(year, month - 1, record.date); // ลบ 1 เพราะเดือนใน JavaScript เริ่มที่ 0
 }
 const bangkokDate = toBangkokDate(rawDate);
 
