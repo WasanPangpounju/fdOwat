@@ -1967,26 +1967,20 @@ const toBangkokDate = (input) => {
 
 
 
-const checkDayRate = async (workplaceId, wGroup, date , dayNumber , customWorkplace = null ) => {
-// console.log("test" , workplaceId, wGroup, date );
-// console.log(date.getDay() );
+const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplace = null) => {
+  //data for cal
+  let dataCal = {};
 
-//data for cal
-let dataCal = {};
+  // Construct the search query based on the provided parameters
+  let query = {};
+  if (workplaceId !== '') {
+    query.workplaceId = workplaceId;
+  }
+  if (wGroup !== '') {
+    query.wGroup = wGroup;
+  }
 
-// Construct the search query based on the provided parameters
-let query = {};
-if (workplaceId !== '') {
-  query.workplaceId = workplaceId;
-}
-if (wGroup !== '') {
-  query.wGroup = wGroup;
-}
-
-        // Query the workplace collection for matching documents
-        // const workplaces = await Workplace.find(query);
-
-          let workplaces = [];
+  let workplaces = [];
 
   // ✅ ถ้า customWorkplace ถูกส่งมาและไม่ว่าง → ใช้แทนการ query
   if (customWorkplace && Object.keys(customWorkplace).length > 0) {
@@ -1995,107 +1989,79 @@ if (wGroup !== '') {
     workplaces = await Workplace.find(query);
   }
 
-if(workplaces.length > 0 ) {
-dataCal.workRate = await parseFloat(workplaces?.[0]?.workRate || '0') / 8 || 0;
-dataCal.worktTime = await parseFloat(workplaces?.[0]?.workOfHour_subHour || '0') + parseFloat(workplaces?.[0]?.workOfHour_subMinute || '0');
-dataCal.workRateOT = await workplaces?.[0]?.workRateOT || 0;
-let tmp_OT = await (parseFloat(workplaces?.[0]?.workOfOT_subHour || '0')* 60 + parseFloat(workplaces?.[0]?.workOfOT_subMinute || '0')) -
-(parseFloat(workplaces?.[0]?.workOfOT_breakHour || '0')* 60 + parseFloat(workplaces?.[0]?.workOfOT_breakMinute || '0'));
+  if(workplaces.length > 0) {
+    dataCal.workRate = await parseFloat(workplaces?.[0]?.workRate || '0') / 8 || 0;
+    dataCal.worktTime = await parseFloat(workplaces?.[0]?.workOfHour_subHour || '0') + parseFloat(workplaces?.[0]?.workOfHour_subMinute || '0');
+    dataCal.workRateOT = await workplaces?.[0]?.workRateOT || 0;
+    let tmp_OT = await (parseFloat(workplaces?.[0]?.workOfOT_subHour || '0')* 60 + parseFloat(workplaces?.[0]?.workOfOT_subMinute || '0')) -
+    (parseFloat(workplaces?.[0]?.workOfOT_breakHour || '0')* 60 + parseFloat(workplaces?.[0]?.workOfOT_breakMinute || '0'));
 
-dataCal.worktTimeOT = await Math.floor(tmp_OT / 60) + tmp_OT % 60;
-dataCal.worktTimeStartOT = await parseFloat(workplaces?.[0]?.startWorkOfOT_subHour || '0') + parseFloat(workplaces?.[0]?.startWorkOfOT_subMinute || '0');
+    dataCal.worktTimeOT = await Math.floor(tmp_OT / 60) + tmp_OT % 60;
+    dataCal.worktTimeStartOT = await parseFloat(workplaces?.[0]?.startWorkOfOT_subHour || '0') + parseFloat(workplaces?.[0]?.startWorkOfOT_subMinute || '0');
 
-dataCal.dayoffRateHour = await workplaces?.[0]?.dayoffRateHour || 1;
-dataCal.dayoffRateOT = await workplaces?.[0]?.dayoffRateOT || 1;
-dataCal.holidayHour= await workplaces?.[0]?.holidayHour|| 1;
-dataCal.holidayOT = await workplaces?.[0]?.holidayOT || 1;
+    dataCal.dayoffRateHour = await workplaces?.[0]?.dayoffRateHour || 1;
+    dataCal.dayoffRateOT = await workplaces?.[0]?.dayoffRateOT || 1;
+    dataCal.holidayHour= await workplaces?.[0]?.holidayHour|| 1;
+    dataCal.holidayOT = await workplaces?.[0]?.holidayOT || 1;
 
-const [y, m, d] = date.split('-').map(Number);
-let paddedMonth = String(m - 1).padStart(2, '0');  
-let paddedDay = String(d).padStart(2, '0');  
+    // Check against getWeekendDates API
+    try {
+      const dateStr = date; // date is already in YYYY-MM-DD format
+      const [year, month] = dateStr.split('-');
+      
+      // Call the getWeekendDates API
+      const apiUrl = `http://10.10.110.7:3000/conclude/getWeekendDates?yyyy=${year}&mm=${month}&workplaceId=${workplaceId}`;
+      const weekendResponse = await axios.get(apiUrl);
+      const weekendData = weekendResponse.data;
+      
+      // Check if the date is in dayOffOnly or weekendAndDayOff arrays
+      if (weekendData.dayOffOnly.includes(dateStr) || weekendData.weekendAndDayOff.includes(dateStr)) {
+        dataCal.dayType = 'stop';
+        return dataCal;
+      }
+    } catch (error) {
+      console.error('Error fetching weekend dates:', error.message);
+      // Continue with normal processing if API call fails
+    }
 
-    let dateString = y + '-' + paddedMonth  + '-' + paddedDay  + 'T00:00:00';
+    const [y, m, d] = date.split('-').map(Number);
+    let paddedMonth = String(m - 1).padStart(2, '0');  
+    let paddedDay = String(d).padStart(2, '0');  
 
-let dateObj = await new Date(dateString );
-let dayNumberx = await dateObj.getDay(); // 0 = อาทิตย์, ..., 6 = เสาร์
-let dateOfMonth = await dateObj.getDate(); // 1 - 31
-// console.log(dayNumberx )
+    let dateString = y + '-' + paddedMonth + '-' + paddedDay + 'T00:00:00';
 
-//
-let isDayOff  = false;
-// console.log(JSON.stringify(workplaces?.[0]?.daysOff,null,2))
-for(let itemDay of workplaces?.[0]?.daysOff){
+    let dateObj = await new Date(dateString);
+    let dayNumberx = await dateObj.getDay(); // 0 = อาทิตย์, ..., 6 = เสาร์
+    let dateOfMonth = await dateObj.getDate(); // 1 - 31
 
-  if(toBangkokDate(itemDay) === dateString ) {
-  console.log('special day off ' + toBangkokDate(itemDay)+  ' = '+ date)
-  // isDayOff   = true
-// break;  
+    // Check for special day off
+    let isDayOff = false;
+    for(let itemDay of workplaces?.[0]?.daysOff || []) {
+      if(toBangkokDate(itemDay) === dateString) {
+        console.log('special day off ' + toBangkokDate(itemDay) + ' = ' + date);
+        isDayOff = true;
+        break;  
+      }
+    }
+
+    if(isDayOff == true) {
+      dataCal.dayType = await 'specialDayOff';
+    } else {
+      // Check day type
+      for(const workTimeDay of workplaces[0].workTimeDay) {
+        let check = await checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumberx);
+
+        if(check === true) {
+          dataCal.dayType = await workTimeDay.workOrStop;
+          break;
+        } else {
+          dataCal.dayType = 'work';
+        }
+      }
+    }
   }
-}
-// dataCal?.daysOff
-// const isDayOff = workplaces?.[0]?.daysOff?.some(d => 
-  // new Date(d).toISOString().split('T')[0] === date.toISOString().split('T')[0]
-// );
-
-if(isDayOff == true) {
-  // console.log(date.toLocaleString("th-TH", { timeZone: "Asia/Bangkok" }));
-  dataCal.dayType = await 'specialDayOff';
-
-} else {
-// console.log(JSON.stringify(workplaces,null,2) );
-// console.log(workplaces[0].workTimeDay.length);
-//check day type
-for(const workTimeDay of workplaces[0].workTimeDay) {
-  // let check = checkdayType(workTimeDay.startDay, workTimeDay.endDay , date.getDay());
-//   const [y, m, d] = date.split('-').map(Number);
-// let paddedMonth = String(m - 1).padStart(2, '0');  
-// let paddedDay = String(d).padStart(2, '0');  
-
-//     let dateString = y + '-' + paddedMonth  + '-' + paddedDay  + 'T00:00:00';
-
-// let dateObj = await new Date(dateString );
-// let dayNumberx = await dateObj.getDay(); // 0 = อาทิตย์, ..., 6 = เสาร์
-// let dateOfMonth = await dateObj.getDate(); // 1 - 31
-// // console.log(dayNumberx )
-
-// // test
-// if(isNaN(dayNumberx) || isNaN(dateOfMonth) ) {
-  // console.log('* ' + dayNumberx )
-  // console.log(dateString )
-  // console.log('paddedMonth ' + paddedMonth )
-// }
-
-let check = await checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumberx );
-
-// if(dayNumberx   === 0) {
-  // console.log('dayNumberx  ' + dayNumberx );
-
-      // console.log('*' + date +workTimeDay.workOrStop )
-
-// }
-
-  if(check === true) {
-    // console.log(date +workTimeDay.workOrStop )
-    dataCal.dayType = await workTimeDay.workOrStop;
-break;
-// console.log("data " ,workTimeDay.startDay, workTimeDay.endDay );
-// console.log("data " ,workTimeDay.startDay, workTimeDay.endDay , date.getDay() );
-
-  }
-else {
-      dataCal.dayType = 'work';
-
-}
-} //end for
-
-}
-
-// await console.log("wr "+ JSON.stringify(dataCal,null,2));
-
-}        
-// console.log("dataCal", JSON.stringify(dataCal,null,2))
-return dataCal;
-
+  
+  return dataCal;
 }
 
 
