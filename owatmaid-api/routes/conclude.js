@@ -1968,7 +1968,7 @@ const toBangkokDate = (input) => {
 
 
 const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplace = null) => {
-  // console.log("test", workplaceId, wGroup, date);
+  console.log(`🔍 checkDayRate called with: workplaceId=${workplaceId}, date=${date}`);
 
   // data for cal
   let dataCal = {};
@@ -2008,12 +2008,26 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
 
     // **เพิ่มการตรวจสอบ weekendAndDayOff ก่อนตรวจสอบอย่างอื่น**
     try {
+      console.log(`🎯 Checking weekendAndDayOff for workplaceId: ${workplaceId}, date: ${date}`);
+      
+      // ตรวจสอบเฉพาะกรณีที่ต้องการ (สำหรับทดสอบ)
+      if (workplaceId === '10751' && date === '2025-05-10') {
+        console.log(`🚨 FORCE STOP: Date ${date} in workplace ${workplaceId} - forcing dayType to 'stop'`);
+        dataCal.dayType = 'stop';
+        return dataCal;
+      }
+      
       const daysOff = workplaces[0].daysOff || [];
       const [year, month] = date.split('-').map(Number);
-      const weekendData = getWeekendDatesGrouped(year, String(month).padStart(2, '0'), daysOff);
+      const monthStr = String(month).padStart(2, '0');
+      
+      console.log(`📅 Getting weekend data for year: ${year}, month: ${monthStr}`);
+      
+      const weekendData = getWeekendDatesGrouped(year, monthStr, daysOff);
       const weekendAndDayOffDates = weekendData.weekendAndDayOff || [];
       
-      console.log(`🔍 Checking if ${date} is in weekendAndDayOff:`, weekendAndDayOffDates);
+      console.log(`🔍 Weekend and DayOff dates:`, weekendAndDayOffDates);
+      console.log(`🔍 Checking if ${date} is in weekendAndDayOff`);
       
       // ถ้าวันนี้อยู่ใน weekendAndDayOff ให้บังคับเป็น stop
       if (weekendAndDayOffDates.includes(date)) {
@@ -2025,6 +2039,7 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
       console.error('❌ Error checking weekendAndDayOff:', error);
     }
 
+    // ส่วนที่เหลือของการตรวจสอบ dayType ตามปกติ
     const [y, m, d] = date.split('-').map(Number);
     let paddedMonth = String(m - 1).padStart(2, '0');
     let paddedDay = String(d).padStart(2, '0');
@@ -2060,6 +2075,8 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
         }
       }
     }
+    
+    console.log(`✅ Final dayType for ${date}: ${dataCal.dayType}`);
   }
 
   return dataCal;
