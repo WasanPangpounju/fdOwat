@@ -2007,40 +2007,45 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
     // Check against getWeekendDates API
     try {
       const dateStr = date; // date is already in YYYY-MM-DD format
-      const [year, month] = dateStr.split('-');
+      const [year, monthWithZero] = dateStr.split('-');
+      const month = parseInt(monthWithZero, 10); // ลบศูนย์นำหน้า
       
-      // Call the getWeekendDates API
+      // เรียก API โดยส่งค่า year และ month ที่ถูกต้อง
       const apiUrl = `http://10.10.110.7:3000/conclude/getWeekendDates?yyyy=${year}&mm=${month}&workplaceId=${workplaceId}`;
-      console.log(`🔍 Calling API: ${apiUrl}`);
+      console.log(`🔍 เรียก API: ${apiUrl}`);
+      
       const weekendResponse = await axios.get(apiUrl);
       const weekendData = weekendResponse.data;
       
-      // Log formats for comparison
-      console.log(`📅 Current date to check: ${dateStr} (format: YYYY-MM-DD)`);
-      if (weekendData.dayOffOnly.length > 0) {
-        console.log(`📅 First date in dayOffOnly: ${weekendData.dayOffOnly[0]} (format: ${determineFormat(weekendData.dayOffOnly[0])})`);
-      }
-      if (weekendData.weekendAndDayOff.length > 0) {
-        console.log(`📅 First date in weekendAndDayOff: ${weekendData.weekendAndDayOff[0]} (format: ${determineFormat(weekendData.weekendAndDayOff[0])})`);
-      }
+      // แสดงข้อมูลเพื่อตรวจสอบ
+      console.log(`📅 วันที่ต้องการตรวจสอบ: ${dateStr} (รูปแบบ: YYYY-MM-DD)`);
       
-      // Check if the date is in dayOffOnly or weekendAndDayOff arrays
-      if (weekendData.dayOffOnly.includes(dateStr)) {
-        console.log(`✅ Date ${dateStr} found in dayOffOnly`);
-        dataCal.dayType = 'stop';
-        return dataCal;
-      } 
-      
-      if (weekendData.weekendAndDayOff.includes(dateStr)) {
-        console.log(`✅ Date ${dateStr} found in weekendAndDayOff`);
-        dataCal.dayType = 'stop';
-        return dataCal;
+      if (weekendData.dayOffOnly && weekendData.dayOffOnly.length > 0) {
+        console.log(`📅 วันแรกใน dayOffOnly: ${weekendData.dayOffOnly[0]}`);
+        
+        // ตรวจสอบว่าวันที่อยู่ใน dayOffOnly หรือไม่
+        if (weekendData.dayOffOnly.includes(dateStr)) {
+          console.log(`✅ พบวันที่ ${dateStr} ใน dayOffOnly`);
+          dataCal.dayType = 'stop';
+          return dataCal;
+        }
       }
       
-      console.log(`❌ Date ${dateStr} not found in special day off lists`);
+      if (weekendData.weekendAndDayOff && weekendData.weekendAndDayOff.length > 0) {
+        console.log(`📅 วันแรกใน weekendAndDayOff: ${weekendData.weekendAndDayOff[0]}`);
+        
+        // ตรวจสอบว่าวันที่อยู่ใน weekendAndDayOff หรือไม่
+        if (weekendData.weekendAndDayOff.includes(dateStr)) {
+          console.log(`✅ พบวันที่ ${dateStr} ใน weekendAndDayOff`);
+          dataCal.dayType = 'stop';
+          return dataCal;
+        }
+      }
+      
+      console.log(`❌ ไม่พบวันที่ ${dateStr} ในรายการวันหยุดพิเศษ`);
     } catch (error) {
-      console.error('Error fetching weekend dates:', error.message);
-      // Continue with normal processing if API call fails
+      console.error('เกิดข้อผิดพลาดในการเรียก API วันหยุด:', error.message);
+      // ดำเนินการต่อหากการเรียก API ล้มเหลว
     }
 
     const [y, m, d] = date.split('-').map(Number);
