@@ -4703,7 +4703,7 @@ if(existingItem ){
   );
  // การคำนวณค่าปกติไม่จำเป็นต้องใช้ await
 const sumCashSpecialDay = sumCashWork / dayWorkCount;
-const totalsumCashSpecialDay = sumCashSpecialDay * specialDayOff
+const totalsumCashSpecialDay = sumCashSpecialDay * specialDay
 
 cashSpecialDay = totalsumCashSpecialDay 
 specialDayOff = specialDay;
