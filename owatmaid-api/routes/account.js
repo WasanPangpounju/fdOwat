@@ -4703,25 +4703,7 @@ if(existingItem ){
   );
 
   //cal specialDay cash 
-
-  let holidayPayRate = 0;
-if (workplaces && workplaces.length > 0) {
-  // ใช้ค่า holiday จากการตั้งค่าหน่วยงาน (workplaces)
-  holidayPayRate = parseFloat(workplaces[0].holiday || 0);
-  if (holidayPayRate === 0) {
-    // ถ้าไม่มีการตั้งค่าวันหยุด ให้ใช้ค่าเดิม
-    holidayPayRate = parseFloat(salary || 0) * 8;
-  }
-} else {
-  // ถ้าไม่มีข้อมูลหน่วยงาน ใช้การคำนวณแบบเดิม
-  holidayPayRate = parseFloat(salary || 0) * 8;
-}
-
-console.log('Holiday pay rate: ' + holidayPayRate);
-console.log('specialDay count: ' + specialDay);
-
-cashSpecialDay = await Math.ceil(parseFloat(specialDay || 0) * holidayPayRate);
-console.log('Calculated cashSpecialDay: ' + cashSpecialDay);
+  cashSpecialDay = await Math.ceil(parseFloat(specialDay  || 0) * (parseFloat(salary || 0) * 8));
   specialDayOff = await specialDay;
 console.log('cashSpecialDay  ' + cashSpecialDay )
   console.log('dayWorkCount : ' + dayWorkCount);
