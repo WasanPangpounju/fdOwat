@@ -4702,7 +4702,7 @@ if(existingItem ){
     })
   );
  // การคำนวณค่าปกติไม่จำเป็นต้องใช้ await
-const sumCashSpecialDay = sumCashWork / 30;
+const sumCashSpecialDay = sumCashWork / dayWorkCount;
 
 cashSpecialDay = sumCashSpecialDay;
 specialDayOff = specialDay;
