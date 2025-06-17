@@ -4703,7 +4703,7 @@ if(existingItem ){
   );
 
   //cal specialDay cash 
-  cashSpecialDay = await sumCashWork;
+  cashSpecialDay = await sumCashWork / dayWorkCount; ;
   specialDayOff = await specialDay;
 console.log('cashSpecialDay  ' + cashSpecialDay )
   console.log('dayWorkCount : ' + dayWorkCount);
