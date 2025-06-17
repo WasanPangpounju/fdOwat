@@ -4703,7 +4703,18 @@ if(existingItem ){
   );
 
 
-cashSpecialDay = await specialDayOff * (specialDayRate || sumCashWork / 30);;
+
+let specialDayRate = 0;
+if (workplaces && workplaces.length > 0) {
+  specialDayRate = parseFloat(workplaces[0].holiday || 0);
+  if (specialDayRate === 0) {
+    specialDayRate = sumCashWork / 30; // ใช้ค่าเดิมถ้าไม่มีการตั้งค่า
+  }
+} else {
+  specialDayRate = sumCashWork / 30;
+}
+
+cashSpecialDay = await specialDayOff * specialDayRate;
   specialDayOff = await specialDay;
 console.log('cashSpecialDay  ' + cashSpecialDay )
   console.log('dayWorkCount : ' + dayWorkCount);
