@@ -4702,10 +4702,13 @@ if(existingItem ){
     })
   );
 
-  
 
+const cashWorkMulSpecialDay = await sumCashWork;
+const timeWorkMulSpecialDay = await sumTimeWork;
+console.log('cashWorkMulSpecialDay ' + cashWorkMulSpecialDay);
+console.log('timeWorkMulSpecialDay ' + timeWorkMulSpecialDay);  
 
-  cashSpecialDay = await Math.ceil(parseFloat(specialDay  || 0) * (parseFloat(salary || 0) * 8));
+  cashSpecialDay = await 
   specialDayOff = await specialDay;
 console.log('cashSpecialDay  ' + cashSpecialDay )
   console.log('dayWorkCount : ' + dayWorkCount);
