@@ -4701,19 +4701,16 @@ if(existingItem ){
     
     })
   );
+ // การคำนวณค่าปกติไม่จำเป็นต้องใช้ await
+const sumCashSpecialDay = sumCashWork / 30;
 
+cashSpecialDay = sumCashSpecialDay;
+specialDayOff = specialDay;
 
-const cashWorkMulSpecialDay = await sumCashWork;
-const timeWorkMulSpecialDay = await sumTimeWork;
-console.log('cashWorkMulSpecialDay ' + cashWorkMulSpecialDay);
-console.log('timeWorkMulSpecialDay ' + timeWorkMulSpecialDay);  
-
-  cashSpecialDay = await 
-  specialDayOff = await specialDay;
-console.log('cashSpecialDay  ' + cashSpecialDay )
-  console.log('dayWorkCount : ' + dayWorkCount);
-  console.log('dayOffCount : ' + dayOffCount);
-  console.log('specialDayOff  : ' + specialDayOff );
+console.log('cashSpecialDay  ' + cashSpecialDay);
+console.log('dayWorkCount : ' + dayWorkCount);
+console.log('dayOffCount : ' + dayOffCount);
+console.log('specialDayOff  : ' + specialDayOff);
 
   //add addSalary Month to list 
   if (addSalary && addSalary.length > 0) {
