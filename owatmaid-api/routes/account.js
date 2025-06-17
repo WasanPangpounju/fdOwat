@@ -4703,26 +4703,9 @@ if(existingItem ){
   );
 
   //cal specialDay cash 
-  console.log('salary: ' + salary + ' (ค่าจ้างต่อชั่วโมง)');
-  console.log('specialDay: ' + specialDay + ' (จำนวนวันหยุด)');
-  
-  let specialDayRate = 0;
-if (workplaces && workplaces.length > 0 && workplaces[0].holiday) {
-  // ใช้ค่า holiday จากการตั้งค่าหน่วยงาน
-  specialDayRate = parseFloat(workplaces[0].holiday || 0);
-  console.log('Holiday rate from workplace settings: ' + specialDayRate);
-} else {
-  // กรณีไม่มีการตั้งค่า ใช้การคำนวณแบบเดิม
-  specialDayRate = parseFloat(salary || 0) * 8;
-  console.log('No holiday rate found in workplace settings, using calculated rate: ' + specialDayRate);
-}
-
-cashSpecialDay = await Math.ceil(parseFloat(specialDay || 0) * specialDayRate);
-console.log('cashSpecialDay: ' + cashSpecialDay + ' = ' + specialDay + ' วัน x ' + specialDayRate + ' บาท/วัน');
-
-
+  cashSpecialDay = await Math.ceil(parseFloat(specialDay  || 0) * (parseFloat(salary || 0) * 8));
   specialDayOff = await specialDay;
-  console.log('cashSpecialDay: ' + cashSpecialDay + ' = ' + specialDay + ' วัน x (' + salary + ' บาท/ชม. x 8 ชม.)');
+console.log('cashSpecialDay  ' + cashSpecialDay )
   console.log('dayWorkCount : ' + dayWorkCount);
   console.log('dayOffCount : ' + dayOffCount);
   console.log('specialDayOff  : ' + specialDayOff );
