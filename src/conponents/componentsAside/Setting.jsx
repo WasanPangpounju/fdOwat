@@ -1,5 +1,5 @@
 import endpoint from "../../config";
-import Swal from 'sweetalert2'
+
 import axios from "axios";
 import React, { useEffect, useState } from "react";
 
@@ -106,6 +106,8 @@ function Setting({ workplaceList, employeeList }) {
       {
         shift: "",
         startTime: "",
+        beforeStartTime:"",
+        beforeEndTime:"",
         endTime: "",
         resultTime: "",
         startTimeOT: "",
@@ -137,6 +139,8 @@ function Setting({ workplaceList, employeeList }) {
         ...prevData.allTimes,
         {
           shift: "",
+          beforeStartTime:"",
+          beforeEndTime:"",
           startTime: "",
           endTime: "",
           resultTime: "",
@@ -166,6 +170,8 @@ function Setting({ workplaceList, employeeList }) {
       allTimes: [
         {
           shift: "",
+          beforeStartTime:"",
+          beforeEndTime:"",
           startTime: "",
           endTime: "",
           resultTime: "",
@@ -193,15 +199,24 @@ function Setting({ workplaceList, employeeList }) {
 
       // Calculate resultTime and resultOT when both startTime and endTime are provided
       if (
+        timeType === "beforeStartTime" ||
+        timeType === "beforeEndTime" ||
         timeType === "startTime" ||
         timeType === "endTime" ||
         timeType === "startTimeOT" ||
         timeType === "endTimeOT"
       ) {
+        const beforeStartTime = updatedTimes[index].beforeStartTime;
+        const beforeEndTime = updatedTimes[index].beforeEndTime;
         const startTime = updatedTimes[index].startTime;
         const endTime = updatedTimes[index].endTime;
         const startTimeOT = updatedTimes[index].startTimeOT;
         const endTimeOT = updatedTimes[index].endTimeOT;
+
+        if (beforeStartTime && beforeEndTime) {
+          const resultTime = calculateTimeDifference(beforeStartTime, beforeEndTime);
+          updatedTimes[index].resultTime = resultTime;
+        }
 
         if (startTime && endTime) {
           const resultTime = calculateTimeDifference(startTime, endTime);
@@ -263,12 +278,6 @@ function Setting({ workplaceList, employeeList }) {
       [name]: value,
     }));
   };
-  const handleInlineEdit_specialwork = (listIndex, empIndex, newValue) => {
-  const updatedList = [...workTimeDayList_specialwork];
-  updatedList[listIndex].employees_specialwork[empIndex].countPerson_specialwork = newValue;
-  setWorkTimeDayList_specialwork(updatedList);
-};
-
 
   const handleInputChangePerson = (e, index) => {
     const { name, value } = e.target;
@@ -624,8 +633,6 @@ function Setting({ workplaceList, employeeList }) {
 
   const [workOfHour, setWorkOfHour] = useState(""); //ชั่วโมงทำงานต่อสัปดาห์
   const [workOfMinute, setWorkOfMinute] = useState(""); //ชั่วโมงทำงานต่อสัปดาห์
-  const [startWorkOfOT, setStartWorkOfOT] = useState(""); //ชั่วโมง OT ต่อสัปดาห์
-  const [startWorkOfOTMinute, setStartWorkOfOTMinute] = useState(""); //ชั่วโมง OT ต่อสัปดาห์
   const [workOfOT, setWorkOfOT] = useState(""); //ชั่วโมง OT ต่อสัปดาห์
   const [workOfOTMinute, setWorkOfOTMinute] = useState(""); //ชั่วโมง OT ต่อสัปดาห์
   const [breakOfOT, setBreakOfOT] = useState(""); //ชั่วโมง OT ต่อสัปดาห์
@@ -944,8 +951,6 @@ function Setting({ workplaceList, employeeList }) {
 
     setWorkOfHour(workplace.workOfHour_subHour || workplace.workOfHour);
     setWorkOfMinute(workplace.workOfHour_subMinute || 0);
-    setStartWorkOfOT(workplace.startWorkOfOT_subHour || 0);
-    setStartWorkOfOTMinute(workplace.startWorkOfOT_subMinute || 0);
     setWorkOfOT(workplace.workOfOT_subHour || workplace.workOfOT);
     setWorkOfOTMinute(workplace.workOfOT_subMinute || 0);
     setBreakOfOT(workplace.workOfOT_breakMinute || 0);
@@ -1153,8 +1158,6 @@ setWorkRateChange(workplace.workRateChange)
 
       workOfHour_subHour: workOfHour || 0,
       workOfHour_subMinute: workOfMinute || 0,
-      startWorkOfOT_subHour: startWorkOfOT || 0,
-      startWorkOfOT_subMinute: startWorkOfOTMinute || 0,
       workOfOT_subHour: workOfOT || 0,
       workOfOT_subMinute: workOfOTMinute || 0,
       workOfOT_breakHour: '',
@@ -1222,159 +1225,28 @@ setWorkRateChange(workplace.workRateChange)
     // await alert(JSON.stringify(formData.addSalary,null,2));
 
     //check create or update Employee
-    //check create or update Employee
-if (newWorkplace) {
-  // เพิ่มก่อน try block
-  const requiredFields = {
-    workplaceId: "รหัสหน่วยงาน",
-    workplaceName: "ชื่อหน่วยงาน", 
-    workplaceArea: "สถานที่ปฏิบัติงาน",
-    workOfWeek: "จำนวนวันทำงานต่อสัปดาห์",
-    workOfHour: "ชั่วโมงทำงาน",
-    workRate: "ค่าจ้างรายวัน"
-  };
-
-  const missingFields = [];
-  Object.entries(requiredFields).forEach(([key, label]) => {
-    if (!data[key] || data[key].toString().trim() === "") {
-      missingFields.push(label);
-    }
-  });
-
-  if (missingFields.length > 0) {
-  Swal.fire({
-    icon: "error",
-    title: "บันทึกไม่สำเร็จ",
-    text: `กรุณากรอกข้อมูลต่อไปนี้: ${missingFields.join(", ")}`,
-    footer: '<a href="#" id="scroll-to-missing-field">คลิกที่นี่เพื่อไปยังฟิลด์ที่ขาดหายไป</a>',
-    didOpen: () => {
-      const footerLink = document.getElementById('scroll-to-missing-field');
-      if (footerLink) {
-        footerLink.addEventListener('click', (e) => {
-          e.preventDefault();
-          
-          const requiredFieldKeys = Object.keys(requiredFields);
-          for (const fieldKey of requiredFieldKeys) {
-            if (!data[fieldKey] || data[fieldKey].toString().trim() === "") {
-              // ลองหาด้วย id ก่อน
-              let element = document.getElementById(fieldKey);
-              
-              // ถ้าไม่เจอ ลองหาด้วย name attribute
-              if (!element) {
-                element = document.querySelector(`input[name="${fieldKey}"]`);
-              }
-              
-              // ถ้ายังไม่เจอ ลองหาด้วย placeholder
-              if (!element) {
-                const placeholderMap = {
-                  workplaceId: "รหัสหน่วยงาน",
-                  workplaceName: "ชื่อหน่วยงาน",
-                  workplaceArea: "สถานที่ปฏิบัติงาน",
-                  workOfWeek: "จำนวนวันทำงานต่อสัปดาห์",
-                  workOfHour: "ชั่วโมงทำงาน",
-                  workRate: "บาท"
-                };
-                element = document.querySelector(`input[placeholder="${placeholderMap[fieldKey]}"]`);
-              }
-              
-              console.log(`Field: ${fieldKey}, Element found:`, element);
-              
-              if (element) {
-                element.scrollIntoView({ 
-                  behavior: 'smooth', 
-                  block: 'center' 
-                });
-                
-                setTimeout(() => {
-                  element.focus();
-                  element.style.border = '3px solid red';
-                  element.style.backgroundColor = '#ffe6e6';
-                  
-                  setTimeout(() => {
-                    element.style.border = '';
-                    element.style.backgroundColor = '';
-                  }, 3000);
-                }, 500);
-                
-                break;
-              }
-            }
-          }
-          
-          Swal.close();
-        });
-      }
-    }
-  });
-  return;
-}
-
-  // ตรวจสอบรหัสหน่วยงานซ้ำ
-  const existingWorkplace = workplaceList.find(workplace => 
-    workplace.workplaceId === data.workplaceId
-  );
-  
-  if (existingWorkplace) {
-    alert(`รหัสหน่วยงาน ${data.workplaceId} มีอยู่แล้วในระบบ กรุณาใช้รหัสอื่น`);
-    return;
-  }
-      
-  try {
-    const response = await axios.post(endpoint + "/workplace/create", data);
-    if (response) {
-          Swal.fire({
-        title: "บันทึกสำเร็จ",
-        text: "ข้อมูลหน่วยงานถูกบันทึกเรียบร้อยแล้ว",
-        icon: "success",
-        draggable: true
-});
-    }
-  } catch (error) {
-    console.error("Error details:", error);
-    console.log("Response data:", error.response?.data);
-    console.log("Status code:", error.response?.status);
-    
-    // แสดง error message จาก API response (ถ้ามี)
-    if (error.response && error.response.data) {
-      const apiErrorMessage = error.response.data.message || 
-                             error.response.data.error || 
-                             error.response.data.details ||
-                             JSON.stringify(error.response.data);
-      
-      // ตรวจสอบ duplicate key error
-      if (apiErrorMessage.includes("E11000") && apiErrorMessage.includes("workplaceId")) {
-        alert(`รหัสหน่วยงาน ${data.workplaceId} มีอยู่แล้วในระบบ กรุณาใช้รหัสอื่น`);
-      } else {
-        alert(`เกิดข้อผิดพลาดจาก Server: ${apiErrorMessage}`);
-      }
-      
-      // ถ้า API ส่ง validation errors มา (เช่น required fields)
-      if (error.response.data.validationErrors) {
-        console.log("Validation errors:", error.response.data.validationErrors);
-        const validationErrors = error.response.data.validationErrors;
-        const errorList = Object.keys(validationErrors).map(key => 
-          `${key}: ${validationErrors[key]}`
-        ).join('\n');
-        alert(`ข้อมูลที่จำเป็นต้องกรอก:\n${errorList}`);
+    if (newWorkplace) {
+      // alert('Create Workplace');
+      try {
+        const response = await axios.post(endpoint + "/workplace/create", data);
+        // setEmployeesResult(response.data.employees);
+        if (response) {
+          alert("บันทึกสำเร็จ");
+        }
+      } catch (error) {
+        alert("กรุณาตรวจสอบข้อมูลในช่องกรอกข้อมูล");
+        // window.location.reload();
       }
     } else {
-      // Network error หรือ error อื่นๆ
-      alert("เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง");
-    }
-    
-    // แสดงข้อมูลที่ส่งไปให้ API เพื่อช่วยในการ debug
-    console.log("Data sent to API:", data);
-  }
-} else {
-  //update workplace data
+      //update workplace data
 
-  // Make the API call to update the resource by ID
-  try {
-    const response = await axios.put(
-      endpoint + "/workplace/update/" + _id,
-      data
-    );
-    // setEmployeesResult(response.data.employees);
+      // Make the API call to update the resource by ID
+      try {
+        const response = await axios.put(
+          endpoint + "/workplace/update/" + _id,
+          data
+        );
+        // setEmployeesResult(response.data.employees);
         if (response) {
           alert("บันทึกสำเร็จ");
           // Clear the query parameters
@@ -1448,6 +1320,8 @@ if (newWorkplace) {
   const [workDate_specialwork, setWorkDate_specialwork] = useState(null);
   const [workTimeDay_specialwork, setWorkTimeDay_specialwork] = useState({
     shift_specialwork: "",
+    beforeStartTime_specialwork:"",
+    beforeEndTime_specialwork:"",
     startTime_specialwork: "",
     endTime_specialwork: "",
     startTimeOT_specialwork: "",
@@ -1520,12 +1394,11 @@ if (newWorkplace) {
   };
 
   // ✅ Add work time to the list (FIXED ISSUE)
-  
-    const handleAddTimeList_specialwork = () => {
-  if (!workDate_specialwork) {
-    alert("กรุณาเลือกวันที่ก่อนเพิ่มรายการ");
-    return;
-  }
+  const handleAddTimeList_specialwork = () => {
+    if (!workDate_specialwork) {
+      alert("กรุณาเลือกวันที่ก่อนเพิ่มรายการ");
+      return;
+    }
 
     // ✅ Ensure data is properly saved before updating state
     const newEntry = {
@@ -1537,12 +1410,20 @@ if (newWorkplace) {
     setWorkTimeDayList_specialwork((prev) => [...prev, newEntry]);
 
     // Reset input fields
-    // ✅ Modified: Keep values and only reset specific fields
-    setWorkTimeDay_specialwork((prev) => ({
-      ...prev, // Keep all existing values
-      employees_specialwork: [], // Only reset employees list
-    }));
-    setWorkDate_specialwork(null); // Only reset date
+    setWorkTimeDay_specialwork({
+      shift_specialwork: "",
+      beforeStartTime_specailwork:"",
+      beforeEndTime_specailwaork:"",
+      startTime_specialwork: "",
+      endTime_specialwork: "",
+      startTimeOT_specialwork: "",
+      endTimeOT_specialwork: "",
+      payment_specialwork: "",
+      paymentOT_specialwork: "",
+      workDetail_specialwork: "",
+      employees_specialwork: [],
+    });
+    setWorkDate_specialwork(null);
   };
 
   // ✅ Remove a work time row
@@ -1551,7 +1432,7 @@ if (newWorkplace) {
   };
 
   return (
-    <div class="hold-transition sidebar-mini" className="editlaout">
+    <body class="hold-transition sidebar-mini" className="editlaout">
       <div class="wrapper">
         <div class="content-wrapper">
           {/* <!-- Content Header (Page header) --> */}
@@ -1693,7 +1574,7 @@ if (newWorkplace) {
                     <div class="row">
                       <div class="col-md-6">
                         <div class="form-group">
-                          <label role="workplaceId">รหัสหน่วยงาน<span style={{ color: "red" }}>*</span></label>
+                          <label role="workplaceId">รหัสหน่วยงาน</label>
                           <input
                             type="text"
                             class="form-control"
@@ -1713,7 +1594,7 @@ if (newWorkplace) {
                       </div>
                       <div class="col-md-6">
                         <div class="form-group">
-                          <label role="workplaceName">ชื่อหน่วยงาน<span style={{ color: "red" }}>*</span></label>
+                          <label role="workplaceName">ชื่อหน่วยงาน</label>
                           <input
                             type="text"
                             class="form-control"
@@ -1728,7 +1609,7 @@ if (newWorkplace) {
                     <div class="row">
                       <div class="col-md-6">
                         <div class="form-group">
-                          <label role="workplaceArea">สถานที่ปฏิบัติงาน<span style={{ color: "red" }}>*</span></label>
+                          <label role="workplaceArea">สถานที่ปฏิบัติงาน</label>
                           <input
                             type="text"
                             class="form-control"
@@ -1742,7 +1623,7 @@ if (newWorkplace) {
                       <div class="col-md-6">
                         <div class="form-group">
                           <label role="workOfWeek">
-                            จำนวนวันทำงานต่อสัปดาห์<span style={{ color: "red" }}>*</span>
+                            จำนวนวันทำงานต่อสัปดาห์
                           </label>
                           <input
                             type="text"
@@ -1768,47 +1649,10 @@ if (newWorkplace) {
 
                 <h2 class="title">เวลาทำงาน</h2>
                 <section class="Frame">
-                <div class="row align-items-end">
-                    <div class="col-md-3">
-                      <div class="form-group">
-                        <label role="startOT">ชั่วโมงทำงาน OT ก่อนเริ่มงาน</label>
-                        <input
-                          type="text"
-                          class="form-control"
-                          id="startOT"
-                          placeholder="ชั่วโมงทำงาน OT"
-                          value={startWorkOfOT}
-                          onChange={(e) => setStartWorkOfOT(e.target.value)}
-                          onInput={(e) => {
-                            // Remove any non-digit characters, including '.'
-                            e.target.value = e.target.value.replace(/[^0-9]/g, "");
-                          }}
-                        />
-                      </div>
-                    </div>
-                    <div class="col-md-3">
-                      <div class="form-group">
-                        {/* <label role="workOfOT">-</label> */}
-                        <input
-                          type="text"
-                          class="form-control"
-                          id="startOT"
-                          placeholder="นาที"
-                          value={startWorkOfOTMinute}
-                          onChange={(e) => setStartWorkOfOTMinute(e.target.value)}
-                          onInput={(e) => {
-                            // Remove any non-digit characters, including '.'
-                            e.target.value = e.target.value.replace(/[^0-9]/g, "");
-                          }}
-                        />
-                      </div>
-                    </div>
-</div>
-
                   <div class="row align-items-end">
                     <div class="col-md-3">
                       <div class="form-group">
-                        <label role="workOfHour">ชั่วโมงทำงาน<span style={{ color: "red" }}>*</span></label>
+                        <label role="workOfHour">ชั่วโมงทำงาน</label>
                         <input
                           type="text"
                           class="form-control"
@@ -1830,7 +1674,7 @@ if (newWorkplace) {
                           type="text"
                           // style={{ marginBottom: "0rem" }}
                           class="form-control "
-                          id="workOfHour"
+                          id="workOfOT"
                           placeholder="นาที"
                           value={workOfMinute}
                           onChange={(e) => setWorkOfMinute(e.target.value)}
@@ -1845,11 +1689,11 @@ if (newWorkplace) {
                   <div class="row align-items-end">
                     <div class="col-md-3">
                       <div class="form-group">
-                        <label role="endOT">ชั่วโมงทำงาน OT</label>
+                        <label role="workOfHour">ชั่วโมงทำงาน OT</label>
                         <input
                           type="text"
                           class="form-control"
-                          id="endOT"
+                          id="workOfHour"
                           placeholder="ชั่วโมงทำงาน OT"
                           value={workOfOT}
                           onChange={(e) => setWorkOfOT(e.target.value)}
@@ -1866,7 +1710,7 @@ if (newWorkplace) {
                         <input
                           type="text"
                           class="form-control"
-                          id="endOT"
+                          id="workOfOT"
                           placeholder="นาที"
                           value={workOfOTMinute}
                           onChange={(e) => setWorkOfOTMinute(e.target.value)}
@@ -1940,7 +1784,7 @@ if (newWorkplace) {
                 <div class="row">
                 <div class="col-md-3">
                       <div class="form-group">
-                        <label role="workRate">ค่าจ้าง รายวัน<span style={{ color: "red" }}>*</span></label>
+                        <label role="workRate">ค่าจ้าง รายวัน</label>
                         <input
                           type="text"
                           class="form-control"
@@ -2489,12 +2333,6 @@ if (newWorkplace) {
                                     <option value="หัวหน้าฝ่ายสโตร์">
                                       หัวหน้าฝ่ายสโตร์
                                     </option>
-                                     <option value="พนักงานคัดแยกขยะ">
-                                       พนักงานคัดแยกขยะ
-                                     </option>
-                              <option value="พนักงานคัดแยกสารเคมี">
-                                      พนักงานคัดแยกสารเคมี
-                              </option>
 
                             </select>
                           </div>
@@ -2919,6 +2757,63 @@ if (newWorkplace) {
                                 ))}
                               </select>
                             </div>
+                            
+                            <div class="col-md-2">
+                              <input
+                                type="text"
+                                class="form-control"
+                                placeholder={`Before Start Time ${index + 1}`}
+                                value={time.beforeStartTime}
+                                onChange={(e) =>
+                                  handleTimeChange(
+                                    index,
+                                    "beforeStartTime",
+                                    e.target.value
+                                  )
+                                }
+                                onInput={(e) => {
+                                  // Remove any non-digit characters
+                                  e.target.value = e.target.value.replace(
+                                    /[^0-9.]/g,
+                                    ""
+                                  );
+
+                                  // Ensure only one '.' is allowed
+                                  const parts = e.target.value.split(".");
+                                  if (parts.length > 2) {
+                                    e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
+                                  }
+                                }}
+                              />
+                            </div>
+                            <div class="col-md-2">
+                              <input
+                                type="text"
+                                class="form-control"
+                                placeholder={`Before End Time ${index + 1}`}
+                                value={time.beforeEndTime}
+                                onChange={(e) =>
+                                  handleTimeChange(
+                                    index,
+                                    "beforeEndTime",
+                                    e.target.value
+                                  )
+                                }
+                                onInput={(e) => {
+                                  // Remove any non-digit characters
+                                  e.target.value = e.target.value.replace(
+                                    /[^0-9.]/g,
+                                    ""
+                                  );
+
+                                  // Ensure only one '.' is allowed
+                                  const parts = e.target.value.split(".");
+                                  if (parts.length > 2) {
+                                    e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
+                                  }
+                                }}
+                              />
+                            </div>
                             <div class="col-md-2">
                               <input
                                 type="text"
@@ -3132,6 +3027,8 @@ if (newWorkplace) {
                             )}
 
                             <td style={cellStyle}>{item1.shift}</td>
+                            <td style={cellStyle}>{item1.beforeStartTime}</td>
+                            <td style={cellStyle}>{item1.beforeEndTime}</td>
                             <td style={cellStyle}>{item1.startTime}</td>
                             <td style={cellStyle}>{item1.endTime}</td>
                             <td style={cellStyle}>{item1.resultTime}</td>
@@ -3326,12 +3223,6 @@ if (newWorkplace) {
                               </option>
                               <option value="หัวหน้าฝ่ายสโตร์">
                                 หัวหน้าฝ่ายสโตร์
-                              </option>
-                              <option value="แม่บ้านจุดล้างจาน">
-                                แม่บ้านจุดล้างจาน
-                              </option>
-                              <option value="เจ้าหน้าที่ซ่อมบำรุง">
-                                เจ้าหน้าที่ซ่อมบำรุง
                               </option>
                             </select>
                           </div>
@@ -3598,48 +3489,44 @@ if (newWorkplace) {
                       </div>
                     )} */}
 
-                
-{selectedDates.length > 0 && (
-  <div>
-    วันหยุดหน่วยงาน (เดือน/วัน/ปี)
-    <br />
-    <ol>
-      {selectedDates
-        .sort((a, b) => new Date(a) - new Date(b)) // เรียงลำดับจากน้อยไปมาก
-        .map((date, index) => (
-          <li key={index}>
-            <div className="row">
-              <div
-                className="col-md-1"
-                style={{ borderTop: "2px solid black" }}
-              >
-                {date instanceof Date &&
-                  !isNaN(date.getTime())
-                  ? `${date.getDate()}/${date.getMonth() + 1
-                  }/${date.getFullYear() + 543}`
-                  : `${day}/${month}/${year + 543
-                  } (Invalid Date)`}
-              </div>
-              <div
-                className="col-md-1"
-                style={{ borderTop: "2px solid black" }}
-              >
-                <button
-                  type="button"
-                  onClick={() => handleRemoveDate(date)}
-                  className="btn clean"
-                  style={{ margin: "0.5rem", width: "6rem" }}
-                >
-                  ลบออก
-                </button>
-              </div>
-            </div>
-          </li>
-        ))}
-    </ol>
-  </div>
-)}
-
+                    {selectedDates.length > 0 && (
+                      <div>
+                        วันหยุดหน่วยงาน (เดือน/วัน/ปี)
+                        <br />
+                        <ol>
+                          {selectedDates.map((date, index) => (
+                            <li key={index}>
+                              <div className="row">
+                                <div
+                                  className="col-md-1"
+                                  style={{ borderTop: "2px solid black" }}
+                                >
+                                  {date instanceof Date &&
+                                    !isNaN(date.getTime())
+                                    ? `${date.getDate()}/${date.getMonth() + 1
+                                    }/${date.getFullYear() + 543}`
+                                    : `${day}/${month}/${year + 543
+                                    } (Invalid Date)`}
+                                </div>
+                                <div
+                                  className="col-md-1"
+                                  style={{ borderTop: "2px solid black" }}
+                                >
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveDate(date)}
+                                    className="btn clean"
+                                    style={{ margin: "0.5rem", width: "6rem" }}
+                                  >
+                                    ลบออก
+                                  </button>
+                                </div>
+                              </div>
+                            </li>
+                          ))}
+                        </ol>
+                      </div>
+                    )}
                   </div>
                   {/* <div>
                     <label>หมายเหตุ:</label>
@@ -3656,36 +3543,23 @@ if (newWorkplace) {
 <h2 class="title">ตั้งค่าวันทํางานพิเศษ</h2>
 <section className="Frame">
       {/* Date Selection */}
-      <div className="row mb-3 align-items-center">
-    <div className="col-md-2">เลือกวันที่</div>
-    <div className="col-md-2">
-      <DatePicker
-        selected={workDate_specialwork}
-        onChange={setWorkDate_specialwork}
-        dateFormat="dd/MM/yyyy"
-        className="form-control"
-      />
-    </div>
-    
-    {/* Selection Dropdown */}
-    <div className="col-md-2">
-      <select className="form-control">
-        <option value="clear">เคลียร์</option>
-        <option value="job">จ๊อบ</option>
-        <option value="job-speacial">OT จ้างเสริมนอกเวลาสัญญา</option>
-      </select>
-    </div>
-
-    {/* Textbox */}
-    <div className="col-md-2">ค่าใช้จ่ายหน่วยงาน</div>
-    <div className="col-md-2">
-      <input type="text" className="form-control" placeholder="รหัสหน่วยงาน" />
-    </div>
-  </div>
+      <div className="row mb-3">
+        <div className="col-md-2">เลือกวันที่</div>
+        <div className="col-md-2">
+          <DatePicker
+            selected={workDate_specialwork}
+            onChange={setWorkDate_specialwork}
+            dateFormat="dd/MM/yyyy"
+            className="form-control"
+          />
+        </div>
+      </div>
 
 {/* Work Time Inputs using Bootstrap Grid */}
   <div className="row text-center font-weight-bold mb-2">
     <div className="col-md-1">กะ</div>
+    <div className="col-md-1">เวลาเข้า OT ก่อนเริ่มงาน</div>
+    <div className="col-md-1">เวลาออก OT ก่อนเริ่มงาน</div>
     <div className="col-md-1">เวลาเข้า</div>
     <div className="col-md-1">เวลาออก</div>
     <div className="col-md-1">เวลาเข้า OT</div>
@@ -3712,7 +3586,7 @@ if (newWorkplace) {
       </select>
     </div>
 
-    {["startTime_specialwork", "endTime_specialwork", "startTimeOT_specialwork", "endTimeOT_specialwork", "payment_specialwork", "paymentOT_specialwork"].map((field, idx) => (
+    {["startTime_specialwork","beforeStartTime_specialwork","beforeEndTime_specialwork", "endTime_specialwork", "startTimeOT_specialwork", "endTimeOT_specialwork", "payment_specialwork", "paymentOT_specialwork"].map((field, idx) => (
       <div key={idx} className="col-md-1">
         <input
           type="text"
@@ -3818,6 +3692,8 @@ if (newWorkplace) {
           <tr key={index}>
             <td>{item.day_specialwork}</td>
             <td>{item.shift_specialwork}</td>
+            <td>{item.beforeStartTime_specialwork}</td>
+            <td>{item.beforeEndTime_specialwork}</td>
             <td>{item.startTime_specialwork}</td>
             <td>{item.endTime_specialwork}</td>
             <td>{item.startTimeOT_specialwork}</td>
@@ -3826,33 +3702,16 @@ if (newWorkplace) {
             <td>{item.paymentOT_specialwork} บาท</td>
             <td>{item.workDetail_specialwork}</td>
             <td>
-  {item.employees_specialwork.length > 0 ? (
-    item.employees_specialwork.map((emp, i) => (
-      <div key={i} style={{ marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <span>{emp.positionWork_specialwork} - </span>
-        <input
-          type="text"
-          value={emp.countPerson_specialwork}
-          onChange={(e) => handleInlineEdit_specialwork(index, i, e.target.value)}
-          onInput={(e) => {
-            // Allow only numbers
-            e.target.value = e.target.value.replace(/[^0-9]/g, "");
-          }}
-          style={{
-            width: '30px',
-            padding: '2px 5px',
-            border: '1px solid #ccc',
-            borderRadius: '3px',
-            textAlign: 'center'
-          }}
-        />
-        <span>คน</span>
-      </div>
-    ))
-  ) : (
-    <span>-</span>
-  )}
-</td>
+              {item.employees_specialwork.length > 0 ? (
+                item.employees_specialwork.map((emp, i) => (
+                  <div key={i}>
+                    {emp.positionWork_specialwork} - {emp.countPerson_specialwork} คน
+                  </div>
+                ))
+              ) : (
+                <span>-</span>
+              )}
+            </td>
             <td>
               <button type="button" className="btn btn-danger" onClick={() => handleRemoveTimeList_specialwork(index)}>
                 ลบ
@@ -3940,7 +3799,7 @@ if (newWorkplace) {
         </div>
       </div>
       {/* {JSON.stringify(workTimeDayPersonList, null, 2)} */}
-    </div>
+    </body>
   );
 }
 
