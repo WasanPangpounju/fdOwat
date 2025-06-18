@@ -4641,7 +4641,7 @@ timeCashWorkMul[record?.cashOtMul ] += parseFloat(record.beforeTotalOtTime || '0
     } else {
 
       if(record?.dayType === "work") {
-        dayWorkCount += 1;
+        dayWorkCount += 0;
 sumTimeWork = sumTimeWork  + parseFloat(record.totalTime || '0');
 sumTimeOt = sumTimeOt  + parseFloat(record.beforeTotalOtTime || '0') + parseFloat(record.totalOtTime  || '0');
         sumCashWork  = sumCashWork  + parseFloat(record?.cashWork || '0');
