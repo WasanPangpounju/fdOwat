@@ -1,6 +1,6 @@
 const connectionString = require('../config');
 
-const Workplace = require('./models/workplaceModel');
+const {Workplace} = require('./models/workplaceModel');
 
 var express = require('express');
 var router = express.Router();
@@ -281,6 +281,7 @@ router.post('/create', async (req, res) => {
         workRateDayoffNumber,
         workRateDayoffRate,
         daysOff,
+        daysOffMap,
         workplaceAddress,
         reason,
         employeeIdList,
@@ -364,6 +365,7 @@ router.post('/create', async (req, res) => {
         workRateDayoffNumber,
         workRateDayoffRate,
         daysOff,
+                daysOffMap,
         workplaceAddress,
         reason,
         employeeIdList,
