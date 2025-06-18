@@ -1050,8 +1050,8 @@ const getDateStyle = (day) => {
       case 'weekendAndDayOff':
         // ซ่อนเลขวันที่สำหรับ weekendAndDayOff
         return { 
-          backgroundColor: 'rgb(255, 255, 84)', 
-          color: '' // ทำให้ตัวอักษรโปร่งใส
+          backgroundColor: 'rgb(79 ,173,234)', 
+          color: '' 
         }; 
       default:
         return {};

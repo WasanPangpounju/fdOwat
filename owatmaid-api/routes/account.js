@@ -4606,7 +4606,7 @@ if (!timeCashWorkMul[record?.cashWorkMul]) {
             // console.log(`วันที่ ${record?.date} อยู่ใน selectedSpecialDays`);
             specialDay   = specialDay   -1;
                       console.log(JSON.stringify(selectedSpecialDays,null,2))
-          console.log(record?.date)
+          console.log("2วัน",record?.date)
 
           } else {
             // console.log(`วันที่ ${record?.date} ไม่อยู่ใน selectedSpecialDays`);
