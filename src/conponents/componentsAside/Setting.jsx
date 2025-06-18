@@ -518,7 +518,7 @@ function Setting({ workplaceList, employeeList }) {
 
     setWorkRateDayChange(currentDate.getDate()); // Day of the month (1-31) 
    setWorkRateMonthChange(currentDate.getMonth() + 1); // Month (0-11) - Add 1 to get 1-12
-   setWorkRateYearChange( currentDate.getFullYear()); // Year (e.g., 2025)
+   setWorkRateYearChange( currentDate.getFullYear());   // Year (e.g., 2025)
 }, [workRateChange ] );
 
 
@@ -859,6 +859,8 @@ function Setting({ workplaceList, employeeList }) {
       searchWorkplaceId: searchWorkplaceId,
       searchWorkplaceName: searchWorkplaceName,
     };
+     console.log("Data to be sent:", JSON.stringify(data, null, 2));
+
 
     try {
       const response = await axios.post(endpoint + "/workplace/search", data);
@@ -3702,6 +3704,7 @@ setWorkRateChange(workplace.workRateChange)
             <td>{item.paymentOT_specialwork} บาท</td>
             <td>{item.workDetail_specialwork}</td>
             <td>
+<<<<<<< HEAD
               {item.employees_specialwork.length > 0 ? (
                 item.employees_specialwork.map((emp, i) => (
                   <div key={i}>
@@ -3712,6 +3715,35 @@ setWorkRateChange(workplace.workRateChange)
                 <span>-</span>
               )}
             </td>
+=======
+  {item.employees_specialwork.length > 0 ? (
+    item.employees_specialwork.map((emp, i) => (
+      <div key={i} style={{ marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <span>{emp.positionWork_specialwork}  </span>
+        <input
+          type="text"
+          value={emp.countPerson_specialwork}
+          onChange={(e) => handleInlineEdit_specialwork(index, i, e.target.value)}
+          onInput={(e) => {
+            // Allow only numbers
+            e.target.value = e.target.value.replace(/[^0-9]/g, "");
+          }}
+          style={{
+            width: '20px',
+            padding: '2px 5px',
+            border: '1px solid #ccc',
+            borderRadius: '3px',
+            textAlign: 'center'
+          }}
+        />
+        <span>คน</span>
+      </div>
+    ))
+  ) : (
+    <span>-</span>
+  )}
+</td>
+>>>>>>> 1b5ad23cd17e9f4029786ccc5f6e1370d47ff5cf
             <td>
               <button type="button" className="btn btn-danger" onClick={() => handleRemoveTimeList_specialwork(index)}>
                 ลบ
