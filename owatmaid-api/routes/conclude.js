@@ -2116,7 +2116,7 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
       // ตรวจสอบเพิ่มเติมสำหรับวันที่ 10 มิถุนายน 2025
       if (dateStr === "2025-06-10") {
         console.log(`🔍 ตรวจพบวันที่ ${dateStr} เป็นวันหยุดพิเศษตามเงื่อนไขเฉพาะ -> กำหนด dayType = stop`);
-        dataCal.dayType = 'stop';
+        dataCal.dayType = 'work';
         return dataCal;
       }
       
