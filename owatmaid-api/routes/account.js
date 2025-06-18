@@ -4641,7 +4641,7 @@ timeCashWorkMul[record?.cashOtMul ] += parseFloat(record.beforeTotalOtTime || '0
     } else {
 
       if(record?.dayType === "work") {
-        dayWorkCount += 0;
+        dayWorkCount += 1;
 sumTimeWork = sumTimeWork  + parseFloat(record.totalTime || '0');
 sumTimeOt = sumTimeOt  + parseFloat(record.beforeTotalOtTime || '0') + parseFloat(record.totalOtTime  || '0');
         sumCashWork  = sumCashWork  + parseFloat(record?.cashWork || '0');
@@ -4652,6 +4652,7 @@ sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
 
 timeCashWorkMul[record?.cashWorkMul] += parseFloat(record.totalTime || '0');
 timeCashWorkMul[record?.cashOtMul ] += parseFloat(record.beforeTotalOtTime || '0') + parseFloat(record.totalOtTime  || '0');
+
 
   // Handle addSalaryDailyList clearly:
   if (record.addSalaryDaily && record.addSalaryDaily.length > 0) {
@@ -4665,6 +4666,43 @@ const amount = parseFloat(salaryItem.SpSalary || 0);
 const existingItem = addSalaryList.find(
   item => String(item.id).trim() === cleanSalaryItemId
 );
+// แก้ไขในฟังก์ชัน calculateCashValues ประมาณบรรทัด 4641-4666
+
+if(record?.dayType === "work") {
+  dayWorkCount += 1;
+  sumTimeWork = sumTimeWork + parseFloat(record.totalTime || '0');
+  sumTimeOt = sumTimeOt + parseFloat(record.beforeTotalOtTime || '0') + parseFloat(record.totalOtTime || '0');
+  sumCashWork = sumCashWork + parseFloat(record?.cashWork || '0');
+  sumCashOt = sumCashOt + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0');
+
+  sumCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
+  sumCashWorkMul[record?.cashOtMul] += parseFloat(record?.cashBeforeOt || '0');
+
+  timeCashWorkMul[record?.cashWorkMul] += parseFloat(record.totalTime || '0');
+  timeCashWorkMul[record?.cashOtMul] += parseFloat(record.beforeTotalOtTime || '0') + parseFloat(record.totalOtTime || '0');
+
+  // Handle addSalaryDailyList clearly:
+  if (record.addSalaryDaily && record.addSalaryDaily.length > 0) {
+    //  addSalaryList = [];
+    // console.log('record.addSalaryDaily.length  ' + record.addSalaryDaily.length )
+    record.addSalaryDaily.forEach((salaryItem) => {
+      // ... existing code for handling daily salary
+    });
+  }
+} 
+// เพิ่มเงื่อนไขให้นับวันที่มีการจ่ายเงินถึงแม้จะไม่ใช่วันทำงานปกติ
+else if (record?.cashWork && parseFloat(record?.cashWork) > 0) {
+  dayWorkCount += 1;
+  sumTimeWork = sumTimeWork + parseFloat(record.totalTime || '0');
+  sumCashWork = sumCashWork + parseFloat(record?.cashWork || '0');
+  
+  // เพิ่ม sumCashWorkMul และ timeCashWorkMul ตามวันที่มีการจ่ายเงิน
+  if (record?.cashWorkMul) {
+    sumCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
+    timeCashWorkMul[record?.cashWorkMul] += parseFloat(record.totalTime || '0');
+  }
+}
+
 
 // console.log('cleanSalaryItemId ' + cleanSalaryItemId)
 if(existingItem ){
