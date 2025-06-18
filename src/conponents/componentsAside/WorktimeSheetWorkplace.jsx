@@ -9303,27 +9303,27 @@ const overtimeLabels = [    "ค่าทำงานวันหยุด(ร�
   );
 })}
 
-                    <td className="text-center align-middle">
+                    <td className="text-center text-red align-middle">
                       {/* รวมวันทำงาน */}
                     {record.dayWorkCount || ''} 
                       </td>
 
-                    <td className="text-center align-middle">
+                    <td className="text-center text-red align-middle">
                       {/* รวมทำงานวันหยุด */}
                     {record.dayOffCount || ''} 
                       </td>
 
                       
 
-                    <td className="text-center align-middle">
+                    <td className="text-center text-red align-middle">
                     {/* รวมวันหยุดนักขัต */}
                     {record.specialDayOff || ''} 
                     </td>
                     <td></td>
 
-                    <td className="text-center align-middle">
-                      {/* เงิน 1.5 */}
-                    {record.sumCashWorkMul["1"] || ''} 
+                    <td className="text-center text-red align-middle">
+                      {/* จำนวนวันทำงานปกติ */}
+                    {record.dayWorkCount || ''} 
                     </td>
                     
 
@@ -9332,9 +9332,10 @@ const overtimeLabels = [    "ค่าทำงานวันหยุด(ร�
                     {record.sumCashWorkMul["1.5"] || ''} 
                     </td>
 
-                    <td className="text-center align-middle">
-                      {/* เงิน 2 */}
-                    {record.sumCashWorkMul["2"] || ''} 
+                    <td className="text-center align-middle text-red">
+                      {/* วัน2เท่า  */}
+                      {record.dayOffCount || ''} 
+                    
                     </td>
 
                     <td className="text-center align-middle">
@@ -9380,11 +9381,16 @@ const overtimeLabels = [    "ค่าทำงานวันหยุด(ร�
                       {record.cashSpecialDay || ''}
                       </td>
 
-                    {Array.from({ length: 2 }, (_, i) => (
+                    {Array.from({ length: 1 }, (_, i) => (
                       <td key={i}></td>
                     ))}
+                    {/* คำนวณเงินทำงาน*/}
+                    <td>{record.sumCashWorkMul["1"] || ''} </td>
+                    <td></td>
+                    
+                    <td>{record.sumCashWorkMul["2"] || ''} </td>
 
-                    {Array.from({ length: 5 }).map((_, i) => (
+                    {Array.from({ length: 3 }).map((_, i) => (
                         <td key={i} className="text-center"></td>
                     ))}              
 
