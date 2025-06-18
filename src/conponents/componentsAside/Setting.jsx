@@ -509,7 +509,7 @@ function Setting({ workplaceList, employeeList }) {
 
     setWorkRateDayChange(currentDate.getDate()); // Day of the month (1-31) 
    setWorkRateMonthChange(currentDate.getMonth() + 1); // Month (0-11) - Add 1 to get 1-12
-   setWorkRateYearChange( currentDate.getFullYear()); // Year (e.g., 2025)
+   setWorkRateYearChange( currentDate.getFullYear());   // Year (e.g., 2025)
 }, [workRateChange ] );
 
 
@@ -852,6 +852,8 @@ function Setting({ workplaceList, employeeList }) {
       searchWorkplaceId: searchWorkplaceId,
       searchWorkplaceName: searchWorkplaceName,
     };
+     console.log("Data to be sent:", JSON.stringify(data, null, 2));
+
 
     try {
       const response = await axios.post(endpoint + "/workplace/search", data);
@@ -3829,7 +3831,7 @@ if (newWorkplace) {
   {item.employees_specialwork.length > 0 ? (
     item.employees_specialwork.map((emp, i) => (
       <div key={i} style={{ marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <span>{emp.positionWork_specialwork} - </span>
+        <span>{emp.positionWork_specialwork}  </span>
         <input
           type="text"
           value={emp.countPerson_specialwork}
@@ -3839,7 +3841,7 @@ if (newWorkplace) {
             e.target.value = e.target.value.replace(/[^0-9]/g, "");
           }}
           style={{
-            width: '30px',
+            width: '20px',
             padding: '2px 5px',
             border: '1px solid #ccc',
             borderRadius: '3px',

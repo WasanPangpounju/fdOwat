@@ -125,11 +125,11 @@ function AsideLeft() {
                 <Link to="/dashboard" className="nav-link"><i className="nav-icon fas fa-tachometer-alt"></i> หน้าหลัก</Link>
               </li>
               <li className="nav-item">
-                <Link to="/addsettime" className="nav-link"><i className="nav-icon fas fa-business-time"></i> ระบบลงเวลา</Link>
+                <Link to="/addsettime" className="nav-link bg-success"><i className="nav-icon fas fa-business-time b"></i> ระบบลงเวลา</Link>
               </li>
 
               <li className="nav-item">
-                <a href="#" className="nav-link" onClick={toggleSubMenu3}>
+                <a href="#" className="nav-link bg-success" onClick={toggleSubMenu3}>
                   <i className="nav-icon fas fa-file-invoice-dollar"></i>
                   <p> ระบบเงินเดือน
                     {/* <i className="right fas fa-angle-left"></i><i className=""></i> */}
@@ -151,16 +151,16 @@ function AsideLeft() {
                         <Link to="/examine" className="nav-link"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px", marginLeft: '1rem' }}></i> เวลาทำงานรายบุคคล</Link>
                       </li> */}
                       <li className="nav-item">
-                        <Link to="/compensation" className="nav-link"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px", marginLeft: '1rem' }}></i> ค่าตอบแทนรายบุคคล</Link>
+                        <Link to="/compensation" className="nav-link bg-success"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px", marginLeft: '1rem' }}></i> ค่าตอบแทนรายบุคคล</Link>
                       </li>
                       <li className="nav-item">
-                        <Link to="/salaryresult" className="nav-link"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px", marginLeft: '1rem' }}></i> เงินเดือนรายบุคคล</Link>
+                        <Link to="/salaryresult" className="nav-link bg-success"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px", marginLeft: '1rem' }}></i> เงินเดือนรายบุคคล</Link>
                       </li>
                       <li className="nav-item">
                         <Link to="/salaryAllresult" className="nav-link"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px", marginLeft: '1rem' }}></i> ออกรายงานเงินเดือนพนักงาน</Link>
                       </li>
-                      <li className="nav-item">
-                        <Link to="/worktimesheetworkplace" className="nav-link"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px", marginLeft: '1rem' }}></i> ตารางเวลาทำงานพนักงาน</Link>
+                      <li className="nav-item bg-success">
+                        <Link to="/worktimesheetworkplace" className="nav-link"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px", marginLeft: '1rem' }}></i> ตารางเวลาทำงานพนักงาน (ตาราง 8)</Link>
                       </li>
                       <li className="nav-item">
                         <Link to="/worktimesheetworkplaceSpace" className="nav-link"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px", marginLeft: '1rem' }}></i> ตารางเวลาทำงานพนักงานหน่วยพิเศษ</Link>
@@ -352,7 +352,7 @@ function AsideLeft() {
                 )}
               </li>
               <li className="nav-item">
-                <a href="#" className="nav-link" onClick={toggleSubMenu2}>
+                <a href="#" className="nav-link bg-success " onClick={toggleSubMenu2}>
                   <i className="nav-icon fas fa-shopping-cart"></i>
                   <p> การตั้งค่า
                     {/* <i className="right fas fa-angle-left"></i><i className=""></i> */}
@@ -371,7 +371,7 @@ function AsideLeft() {
                       <li className="nav-item">
                         <Link to="/systemuser" className="nav-link"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px" }}></i> ผู้ใช้งานระบบ</Link>
                       </li>
-                      <li className="nav-item">
+                      <li className="nav-item bg-success">
                         <Link to="/setting" className="nav-link"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px" }}></i> ตั้งค่าหน่วยงาน</Link>
                       </li>
                       <li className="nav-item">

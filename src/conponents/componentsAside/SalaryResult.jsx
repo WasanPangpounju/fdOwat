@@ -746,10 +746,15 @@ function Salaryresult() {
     setWsAmountSpecialDay(Number(e.target.value));
   };
 
-  const handleUpdateStatus = (updateStatus) => {
-    setUpdateStatus(updateStatus);
-    // alert(updateStatus );
-  };
+ const handleUpdateStatus = (status) => {
+  setUpdateStatus(status);
+  
+  // เรียกใช้ handleReLoad ทันทีหลังจากอัพเดทสถานะ
+  setTimeout(() => {
+    handleReLoad();
+    alert("อัพเดทข้อมูลเรียบร้อยแล้ว");
+  }, 100); // delay เล็กน้อยเพื่อให้ state อัพเดทก่อน
+};
 
   //sum salary before deduct
   useEffect(() => {
@@ -1860,20 +1865,18 @@ function Salaryresult() {
   };
  
   
-  useEffect(() => {
-    if(accountingResult?.[0]?.socialSecurity ){
+useEffect(() => {
+  if(accountingResult?.[0]?.socialSecurity ){
     const ssBase = parseFloat(accountingResult?.[0]?.socialSecurity || 0);
     const cash = parseFloat(localCashSpecialDay || 0);
     const ss = ssBase + cash * 0.05;
-    const roundedSS = Math.round(ss); // หรือ .toFixed(2) ก็ได้
-  if(roundedSS  >750) {
-    roundedSS  = 750;
-  }
-    setLocalSocialSecurity(roundedSS);
+    let roundedSS = Math.round(ss); // เปลี่ยนจาก const เป็น let
+    if(roundedSS > 750) {
+      roundedSS = 750;
     }
-
-  }, [localCashSpecialDay]); // รันทุกครั้งที่ cash หรือ ss base เปลี่ยน
-
+    setLocalSocialSecurity(roundedSS);
+  }
+}, [localCashSpecialDay]);
   async function handleSearchAccounting() {
     event.preventDefault();
 
@@ -2547,10 +2550,13 @@ try {
                     <div class="line_btn">
                       <button
                         type="button"
-                        onClick={() => handleUpdateStatus("update")}
-                        class="btn b_save"
+                        onClick={() => {
+                          handleUpdateStatus("update");
+                          setTimeout(() => handleReLoad(), 100);
+                        }}
+                        className="btn b_save"
                       >
-                        <i class=""></i> &nbsp;คำนวณใหม่
+                        <i className=""></i> &nbsp;คำนวณใหม่
                       </button>
                     </div>
                   </div>

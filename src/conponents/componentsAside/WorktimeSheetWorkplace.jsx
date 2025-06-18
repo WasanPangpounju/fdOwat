@@ -993,6 +993,8 @@ if(sortedData.length > 0) {
   };
   // เพิ่มฟังก์ชันสำหรับกำหนดสีตามประเภทวัน
 
+// ...existing code...
+
 const getDateStyle = (day) => {
   // ตรวจสอบว่ามี year และ month หรือไม่
   if (!year || !month) {
@@ -1035,18 +1037,22 @@ const getDateStyle = (day) => {
         
         if (dayOfWeek === 6) {
           // วันเสาร์ - สีฟ้า
-          return { backgroundColor: '#ADD8E6', color: '#000' }; 
+          return { backgroundColor: 'rgb(79 ,173,234)', color: '#000' }; 
         } else if (dayOfWeek === 0) {
           // วันอาทิตย์ - สีแดง
-          return { backgroundColor: '#ffcccc', color: '#000' }; 
+          return { backgroundColor: 'rgb(234, 51, 35)', color: '#000' }; 
         } else {
           // วันหยุดอื่นๆ - สีแดง
           return { backgroundColor: '#ffcccc', color: '#000' }; 
         }
       case 'dayOff':
-        return { backgroundColor: '#ffff99', color: '#000' }; 
+        return { backgroundColor: 'rgb(255, 255, 84)', color: '#000' }; 
       case 'weekendAndDayOff':
-        return { backgroundColor: '#ffaa99', color: '#000' }; 
+        // ซ่อนเลขวันที่สำหรับ weekendAndDayOff
+        return { 
+          backgroundColor: 'rgb(255, 255, 84)', 
+          color: '' // ทำให้ตัวอักษรโปร่งใส
+        }; 
       default:
         return {};
     }
@@ -1054,6 +1060,8 @@ const getDateStyle = (day) => {
   
   return {}; // ไม่มีสี
 };
+
+// ...existing code...
 
   ///PDF///////////////////////
   // const [dataset, setDataset] = useState([]);
@@ -8877,8 +8885,8 @@ const dayNumbers = [
   "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31",
   "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20"
 ];
-const overtimeLabels = [    "ค่าทำงานวันหยุด",
-    "วันนักขัต","โอที1","โอที 1","โอที 1.5","โอที 2","โอที 3"
+const overtimeLabels = [    "ค่าทำงานวันหยุด(รวมโอที) ",
+    "วันนักขัต","โอที1","โอที 1","โอที 1.5","โอที 2 (ทำงานวันหยุด)","โอที 3"
 ];
 
 
@@ -9170,12 +9178,12 @@ const overtimeLabels = [    "ค่าทำงานวันหยุด",
                         ค้นหา
                       </button>
                       <button
-                        onClick={generatePDF987}
-                        style={{ marginLeft: "1rem", width: "10rem" }}
+                        // onClick={generatePDF987}
+                        style={{ marginLeft: "1rem", width: "10rem", backgroundColor: "gray" }}
                         class="btn b_save"
                       >
-                        <i class="nav-icon fas fa-search"></i>
-                        ดาวน์โหลดไฟล์
+                        {/* <i class="nav-icon fas fa-search"></i> */}
+                        ดาวน์โหลดไฟล์ <br />กำลังพัฒนา
                       </button>
                       <div className="pt-3">
                           <div className="table table-responsive" >
@@ -9393,20 +9401,16 @@ const overtimeLabels = [    "ค่าทำงานวันหยุด",
 
                     
 
-{dayNumbers.map((day, i) => {
-                        const found = record?.employee_record?.find(itemx => itemx.date === day);
-                    return (
-                      <td key={i} className="">
-                        {found?.cashOtMul?.trim()
-                          ? [found.beforeTotalOtTime, found.totalOtTime].filter(Boolean).join(',')
-                          : ''}
-                      </td>
-                    );
-
-                    })}
-                   {Array.from({ length:10 },(_, i)=>(
-                    <td key={i}></td>
-                   ))}
+                {dayNumbers.map((day, i) => {
+                  const found = record?.employee_record?.find(itemx => itemx.date === day);
+                  return (
+                    <td key={i} className="">
+                      {found?.cashOtMul?.trim() && found?.dayType !== "stop"
+                        ? [found.beforeTotalOtTime, found.totalOtTime].filter(Boolean).join(',')
+                        : ''}
+                    </td>
+                  );
+                })}
 
 
 
@@ -9421,6 +9425,15 @@ const overtimeLabels = [    "ค่าทำงานวันหยุด",
 {workplaceAddsalary.map((item, i) => (
                         <td key={i} className="text-center"></td>
                     ))}
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
       
                     </tr>
                     {/*  */}
@@ -9429,13 +9442,17 @@ const overtimeLabels = [    "ค่าทำงานวันหยุด",
                     
                     <td><span style={{ paddingLeft: "75px" }}>โอที 2</span></td>
                     {dayNumbers.map((day, i) => {
-  const found = record?.employee_record?.find(itemx => itemx.date === day);
+const found = record?.employee_record?.find(itemx => itemx.date === day);
   return (
-    <td key={i} className="text-center">
+    <td 
+      key={i} 
+      className="text-red"
+      style={found?.dayType === "stop" && found.totalTime ? {backgroundColor: "yellow"} : {}}
+    >
       {found?.dayType === "stop" ? found.totalTime : ''}
     </td>
   );
-})}                  
+})}            
 {Array.from({ length: 10 }, (_, i) => (
   <td key={i}></td>
 ))}
@@ -9455,16 +9472,30 @@ const overtimeLabels = [    "ค่าทำงานวันหยุด",
                         ))}
                     </tr> */}
 
-                    <tr className="" >
-              <td > </td>
-              <td><span style={{ paddingLeft: "75px" }}>โอที 3 </span></td>
-              {Array.from({ length: 41 }).map((_, i) => (
-                <td key={i} className="text-center"></td>
-              ))}
-              {workplaceAddsalary.map((item, i) => (
-                <td key={i} className="text-center"></td>
-              ))}
-            </tr>
+                    <tr className="">
+  <td></td>
+  <td><span style={{ paddingLeft: "75px" }}>โอที 3 </span></td>
+  {dayNumbers.map((day, i) => {
+    // Find the record for this specific day
+    const found = record?.employee_record?.find(itemx => itemx.date === day);
+    
+    // Check if this is a "stop" day with overtime values
+    return (
+      <td key={i} className="text-center">
+        {found?.dayType === "stop" && found?.cashOtMul?.trim()
+          ? [found.beforeTotalOtTime, found.totalOtTime].filter(Boolean).join(',')
+          : ''}
+      </td>
+    );
+  })}
+  {/* Add the remaining empty cells to maintain table structure */}
+  {Array.from({ length: 41 - dayNumbers.length }).map((_, i) => (
+    <td key={i + dayNumbers.length} className="text-center"></td>
+  ))}
+  {workplaceAddsalary.map((item, i) => (
+    <td key={i} className="text-center"></td>
+  ))}
+</tr>
 
                     </>
 
