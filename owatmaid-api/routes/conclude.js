@@ -2114,12 +2114,11 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
       }
       
       // ตรวจสอบเพิ่มเติมสำหรับวันที่ 10 มิถุนายน 2025
-      // ตรวจสอบเพิ่มเติมสำหรับวันที่ 10 มิถุนายน 2025
-        if (dateStr === "2025-06-10") {
-          console.log(`🔍 ตรวจพบวันที่ ${dateStr} เป็นวันทำงานปกติตามเงื่อนไขเฉพาะ -> กำหนด dayType = work`);
-          dataCal.dayType = 'work';
-          return dataCal;
-        }
+      if (dateStr === "2025-06-10") {
+        console.log(`🔍 ตรวจพบวันที่ ${dateStr} เป็นวันหยุดพิเศษตามเงื่อนไขเฉพาะ -> กำหนด dayType = stop`);
+        dataCal.dayType = 'stop';
+        return dataCal;
+      }
       
       // ตรวจสอบว่าเป็นวันทำงานปกติหรือไม่ (จันทร์-ศุกร์)
       if (dayOfWeek >= 1 && dayOfWeek <= 5) { // 1 = จันทร์, 5 = ศุกร์
