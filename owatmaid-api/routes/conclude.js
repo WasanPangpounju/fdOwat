@@ -1920,6 +1920,7 @@ function getWeekendDates(yyyy, mm, daysOff = []) {
   })).sort((a, b) => a.date.localeCompare(b.date));
 }
 
+
 const checkdayType = (startText , endText , dayNumber ) => {
 const dayList = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัส", "ศุกร์", "เสาร์"];
 const start = dayList.indexOf(startText);
@@ -2116,7 +2117,7 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
       // ตรวจสอบเพิ่มเติมสำหรับวันที่ 10 มิถุนายน 2025
       if (dateStr === "2025-06-10") {
         console.log(`🔍 ตรวจพบวันที่ ${dateStr} เป็นวันหยุดพิเศษตามเงื่อนไขเฉพาะ -> กำหนด dayType = stop`);
-        dataCal.dayType = 'work';
+        dataCal.dayType = 'stop';
         return dataCal;
       }
       
