@@ -2117,9 +2117,9 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
         }
       }
       
-      // ตรวจสอบวันอาทิตย์โดยตรง
+      // ตรวจสอบวันอาทิตย์โดยตรง - สำคัญที่สุดต้องตรวจสอบก่อน
       if (dayOfWeek === 0) { // วันอาทิตย์
-        console.log(`📅 ตรวจสอบวันอาทิตย์: ${dateStr}`);
+        console.log(`� ตรวจสอบวันอาทิตย์: ${dateStr} - กำหนดเป็น stop เสมอ`);
         
         // ตรวจสอบว่ามีใน sundayOnly ไหม
         if (weekendData.sundayOnly && weekendData.sundayOnly.includes(dateStr)) {
@@ -2171,16 +2171,6 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
         return dataCal;
       }
       
-      // ตรวจสอบเพิ่มเติมสำหรับวันอาทิตย์ ไม่ว่าจะอยู่ใน saturdaySundayOnly หรือไม่
-      if (dayOfWeek === 0) { // วันอาทิตย์
-        console.log(`🔍 ตรวจพบวันอาทิตย์ที่ ${dateStr} -> กำหนด dayType = stop และค่าแรง 2 เท่า`);
-        dataCal.dayType = 'stop';
-        // กำหนดตัวคูณค่าแรงวันอาทิตย์เป็น 2 เท่า
-        dataCal.dayoffRateHour = 2;
-        dataCal.dayoffRateOT = 3; // โอทีวันอาทิตย์ 3 เท่า
-        return dataCal;
-      }
-      
       // ตรวจสอบว่าเป็นวันทำงานปกติหรือไม่ (จันทร์-ศุกร์)
       if (dayOfWeek >= 1 && dayOfWeek <= 5) { // 1 = จันทร์, 5 = ศุกร์
         console.log(`✅ วันที่ ${dateStr} เป็นวันทำงานปกติ (${['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'][dayOfWeek]}) -> dayType = work`);
@@ -2204,17 +2194,30 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
       console.error('เกิดข้อผิดพลาดในการเรียก API วันหยุด:', error.message);
       // ดำเนินการต่อหากการเรียก API ล้มเหลว
       
-      // สร้าง Date object เพื่อตรวจสอบว่าเป็นวันอะไรในสัปดาห์
       try {
-        const dateObj = new Date(dateStr);
+        const dateObj = new Date(date); // ใช้ date ที่ส่งเข้ามาโดยตรง
         const dayOfWeek = dateObj.getDay(); // 0 = อาทิตย์, ..., 6 = เสาร์
         
-        // ตรวจสอบว่าเป็นวันอาทิตย์
+        // ตรวจสอบว่าเป็นวันอาทิตย์ - ต้องเป็น stop เสมอ
         if (dayOfWeek === 0) { // วันอาทิตย์
-          console.log(`🔍 ตรวจพบวันอาทิตย์ที่ ${dateStr} (ในกรณีมีข้อผิดพลาด) -> กำหนด dayType = stop และค่าแรง 2 เท่า`);
+          console.log(`� ตรวจพบวันอาทิตย์ที่ ${date} (ในกรณีมีข้อผิดพลาด) -> กำหนด dayType = stop และค่าแรง 2 เท่า`);
           dataCal.dayType = 'stop';
           dataCal.dayoffRateHour = 2;
           dataCal.dayoffRateOT = 3;
+          return dataCal;
+        }
+        
+        // ตรวจสอบว่าเป็นวันเสาร์
+        if (dayOfWeek === 6) { // วันเสาร์
+          console.log(`🔍 ตรวจพบวันเสาร์ที่ ${date} (ในกรณีมีข้อผิดพลาด) -> กำหนด dayType = work`);
+          dataCal.dayType = 'work';
+          return dataCal;
+        }
+        
+        // วันทำงานปกติ (จันทร์-ศุกร์)
+        if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+          console.log(`✅ วันที่ ${date} เป็นวันทำงานปกติ (${['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'][dayOfWeek]}) (ในกรณีมีข้อผิดพลาด) -> dayType = work`);
+          dataCal.dayType = 'work';
           return dataCal;
         }
       } catch (dateError) {
