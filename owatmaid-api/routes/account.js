@@ -4606,6 +4606,7 @@ try {
   if (weekendData.customizeDayoff && Array.isArray(weekendData.customizeDayoff)) {
     customizeDayoff = weekendData.customizeDayoff.length;
     console.log(`📅 พบวันหยุดที่กำหนดเอง ${customizeDayoff} วัน: ${JSON.stringify(weekendData.customizeDayoff)}`);
+    console.log(`ℹ️ จำนวนวันหยุดที่กำหนดเองเริ่มต้น: ${customizeDayoff} วัน`);
   }
 } catch (error) {
   console.error('❌ เกิดข้อผิดพลาดในการเรียก API วันหยุด:', error.message);
@@ -4648,7 +4649,8 @@ if (!timeCashWorkMul[record?.cashWorkMul]) {
             // ถ้าเป็นวันหยุดที่กำหนดเองและพนักงานมาทำงาน
             if (weekendData?.customizeDayoff?.includes(dateStr) && record.dayType === 'work') {
               console.log(`🔍 พนักงานมาทำงานในวันหยุดที่กำหนดเอง: ${dateStr}`);
-              customizeDayoff -= 1;
+              customizeDayoff -= 1; // ลดจำนวนวันหยุดที่กำหนดเองลง 1 วัน
+              console.log(`⬇️ ลดจำนวนวันหยุดที่กำหนดเองเหลือ ${customizeDayoff} วัน`);
             }
           } catch (error) {
             console.error(`❌ เกิดข้อผิดพลาดในการตรวจสอบวันหยุดที่กำหนดเอง:`, error.message);
@@ -4755,6 +4757,7 @@ console.log('dayWorkCount : ' + dayWorkCount);
 console.log('dayOffCount : ' + dayOffCount);
 console.log('specialDayOff  : ' + specialDayOff);
 console.log('customizeDayoff : ' + customizeDayoff); // แสดงค่าวันหยุดที่กำหนดเอง
+console.log(`📊 สรุป: มีวันหยุดที่กำหนดเองทั้งหมด ${weekendData?.customizeDayoff?.length || 0} วัน, พนักงานมาทำงาน ${weekendData?.customizeDayoff?.length - customizeDayoff || 0} วัน, เหลือวันหยุดที่นับได้ ${customizeDayoff} วัน`);
 
   //add addSalary Month to list 
   if (addSalary && addSalary.length > 0) {
