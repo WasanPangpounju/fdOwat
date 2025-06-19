@@ -4666,6 +4666,37 @@ const amount = parseFloat(salaryItem.SpSalary || 0);
 const existingItem = addSalaryList.find(
   item => String(item.id).trim() === cleanSalaryItemId
 );
+// ในฟังก์ชัน calculateCashValues ประมาณบรรทัด 4640-4660
+
+if (record?.dayType === 'stop') {
+  console.log(record?.dayType);
+  
+  // เพิ่มการตรวจสอบว่ามีเวลาเข้างานและออกงานหรือไม่
+  const hasStartEndTime = record?.startTime && record?.endTime;
+  
+  if (hasStartEndTime) {
+    // กรณีมีเวลาเข้า-ออก (มาทำงาน)
+    console.log(`🟢 วันหยุด dayType=stop แต่มีการเข้างาน startTime=${record?.startTime} endTime=${record?.endTime}`);
+    // นับเป็นวันทำงาน
+    dayWorkCount += 1;
+  } else {
+    // กรณีไม่มีเวลาเข้า-ออก (ไม่มาทำงาน)
+    console.log(`🔴 วันหยุด dayType=stop ไม่มีการเข้างาน`);
+    // นับเป็นวันหยุด
+    dayOffCount += 1;
+  }
+  
+  // คำนวณเงินและเวลาตามปกติ
+  sumcashDayOffCount= parseFloat(sumcashDayOffCount || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0') 
+  sumTimeOt = parseFloat(sumTimeOt  || 0) + parseFloat(record.beforeTotalOtTime || '0') + parseFloat(record.totalTime || '0') + parseFloat(record.totalOtTime || '0')
+  sumCashOt = parseFloat(sumCashOt  || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0') 
+
+  sumCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
+  sumCashWorkMul[record?.cashOtMul] += parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0');
+
+  timeCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
+  timeCashWorkMul[record?.cashOtMul] += parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0');
+}
 
 
 
