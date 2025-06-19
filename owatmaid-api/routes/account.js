@@ -4526,8 +4526,8 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
     console.log(`\n==========================================================================`);
     console.log(`📋 ตารางข้อมูลวันทำงานทั้งหมดของพนักงาน ${employeeId} (เดือน ${month}/${year})`);
     console.log(`==========================================================================`);
-    console.log(`| วันที่ | ประเภทวัน | เวลาทำงาน | เป็นวันหยุด customizeDayoff | มาทำงาน |`);
-    console.log(`|-------|----------|----------|--------------------------|--------|`);
+    console.log(`| วันที่        | ประเภทวัน | เวลาทำงาน | เป็นวันหยุด customizeDayoff | มาทำงาน |`);
+    console.log(`|-------------|----------|----------|--------------------------|--------|`);
     
     for (let i = 0; i < employee_record.length; i++) {
       // ตรวจสอบว่าเป็นวันที่อยู่ใน weekendAndDayOffDates หรือไม่
@@ -4535,12 +4535,8 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
       const isCustomDayOff = weekendAndDayOffDates.includes(recordDate);
       const hasWorked = employee_record[i].totalTime && parseFloat(employee_record[i].totalTime) > 0;
       
-      // แยกวันที่เป็น วัน/เดือน/ปี
-      const dateParts = recordDate.split('-');
-      const day = dateParts[2];
-      
       // แสดงข้อมูลในรูปแบบตาราง
-      console.log(`| ${day}(${recordDate}) | ${employee_record[i].dayType || 'ไม่ระบุ'} | ${employee_record[i].totalTime || '0'} | ${isCustomDayOff ? 'ใช่' : 'ไม่ใช่'} | ${hasWorked ? 'ใช่' : 'ไม่ใช่'} |`);
+      console.log(`| ${recordDate} | ${employee_record[i].dayType || 'ไม่ระบุ'} | ${employee_record[i].totalTime || '0'} | ${isCustomDayOff ? 'ใช่' : 'ไม่ใช่'} | ${hasWorked ? 'ใช่' : 'ไม่ใช่'} |`);
       
       // ถ้าเป็นวันใน customizeDayoff และมีค่า totalTime (มาทำงาน) ให้นับเพิ่ม
       if (isCustomDayOff && hasWorked) {
@@ -4631,44 +4627,6 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
     const salary = parseFloat(employeeProfile[0].salary) || 0;
     socialSecurity = Math.min(salary * 0.05, 750);
     tax = parseFloat(employeeProfile[0].tax) || 0;
-  }
-  
-  // แสดงข้อมูลเฉพาะวันที่เป็น customizeDayoff ในรูปแบบที่อ่านง่ายขึ้น
-  if (weekendAndDayOffDates.length > 0) {
-    console.log(`\n🔍 รายละเอียดเฉพาะวันที่เป็น customizeDayoff:`);
-    
-    for (let i = 0; i < employee_record.length; i++) {
-      const recordDate = employee_record[i].date;
-      if (weekendAndDayOffDates.includes(recordDate)) {
-        const dayType = employee_record[i].dayType || 'ไม่ระบุ';
-        const totalTime = employee_record[i].totalTime || '0';
-        const hasWorked = totalTime && parseFloat(totalTime) > 0;
-        
-        console.log(`วันที่ ${recordDate.substring(8, 10)} (${recordDate}): dayType=${dayType}, totalTime=${totalTime}, customizeDayoff=ใช่, มาทำงาน=${hasWorked ? 'ใช่' : 'ไม่ใช่'}`);
-        
-        // แสดงข้อมูลเพิ่มเติม
-        if (hasWorked) {
-          console.log(`  - ข้อมูลเพิ่มเติม: กะ=${employee_record[i].shift || 'ไม่ระบุ'}, เวลาเริ่ม=${employee_record[i].startTime || 'ไม่ระบุ'}, เวลาสิ้นสุด=${employee_record[i].endTime || 'ไม่ระบุ'}`);
-        }
-      }
-    }
-    
-    // แสดงตัวอย่างวันที่ไม่ได้เป็น customizeDayoff เพื่อเปรียบเทียบ (จำกัดแค่ 3 วัน)
-    console.log(`\n🔍 ตัวอย่างวันที่ไม่ได้เป็น customizeDayoff (3 วัน):`);
-    let countNormalDays = 0;
-    for (let i = 0; i < employee_record.length && countNormalDays < 3; i++) {
-      const recordDate = employee_record[i].date;
-      if (!weekendAndDayOffDates.includes(recordDate)) {
-        const dayType = employee_record[i].dayType || 'ไม่ระบุ';
-        const totalTime = employee_record[i].totalTime || '0';
-        const hasWorked = totalTime && parseFloat(totalTime) > 0;
-        
-        console.log(`วันที่ ${recordDate.substring(8, 10)} (${recordDate}): dayType=${dayType}, totalTime=${totalTime}, customizeDayoff=ไม่ใช่, มาทำงาน=${hasWorked ? 'ใช่' : 'ไม่ใช่'}`);
-        countNormalDays++;
-      }
-    }
-    
-    console.log(`\n⚠️ สรุป: พบ ${weekendAndDayOffDates.length} วันที่เป็น customizeDayoff, พนักงานมาทำงาน ${daysWorkedOnCustomizeDayoff} วัน`);
   }
   
   // คำนวณค่า customizeDayoff ที่แท้จริง โดยลบจำนวนวันที่พนักงานมาทำงานในวันหยุด
