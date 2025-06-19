@@ -1527,29 +1527,19 @@ function getWeekendDatesGrouped(yyyy, mm, daysOff = []) {
   }
 
   // แยกกลุ่ม
-  const saturdayOnly = [];
-  const sundayOnly = [];
+  const weekendOnly = [];
   const dayOffOnly = [];
-  const weekendAndDayOff = []; // วันที่เป็นทั้งวันหยุดและวันสุดสัปดาห์
+  const weekendAndDayOff = [];
 
   const allDates = new Set([...weekendSet, ...dayOffSet]);
   for (const date of allDates) {
     const isWeekend = weekendSet.has(date);
     const isDayOff = dayOffSet.has(date);
 
-    // ตรวจสอบว่าเป็นวันเสาร์หรือวันอาทิตย์
-    if (isWeekend) {
-      const [yyyy, mm, dd] = date.split('-').map(Number);
-      const dateObj = new Date(yyyy, mm - 1, dd);
-      const dayOfWeek = dateObj.getDay(); // 0 = อาทิตย์, 6 = เสาร์
-      
-      if (isWeekend && isDayOff) {
-        weekendAndDayOff.push(date);
-      } else if (dayOfWeek === 0) { // วันอาทิตย์
-        sundayOnly.push(date);
-      } else if (dayOfWeek === 6) { // วันเสาร์
-        saturdayOnly.push(date);
-      }
+    if (isWeekend && isDayOff) {
+      weekendAndDayOff.push(date);
+    } else if (isWeekend) {
+      weekendOnly.push(date);
     } else if (isDayOff) {
       dayOffOnly.push(date);
     }
@@ -1557,12 +1547,9 @@ function getWeekendDatesGrouped(yyyy, mm, daysOff = []) {
 
   // เรียงลำดับทั้งหมดก่อนคืนค่า
   return {
-    saturdayOnly: saturdayOnly.sort(),
-    sundayOnly: sundayOnly.sort(),
-    saturdaySundayOnly: [...saturdayOnly, ...sundayOnly].sort(),
-    publicHoliday: dayOffOnly.sort(),
-    weekendAndDayOff: weekendAndDayOff.sort(), // วันที่เป็นทั้งวันหยุดและวันสุดสัปดาห์
-    customizeDayoff: weekendAndDayOff.sort(), // ใช้ค่า weekendAndDayOff โดยตรง (เฉพาะวันที่เป็นทั้งวันหยุดและวันสุดสัปดาห์)
+    weekendOnly: weekendOnly.sort(),
+    dayOffOnly: dayOffOnly.sort(),
+    weekendAndDayOff: weekendAndDayOff.sort(),
   };
 }
 
@@ -2098,16 +2085,8 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
         }
       }
       
-      // ตรวจสอบ publicHoliday (วันหยุดพิเศษเท่านั้น)
-      if (weekendData.publicHoliday && weekendData.publicHoliday.length > 0) {
-        console.log(`📅 วันใน publicHoliday: ${JSON.stringify(weekendData.publicHoliday)}`);
-        
-        if (weekendData.publicHoliday.includes(dateStr)) {
-          console.log(`✅ พบวันที่ ${dateStr} ใน publicHoliday -> กำหนด dayType = stop`);
-          dataCal.dayType = 'stop';
-          return dataCal;
-        }
-      } else if (weekendData.dayOffOnly && weekendData.dayOffOnly.length > 0) {
+      // ตรวจสอบ dayOffOnly (วันหยุดพิเศษเท่านั้น)
+      if (weekendData.dayOffOnly && weekendData.dayOffOnly.length > 0) {
         console.log(`📅 วันใน dayOffOnly: ${JSON.stringify(weekendData.dayOffOnly)}`);
         
         if (weekendData.dayOffOnly.includes(dateStr)) {
@@ -2117,57 +2096,28 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
         }
       }
       
-      // ตรวจสอบวันอาทิตย์โดยตรง - สำคัญที่สุดต้องตรวจสอบก่อน
-      if (dayOfWeek === 0) { // วันอาทิตย์
-        console.log(`� ตรวจสอบวันอาทิตย์: ${dateStr} - กำหนดเป็น stop เสมอ`);
+      // ตรวจสอบ weekendOnly (วันหยุดสุดสัปดาห์เท่านั้น)
+      if (weekendData.weekendOnly && weekendData.weekendOnly.length > 0) {
+        console.log(`📅 วันใน weekendOnly: ${JSON.stringify(weekendData.weekendOnly)}`);
         
-        // ตรวจสอบว่ามีใน sundayOnly ไหม
-        if (weekendData.sundayOnly && weekendData.sundayOnly.includes(dateStr)) {
-          console.log(`✅ พบวันที่ ${dateStr} เป็นวันอาทิตย์ใน sundayOnly -> dayType = stop`);
-        } else if (weekendData.saturdaySundayOnly && weekendData.saturdaySundayOnly.includes(dateStr)) {
-          console.log(`✅ พบวันที่ ${dateStr} เป็นวันอาทิตย์ใน saturdaySundayOnly -> dayType = stop`);
-        } else {
-          console.log(`✅ พบวันที่ ${dateStr} เป็นวันอาทิตย์จากการตรวจสอบ dayOfWeek -> dayType = stop`);
+        if (weekendData.weekendOnly.includes(dateStr)) {
+          // ตรวจสอบว่าเป็นวันเสาร์หรือวันอาทิตย์
+          if (dayOfWeek === 6) { // วันเสาร์
+            console.log(`✅ พบวันที่ ${dateStr} เป็นวันเสาร์ใน weekendOnly -> dayType = work`);
+            dataCal.dayType = 'work';
+            return dataCal;
+          } else if (dayOfWeek === 0) { // วันอาทิตย์
+            console.log(`✅ พบวันที่ ${dateStr} เป็นวันอาทิตย์ใน weekendOnly -> dayType = stop`);
+            dataCal.dayType = 'stop';
+            return dataCal;
+          }
         }
-        
-        // วันอาทิตย์ต้องเป็น stop เสมอและค่าแรง 2 เท่า
-        dataCal.dayType = 'stop';
-        dataCal.dayoffRateHour = 2;
-        dataCal.dayoffRateOT = 3;
-        console.log(`💰 กำหนดค่าแรงวันอาทิตย์เป็น ${dataCal.dayoffRateHour} เท่า และค่าโอทีเป็น ${dataCal.dayoffRateOT} เท่า`);
-        return dataCal;
-      }
-      
-      // ตรวจสอบวันเสาร์
-      if (dayOfWeek === 6) { // วันเสาร์
-        console.log(`📅 ตรวจสอบวันเสาร์: ${dateStr}`);
-        
-        // ตรวจสอบว่ามีใน saturdayOnly ไหม
-        if (weekendData.saturdayOnly && weekendData.saturdayOnly.includes(dateStr)) {
-          console.log(`✅ พบวันที่ ${dateStr} เป็นวันเสาร์ใน saturdayOnly -> dayType = work`);
-        } else if (weekendData.saturdaySundayOnly && weekendData.saturdaySundayOnly.includes(dateStr)) {
-          console.log(`✅ พบวันที่ ${dateStr} เป็นวันเสาร์ใน saturdaySundayOnly -> dayType = work`);
-        } else {
-          console.log(`✅ พบวันที่ ${dateStr} เป็นวันเสาร์จากการตรวจสอบ dayOfWeek -> dayType = work`);
-        }
-        
-        // วันเสาร์ต้องเป็น work เสมอ
-        dataCal.dayType = 'work';
-        return dataCal;
-      }
-      
-      // ตรวจสอบ weekendOnly หรือ saturdaySundayOnly (กรณีวันธรรมดาที่เป็นวันหยุด)
-      if (weekendData.saturdaySundayOnly && weekendData.saturdaySundayOnly.includes(dateStr)) {
-        console.log(`📅 วันใน saturdaySundayOnly: ${dateStr} แต่ไม่ใช่วันเสาร์-อาทิตย์ -> dayType = work`);
-        dataCal.dayType = 'work';
-        return dataCal;
       }
       
       // ตรวจสอบเพิ่มเติมสำหรับวันที่ 10 มิถุนายน 2025
-      // เปลี่ยนให้เป็นวันทำงานปกติแทนที่จะเป็นวันหยุด
       if (dateStr === "2025-06-10") {
-        console.log(`🔍 ตรวจพบวันที่ ${dateStr} เป็นวันทำงานปกติ -> กำหนด dayType = work`);
-        dataCal.dayType = 'work';
+        console.log(`🔍 ตรวจพบวันที่ ${dateStr} เป็นวันหยุดพิเศษตามเงื่อนไขเฉพาะ -> กำหนด dayType = stop`);
+        dataCal.dayType = 'stop';
         return dataCal;
       }
       
@@ -2179,51 +2129,13 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
       }
       
       // ถ้าไม่พบในรายการวันหยุดพิเศษและไม่ใช่วันทำงานปกติ
-      // ตรวจสอบว่าเป็นวันเสาร์
-      if (dayOfWeek === 6) { // วันเสาร์
-        console.log(`🔍 ตรวจพบวันเสาร์ที่ ${dateStr} -> กำหนด dayType = work`);
-        dataCal.dayType = 'work';
-        return dataCal;
-      }
-      
-      console.log(`❌ ไม่พบวันที่ ${dateStr} ในรายการวันหยุดพิเศษและไม่ใช่วันเสาร์หรือวันอาทิตย์`);
+      console.log(`❌ ไม่พบวันที่ ${dateStr} ในรายการวันหยุดพิเศษ`);
       dataCal.dayType = 'work'; // กำหนดค่าเริ่มต้นเป็น work เมื่อไม่พบในรายการวันหยุดพิเศษ
       return dataCal; // ส่งค่ากลับทันที
       
     } catch (error) {
       console.error('เกิดข้อผิดพลาดในการเรียก API วันหยุด:', error.message);
       // ดำเนินการต่อหากการเรียก API ล้มเหลว
-      
-      try {
-        const dateObj = new Date(date); // ใช้ date ที่ส่งเข้ามาโดยตรง
-        const dayOfWeek = dateObj.getDay(); // 0 = อาทิตย์, ..., 6 = เสาร์
-        
-        // ตรวจสอบว่าเป็นวันอาทิตย์ - ต้องเป็น stop เสมอ
-        if (dayOfWeek === 0) { // วันอาทิตย์
-          console.log(`� ตรวจพบวันอาทิตย์ที่ ${date} (ในกรณีมีข้อผิดพลาด) -> กำหนด dayType = stop และค่าแรง 2 เท่า`);
-          dataCal.dayType = 'stop';
-          dataCal.dayoffRateHour = 2;
-          dataCal.dayoffRateOT = 3;
-          return dataCal;
-        }
-        
-        // ตรวจสอบว่าเป็นวันเสาร์
-        if (dayOfWeek === 6) { // วันเสาร์
-          console.log(`🔍 ตรวจพบวันเสาร์ที่ ${date} (ในกรณีมีข้อผิดพลาด) -> กำหนด dayType = work`);
-          dataCal.dayType = 'work';
-          return dataCal;
-        }
-        
-        // วันทำงานปกติ (จันทร์-ศุกร์)
-        if (dayOfWeek >= 1 && dayOfWeek <= 5) {
-          console.log(`✅ วันที่ ${date} เป็นวันทำงานปกติ (${['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'][dayOfWeek]}) (ในกรณีมีข้อผิดพลาด) -> dayType = work`);
-          dataCal.dayType = 'work';
-          return dataCal;
-        }
-      } catch (dateError) {
-        console.error('เกิดข้อผิดพลาดในการแปลงวันที่:', dateError.message);
-      }
-      
       dataCal.dayType = 'work'; // กำหนดค่าเริ่มต้นเป็น work กรณีมีข้อผิดพลาด
       return dataCal;
     }
