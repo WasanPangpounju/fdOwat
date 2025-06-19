@@ -4669,7 +4669,6 @@ const existingItem = addSalaryList.find(
 
 
 
-
 // console.log('cleanSalaryItemId ' + cleanSalaryItemId)
 if(existingItem ){
   // console.log('existingItem  ' + existingItem?.id )
@@ -4706,37 +4705,13 @@ if(existingItem ){
     })
   );
  // การคำนวณค่าปกติไม่จำเป็นต้องใช้ await
-// แก้ไขในฟังก์ชัน calculateCashValues ประมาณบรรทัด 4710-4714
+const sumCashSpecialDay = sumCashWork / dayWorkCount;
+const totalsumCashSpecialDay = sumCashSpecialDay * specialDay
 
-// ในฟังก์ชัน calculateCashValues ประมาณบรรทัด 4715-4738
+cashSpecialDay = totalsumCashSpecialDay 
+specialDayOff = specialDay;
 
-// แก้ไขค่า specialDayOff โดยตรวจสอบว่าพนักงานมาทำงานในวันหยุดพิเศษหรือไม่
-specialDayOff = 0; // เริ่มต้นเป็น 0 (กรณีมาทำงานในวันหยุดพิเศษทุกวัน)
 
-// ตรวจสอบว่ามีวันหยุดพิเศษที่ไม่ได้มาทำงานหรือไม่
-if (selectedSpecialDays.length > 0) {
-  // ทำซ้ำผ่านวันหยุดพิเศษที่ได้รับการเลือก
-  for (const specialDayDate of selectedSpecialDays) {
-    // ตรวจสอบว่าวันนี้มีใน employee_record หรือไม่
-    const hasWorkedOnSpecialDay = employee_record.some(record => 
-      Number(record.date) === specialDayDate && 
-      (record.dayType === "work" || record.dayType === "specialDayOff")
-    );
-    
-    // ถ้าไม่ได้มาทำงานในวันหยุดพิเศษ
-    if (!hasWorkedOnSpecialDay) {
-      specialDayOff += 1; // เพิ่มจำนวนวันหยุดพิเศษที่ไม่ได้มาทำงาน
-    }
-  }
-}
-
-// เพิ่มบรรทัดนี้เพื่อแก้ปัญหา specialDayOff ที่เป็น 2 แทนที่จะเป็น 0
-if (specialDayOff > 0 && specialDay === 0) {
-  specialDayOff = 0;
-}
-
-// หรือแบบง่ายกว่าคือกำหนดค่าตามตรง:
-// specialDayOff = 0;
 
 console.log('cashSpecialDay  ' + cashSpecialDay);
 console.log('dayWorkCount : ' + dayWorkCount);
