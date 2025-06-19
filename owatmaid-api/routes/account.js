@@ -4646,11 +4646,20 @@ if (!timeCashWorkMul[record?.cashWorkMul]) {
             const recordDate = new Date(record.year, parseInt(record.month) - 1, parseInt(record.date));
             const dateStr = `${recordDate.getFullYear()}-${String(recordDate.getMonth() + 1).padStart(2, '0')}-${String(recordDate.getDate()).padStart(2, '0')}`;
             
-            // ถ้าเป็นวันหยุดที่กำหนดเองและพนักงานมาทำงาน
-            if (weekendData?.customizeDayoff?.includes(dateStr) && record.dayType === 'work') {
-              console.log(`🔍 พนักงานมาทำงานในวันหยุดที่กำหนดเอง: ${dateStr}`);
-              customizeDayoff -= 1; // ลดจำนวนวันหยุดที่กำหนดเองลง 1 วัน
-              console.log(`⬇️ ลดจำนวนวันหยุดที่กำหนดเองเหลือ ${customizeDayoff} วัน`);
+            // ตรวจสอบว่าเป็นวันที่อยู่ใน customizeDayoff หรือไม่
+            if (weekendData?.customizeDayoff?.includes(dateStr)) {
+              // ตรวจสอบว่าพนักงานมาทำงานโดยดูจาก startTime และ endTime
+              const hasStartTime = record.startTime && record.startTime.trim() !== '';
+              const hasEndTime = record.endTime && record.endTime.trim() !== '';
+              
+              if (hasStartTime && hasEndTime) {
+                // พนักงานมาทำงานในวันหยุดที่กำหนดเอง
+                console.log(`🔍 พนักงานมาทำงานในวันหยุดที่กำหนดเอง: ${dateStr} (startTime: ${record.startTime}, endTime: ${record.endTime})`);
+                customizeDayoff -= 1; // ลดจำนวนวันหยุดที่กำหนดเองลง 1 วัน
+                console.log(`⬇️ ลดจำนวนวันหยุดที่กำหนดเองเหลือ ${customizeDayoff} วัน`);
+              } else {
+                console.log(`ℹ️ วันที่ ${dateStr} เป็นวันหยุดที่กำหนดเอง และพนักงานไม่ได้มาทำงาน (ไม่มี startTime หรือ endTime)`);
+              }
             }
           } catch (error) {
             console.error(`❌ เกิดข้อผิดพลาดในการตรวจสอบวันหยุดที่กำหนดเอง:`, error.message);
@@ -4758,6 +4767,7 @@ console.log('dayOffCount : ' + dayOffCount);
 console.log('specialDayOff  : ' + specialDayOff);
 console.log('customizeDayoff : ' + customizeDayoff); // แสดงค่าวันหยุดที่กำหนดเอง
 console.log(`📊 สรุป: มีวันหยุดที่กำหนดเองทั้งหมด ${weekendData?.customizeDayoff?.length || 0} วัน, พนักงานมาทำงาน ${weekendData?.customizeDayoff?.length - customizeDayoff || 0} วัน, เหลือวันหยุดที่นับได้ ${customizeDayoff} วัน`);
+console.log(`ℹ️ หมายเหตุ: การตรวจสอบว่าพนักงานมาทำงานดูจากการมี startTime และ endTime ไม่ว่า dayType จะเป็นอะไร`);
 
   //add addSalary Month to list 
   if (addSalary && addSalary.length > 0) {
