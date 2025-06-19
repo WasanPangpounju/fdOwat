@@ -4651,6 +4651,8 @@ if (!timeCashWorkMul[record?.cashWorkMul]) {
               // ตรวจสอบว่าพนักงานมาทำงานโดยดูจาก totalTime
               const hasTotalTime = record.totalTime && record.totalTime.trim() !== '';
               
+              console.log(`🕒 วันที่ ${dateStr} เป็นวันหยุดที่กำหนดเอง - ค่า totalTime: "${record.totalTime || 'ไม่มีค่า'}"`);
+              
               if (hasTotalTime) {
                 // พนักงานมาทำงานในวันหยุดที่กำหนดเอง
                 console.log(`🔍 พนักงานมาทำงานในวันหยุดที่กำหนดเอง: ${dateStr} (totalTime: ${record.totalTime})`);
@@ -4767,6 +4769,7 @@ console.log('specialDayOff  : ' + specialDayOff);
 console.log('customizeDayoff : ' + customizeDayoff); // แสดงค่าวันหยุดที่กำหนดเอง
 console.log(`📊 สรุป: มีวันหยุดที่กำหนดเองทั้งหมด ${weekendData?.customizeDayoff?.length || 0} วัน, พนักงานมาทำงาน ${weekendData?.customizeDayoff?.length - customizeDayoff || 0} วัน, เหลือวันหยุดที่นับได้ ${customizeDayoff} วัน`);
 console.log(`ℹ️ หมายเหตุ: การตรวจสอบว่าพนักงานมาทำงานดูจากการมีค่า totalTime ไม่ว่า dayType จะเป็นอะไร`);
+console.log(`📝 ข้อสังเกต: ค่า totalTime ต้องไม่เป็นค่าว่าง เช่น "8.0", "7.5" ถึงจะถือว่าพนักงานมาทำงาน`);
 
   //add addSalary Month to list 
   if (addSalary && addSalary.length > 0) {
