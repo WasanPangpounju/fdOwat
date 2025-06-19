@@ -4425,7 +4425,8 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           sumcashDayOffCount: String(calculatedValues.sumcashDayOffCount),
           socialSecurity: String(calculatedValues.socialSecurity),
           tax: String(calculatedValues.tax),
-                    cashSpecialDay: String(calculatedValues.cashSpecialDay),
+          cashSpecialDay: String(calculatedValues.cashSpecialDay),
+          customizeDayoff: calculatedValues.customizeDayoff, // เพิ่มฟิลด์ customizeDayoff
 
           // clearly ensure all SpSalary are numbers
           // addSalaryList: calculatedValues.addSalaryList.map(item => ({
