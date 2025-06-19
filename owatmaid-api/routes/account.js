@@ -4425,8 +4425,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           sumcashDayOffCount: String(calculatedValues.sumcashDayOffCount),
           socialSecurity: String(calculatedValues.socialSecurity),
           tax: String(calculatedValues.tax),
-          cashSpecialDay: String(calculatedValues.cashSpecialDay),
-          customizeDayoff: calculatedValues.customizeDayoff, // เพิ่มฟิลด์ customizeDayoff
+                    cashSpecialDay: String(calculatedValues.cashSpecialDay),
 
           // clearly ensure all SpSalary are numbers
           // addSalaryList: calculatedValues.addSalaryList.map(item => ({
@@ -4474,153 +4473,318 @@ router.post('/searchtimerecordemployee', async (req, res) => {
 
 
 const calculateCashValues = async (employeeId, employee_record, month, year) => {
-  let dayWorkCount = 0;
-  let dayOffCount = 0;
-  let specialDayOff = 0;
-  let sumTimeWork = 0;
-  let sumTimeOt = 0;
-  let sumCashWork = 0;
-  let sumCashOt = 0;
-  let sumcashDayOffCount = 0;
-  let sumAddSalaryDaily = 0;
-  let sumCashWorkMul = {};
-  let timeCashWorkMul = {};
-  let addSalaryList = [];
-  let cashSpecialDay = 0;
+  //get basic system setting
+  const settingResult = await axios.get(sURL + '/basicsetting/');
   let socialSecurity = 0;
-  let tax = 0;
-  let customizeDayoff = "0"; // เพิ่มตัวแปรสำหรับเก็บจำนวนวันหยุดที่กำหนดเอง
-  
-  // Get employee profile for workplace info
+  let addSalarySocialSecurity = 0;
+  let socialSecurityP = 0;
+let tax = 0;
+let specialDay = 0;
+let cashSpecialDay = 0;
+
+if(settingResult ) {
+  socialSecurityP = parseFloat(settingResult?.data?.[settingResult.data.length - 1]?.social?.[0]?.socialPercent || '5') / 100;
+}
+
   const employeeProfile = await getEmployeeProfile(employeeId);
-  
-  // Calculate customizeDayoff from API if profile exists
-  if (employeeProfile && employeeProfile.length > 0) {
-    try {
-      const workplaceId = employeeProfile[0].workplace || '';
-      
-      // Call API to get weekend and holiday information
-      const weekendResponse = await axios.get(
-        `${sURL}/conclude/getWeekendDates?yyyy=${year}&mm=${month}&workplaceId=${workplaceId}`
-      );
-      
-      if (weekendResponse.data && weekendResponse.data.weekendAndDayOff) {
-        // Count days that are both weekend and holiday
-        customizeDayoff = String(weekendResponse.data.weekendAndDayOff.length);
-        console.log(`พบ ${customizeDayoff} วันที่เป็นทั้งวันหยุดสุดสัปดาห์และวันหยุดพิเศษสำหรับพนักงาน ${employeeId}`);
-      }
-    } catch (error) {
-      console.error(`เกิดข้อผิดพลาดในการดึงข้อมูลวันหยุดสำหรับพนักงาน ${employeeId}:`, error.message);
-    }
-  }
-  
-  // Process employee records if they exist
-  if (employee_record && employee_record.length > 0) {
-    for (let i = 0; i < employee_record.length; i++) {
-      // Calculate work days
-      if (
-        employee_record[i].dayType === 'หยุด' || 
-        employee_record[i].dayType === 'off' || 
-        employee_record[i].dayType === 'specialoff'
-      ) {
-        if (employee_record[i].dayType === 'specialoff') {
-          specialDayOff++;
-          if (employee_record[i].cashSpecialDay) {
-            cashSpecialDay += parseFloat(employee_record[i].cashSpecialDay) || 0;
-          }
-        } else {
-          dayOffCount++;
-        }
-      } else {
-        dayWorkCount++;
-      }
-      
-      // Calculate time worked
-      const totalTime = parseFloat(employee_record[i].totalTime) || 0;
-      sumTimeWork += totalTime;
-      
-      // Calculate overtime
-      const totalOt = parseFloat(employee_record[i].totalOtTime) || 0;
-      sumTimeOt += totalOt;
-      
-      // Calculate pay for work hours
-      const cashWork = parseFloat(employee_record[i].cashWork) || 0;
-      sumCashWork += cashWork;
-      
-      // Calculate pay for overtime
-      const cashOt = parseFloat(employee_record[i].cashOt) || 0;
-      sumCashOt += cashOt;
-      
-      // Process special multipliers if present
-      if (employee_record[i].cashWorkMul) {
-        if (!sumCashWorkMul[employee_record[i].cashWorkMul]) {
-          sumCashWorkMul[employee_record[i].cashWorkMul] = 0;
-          timeCashWorkMul[employee_record[i].cashWorkMul] = 0;
-        }
-        
-        sumCashWorkMul[employee_record[i].cashWorkMul] += cashWork;
-        timeCashWorkMul[employee_record[i].cashWorkMul] += totalTime;
-      }
-      
-      // Calculate special day pay
-      if (employee_record[i].cashSpecialDay) {
-        sumcashDayOffCount += parseFloat(employee_record[i].cashSpecialDay) || 0;
-      }
-      
-      // Process daily additional salary items
-      if (employee_record[i].addSalaryDaily && employee_record[i].addSalaryDaily.length > 0) {
-        for (let j = 0; j < employee_record[i].addSalaryDaily.length; j++) {
-          const sp = parseFloat(employee_record[i].addSalaryDaily[j].SpSalary) || 0;
-          sumAddSalaryDaily += sp;
-          
-          // Add to addSalaryList for tracking
-          const found = addSalaryList.find(item => 
-            item.name === employee_record[i].addSalaryDaily[j].name
-          );
-          
-          if (found) {
-            found.SpSalary = (parseFloat(found.SpSalary) + sp).toString();
+const salaryTmp = parseFloat(employeeProfile[0].salary || '0') || 0;
+const costtype  = employeeProfile[0].costtype  || '';
+
+let addSalary = employeeProfile?.[0]?.addSalary || [];
+let salary = 0;
+let salaryMonth = 0;
+
+let dayWorkCount = 0;
+let dayOffCount = 0;
+let specialDayOff = 0;
+let sumTimeWork = 0;
+let sumTimeOt = 0;
+let sumCashWork = 0;
+let sumCashOt = 0;
+let sumcashDayOffCount = 0;
+// let sumAddSalaryDaily = [];
+let sumCashWorkMul = {};
+let timeCashWorkMul = {};
+
+// Initialize sumAddSalaryDaily as an object and addSalaryDailyList as an array at the top:
+let sumAddSalaryDaily = {};
+let addSalaryDailyList = [];
+let monthlySalaries = [];
+let addSalaryList = [];
+let selectedSpecialDays = [];
+
+if(parseFloat(salaryTmp || '0')  > 1660) {
+  salaryMonth = parseFloat(salaryTmp || '0');
+  salary = await ((parseFloat(salaryTmp || '0') / 30)/ 8).toFixed(3);
+} else {
+  salary = await (parseFloat(salaryTmp || '0')/ 8).toFixed(3);
+}
+
+if(employeeProfile[0].workplace) {
+// Construct the search query based on the provided parameters
+const query = {};
+query.workplaceId = await employeeProfile[0].workplace;
+if(employeeProfile[0].department && employeeProfile[0].department  !== ''){
+query.wGroup = await employeeProfile[0].department || '';
+}
+
+        // Query the workplace collection for matching documents
+        const workplaces = await Workplace.find(query);
+        // console.log('query ' + JSON.stringify(workplaces ) )
+
+        if(workplaces.length > 0 ) {
+if(workplaces?.[0]?.daysOff.length >1){
+  // Convert to Thailand time and get parts
+const options = { timeZone: "Asia/Bangkok" };
+
+  workplaces[0].daysOff.forEach((tmpSpeDate) => {
+    // console.log(tmpSpeDate);
+
+let date = new Date(tmpSpeDate);
+const yearTmp = parseInt(date.toLocaleString("en-CA", { year: "numeric" }), 10);
+const monthTmp = parseInt(date.toLocaleString("en-CA", { month: "2-digit" }), 10);
+const dayTmp = parseInt(date.toLocaleString("en-CA", { day: "2-digit" }), 10);
+
+// console.log(`Year: ${yearTmp}, Month: ${monthTmp}, Day: ${dayTmp}`);
+
+const yearInt = parseInt(year, 10);
+const monthInt = parseInt(month, 10);
+
+// console.log(yearInt + ' * ' + monthInt);
+
+// Determine previous month and year
+let prevMonth = monthInt - 1;
+let prevYear = yearInt;
+if (monthInt === 1) {
+  prevMonth = 12;
+  prevYear = yearInt - 1;
+}
+
+const isCurrentMonth = monthTmp === monthInt && yearTmp === yearInt;
+const isPreviousMonth = monthTmp === prevMonth && yearTmp === prevYear;
+
+// Check day ranges clearly as per your condition:
+if (
+  (isPreviousMonth && dayTmp > 20 && dayTmp <= 31) ||
+  (isCurrentMonth && dayTmp >= 1 && dayTmp <= 20)
+) {
+  selectedSpecialDays.push(dayTmp);
+}
+
+// console.log('Selected special days:', selectedSpecialDays);
+ 
+
+  }); 
+}
+
+        } //end if
+
+} //end if
+
+//set count specialday
+specialDay = await selectedSpecialDays.length;
+
+  await Promise.all(
+    employee_record.map(async (record) => {
+
+//check workplace 10105
+// console.log('employee workplace' + employeeProfile[0].workplace);
+const workplaceId = employeeProfile[0].workplace === "10105" ? "10105" : record.workplaceId;
+
+if (!sumCashWorkMul[record?.cashWorkMul]) {
+  sumCashWorkMul[record?.cashWorkMul] = 0;
+}
+if (!timeCashWorkMul[record?.cashWorkMul]) {
+  timeCashWorkMul[record?.cashWorkMul] = 0;
+}
+
+      //check dayType
+        if (record?.dayType !== '') {
+          // console.log('specialDay  ' + specialDay )
+          // if (selectedSpecialDays.includes(record?.date)) {
+          if (selectedSpecialDays.includes(Number(record?.date))) {
+            // console.log(`วันที่ ${record?.date} อยู่ใน selectedSpecialDays`);
+            specialDay   = specialDay   -1;
+                      console.log(JSON.stringify(selectedSpecialDays,null,2))
+          console.log("2วัน",record?.date)
+
           } else {
-            addSalaryList.push({
-              id: employee_record[i].addSalaryDaily[j].id,
-              name: employee_record[i].addSalaryDaily[j].name,
-              SpSalary: employee_record[i].addSalaryDaily[j].SpSalary,
-              roundOfSalary: employee_record[i].addSalaryDaily[j].roundOfSalary,
-              StaffType: employee_record[i].addSalaryDaily[j].StaffType,
-              nameType: employee_record[i].addSalaryDaily[j].nameType,
-              message: employee_record[i].addSalaryDaily[j].message
-            });
+            // console.log(`วันที่ ${record?.date} ไม่อยู่ใน selectedSpecialDays`);
           }
-        }
-      }
+
+        if (record?.dayType === 'stop') {
+          console.log(record?.dayType );
+          dayOffCount += 1;
+          sumcashDayOffCount= parseFloat(sumcashDayOffCount || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0') 
+
+          sumTimeOt = parseFloat(sumTimeOt  || 0) + parseFloat(record.beforeTotalOtTime || '0') + parseFloat(record.totalTime || '0') + parseFloat(record.totalOtTime || '0')
+          sumCashOt = parseFloat(sumCashOt  || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0') 
+
+          sumCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
+          sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0');
+
+          timeCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
+          timeCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0');
+
+    }else 
+    if(record?.dayType === 'specialDayOff') {
+specialDayOff += 1;
+sumTimeOt = parseFloat(sumTimeOt || 0) + parseFloat(record.beforeTotalOtTime || '0') + parseFloat(record.totalTime || '0') + parseFloat(record.totalOtTime || '0')
+sumCashOt = parseFloat(sumCashOt  || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0') 
+
+sumCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
+sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0');
+
+timeCashWorkMul[record?.cashWorkMul] += parseFloat(record.totalTime || '0');
+timeCashWorkMul[record?.cashOtMul ] += parseFloat(record.beforeTotalOtTime || '0') + parseFloat(record.totalOtTime || '0');
+
+    } else {
+
+      if(record?.dayType === "work") {
+        dayWorkCount += 1;
+sumTimeWork = sumTimeWork  + parseFloat(record.totalTime || '0');
+sumTimeOt = sumTimeOt  + parseFloat(record.beforeTotalOtTime || '0') + parseFloat(record.totalOtTime  || '0');
+        sumCashWork  = sumCashWork  + parseFloat(record?.cashWork || '0');
+sumCashOt  = sumCashOt  + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt  || '0');
+
+sumCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
+sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
+
+timeCashWorkMul[record?.cashWorkMul] += parseFloat(record.totalTime || '0');
+timeCashWorkMul[record?.cashOtMul ] += parseFloat(record.beforeTotalOtTime || '0') + parseFloat(record.totalOtTime  || '0');
+
+
+  // Handle addSalaryDailyList clearly:
+  if (record.addSalaryDaily && record.addSalaryDaily.length > 0) {
+    //  addSalaryList = [];
+// console.log('record.addSalaryDaily.length  ' + record.addSalaryDaily.length )
+record.addSalaryDaily.forEach((salaryItem) => {
+// console.log(salaryItem.id)
+const cleanSalaryItemId = String(salaryItem.id).trim();
+const amount = parseFloat(salaryItem.SpSalary || 0);
+
+const existingItem = addSalaryList.find(
+  item => String(item.id).trim() === cleanSalaryItemId
+);
+
+
+
+// console.log('cleanSalaryItemId ' + cleanSalaryItemId)
+if(existingItem ){
+  // console.log('existingItem  ' + existingItem?.id )
+  existingItem.SpSalary =  parseFloat(existingItem.SpSalary  || 0) + amount;
+  existingItem.message = parseFloat(existingItem.message  || 0) + 1;
+
+          // Find the exact index
+          const index = addSalaryList.findIndex(item => item.id === existingItem.id);
+      
+          if (index !== -1) {
+  
+            // Override existing item
+            addSalaryList[index] = existingItem; 
+          }
+  
+} else {
+        // Otherwise push new
+        addSalaryList.push(salaryItem);
+
+} //end else
+
+}); //end foreach
+
+  }
+//
+
+
+  }
     }
+    
+  }
+
+    
+    })
+  );
+ // การคำนวณค่าปกติไม่จำเป็นต้องใช้ await
+const sumCashSpecialDay = sumCashWork / dayWorkCount;
+const totalsumCashSpecialDay = sumCashSpecialDay * specialDay
+
+cashSpecialDay = totalsumCashSpecialDay 
+specialDayOff = specialDay;
+
+
+
+console.log('cashSpecialDay  ' + cashSpecialDay);
+console.log('dayWorkCount : ' + dayWorkCount);
+console.log('dayOffCount : ' + dayOffCount);
+console.log('specialDayOff  : ' + specialDayOff);
+
+  //add addSalary Month to list 
+  if (addSalary && addSalary.length > 0) {
+monthlySalaries = await addSalary.filter(salary => salary.roundOfSalary === 'monthly');
+// console.log('addSalary.length  : ' + JSON.stringify(addSalary,null,2) );
+// console.log('Monthly addSalary.length:', monthlySalaries.length);
+// console.log('Monthly addSalary:', monthlySalaries);
+  }
+
+
+  addSalaryList = await addSalaryList.concat(monthlySalaries);
+
+  for (const element of addSalaryList) {
+    console.log(' * ' + element.id + ' ' + element.SpSalary);
+    let check = await checkCalTax(element.id);
+if(check )  {
+addSalarySocialSecurity = parseFloat(addSalarySocialSecurity  || 0) + parseFloat(element.SpSalary);
+}
   }
   
-  // Calculate social security (default to 5% of salary, max 750 THB)
-  if (employeeProfile && employeeProfile.length > 0) {
-    const salary = parseFloat(employeeProfile[0].salary) || 0;
-    socialSecurity = Math.min(salary * 0.05, 750);
-    tax = parseFloat(employeeProfile[0].tax) || 0;
+// console.log(JSON.stringify(addSalaryList[0].SpSalary ,null,2));
+
+if(salaryMonth !== 0) {
+  dayWorkCount = 30;
+  sumCashWork  = salaryMonth;  
+  socialSecurity  = Math.ceil((parseFloat(salaryMonth || 0) + parseFloat(addSalarySocialSecurity  || 0) )* socialSecurityP);
+} else {
+  //กรณีหักภาษี ณ ที่จ่าย 3% (ภ.ง.ด.)
+  if(costtype === "ภ.ง.ด.3") {
+    socialSecurity  =0;
+    tax = Math.ceil((parseFloat(sumCashWork || 0)+ parseFloat(sumCashOt  || 0) + parseFloat(addSalarySocialSecurity  || 0) + parseFloat(cashSpecialDay || 0)) * 0.03);
+  } else {
+    socialSecurity  = Math.ceil((parseFloat(sumCashWork || 0)+ parseFloat(addSalarySocialSecurity  || 0) + parseFloat(cashSpecialDay || 0)) * socialSecurityP);
   }
-  
+
+
+}
+
+//check socialSecurity   != 0 and < 83 set to 83
+if(socialSecurity   !== 0 && socialSecurity   <= 83) {
+  socialSecurity   = 83;
+}
+//check max socialSecurity   
+if(socialSecurity   !== 0 && socialSecurity   >= 750) {
+  socialSecurity   = 750;
+}
+
+
   return await {
     dayWorkCount,
     dayOffCount,
     specialDayOff,
-    sumTimeWork,
-    sumTimeOt,
-    sumCashWork,
-    sumCashOt,
-    sumcashDayOffCount,
-    sumAddSalaryDaily,
-    sumCashWorkMul,
-    timeCashWorkMul,
-    addSalaryList,
-    socialSecurity,
-    tax,
-    cashSpecialDay,
-    customizeDayoff 
+    sumTimeWork ,
+sumTimeOt ,
+sumCashWork ,
+sumCashOt ,
+sumcashDayOffCount,
+sumAddSalaryDaily ,
+sumCashWorkMul ,
+timeCashWorkMul ,
+addSalaryList,
+socialSecurity  ,
+tax,
+cashSpecialDay,
   };
+
+
 };
+
 
 module.exports = router;
