@@ -4523,11 +4523,11 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
   // Process employee records if they exist
   if (employee_record && employee_record.length > 0) {
     // สร้างตารางแสดงข้อมูลวันทำงานทั้งหมด
-    console.log(`\n==========================================================================`);
+    console.log(`\n====================================================================================`);
     console.log(`📋 ตารางข้อมูลวันทำงานทั้งหมดของพนักงาน ${employeeId} (เดือน ${month}/${year})`);
-    console.log(`==========================================================================`);
-    console.log(`| วันที่        | ประเภทวัน | เวลาทำงาน | เป็นวันหยุด customizeDayoff | มาทำงาน |`);
-    console.log(`|-------------|----------|----------|--------------------------|--------|`);
+    console.log(`====================================================================================`);
+    console.log(`| วันที่ | ประเภทวัน | เวลาทำงาน | customizeDayoff | มาทำงาน |      หมายเหตุ      |`);
+    console.log(`|--------|----------|-----------|----------------|---------|-------------------|`);
     
     for (let i = 0; i < employee_record.length; i++) {
       // ตรวจสอบว่าเป็นวันที่อยู่ใน weekendAndDayOffDates หรือไม่
@@ -4535,8 +4535,22 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
       const isCustomDayOff = weekendAndDayOffDates.includes(recordDate);
       const hasWorked = employee_record[i].totalTime && parseFloat(employee_record[i].totalTime) > 0;
       
+      // แยกวันที่เป็น วัน/เดือน/ปี
+      const dateParts = recordDate.split('-');
+      const displayDate = `${dateParts[2]}(${recordDate})`;
+      
+      // สร้างหมายเหตุ
+      let remark = '';
+      if (isCustomDayOff && hasWorked) {
+        remark = 'มาทำงานในวันหยุดพิเศษ';
+      } else if (isCustomDayOff) {
+        remark = 'วันหยุดพิเศษ';
+      } else if (employee_record[i].dayType === 'stop' || employee_record[i].dayType === 'หยุด') {
+        remark = 'วันหยุดปกติ';
+      }
+      
       // แสดงข้อมูลในรูปแบบตาราง
-      console.log(`| ${recordDate} | ${employee_record[i].dayType || 'ไม่ระบุ'} | ${employee_record[i].totalTime || '0'} | ${isCustomDayOff ? 'ใช่' : 'ไม่ใช่'} | ${hasWorked ? 'ใช่' : 'ไม่ใช่'} |`);
+      console.log(`| ${displayDate} | ${employee_record[i].dayType || 'ไม่ระบุ'} | ${employee_record[i].totalTime || '0'} | ${isCustomDayOff ? 'ใช่' : 'ไม่ใช่'} | ${hasWorked ? 'ใช่' : 'ไม่ใช่'} | ${remark.padEnd(17)} |`);
       
       // ถ้าเป็นวันใน customizeDayoff และมีค่า totalTime (มาทำงาน) ให้นับเพิ่ม
       if (isCustomDayOff && hasWorked) {
