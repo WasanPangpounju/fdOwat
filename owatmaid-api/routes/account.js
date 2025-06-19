@@ -4648,17 +4648,16 @@ if (!timeCashWorkMul[record?.cashWorkMul]) {
             
             // ตรวจสอบว่าเป็นวันที่อยู่ใน customizeDayoff หรือไม่
             if (weekendData?.customizeDayoff?.includes(dateStr)) {
-              // ตรวจสอบว่าพนักงานมาทำงานโดยดูจาก startTime และ endTime
-              const hasStartTime = record.startTime && record.startTime.trim() !== '';
-              const hasEndTime = record.endTime && record.endTime.trim() !== '';
+              // ตรวจสอบว่าพนักงานมาทำงานโดยดูจาก totalTime
+              const hasTotalTime = record.totalTime && record.totalTime.trim() !== '';
               
-              if (hasStartTime && hasEndTime) {
+              if (hasTotalTime) {
                 // พนักงานมาทำงานในวันหยุดที่กำหนดเอง
-                console.log(`🔍 พนักงานมาทำงานในวันหยุดที่กำหนดเอง: ${dateStr} (startTime: ${record.startTime}, endTime: ${record.endTime})`);
+                console.log(`🔍 พนักงานมาทำงานในวันหยุดที่กำหนดเอง: ${dateStr} (totalTime: ${record.totalTime})`);
                 customizeDayoff -= 1; // ลดจำนวนวันหยุดที่กำหนดเองลง 1 วัน
                 console.log(`⬇️ ลดจำนวนวันหยุดที่กำหนดเองเหลือ ${customizeDayoff} วัน`);
               } else {
-                console.log(`ℹ️ วันที่ ${dateStr} เป็นวันหยุดที่กำหนดเอง และพนักงานไม่ได้มาทำงาน (ไม่มี startTime หรือ endTime)`);
+                console.log(`ℹ️ วันที่ ${dateStr} เป็นวันหยุดที่กำหนดเอง และพนักงานไม่ได้มาทำงาน (ไม่มีค่า totalTime)`);
               }
             }
           } catch (error) {
@@ -4767,7 +4766,7 @@ console.log('dayOffCount : ' + dayOffCount);
 console.log('specialDayOff  : ' + specialDayOff);
 console.log('customizeDayoff : ' + customizeDayoff); // แสดงค่าวันหยุดที่กำหนดเอง
 console.log(`📊 สรุป: มีวันหยุดที่กำหนดเองทั้งหมด ${weekendData?.customizeDayoff?.length || 0} วัน, พนักงานมาทำงาน ${weekendData?.customizeDayoff?.length - customizeDayoff || 0} วัน, เหลือวันหยุดที่นับได้ ${customizeDayoff} วัน`);
-console.log(`ℹ️ หมายเหตุ: การตรวจสอบว่าพนักงานมาทำงานดูจากการมี startTime และ endTime ไม่ว่า dayType จะเป็นอะไร`);
+console.log(`ℹ️ หมายเหตุ: การตรวจสอบว่าพนักงานมาทำงานดูจากการมีค่า totalTime ไม่ว่า dayType จะเป็นอะไร`);
 
   //add addSalary Month to list 
   if (addSalary && addSalary.length > 0) {
