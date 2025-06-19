@@ -4418,6 +4418,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           dayWorkCount: String(calculatedValues.dayWorkCount),
           dayOffCount: String(calculatedValues.dayOffCount),
           specialDayOff: String(calculatedValues.specialDayOff),
+          customizeDayoff: String(calculatedValues.customizeDayoff || 0), // เพิ่มฟิลด์ customizeDayoff
           sumTimeWork: String(calculatedValues.sumTimeWork),
           sumTimeOt: String(calculatedValues.sumTimeOt),
           sumCashWork: String(calculatedValues.sumCashWork),
@@ -4506,6 +4507,7 @@ let sumcashDayOffCount = 0;
 // let sumAddSalaryDaily = [];
 let sumCashWorkMul = {};
 let timeCashWorkMul = {};
+let weekendData = {}; // เพิ่มตัวแปรเก็บข้อมูลวันหยุด
 
 // Initialize sumAddSalaryDaily as an object and addSalaryDailyList as an array at the top:
 let sumAddSalaryDaily = {};
@@ -4592,13 +4594,13 @@ try {
   const apiMonth = month || String(currentDate.getMonth() + 1).padStart(2, '0');
   const apiYear = year || String(currentDate.getFullYear());
   const wpId = employeeProfile[0].workplace || '';
-
+  
   // เรียก API
   const apiUrl = `http://10.10.110.7:3000/conclude/getWeekendDates?yyyy=${apiYear}&mm=${apiMonth}&workplaceId=${wpId}`;
   console.log(`🔍 เรียก API วันหยุด: ${apiUrl}`);
   
   const weekendResponse = await axios.get(apiUrl);
-  const weekendData = weekendResponse.data;
+  weekendData = weekendResponse.data; // เก็บข้อมูลวันหยุดในตัวแปร
   
   // นับจำนวนวันหยุดที่กำหนดเอง
   if (weekendData.customizeDayoff && Array.isArray(weekendData.customizeDayoff)) {
@@ -4636,7 +4638,7 @@ if (!timeCashWorkMul[record?.cashWorkMul]) {
           } else {
             // console.log(`วันที่ ${record?.date} ไม่อยู่ใน selectedSpecialDays`);
           }
-
+          
           // ตรวจสอบว่าเป็นวันหยุดที่กำหนดเองหรือไม่
           try {
             // แปลงวันที่เป็นรูปแบบ YYYY-MM-DD
@@ -4693,7 +4695,6 @@ sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
 timeCashWorkMul[record?.cashWorkMul] += parseFloat(record.totalTime || '0');
 timeCashWorkMul[record?.cashOtMul ] += parseFloat(record.beforeTotalOtTime || '0') + parseFloat(record.totalOtTime  || '0');
 
-
   // Handle addSalaryDailyList clearly:
   if (record.addSalaryDaily && record.addSalaryDaily.length > 0) {
     //  addSalaryList = [];
@@ -4706,8 +4707,6 @@ const amount = parseFloat(salaryItem.SpSalary || 0);
 const existingItem = addSalaryList.find(
   item => String(item.id).trim() === cleanSalaryItemId
 );
-
-
 
 // console.log('cleanSalaryItemId ' + cleanSalaryItemId)
 if(existingItem ){
@@ -4751,13 +4750,11 @@ const totalsumCashSpecialDay = sumCashSpecialDay * specialDay
 cashSpecialDay = totalsumCashSpecialDay 
 specialDayOff = specialDay;
 
-
-
 console.log('cashSpecialDay  ' + cashSpecialDay);
 console.log('dayWorkCount : ' + dayWorkCount);
 console.log('dayOffCount : ' + dayOffCount);
 console.log('specialDayOff  : ' + specialDayOff);
-console.log('customizeDayoff : ' + customizeDayoff); // เพิ่มการแสดงค่าวันหยุดที่กำหนดเอง
+console.log('customizeDayoff : ' + customizeDayoff); // แสดงค่าวันหยุดที่กำหนดเอง
 
   //add addSalary Month to list 
   if (addSalary && addSalary.length > 0) {
@@ -4810,17 +4807,17 @@ if(socialSecurity   !== 0 && socialSecurity   >= 750) {
     dayWorkCount,
     dayOffCount,
     specialDayOff,
-    customizeDayoff, // เพิ่มฟิลด์วันหยุดที่กำหนดเอง
-    sumTimeWork,
-sumTimeOt,
-sumCashWork,
-sumCashOt,
+    customizeDayoff, // เพิ่มฟิลด์ customizeDayoff
+    sumTimeWork ,
+sumTimeOt ,
+sumCashWork ,
+sumCashOt ,
 sumcashDayOffCount,
-sumAddSalaryDaily,
-sumCashWorkMul,
-timeCashWorkMul,
+sumAddSalaryDaily ,
+sumCashWorkMul ,
+timeCashWorkMul ,
 addSalaryList,
-socialSecurity,
+socialSecurity  ,
 tax,
 cashSpecialDay,
   };
