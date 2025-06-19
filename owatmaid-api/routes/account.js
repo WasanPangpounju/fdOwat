@@ -4705,13 +4705,32 @@ if(existingItem ){
     })
   );
  // การคำนวณค่าปกติไม่จำเป็นต้องใช้ await
+// แก้ไขในฟังก์ชัน calculateCashValues ประมาณบรรทัด 4710-4714
+
 const sumCashSpecialDay = sumCashWork / dayWorkCount;
-const totalsumCashSpecialDay = sumCashSpecialDay * specialDay
+const totalsumCashSpecialDay = sumCashSpecialDay * specialDay;
 
-cashSpecialDay = totalsumCashSpecialDay 
-specialDayOff = specialDay;
+cashSpecialDay = totalsumCashSpecialDay;
+// แก้ไขค่า specialDayOff โดยตรวจสอบว่าพนักงานมาทำงานในวันหยุดพิเศษหรือไม่
+// จากเดิมที่เป็น specialDayOff = specialDay;
+specialDayOff = 0; // เริ่มต้นเป็น 0 (กรณีมาทำงานในวันหยุดพิเศษทุกวัน)
 
-
+// ตรวจสอบว่ามีวันหยุดพิเศษที่ไม่ได้มาทำงานหรือไม่
+if (selectedSpecialDays.length > 0) {
+  // ทำซ้ำผ่านวันหยุดพิเศษที่ได้รับการเลือก
+  for (const specialDayDate of selectedSpecialDays) {
+    // ตรวจสอบว่าวันนี้มีใน employee_record หรือไม่
+    const hasWorkedOnSpecialDay = employee_record.some(record => 
+      Number(record.date) === specialDayDate && 
+      (record.dayType === "work" || record.dayType === "specialDayOff")
+    );
+    
+    // ถ้าไม่ได้มาทำงานในวันหยุดพิเศษ (ไม่พบวันนี้ในบันทึกหรือไม่ใช่วันทำงาน)
+    if (!hasWorkedOnSpecialDay) {
+      specialDayOff += 1; // เพิ่มจำนวนวันหยุดพิเศษที่ไม่ได้มาทำงาน
+    }
+  }
+}
 
 console.log('cashSpecialDay  ' + cashSpecialDay);
 console.log('dayWorkCount : ' + dayWorkCount);
