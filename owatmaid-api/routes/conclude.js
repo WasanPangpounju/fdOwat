@@ -2110,6 +2110,10 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
           } else if (dayOfWeek === 0) { // วันอาทิตย์
             console.log(`✅ พบวันที่ ${dateStr} เป็นวันอาทิตย์ใน weekendOnly -> dayType = stop`);
             dataCal.dayType = 'stop';
+            // กำหนดตัวคูณค่าแรงวันอาทิตย์เป็น 2 เท่า
+            dataCal.dayoffRateHour = 2;
+            dataCal.dayoffRateOT = 3; // โอทีวันอาทิตย์ 3 เท่า (ถ้าต้องการ)
+            console.log(`💰 กำหนดค่าแรงวันอาทิตย์เป็น ${dataCal.dayoffRateHour} เท่า และค่าโอทีเป็น ${dataCal.dayoffRateOT} เท่า`);
             return dataCal;
           }
         }
