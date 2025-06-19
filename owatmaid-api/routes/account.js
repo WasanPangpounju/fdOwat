@@ -4611,46 +4611,24 @@ try {
     console.log(`📅 พบวันหยุดที่กำหนดเอง ${customizeDayoff} วัน: ${JSON.stringify(weekendData.customizeDayoff)}`);
     console.log(`ℹ️ จำนวนวันหยุดที่กำหนดเองเริ่มต้น: ${customizeDayoff} วัน`);
     
-    // เพิ่มการตรวจสอบรูปแบบของวันหยุดที่กำหนดเอง
-    console.log(`\n🔍 === ตรวจสอบรูปแบบของวันหยุดที่กำหนดเอง ===`);
+    // แสดงรายละเอียดของแต่ละวันที่กำหนดให้เป็นวันหยุด
     weekendData.customizeDayoff.forEach((dateStr, index) => {
       console.log(`🗓️ วันหยุดที่กำหนดเอง #${index + 1}: ${dateStr} (ประเภท: ${typeof dateStr}, ความยาว: ${dateStr.length})`);
       
-      // ตรวจสอบว่ามีวันที่ 18 หรือไม่
-      if (dateStr.includes("18")) {
-        console.log(`  🎯 พบวันที่ 18 ในวันหยุดที่กำหนดเอง: ${dateStr}`);
-      }
-      
-      // ตรวจสอบรูปแบบวันที่
-      if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-        console.log(`  📆 รูปแบบวันที่: YYYY-MM-DD (${dateStr})`);
-      } else if (/^\d{2}-\d{2}$/.test(dateStr)) {
-        console.log(`  📆 รูปแบบวันที่: MM-DD (${dateStr})`);
-      } else if (/^\d{1,2}$/.test(dateStr)) {
-        console.log(`  📆 รูปแบบวันที่: DD (${dateStr})`);
+      // ตรวจสอบว่าวันหยุดอยู่ในรูปแบบใด
+      if (dateStr.includes("-")) {
+        // รูปแบบ YYYY-MM-DD
+        const parts = dateStr.split("-");
+        console.log(`  📆 รูปแบบวันที่: YYYY-MM-DD (ปี=${parts[0]}, เดือน=${parts[1]}, วัน=${parts[2]})`);
       } else {
-        console.log(`  ❓ รูปแบบวันที่ไม่ทราบ: ${dateStr}`);
+        // รูปแบบอื่นๆ (อาจเป็นเลขวันที่เท่านั้น)
+        console.log(`  📆 รูปแบบวันที่: อื่นๆ (${dateStr})`);
       }
     });
     
-    // ตรวจสอบการแปลงรูปแบบวันที่
-    console.log(`\n🔄 === ทดสอบการแปลงรูปแบบวันที่ ===`);
-    const testDates = ["18", "05-18", "2025-05-18"];
-    testDates.forEach(testDate => {
-      console.log(`ทดสอบวันที่: ${testDate}`);
-      
-      if (weekendData.customizeDayoff.includes(testDate)) {
-        console.log(`  ✅ พบวันที่ ${testDate} ในวันหยุดที่กำหนดเอง`);
-      } else {
-        console.log(`  ❌ ไม่พบวันที่ ${testDate} ในวันหยุดที่กำหนดเอง`);
-        
-        // ตรวจสอบว่ามีวันที่คล้ายกันหรือไม่
-        const similarDates = weekendData.customizeDayoff.filter(d => d.includes(testDate.replace(/^\d{4}-/, '')));
-        if (similarDates.length > 0) {
-          console.log(`  🔍 พบวันที่คล้ายกัน: ${JSON.stringify(similarDates)}`);
-        }
-      }
-    });
+    // ตรวจสอบว่ามีวันที่ 18 อยู่ในรายการวันหยุดหรือไม่
+    const has18 = weekendData.customizeDayoff.some(d => d.endsWith("-18") || d === "18");
+    console.log(`🔍 วันที่ 18 อยู่ในรายการวันหยุดที่กำหนดเอง: ${has18 ? 'ใช่' : 'ไม่ใช่'}`);
   }
 } catch (error) {
   console.error('❌ เกิดข้อผิดพลาดในการเรียก API วันหยุด:', error.message);
@@ -4686,97 +4664,55 @@ if (!timeCashWorkMul[record?.cashWorkMul]) {
           
           // ตรวจสอบว่าเป็นวันหยุดที่กำหนดเองหรือไม่
           try {
-            // ตรวจสอบค่า year, month, date
-            console.log(`ข้อมูลบันทึก: year=${record.year}, month=${record.month}, date=${record.date}`);
+            // ใช้ค่า year และ month จากระดับรากของออบเจกต์ (ไม่ใช่จาก record)
+            const recordYear = year; // ใช้ year ที่ส่งเข้ามาในฟังก์ชัน calculateCashValues
+            const recordMonth = month; // ใช้ month ที่ส่งเข้ามาในฟังก์ชัน calculateCashValues
+            const recordDate = record.date;
             
-            // ช่วงปีที่ยอมรับได้ เช่น 2020-2030
-            const validYears = Array.from({length: 11}, (_, i) => (2020 + i).toString());
+            console.log(`🔄 ข้อมูลวันที่: year=${recordYear}, month=${recordMonth}, date=${recordDate}`);
             
-            // ถ้า year ไม่ได้ระบุหรือไม่ถูกต้อง ให้ใช้ปีปัจจุบัน
-            const currentYear = new Date().getFullYear();
-            const year = validYears.includes(record.year) ? record.year : currentYear.toString();
+            // สร้างวันที่ในรูปแบบ YYYY-MM-DD
+            const dateStr = `${recordYear}-${String(recordMonth).padStart(2, '0')}-${String(recordDate).padStart(2, '0')}`;
+            console.log(`🔄 วันที่ที่สร้างขึ้น: ${dateStr}`);
             
-            // สร้างวันที่ในรูปแบบต่างๆ เพื่อเปรียบเทียบ
-            const dateStr = `${year}-${String(record.month).padStart(2, '0')}-${String(record.date).padStart(2, '0')}`;
-            const dateStrShort = String(record.date).padStart(2, '0'); // รูปแบบ DD
-            const dateStrMonthDay = `${String(record.month).padStart(2, '0')}-${String(record.date).padStart(2, '0')}`; // รูปแบบ MM-DD
-            
-            console.log(`🔄 ตรวจสอบวันที่ ${record.date} (รูปแบบเต็ม: ${dateStr}): totalTime = "${record.totalTime || 'ไม่มีค่า'}"`);
-            
-            // ตรวจสอบว่ามีวันนี้อยู่ใน customizeDayoff หรือไม่ (ลองหลายรูปแบบ)
+            // ตรวจสอบว่ามีวันนี้อยู่ใน customizeDayoff หรือไม่
             let isCustomDayoff = false;
-            let matchedFormat = '';
             
             if (weekendData?.customizeDayoff) {
-              // ตรวจสอบแต่ละรูปแบบ
-              for (const dayOff of weekendData.customizeDayoff) {
-                // ตรวจสอบว่าวันหยุดที่กำหนดเองมีรูปแบบอย่างไร
-                if (dayOff === dateStr) {
-                  isCustomDayoff = true;
-                  matchedFormat = 'YYYY-MM-DD';
-                  break;
-                } else if (dayOff === dateStrShort) {
-                  isCustomDayoff = true;
-                  matchedFormat = 'DD';
-                  break;
-                } else if (dayOff === record.date) {
-                  isCustomDayoff = true;
-                  matchedFormat = 'เลขวันที่';
-                  break;
-                } else if (dayOff.endsWith(`-${record.date}`)) {
-                  // กรณีที่วันหยุดมีรูปแบบ YYYY-MM-DD แต่เราต้องการเช็คเฉพาะวันที่
-                  isCustomDayoff = true;
-                  matchedFormat = 'ลงท้ายด้วยวันที่';
-                  break;
-                } else if (dayOff.includes(dateStrMonthDay)) {
-                  // กรณีที่วันหยุดมีรูปแบบ YYYY-MM-DD แต่เราต้องการเช็คเฉพาะเดือนและวัน
-                  isCustomDayoff = true;
-                  matchedFormat = 'เดือน-วัน';
-                  break;
-                }
+              // แสดงรายการวันหยุดที่กำหนดเอง
+              console.log(`📋 รายการวันหยุดที่กำหนดเอง: ${JSON.stringify(weekendData.customizeDayoff)}`);
+              
+              // ตรวจสอบว่าวันนี้เป็นวันหยุดที่กำหนดเองหรือไม่
+              isCustomDayoff = weekendData.customizeDayoff.includes(dateStr);
+              
+              // กรณีพิเศษสำหรับวันที่ 18 ของเดือน
+              if (recordDate === "18") {
+                console.log(`🔍 พบวันที่ 18: dayType=${record.dayType}, totalTime=${record.totalTime}, isCustomDayoff=${isCustomDayoff}`);
                 
-                // แสดง log เพื่อดูว่ากำลังเปรียบเทียบอะไรกับอะไร
-                console.log(`  เปรียบเทียบ: dayOff=${dayOff} กับ dateStr=${dateStr}, dateStrShort=${dateStrShort}, date=${record.date}`);
+                // ตรวจสอบว่ามีวันที่ 18 อยู่ในวันหยุดหรือไม่ ด้วยการค้นหาจากส่วนหลังของวันที่
+                const has18 = weekendData.customizeDayoff.some(d => d.endsWith(`-18`));
+                if (has18) {
+                  console.log(`✅ พบวันที่ 18 ในรายการวันหยุดที่กำหนดเอง`);
+                  isCustomDayoff = true;
+                }
               }
             }
             
-            console.log(`วันที่ ${record.date} (${dateStr}) เป็นวันหยุดที่กำหนดเอง: ${isCustomDayoff ? `ใช่ (รูปแบบ: ${matchedFormat})` : 'ไม่ใช่'}`);
-            
-            // ตรวจสอบกรณีเฉพาะสำหรับวันที่ 18
-            if (record.date === "18") {
-              console.log(`🔍 พบวันที่ 18: dayType=${record.dayType}, totalTime=${record.totalTime}, customizeDayoff=${isCustomDayoff}`);
-              console.log(`🔍 ข้อมูลวันหยุดที่กำหนดเอง: ${JSON.stringify(weekendData?.customizeDayoff || [])}`);
-              
-              // ตรวจสอบด้วยการวนลูปเปรียบเทียบแต่ละค่า
-              if (weekendData?.customizeDayoff) {
-                weekendData.customizeDayoff.forEach(dayOff => {
-                  if (dayOff.includes("18")) {
-                    console.log(`  🎯 พบวันที่ 18 ในวันหยุดที่กำหนดเอง: ${dayOff}`);
-                  }
-                });
-              }
-              
-              // บังคับให้วันที่ 18 เป็นวันหยุดที่กำหนดเอง
-              if (record.totalTime && record.totalTime.trim() !== '') {
-                console.log(`⚠️ บังคับตรวจสอบวันที่ 18 - พบว่ามีค่า totalTime: ${record.totalTime}`);
-                console.log(`⬇️ ลดจำนวนวันหยุดที่กำหนดเองลง 1 วัน`);
-                customizeDayoff -= 1;
-              }
-            }
+            console.log(`📆 วันที่ ${recordDate} (${dateStr}) เป็นวันหยุดที่กำหนดเอง: ${isCustomDayoff ? 'ใช่' : 'ไม่ใช่'}`);
             
             if (isCustomDayoff) {
               // ตรวจสอบว่าพนักงานมาทำงานโดยดูจาก totalTime
               const hasTotalTime = record.totalTime && record.totalTime.trim() !== '';
               
-              console.log(`🕒 วันที่ ${record.date} เป็นวันหยุดที่กำหนดเอง - ค่า totalTime: "${record.totalTime || 'ไม่มีค่า'}"`);
+              console.log(`🕒 วันที่ ${recordDate} เป็นวันหยุดที่กำหนดเอง - ค่า totalTime: "${record.totalTime || 'ไม่มีค่า'}"`);
               
               if (hasTotalTime) {
                 // พนักงานมาทำงานในวันหยุดที่กำหนดเอง
-                console.log(`🔍 พนักงานมาทำงานในวันหยุดที่กำหนดเอง: วันที่ ${record.date} (totalTime: ${record.totalTime})`);
+                console.log(`🔍 พนักงานมาทำงานในวันหยุดที่กำหนดเอง: วันที่ ${recordDate} (totalTime: ${record.totalTime})`);
                 customizeDayoff -= 1; // ลดจำนวนวันหยุดที่กำหนดเองลง 1 วัน
                 console.log(`⬇️ ลดจำนวนวันหยุดที่กำหนดเองเหลือ ${customizeDayoff} วัน`);
               } else {
-                console.log(`ℹ️ วันที่ ${record.date} เป็นวันหยุดที่กำหนดเอง และพนักงานไม่ได้มาทำงาน (ไม่มีค่า totalTime)`);
+                console.log(`ℹ️ วันที่ ${recordDate} เป็นวันหยุดที่กำหนดเอง และพนักงานไม่ได้มาทำงาน (ไม่มีค่า totalTime)`);
               }
             }
           } catch (error) {
@@ -4898,16 +4834,18 @@ console.log(`📝 ข้อสังเกต: ค่า totalTime ต้อง�
 console.log(`\n🔍 === ตรวจสอบรายการวันที่ทั้งหมดในบันทึก ===`);
 employee_record.forEach(record => {
   try {
-    const recordDate = new Date(record.year, parseInt(record.month) - 1, parseInt(record.date));
-    const dateStr = `${recordDate.getFullYear()}-${String(recordDate.getMonth() + 1).padStart(2, '0')}-${String(recordDate.getDate()).padStart(2, '0')}`;
-    const dateStrShort = String(recordDate.getDate()).padStart(2, '0');
+    // ใช้ค่า year และ month จากระดับรากของออบเจกต์
+    const recordYear = year;
+    const recordMonth = month;
+    const recordDate = record.date;
     
-    const isCustomDayoff = 
-      weekendData?.customizeDayoff?.includes(dateStr) || 
-      weekendData?.customizeDayoff?.includes(dateStrShort) ||
-      weekendData?.customizeDayoff?.includes(record.date);
+    // สร้างวันที่ในรูปแบบ YYYY-MM-DD
+    const dateStr = `${recordYear}-${String(recordMonth).padStart(2, '0')}-${String(recordDate).padStart(2, '0')}`;
     
-    console.log(`วันที่ ${record.date} (${dateStr}): dayType=${record.dayType}, totalTime=${record.totalTime || 'ไม่มีค่า'}, เป็นวันหยุดที่กำหนดเอง=${isCustomDayoff ? 'ใช่' : 'ไม่ใช่'}`);
+    // ตรวจสอบว่าเป็นวันหยุดที่กำหนดเองหรือไม่
+    const isCustomDayoff = weekendData?.customizeDayoff?.includes(dateStr);
+    
+    console.log(`วันที่ ${recordDate} (${dateStr}): dayType=${record.dayType}, totalTime=${record.totalTime || 'ไม่มีค่า'}, เป็นวันหยุดที่กำหนดเอง=${isCustomDayoff ? 'ใช่' : 'ไม่ใช่'}`);
   } catch (error) {
     console.error(`❌ ไม่สามารถตรวจสอบวันที่ ${record.date} ได้:`, error.message);
   }
