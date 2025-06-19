@@ -4498,6 +4498,9 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
   // ดึงข้อมูลวันหยุด (weekendAndDayOff) จาก API
   let weekendAndDayOffDates = [];
   let transformedWeekendAndDayOffDates = []; // สำหรับเก็บวันที่ในรูปแบบวันที่เดียว (เช่น "21")
+  let dayOffOnlyDates = []; // เก็บวันที่เป็นวันหยุดพิเศษเท่านั้น
+  let transformedDayOffOnlyDates = []; // เก็บวันที่เป็นวันหยุดพิเศษในรูปแบบวันที่เดียว
+  
   if (employeeProfile && employeeProfile.length > 0) {
     try {
       const workplaceId = employeeProfile[0].workplace || '';
@@ -4507,9 +4510,12 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
         `${sURL}/conclude/getWeekendDates?yyyy=${year}&mm=${month}&workplaceId=${workplaceId}`
       );
       
-      if (weekendResponse.data && weekendResponse.data.weekendAndDayOff) {
+      if (weekendResponse.data) {
         // เก็บรายการวันที่เป็นทั้งวันหยุดสุดสัปดาห์และวันหยุดพิเศษ
-        weekendAndDayOffDates = weekendResponse.data.weekendAndDayOff;
+        weekendAndDayOffDates = weekendResponse.data.weekendAndDayOff || [];
+        
+        // เก็บรายการวันที่เป็นวันหยุดพิเศษเท่านั้น
+        dayOffOnlyDates = weekendResponse.data.dayOffOnly || [];
         
         // แปลงวันที่จากรูปแบบ YYYY-MM-DD เป็นเฉพาะวันที่ (DD)
         transformedWeekendAndDayOffDates = weekendAndDayOffDates.map(date => {
@@ -4517,11 +4523,18 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
           return parts.length === 3 ? parts[2] : date;
         });
         
+        // แปลงวันที่สำหรับ dayOffOnly
+        transformedDayOffOnlyDates = dayOffOnlyDates.map(date => {
+          const parts = date.split('-');
+          return parts.length === 3 ? parts[2] : date;
+        });
+        
         customizeDayoff = String(weekendAndDayOffDates.length);
-        console.log(`==== ข้อมูลวันหยุด (customizeDayoff) ของพนักงาน ${employeeId} ====`);
-        console.log(`พบ ${customizeDayoff} วันที่เป็นทั้งวันหยุดสุดสัปดาห์และวันหยุดพิเศษ`);
-        console.log(`รายการวันที่เต็ม: ${JSON.stringify(weekendAndDayOffDates)}`);
-        console.log(`รายการเฉพาะวันที่: ${JSON.stringify(transformedWeekendAndDayOffDates)}`);
+        console.log(`==== ข้อมูลวันหยุดของพนักงาน ${employeeId} ====`);
+        console.log(`📅 วันหยุดสุดสัปดาห์+วันหยุดพิเศษ (customizeDayoff): ${weekendAndDayOffDates.length} วัน`);
+        console.log(`📅 วันหยุดพิเศษเท่านั้น (specialDayOff): ${dayOffOnlyDates.length} วัน`);
+        console.log(`รายการวันหยุดพิเศษเท่านั้น: ${JSON.stringify(dayOffOnlyDates)}`);
+        console.log(`รายการเฉพาะวันที่: ${JSON.stringify(transformedDayOffOnlyDates)}`);
         console.log(`====================================================`);
       }
     } catch (error) {
