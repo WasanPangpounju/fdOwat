@@ -1547,7 +1547,7 @@ function getWeekendDatesGrouped(yyyy, mm, daysOff = []) {
 
   // เรียงลำดับทั้งหมดก่อนคืนค่า
   return {
-    weekendOnly: weekendOnly.sort(),
+    saturdaySundayOnly: weekendOnly.sort(),
     dayOffOnly: dayOffOnly.sort(),
     weekendAndDayOff: weekendAndDayOff.sort(),
   };
