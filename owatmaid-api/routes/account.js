@@ -4441,22 +4441,22 @@ router.post('/searchtimerecordemployee', async (req, res) => {
 
         console.log('calculatedValues.addSalaryList ' + JSON.stringify(calculatedValues.addSalaryList[0].SpSalary,null,2))
         console.log(calculatedValues.addSalaryList.length)
-        
-        // แสดงข้อมูล customizeDayoff ก่อนบันทึก
-        console.log(`\n� กำลังบันทึกข้อมูล customizeDayoff: ${updateData.customizeDayoff} วัน สำหรับพนักงาน ${doc.employeeId}`);
-        
+        // ✅ Log BEFORE update
+        // console.log(`🔍 BEFORE update (doc ${doc._id}):`, JSON.stringify(doc.addSalaryList, null, 2));
+    
         // Update and get updated document
         const updatedDoc = await timerecordEmployee.findByIdAndUpdate(
           doc._id,
           { $set: updateData },
           { new: true, upsert: true }
         );
-        
-        // แสดงข้อมูล customizeDayoff หลังบันทึก
-        console.log(`✅ บันทึกข้อมูล customizeDayoff สำเร็จ: ${updatedDoc.customizeDayoff} วัน`);
-        console.log(`🆔 Document ID: ${doc._id}`);
+    
+        // ✅ Log AFTER update
+        // console.log(`🚀 AFTER update (doc ${doc._id}):`, JSON.stringify(updatedDoc.addSalaryList, null, 2));
     
         await updatedRecords.push(updatedDoc);
+    
+        // console.log(`✅ Document ${doc._id} updated successfully`);
     
 // console.log('updatedDoc ' + JSON.stringify(updatedDoc))
       } catch (error) {
@@ -4522,25 +4522,22 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
   
   // Process employee records if they exist
   if (employee_record && employee_record.length > 0) {
-    // สร้างตารางแสดงข้อมูลวันทำงานทั้งหมด
-    console.log(`\n==========================================================================`);
-    console.log(`📋 ตารางข้อมูลวันทำงานทั้งหมดของพนักงาน ${employeeId} (เดือน ${month}/${year})`);
-    console.log(`==========================================================================`);
-    console.log(`| วันที่        | ประเภทวัน | เวลาทำงาน | เป็นวันหยุด customizeDayoff | มาทำงาน |`);
-    console.log(`|-------------|----------|----------|--------------------------|--------|`);
-    
     for (let i = 0; i < employee_record.length; i++) {
       // ตรวจสอบว่าเป็นวันที่อยู่ใน weekendAndDayOffDates หรือไม่
       const recordDate = employee_record[i].date; // รูปแบบ YYYY-MM-DD
       const isCustomDayOff = weekendAndDayOffDates.includes(recordDate);
-      const hasWorked = employee_record[i].totalTime && parseFloat(employee_record[i].totalTime) > 0;
-      
-      // แสดงข้อมูลในรูปแบบตาราง
-      console.log(`| ${recordDate} | ${employee_record[i].dayType || 'ไม่ระบุ'} | ${employee_record[i].totalTime || '0'} | ${isCustomDayOff ? 'ใช่' : 'ไม่ใช่'} | ${hasWorked ? 'ใช่' : 'ไม่ใช่'} |`);
       
       // ถ้าเป็นวันใน customizeDayoff และมีค่า totalTime (มาทำงาน) ให้นับเพิ่ม
-      if (isCustomDayOff && hasWorked) {
+      if (isCustomDayOff && employee_record[i].totalTime && parseFloat(employee_record[i].totalTime) > 0) {
         daysWorkedOnCustomizeDayoff++;
+        console.log(`🔍 พนักงาน ${employeeId} มาทำงานในวันหยุด (${recordDate})`);
+        console.log(`   - วันที่: ${recordDate}`);
+        console.log(`   - เวลาทำงาน: ${employee_record[i].totalTime} ชั่วโมง`);
+        console.log(`   - ประเภทวัน: ${employee_record[i].dayType}`);
+        console.log(`   - กะทำงาน: ${employee_record[i].shift || 'ไม่ระบุ'}`);
+      } else if (isCustomDayOff) {
+        console.log(`📅 พนักงาน ${employeeId} ไม่ได้มาทำงานในวันหยุด (${recordDate})`);
+        console.log(`   - totalTime: ${employee_record[i].totalTime || 'ไม่มีการบันทึกเวลา'}`);
       }
       
       // Calculate work days
@@ -4633,20 +4630,8 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
   if (parseInt(customizeDayoff) > 0 && daysWorkedOnCustomizeDayoff > 0) {
     const originalCustomizeDayoff = parseInt(customizeDayoff);
     const remainingCustomizeDayoff = Math.max(0, originalCustomizeDayoff - daysWorkedOnCustomizeDayoff);
-    
-    console.log(`\n===== สรุปการคำนวณวันหยุด customizeDayoff ของพนักงาน ${employeeId} =====`);
-    console.log(`📊 จำนวนวันหยุด customizeDayoff เดิม: ${originalCustomizeDayoff} วัน`);
-    console.log(`📊 มาทำงานในวันหยุด customizeDayoff: ${daysWorkedOnCustomizeDayoff} วัน`);
-    console.log(`📊 จำนวนวันหยุด customizeDayoff คงเหลือ: ${remainingCustomizeDayoff} วัน`);
-    console.log(`==========================================================\n`);
-    
     customizeDayoff = String(remainingCustomizeDayoff);
-  } else {
-    console.log(`\n===== สรุปการคำนวณวันหยุด customizeDayoff ของพนักงาน ${employeeId} =====`);
-    console.log(`📊 จำนวนวันหยุด customizeDayoff: ${customizeDayoff} วัน`);
-    console.log(`📊 มาทำงานในวันหยุด customizeDayoff: ${daysWorkedOnCustomizeDayoff} วัน`);
-    console.log(`📊 จำนวนวันหยุด customizeDayoff คงเหลือ: ${customizeDayoff} วัน (ไม่เปลี่ยนแปลง)`);
-    console.log(`==========================================================\n`);
+    console.log(`พนักงาน ${employeeId} มีวันหยุด customizeDayoff ${originalCustomizeDayoff} วัน แต่มาทำงาน ${daysWorkedOnCustomizeDayoff} วัน จึงเหลือ ${customizeDayoff} วัน`);
   }
   
   return await {
