@@ -1529,7 +1529,8 @@ function getWeekendDatesGrouped(yyyy, mm, daysOff = []) {
   // แยกกลุ่ม
   const weekendOnly = [];
   const dayOffOnly = [];
-  const weekendAndDayOff = [];
+  const weekendAndDayOff = []; // วันที่เป็นทั้งวันหยุดและวันสุดสัปดาห์
+  const customDayOff = []; // เพิ่มรายการวันหยุดที่กำหนดเอง
 
   const allDates = new Set([...weekendSet, ...dayOffSet]);
   for (const date of allDates) {
@@ -1538,10 +1539,12 @@ function getWeekendDatesGrouped(yyyy, mm, daysOff = []) {
 
     if (isWeekend && isDayOff) {
       weekendAndDayOff.push(date);
+      customDayOff.push(date); // เพิ่มเข้าไปในวันหยุดที่กำหนดเอง
     } else if (isWeekend) {
       weekendOnly.push(date);
     } else if (isDayOff) {
       dayOffOnly.push(date);
+      customDayOff.push(date); // วันหยุดพิเศษถือเป็นวันหยุดที่กำหนดเองด้วย
     }
   }
 
@@ -1549,7 +1552,8 @@ function getWeekendDatesGrouped(yyyy, mm, daysOff = []) {
   return {
     saturdaySundayOnly: weekendOnly.sort(),
     publicHoliday: dayOffOnly.sort(),
-    customizeDayoff: weekendAndDayOff.sort(),
+    weekendAndDayOff: weekendAndDayOff.sort(), // วันที่เป็นทั้งวันหยุดและวันสุดสัปดาห์
+    customizeDayoff: customDayOff.sort(), // วันหยุดที่กำหนดเอง (รวมวันหยุดพิเศษและวันที่เป็นทั้งวันหยุดและวันสุดสัปดาห์)
   };
 }
 
@@ -2115,9 +2119,10 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
       }
       
       // ตรวจสอบเพิ่มเติมสำหรับวันที่ 10 มิถุนายน 2025
+      // เปลี่ยนให้เป็นวันทำงานปกติแทนที่จะเป็นวันหยุด
       if (dateStr === "2025-06-10") {
-        console.log(`🔍 ตรวจพบวันที่ ${dateStr} เป็นวันหยุดพิเศษตามเงื่อนไขเฉพาะ -> กำหนด dayType = stop`);
-        dataCal.dayType = 'stop';
+        console.log(`🔍 ตรวจพบวันที่ ${dateStr} เป็นวันทำงานปกติ -> กำหนด dayType = work`);
+        dataCal.dayType = 'work';
         return dataCal;
       }
       
