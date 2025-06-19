@@ -50,6 +50,7 @@ specialtSalaryOT: String,
 dayWorkCount : String,
 dayOffCount : String,
 specialDayOff : String,
+customizeDayoff : String, // เพิ่มฟิลด์สำหรับเก็บจำนวนวันหยุดที่กำหนดเอง
 sumTimeWork : String,
 sumTimeOt : String,
 sumCashWork : String,
