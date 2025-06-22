@@ -4472,6 +4472,30 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+// คำนวณค่า cashcustomizeDayoff
+console.log(`\n💰 คำนวณ cashcustomizeDayoff สำหรับพนักงาน ${employeeId}`);
+
+// ถ้า customizeDayoff เป็น 0 ค่า cashcustomizeDayoff ก็จะเป็น 0 ด้วย
+if (customizeDayoff == 0) {
+  cashcustomizeDayoff = 0;
+  console.log(`💰 customizeDayoff เป็น 0 จึงกำหนด cashcustomizeDayoff = 0 บาท`);
+} else {
+  // ถ้า customizeDayoff ไม่เป็น 0 ใช้สูตร: (sumCashWorkMul["1"] / dayWorkCount) * customizeDayoff
+  if (sumCashWorkMul["1"] && dayWorkCount > 0) {
+    // ค่าแรงต่อวันคำนวณจาก sumCashWorkMul["1"] / dayWorkCount
+    const dailyRate = sumCashWorkMul["1"] / dayWorkCount;
+    cashcustomizeDayoff = dailyRate * customizeDayoff;
+    
+    console.log(`💰 ค่าแรงต่อวัน (sumCashWorkMul["1"] / dayWorkCount): ${dailyRate.toFixed(2)} บาท`);
+    console.log(`💰 จำนวนวันหยุด customizeDayoff: ${customizeDayoff} วัน`);
+    console.log(`💰 เงินสำหรับวันหยุดที่กำหนดเอง (cashcustomizeDayoff): ${cashcustomizeDayoff.toFixed(2)} บาท`);
+  } else {
+    // กรณีไม่มีข้อมูล sumCashWorkMul["1"] หรือ dayWorkCount เป็น 0
+    cashcustomizeDayoff = 0;
+    console.log(`⚠️ ไม่สามารถคำนวณ cashcustomizeDayoff ได้ (sumCashWorkMul["1"]=${sumCashWorkMul["1"] || 0}, dayWorkCount=${dayWorkCount})`);
+    console.log(`💰 กำหนด cashcustomizeDayoff = 0 บาท`);
+  }
+}
 
 
 const calculateCashValues = async (employeeId, employee_record, month, year) => {
