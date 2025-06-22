@@ -4431,7 +4431,8 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           tax: String(calculatedValues.tax),
           cashSpecialDay: String(calculatedValues.cashSpecialDay),
           sumOt1p5: String(calculatedValues.sumOt1p5 || 0), // เพิ่มบรรทัดนี้
-          sumOt2: String(calculatedValues.sumOt2 || 0), // เพิ่มบรรทัดนี้
+          sumOt3: String(calculatedValues.sumOt3 || 0), // เพิ่มบรรทัดนี้
+          sumOtPublicHoliday: String(calculatedValues.sumOtPublicHoliday || 0), // 
 
 
           // clearly ensure all SpSalary are numbers
@@ -4505,7 +4506,8 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
   let transformedDayOffOnlyDates = []; // เก็บวันที่เป็นวันหยุดนักขัตฤกษ์ในรูปแบบวันที่เดียว
   let publicHolidayCount = 0; // สำหรับนับจำนวนวันหยุดนักขัตฤกษ์ที่พนักงานไม่มาทำงาน
   let sumOt1p5 = 0; // เพิ่มตัวแปรใหม่สำหรับเก็บผลรวมของ totalOtTime ในวันทำงานปกติ
-  let sumOt2 = 0; // เพิ่มตัวแปรใหม่สำหรับเก็บผลรวมของ totalOtTime ในวันทำงานปกติ
+  let sumOt3 = 0; // เพิ่มตัวแปรใหม่สำหรับเก็บผลรวมของ totalOtTime ในวันทำงานปกติ
+  let sumOtPublicHoliday = 0; 
 
 
 
@@ -4799,8 +4801,8 @@ try {
 
           sumTimeOt = parseFloat(sumTimeOt || 0) + parseFloat(record.beforeTotalOtTime || '0') + parseFloat(record.totalTime || '0') + parseFloat(record.totalOtTime || '0')
           sumCashOt = parseFloat(sumCashOt || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0')
-          sumOt2 += parseFloat(record.totalOtTime || '0');  
-
+          sumOt3 += parseFloat(record.totalOtTime || '0');  
+          sumOtPublicHoliday += parseFloat(record.totalTime || '0'); // เพิ่มผลรวมของ totalOtTime ในวันหยุดนักขัตฤกษ์
           sumCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
           sumCashWorkMul[record?.cashOtMul] += parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0');
 
@@ -5114,7 +5116,8 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
     tax,
     cashSpecialDay,
     sumOt1p5,
-    sumOt2,
+    sumOt3,
+    sumOtPublicHoliday,
   };
 };
 
