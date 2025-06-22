@@ -4619,9 +4619,11 @@ try {
   // แสดงข้อมูลวันหยุดทั้งหมดที่ได้จาก API
   console.log(`📋 ข้อมูลวันหยุดทั้งหมด:`, JSON.stringify(weekendData, null, 2));
   
-  // กำหนดค่า publicHolidayCount เท่ากับจำนวนของ dayOffOnly
+  // กำหนดค่า dayOffOnlyDates จาก API
   dayOffOnlyDates = weekendData.dayOffOnly || [];
-  publicHolidayCount = dayOffOnlyDates.length; // ตั้งค่า publicHolidayCount เท่ากับจำนวนของ dayOffOnly
+  
+  // ไม่กำหนดค่า publicHolidayCount ที่นี่ เพราะจะคำนวณหลังจากตรวจสอบการมาทำงานแล้ว
+  // publicHolidayCount = dayOffOnlyDates.length;
   
   transformedDayOffOnlyDates = dayOffOnlyDates.map(date => {
     const parts = date.split('-');
@@ -4630,7 +4632,6 @@ try {
   
   console.log(`📅 วันหยุดนักขัตฤกษ์ทั้งหมด: ${dayOffOnlyDates.length} วัน`);
   console.log(`📅 รายการวันหยุดนักขัตฤกษ์: ${JSON.stringify(dayOffOnlyDates)}`);
-  console.log(`📅 ค่า publicHolidayCount: ${publicHolidayCount}`);
 
   // นับจำนวนวันหยุดที่กำหนดเอง
   if (weekendData.weekendAndDayOff && Array.isArray(weekendData.weekendAndDayOff)) {
@@ -4669,6 +4670,8 @@ try {
   transformedDayOffOnlyDates = [];
   publicHolidayCount = 0;
 }
+
+
 
   // ตัวแปรเพื่อนับจำนวนวันที่พนักงานไม่มาทำงานในวันหยุดที่กำหนดเอง
   let daysNotComeToWork = 0;
@@ -4919,9 +4922,29 @@ employee_record.forEach(record => {
     console.error(`❌ ไม่สามารถตรวจสอบวันที่ ${record.date} ได้:`, error.message);
   }
 });
+const totalPublicHolidays = dayOffOnlyDates.length;
+const daysWorkedOnPublicHolidays = employee_record.filter(record => {
+  try {
+    const recordDate = record.date;
+    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(recordDate).padStart(2, '0')}`;
+    const isPublicHoliday = dayOffOnlyDates.includes(dateStr);
+    const hasWorked = record.totalTime && record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0;
+    return isPublicHoliday && hasWorked;
+  } catch (error) {
+    return false;
+  }
+}).length;
 
-// สรุปผลการตรวจสอบวันหยุดที่กำหนดเอง
-// แก้ไขการคำนวณค่า customizeDayoff
+// คำนวณ publicHolidayCount ใหม่ โดยหักจำนวนวันที่มาทำงานออก
+publicHolidayCount = totalPublicHolidays - daysWorkedOnPublicHolidays;
+
+console.log(`\n📊 === สรุปการตรวจสอบวันหยุดนักขัตฤกษ์ ===`);
+console.log(`📅 จำนวนวันหยุดนักขัตฤกษ์ทั้งหมด: ${totalPublicHolidays} วัน`);
+console.log(`🔍 พนักงานมาทำงานในวันหยุดนักขัตฤกษ์: ${daysWorkedOnPublicHolidays} วัน`);
+console.log(`🔍 พนักงานไม่ได้มาทำงานในวันหยุดนักขัตฤกษ์: ${publicHolidayCount} วัน`);
+console.log(`🔍 ค่า publicHolidayCount ที่จะบันทึก: ${publicHolidayCount}`);
+
+
 
 // สรุปผลการตรวจสอบวันหยุดที่กำหนดเอง
 const totalCustomDayoff = weekendData?.weekendAndDayOff?.length || 0;
