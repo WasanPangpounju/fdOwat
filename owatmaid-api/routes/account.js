@@ -4500,6 +4500,19 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
   let dayOffOnlyDates = []; // เก็บวันที่เป็นวันหยุดนักขัตฤกษ์เท่านั้น
   let transformedDayOffOnlyDates = []; // เก็บวันที่เป็นวันหยุดนักขัตฤกษ์ในรูปแบบวันที่เดียว
   let publicHolidayCount = 0; // สำหรับนับจำนวนวันหยุดนักขัตฤกษ์ที่พนักงานไม่มาทำงาน
+
+  let sumCashWorkMul = {
+  "1": 0,
+  "1.5": 0,
+  "2": 0, 
+  "3": 0
+};
+let timeCashWorkMul = {
+  "1": 0,
+  "1.5": 0,
+  "2": 0, 
+  "3": 0
+};
   
 
 
@@ -4528,8 +4541,7 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
   let sumCashWork = 0;
   let sumCashOt = 0;
   let sumcashDayOffCount = 0;
-  let sumCashWorkMul = {};
-  let timeCashWorkMul = {};
+
   let weekendData = {}; // เพิ่มตัวแปรเก็บข้อมูลวันหยุด
   let publicHolidayCash = 0;
   
@@ -4974,6 +4986,19 @@ console.log(`\n💰 คำนวณ publicHolidayCash สำหรับพน�
 
   // แสดงสรุปค่า publicHolidayCash ที่คำนวณได้
   console.log(`💰 ค่า publicHolidayCash ที่จะบันทึก: ${publicHolidayCash.toFixed(2)} บาท`);
+
+  console.log(`\n💰 คำนวณค่า sumCashWorkMul["1.5"] สำหรับพนักงาน ${employeeId}`);
+console.log(`💰 sumCashOt: ${sumCashOt} บาท`);
+console.log(`💰 sumcashDayOffCount: ${sumcashDayOffCount} บาท`);
+
+// ถ้า sumCashOt มากกว่า sumcashDayOffCount ให้คำนวณผลต่าง แต่ถ้าน้อยกว่าให้เป็น 0
+if (sumCashOt >= sumcashDayOffCount) {
+  sumCashWorkMul["1.5"] = sumCashOt - sumcashDayOffCount;
+} else {
+  sumCashWorkMul["1.5"] = 0;
+}
+
+console.log(`💰 sumCashWorkMul["1.5"] ที่คำนวณได้: ${sumCashWorkMul["1.5"].toFixed(2)} บาท`);
 
 
 
