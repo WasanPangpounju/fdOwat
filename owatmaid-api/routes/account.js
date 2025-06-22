@@ -4326,7 +4326,7 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
 
       groupedResult[empWorkplaceId].push({
         ...record.toObject(),
-        employeeName: employee.name,
+        employeeName: employee.name + ' ' + (employee.lastName || ''),
         workplaceName: employee.workplaceName || '', // if available
       });
     }
