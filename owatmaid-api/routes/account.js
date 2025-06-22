@@ -4601,68 +4601,74 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
   //set count specialday
   specialDay = await selectedSpecialDays.length;
 
-  // เพิ่มการเรียก API เพื่อดึงข้อมูลวันหยุดที่กำหนดเอง
-  try {
-    // ดึงข้อมูลเดือนและปีจากพารามิเตอร์
-    const currentDate = new Date();
-    const apiMonth = month || String(currentDate.getMonth() + 1).padStart(2, '0');
-    const apiYear = year || String(currentDate.getFullYear());
-    const wpId = employeeProfile[0].workplace || '';
+// เพิ่มการเรียก API เพื่อดึงข้อมูลวันหยุดที่กำหนดเอง
+try {
+  // ดึงข้อมูลเดือนและปีจากพารามิเตอร์
+  const currentDate = new Date();
+  const apiMonth = month || String(currentDate.getMonth() + 1).padStart(2, '0');
+  const apiYear = year || String(currentDate.getFullYear());
+  const wpId = employeeProfile[0].workplace || '';
 
-    // เรียก API
-    const apiUrl = `http://10.10.110.7:3000/conclude/getWeekendDates?yyyy=${apiYear}&mm=${apiMonth}&workplaceId=${wpId}`;
-    console.log(`🔍 เรียก API วันหยุด: ${apiUrl}`);
+  // เรียก API
+  const apiUrl = `http://10.10.110.7:3000/conclude/getWeekendDates?yyyy=${apiYear}&mm=${apiMonth}&workplaceId=${wpId}`;
+  console.log(`🔍 เรียก API วันหยุด: ${apiUrl}`);
 
+  const weekendResponse = await axios.get(apiUrl);
+  weekendData = weekendResponse.data; // เก็บข้อมูลวันหยุดในตัวแปร
 
+  // แสดงข้อมูลวันหยุดทั้งหมดที่ได้จาก API
+  console.log(`📋 ข้อมูลวันหยุดทั้งหมด:`, JSON.stringify(weekendData, null, 2));
+  
+  // กำหนดค่า publicHolidayCount เท่ากับจำนวนของ dayOffOnly
+  dayOffOnlyDates = weekendData.dayOffOnly || [];
+  publicHolidayCount = dayOffOnlyDates.length; // ตั้งค่า publicHolidayCount เท่ากับจำนวนของ dayOffOnly
+  
+  transformedDayOffOnlyDates = dayOffOnlyDates.map(date => {
+    const parts = date.split('-');
+    return parts.length === 3 ? parts[2] : date;
+  });
+  
+  console.log(`📅 วันหยุดนักขัตฤกษ์ทั้งหมด: ${dayOffOnlyDates.length} วัน`);
+  console.log(`📅 รายการวันหยุดนักขัตฤกษ์: ${JSON.stringify(dayOffOnlyDates)}`);
+  console.log(`📅 ค่า publicHolidayCount: ${publicHolidayCount}`);
 
-    const weekendResponse = await axios.get(apiUrl);
-    weekendData = weekendResponse.data; // เก็บข้อมูลวันหยุดในตัวแปร
-
-    // แสดงข้อมูลวันหยุดทั้งหมดที่ได้จาก API
-    console.log(`📋 ข้อมูลวันหยุดทั้งหมด:`, JSON.stringify(weekendData, null, 2));
-    dayOffOnlyDates = weekendData.dayOffOnly || [];
-    transformedDayOffOnlyDates = dayOffOnlyDates.map(date => {
-      const parts = date.split('-');
-      return parts.length === 3 ? parts[2] : date;
-    });
+  // นับจำนวนวันหยุดที่กำหนดเอง
+  if (weekendData.weekendAndDayOff && Array.isArray(weekendData.weekendAndDayOff)) {
+    customizeDayoff = weekendData.weekendAndDayOff.length;
+    weekendAndDayOffDates = weekendData.weekendAndDayOff;
     
-    console.log(`📅 วันหยุดนักขัตฤกษ์ทั้งหมด: ${dayOffOnlyDates.length} วัน`);
-    console.log(`📅 รายการวันหยุดนักขัตฤกษ์: ${JSON.stringify(dayOffOnlyDates)}`);
+    console.log(`📅 พบวันหยุดที่กำหนดเอง ${customizeDayoff} วัน: ${JSON.stringify(weekendData.weekendAndDayOff)}`);
+    console.log(`ℹ️ จำนวนวันหยุดที่กำหนดเองเริ่มต้น: ${customizeDayoff} วัน`);
 
+    // เก็บสถานะการมาทำงานในวันหยุดที่กำหนดเอง
+    let customDayoffStatus = [];
+    
+    // แสดงรายละเอียดของแต่ละวันที่กำหนดให้เป็นวันหยุด
+    weekendData.weekendAndDayOff.forEach((dateStr, index) => {
+      console.log(`🗓️ วันหยุดที่กำหนดเอง #${index + 1}: ${dateStr} (ประเภท: ${typeof dateStr}, ความยาว: ${dateStr.length})`);
 
-    // นับจำนวนวันหยุดที่กำหนดเอง
-    if (weekendData.weekendAndDayOff && Array.isArray(weekendData.weekendAndDayOff)) {
-      customizeDayoff = weekendData.weekendAndDayOff.length;
-      weekendAndDayOffDates = weekendData.weekendAndDayOff;
-      
-      console.log(`📅 พบวันหยุดที่กำหนดเอง ${customizeDayoff} วัน: ${JSON.stringify(weekendData.weekendAndDayOff)}`);
-      console.log(`ℹ️ จำนวนวันหยุดที่กำหนดเองเริ่มต้น: ${customizeDayoff} วัน`);
+      // ตรวจสอบว่าวันหยุดอยู่ในรูปแบบใด
+      if (dateStr.includes("-")) {
+        // รูปแบบ YYYY-MM-DD
+        const parts = dateStr.split("-");
+        console.log(`  📆 รูปแบบวันที่: YYYY-MM-DD (ปี=${parts[0]}, เดือน=${parts[1]}, วัน=${parts[2]})`);
+      } else {
+        // รูปแบบอื่นๆ (อาจเป็นเลขวันที่เท่านั้น)
+        console.log(`  📆 รูปแบบวันที่: อื่นๆ (${dateStr})`);
+      }
+    });
 
-      // เก็บสถานะการมาทำงานในวันหยุดที่กำหนดเอง
-      let customDayoffStatus = [];
-      
-      // แสดงรายละเอียดของแต่ละวันที่กำหนดให้เป็นวันหยุด
-      weekendData.weekendAndDayOff.forEach((dateStr, index) => {
-        console.log(`🗓️ วันหยุดที่กำหนดเอง #${index + 1}: ${dateStr} (ประเภท: ${typeof dateStr}, ความยาว: ${dateStr.length})`);
-
-        // ตรวจสอบว่าวันหยุดอยู่ในรูปแบบใด
-        if (dateStr.includes("-")) {
-          // รูปแบบ YYYY-MM-DD
-          const parts = dateStr.split("-");
-          console.log(`  📆 รูปแบบวันที่: YYYY-MM-DD (ปี=${parts[0]}, เดือน=${parts[1]}, วัน=${parts[2]})`);
-        } else {
-          // รูปแบบอื่นๆ (อาจเป็นเลขวันที่เท่านั้น)
-          console.log(`  📆 รูปแบบวันที่: อื่นๆ (${dateStr})`);
-        }
-      });
-
-      // ตรวจสอบว่ามีวันที่ 18 อยู่ในรายการวันหยุดหรือไม่
-      const has18 = weekendData.weekendAndDayOff.some(d => d.endsWith("-18") || d === "18");
-      console.log(`🔍 วันที่ 18 อยู่ในรายการวันหยุดที่กำหนดเอง: ${has18 ? 'ใช่' : 'ไม่ใช่'}`);
-    }
-  } catch (error) {
-    console.error('❌ เกิดข้อผิดพลาดในการเรียก API วันหยุด:', error.message);
+    // ตรวจสอบว่ามีวันที่ 18 อยู่ในรายการวันหยุดหรือไม่
+    const has18 = weekendData.weekendAndDayOff.some(d => d.endsWith("-18") || d === "18");
+    console.log(`🔍 วันที่ 18 อยู่ในรายการวันหยุดที่กำหนดเอง: ${has18 ? 'ใช่' : 'ไม่ใช่'}`);
   }
+} catch (error) {
+  console.error('❌ เกิดข้อผิดพลาดในการเรียก API วันหยุด:', error.message);
+  // กำหนดค่าเริ่มต้นเมื่อเกิดข้อผิดพลาด
+  dayOffOnlyDates = [];
+  transformedDayOffOnlyDates = [];
+  publicHolidayCount = 0;
+}
 
   // ตัวแปรเพื่อนับจำนวนวันที่พนักงานไม่มาทำงานในวันหยุดที่กำหนดเอง
   let daysNotComeToWork = 0;
