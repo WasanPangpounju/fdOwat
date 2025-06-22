@@ -4860,7 +4860,7 @@ try {
 
                   } else {
                     // Otherwise push new
-                    salaryItem.message = 0; 
+                    salaryItem.message = 1; 
                     addSalaryList.push(salaryItem);
                   } //end else
                 }); //end foreach
