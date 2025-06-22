@@ -4421,6 +4421,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           customizeDayoff: String(calculatedValues.customizeDayoff || 0), // เพิ่มฟิลด์ customizeDayoff
           cashcustomizeDayoff: String(calculatedValues.cashcustomizeDayoff || 0), // เพิ่มฟิลด์ cashcustomizeDayoff
           publicHolidayCount: String(calculatedValues.publicHolidayCount || 0), // เพิ่มบรรทัดนี้
+          publicHolidayCash: String(calculatedValues.publicHolidayCash || 0), // เพิ่มบรรทัดนี้
           sumTimeWork: String(calculatedValues.sumTimeWork),
           sumTimeOt: String(calculatedValues.sumTimeOt),
           sumCashWork: String(calculatedValues.sumCashWork),
@@ -4530,6 +4531,8 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
   let sumCashWorkMul = {};
   let timeCashWorkMul = {};
   let weekendData = {}; // เพิ่มตัวแปรเก็บข้อมูลวันหยุด
+  let publicHolidayCash = 0;
+  
 
   // ตัวแปรเก็บข้อมูลวันหยุดที่กำหนดเอง
   let weekendAndDayOffDates = [];
@@ -4944,6 +4947,35 @@ console.log(`🔍 พนักงานมาทำงานในวันห�
 console.log(`🔍 พนักงานไม่ได้มาทำงานในวันหยุดนักขัตฤกษ์: ${publicHolidayCount} วัน`);
 console.log(`🔍 ค่า publicHolidayCount ที่จะบันทึก: ${publicHolidayCount}`);
 
+console.log(`\n💰 คำนวณ publicHolidayCash สำหรับพนักงาน ${employeeId}`);
+
+  // ตรวจสอบว่า publicHolidayCount เป็น 0 หรือไม่
+  if (publicHolidayCount === 0) {
+    // ถ้าไม่มีวันหยุดนักขัตฤกษ์ที่พนักงานไม่มาทำงาน ก็ไม่ต้องจ่ายเงิน
+    publicHolidayCash = 0;
+    console.log(`💰 publicHolidayCount เป็น 0 จึงกำหนด publicHolidayCash = 0 บาท`);
+  } else {
+    // ตรวจสอบว่ามีข้อมูลที่จำเป็นสำหรับการคำนวณหรือไม่
+    if (sumCashWorkMul["1"] && dayWorkCount > 0) {
+      // คำนวณค่าแรงต่อวันจาก sumCashWorkMul["1"] / dayWorkCount
+      const dailyRate = sumCashWorkMul["1"] / dayWorkCount;
+      publicHolidayCash = dailyRate * publicHolidayCount;
+      
+      console.log(`💰 ค่าแรงต่อวัน (sumCashWorkMul["1"] / dayWorkCount): ${dailyRate.toFixed(2)} บาท`);
+      console.log(`💰 จำนวนวันหยุดนักขัตฤกษ์ที่ไม่มาทำงาน: ${publicHolidayCount} วัน`);
+      console.log(`💰 เงินสำหรับวันหยุดนักขัตฤกษ์ (publicHolidayCash): ${publicHolidayCash.toFixed(2)} บาท`);
+    } else {
+      // กรณีไม่มีข้อมูล sumCashWorkMul["1"] หรือ dayWorkCount เป็น 0
+      publicHolidayCash = 0;
+      console.log(`⚠️ ไม่สามารถคำนวณ publicHolidayCash ได้ (sumCashWorkMul["1"]=${sumCashWorkMul["1"] || 0}, dayWorkCount=${dayWorkCount})`);
+      console.log(`💰 กำหนด publicHolidayCash = 0 บาท`);
+    }
+  }
+
+  // แสดงสรุปค่า publicHolidayCash ที่คำนวณได้
+  console.log(`💰 ค่า publicHolidayCash ที่จะบันทึก: ${publicHolidayCash.toFixed(2)} บาท`);
+
+
 
 
 // สรุปผลการตรวจสอบวันหยุดที่กำหนดเอง
@@ -5034,6 +5066,7 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
     customizeDayoff, // เพิ่มฟิลด์ customizeDayoff
     cashcustomizeDayoff, // เพิ่มฟิลด์ cashcustomizeDayoff
     publicHolidayCount, // เพิ่มฟิลด์ publicHolidayCount
+    publicHolidayCash, // เพิ่มฟิลด์ publicHolidayCash
     sumTimeWork,
     sumTimeOt,
     sumCashWork,
