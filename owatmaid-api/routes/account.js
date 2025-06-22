@@ -4606,30 +4606,31 @@ try {
   console.log(`📋 ข้อมูลวันหยุดทั้งหมด:`, JSON.stringify(weekendData, null, 2));
   
   // นับจำนวนวันหยุดที่กำหนดเอง
-  if (weekendData.weekendAndDayOff && Array.isArray(weekendData.weekendAndDayOff)) {
-    customizeDayoff = weekendData.weekendAndDayOff.length;
-    console.log(`📅 พบวันหยุดที่กำหนดเอง ${customizeDayoff} วัน: ${JSON.stringify(weekendData.customizeDayoff)}`);
-    console.log(`ℹ️ จำนวนวันหยุดที่กำหนดเองเริ่มต้น: ${customizeDayoff} วัน`);
+  // นับจำนวนวันหยุดที่กำหนดเอง
+if (weekendData.weekendAndDayOff && Array.isArray(weekendData.weekendAndDayOff)) {
+  customizeDayoff = weekendData.weekendAndDayOff.length;
+  console.log(`📅 พบวันหยุดที่กำหนดเอง ${customizeDayoff} วัน: ${JSON.stringify(weekendData.weekendAndDayOff)}`);
+  console.log(`ℹ️ จำนวนวันหยุดที่กำหนดเองเริ่มต้น: ${customizeDayoff} วัน`);
+  
+  // แสดงรายละเอียดของแต่ละวันที่กำหนดให้เป็นวันหยุด
+  weekendData.weekendAndDayOff.forEach((dateStr, index) => {
+    console.log(`🗓️ วันหยุดที่กำหนดเอง #${index + 1}: ${dateStr} (ประเภท: ${typeof dateStr}, ความยาว: ${dateStr.length})`);
     
-    // แสดงรายละเอียดของแต่ละวันที่กำหนดให้เป็นวันหยุด
-    weekendData.customizeDayoff.forEach((dateStr, index) => {
-      console.log(`🗓️ วันหยุดที่กำหนดเอง #${index + 1}: ${dateStr} (ประเภท: ${typeof dateStr}, ความยาว: ${dateStr.length})`);
-      
-      // ตรวจสอบว่าวันหยุดอยู่ในรูปแบบใด
-      if (dateStr.includes("-")) {
-        // รูปแบบ YYYY-MM-DD
-        const parts = dateStr.split("-");
-        console.log(`  📆 รูปแบบวันที่: YYYY-MM-DD (ปี=${parts[0]}, เดือน=${parts[1]}, วัน=${parts[2]})`);
-      } else {
-        // รูปแบบอื่นๆ (อาจเป็นเลขวันที่เท่านั้น)
-        console.log(`  📆 รูปแบบวันที่: อื่นๆ (${dateStr})`);
-      }
-    });
-    
-    // ตรวจสอบว่ามีวันที่ 18 อยู่ในรายการวันหยุดหรือไม่
-    const has18 = weekendData.customizeDayoff.some(d => d.endsWith("-18") || d === "18");
-    console.log(`🔍 วันที่ 18 อยู่ในรายการวันหยุดที่กำหนดเอง: ${has18 ? 'ใช่' : 'ไม่ใช่'}`);
-  }
+    // ตรวจสอบว่าวันหยุดอยู่ในรูปแบบใด
+    if (dateStr.includes("-")) {
+      // รูปแบบ YYYY-MM-DD
+      const parts = dateStr.split("-");
+      console.log(`  📆 รูปแบบวันที่: YYYY-MM-DD (ปี=${parts[0]}, เดือน=${parts[1]}, วัน=${parts[2]})`);
+    } else {
+      // รูปแบบอื่นๆ (อาจเป็นเลขวันที่เท่านั้น)
+      console.log(`  📆 รูปแบบวันที่: อื่นๆ (${dateStr})`);
+    }
+  });
+  
+  // ตรวจสอบว่ามีวันที่ 18 อยู่ในรายการวันหยุดหรือไม่
+  const has18 = weekendData.weekendAndDayOff.some(d => d.endsWith("-18") || d === "18");
+  console.log(`🔍 วันที่ 18 อยู่ในรายการวันหยุดที่กำหนดเอง: ${has18 ? 'ใช่' : 'ไม่ใช่'}`);
+}
 } catch (error) {
   console.error('❌ เกิดข้อผิดพลาดในการเรียก API วันหยุด:', error.message);
 }
@@ -4678,25 +4679,26 @@ if (!timeCashWorkMul[record?.cashWorkMul]) {
             // ตรวจสอบว่ามีวันนี้อยู่ใน customizeDayoff หรือไม่
             let isCustomDayoff = false;
             
-            if (weekendData?.customizeDayoff) {
-              // แสดงรายการวันหยุดที่กำหนดเอง
-              console.log(`📋 รายการวันหยุดที่กำหนดเอง: ${JSON.stringify(weekendData.customizeDayoff)}`);
-              
-              // ตรวจสอบว่าวันนี้เป็นวันหยุดที่กำหนดเองหรือไม่
-              isCustomDayoff = weekendData.weekendAndDayOff.includes(dateStr);
-              
-              // กรณีพิเศษสำหรับวันที่ 18 ของเดือน
-              if (recordDate === "18") {
-                console.log(`🔍 พบวันที่ 18: dayType=${record.dayType}, totalTime=${record.totalTime}, isCustomDayoff=${isCustomDayoff}`);
+            // แก้ไขส่วนที่ตรวจสอบวันหยุด
+              if (weekendData?.weekendAndDayOff) {
+                // แสดงรายการวันหยุดที่กำหนดเอง
+                console.log(`📋 รายการวันหยุดที่กำหนดเอง: ${JSON.stringify(weekendData.weekendAndDayOff)}`);
                 
-                // ตรวจสอบว่ามีวันที่ 18 อยู่ในวันหยุดหรือไม่ ด้วยการค้นหาจากส่วนหลังของวันที่
-                const has18 = weekendData.customizeDayoff.some(d => d.endsWith(`-18`));
-                if (has18) {
-                  console.log(`✅ พบวันที่ 18 ในรายการวันหยุดที่กำหนดเอง`);
-                  isCustomDayoff = true;
+                // ตรวจสอบว่าวันนี้เป็นวันหยุดที่กำหนดเองหรือไม่
+                isCustomDayoff = weekendData.weekendAndDayOff.includes(dateStr);
+                
+                // กรณีพิเศษสำหรับวันที่ 18 ของเดือน
+                if (recordDate === "18") {
+                  console.log(`🔍 พบวันที่ 18: dayType=${record.dayType}, totalTime=${record.totalTime}, isCustomDayoff=${isCustomDayoff}`);
+                  
+                  // ตรวจสอบว่ามีวันที่ 18 อยู่ในวันหยุดหรือไม่ ด้วยการค้นหาจากส่วนหลังของวันที่
+                  const has18 = weekendData.weekendAndDayOff.some(d => d.endsWith(`-18`));
+                  if (has18) {
+                    console.log(`✅ พบวันที่ 18 ในรายการวันหยุดที่กำหนดเอง`);
+                    isCustomDayoff = true;
+                  }
                 }
               }
-            }
             
             console.log(`📆 วันที่ ${recordDate} (${dateStr}) เป็นวันหยุดที่กำหนดเอง: ${isCustomDayoff ? 'ใช่' : 'ไม่ใช่'}`);
             
@@ -4822,10 +4824,10 @@ console.log('specialDayOff  : ' + specialDayOff);
 console.log('customizeDayoff : ' + customizeDayoff); // แสดงค่าวันหยุดที่กำหนดเอง
 
 // สร้างรายงานสรุปเกี่ยวกับการตรวจสอบวันหยุดที่กำหนดเอง
+// สร้างรายงานสรุปเกี่ยวกับการตรวจสอบวันหยุดที่กำหนดเอง
 console.log(`\n📊 === รายงานสรุปวันหยุดที่กำหนดเอง ===`);
-console.log(`🔍 จำนวนวันหยุดที่กำหนดเองทั้งหมด: ${weekendData?.customizeDayoff?.length || 0} วัน`);
-console.log(`🔍 วันหยุดที่กำหนดเองทั้งหมด: ${JSON.stringify(weekendData?.customizeDayoff || [])}`);
-console.log(`🔍 จำนวนวันหยุดที่พนักงานมาทำงาน: ${weekendData?.customizeDayoff?.length - customizeDayoff || 0} วัน`);
+console.log(`🔍 จำนวนวันหยุดที่กำหนดเองทั้งหมด: ${weekendData?.weekendAndDayOff?.length || 0} วัน`);
+console.log(`🔍 วันหยุดที่กำหนดเองทั้งหมด: ${JSON.stringify(weekendData?.weekendAndDayOff || [])}`);console.log(`🔍 จำนวนวันหยุดที่พนักงานมาทำงาน: ${weekendData?.customizeDayoff?.length - customizeDayoff || 0} วัน`);
 console.log(`🔍 จำนวนวันหยุดที่นับได้ (หลังหักวันที่มาทำงาน): ${customizeDayoff} วัน`);
 console.log(`ℹ️ หมายเหตุ: การตรวจสอบว่าพนักงานมาทำงานดูจากการมีค่า totalTime ไม่ว่า dayType จะเป็นอะไร`);
 console.log(`📝 ข้อสังเกต: ค่า totalTime ต้องไม่เป็นค่าว่าง เช่น "8.0", "7.5" ถึงจะถือว่าพนักงานมาทำงาน`);
