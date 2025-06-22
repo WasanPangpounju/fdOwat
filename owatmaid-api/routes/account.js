@@ -4427,7 +4427,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           sumcashDayOffCount: String(calculatedValues.sumcashDayOffCount),
           socialSecurity: String(calculatedValues.socialSecurity),
           tax: String(calculatedValues.tax),
-                    cashSpecialDay: String(calculatedValues.cashSpecialDay),
+          cashSpecialDay: String(calculatedValues.cashSpecialDay),
 
           // clearly ensure all SpSalary are numbers
           // addSalaryList: calculatedValues.addSalaryList.map(item => ({
@@ -4435,13 +4435,23 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           //   SpSalary: parseFloat(item.SpSalary) || 0,
           //   message : parseF item.message,
           // })),
-          addSalaryList: calculatedValues.addSalaryList        ,
+          addSalaryList: calculatedValues.addSalaryList,
           sumCashWorkMul: calculatedValues.sumCashWorkMul,
         };
-        // console.log('updateData  ' + JSON.stringify(updateData ));
-
-        console.log('calculatedValues.addSalaryList ' + JSON.stringify(calculatedValues.addSalaryList[0].SpSalary,null,2))
-        console.log(calculatedValues.addSalaryList.length)
+        
+        // แสดงข้อมูลสำคัญที่จะบันทึก
+        console.log(`\n📝 ข้อมูลที่จะบันทึกสำหรับพนักงาน ${doc.employeeId}:`);
+        console.log(`🔍 dayWorkCount: ${updateData.dayWorkCount}`);
+        console.log(`🔍 customizeDayoff: ${updateData.customizeDayoff}`);
+        console.log(`💰 cashcustomizeDayoff: ${updateData.cashcustomizeDayoff}`);
+        
+        // ตรวจสอบว่ามีรายการ addSalaryList หรือไม่
+        if (calculatedValues.addSalaryList && calculatedValues.addSalaryList.length > 0) {
+          console.log(`📋 จำนวนรายการ addSalaryList: ${calculatedValues.addSalaryList.length}`);
+          console.log(`📋 ตัวอย่างรายการแรก: ${JSON.stringify(calculatedValues.addSalaryList[0].SpSalary, null, 2)}`);
+        } else {
+          console.log(`⚠️ ไม่มีรายการ addSalaryList`);
+        }
         // ✅ Log BEFORE update
         // console.log(`🔍 BEFORE update (doc ${doc._id}):`, JSON.stringify(doc.addSalaryList, null, 2));
     
@@ -4472,30 +4482,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
-// คำนวณค่า cashcustomizeDayoff
-console.log(`\n💰 คำนวณ cashcustomizeDayoff สำหรับพนักงาน ${employeeId}`);
 
-// ถ้า customizeDayoff เป็น 0 ค่า cashcustomizeDayoff ก็จะเป็น 0 ด้วย
-if (customizeDayoff == 0) {
-  cashcustomizeDayoff = 0;
-  console.log(`💰 customizeDayoff เป็น 0 จึงกำหนด cashcustomizeDayoff = 0 บาท`);
-} else {
-  // ถ้า customizeDayoff ไม่เป็น 0 ใช้สูตร: (sumCashWorkMul["1"] / dayWorkCount) * customizeDayoff
-  if (sumCashWorkMul["1"] && dayWorkCount > 0) {
-    // ค่าแรงต่อวันคำนวณจาก sumCashWorkMul["1"] / dayWorkCount
-    const dailyRate = sumCashWorkMul["1"] / dayWorkCount;
-    cashcustomizeDayoff = dailyRate * customizeDayoff;
-    
-    console.log(`💰 ค่าแรงต่อวัน (sumCashWorkMul["1"] / dayWorkCount): ${dailyRate.toFixed(2)} บาท`);
-    console.log(`💰 จำนวนวันหยุด customizeDayoff: ${customizeDayoff} วัน`);
-    console.log(`💰 เงินสำหรับวันหยุดที่กำหนดเอง (cashcustomizeDayoff): ${cashcustomizeDayoff.toFixed(2)} บาท`);
-  } else {
-    // กรณีไม่มีข้อมูล sumCashWorkMul["1"] หรือ dayWorkCount เป็น 0
-    cashcustomizeDayoff = 0;
-    console.log(`⚠️ ไม่สามารถคำนวณ cashcustomizeDayoff ได้ (sumCashWorkMul["1"]=${sumCashWorkMul["1"] || 0}, dayWorkCount=${dayWorkCount})`);
-    console.log(`💰 กำหนด cashcustomizeDayoff = 0 บาท`);
-  }
-}
 
 
 const calculateCashValues = async (employeeId, employee_record, month, year) => {
@@ -4820,13 +4807,15 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
   // ถ้าไม่ได้กำหนดค่า dailyWage ตั้งแต่ต้น ให้คำนวณค่าแรงต่อวันจากข้อมูลที่มี
   if (dailyWage === 0 && dayWorkCount > 0) {
     dailyWage = sumCashWork / dayWorkCount;
+    console.log(`💰 คำนวณค่าแรงต่อวันจากข้อมูล sumCashWork (${sumCashWork}) / dayWorkCount (${dayWorkCount})`);
   }
   
-  cashcustomizeDayoff = dailyWage * daysNotComeToWork;
-  
+  // เก็บจำนวนวันที่ไม่มาทำงานในตัวแปร daysNotComeToWork เพื่อใช้คำนวณต่อไป
   console.log(`💰 ค่าแรงต่อวัน: ${dailyWage.toFixed(2)} บาท`);
   console.log(`💰 จำนวนวันที่ไม่มาทำงานในวันหยุดที่กำหนดเอง: ${daysNotComeToWork} วัน`);
-  console.log(`💰 เงินสำหรับวันหยุดที่กำหนดเอง (cashcustomizeDayoff): ${cashcustomizeDayoff.toFixed(2)} บาท`);
+  
+  // ค่า customizeDayoff คือจำนวนวันที่ไม่มาทำงานในวันหยุดที่กำหนดเอง
+  // หมายเหตุ: เราจะกำหนดค่า customizeDayoff อีกครั้งหลังจากการคำนวณแบบละเอียดในขั้นตอนถัดไป
 
   // การคำนวณค่าปกติไม่จำเป็นต้องใช้ await
   const sumCashSpecialDay = sumCashWork / dayWorkCount;
@@ -4910,12 +4899,32 @@ const daysWorkedOnCustomDayoff = employee_record.filter(record => {
 // คำนวณ customizeDayoff ใหม่ โดยหักจำนวนวันที่มาทำงานออก
 customizeDayoff = totalCustomDayoff - daysWorkedOnCustomDayoff;
 
+// คำนวณ cashcustomizeDayoff ตามสูตร
+// ถ้า customizeDayoff เป็น 0 ให้ cashcustomizeDayoff เป็น 0
+// ถ้า customizeDayoff ไม่เป็น 0 ให้คำนวณจากค่าแรงเฉลี่ยต่อวันคูณจำนวนวันหยุดที่ไม่ได้มาทำงาน
+if (customizeDayoff === 0) {
+  cashcustomizeDayoff = 0;
+} else {
+  // ตรวจสอบว่ามีค่า dayWorkCount และ sumCashWorkMul["1"] หรือไม่
+  if (dayWorkCount > 0 && sumCashWorkMul["1"] !== undefined) {
+    // คำนวณค่าแรงเฉลี่ยต่อวัน
+    const avgDailyWage = sumCashWorkMul["1"] / dayWorkCount;
+    cashcustomizeDayoff = avgDailyWage * customizeDayoff;
+    console.log(`💰 คำนวณ cashcustomizeDayoff = ค่าแรงเฉลี่ยต่อวัน (${avgDailyWage.toFixed(2)}) × จำนวนวันหยุดที่ไม่ได้มาทำงาน (${customizeDayoff})`);
+  } else {
+    // กรณีไม่มีข้อมูลพอสำหรับการคำนวณ ใช้ dailyWage ที่คำนวณไว้ก่อนหน้า
+    cashcustomizeDayoff = dailyWage * customizeDayoff;
+    console.log(`⚠️ ไม่พบข้อมูล sumCashWorkMul["1"] หรือ dayWorkCount = 0 ใช้ dailyWage แทน: ${dailyWage.toFixed(2)} บาท`);
+  }
+}
+
 // แสดงผล
 console.log(`\n📊 === สรุปการตรวจสอบวันหยุดที่กำหนดเอง ===`);
 console.log(`📅 จำนวนวันหยุดที่กำหนดเองทั้งหมด: ${totalCustomDayoff} วัน`);
 console.log(`🔍 พนักงานมาทำงานในวันหยุดที่กำหนดเอง: ${daysWorkedOnCustomDayoff} วัน`);
 console.log(`🔍 พนักงานไม่ได้มาทำงานในวันหยุดที่กำหนดเอง: ${customizeDayoff} วัน`);
 console.log(`🔍 ค่า customizeDayoff ที่จะบันทึก: ${customizeDayoff}`);
+console.log(`💰 เงินสำหรับวันหยุดที่กำหนดเอง (cashcustomizeDayoff): ${cashcustomizeDayoff.toFixed(2)} บาท`);
 
   if (addSalary && addSalary.length > 0) {
     monthlySalaries = await addSalary.filter(salary => salary.roundOfSalary === 'monthly');
