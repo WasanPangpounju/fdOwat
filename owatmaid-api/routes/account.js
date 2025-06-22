@@ -4828,25 +4828,62 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
   console.log(`📝 ข้อสังเกต: ค่า totalTime ต้องไม่เป็นค่าว่าง เช่น "8.0", "7.5" ถึงจะถือว่าพนักงานมาทำงาน`);
 
   // ตรวจสอบการเปรียบเทียบวันที่อีกครั้ง โดยแสดงรายละเอียดทุกรายการใน employee_record
-  console.log(`\n🔍 === ตรวจสอบรายการวันที่ทั้งหมดในบันทึก ===`);
-  employee_record.forEach(record => {
-    try {
-      // ใช้ค่า year และ month จากระดับรากของออบเจกต์
-      const recordYear = year;
-      const recordMonth = month;
-      const recordDate = record.date;
+ // ตรวจสอบการเปรียบเทียบวันที่อีกครั้ง โดยแสดงรายละเอียดทุกรายการใน employee_record
+console.log(`\n🔍 === ตรวจสอบรายการวันที่ทั้งหมดในบันทึก ===`);
+console.log(`| วันที่        | ประเภทวัน | เวลาทำงาน | เป็นวันหยุด customizeDayoff | มาทำงาน |`);
+console.log(`|-------------|----------|----------|--------------------------|--------|`);
 
-      // สร้างวันที่ในรูปแบบ YYYY-MM-DD
-      const dateStr = `${recordYear}-${String(recordMonth).padStart(2, '0')}-${String(recordDate).padStart(2, '0')}`;
+employee_record.forEach(record => {
+  try {
+    // ใช้ค่า year และ month จากระดับรากของออบเจกต์
+    const recordYear = year;
+    const recordMonth = month;
+    const recordDate = record.date;
 
-      // ตรวจสอบว่าเป็นวันหยุดที่กำหนดเองหรือไม่
-      const isCustomDayoff = weekendData?.customizeDayoff?.includes(dateStr);
+    // สร้างวันที่ในรูปแบบ YYYY-MM-DD
+    const dateStr = `${recordYear}-${String(recordMonth).padStart(2, '0')}-${String(recordDate).padStart(2, '0')}`;
 
-      console.log(`วันที่ ${recordDate} (${dateStr}): dayType=${record.dayType}, totalTime=${record.totalTime || 'ไม่มีค่า'}, เป็นวันหยุดที่กำหนดเอง=${isCustomDayoff ? 'ใช่' : 'ไม่ใช่'}`);
-    } catch (error) {
-      console.error(`❌ ไม่สามารถตรวจสอบวันที่ ${record.date} ได้:`, error.message);
+    // ตรวจสอบว่าเป็นวันหยุดที่กำหนดเองหรือไม่
+    const isCustomDayoff = weekendData?.weekendAndDayOff?.includes(dateStr);
+    
+    // ตรวจสอบว่าพนักงานมาทำงานหรือไม่ โดยดูจาก totalTime
+    const hasWorked = record.totalTime && record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0;
+    
+    // แสดงข้อมูลในรูปแบบตาราง
+    console.log(`| ${recordDate} (${dateStr}) | ${record.dayType || 'ไม่ระบุ'} | ${record.totalTime || '0'} | ${isCustomDayoff ? 'ใช่' : 'ไม่ใช่'} | ${hasWorked ? 'ใช่' : 'ไม่ใช่'} |`);
+    
+    // แสดงข้อมูลเพิ่มเติมสำหรับวันหยุดที่กำหนดเอง
+    if (isCustomDayoff) {
+      console.log(`  - 📅 วันที่ ${recordDate} เป็นวันหยุดที่กำหนดเอง`);
+      if (hasWorked) {
+        console.log(`  - ⚠️ พนักงานมาทำงานในวันหยุดที่กำหนดเอง (totalTime: ${record.totalTime})`);
+      } else {
+        console.log(`  - ✅ พนักงานไม่ได้มาทำงานในวันหยุดที่กำหนดเอง`);
+      }
     }
-  });
+  } catch (error) {
+    console.error(`❌ ไม่สามารถตรวจสอบวันที่ ${record.date} ได้:`, error.message);
+  }
+});
+
+// สรุปผลการตรวจสอบวันหยุดที่กำหนดเอง
+const totalCustomDayoff = weekendData?.weekendAndDayOff?.length || 0;
+const daysWorkedOnCustomDayoff = employee_record.filter(record => {
+  try {
+    const recordDate = record.date;
+    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(recordDate).padStart(2, '0')}`;
+    const isCustomDayoff = weekendData?.weekendAndDayOff?.includes(dateStr);
+    const hasWorked = record.totalTime && record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0;
+    return isCustomDayoff && hasWorked;
+  } catch (error) {
+    return false;
+  }
+}).length;
+
+console.log(`\n📊 === สรุปการตรวจสอบวันหยุดที่กำหนดเอง ===`);
+console.log(`📅 จำนวนวันหยุดที่กำหนดเองทั้งหมด: ${totalCustomDayoff} วัน`);
+console.log(`🔍 พนักงานมาทำงานในวันหยุดที่กำหนดเอง: ${daysWorkedOnCustomDayoff} วัน`);
+console.log(`🔍 พนักงานไม่ได้มาทำงานในวันหยุดที่กำหนดเอง: ${totalCustomDayoff - daysWorkedOnCustomDayoff} วัน`);
 
   //add addSalary Month to list 
   if (addSalary && addSalary.length > 0) {
