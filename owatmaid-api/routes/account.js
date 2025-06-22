@@ -4606,8 +4606,8 @@ try {
   console.log(`📋 ข้อมูลวันหยุดทั้งหมด:`, JSON.stringify(weekendData, null, 2));
   
   // นับจำนวนวันหยุดที่กำหนดเอง
-  if (weekendData.customizeDayoff && Array.isArray(weekendData.customizeDayoff)) {
-    customizeDayoff = weekendData.customizeDayoff.length;
+  if (weekendData.weekendAndDayOff && Array.isArray(weekendData.weekendAndDayOff)) {
+    customizeDayoff = weekendData.weekendAndDayOff.length;
     console.log(`📅 พบวันหยุดที่กำหนดเอง ${customizeDayoff} วัน: ${JSON.stringify(weekendData.customizeDayoff)}`);
     console.log(`ℹ️ จำนวนวันหยุดที่กำหนดเองเริ่มต้น: ${customizeDayoff} วัน`);
     
@@ -4683,7 +4683,7 @@ if (!timeCashWorkMul[record?.cashWorkMul]) {
               console.log(`📋 รายการวันหยุดที่กำหนดเอง: ${JSON.stringify(weekendData.customizeDayoff)}`);
               
               // ตรวจสอบว่าวันนี้เป็นวันหยุดที่กำหนดเองหรือไม่
-              isCustomDayoff = weekendData.customizeDayoff.includes(dateStr);
+              isCustomDayoff = weekendData.weekendAndDayOff.includes(dateStr);
               
               // กรณีพิเศษสำหรับวันที่ 18 ของเดือน
               if (recordDate === "18") {
