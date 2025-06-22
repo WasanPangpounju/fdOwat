@@ -4499,14 +4499,9 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
   let dayOffOnlyDates = []; // เก็บวันที่เป็นวันหยุดนักขัตฤกษ์เท่านั้น
   let transformedDayOffOnlyDates = []; // เก็บวันที่เป็นวันหยุดนักขัตฤกษ์ในรูปแบบวันที่เดียว
   let publicHolidayCount = 0; // สำหรับนับจำนวนวันหยุดนักขัตฤกษ์ที่พนักงานไม่มาทำงาน
+  
 
-  dayOffOnlyDates = weekendResponse.data.dayOffOnly || [];
-  transformedDayOffOnlyDates = dayOffOnlyDates.map(date => {
-  const parts = date.split('-');
-  return parts.length === 3 ? parts[2] : date;
-});
-console.log(`📅 วันหยุดนักขัตฤกษ์ทั้งหมด: ${dayOffOnlyDates.length} วัน`);
-console.log(`📅 รายการวันหยุดนักขัตฤกษ์: ${JSON.stringify(dayOffOnlyDates)}`);
+
 
 
 
@@ -4618,11 +4613,22 @@ console.log(`📅 รายการวันหยุดนักขัตฤ�
     const apiUrl = `http://10.10.110.7:3000/conclude/getWeekendDates?yyyy=${apiYear}&mm=${apiMonth}&workplaceId=${wpId}`;
     console.log(`🔍 เรียก API วันหยุด: ${apiUrl}`);
 
+
+
     const weekendResponse = await axios.get(apiUrl);
     weekendData = weekendResponse.data; // เก็บข้อมูลวันหยุดในตัวแปร
 
     // แสดงข้อมูลวันหยุดทั้งหมดที่ได้จาก API
     console.log(`📋 ข้อมูลวันหยุดทั้งหมด:`, JSON.stringify(weekendData, null, 2));
+    dayOffOnlyDates = weekendData.dayOffOnly || [];
+    transformedDayOffOnlyDates = dayOffOnlyDates.map(date => {
+      const parts = date.split('-');
+      return parts.length === 3 ? parts[2] : date;
+    });
+    
+    console.log(`📅 วันหยุดนักขัตฤกษ์ทั้งหมด: ${dayOffOnlyDates.length} วัน`);
+    console.log(`📅 รายการวันหยุดนักขัตฤกษ์: ${JSON.stringify(dayOffOnlyDates)}`);
+
 
     // นับจำนวนวันหยุดที่กำหนดเอง
     if (weekendData.weekendAndDayOff && Array.isArray(weekendData.weekendAndDayOff)) {
