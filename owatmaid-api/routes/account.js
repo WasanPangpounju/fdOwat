@@ -4431,6 +4431,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           tax: String(calculatedValues.tax),
           cashSpecialDay: String(calculatedValues.cashSpecialDay),
           sumOt1p5: String(calculatedValues.sumOt1p5 || 0), // เพิ่มบรรทัดนี้
+          sumOt2: String(calculatedValues.sumOt2 || 0), // เพิ่มบรรทัดนี้
 
 
           // clearly ensure all SpSalary are numbers
@@ -4448,7 +4449,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         console.log(`🔍 dayWorkCount: ${updateData.dayWorkCount}`);
         console.log(`🔍 customizeDayoff: ${updateData.customizeDayoff}`);
         console.log(`💰 cashcustomizeDayoff: ${updateData.cashcustomizeDayoff}`);
-        console.log(`⏱️ sumOt1p5: ${updateData.sumOt1p5}`); // เพิ่มบรรทัดนี้เพื่อแสดงค่า
+        console.log(`⏱️ sumOt1p5: ${updateData.sumOt1p5}`); 
         
         // ตรวจสอบว่ามีรายการ addSalaryList หรือไม่
         if (calculatedValues.addSalaryList && calculatedValues.addSalaryList.length > 0) {
@@ -4504,6 +4505,8 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
   let transformedDayOffOnlyDates = []; // เก็บวันที่เป็นวันหยุดนักขัตฤกษ์ในรูปแบบวันที่เดียว
   let publicHolidayCount = 0; // สำหรับนับจำนวนวันหยุดนักขัตฤกษ์ที่พนักงานไม่มาทำงาน
   let sumOt1p5 = 0; // เพิ่มตัวแปรใหม่สำหรับเก็บผลรวมของ totalOtTime ในวันทำงานปกติ
+  let sumOt2 = 0; // เพิ่มตัวแปรใหม่สำหรับเก็บผลรวมของ totalOtTime ในวันทำงานปกติ
+
 
 
   let sumCashWorkMul = {
@@ -4796,6 +4799,7 @@ try {
 
           sumTimeOt = parseFloat(sumTimeOt || 0) + parseFloat(record.beforeTotalOtTime || '0') + parseFloat(record.totalTime || '0') + parseFloat(record.totalOtTime || '0')
           sumCashOt = parseFloat(sumCashOt || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0')
+          sumOt2 += parseFloat(record.totalOtTime || '0');  
 
           sumCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
           sumCashWorkMul[record?.cashOtMul] += parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0');
@@ -5110,6 +5114,7 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
     tax,
     cashSpecialDay,
     sumOt1p5,
+    sumOt2,
   };
 };
 
