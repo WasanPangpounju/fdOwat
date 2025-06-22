@@ -4420,6 +4420,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           specialDayOff: String(calculatedValues.specialDayOff),
           customizeDayoff: String(calculatedValues.customizeDayoff || 0), // เพิ่มฟิลด์ customizeDayoff
           cashcustomizeDayoff: String(calculatedValues.cashcustomizeDayoff || 0), // เพิ่มฟิลด์ cashcustomizeDayoff
+          publicHolidayCount: String(calculatedValues.publicHolidayCount || 0), // เพิ่มบรรทัดนี้
           sumTimeWork: String(calculatedValues.sumTimeWork),
           sumTimeOt: String(calculatedValues.sumTimeOt),
           sumCashWork: String(calculatedValues.sumCashWork),
@@ -4495,6 +4496,19 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
   let specialDay = 0;
   let cashSpecialDay = 0;
   let cashcustomizeDayoff = 0; // เพิ่มตัวแปรสำหรับคำนวณเงินสำหรับวันหยุดที่กำหนดเอง
+  let dayOffOnlyDates = []; // เก็บวันที่เป็นวันหยุดนักขัตฤกษ์เท่านั้น
+  let transformedDayOffOnlyDates = []; // เก็บวันที่เป็นวันหยุดนักขัตฤกษ์ในรูปแบบวันที่เดียว
+  let publicHolidayCount = 0; // สำหรับนับจำนวนวันหยุดนักขัตฤกษ์ที่พนักงานไม่มาทำงาน
+
+  dayOffOnlyDates = weekendResponse.data.dayOffOnly || [];
+  transformedDayOffOnlyDates = dayOffOnlyDates.map(date => {
+  const parts = date.split('-');
+  return parts.length === 3 ? parts[2] : date;
+});
+console.log(`📅 วันหยุดนักขัตฤกษ์ทั้งหมด: ${dayOffOnlyDates.length} วัน`);
+console.log(`📅 รายการวันหยุดนักขัตฤกษ์: ${JSON.stringify(dayOffOnlyDates)}`);
+
+
 
   if (settingResult) {
     socialSecurityP = parseFloat(settingResult?.data?.[settingResult.data.length - 1]?.social?.[0]?.socialPercent || '5') / 100;
@@ -4721,6 +4735,21 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
               daysNotComeToWork++;
             }
           }
+
+          if (dayOffOnlyDates.includes(dateStr)) {
+            // ตรวจสอบว่าพนักงานมาทำงานหรือไม่
+            const hasWorked = record.totalTime && record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0;
+            
+            if (!hasWorked) {
+              // พนักงานไม่มาทำงานในวันหยุดนักขัตฤกษ์ ให้นับเป็น publicHolidayCount
+              publicHolidayCount++;
+              console.log(`📅 วันที่ ${recordDate} เป็นวันหยุดนักขัตฤกษ์และพนักงานไม่มาทำงาน`);
+            } else {
+              console.log(`⚠️ วันที่ ${recordDate} เป็นวันหยุดนักขัตฤกษ์แต่พนักงานมาทำงาน`);
+            }
+          }
+
+
         } catch (error) {
           console.error(`❌ เกิดข้อผิดพลาดในการตรวจสอบวันหยุดที่กำหนดเอง:`, error.message);
         }
@@ -4969,6 +4998,7 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
     specialDayOff,
     customizeDayoff, // เพิ่มฟิลด์ customizeDayoff
     cashcustomizeDayoff, // เพิ่มฟิลด์ cashcustomizeDayoff
+    publicHolidayCount, // เพิ่มฟิลด์ publicHolidayCount
     sumTimeWork,
     sumTimeOt,
     sumCashWork,
