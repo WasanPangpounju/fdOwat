@@ -4867,6 +4867,9 @@ employee_record.forEach(record => {
 });
 
 // สรุปผลการตรวจสอบวันหยุดที่กำหนดเอง
+// แก้ไขการคำนวณค่า customizeDayoff
+
+// สรุปผลการตรวจสอบวันหยุดที่กำหนดเอง
 const totalCustomDayoff = weekendData?.weekendAndDayOff?.length || 0;
 const daysWorkedOnCustomDayoff = employee_record.filter(record => {
   try {
@@ -4880,12 +4883,16 @@ const daysWorkedOnCustomDayoff = employee_record.filter(record => {
   }
 }).length;
 
+// คำนวณ customizeDayoff ใหม่ โดยหักจำนวนวันที่มาทำงานออก
+customizeDayoff = totalCustomDayoff - daysWorkedOnCustomDayoff;
+
+// แสดงผล
 console.log(`\n📊 === สรุปการตรวจสอบวันหยุดที่กำหนดเอง ===`);
 console.log(`📅 จำนวนวันหยุดที่กำหนดเองทั้งหมด: ${totalCustomDayoff} วัน`);
 console.log(`🔍 พนักงานมาทำงานในวันหยุดที่กำหนดเอง: ${daysWorkedOnCustomDayoff} วัน`);
-console.log(`🔍 พนักงานไม่ได้มาทำงานในวันหยุดที่กำหนดเอง: ${totalCustomDayoff - daysWorkedOnCustomDayoff} วัน`);
+console.log(`🔍 พนักงานไม่ได้มาทำงานในวันหยุดที่กำหนดเอง: ${customizeDayoff} วัน`);
+console.log(`🔍 ค่า customizeDayoff ที่จะบันทึก: ${customizeDayoff}`);
 
-  //add addSalary Month to list 
   if (addSalary && addSalary.length > 0) {
     monthlySalaries = await addSalary.filter(salary => salary.roundOfSalary === 'monthly');
   }
