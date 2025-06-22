@@ -4418,6 +4418,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           dayWorkCount: String(calculatedValues.dayWorkCount),
           dayOffCount: String(calculatedValues.dayOffCount),
           specialDayOff: String(calculatedValues.specialDayOff),
+          customizeDayoff: String(calculatedValues.customizeDayoff || 0), // เพิ่มฟิลด์ customizeDayoff
           sumTimeWork: String(calculatedValues.sumTimeWork),
           sumTimeOt: String(calculatedValues.sumTimeOt),
           sumCashWork: String(calculatedValues.sumCashWork),
@@ -4497,6 +4498,7 @@ let salaryMonth = 0;
 let dayWorkCount = 0;
 let dayOffCount = 0;
 let specialDayOff = 0;
+let customizeDayoff = 0; // เพิ่มตัวแปรสำหรับเก็บจำนวนวันหยุดที่กำหนดเอง
 let sumTimeWork = 0;
 let sumTimeOt = 0;
 let sumCashWork = 0;
@@ -4505,6 +4507,7 @@ let sumcashDayOffCount = 0;
 // let sumAddSalaryDaily = [];
 let sumCashWorkMul = {};
 let timeCashWorkMul = {};
+let weekendData = {}; // เพิ่มตัวแปรเก็บข้อมูลวันหยุด
 
 // Initialize sumAddSalaryDaily as an object and addSalaryDailyList as an array at the top:
 let sumAddSalaryDaily = {};
@@ -4584,6 +4587,53 @@ if (
 //set count specialday
 specialDay = await selectedSpecialDays.length;
 
+// เพิ่มการเรียก API เพื่อดึงข้อมูลวันหยุดที่กำหนดเอง
+try {
+  // ดึงข้อมูลเดือนและปีจากพารามิเตอร์
+  const currentDate = new Date();
+  const apiMonth = month || String(currentDate.getMonth() + 1).padStart(2, '0');
+  const apiYear = year || String(currentDate.getFullYear());
+  const wpId = employeeProfile[0].workplace || '';
+  
+  // เรียก API
+  const apiUrl = `http://10.10.110.7:3000/conclude/getWeekendDates?yyyy=${apiYear}&mm=${apiMonth}&workplaceId=${wpId}`;
+  console.log(`🔍 เรียก API วันหยุด: ${apiUrl}`);
+  
+  const weekendResponse = await axios.get(apiUrl);
+  weekendData = weekendResponse.data; // เก็บข้อมูลวันหยุดในตัวแปร
+  
+  // แสดงข้อมูลวันหยุดทั้งหมดที่ได้จาก API
+  console.log(`📋 ข้อมูลวันหยุดทั้งหมด:`, JSON.stringify(weekendData, null, 2));
+  
+  // นับจำนวนวันหยุดที่กำหนดเอง
+  if (weekendData.customizeDayoff && Array.isArray(weekendData.customizeDayoff)) {
+    customizeDayoff = weekendData.customizeDayoff.length;
+    console.log(`📅 พบวันหยุดที่กำหนดเอง ${customizeDayoff} วัน: ${JSON.stringify(weekendData.customizeDayoff)}`);
+    console.log(`ℹ️ จำนวนวันหยุดที่กำหนดเองเริ่มต้น: ${customizeDayoff} วัน`);
+    
+    // แสดงรายละเอียดของแต่ละวันที่กำหนดให้เป็นวันหยุด
+    weekendData.customizeDayoff.forEach((dateStr, index) => {
+      console.log(`🗓️ วันหยุดที่กำหนดเอง #${index + 1}: ${dateStr} (ประเภท: ${typeof dateStr}, ความยาว: ${dateStr.length})`);
+      
+      // ตรวจสอบว่าวันหยุดอยู่ในรูปแบบใด
+      if (dateStr.includes("-")) {
+        // รูปแบบ YYYY-MM-DD
+        const parts = dateStr.split("-");
+        console.log(`  📆 รูปแบบวันที่: YYYY-MM-DD (ปี=${parts[0]}, เดือน=${parts[1]}, วัน=${parts[2]})`);
+      } else {
+        // รูปแบบอื่นๆ (อาจเป็นเลขวันที่เท่านั้น)
+        console.log(`  📆 รูปแบบวันที่: อื่นๆ (${dateStr})`);
+      }
+    });
+    
+    // ตรวจสอบว่ามีวันที่ 18 อยู่ในรายการวันหยุดหรือไม่
+    const has18 = weekendData.customizeDayoff.some(d => d.endsWith("-18") || d === "18");
+    console.log(`🔍 วันที่ 18 อยู่ในรายการวันหยุดที่กำหนดเอง: ${has18 ? 'ใช่' : 'ไม่ใช่'}`);
+  }
+} catch (error) {
+  console.error('❌ เกิดข้อผิดพลาดในการเรียก API วันหยุด:', error.message);
+}
+
   await Promise.all(
     employee_record.map(async (record) => {
 
@@ -4610,6 +4660,63 @@ if (!timeCashWorkMul[record?.cashWorkMul]) {
 
           } else {
             // console.log(`วันที่ ${record?.date} ไม่อยู่ใน selectedSpecialDays`);
+          }
+          
+          // ตรวจสอบว่าเป็นวันหยุดที่กำหนดเองหรือไม่
+          try {
+            // ใช้ค่า year และ month จากระดับรากของออบเจกต์ (ไม่ใช่จาก record)
+            const recordYear = year; // ใช้ year ที่ส่งเข้ามาในฟังก์ชัน calculateCashValues
+            const recordMonth = month; // ใช้ month ที่ส่งเข้ามาในฟังก์ชัน calculateCashValues
+            const recordDate = record.date;
+            
+            console.log(`🔄 ข้อมูลวันที่: year=${recordYear}, month=${recordMonth}, date=${recordDate}`);
+            
+            // สร้างวันที่ในรูปแบบ YYYY-MM-DD
+            const dateStr = `${recordYear}-${String(recordMonth).padStart(2, '0')}-${String(recordDate).padStart(2, '0')}`;
+            console.log(`🔄 วันที่ที่สร้างขึ้น: ${dateStr}`);
+            
+            // ตรวจสอบว่ามีวันนี้อยู่ใน customizeDayoff หรือไม่
+            let isCustomDayoff = false;
+            
+            if (weekendData?.customizeDayoff) {
+              // แสดงรายการวันหยุดที่กำหนดเอง
+              console.log(`📋 รายการวันหยุดที่กำหนดเอง: ${JSON.stringify(weekendData.customizeDayoff)}`);
+              
+              // ตรวจสอบว่าวันนี้เป็นวันหยุดที่กำหนดเองหรือไม่
+              isCustomDayoff = weekendData.customizeDayoff.includes(dateStr);
+              
+              // กรณีพิเศษสำหรับวันที่ 18 ของเดือน
+              if (recordDate === "18") {
+                console.log(`🔍 พบวันที่ 18: dayType=${record.dayType}, totalTime=${record.totalTime}, isCustomDayoff=${isCustomDayoff}`);
+                
+                // ตรวจสอบว่ามีวันที่ 18 อยู่ในวันหยุดหรือไม่ ด้วยการค้นหาจากส่วนหลังของวันที่
+                const has18 = weekendData.customizeDayoff.some(d => d.endsWith(`-18`));
+                if (has18) {
+                  console.log(`✅ พบวันที่ 18 ในรายการวันหยุดที่กำหนดเอง`);
+                  isCustomDayoff = true;
+                }
+              }
+            }
+            
+            console.log(`📆 วันที่ ${recordDate} (${dateStr}) เป็นวันหยุดที่กำหนดเอง: ${isCustomDayoff ? 'ใช่' : 'ไม่ใช่'}`);
+            
+            if (isCustomDayoff) {
+              // ตรวจสอบว่าพนักงานมาทำงานโดยดูจาก totalTime
+              const hasTotalTime = record.totalTime && record.totalTime.trim() !== '';
+              
+              console.log(`🕒 วันที่ ${recordDate} เป็นวันหยุดที่กำหนดเอง - ค่า totalTime: "${record.totalTime || 'ไม่มีค่า'}"`);
+              
+              if (hasTotalTime) {
+                // พนักงานมาทำงานในวันหยุดที่กำหนดเอง
+                console.log(`🔍 พนักงานมาทำงานในวันหยุดที่กำหนดเอง: วันที่ ${recordDate} (totalTime: ${record.totalTime})`);
+                customizeDayoff -= 1; // ลดจำนวนวันหยุดที่กำหนดเองลง 1 วัน
+                console.log(`⬇️ ลดจำนวนวันหยุดที่กำหนดเองเหลือ ${customizeDayoff} วัน`);
+              } else {
+                console.log(`ℹ️ วันที่ ${recordDate} เป็นวันหยุดที่กำหนดเอง และพนักงานไม่ได้มาทำงาน (ไม่มีค่า totalTime)`);
+              }
+            }
+          } catch (error) {
+            console.error(`❌ เกิดข้อผิดพลาดในการตรวจสอบวันหยุดที่กำหนดเอง:`, error.message);
           }
 
         if (record?.dayType === 'stop') {
@@ -4653,7 +4760,6 @@ sumCashWorkMul[record?.cashOtMul ] += parseFloat(record?.cashBeforeOt || '0');
 timeCashWorkMul[record?.cashWorkMul] += parseFloat(record.totalTime || '0');
 timeCashWorkMul[record?.cashOtMul ] += parseFloat(record.beforeTotalOtTime || '0') + parseFloat(record.totalOtTime  || '0');
 
-
   // Handle addSalaryDailyList clearly:
   if (record.addSalaryDaily && record.addSalaryDaily.length > 0) {
     //  addSalaryList = [];
@@ -4666,8 +4772,6 @@ const amount = parseFloat(salaryItem.SpSalary || 0);
 const existingItem = addSalaryList.find(
   item => String(item.id).trim() === cleanSalaryItemId
 );
-
-
 
 // console.log('cleanSalaryItemId ' + cleanSalaryItemId)
 if(existingItem ){
@@ -4711,12 +4815,41 @@ const totalsumCashSpecialDay = sumCashSpecialDay * specialDay
 cashSpecialDay = totalsumCashSpecialDay 
 specialDayOff = specialDay;
 
-
-
 console.log('cashSpecialDay  ' + cashSpecialDay);
 console.log('dayWorkCount : ' + dayWorkCount);
 console.log('dayOffCount : ' + dayOffCount);
 console.log('specialDayOff  : ' + specialDayOff);
+console.log('customizeDayoff : ' + customizeDayoff); // แสดงค่าวันหยุดที่กำหนดเอง
+
+// สร้างรายงานสรุปเกี่ยวกับการตรวจสอบวันหยุดที่กำหนดเอง
+console.log(`\n📊 === รายงานสรุปวันหยุดที่กำหนดเอง ===`);
+console.log(`🔍 จำนวนวันหยุดที่กำหนดเองทั้งหมด: ${weekendData?.customizeDayoff?.length || 0} วัน`);
+console.log(`🔍 วันหยุดที่กำหนดเองทั้งหมด: ${JSON.stringify(weekendData?.customizeDayoff || [])}`);
+console.log(`🔍 จำนวนวันหยุดที่พนักงานมาทำงาน: ${weekendData?.customizeDayoff?.length - customizeDayoff || 0} วัน`);
+console.log(`🔍 จำนวนวันหยุดที่นับได้ (หลังหักวันที่มาทำงาน): ${customizeDayoff} วัน`);
+console.log(`ℹ️ หมายเหตุ: การตรวจสอบว่าพนักงานมาทำงานดูจากการมีค่า totalTime ไม่ว่า dayType จะเป็นอะไร`);
+console.log(`📝 ข้อสังเกต: ค่า totalTime ต้องไม่เป็นค่าว่าง เช่น "8.0", "7.5" ถึงจะถือว่าพนักงานมาทำงาน`);
+
+// ตรวจสอบการเปรียบเทียบวันที่อีกครั้ง โดยแสดงรายละเอียดทุกรายการใน employee_record
+console.log(`\n🔍 === ตรวจสอบรายการวันที่ทั้งหมดในบันทึก ===`);
+employee_record.forEach(record => {
+  try {
+    // ใช้ค่า year และ month จากระดับรากของออบเจกต์
+    const recordYear = year;
+    const recordMonth = month;
+    const recordDate = record.date;
+    
+    // สร้างวันที่ในรูปแบบ YYYY-MM-DD
+    const dateStr = `${recordYear}-${String(recordMonth).padStart(2, '0')}-${String(recordDate).padStart(2, '0')}`;
+    
+    // ตรวจสอบว่าเป็นวันหยุดที่กำหนดเองหรือไม่
+    const isCustomDayoff = weekendData?.customizeDayoff?.includes(dateStr);
+    
+    console.log(`วันที่ ${recordDate} (${dateStr}): dayType=${record.dayType}, totalTime=${record.totalTime || 'ไม่มีค่า'}, เป็นวันหยุดที่กำหนดเอง=${isCustomDayoff ? 'ใช่' : 'ไม่ใช่'}`);
+  } catch (error) {
+    console.error(`❌ ไม่สามารถตรวจสอบวันที่ ${record.date} ได้:`, error.message);
+  }
+});
 
   //add addSalary Month to list 
   if (addSalary && addSalary.length > 0) {
@@ -4769,6 +4902,7 @@ if(socialSecurity   !== 0 && socialSecurity   >= 750) {
     dayWorkCount,
     dayOffCount,
     specialDayOff,
+    customizeDayoff, // เพิ่มฟิลด์ customizeDayoff
     sumTimeWork ,
 sumTimeOt ,
 sumCashWork ,
