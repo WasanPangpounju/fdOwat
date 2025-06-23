@@ -5073,28 +5073,69 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
     }
   }
 
+  // แสดงข้อมูลที่จะใช้ในการคำนวณประกันสังคม
+  console.log(`\n💰 === การคำนวณประกันสังคม (socialSecurity) ===`);
+  console.log(`💰 salaryMonth: ${salaryMonth} บาท`);
+  console.log(`💰 sumCashWork: ${sumCashWork} บาท`);
+  console.log(`💰 addSalarySocialSecurity: ${addSalarySocialSecurity} บาท`);
+  console.log(`💰 cashSpecialDay: ${cashSpecialDay} บาท`);
+  console.log(`💰 cashcustomizeDayoff: ${cashcustomizeDayoff} บาท`);
+  console.log(`💰 publicHolidayCash: ${publicHolidayCash} บาท`);
+  console.log(`💰 อัตราการหักประกันสังคม (socialSecurityP): ${socialSecurityP * 100}%`);
+
   if (salaryMonth !== 0) {
     dayWorkCount = 30;
     sumCashWork = salaryMonth;
-    socialSecurity = Math.ceil((parseFloat(salaryMonth || 0) + parseFloat(addSalarySocialSecurity || 0)) * socialSecurityP);
+    // คำนวณประกันสังคมสำหรับพนักงานเงินเดือน (รวมเงินพิเศษทุกประเภทในการคำนวณ)
+    socialSecurity = Math.ceil(
+      (parseFloat(salaryMonth || 0) + 
+       parseFloat(addSalarySocialSecurity || 0) + 
+       parseFloat(cashcustomizeDayoff || 0) + 
+       parseFloat(publicHolidayCash || 0)) * socialSecurityP
+    );
+    console.log(`💰 คำนวณประกันสังคมสำหรับพนักงานเงินเดือน: ${socialSecurity} บาท`);
   } else {
     //กรณีหักภาษี ณ ที่จ่าย 3% (ภ.ง.ด.)
     if (costtype === "ภ.ง.ด.3") {
       socialSecurity = 0;
-      tax = Math.ceil((parseFloat(sumCashWork || 0) + parseFloat(sumCashOt || 0) + parseFloat(addSalarySocialSecurity || 0) + parseFloat(cashSpecialDay || 0)) * 0.03);
+      // คำนวณภาษีหัก ณ ที่จ่าย รวมเงินพิเศษทุกประเภท
+      tax = Math.ceil(
+        (parseFloat(sumCashWork || 0) + 
+         parseFloat(sumCashOt || 0) + 
+         parseFloat(addSalarySocialSecurity || 0) + 
+         parseFloat(cashSpecialDay || 0) + 
+         parseFloat(cashcustomizeDayoff || 0) + 
+         parseFloat(publicHolidayCash || 0)) * 0.03
+      );
+      console.log(`💰 คำนวณภาษีหัก ณ ที่จ่าย 3%: ${tax} บาท`);
     } else {
-      socialSecurity = Math.ceil((parseFloat(sumCashWork || 0) + parseFloat(addSalarySocialSecurity || 0) + parseFloat(cashSpecialDay || 0)) * socialSecurityP);
+      // คำนวณประกันสังคมสำหรับพนักงานรายวัน (รวมเงินพิเศษทุกประเภทในการคำนวณ)
+      socialSecurity = Math.ceil(
+        (parseFloat(sumCashWork || 0) + 
+         parseFloat(addSalarySocialSecurity || 0) + 
+         parseFloat(cashSpecialDay || 0) + 
+         parseFloat(cashcustomizeDayoff || 0) + 
+         parseFloat(publicHolidayCash || 0)) * socialSecurityP
+      );
+      console.log(`💰 คำนวณประกันสังคมสำหรับพนักงานรายวัน: ${socialSecurity} บาท`);
     }
   }
 
+  // ตรวจสอบและปรับค่าประกันสังคมตามเงื่อนไข
+  console.log(`💰 ค่าประกันสังคมก่อนปรับตามเงื่อนไข: ${socialSecurity} บาท`);
+
   //check socialSecurity != 0 and < 83 set to 83
-  if (socialSecurity !== 0 && socialSecurity <= 83) {
+  if (socialSecurity !== 0 && socialSecurity < 83) {
+    console.log(`✅ ค่าประกันสังคมน้อยกว่า 83 บาท และไม่เป็น 0 จึงปรับให้เป็น 83 บาท`);
     socialSecurity = 83;
   }
   //check max socialSecurity   
-  if (socialSecurity !== 0 && socialSecurity >= 750) {
+  if (socialSecurity !== 0 && socialSecurity > 750) {
+    console.log(`✅ ค่าประกันสังคมมากกว่า 750 บาท จึงปรับให้เป็น 750 บาท`);
     socialSecurity = 750;
   }
+
+  console.log(`💰 ค่าประกันสังคมที่จะบันทึก: ${socialSecurity} บาท`);
 
   return await {
     dayWorkCount,
