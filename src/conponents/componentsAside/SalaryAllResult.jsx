@@ -240,7 +240,7 @@ useEffect(() => {
   presentfilm
 });
 
-  const fetchEmployeeData = useCallback(async () => {
+const fetchEmployeeData = useCallback(async () => {
   if (!month || !year) {
     alert('กรุณาเลือกเดือนและปี');
     return null;
@@ -260,111 +260,126 @@ useEffect(() => {
       requestData.workplaceId = workplacrId;
     }
     
+    // เปลี่ยนมาใช้ API เส้นใหม่
     const response = await axios.post(
-      'http://10.10.110.7:3000/timerecord/searchtimerecordmonthyear', 
+      'http://10.10.110.7:3000/accounting/searchtimerecordbyworkplace', 
       requestData
     );
     
     let filteredEmployees = [];
     
-    if (response.data && response.data.result && Array.isArray(response.data.result)) {
-      // กรองเฉพาะข้อมูลที่ตรงกับเดือนและปี
-      const formMonth = String(month || '').padStart(2, '0');
+    if (response.data && response.data.groupedResult) {
+      console.log("Response data:", response.data);
       
-      const matchingResults = response.data.result.filter(item => {
-        const itemMonth = String(item.month || '').padStart(2, '0');
-        return itemMonth === formMonth && String(item.year || '') === String(year || '');
-      });
+      // ดึง addSalaryList จาก root ของ response
+      const addSalaryList = response.data.addSalaryList || [];
+      console.log("AddSalaryList:", addSalaryList);
       
-      // ใช้ Map เพื่อเพิ่มประสิทธิภาพในการกรองและแปลงข้อมูล
-      const employeeMap = new Map();
+      // ข้อมูลจาก API ใหม่จะอยู่ในรูปแบบ groupedResult
+      const groupedResult = response.data.groupedResult;
       
-      matchingResults.forEach(result => {
-        if (result.employee_record && Array.isArray(result.employee_record)) {
+      // รวบรวมข้อมูลพนักงานทั้งหมดจากทุก workplace
+      const allRecords = Object.values(groupedResult).flat();
+      
+      // กรองข้อมูลตามเงื่อนไข
+      let filteredRecords = allRecords;
+      
+      // ถ้ามีการระบุรหัสหน่วยงาน ให้กรองตามรหัสนั้น
+      if (workplacrId) {
+        filteredRecords = allRecords.filter(record => {
+          const recordId = String(record.workplaceId || '').trim();
+          const inputId = String(workplacrId || '').trim();
           
-          // ทำความสะอาดข้อมูลก่อนเปรียบเทียบ
-          console.log("Employee records:", result.employee_record);
-
-          // แสดงรายละเอียดการเปรียบเทียบในการกรอง
-          let filteredRecords;
-          
-          // ถ้ามีการระบุรหัสหน่วยงาน ให้กรองตามรหัสนั้น
-          if (workplacrId) {
-            filteredRecords = result.employee_record.filter(record => {
-              const recordId = String(record.workplaceId || '').trim();
-              const inputId = String(workplacrId || '').trim();
-              
-              // ตรวจสอบว่ารหัสหน่วยงานในฐานข้อมูลมีรหัสที่ป้อนเป็นส่วนหนึ่งหรือไม่
-              const isMatch = recordId.includes(inputId) || inputId.includes(recordId);
-              
-              console.log(`Comparing: Record ID [${recordId}] vs Input ID [${inputId}] = ${isMatch}`);
-              
-              return isMatch;
-            });
-          } else {
-            // ถ้าไม่ระบุรหัสหน่วยงาน ให้ใช้ข้อมูลทั้งหมด
-            filteredRecords = result.employee_record;
-          }
-            
-          filteredRecords.forEach(emp => {
-            const employeeId = result.employeeId || emp.employeeId || '';
-            if (!employeeMap.has(employeeId)) {
-              employeeMap.set(employeeId, {
-                ...emp,
-                employeeId,
-                firstName: (result.employeeName || '').split(' ')[0] || '',
-                lastName: (result.employeeName || '').split(' ')[1] || '',
-                dayWorkCount: result.dayWorkCount || emp.dayWorkCount || '',
-                sumCashWork: result.sumCashWork || emp.sumCashWork || '',
-                sumCashOt: result.sumCashOt || emp.sumCashOt || '',
-                socialSecurity: result.socialSecurity || emp.socialSecurity || '',
-              });
-            }
-          });
-        }
-      });
+          return recordId.includes(inputId) || inputId.includes(recordId);
+        });
+      }
       
-      // แปลงข้อมูลจาก Map กลับเป็น Array
-      filteredEmployees = Array.from(employeeMap.values());
+      // แปลงข้อมูลให้เข้ากับรูปแบบที่ใช้ในตาราง
+     // แก้ไขส่วนการคำนวณ transportAllowance ในฟังก์ชัน fetchEmployeeData
+filteredEmployees = filteredRecords.map(record => {
+  // ดึง addSalaryList จากข้อมูลพนักงาน
+  const addSalaryList = record.addSalaryList || [];
+  
+  // คำนวณค่าต่างๆ จาก addSalaryList
+  let transportAllowance = 0;
+  let diligenceAllowance = 0;
+  
+  // คำนวณค่าตำแหน่ง (ID 1230) สำหรับ transportAllowance
+  addSalaryList.forEach(item => {
+    if (item.id === "1230") { // เปลี่ยนจาก "1535" และ "1330" เป็น "1230"
+      const spSalary = parseFloat(item.SpSalary || 0);
+      const days = parseFloat(record.dayWorkCount || 0);
+      
+      if (item.roundOfSalary === "daily") {
+        transportAllowance += spSalary * days;
+      } else if (item.roundOfSalary === "monthly") {
+        transportAllowance += spSalary;
+      }
+    }
+  });
+  
+  // คำนวณเบี้ยขยัน (ID 1410) - ไม่เปลี่ยนแปลง
+  addSalaryList.forEach(item => {
+    if (item.id === "1410") {
+      const spSalary = parseFloat(item.SpSalary || 0);
+      const days = parseFloat(record.dayWorkCount || 0);
+      
+      if (item.roundOfSalary === "daily") {
+        diligenceAllowance += spSalary * days;
+      } else if (item.roundOfSalary === "monthly") {
+        diligenceAllowance += spSalary;
+      }
+    }
+  });
+  
+  // ดึงข้อมูล workplaceId และ workplaceName จาก employee_record แรก
+  const firstEmployeeRecord = record.employee_record && record.employee_record[0];
+  const workplaceId = firstEmployeeRecord ? firstEmployeeRecord.workplaceId : '';
+  const workplaceName = firstEmployeeRecord ? firstEmployeeRecord.workplaceName : '';
+  
+  return {
+    employeeId: record.employeeId || '',
+    firstName: (record.employeeName || '').split(' ')[0] || '',
+    lastName: (record.employeeName || '').split(' ').slice(1).join(' ') || '',
+    workplaceId: workplaceId,
+    workplaceName: workplaceName,
+    dayWorkCount: record.dayWorkCount || '0',
+    sumCashWork: formatNumber(record.sumCashWork || 0),
+    sumCashOt: formatNumber(record.sumCashOt || 0),
+    transportAllowance: formatNumber(transportAllowance), // ใช้ค่าที่คำนวณจาก ID "1230"
+    welfare: formatNumber(0),
+    diligenceAllowance: formatNumber(diligenceAllowance),
+    holidayPay: formatNumber(record.cashSpecialDay || 0),
+    additionalBeforeTax: formatNumber(0),
+    deductionBeforeTax: formatNumber(0),
+    additionalNoTax: formatNumber(0),
+    deductionNoTax: formatNumber(0),
+    tax: formatNumber(record.tax || 0),
+    socialSecurity: formatNumber(record.socialSecurity || 0),
+    additionalAfterTax: formatNumber(0),
+    deductionAfterTax: formatNumber(0),
+    advancePayment: formatNumber(0),
+    total: formatNumber(
+      (record.sumCashWork || 0) + 
+      (record.sumCashOt || 0) + 
+      transportAllowance + 
+      diligenceAllowance + 
+      (record.cashSpecialDay || 0) - 
+      (record.tax || 0) - 
+      (record.socialSecurity || 0)
+    )
+  };
+});
+      
       console.log("จำนวนพนักงานที่พบ:", filteredEmployees.length);
-      console.log(filteredEmployees);
     }
     
-    // แปลงข้อมูลพนักงาน
-    const formattedEmployees = filteredEmployees.map(emp => ({
-      employeeId: emp.employeeId || '',
-      firstName: emp.firstName || '',
-      lastName: emp.lastName || '',
-      workplaceId: emp.workplaceId || '',
-      workplaceName: emp.workplaceName || '',
-      dayWorkCount: emp.dayWorkCount || '',
-      sumCashWork: formatNumber(emp.sumCashWork || 0),
-      sumCashOt: formatNumber(emp.sumCashOt || 0),
-      overtime: formatNumber(emp.overtime || 0),
-      diligenceAllowance: formatNumber(emp.diligenceAllowance || 0),
-      OT: formatNumber(emp.OT || 0),
-      service: formatNumber(emp.service || 0),
-      subject: formatNumber(emp.subject || 0),
-      serviceSubject: formatNumber(emp.serviceSubject || 0),
-      otSubject: formatNumber(emp.otSubject || 0),
-      others: emp.others || '0',
-      taxReturn: emp.taxReturn || '0',
-      serviceCharge: formatNumber(emp.serviceCharge || 0),
-      product: formatNumber(emp.product || 0),
-      socialSecurity: formatNumber(emp.socialSecurity || 0),
-      total: formatNumber(emp.total || 0)
-    }));
-    
-    console.log("formattedEmployees", formattedEmployees);
-    
-    setEmployees(formattedEmployees);
-    setDisplayEmployees(formattedEmployees);
-
-    console.log('displayEmployees after update:', displayEmployees);
+    setEmployees(filteredEmployees);
+    setDisplayEmployees(filteredEmployees);
     setLoadingEmployees(false);
     setPdfReady(true);
     
-    return formattedEmployees;
+    return filteredEmployees;
     
   } catch (err) {
     console.error('เกิดข้อผิดพลาดในการดึงข้อมูลพนักงาน:', err);
@@ -373,8 +388,6 @@ useEffect(() => {
     return null;
   }
 }, [workplacrId, month, year, formatNumber]);
-
- // แก้ไข fetchAllWorkplaceData ให้ถูกต้อง
 const fetchAllWorkplaceData = useCallback(async () => {
   if (!month || !year) {
     alert('กรุณาเลือกเดือนและปี');
@@ -389,187 +402,136 @@ const fetchAllWorkplaceData = useCallback(async () => {
       year: year
     };
     
+    // เปลี่ยนมาใช้ API เส้นใหม่
     const response = await axios.post(
-      'http://10.10.110.7:3000/timerecord/searchtimerecordmonthyear', 
+      'http://10.10.110.7:3000/accounting/searchtimerecordbyworkplace', 
       requestData
     );
     
-    if (!response.data || !response.data.result || !Array.isArray(response.data.result)) {
+    if (!response.data || !response.data.result) {
       alert('ไม่พบข้อมูล');
       setLoadingEmployees(false);
       return null;
     }
     
-    // กรองเฉพาะข้อมูลที่ตรงกับเดือนและปี
-    const formMonth = String(month || '').padStart(2, '0');
+    const resultData = response.data.result;
+    console.log("Result data:", resultData);
     
-    const matchingResults = response.data.result.filter(item => {
-      const itemMonth = String(item.month || '').padStart(2, '0');
-      return itemMonth === formMonth && String(item.year || '') === String(year || '');
-    });
-    
-    if (matchingResults.length === 0) {
-      alert('ไม่พบข้อมูลสำหรับเดือนและปีที่เลือก');
-      setLoadingEmployees(false);
-      return null;
-    }
-    
-    console.log(`พบข้อมูลทั้งสิ้น ${matchingResults.length} รายการที่ตรงกับเดือน ${month} ปี ${year}`);
-    
-    // รวบรวมข้อมูลพนักงานทั้งหมด
-    let allEmployeeRecords = [];
-    matchingResults.forEach(result => {
-      if (result.employee_record && Array.isArray(result.employee_record)) {
-        // เพิ่มข้อมูลจาก result เข้าไปใน employee record
-        const recordsWithEmployeeInfo = result.employee_record.map(record => ({
-          ...record,
-          employeeId: result.employeeId || record.employeeId || '',
-          employeeName: result.employeeName || record.employeeName || '',
-          firstName: (result.employeeName || '').split(' ')[0] || '',
-          lastName: (result.employeeName || '').split(' ')[1] || '',
-          dayWorkCount: result.dayWorkCount || record.dayWorkCount || '',
-          sumCashWork: result.sumCashWork || record.sumCashWork || '',
-          sumCashOt: result.sumCashOt || record.sumCashOt || '',
-          // เพิ่มข้อมูลอื่นๆ
-          welfare: record.welfare || '0',
-          diligenceAllowance: record.diligenceAllowance || '0',
-          transportAllowance: record.transportAllowance || '0',
-          holidayPay: record.holidayPay || '0',
-          additionalBeforeTax: record.additionalBeforeTax || '0',
-          deductionBeforeTax: record.deductionBeforeTax || '0',
-          additionalNoTax: record.additionalNoTax || '0',
-          deductionNoTax: record.deductionNoTax || '0',
-          tax: record.tax || '0',
-          socialSecurity: record.socialSecurity || '0',
-          additionalAfterTax: record.additionalAfterTax || '0',
-          deductionAfterTax: record.deductionAfterTax || '0',
-          advancePayment: record.advancePayment || '0'
-        }));
-        
-        allEmployeeRecords = [...allEmployeeRecords, ...recordsWithEmployeeInfo];
-      }
-    });
-    
-    // จัดกลุ่มตามรหัสหน่วยงาน
+    // จัดกลุ่มข้อมูลตาม workplaceId
     const groupedByWorkplace = {};
     
-    allEmployeeRecords.forEach(record => {
-      if (record.workplaceId) {
-        const workplaceId = record.workplaceId.toString();
-        
-        if (!groupedByWorkplace[workplaceId]) {
-          groupedByWorkplace[workplaceId] = {
-            workplaceId: workplaceId,
-            workplaceName: record.workplaceName || '',
-            employees: [],
-            totalSalary: 0,
-            totalAmountOt: 0,
-            totalAddSalary: 0,
-            totalBenefitNonSocial: 0,
-            totalAmountHardWorking: 0,
-            totalAmountSpecialDay: 0,
-            totalSumAddSalaryBeforeTax: 0,
-            totalSumDeductBeforeTaxWithSocial: 0,
-            totalSumAddSalaryBeforeTaxNonSocial: 0,
-            totalSumDeductBeforeTax: 0,
-            totalTax: 0,
-            totalSocialSecurity: 0,
-            totalSumAddSalaryAfterTax: 0,
-            totalAdvancePayment: 0,
-            totalSumDeductAfterTax: 0,
-            totalTotal: 0,
-            totalEmp: 0
-          };
-        }
-        
-        // ปรับรูปแบบข้อมูลตัวเลข และแปลงเป็นตัวเลขเพื่อคำนวณ
-        const parsedSumCashWork = parseFloat(record.sumCashWork || 0);
-        const parsedSumCashOt = parseFloat(record.sumCashOt || 0);
-        const parsedWelfare = parseFloat(record.welfare || 0);
-        const parsedDiligenceAllowance = parseFloat(record.diligenceAllowance || 0);
-        const parsedTransportAllowance = parseFloat(record.transportAllowance || 0);
-        const parsedHolidayPay = parseFloat(record.holidayPay || 0);
-        const parsedAdditionalBeforeTax = parseFloat(record.additionalBeforeTax || 0);
-        const parsedDeductionBeforeTax = parseFloat(record.deductionBeforeTax || 0);
-        const parsedAdditionalNoTax = parseFloat(record.additionalNoTax || 0);
-        const parsedDeductionNoTax = parseFloat(record.deductionNoTax || 0);
-        const parsedTax = parseFloat(record.tax || 0);
-        const parsedSocialSecurity = parseFloat(record.socialSecurity || 0);
-        const parsedAdditionalAfterTax = parseFloat(record.additionalAfterTax || 0);
-        const parsedDeductionAfterTax = parseFloat(record.deductionAfterTax || 0);
-        const parsedAdvancePayment = parseFloat(record.advancePayment || 0);
-        
-        // คำนวณยอดสุทธิ
-        const netTotal = 
-          parsedSumCashWork + 
-          parsedSumCashOt + 
-          parsedTransportAllowance + 
-          parsedWelfare + 
-          parsedDiligenceAllowance + 
-          parsedHolidayPay + 
-          parsedAdditionalBeforeTax + 
-          parsedAdditionalNoTax + 
-          parsedAdditionalAfterTax - 
-          parsedDeductionBeforeTax - 
-          parsedDeductionNoTax - 
-          parsedTax - 
-          parsedSocialSecurity - 
-          parsedDeductionAfterTax - 
-          parsedAdvancePayment;
-        
-        // เพิ่มข้อมูลพนักงานที่ไม่ซ้ำกัน
-        const existingEmployeeIndex = groupedByWorkplace[workplaceId].employees.findIndex(
-          emp => emp.employeeId === record.employeeId
-        );
-        
-        if (existingEmployeeIndex === -1) {
-          groupedByWorkplace[workplaceId].employees.push({
-            ...record,
-            sumCashWork: formatNumber(parsedSumCashWork),
-            sumCashOt: formatNumber(parsedSumCashOt),
-            welfare: formatNumber(parsedWelfare),
-            diligenceAllowance: formatNumber(parsedDiligenceAllowance),
-            transportAllowance: formatNumber(parsedTransportAllowance),
-            holidayPay: formatNumber(parsedHolidayPay),
-            additionalBeforeTax: formatNumber(parsedAdditionalBeforeTax),
-            deductionBeforeTax: formatNumber(parsedDeductionBeforeTax),
-            additionalNoTax: formatNumber(parsedAdditionalNoTax),
-            deductionNoTax: formatNumber(parsedDeductionNoTax),
-            tax: formatNumber(parsedTax),
-            socialSecurity: formatNumber(parsedSocialSecurity),
-            additionalAfterTax: formatNumber(parsedAdditionalAfterTax),
-            deductionAfterTax: formatNumber(parsedDeductionAfterTax),
-            advancePayment: formatNumber(parsedAdvancePayment),
-            netTotal: formatNumber(netTotal)
-          });
-          
-          // สะสมค่ารวมของหน่วยงาน
-          groupedByWorkplace[workplaceId].totalSalary += parsedSumCashWork;
-          groupedByWorkplace[workplaceId].totalAmountOt += parsedSumCashOt;
-          groupedByWorkplace[workplaceId].totalAddSalary += parsedTransportAllowance;
-          groupedByWorkplace[workplaceId].totalBenefitNonSocial += parsedWelfare;
-          groupedByWorkplace[workplaceId].totalAmountHardWorking += parsedDiligenceAllowance;
-          groupedByWorkplace[workplaceId].totalAmountSpecialDay += parsedHolidayPay;
-          groupedByWorkplace[workplaceId].totalSumAddSalaryBeforeTax += parsedAdditionalBeforeTax;
-          groupedByWorkplace[workplaceId].totalSumDeductBeforeTaxWithSocial += parsedDeductionBeforeTax;
-          groupedByWorkplace[workplaceId].totalSumAddSalaryBeforeTaxNonSocial += parsedAdditionalNoTax;
-          groupedByWorkplace[workplaceId].totalSumDeductBeforeTax += parsedDeductionNoTax;
-          groupedByWorkplace[workplaceId].totalTax += parsedTax;
-          groupedByWorkplace[workplaceId].totalSocialSecurity += parsedSocialSecurity;
-          groupedByWorkplace[workplaceId].totalSumAddSalaryAfterTax += parsedAdditionalAfterTax;
-          groupedByWorkplace[workplaceId].totalSumDeductAfterTax += parsedDeductionAfterTax;
-          groupedByWorkplace[workplaceId].totalAdvancePayment += parsedAdvancePayment;
-          groupedByWorkplace[workplaceId].totalTotal += netTotal;
-          groupedByWorkplace[workplaceId].totalEmp += 1;
-        }
+    resultData.forEach(record => {
+      // ดึง workplaceId จาก employee_record แรก
+      const firstEmployeeRecord = record.employee_record && record.employee_record[0];
+      if (!firstEmployeeRecord) return;
+      
+      const workplaceId = firstEmployeeRecord.workplaceId;
+      const workplaceName = firstEmployeeRecord.workplaceName;
+      
+      if (!groupedByWorkplace[workplaceId]) {
+        groupedByWorkplace[workplaceId] = {
+          workplaceId: workplaceId,
+          workplaceName: workplaceName,
+          employees: [],
+          totalSalary: 0,
+          totalAmountOt: 0,
+          totalAddSalary: 0,
+          totalBenefitNonSocial: 0,
+          totalAmountHardWorking: 0,
+          totalAmountSpecialDay: 0,
+          totalSumAddSalaryBeforeTax: 0,
+          totalSumDeductBeforeTaxWithSocial: 0,
+          totalSumAddSalaryBeforeTaxNonSocial: 0,
+          totalSumDeductBeforeTax: 0,
+          totalTax: 0,
+          totalSocialSecurity: 0,
+          totalSumAddSalaryAfterTax: 0,
+          totalAdvancePayment: 0,
+          totalSumDeductAfterTax: 0,
+          totalTotal: 0,
+          totalEmp: 0
+        };
       }
+      
+      // ดึง addSalaryList จากข้อมูลพนักงาน
+      const addSalaryList = record.addSalaryList || [];
+      
+      // คำนวณค่าต่างๆ จาก addSalaryList
+      let transportAllowance = 0;
+      let diligenceAllowance = 0;
+      
+      // คำนวณค่าตำแหน่ง (ID 1230) สำหรับ transportAllowance
+      addSalaryList.forEach(item => {
+        if (item.id === "1230") {
+          const spSalary = parseFloat(item.SpSalary || 0);
+          const days = parseFloat(record.dayWorkCount || 0);
+          
+          if (item.roundOfSalary === "daily") {
+            transportAllowance += spSalary * days;
+          } else if (item.roundOfSalary === "monthly") {
+            transportAllowance += spSalary;
+          }
+        }
+      });
+      
+      // คำนวณเบี้ยขยัน (ID 1410)
+      addSalaryList.forEach(item => {
+        if (item.id === "1410") {
+          const spSalary = parseFloat(item.SpSalary || 0);
+          const days = parseFloat(record.dayWorkCount || 0);
+          
+          if (item.roundOfSalary === "daily") {
+            diligenceAllowance += spSalary * days;
+          } else if (item.roundOfSalary === "monthly") {
+            diligenceAllowance += spSalary;
+          }
+        }
+      });
+      
+      // เพิ่มพนักงานเข้าไปในกลุ่ม
+      groupedByWorkplace[workplaceId].employees.push({
+        ...record,
+        firstName: (record.employeeName || '').split(' ')[0] || '',
+        lastName: (record.employeeName || '').split(' ').slice(1).join(' ') || ''
+      });
+      
+      // คำนวณยอดรวมของหน่วยงาน
+      groupedByWorkplace[workplaceId].totalSalary += parseFloat(record.sumCashWork || 0);
+      groupedByWorkplace[workplaceId].totalAmountOt += parseFloat(record.sumCashOt || 0);
+      groupedByWorkplace[workplaceId].totalAddSalary += transportAllowance;
+      groupedByWorkplace[workplaceId].totalBenefitNonSocial += parseFloat(record.welfare || 0);
+      groupedByWorkplace[workplaceId].totalAmountHardWorking += diligenceAllowance;
+      groupedByWorkplace[workplaceId].totalAmountSpecialDay += parseFloat(record.cashSpecialDay || 0);
+      groupedByWorkplace[workplaceId].totalSumAddSalaryBeforeTax += parseFloat(record.additionalBeforeTax || 0);
+      groupedByWorkplace[workplaceId].totalSumDeductBeforeTaxWithSocial += parseFloat(record.deductionBeforeTax || 0);
+      groupedByWorkplace[workplaceId].totalSumAddSalaryBeforeTaxNonSocial += parseFloat(record.additionalNoTax || 0);
+      groupedByWorkplace[workplaceId].totalSumDeductBeforeTax += parseFloat(record.deductionNoTax || 0);
+      groupedByWorkplace[workplaceId].totalTax += parseFloat(record.tax || 0);
+      groupedByWorkplace[workplaceId].totalSocialSecurity += parseFloat(record.socialSecurity || 0);
+      groupedByWorkplace[workplaceId].totalSumAddSalaryAfterTax += parseFloat(record.additionalAfterTax || 0);
+      groupedByWorkplace[workplaceId].totalAdvancePayment += parseFloat(record.advancePayment || 0);
+      groupedByWorkplace[workplaceId].totalSumDeductAfterTax += parseFloat(record.deductionAfterTax || 0);
+      
+      // คำนวณยอดสุทธิ
+      const netTotal = 
+        (parseFloat(record.sumCashWork || 0)) + 
+        (parseFloat(record.sumCashOt || 0)) + 
+        transportAllowance + 
+        diligenceAllowance + 
+        (parseFloat(record.cashSpecialDay || 0)) - 
+        (parseFloat(record.tax || 0)) - 
+        (parseFloat(record.socialSecurity || 0));
+        
+      groupedByWorkplace[workplaceId].totalTotal += netTotal;
+      groupedByWorkplace[workplaceId].totalEmp += 1;
     });
     
     setLoadingEmployees(false);
     
     // ส่งคืนข้อมูลที่จัดกลุ่มแล้ว
+    const sortedWorkplaceIds = Object.keys(groupedByWorkplace).sort();
     return {
-      groups: Object.keys(groupedByWorkplace).sort(),
+      groups: sortedWorkplaceIds,
       data: groupedByWorkplace
     };
     
@@ -1217,7 +1179,7 @@ const employeeData = displayEmployees.map((emp) => {
   const transportation = parseFloat(emp.transportAllowance?.replace(/,/g, '') || 0);
   const welfare = parseFloat(emp.welfare?.replace(/,/g, '') || 0);
   const diligence = parseFloat(emp.diligenceAllowance?.replace(/,/g, '') || 0);
-  const holiday = parseFloat(emp.holidayPay?.replace(/,/g, '') || 0);
+  const holiday = parseFloat(emp.publicHolidayCash?.replace(/,/g, '') || 0);
   const addBeforeTax = parseFloat(emp.additionalBeforeTax?.replace(/,/g, '') || 0);
   const deductBeforeTax = parseFloat(emp.deductionBeforeTax?.replace(/,/g, '') || 0);
   const addNoTax = parseFloat(emp.additionalNoTax?.replace(/,/g, '') || 0);
@@ -1246,7 +1208,7 @@ const employeeData = displayEmployees.map((emp) => {
     transportation: emp.transportAllowance || '0',
     welfare: emp.welfare || '0',
     diligence: emp.diligenceAllowance || '0',
-    holiday: emp.holidayPay || '0',
+    holiday: emp.publicHolidayCash || '0',
     addBeforeTax: emp.additionalBeforeTax || '0',
     deductBeforeTax: emp.deductionBeforeTax || '0',
     addNoTax: emp.additionalNoTax || '0',
@@ -1567,7 +1529,7 @@ const createWorkplaceTable = (doc, wpId, wpName, employees, startY) => {
     const transportation = parseFloat(emp.transportAllowance?.replace(/,/g, '') || 0);
     const welfare = parseFloat(emp.welfare?.replace(/,/g, '') || 0);
     const diligence = parseFloat(emp.diligenceAllowance?.replace(/,/g, '') || 0);
-    const holiday = parseFloat(emp.holidayPay?.replace(/,/g, '') || 0);
+    const holiday = parseFloat(emp.publicHolidayCash?.replace(/,/g, '') || 0);
     const addBeforeTax = parseFloat(emp.additionalBeforeTax?.replace(/,/g, '') || 0);
     const deductBeforeTax = parseFloat(emp.deductionBeforeTax?.replace(/,/g, '') || 0);
     const addNoTax = parseFloat(emp.additionalNoTax?.replace(/,/g, '') || 0);
@@ -1596,7 +1558,7 @@ const createWorkplaceTable = (doc, wpId, wpName, employees, startY) => {
       transportation: emp.transportAllowance || '0',
       welfare: emp.welfare || '0',
       diligence: emp.diligenceAllowance || '0',
-      holiday: emp.holidayPay || '0',
+      holiday: emp.publicHolidayCash || '0',
       addBeforeTax: emp.additionalBeforeTax || '0',
       deductBeforeTax: emp.deductionBeforeTax || '0',
       addNoTax: emp.additionalNoTax || '0',
@@ -3570,7 +3532,7 @@ const generatePDF02 = async () => {
         totals.transportation += parseFloat(emp.transportAllowance?.replace(/,/g, '') || 0);
         totals.welfare += parseFloat(emp.welfare?.replace(/,/g, '') || 0);
         totals.diligence += parseFloat(emp.diligenceAllowance?.replace(/,/g, '') || 0);
-        totals.holiday += parseFloat(emp.holidayPay?.replace(/,/g, '') || 0);
+        totals.holiday += parseFloat(emp.publicHolidayCash?.replace(/,/g, '') || 0);
         totals.addBeforeTax += parseFloat(emp.additionalBeforeTax?.replace(/,/g, '') || 0);
         totals.deductBeforeTax += parseFloat(emp.deductionBeforeTax?.replace(/,/g, '') || 0);
         totals.addNoTax += parseFloat(emp.additionalNoTax?.replace(/,/g, '') || 0);
@@ -3587,7 +3549,7 @@ const generatePDF02 = async () => {
         const transportation = parseFloat(emp.transportAllowance?.replace(/,/g, '') || 0);
         const welfare = parseFloat(emp.welfare?.replace(/,/g, '') || 0);
         const diligence = parseFloat(emp.diligenceAllowance?.replace(/,/g, '') || 0);
-        const holiday = parseFloat(emp.holidayPay?.replace(/,/g, '') || 0);
+        const holiday = parseFloat(emp.publicHolidayCash?.replace(/,/g, '') || 0);
         const addBeforeTax = parseFloat(emp.additionalBeforeTax?.replace(/,/g, '') || 0);
         const deductBeforeTax = parseFloat(emp.deductionBeforeTax?.replace(/,/g, '') || 0);
         const addNoTax = parseFloat(emp.additionalNoTax?.replace(/,/g, '') || 0);
@@ -5417,7 +5379,7 @@ const exportToExcel = async () => {
           const transportation = parseFloat(emp.transportAllowance?.replace(/,/g, '') || 0);
           const welfare = parseFloat(emp.welfare?.replace(/,/g, '') || 0);
           const diligence = parseFloat(emp.diligenceAllowance?.replace(/,/g, '') || 0);
-          const holiday = parseFloat(emp.holidayPay?.replace(/,/g, '') || 0);
+          const holiday = parseFloat(emp.publicHolidayCash?.replace(/,/g, '') || 0);
           const addBeforeTax = parseFloat(emp.additionalBeforeTax?.replace(/,/g, '') || 0);
           const deductBeforeTax = parseFloat(emp.deductionBeforeTax?.replace(/,/g, '') || 0);
           const addNoTax = parseFloat(emp.additionalNoTax?.replace(/,/g, '') || 0);
@@ -5609,7 +5571,7 @@ const exportToExcel = async () => {
         const transportation = parseFloat(emp.transportAllowance?.replace(/,/g, '') || 0);
         const welfare = parseFloat(emp.welfare?.replace(/,/g, '') || 0);
         const diligence = parseFloat(emp.diligenceAllowance?.replace(/,/g, '') || 0);
-        const holiday = parseFloat(emp.holidayPay?.replace(/,/g, '') || 0);
+        const holiday = parseFloat(emp.publicHolidayCash?.replace(/,/g, '') || 0);
         const addBeforeTax = parseFloat(emp.additionalBeforeTax?.replace(/,/g, '') || 0);
         const deductBeforeTax = parseFloat(emp.deductionBeforeTax?.replace(/,/g, '') || 0);
         const addNoTax = parseFloat(emp.additionalNoTax?.replace(/,/g, '') || 0);

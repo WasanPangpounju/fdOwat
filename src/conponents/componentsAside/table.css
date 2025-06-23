@@ -58,7 +58,7 @@ body {
   }
 
   th[colspan="1"]:nth-child(2),
-  td:nth-child(2) {
+  td:nth-child(1) {
     width: auto !important;
     min-width: 120px !important;
   }
