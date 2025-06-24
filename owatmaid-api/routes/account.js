@@ -5099,7 +5099,7 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
     if (costtype === "ภ.ง.ด.3") {
       socialSecurity = 0;
       // คำนวณภาษีหัก ณ ที่จ่าย รวมเงินพิเศษทุกประเภท
-      tax = Math.eil(
+      tax = Math.ceil(
         (parseFloat(sumCashWork || 0) + 
          parseFloat(sumCashOt || 0) + 
          parseFloat(addSalarySocialSecurity || 0) + 
