@@ -8,6 +8,7 @@ import { FaCalendarAlt } from "react-icons/fa"; // You can use any icon library
 
 import axios from "axios";
 import React, { useEffect, useState, useRef } from "react";
+import ExcelJS from 'exceljs';
 
 // import TestPDF from './TestPDF';
 import { jsPDF } from "jspdf";
@@ -19,6 +20,7 @@ import th from "date-fns/locale/th"; // Import Thai locale data from date-fns
 import en from "date-fns/locale/en-US";
 
 import DatePicker from "react-datepicker";
+import * as XLSX from 'xlsx';
 
 
 function WorktimeSheetWorkplace({ employeeList }) {
@@ -2459,6 +2461,7 @@ const getDateStyle = (day) => {
       _id: group._id,
     });
   });
+  
 
   // Initialize objects to store the grouped times
   const dayWorkMorningAndSS = {};
@@ -8878,17 +8881,164 @@ const getDateStyle = (day) => {
 
     setDate(value);
   };
+  
+  // Function to generate Excel file with ExcelJS - same structure as table
 
+  // Constants for Excel generation
+  const dayNumbers = [
+    "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31",
+    "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20"
+  ];
+  const overtimeLabels = ["วันหยุด", "วันนักขัต", "ทำงานวันหยุด/นักขัต", "โอที 1.5 เท่า", "โอที 3 เท่า"];
 
-//latest code 
+// เพิ่ม function สำหรับนับพนักงานที่ทำงานในแต่ละวัน
+  const countEmployeesPerDay = () => {
+    const counts = Array(dayNumbers.length).fill(0);
+    
+    if (data && data.length > 0) {
+      data.forEach(record => {
+        dayNumbers.forEach((day, dayIndex) => {
+          const found = record?.employee_record?.find(itemx => itemx.date === day);
+          if (found?.dayType === "work") {
+            counts[dayIndex]++;
+          }
+        });
+      });
+    }
+    
+    return counts;
+  };
 
-const dayNumbers = [
-  "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31",
-  "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20"
-];
-const overtimeLabels = [  "วันหยุด",  "วันนักขัติ",
-    ,"ทำงานวันหยุด/นักขัติ","โอที 1.5 เท่า","โอที 3 เท่า "
-];
+  // เพิ่ม function สำหรับรวมชั่วโมงโอที 1.5 ในแต่ละวัน
+  const sumOvertimePerDay = () => {
+    const sums = Array(dayNumbers.length).fill(0);
+    
+    if (data && data.length > 0) {
+      data.forEach(record => {
+        dayNumbers.forEach((day, dayIndex) => {
+          const found = record?.employee_record?.find(itemx => itemx.date === day);
+          if (found?.cashOtMul?.trim() && found?.dayType !== "stop") {
+            const beforeTime = parseFloat(found.beforeTotalOtTime) || 0;
+            const totalTime = parseFloat(found.totalOtTime) || 0;
+            sums[dayIndex] += beforeTime + totalTime;
+          }
+        });
+      });
+    }
+    
+    return sums;
+  };
+
+  // เพิ่ม function สำหรับรวมชั่วโมงโอที 2 เท่าในแต่ละวัน (dayType === "stop")
+  const sumOvertime2PerDay = () => {
+    const sums = Array(dayNumbers.length).fill(0);
+    
+    if (data && data.length > 0) {
+      data.forEach(record => {
+        dayNumbers.forEach((day, dayIndex) => {
+          const found = record?.employee_record?.find(itemx => itemx.date === day);
+          if (found?.dayType === "stop" && found.totalTime) {
+            const totalTime = parseFloat(found.totalTime) || 0;
+            sums[dayIndex] += totalTime;
+          }
+        });
+      });
+    }
+    
+    return sums;
+  };
+
+  // เพิ่ม function สำหรับรวมชั่วโมงโอที 3 เท่าในแต่ละวัน (dayType === "stop" && cashOtMul)
+  const sumOvertime3PerDay = () => {
+    const sums = Array(dayNumbers.length).fill(0);
+    
+    if (data && data.length > 0) {
+      data.forEach(record => {
+        dayNumbers.forEach((day, dayIndex) => {
+          const found = record?.employee_record?.find(itemx => itemx.date === day);
+          if (found?.dayType === "stop" && found?.cashOtMul?.trim()) {
+            const beforeTime = parseFloat(found.beforeTotalOtTime) || 0;
+            const totalTime = parseFloat(found.totalOtTime) || 0;
+            sums[dayIndex] += beforeTime + totalTime;
+          }
+        });
+      });
+    }
+    
+    return sums;
+  };
+
+  const calculateTotalOtPublicHoliday = () => {
+    let total = 0;
+    
+    if (data && data.length > 0) {
+      data.forEach(record => {
+        const otPublicHoliday = parseFloat(record.sumOtPublicHoliday || 0);
+        total += otPublicHoliday;
+      });
+    }
+    
+    return total;
+  };
+
+  const calculateTotalOtWithOvertime1_5 = () => {
+    let total = 0;
+    
+    if (data && data.length > 0) {
+      data.forEach(record => {
+        const otPublicHoliday = 0;
+        const ot1p5 = parseFloat(record.sumOt1p5 || 0);
+        total += otPublicHoliday + ot1p5;
+      });
+    }
+    
+    return total;
+  };
+
+  const calculateTotalOtWithOvertime3 = () => {
+    let total = 0;
+    
+    if (data && data.length > 0) {
+      data.forEach(record => {
+        const otPublicHoliday = 0;
+        const ot3 = parseFloat(record.sumOt3 || 0);
+        total += otPublicHoliday + ot3;
+      });
+    }
+    
+    return total;
+  };
+
+  // เพิ่ม function สำหรับคำนวณพนักงานขาดงานในแต่ละวัน
+  const calculateAbsentEmployeesPerDay = () => {
+    const absentCounts = Array(dayNumbers.length).fill(0);
+    const totalEmployees = data.length; // จำนวนพนักงานทั้งหมด
+    
+    if (data && data.length > 0) {
+      dayNumbers.forEach((day, dayIndex) => {
+        const presentCount = employeeCountPerDay[dayIndex] || 0; // จำนวนที่มาทำงาน
+        
+        // ถ้าไม่มีคนมาทำงานเลย (วันหยุด) ให้ไม่แสดงค่าขาดงาน
+        if (presentCount === 0) {
+          absentCounts[dayIndex] = 0; // ไม่แสดงค่า
+        } else {
+          const absentCount = totalEmployees - presentCount; // จำนวนที่ขาด
+          absentCounts[dayIndex] = absentCount > 0 ? -absentCount : 0; // แสดงเป็นเลขลบ
+        }
+      });
+    }
+    
+    return absentCounts;
+  };
+
+  const employeeCountPerDay = countEmployeesPerDay();
+  const overtimeSumPerDay = sumOvertimePerDay();
+  const overtime2SumPerDay = sumOvertime2PerDay();
+  const overtime3SumPerDay = sumOvertime3PerDay();
+  const absentEmployeesPerDay = calculateAbsentEmployeesPerDay();
+  const totalOtPublicHoliday = calculateTotalOtPublicHoliday();
+  const totalOtWithOvertime1_5 = calculateTotalOtWithOvertime1_5();
+  const totalOtWithOvertime3 = calculateTotalOtWithOvertime3();
 
 
   return (
@@ -9179,12 +9329,12 @@ const overtimeLabels = [  "วันหยุด",  "วันนักขัต
                         ค้นหา
                       </button>
                       <button
-                        // onClick={generatePDF987}
-                        style={{ marginLeft: "1rem", width: "10rem", backgroundColor: "gray" }}
-                        class="btn b_save"
+                        // onClick={generateExcel}
+                        style={{ marginLeft: "1rem", width: "10rem", backgroundColor: "", color: "white" }}
+                        class="btn b_save bg-secondary"
                       >
-                        {/* <i class="nav-icon fas fa-search"></i> */}
-                        ดาวน์โหลดไฟล์ <br />กำลังพัฒนา
+                        <i class="fas fa-file-excel m-2"></i>
+                       <span className="">กำลังพัฒนา</span>ดาวน์โหลด Excel
                       </button>
                       <div className="pt-3">
                           <div className="table table-responsive" >
@@ -9233,17 +9383,18 @@ const overtimeLabels = [  "วันหยุด",  "วันนักขัต
                                   <th style={{backgroundColor:'#fff7c2'}}>1140</th>
 
                                   {workplaceAddsalary.map((item, i) => (
-                                        <th key={i} className="text-center ">{item.codeSpSalary}</th>
+                                        <th key={i} className="text-center ">{item.codeSpSalary} </th>
                                     ))}
                                 </tr>
 
                                 {/* ---------------- แถวที่ 3 ---------------- */}
                                 <tr>
-                                    <td style={{backgroundColor:'#fff7c2'}}></td>
-                                    {Array.from({ length: 4 }, (_, i) => (
-                                        <th style={{backgroundColor:'#fff7c2'}} key={i}></th>
-                                    ))}
-                                     {Array.from({ length: 5 }, (_, i) => (
+                                    <td className="text-bold align-middle" style={{backgroundColor:'#fff7c2'}}>วัน</td>
+                                    <td className="text-bold align-middle" style={{backgroundColor:'#fff7c2'}}>วัน</td>
+                                    <td className="text-bold align-middle" style={{backgroundColor:'#fff7c2'}}>ชม</td>
+                                    <td className="text-bold align-middle" style={{backgroundColor:'#fff7c2'}}>ชม</td>
+                                    <td className="text-bold align-middle" style={{backgroundColor:'#fff7c2'}}>ชม</td>
+                                     {workplaceAddsalary.map((_, i) => (
                                         <th  key={i}></th>
                                     ))}
 
@@ -9253,13 +9404,7 @@ const overtimeLabels = [  "วันหยุด",  "วันนักขัต
                                     <tr>
                                                                     {overtimeLabels.map((label, index) => {
                                     // เพิ่ม input ตรงตำแหน่งก่อน "โอที1" (index 2)
-                                    if (index === 2) {
-                                        return (
-                                            <th key={index} className="vertical-text align-middle">
-                                                <input type="text" className="input " style={{ height: "3.5rem" }} placeholder="ป้อนยอดเงิน" />
-                                            </th>
-                                        );
-                                    }
+                                   
                               
                                     return (
                                         <th key={index} style={{backgroundColor:'#fff7c2'}} className="vertical-text align-middle">
@@ -9296,12 +9441,15 @@ const overtimeLabels = [  "วันหยุด",  "วันนักขัต
 
 {dayNumbers.map((day, i) => {
   const found = record?.employee_record?.find(itemx => itemx.date === day);
+  const isWork = found?.dayType === "work";
+  
   return (
     <td 
       key={i} 
       className="text-center align-middle" 
+      style={!isWork ? { backgroundColor: "#bfbdbf" } : {}}
     >
-      {found?.dayType === "work" ? '1' : ''}
+      {isWork ? '1' : ''}
     </td>
   );
 })}
@@ -9311,7 +9459,7 @@ const overtimeLabels = [  "วันหยุด",  "วันนักขัต
                     {record.dayWorkCount || ''} 
                       </td>
 
-                    <td className="text-center text-red align-middle">
+                    <td className="text-center text-red align-middle" style={{backgroundColor:"#fcdfca"}}>
                        {/* รวมวันหยุด */}
                     {record.customizeDayoff || ''} 
                       
@@ -9368,7 +9516,7 @@ const overtimeLabels = [  "วันหยุด",  "วันนักขัต
                     <tr>
                     <td></td>
                     <td><span style={{ float: "right" }}>ดึก</span></td>
-                    {Array.from({ length: 31 }).map((_, i) => (
+                    {dayNumbers.map((_, i) => (
                         <td key={i} className="text-center align-middle"></td>
                     ))}
 
@@ -9377,7 +9525,7 @@ const overtimeLabels = [  "วันหยุด",  "วันนักขัต
                       {record.sumCashWorkMul[1] || ''}
                       </td>
 
-                    <td  className="text-center align-middle">
+                    <td  className="text-center align-middle" style={{backgroundColor:"#fcdfca"}}>
                        {/* รวมเงินจ่ายนักขัต*/}
                       {record.cashcustomizeDayoff || ''}
 
@@ -9432,30 +9580,30 @@ const overtimeLabels = [  "วันหยุด",  "วันนักขัต
                     {/*  */}
                     <tr>
                     <td></td>
-                    <td><span style={{ paddingLeft: "45px" }}>{record.employeeId} โอที 1.5 </span></td>
+                    <td className="text-right"><span >{record.employeeId} โอที 1.5 </span></td>
 
 
                     
 
                 {dayNumbers.map((day, i) => {
                   const found = record?.employee_record?.find(itemx => itemx.date === day);
+                  const isWork = found?.dayType === "work"
                   return (
-                    <td key={i} className="text-center align-middle">
+                    <td key={i} className="text-center align-middle" style={!isWork ? { backgroundColor: "#bfbdbf" } : {}}>
                       {found?.cashOtMul?.trim() && found?.dayType !== "stop"
                         ? [found.beforeTotalOtTime, found.totalOtTime].filter(Boolean).join(',')
                         : ''}
                     </td>
                   );
                 })}
-
-{workplaceAddsalary.map((item, i) => (
+                <td></td>
+                <td style={{backgroundColor:"#fcdfca"}}></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                {workplaceAddsalary.map((item, i) => (
                         <td key={i} className="text-center"></td>
                     ))}
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
                     <td></td>
                     <td></td>
       
@@ -9463,8 +9611,8 @@ const overtimeLabels = [  "วันหยุด",  "วันนักขัต
                     {/*  */}
                     <tr>
                     <td></td>
-                    
-                    <td><span style={{ paddingLeft: "75px" }}>โอที 2</span></td>
+
+                    <td className="text-right"><span >โอที 2</span></td>
                     {dayNumbers.map((day, i) => {
 const found = record?.employee_record?.find(itemx => itemx.date === day);
   return (
@@ -9476,15 +9624,17 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
       {found?.dayType === "stop" ? found.totalTime : ''}
     </td>
   );
-})}            
-{Array.from({ length: 7 }, (_, i) => (
-  <td key={i}></td>
-))}
-
-
+})}       
+<td></td>     
+<td style={{backgroundColor:"#fcdfca"}}></td>     
+<td></td>
+<td></td>
+<td></td>
 {workplaceAddsalary.map((_, i) => (
                         <td key={i} className="text-center"></td>
-                    ))}              
+                    ))}
+                    <td></td>
+                    <td></td>              
                     
                     </tr>
                     {/*  */}
@@ -9498,7 +9648,7 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
 
                     <tr className="">
   <td></td>
-  <td><span style={{ paddingLeft: "75px" }}>โอที 3 </span></td>
+  <td className="text-right"><span style={{ paddingLeft: "85px" }}>โอที3</span></td>
   {dayNumbers.map((day, i) => {
     // Find the record for this specific day
     const found = record?.employee_record?.find(itemx => itemx.date === day);
@@ -9512,9 +9662,14 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
       </td>
     );
   })}
-  {/* Add the remaining empty cells to maintain table structure */}
-  {Array.from({ length: 41 - dayNumbers.length }).map((_, i) => (
-    <td key={i + dayNumbers.length} className="text-center"></td>
+  {/* Add empty cells for overtime and workplace columns */}
+  <td></td>
+  <td style={{backgroundColor:"#fcdfca"}}></td>
+  <td></td>
+  <td></td>
+  <td></td>
+  {workplaceAddsalary.map((_, i) => (
+    <td key={`ws-${i}`} className="text-center"></td>
   ))}
   <td></td>
   <td></td>
@@ -9526,10 +9681,33 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
                       ))
                     )}
                     <tr style={{borderTop: "2px solid #000" }}> 
-                      <td className="text-bold p-1 align-middle" style={{ backgroundColor:"#fff7c2"}}colSpan={2}>รวมพนักงานทำงาน/วัน</td>
-                      {Array.from({ length: 44 }).map((_, i) => (
-                        <td key={i} className="text-center"></td>
+                      <td className="text-bold p-1 align-middle" style={{ backgroundColor:"#fff7c2"}} colSpan={2}>รวมพนักงานทำงาน/วัน</td>
+                      {dayNumbers.map((day, i) => {
+                        const count = employeeCountPerDay[i] || 0;
+                        const isZero = count === 0;
+                        return (
+                          <td 
+                            key={i} 
+                            className={`text-center text-bold align-middle ${isZero ? "" : ""}`}
+                            style={isZero ? { backgroundColor: "#bfbdbf" } : {}}
+                          >
+                            {isZero ? "" : count}
+                          </td>
+                        );
+                      })}
+                        <td className="text-center text-bold align-middle" style={{ backgroundColor: "#fff7c2", color: "  " }}>
+                        {employeeCountPerDay.reduce((total, count) => total + (count || 0), 0)}
+                      </td>
+                      {/* เติมช่องสำหรับค่าล่วงเวลาและสวัสดิการ */}
+                      <td className="text-center" style={{ backgroundColor: "" }}></td>
+                      {Array.from({ length: 5 - 1 }).map((_, i) => (
+                        <td key={i} className="text-center" style={{ backgroundColor: "" }}></td>
                       ))}
+                      {workplaceAddsalary.map((_, i) => (
+                        <td key={`ws-${i}`} className="text-center" style={{ backgroundColor: "" }}></td>
+                      ))}
+                      <td className="text-center" style={{ backgroundColor: "" }}></td>
+                      <td className="text-center" style={{ backgroundColor: "" }}></td>
                       
                     </tr>
 
@@ -9538,14 +9716,140 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
                     </tr>
                     <tr > 
                       <td className="text-bold p-1 align-middle text-red" style={{ backgroundColor:"#fff7c2"}} colSpan={2}>พนักงานขาดงาน</td>
-                      {Array.from({ length: 44 }).map((_, i) => (
-                        <td key={i} className="text-center"></td>
+                      {dayNumbers.map((day, i) => {
+                        const absentCount = absentEmployeesPerDay[i] || 0;
+                        const presentCount = employeeCountPerDay[i] || 0;
+                        const isZero = absentCount === 0;
+                        const isHoliday = presentCount === 0; // วันหยุดถ้าไม่มีคนมาทำงาน
+                        
+                        return (
+                          <td 
+                            key={i} 
+                            className={`text-center text-bold align-middle ${isZero ? "" : "text-danger"}`}
+                            style={isHoliday ? { backgroundColor: "#bfbdbf" } : isZero ? {backgroundColor: "#bfbdbf"} : { backgroundColor: "#ffcccc" }}
+                          >
+                            {isZero ? "" : absentCount}
+                          </td>
+                        );
+                      })}
+                      
+                      {/* ช่องรวมพนักงานขาดงานทั้งหมด */}
+                     <td className="text-center text-bold align-middle" style={{ backgroundColor: "#fff7c2", color: "#dc3545" }}>
+                        {absentEmployeesPerDay.reduce((total, count) => total + (count || 0), 0)}
+                      </td>
+                      <td></td>
+                      <td></td>
+                      <td id="sumofPublicHoliday" className="text-center text-bold align-middle" style={{ backgroundColor: "#fff7c2", color: "#1654a6" }}>
+                          {totalOtPublicHoliday}
+                      </td>
+                      <td id="sumofPublicHoliday" className="text-center text-bold align-middle" style={{ backgroundColor: "#fff7c2", color: "#1654a6" }}>
+                          {totalOtWithOvertime1_5}
+                      </td>
+                      <td id="sumofPublicHoliday" className="text-center text-bold align-middle" style={{ backgroundColor: "#fff7c2", color: "#1654a6" }}>
+                          {totalOtWithOvertime3}
+                      </td>
+
+                      {/* เติมช่องสำหรับสวัสดิการ */}
+                      {workplaceAddsalary.map((_, i) => (
+                        <td key={`ws-${i}`} className="text-center"></td>
                       ))}
+                      <td className="text-center"></td>
+                      <td className="text-center"></td>
                       
                     </tr>
 
-                    <tr>
-                      
+
+
+                    <tr> 
+                        <td colSpan={2} className="text-right text-bold align-middle " style={{ backgroundColor:"#fff7c2",color:"#007500"}}>โอที 1.5 เท่า</td>
+                        {dayNumbers.map((day, i) => {
+                          const overtimeSum = overtimeSumPerDay[i] || 0;
+                          const isZero = overtimeSum === 0;
+                          return (
+                            <td 
+                              key={i} 
+                              className={`text-center text-bold align-middle`}
+                              style={isZero ? { backgroundColor: "#bfbdbf" , color: "" } : { color: "green" }}
+                            >
+                              {isZero ? "" : overtimeSum}
+                            </td>
+                          );
+                        })}
+                         <td className="text-center text-bold align-middle" style={{ backgroundColor: "#fff7c2", color: "#000" }}>
+                            {overtimeSumPerDay.reduce((total, sum) => total + (sum || 0), 0)}
+                        </td>                        {/* เติมช่องสำหรับค่าล่วงเวลาและสวัสดิการ */}
+                        <td className="text-center"></td>
+                        <td className="text-center"></td>
+                        <td className="text-center"></td>
+                        <td className="text-center"></td>
+                        {workplaceAddsalary.map((_, i) => (
+                          <td key={`ws-${i}`} className="text-center"></td>
+                        ))}
+                        <td className="text-center"></td>
+                        <td className="text-center"></td>
+ 
+                    </tr>
+
+                    <tr> 
+                        <td colSpan={2} className="text-right text-bold align-middle " style={{ backgroundColor:"#fff7c2",color:"#80801b"}}>โอที 2 เท่า</td>
+                        {dayNumbers.map((day, i) => {
+                          const overtime2Sum = overtime2SumPerDay[i] || 0;
+                          const isZero = overtime2Sum === 0;
+                          return (
+                            <td 
+                              key={i} 
+                              className={`text-center text-bold align-middle`}
+                              style={isZero ? { backgroundColor: "#bfbdbf" , color: "" } : { color: "green"  , backgroundColor: "yellow" }}
+                            >
+                              {isZero ? "" : overtime2Sum}
+                            </td>
+                          );
+                        })}
+                        <td className="text-center text-bold align-middle" style={{ backgroundColor: "#fff7c2", color: "#000" }}>
+                            {overtime2SumPerDay.reduce((total, sum) => total + (sum || 0), 0)}
+                        </td>
+                        {/* เติมช่องสำหรับค่าล่วงเวลาและสวัสดิการ */}
+                        <td className="text-center"></td>
+                        <td className="text-center"></td>
+                        <td className="text-center"></td>
+                        <td className="text-center"></td>
+                        {workplaceAddsalary.map((_, i) => (
+                          <td key={`ws-${i}`} className="text-center"></td>
+                        ))}
+                        <td className="text-center"></td>
+                        <td className="text-center"></td>
+                 
+                    </tr>
+
+                    <tr> 
+                        <td colSpan={2} className="text-right text-bold align-middle " style={{ backgroundColor:"#fff7c2",color:"#e8a0e3"}}>โอที 3 เท่า</td>
+                        {dayNumbers.map((day, i) => {
+                          const overtime3Sum = overtime3SumPerDay[i] || 0;
+                          const isZero = overtime3Sum === 0;
+                          return (
+                            <td 
+                              key={i} 
+                              className={`text-center text-bold align-middle`}
+                              style={isZero ? { backgroundColor: "#bfbdbf" , color: "" } : { color: "green" , backgroundColor: "#fae0f1" }}
+                            >
+                              {isZero ? "" : overtime3Sum}
+                            </td>
+                          );
+                        })}
+                        <td className="text-center text-bold align-middle" style={{ backgroundColor: "#fff7c2", color: "#000" }}>
+                            {overtime3SumPerDay.reduce((total, sum) => total + (sum || 0), 0)}
+                        </td>
+                        {/* เติมช่องสำหรับค่าล่วงเวลาและสวัสดิการ */}
+                        <td className="text-center"></td>
+                        <td className="text-center"></td>
+                        <td className="text-center"></td>
+                        <td className="text-center"></td>
+                        {workplaceAddsalary.map((_, i) => (
+                          <td key={`ws-${i}`} className="text-center"></td>
+                        ))}
+                        <td className="text-center"></td>
+                        <td className="text-center"></td>
+                 
                     </tr>
                     
 
@@ -9596,7 +9900,6 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
     {/* </body> */}
 </div>
   );
-}
 
 function getMonthName(monthNumber) {
   const months = [
@@ -9614,13 +9917,7 @@ function getMonthName(monthNumber) {
     "ธันวาคม",
   ];
 
-  // Ensure the monthNumber is within a valid range (1-12)
-  if (monthNumber >= 1 && monthNumber <= 12) {
-    return months[monthNumber - 1]; // Months array is 0-based
-  } else {
-    // return 'Invalid Month';
-    return months[12]; // Months array is 12 -based
-  }
+  return months[monthNumber - 1] || "";
 }
 
 const getDateDayOfWeek = (dateString) => {
@@ -9637,5 +9934,7 @@ const getDateDayOfWeek = (dateString) => {
   // console.log('dayOfWeek',dayOfWeek);
 };
 // console.log('',getDateDayOfWeek);
+
+}
 
 export default WorktimeSheetWorkplace;
