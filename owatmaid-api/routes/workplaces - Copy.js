@@ -221,6 +221,8 @@ const workplaceSchema = new mongoose.Schema({
     specialWorkTimeDay: [{
         day: String,
         shift: String,
+        beforeStartTime: String,
+        beforeEndTime: String,
         startTime: String,
         endTime: String,
         startTimeOT: String,

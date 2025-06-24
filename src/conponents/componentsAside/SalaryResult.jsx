@@ -1857,8 +1857,8 @@ function Salaryresult() {
     const ssBase = parseFloat(accountingResult?.[0]?.socialSecurity || 0);
     const cash = parseFloat(localCashSpecialDay || 0);
     const ss = ssBase + cash * 0.05;
-    const roundedSS = Math.round(ss); // หรือ .toFixed(2) ก็ได้
-  if(roundedSS  >750) {
+    let roundedSS = Math.round(ss); // หรือ .toFixed(2) ก็ได้
+    if(roundedSS  >750) {
     roundedSS  = 750;
   }
     setLocalSocialSecurity(roundedSS);

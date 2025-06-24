@@ -320,12 +320,14 @@ tmp = [];
                 ศุกร์: 5,
                 เสาร์: 6,
               };
+              
+              
               if(wDate >= 21 && wDate <= 31 ) {
                 if(month === '01') {
-month = 12;
-year = year -1;
+                  month = 12;
+                  year = year -1;
                 } else {
-month = parseInt((month ,10) -1).toString().padStart(2, '0');
+                  month = parseInt((month ,10) -1).toString().padStart(2, '0');
 
                 }
               }
