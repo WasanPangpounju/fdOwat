@@ -1528,7 +1528,7 @@ function getWeekendDatesGrouped(yyyy, mm, daysOff = []) {
 
   // แยกกลุ่ม
   const weekendOnly = [];
-  const dayOffOnly = [];
+  const dayOffOnly = []; // จะว่างเปล่าเสมอ เพราะวันหยุดทั้งหมดจะไปอยู่ใน weekendAndDayOff
   const weekendAndDayOff = [];
 
   const allDates = new Set([...weekendSet, ...dayOffSet]);
@@ -1536,13 +1536,14 @@ function getWeekendDatesGrouped(yyyy, mm, daysOff = []) {
     const isWeekend = weekendSet.has(date);
     const isDayOff = dayOffSet.has(date);
 
-    if (isWeekend && isDayOff) {
+    if (isDayOff) {
+      // วันหยุดทั้งหมดจาก Setting.jsx ไปเป็น weekendAndDayOff เสมอ
       weekendAndDayOff.push(date);
     } else if (isWeekend) {
+      // เฉพาะวันเสาร์/อาทิตย์ที่ไม่ได้ถูกกำหนดเป็นวันหยุดพิเศษ
       weekendOnly.push(date);
-    } else if (isDayOff) {
-      dayOffOnly.push(date);
     }
+    // ไม่มี dayOffOnly เพราะวันหยุดทั้งหมดจะไปอยู่ใน weekendAndDayOff
   }
 
   // เรียงลำดับทั้งหมดก่อนคืนค่า
