@@ -9260,7 +9260,7 @@ const getDateStyle = (day) => {
                                   locale={th}
                                 />
                               </div> */}
-                              <label role="datetime">วันที่</label>
+                              <label role="datetime">วันที่..</label>
                               <div
                                 onClick={toggleDatePicker}
                                 style={{
