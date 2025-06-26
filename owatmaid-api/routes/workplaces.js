@@ -283,7 +283,7 @@ router.post('/create', async (req, res) => {
         workRateDayoffRate,
         daysOff,
         daysOffMap,
-        publicHoliday, // เพิ่มฟิลด์ publicHoliday
+        publicHoliday, 
         workplaceAddress,
         reason,
         employeeIdList,
@@ -698,24 +698,34 @@ router.post('/update-public-holidays/:workplaceId', async (req, res) => {
             return res.status(400).json({ error: 'ต้องระบุ workplaceId และ year' });
         }
 
+        // ตรวจสอบว่าหน่วยงานมีอยู่จริงหรือไม่
+        const workplace = await Workplace.findOne({ workplaceId });
+        if (!workplace) {
+            return res.status(404).json({ error: `ไม่พบหน่วยงานรหัส ${workplaceId}` });
+        }
+
         // 1. เรียก API getWeekendDates เพื่อดึงข้อมูล dayOffOnly
         const publicHolidays = [];
+        const failedMonths = [];
         
         // สำหรับทุกเดือนในปี
         for (let month = 1; month <= 12; month++) {
             const monthStr = month.toString().padStart(2, '0');
             // เรียกใช้งาน API conclude/getWeekendDates
             try {
-                // ใช้ local endpoint (เรียกจากภายใน API server)
-                const response = await axios.get(`http://localhost:3000/conclude/getWeekendDates?yyyy=${year}&mm=${monthStr}&workplaceId=${workplaceId}`);
+                // ใช้ server URL จากตัวแปร config
+                const baseUrl = process.env.API_BASE_URL || 'http://localhost:3000';
+                const response = await axios.get(`${baseUrl}/conclude/getWeekendDates?yyyy=${year}&mm=${monthStr}&workplaceId=${workplaceId}`);
                 
                 if (response.data && response.data.dayOffOnly) {
                     // แปลง string date เป็น Date object
                     const monthHolidays = response.data.dayOffOnly.map(dateStr => new Date(dateStr));
                     publicHolidays.push(...monthHolidays);
+                    console.log(`✅ เดือน ${monthStr}: ดึง ${monthHolidays.length} วันหยุดสำเร็จ`);
                 }
             } catch (error) {
-                console.error(`Error getting weekend dates for ${year}-${monthStr}:`, error.message);
+                console.error(`❌ Error getting weekend dates for ${year}-${monthStr}:`, error.message);
+                failedMonths.push(monthStr);
                 // ไม่ return error ในลูป แต่ทำต่อไปเพื่อรวบรวมข้อมูลให้ได้มากที่สุด
             }
         }
@@ -727,15 +737,20 @@ router.post('/update-public-holidays/:workplaceId', async (req, res) => {
             { new: true }
         );
 
-        if (!updatedWorkplace) {
-            return res.status(404).json({ error: `ไม่พบหน่วยงานรหัส ${workplaceId}` });
-        }
-
-        res.json({
+        // สร้าง response
+        const response = {
             message: 'อัปเดต PublicHoliday สำเร็จ',
             publicHolidayCount: publicHolidays.length,
+            publicHolidayDates: publicHolidays.map(date => date.toISOString().split('T')[0]), // แสดงวันที่ในรูปแบบ YYYY-MM-DD
             workplace: updatedWorkplace
-        });
+        };
+
+        // ถ้ามีเดือนที่ไม่สามารถดึงข้อมูลได้ ให้แสดงเตือน
+        if (failedMonths.length > 0) {
+            response.warning = `ไม่สามารถดึงข้อมูลวันหยุดจากเดือน: ${failedMonths.join(', ')}`;
+        }
+
+        res.json(response);
     } catch (error) {
         console.error('Error updating public holidays:', error);
         res.status(500).json({ error: 'เกิดข้อผิดพลาดในการอัปเดต PublicHoliday', details: error.message });
