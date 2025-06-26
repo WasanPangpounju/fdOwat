@@ -446,7 +446,7 @@ console.log(workRate + ' workRate ');
                 // let workRateOT = ((parseFloat(tmpWP.data.dayoffRateOT) * (salary / 8)) * (parseFloat(hoursTmp + decimalFraction))).toFixed(2);
 
                 //cal OT
-                let workRateOT = (((parseFloat(salary) / 8) * parseFloat(tmpWP.data.workRateOT ?? 0)) * (parseFloat( (((parseFloat(hoursTmp || '0') * 60) + (parseFloat(minutesTmp || '0') )) / 60) ))).toFixed(3);
+                let workRateOT = (((parseFloat(salary) / 8) * parseFloat(tmpWP.data.workRateOT)) * (parseFloat( (((parseFloat(hoursTmp || '0') * 60) + (parseFloat(minutesTmp || '0') )) / 60) ))).toFixed(3);
                 tmp.workRateOT = workRateOT || 0;
                 tmp.workRateOTMultiply = tmpWP.data.workRateOT || 0;
 
@@ -700,7 +700,7 @@ const         wpDataCalculator1 = await {
                 // let workRateOT = ((parseFloat(wpResponse1.data.workRateOT ?? 0) * (salary / 8)) * (parseFloat(hoursTmp + decimalFraction)) ).toFixed(3);
 
                 //cal OT
-                let workRateOT = (((parseFloat(salary) / 8) * parseFloat(wpResponse1.data.workRateOT)) * parseFloat((((parseFloat(hoursTmp || '0') * 60) + parseFloat(minutesTmp || '0')) / 60))).toFixed(3);
+                let workRateOT = (((parseFloat(salary) / 8) * parseFloat(wpResponse1.data.workRateOT)) * (parseFloat( (((parseFloat(hoursTmp || '0') * 60) + (parseFloat(minutesTmp || '0')) ) / 60) ))).toFixed(3);
                 tmp.workRateOT = workRateOT || 0;
                 tmp.workRateOTMultiply = wpResponse1.data.workRateOT || 0;
 
@@ -869,11 +869,9 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
           let dateParts = element.date.split('/');
           let str1 = parseInt(dateParts[0], 10);
 
-          if (str1 > 0 && str1 <= 20) {
-            
-            // console.log('str1  : ' + str1 )
-            // console.log('tmpWP.data.workRate ' + tmpWP.data.workRate);
-            tmp.day = str1 + '/' + month + '/' + year;
+          if (str1 > 20 && str1 <= lastday) {
+
+            tmp.day = str1 + '/' + prevMonth + '/' + year1;
             tmp.workplaceId = element.workplaceId || '';
             let parts = element.allTime.split('.');
 
@@ -881,9 +879,9 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
             let minutes = parts.length > 1 ? parseInt(parts[1], 10) : 0;
 
             let scaledMinutes = (minutes * 100) / 60;
-            let allTime = `${hours}.${scaledMinutes}` || 0;
+            let allTime = Number(`${hours}.${scaledMinutes}`) || 0;
 
-            tmp.allTimes = `${hours}.${scaledMinutes}` || 0;
+            tmp.allTimes = `${hours}.${scaledMinutes}` || '0';
 
             let parts1 = element.otTime.split('.');
 
@@ -891,9 +889,9 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
             let minutes1 = parts1.length > 1 ? parseInt(parts1[1], 10) : 0;
 
             // let scaledMinutes1 = (minutes1 * 100) / 60;
-            // let otTime = parseFloat(`${hours1}.${scaledMinutes1}`).toFixed(2) || 0;
             let scaledMinutes1 = minutes1;
 
+            // let otTime = parseFloat(`${hours1}.${scaledMinutes1}`).toFixed(2) || 0;
             // let otTime = ((parseFloat(hours1 || 0) *60) + parseFloat(scaledMinutes1 || 0) /60).toFixed(2) || 0;
             let otTime = `${parseFloat(hours1 || 0)}.${parseFloat(scaledMinutes1 || 0 ) } `;
 
@@ -1047,7 +1045,7 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
                 // let workRateOT = ((parseFloat(wpResponse1.data.workRateOT ?? 0) * (salary / 8)) * (parseFloat(hoursTmp + decimalFraction)) ).toFixed(3);
 
                 //cal OT
-                let workRateOT = (((parseFloat(salary) / 8) * parseFloat(wpResponse1.data.workRateOT)) * (parseFloat( (((parseFloat(hoursTmp || '0') * 60) + (parseFloat(minutesTmp || '0') )) / 60) ))).toFixed(3);
+                let workRateOT = (((parseFloat(salary) / 8) * parseFloat(wpResponse1.data.workRateOT)) * (parseFloat( (((parseFloat(hoursTmp || '0') * 60) + parseFloat(minutesTmp || '0')) / 60))).toFixed(3));
                 tmp.workRateOT = workRateOT || 0;
                 tmp.workRateOTMultiply = wpResponse1.data.workRateOT || 0;
 
@@ -2476,6 +2474,79 @@ router.post('/updateDayOffOnly', async (req, res) => {
   } catch (error) {
     console.error('❌ Error in /updateDayOffOnly:', error);
     res.status(500).json({ error: 'Internal Server Error', detail: error.message });
+  }
+});
+
+// เพิ่มวันหยุดหน่วยงาน (daysOff)
+router.post('/add-dayoff', async (req, res) => {
+  const { workplaceId, date, note } = req.body;
+  if (!workplaceId || !date) {
+    return res.status(400).json({ error: 'workplaceId and date are required' });
+  }
+  try {
+    const workplace = await Workplace.findOne({ workplaceId });
+    if (!workplace) {
+      return res.status(404).json({ error: 'Workplace not found' });
+    }
+    // daysOff เป็น array ของ string หรือ object (รองรับ note)
+    let daysOff = workplace.daysOff || [];
+    // ป้องกันซ้ำ
+    const exists = daysOff.some(d => {
+      if (typeof d === 'object' && d.date) {
+        return new Date(d.date).toISOString().slice(0, 10) === new Date(date).toISOString().slice(0, 10);
+      }
+      return new Date(d).toISOString().slice(0, 10) === new Date(date).toISOString().slice(0, 10);
+    });
+    if (exists) {
+      return res.status(409).json({ error: 'Date already exists in daysOff' });
+    }
+    // เพิ่มใหม่
+    if (note) {
+      daysOff.push({ date: new Date(date), note });
+    } else {
+      daysOff.push(new Date(date));
+    }
+    workplace.daysOff = daysOff;
+    await workplace.save();
+    res.json({ success: true, daysOff });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// เพิ่มวันหยุดนักขัตฤกษ์ (publicHoliday)
+router.post('/add-publicholiday', async (req, res) => {
+  const { workplaceId, date, note } = req.body;
+  if (!workplaceId || !date) {
+    return res.status(400).json({ error: 'workplaceId and date are required' });
+  }
+  try {
+    const workplace = await Workplace.findOne({ workplaceId });
+    if (!workplace) {
+      return res.status(404).json({ error: 'Workplace not found' });
+    }
+    let publicHoliday = workplace.publicHoliday || [];
+    // ป้องกันซ้ำ
+    const exists = publicHoliday.some(h => {
+      if (typeof h === 'object' && h.date) {
+        return new Date(h.date).toISOString().slice(0, 10) === new Date(date).toISOString().slice(0, 10);
+      }
+      return new Date(h).toISOString().slice(0, 10) === new Date(date).toISOString().slice(0, 10);
+    });
+    if (exists) {
+      return res.status(409).json({ error: 'Date already exists in publicHoliday' });
+    }
+    // เพิ่มใหม่
+    if (note) {
+      publicHoliday.push({ date: new Date(date), note });
+    } else {
+      publicHoliday.push({ date: new Date(date), note: '' });
+    }
+    workplace.publicHoliday = publicHoliday;
+    await workplace.save();
+    res.json({ success: true, publicHoliday });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 
