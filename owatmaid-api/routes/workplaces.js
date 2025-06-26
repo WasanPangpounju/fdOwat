@@ -757,4 +757,55 @@ router.post('/update-public-holidays/:workplaceId', async (req, res) => {
     }
 });
 
+// API endpoint สำหรับส่งข้อมูลวันหยุดนักขัตฤกษ์ไปอัปเดตใน dayOffOnly
+router.post('/sync-public-holidays/:workplaceId', async (req, res) => {
+    try {
+        const { workplaceId } = req.params;
+        const { publicHoliday } = req.body;
+
+        if (!workplaceId) {
+            return res.status(400).json({ error: 'ต้องระบุ workplaceId' });
+        }
+
+        // ตรวจสอบว่าหน่วยงานมีอยู่จริงหรือไม่
+        const workplace = await Workplace.findOne({ workplaceId });
+        if (!workplace) {
+            return res.status(404).json({ error: `ไม่พบหน่วยงานรหัส ${workplaceId}` });
+        }
+
+        // อัปเดต publicHoliday ในฐานข้อมูล
+        await Workplace.findOneAndUpdate(
+            { workplaceId: workplaceId },
+            { publicHoliday: publicHoliday || [] },
+            { new: true }
+        );
+
+        // ส่งข้อมูลไปอัปเดตใน conclude API
+        if (publicHoliday && publicHoliday.length > 0) {
+            try {
+                // เรียกใช้ API conclude/updateDayOffOnly เพื่ออัปเดตข้อมูล
+                const baseUrl = process.env.API_BASE_URL || 'http://localhost:3000';
+                const updateResponse = await axios.post(`${baseUrl}/conclude/updateDayOffOnly`, {
+                    workplaceId: workplaceId,
+                    publicHolidays: publicHoliday
+                });
+
+                console.log('✅ Successfully synced public holidays to conclude API');
+            } catch (error) {
+                console.error('❌ Error syncing to conclude API:', error.message);
+                // ไม่ return error เพราะอัปเดตฐานข้อมูลสำเร็จแล้ว
+            }
+        }
+
+        res.json({
+            message: 'อัปเดตวันหยุดนักขัตฤกษ์สำเร็จ',
+            publicHolidayCount: publicHoliday ? publicHoliday.length : 0,
+            workplaceId: workplaceId
+        });
+    } catch (error) {
+        console.error('Error syncing public holidays:', error);
+        res.status(500).json({ error: 'เกิดข้อผิดพลาดในการอัปเดตวันหยุดนักขัตฤกษ์', details: error.message });
+    }
+});
+
 module.exports = router;

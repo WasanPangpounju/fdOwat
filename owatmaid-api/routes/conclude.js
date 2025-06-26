@@ -2326,4 +2326,45 @@ router.put('/update1/:id', async (req, res) => {
     res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: err.message });
   }
 });
+
+// API endpoint สำหรับอัปเดต publicHoliday จากข้อมูลวันหยุดนักขัตฤกษ์
+router.post('/updateDayOffOnly', async (req, res) => {
+  try {
+    const { workplaceId, publicHolidays } = req.body;
+
+    if (!workplaceId || !publicHolidays) {
+      return res.status(400).json({ error: 'Missing required parameters: workplaceId, publicHolidays' });
+    }
+
+    // ตรวจสอบว่าหน่วยงานมีอยู่จริงหรือไม่
+    const workplace = await Workplace.findOne({ workplaceId });
+    if (!workplace) {
+      return res.status(404).json({ error: `Workplace ${workplaceId} not found` });
+    }
+
+    // แปลงวันหยุดนักขัตฤกษ์เป็นรูปแบบ Date
+    const holidayDates = publicHolidays.map(dateStr => new Date(dateStr));
+
+    // อัปเดตข้อมูลในฐานข้อมูล (อัปเดต publicHoliday เท่านั้น)
+    await Workplace.findOneAndUpdate(
+      { workplaceId },
+      { 
+        publicHoliday: holidayDates
+      },
+      { new: true }
+    );
+
+    console.log(`✅ Updated publicHoliday for workplace ${workplaceId}: ${holidayDates.length} public holidays`);
+
+    res.json({
+      message: 'อัปเดต publicHoliday สำเร็จ',
+      workplaceId: workplaceId,
+      publicHolidayCount: holidayDates.length
+    });
+  } catch (error) {
+    console.error('❌ Error in /updateDayOffOnly:', error);
+    res.status(500).json({ error: 'Internal Server Error', detail: error.message });
+  }
+});
+
 module.exports = router;
