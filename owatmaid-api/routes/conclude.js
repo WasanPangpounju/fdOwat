@@ -2351,6 +2351,8 @@ router.post('/updateDayOffOnly', async (req, res) => {
       return res.status(400).json({ error: 'Missing required parameters: workplaceId, publicHolidays' });
     }
 
+    console.log('Received publicHolidays in updateDayOffOnly:', publicHolidays);
+
     // ตรวจสอบว่าหน่วยงานมีอยู่จริงหรือไม่
     const workplace = await Workplace.findOne({ workplaceId });
     if (!workplace) {
@@ -2359,29 +2361,36 @@ router.post('/updateDayOffOnly', async (req, res) => {
 
     // แปลงวันหยุดนักขัตฤกษ์เป็นรูปแบบ object {date, note}
     const holidayData = publicHolidays.map(holiday => {
-      if (typeof holiday === 'string') {
-        // ถ้าเป็น string (format เก่า) ให้แปลงเป็น object
-        return {
-          date: new Date(holiday),
-          note: ''
-        };
-      } else if (holiday && holiday.date) {
-        // ถ้าเป็น object ที่มี date และ note
-        return {
-          date: new Date(holiday.date),
-          note: holiday.note || ''
-        };
-      } else {
-        // fallback
-        return {
-          date: new Date(holiday),
-          note: ''
-        };
+      try {
+        if (typeof holiday === 'string') {
+          // ถ้าเป็น string (format เก่า) ให้แปลงเป็น object
+          return {
+            date: new Date(holiday),
+            note: ''
+          };
+        } else if (holiday && holiday.date) {
+          // ถ้าเป็น object ที่มี date และ note
+          return {
+            date: new Date(holiday.date),
+            note: holiday.note || ''
+          };
+        } else {
+          // fallback
+          return {
+            date: new Date(holiday),
+            note: ''
+          };
+        }
+      } catch (error) {
+        console.error('Error parsing holiday date:', error);
+        return null;
       }
-    });
+    }).filter(item => item !== null && !isNaN(item.date.getTime()));
+
+    console.log('Parsed holiday data:', holidayData);
 
     // อัปเดตข้อมูลในฐานข้อมูล (อัปเดต publicHoliday เท่านั้น)
-    await Workplace.findOneAndUpdate(
+    const updated = await Workplace.findOneAndUpdate(
       { workplaceId },
       { 
         publicHoliday: holidayData
@@ -2390,6 +2399,7 @@ router.post('/updateDayOffOnly', async (req, res) => {
     );
 
     console.log(`✅ Updated publicHoliday for workplace ${workplaceId}: ${holidayData.length} public holidays`);
+    console.log('Updated workplace publicHoliday:', updated?.publicHoliday);
 
     res.json({
       message: 'อัปเดต publicHoliday สำเร็จ',

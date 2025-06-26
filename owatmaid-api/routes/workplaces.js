@@ -770,6 +770,24 @@ router.post('/sync-public-holidays/:workplaceId', async (req, res) => {
             return res.status(400).json({ error: 'ต้องระบุ workplaceId' });
         }
 
+        // แปลง ISO date string เป็น Date objects
+        const parsedPublicHoliday = publicHoliday.map(holiday => {
+            try {
+                return {
+                    date: new Date(holiday.date),
+                    note: holiday.note || ""
+                };
+            } catch (error) {
+                console.error('Error parsing date:', error);
+                return {
+                    date: new Date(),
+                    note: holiday.note || ""
+                };
+            }
+        }).filter(h => !isNaN(h.date.getTime()));
+
+        console.log('Received and parsed publicHoliday:', parsedPublicHoliday);
+
         // ตรวจสอบว่าหน่วยงานมีอยู่จริงหรือไม่
         const workplace = await Workplace.findOne({ workplaceId });
         if (!workplace) {
@@ -779,21 +797,27 @@ router.post('/sync-public-holidays/:workplaceId', async (req, res) => {
         // อัปเดต publicHoliday ในฐานข้อมูล
         await Workplace.findOneAndUpdate(
             { workplaceId: workplaceId },
-            { publicHoliday: publicHoliday || [] },
+            { publicHoliday: parsedPublicHoliday || [] },
             { new: true }
         );
 
         // ส่งข้อมูลไปอัปเดตใน conclude API
-        if (publicHoliday && publicHoliday.length > 0) {
+        if (parsedPublicHoliday && parsedPublicHoliday.length > 0) {
             try {
                 // เรียกใช้ API conclude/updateDayOffOnly เพื่ออัปเดตข้อมูล
                 const baseUrl = process.env.API_BASE_URL || 'http://localhost:3000';
-                const updateResponse = await axios.post(`${baseUrl}/conclude/updateDayOffOnly`, {
+                const apiUrl = baseUrl.includes('localhost') 
+                    ? 'http://localhost:3000/conclude/updateDayOffOnly'
+                    : `${baseUrl}/conclude/updateDayOffOnly`;
+
+                console.log('Syncing publicHoliday to conclude API at:', apiUrl);
+                
+                const updateResponse = await axios.post(apiUrl, {
                     workplaceId: workplaceId,
-                    publicHolidays: publicHoliday
+                    publicHolidays: parsedPublicHoliday
                 });
 
-                console.log('✅ Successfully synced public holidays to conclude API');
+                console.log('✅ Successfully synced public holidays to conclude API:', updateResponse.data);
             } catch (error) {
                 console.error('❌ Error syncing to conclude API:', error.message);
                 // ไม่ return error เพราะอัปเดตฐานข้อมูลสำเร็จแล้ว
