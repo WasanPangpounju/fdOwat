@@ -1478,7 +1478,20 @@ router.get('/getWeekendDates', async (req, res) => {
     }
 
     const daysOff = workplace.daysOff || [];
-    const grouped = getWeekendDatesGrouped(yyyy, mm, daysOff);
+    let dayOffOnly = [];
+
+    // ดึงข้อมูลวันหยุดนักขัตฤกษ์จาก WorkplaceDates collection
+    try {
+      const WorkplaceDates = mongoose.model('WorkplaceDates');
+      const workplaceDates = await WorkplaceDates.findOne({ workplaceId });
+      if (workplaceDates && workplaceDates.dayOffOnly) {
+        dayOffOnly = workplaceDates.dayOffOnly;
+      }
+    } catch (err) {
+      console.log('⚠️ WorkplaceDates model ยังไม่ได้สร้าง - ใช้ array ว่าง');
+    }
+
+    const grouped = getWeekendDatesGrouped(yyyy, mm, daysOff, dayOffOnly);
 
     res.json(grouped);
   } catch (error) {
@@ -1487,7 +1500,7 @@ router.get('/getWeekendDates', async (req, res) => {
   }
 });
 
-function getWeekendDatesGrouped(yyyy, mm, daysOff = []) {
+function getWeekendDatesGrouped(yyyy, mm, daysOff = [], dayOffOnly = []) {
   const year = Number(yyyy);
   const month = Number(mm);
 
@@ -1502,16 +1515,28 @@ function getWeekendDatesGrouped(yyyy, mm, daysOff = []) {
   const endDate = new Date(year, month - 1, 20);
 
   const weekendSet = new Set();
-  const dayOffSet = new Set();
+  const weekendAndDayOffSet = new Set(); // วันหยุดหน่วยงาน
+  const dayOffOnlySet = new Set(); // วันหยุดนักขัตฤกษ์
 
-  // สร้าง Set ของวันหยุดพิเศษ (ในช่วงเวลาเท่านั้น)
+  // สร้าง Set ของวันหยุดหน่วยงาน (weekendAndDayOff)
   for (const item of daysOff) {
     const d = new Date(item);
     if (d >= startDate && d <= endDate) {
       const yyyy = d.getFullYear();
       const mm = String(d.getMonth() + 1).padStart(2, '0');
       const dd = String(d.getDate()).padStart(2, '0');
-      dayOffSet.add(`${yyyy}-${mm}-${dd}`);
+      weekendAndDayOffSet.add(`${yyyy}-${mm}-${dd}`);
+    }
+  }
+
+  // สร้าง Set ของวันหยุดนักขัตฤกษ์ (dayOffOnly)
+  for (const item of dayOffOnly) {
+    const d = new Date(item);
+    if (d >= startDate && d <= endDate) {
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      dayOffOnlySet.add(`${yyyy}-${mm}-${dd}`);
     }
   }
 
@@ -1528,27 +1553,20 @@ function getWeekendDatesGrouped(yyyy, mm, daysOff = []) {
 
   // แยกกลุ่ม
   const weekendOnly = [];
-  const dayOffOnly = [];
-  const weekendAndDayOff = [];
+  const dayOffOnlyResult = [...dayOffOnlySet]; // วันหยุดนักขัตฤกษ์
+  const weekendAndDayOff = [...weekendAndDayOffSet]; // วันหยุดหน่วยงาน
 
-  const allDates = new Set([...weekendSet, ...dayOffSet]);
-  for (const date of allDates) {
-    const isWeekend = weekendSet.has(date);
-    const isDayOff = dayOffSet.has(date);
-
-    if (isWeekend && isDayOff) {
-      weekendAndDayOff.push(date);
-    } else if (isWeekend) {
+  // สำหรับ weekendOnly จะเป็นวันเสาร์/อาทิตย์ที่ไม่ได้อยู่ในวันหยุดประเภทอื่น
+  for (const date of weekendSet) {
+    if (!weekendAndDayOffSet.has(date) && !dayOffOnlySet.has(date)) {
       weekendOnly.push(date);
-    } else if (isDayOff) {
-      dayOffOnly.push(date);
     }
   }
 
   // เรียงลำดับทั้งหมดก่อนคืนค่า
   return {
     weekendOnly: weekendOnly.sort(),
-    dayOffOnly: dayOffOnly.sort(),
+    dayOffOnly: dayOffOnlyResult.sort(),
     weekendAndDayOff: weekendAndDayOff.sort(),
   };
 }
