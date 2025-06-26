@@ -1480,16 +1480,19 @@ router.get('/getWeekendDates', async (req, res) => {
     const daysOff = workplace.daysOff || [];
     
     // โหลดข้อมูลวันหยุดนักขัตฤกษ์จากฐานข้อมูล
-    let dayOffOnly = [];
+    let dayOffOnly = { dates: [], message: [] };
     try {
       const WorkplaceDates = mongoose.model('WorkplaceDates');
       const workplaceDates = await WorkplaceDates.findOne({ workplaceId });
       if (workplaceDates && workplaceDates.dayOffOnly) {
-        dayOffOnly = workplaceDates.dayOffOnly;
+        dayOffOnly = {
+          dates: workplaceDates.dayOffOnly.dates || [],
+          message: workplaceDates.dayOffOnly.message || []
+        };
         console.log('📅 โหลดวันหยุดนักขัตฤกษ์:', dayOffOnly);
       }
     } catch (modelError) {
-      console.log('⚠️ WorkplaceDates model ยังไม่ได้สร้าง - ใช้ array ว่าง');
+      console.log('⚠️ WorkplaceDates model ยังไม่ได้สร้าง - ใช้ object ว่าง');
     }
 
     const grouped = getWeekendDatesGrouped(yyyy, mm, daysOff, dayOffOnly);
@@ -1501,7 +1504,7 @@ router.get('/getWeekendDates', async (req, res) => {
   }
 });
 
-function getWeekendDatesGrouped(yyyy, mm, daysOff = [], dayOffOnly = []) {
+function getWeekendDatesGrouped(yyyy, mm, daysOff = [], dayOffOnly = { dates: [], message: [] }) {
   const year = Number(yyyy);
   const month = Number(mm);
 
@@ -1518,6 +1521,7 @@ function getWeekendDatesGrouped(yyyy, mm, daysOff = [], dayOffOnly = []) {
   const weekendSet = new Set();
   const dayOffSet = new Set();
   const dayOffOnlySet = new Set(); // เพิ่มสำหรับวันหยุดนักขัตฤกษ์
+  const dayOffOnlyMessages = new Map(); // เก็บหมายเหตุวันหยุดนักขัตฤกษ์
 
   // สร้าง Set ของวันหยุดพิเศษ (ในช่วงเวลาเท่านั้น)
   for (const item of daysOff) {
@@ -1530,14 +1534,21 @@ function getWeekendDatesGrouped(yyyy, mm, daysOff = [], dayOffOnly = []) {
     }
   }
 
-  // สร้าง Set ของวันหยุดนักขัตฤกษ์ (ในช่วงเวลาเท่านั้น)
-  for (const item of dayOffOnly) {
+  // สร้าง Set ของวันหยุดนักขัตฤกษ์และ Map ของหมายเหตุ (ในช่วงเวลาเท่านั้น)
+  const dayOffOnlyDates = dayOffOnly.dates || [];
+  const dayOffOnlyNotes = dayOffOnly.message || [];
+  
+  for (let i = 0; i < dayOffOnlyDates.length; i++) {
+    const item = dayOffOnlyDates[i];
+    const message = dayOffOnlyNotes[i] || 'วันหยุดนักขัตฤกษ์';
     const d = new Date(item);
     if (d >= startDate && d <= endDate) {
       const yyyy = d.getFullYear();
       const mm = String(d.getMonth() + 1).padStart(2, '0');
       const dd = String(d.getDate()).padStart(2, '0');
-      dayOffOnlySet.add(`${yyyy}-${mm}-${dd}`);
+      const dateKey = `${yyyy}-${mm}-${dd}`;
+      dayOffOnlySet.add(dateKey);
+      dayOffOnlyMessages.set(dateKey, message);
     }
   }
 
@@ -1554,8 +1565,16 @@ function getWeekendDatesGrouped(yyyy, mm, daysOff = [], dayOffOnly = []) {
 
   // แยกกลุ่ม
   const weekendOnly = [];
-  const dayOffOnlyResult = [...dayOffOnlySet]; // วันหยุดนักขัตฤกษ์
+  const dayOffOnlyResult = []; // วันหยุดนักขัตฤกษ์พร้อมหมายเหตุ
   const weekendAndDayOff = [];
+
+  // สร้าง array วันหยุดนักขัตฤกษ์พร้อมหมายเหตุ
+  for (const date of dayOffOnlySet) {
+    dayOffOnlyResult.push({
+      date: date,
+      message: dayOffOnlyMessages.get(date)
+    });
+  }
 
   const allDates = new Set([...weekendSet, ...dayOffSet]);
   for (const date of allDates) {
@@ -1569,13 +1588,12 @@ function getWeekendDatesGrouped(yyyy, mm, daysOff = [], dayOffOnly = []) {
       // เฉพาะวันเสาร์/อาทิตย์ที่ไม่ได้ถูกกำหนดเป็นวันหยุดพิเศษ
       weekendOnly.push(date);
     }
-    // ไม่มี dayOffOnly เพราะวันหยุดทั้งหมดจะไปอยู่ใน weekendAndDayOff
   }
 
   // เรียงลำดับทั้งหมดก่อนคืนค่า
   return {
     weekendOnly: weekendOnly.sort(),
-    dayOffOnly: dayOffOnly.sort(),
+    dayOffOnly: dayOffOnlyResult.sort((a, b) => a.date.localeCompare(b.date)),
     weekendAndDayOff: weekendAndDayOff.sort(),
   };
 }
@@ -2523,7 +2541,7 @@ router.put('/update1/:id', async (req, res) => {
 // API endpoint สำหรับรับข้อมูลวันหยุดจาก Setting page
 router.post('/updateWorkplaceDates', async (req, res) => {
   try {
-    const { workplaceId, weekendAndDayOff = [], dayOffOnly = [] } = req.body;
+    const { workplaceId, weekendAndDayOff = [], dayOffOnly = { dates: [], message: [] } } = req.body;
     
     console.log('📥 รับข้อมูลวันหยุดจาก Setting:', {
       workplaceId,
@@ -2543,7 +2561,10 @@ router.post('/updateWorkplaceDates', async (req, res) => {
     const workplaceDatesSchema = new mongoose.Schema({
       workplaceId: String,
       weekendAndDayOff: [String],  // วันหยุดหน่วยงาน
-      dayOffOnly: [String],        // วันหยุดนักขัตฤกษ์
+      dayOffOnly: {
+        dates: [String],           // วันหยุดนักขัตฤกษ์
+        message: [String]          // หมายเหตุของแต่ละวันหยุด
+      },
       lastUpdated: { type: Date, default: Date.now }
     });
 
