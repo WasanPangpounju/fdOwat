@@ -181,7 +181,8 @@ const workplaceSchema = new mongoose.Schema({
       comment: String,
   }],
   publicHoliday: [{
-      type: Date
+      date: Date,
+      note: String
   }],
 
   workplaceAddress: {

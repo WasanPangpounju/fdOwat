@@ -1300,8 +1300,19 @@ router.get('/getWeekendDates', async (req, res) => {
     const daysOff = workplace.daysOff || [];
     const publicHoliday = workplace.publicHoliday || [];
     
+    // แปลง publicHoliday object ให้เป็น Date สำหรับการคำนวณ
+    const publicHolidayDates = publicHoliday.map(holiday => {
+      if (holiday && holiday.date) {
+        // รูปแบบใหม่ที่เป็น object {date, note}
+        return holiday.date;
+      } else {
+        // รูปแบบเก่าที่เป็น Date โดยตรง
+        return holiday;
+      }
+    });
+    
     // รวมวันหยุดนักขัตฤกษ์เข้ากับวันหยุดหน่วยงาน
-    const allHolidays = [...daysOff, ...publicHoliday];
+    const allHolidays = [...daysOff, ...publicHolidayDates];
     const grouped = getWeekendDatesGrouped(yyyy, mm, allHolidays);
     
     // Automatically update publicHoliday with dayOffOnly
@@ -2346,24 +2357,44 @@ router.post('/updateDayOffOnly', async (req, res) => {
       return res.status(404).json({ error: `Workplace ${workplaceId} not found` });
     }
 
-    // แปลงวันหยุดนักขัตฤกษ์เป็นรูปแบบ Date
-    const holidayDates = publicHolidays.map(dateStr => new Date(dateStr));
+    // แปลงวันหยุดนักขัตฤกษ์เป็นรูปแบบ object {date, note}
+    const holidayData = publicHolidays.map(holiday => {
+      if (typeof holiday === 'string') {
+        // ถ้าเป็น string (format เก่า) ให้แปลงเป็น object
+        return {
+          date: new Date(holiday),
+          note: ''
+        };
+      } else if (holiday && holiday.date) {
+        // ถ้าเป็น object ที่มี date และ note
+        return {
+          date: new Date(holiday.date),
+          note: holiday.note || ''
+        };
+      } else {
+        // fallback
+        return {
+          date: new Date(holiday),
+          note: ''
+        };
+      }
+    });
 
     // อัปเดตข้อมูลในฐานข้อมูล (อัปเดต publicHoliday เท่านั้น)
     await Workplace.findOneAndUpdate(
       { workplaceId },
       { 
-        publicHoliday: holidayDates
+        publicHoliday: holidayData
       },
       { new: true }
     );
 
-    console.log(`✅ Updated publicHoliday for workplace ${workplaceId}: ${holidayDates.length} public holidays`);
+    console.log(`✅ Updated publicHoliday for workplace ${workplaceId}: ${holidayData.length} public holidays`);
 
     res.json({
       message: 'อัปเดต publicHoliday สำเร็จ',
       workplaceId: workplaceId,
-      publicHolidayCount: holidayDates.length
+      publicHolidayCount: holidayData.length
     });
   } catch (error) {
     console.error('❌ Error in /updateDayOffOnly:', error);

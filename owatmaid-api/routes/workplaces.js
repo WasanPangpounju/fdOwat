@@ -718,8 +718,11 @@ router.post('/update-public-holidays/:workplaceId', async (req, res) => {
                 const response = await axios.get(`${baseUrl}/conclude/getWeekendDates?yyyy=${year}&mm=${monthStr}&workplaceId=${workplaceId}`);
                 
                 if (response.data && response.data.dayOffOnly) {
-                    // แปลง string date เป็น Date object
-                    const monthHolidays = response.data.dayOffOnly.map(dateStr => new Date(dateStr));
+                    // แปลง string date เป็น object {date, note}
+                    const monthHolidays = response.data.dayOffOnly.map(dateStr => ({
+                        date: new Date(dateStr),
+                        note: '' // ไม่มีหมายเหตุสำหรับข้อมูลจาก dayOffOnly
+                    }));
                     publicHolidays.push(...monthHolidays);
                     console.log(`✅ เดือน ${monthStr}: ดึง ${monthHolidays.length} วันหยุดสำเร็จ`);
                 }
@@ -741,7 +744,7 @@ router.post('/update-public-holidays/:workplaceId', async (req, res) => {
         const response = {
             message: 'อัปเดต PublicHoliday สำเร็จ',
             publicHolidayCount: publicHolidays.length,
-            publicHolidayDates: publicHolidays.map(date => date.toISOString().split('T')[0]), // แสดงวันที่ในรูปแบบ YYYY-MM-DD
+            publicHolidayDates: publicHolidays.map(holiday => holiday.date.toISOString().split('T')[0]), // แสดงวันที่ในรูปแบบ YYYY-MM-DD
             workplace: updatedWorkplace
         };
 
