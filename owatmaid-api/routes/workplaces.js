@@ -283,6 +283,7 @@ router.post('/create', async (req, res) => {
         workRateDayoffRate,
         daysOff,
         daysOffMap,
+        publicHoliday, // เพิ่มฟิลด์ publicHoliday
         workplaceAddress,
         reason,
         employeeIdList,
@@ -366,7 +367,8 @@ router.post('/create', async (req, res) => {
         workRateDayoffNumber,
         workRateDayoffRate,
         daysOff,
-                daysOffMap,
+        daysOffMap,
+        publicHoliday: [], // เพิ่มฟิลด์ publicHoliday
         workplaceAddress,
         reason,
         employeeIdList,
