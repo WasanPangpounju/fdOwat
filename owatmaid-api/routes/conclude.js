@@ -1243,6 +1243,23 @@ async function updatePublicHoliday(workplaceId, yyyy, mm, dayOffOnly) {
     // Get existing publicHoliday dates
     let existingDates = workplace.publicHoliday || [];
     
+    // Convert existing dates to a format we can work with
+    const existingHolidays = existingDates.map(holiday => {
+      if (holiday && typeof holiday === 'object' && holiday.date) {
+        // รูปแบบใหม่ที่เป็น object {date, note}
+        return {
+          date: new Date(holiday.date),
+          note: holiday.note || ""
+        };
+      } else {
+        // รูปแบบเก่าที่เป็น Date โดยตรง
+        return {
+          date: new Date(holiday),
+          note: ""
+        };
+      }
+    }).filter(h => h.date instanceof Date && !isNaN(h.date.getTime()));
+    
     // Remove any existing dates from the same month if updating a specific month
     if (yyyy && mm) {
       const year = Number(yyyy);
@@ -1259,15 +1276,40 @@ async function updatePublicHoliday(workplaceId, yyyy, mm, dayOffOnly) {
       const startDate = new Date(prevYear, prevMonth - 1, 21);
       const endDate = new Date(year, month - 1, 20);
       
-      existingDates = existingDates.filter(date => {
-        const d = new Date(date);
+      console.log(`Filtering dates between ${startDate.toISOString()} and ${endDate.toISOString()}`);
+      
+      // Keep only dates outside the range we're updating
+      const filteredHolidays = existingHolidays.filter(holiday => {
+        const d = holiday.date;
         return d < startDate || d > endDate;
       });
+      
+      console.log(`Removed ${existingHolidays.length - filteredHolidays.length} dates from the update range`);
+      existingHolidays.length = 0; // Clear the array
+      existingHolidays.push(...filteredHolidays); // Update with filtered dates
     }
     
     // Add new dayOffOnly dates
-    const newHolidays = dayOffOnly.map(dateStr => new Date(dateStr));
-    const updatedHolidays = [...existingDates, ...newHolidays];
+    const newHolidays = dayOffOnly.map(dateStr => ({
+      date: new Date(dateStr),
+      note: "เพิ่มอัตโนมัติจาก getWeekendDates"
+    })).filter(h => h.date instanceof Date && !isNaN(h.date.getTime()));
+    
+    // Check for duplicates before adding
+    const updatedHolidays = [...existingHolidays];
+    
+    for (const newHoliday of newHolidays) {
+      // Check if this date already exists
+      const isDuplicate = existingHolidays.some(existing => 
+        existing.date.getFullYear() === newHoliday.date.getFullYear() &&
+        existing.date.getMonth() === newHoliday.date.getMonth() &&
+        existing.date.getDate() === newHoliday.date.getDate()
+      );
+      
+      if (!isDuplicate) {
+        updatedHolidays.push(newHoliday);
+      }
+    }
     
     // Update the workplace
     await Workplace.findOneAndUpdate(
@@ -1302,14 +1344,21 @@ router.get('/getWeekendDates', async (req, res) => {
     
     // แปลง publicHoliday object ให้เป็น Date สำหรับการคำนวณ
     const publicHolidayDates = publicHoliday.map(holiday => {
-      if (holiday && holiday.date) {
-        // รูปแบบใหม่ที่เป็น object {date, note}
-        return holiday.date;
-      } else {
-        // รูปแบบเก่าที่เป็น Date โดยตรง
-        return holiday;
+      try {
+        if (holiday && holiday.date) {
+          // รูปแบบใหม่ที่เป็น object {date, note}
+          return new Date(holiday.date);
+        } else {
+          // รูปแบบเก่าที่เป็น Date โดยตรง
+          return new Date(holiday);
+        }
+      } catch (error) {
+        console.error('❌ Error parsing publicHoliday date:', error, holiday);
+        return null;
       }
-    });
+    }).filter(date => date instanceof Date && !isNaN(date.getTime()));
+    
+    console.log(`Found ${daysOff.length} daysOff and ${publicHolidayDates.length} publicHoliday dates`);
     
     // รวมวันหยุดนักขัตฤกษ์เข้ากับวันหยุดหน่วยงาน
     const allHolidays = [...daysOff, ...publicHolidayDates];
@@ -1317,16 +1366,27 @@ router.get('/getWeekendDates', async (req, res) => {
     
     // Automatically update publicHoliday with dayOffOnly
     if (grouped.dayOffOnly && grouped.dayOffOnly.length > 0) {
-      // Update in background (don't await) to not slow down the response
-      updatePublicHoliday(workplaceId, yyyy, mm, grouped.dayOffOnly)
-        .then(success => {
-          if (success) {
-            console.log(`✅ Successfully updated publicHoliday for workplace ${workplaceId} with ${grouped.dayOffOnly.length} days`);
-          }
-        })
-        .catch(err => {
-          console.error(`❌ Failed to update publicHoliday:`, err);
-        });
+      try {
+        // Wait for the update to complete before sending response
+        // เปลี่ยนเป็น await เพื่อรอให้ทำงานเสร็จก่อนส่งคำตอบ
+        await updatePublicHoliday(workplaceId, yyyy, mm, grouped.dayOffOnly);
+        console.log(`✅ Successfully updated publicHoliday for workplace ${workplaceId} with ${grouped.dayOffOnly.length} days`);
+      } catch (err) {
+        console.error(`❌ Failed to update publicHoliday:`, err);
+        // ยังส่งข้อมูลกลับแม้มีข้อผิดพลาดในการอัปเดต publicHoliday
+      }
+    }
+
+    // ดึงข้อมูล workplace อีกครั้งหลังอัปเดต เพื่อให้ได้ข้อมูลล่าสุด
+    if (grouped.dayOffOnly && grouped.dayOffOnly.length > 0) {
+      try {
+        const updatedWorkplace = await Workplace.findOne({ workplaceId });
+        if (updatedWorkplace && updatedWorkplace.publicHoliday) {
+          console.log(`✅ Updated workplace has ${updatedWorkplace.publicHoliday.length} public holidays`);
+        }
+      } catch (error) {
+        console.error('❌ Error fetching updated workplace:', error);
+      }
     }
 
     res.json(grouped);
@@ -1355,12 +1415,19 @@ function getWeekendDatesGrouped(yyyy, mm, daysOff = []) {
 
   // สร้าง Set ของวันหยุดพิเศษ (ในช่วงเวลาเท่านั้น)
   for (const item of daysOff) {
-    const d = new Date(item);
-    if (d >= startDate && d <= endDate) {
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      const dd = String(d.getDate()).padStart(2, '0');
-      dayOffSet.add(`${yyyy}-${mm}-${dd}`);
+    try {
+      // รองรับทั้งรูปแบบ Date และ Object {date, note}
+      const dateValue = item.date ? item.date : item;
+      const d = new Date(dateValue);
+      
+      if (!isNaN(d.getTime()) && d >= startDate && d <= endDate) {
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        dayOffSet.add(`${yyyy}-${mm}-${dd}`);
+      }
+    } catch (err) {
+      console.error('❌ Error processing date in getWeekendDatesGrouped:', err, item);
     }
   }
 
