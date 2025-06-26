@@ -1292,7 +1292,7 @@ async function updatePublicHoliday(workplaceId, yyyy, mm, dayOffOnly) {
     // Add new dayOffOnly dates
     const newHolidays = dayOffOnly.map(dateStr => ({
       date: new Date(dateStr),
-      note: "เพิ่มอัตโนมัติจาก getWeekendDates"
+      note: ""
     })).filter(h => h.date instanceof Date && !isNaN(h.date.getTime()));
     
     // Check for duplicates before adding
