@@ -180,6 +180,9 @@ const workplaceSchema = new mongoose.Schema({
       dayOff: String,
       comment: String,
   }],
+  publicHoliday: [{
+      type: Date
+  }],
 
   workplaceAddress: {
       type: String

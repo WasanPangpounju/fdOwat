@@ -11,6 +11,7 @@ const jwt = require('jsonwebtoken');
 const bodyParser = require('body-parser');
 const { months } = require('moment');
 const { el, ca, it } = require('date-fns/locale');
+const axios = require('axios');
 
 //Connect mongodb
 mongoose.connect(connectionString, {
@@ -684,5 +685,59 @@ router.post("/add-work-schedule/:workplaceId", async (req, res) => {
       res.status(500).json({ error: error.message });
     }
   });
+
+// API endpoint สำหรับอัปเดต PublicHoliday จาก dayOffOnly
+router.post('/update-public-holidays/:workplaceId', async (req, res) => {
+    try {
+        const { workplaceId } = req.params;
+        const { year } = req.body;
+
+        if (!workplaceId || !year) {
+            return res.status(400).json({ error: 'ต้องระบุ workplaceId และ year' });
+        }
+
+        // 1. เรียก API getWeekendDates เพื่อดึงข้อมูล dayOffOnly
+        const publicHolidays = [];
+        
+        // สำหรับทุกเดือนในปี
+        for (let month = 1; month <= 12; month++) {
+            const monthStr = month.toString().padStart(2, '0');
+            // เรียกใช้งาน API conclude/getWeekendDates
+            try {
+                // ใช้ local endpoint (เรียกจากภายใน API server)
+                const response = await axios.get(`http://localhost:3000/conclude/getWeekendDates?yyyy=${year}&mm=${monthStr}&workplaceId=${workplaceId}`);
+                
+                if (response.data && response.data.dayOffOnly) {
+                    // แปลง string date เป็น Date object
+                    const monthHolidays = response.data.dayOffOnly.map(dateStr => new Date(dateStr));
+                    publicHolidays.push(...monthHolidays);
+                }
+            } catch (error) {
+                console.error(`Error getting weekend dates for ${year}-${monthStr}:`, error.message);
+                // ไม่ return error ในลูป แต่ทำต่อไปเพื่อรวบรวมข้อมูลให้ได้มากที่สุด
+            }
+        }
+
+        // 2. อัปเดตข้อมูล publicHoliday ในหน่วยงาน
+        const updatedWorkplace = await Workplace.findOneAndUpdate(
+            { workplaceId: workplaceId },
+            { publicHoliday: publicHolidays },
+            { new: true }
+        );
+
+        if (!updatedWorkplace) {
+            return res.status(404).json({ error: `ไม่พบหน่วยงานรหัส ${workplaceId}` });
+        }
+
+        res.json({
+            message: 'อัปเดต PublicHoliday สำเร็จ',
+            publicHolidayCount: publicHolidays.length,
+            workplace: updatedWorkplace
+        });
+    } catch (error) {
+        console.error('Error updating public holidays:', error);
+        res.status(500).json({ error: 'เกิดข้อผิดพลาดในการอัปเดต PublicHoliday', details: error.message });
+    }
+});
 
 module.exports = router;
