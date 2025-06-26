@@ -1298,7 +1298,11 @@ router.get('/getWeekendDates', async (req, res) => {
     }
 
     const daysOff = workplace.daysOff || [];
-    const grouped = getWeekendDatesGrouped(yyyy, mm, daysOff);
+    const publicHoliday = workplace.publicHoliday || [];
+    
+    // รวมวันหยุดนักขัตฤกษ์เข้ากับวันหยุดหน่วยงาน
+    const allHolidays = [...daysOff, ...publicHoliday];
+    const grouped = getWeekendDatesGrouped(yyyy, mm, allHolidays);
     
     // Automatically update publicHoliday with dayOffOnly
     if (grouped.dayOffOnly && grouped.dayOffOnly.length > 0) {
