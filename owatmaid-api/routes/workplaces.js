@@ -86,6 +86,124 @@ router.get('/list', async (req, res) => {
     res.json(workplaces);
 });
 
+router.post('/remove-global-holiday', async (req, res) => {
+    try {
+        const { date, note } = req.body;
+        
+        // ตรวจสอบว่ามีข้อมูลวันที่หรือไม่
+        if (!date) {
+            return res.status(400).json({
+                success: false,
+                message: "กรุณาระบุวันที่ในรูปแบบ YYYY-MM-DD เช่น 2025-08-12"
+            });
+        }
+        
+        console.log(`🗑️ [workplaces] กำลังลบวันหยุดส่วนกลาง: ${date} - ${note || "ไม่มีหมายเหตุ"}`);
+        
+        // 1. ดึงหน่วยงานทั้งหมดจาก database
+        const workplaces = await Workplace.find({});
+        console.log(`📊 [workplaces] พบหน่วยงานทั้งหมด: ${workplaces.length} หน่วยงาน`);
+        
+        let successCount = 0;
+        let notFoundCount = 0;
+        let errorCount = 0;
+        const results = [];
+        
+        // 2. ลบวันหยุดออกจากทุกหน่วยงาน
+        for (const workplace of workplaces) {
+            try {
+                // แปลงวันที่ที่จะลบ
+                const targetDate = parseLocalDate(date);
+                if (!targetDate) {
+                    console.error(`❌ [workplaces] ไม่สามารถแปลงวันที่: ${date}`);
+                    continue;
+                }
+                
+                const targetDateString = formatDateToYYYYMMDD(targetDate);
+                const originalLength = workplace.publicHoliday.length;
+                
+                // ลบวันหยุดที่ตรงกับวันที่และหมายเหตุ (ถ้าระบุ)
+                workplace.publicHoliday = workplace.publicHoliday.filter(holiday => {
+                    const holidayDate = parseLocalDate(holiday.date || holiday);
+                    if (!holidayDate) return true; // เก็บไว้ถ้าแปลงวันที่ไม่ได้
+                    
+                    const holidayDateString = formatDateToYYYYMMDD(holidayDate);
+                    const dateMatches = holidayDateString === targetDateString;
+                    
+                    // ถ้าระบุ note ให้เช็ค note ด้วย
+                    if (note) {
+                        const noteMatches = (holiday.note || "") === note;
+                        return !(dateMatches && noteMatches);
+                    } else {
+                        // ถ้าไม่ระบุ note ให้ลบทุก holiday ที่วันที่ตรงกัน
+                        return !dateMatches;
+                    }
+                });
+                
+                // ตรวจสอบว่ามีการลบหรือไม่
+                const newLength = workplace.publicHoliday.length;
+                const removedCount = originalLength - newLength;
+                
+                if (removedCount > 0) {
+                    await workplace.save();
+                    
+                    console.log(`✅ [workplaces] สำเร็จลบ ${removedCount} วันหยุด: หน่วยงาน ${workplace.workplaceId} - ${workplace.workplaceName}`);
+                    successCount++;
+                    results.push({
+                        workplaceId: workplace.workplaceId,
+                        workplaceName: workplace.workplaceName,
+                        status: 'success',
+                        removedCount: removedCount
+                    });
+                } else {
+                    console.log(`⚠️ [workplaces] ไม่พบวันหยุดที่ต้องการลบ: หน่วยงาน ${workplace.workplaceId}`);
+                    notFoundCount++;
+                    results.push({
+                        workplaceId: workplace.workplaceId,
+                        workplaceName: workplace.workplaceName,
+                        status: 'not_found'
+                    });
+                }
+            } catch (workplaceError) {
+                console.error(`❌ [workplaces] Error สำหรับหน่วยงาน ${workplace.workplaceId}:`, workplaceError.message);
+                errorCount++;
+                results.push({
+                    workplaceId: workplace.workplaceId,
+                    workplaceName: workplace.workplaceName,
+                    status: 'error',
+                    error: workplaceError.message
+                });
+            }
+        }
+        
+        // 3. ส่งผลลัพธ์กลับ
+        res.json({
+            success: true,
+            message: `ลบวันหยุด "${note || date}" ออกจากหน่วยงานเรียบร้อย`,
+            data: {
+                date: formatDateToYYYYMMDD(parseLocalDate(date)),
+                note: note || "",
+                totalWorkplaces: workplaces.length,
+                successCount: successCount,
+                notFoundCount: notFoundCount,
+                errorCount: errorCount
+            },
+            summary: `✅ ลบสำเร็จ: ${successCount} | ⚠️ ไม่พบ: ${notFoundCount} | ❌ ผิดพลาด: ${errorCount}`,
+            results: results
+        });
+        
+    } catch (error) {
+        console.error('❌ [workplaces] Global holiday removal error:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message,
+            message: "เกิดข้อผิดพลาดในการลบวันหยุดส่วนกลาง"
+        });
+    }
+});
+
+
+
 // Get list id name and address of workplaces
 router.get('/listselect', async (req, res) => {
     try {
