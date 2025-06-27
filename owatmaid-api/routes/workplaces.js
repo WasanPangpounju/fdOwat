@@ -44,10 +44,20 @@ router.get('/listselect', async (req, res) => {
 // Count workplaces with non-empty daysOff
 router.get('/count-daysOff', async (req, res) => {
   try {
-    // ดึง workplace ที่มี daysOff ไม่ว่าง
-    const workplaces = await Workplace.find({ daysOff: { $exists: true, $not: { $size: 0 } } }, 'workplaceId');
-    const ids = workplaces.map(w => w.workplaceId);
-    res.json({ count: ids.length, workplaceIds: ids });
+    // ดึง workplace ที่มี daysOff ไม่ว่าง พร้อม daysOff
+    const workplaces = await Workplace.find({ daysOff: { $exists: true, $not: { $size: 0 } } }, 'workplaceId daysOff');
+    const result = workplaces.map(w => ({
+      workplaceId: w.workplaceId,
+      daysOff: (w.daysOff || []).map(d => {
+        // แปลงวันที่เป็น string ISO (หรือจะใช้ .toLocaleDateString() ก็ได้)
+        try {
+          return d instanceof Date ? d.toISOString().slice(0,10) : d;
+        } catch {
+          return d;
+        }
+      })
+    }));
+    res.json({ count: result.length, workplaces: result });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
