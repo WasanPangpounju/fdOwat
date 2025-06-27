@@ -963,6 +963,8 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
                 tmp.workType = 'specialDayOff';
 
               } else if (dayOffCheck1.includes(str1)) {
+                console.log('day off rate');
+
                 if (salary === 0 || salary == upsalary  ) {
                   salary = wpResponse1.data.workRate + parseFloat(upsalary   || '0');
                 }
@@ -1230,14 +1232,18 @@ let addSalaryDailyx = await addSalaryDaily.filter(item1 => item1.id !== '1210');
 });
 
 
-// Helper: parse 'YYYY-MM-DD' or 'YYYY/MM/DD' as local date
+// Helper: parse 'YYYY-MM-DD' or 'YYYY/MM/DD' as local date (force local, never UTC)
 function parseLocalDate(str) {
   if (!str) return null;
   if (str instanceof Date) return str;
   if (typeof str === 'object' && str.date) str = str.date;
-  let parts = str.includes('-') ? str.split('-') : str.split('/');
-  if (parts.length === 3) {
-    return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+  if (typeof str === 'string') {
+    // force local for ISO string
+    let parts = str.includes('-') ? str.split('-') : str.split('/');
+    if (parts.length === 3) {
+      // handle 'YYYY-MM-DD' or 'YYYY/MM/DD'
+      return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    }
   }
   return new Date(str); // fallback
 }
@@ -1380,7 +1386,6 @@ router.get('/listdelete', async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
-
 
 // Get  conclude record by conclude Id
 router.get('/:month/:employeeId', async (req, res) => {
@@ -1566,7 +1571,6 @@ router.post('/create', async (req, res) => {
   }
 });
 
-
 // Update existing records in workplaceTimerecordEmp
 router.put('/update/:concludeRecordId', async (req, res) => {
   const concludeIdToUpdate = req.params.concludeRecordId;
@@ -1614,7 +1618,6 @@ router.post('/delete-records', async (req, res) => {
     res.status(500).send('Error deleting records: ' + error.message);
   }
 });
-
 
 
 function groupByWorkplaceId(records) {
