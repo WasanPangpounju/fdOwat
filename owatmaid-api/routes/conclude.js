@@ -657,6 +657,7 @@ const         wpDataCalculator1 = await {
                 sumWorkRate += parseFloat(workRate) || 0;
                 sumWorkHourOt += parseFloat((parseFloat(hoursTmp + decimalFraction))) || 0;
                 sumWorkRateOt += parseFloat(workRateOT) || 0;
+
                 if(dataEmp.employees[0].salary && parseFloat(dataEmp.employees[0].salary) > 0 ) {
 
                 } else {
@@ -700,7 +701,7 @@ const         wpDataCalculator1 = await {
                 // let workRateOT = ((parseFloat(wpResponse1.data.workRateOT ?? 0) * (salary / 8)) * (parseFloat(hoursTmp + decimalFraction)) ).toFixed(3);
 
                 //cal OT
-                let workRateOT = (((parseFloat(salary) / 8) * parseFloat(wpResponse1.data.workRateOT)) * (parseFloat( (((parseFloat(hoursTmp || '0') * 60) + (parseFloat(minutesTmp || '0')) ) / 60) ))).toFixed(3);
+                let workRateOT = (((parseFloat(salary) / 8) * parseFloat(wpResponse1.data.workRateOT)) * (parseFloat( (((parseFloat(hoursTmp || '0') * 60) + parseFloat(minutesTmp || '0')) / 60) ))).toFixed(3);
                 tmp.workRateOT = workRateOT || 0;
                 tmp.workRateOTMultiply = wpResponse1.data.workRateOT || 0;
 
@@ -942,7 +943,7 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
                 // let workRateOT = ((parseFloat(tmpWP.data.dayoffRateOT) * (salary / 8)) * (parseFloat(hoursTmp + decimalFraction))).toFixed(2);
 
                 //cal OT
-                let workRateOT = ((parseFloat(wpResponse1.data.holidayOT) * (salary / 8)) * (parseFloat( (((hoursTmp * 60) + (minutesTmp )) / 60)  )) ).toFixed(3);
+                let workRateOT = ((parseFloat(wpResponse1.data.holidayOT) * (salary / 8)) * (parseFloat( (((hoursTmp * 60) + (minutesTmp )) / 60) )) ).toFixed(3);
                 tmp.workRateOT = workRateOT || 0;
                 tmp.workRateOTMultiply = wpResponse1.data.holidayOT || 0;
 
@@ -1013,20 +1014,19 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
                 tmp.workType = 'dayOff';
 
               } else {
-                // console.log('default rate');
                 if (salary === 0 || salary == upsalary  ) {
-                  salary = parseFloat(wpResponse1.data.workRate || '0') + parseFloat(upsalary   || '0');
+                  salary = parseFloat(tmpWP.data.workRate || '0')+ parseFloat(upsalary   || '0');
                 }
 
-
-                if (parseFloat(allTime || '0') >= workOfHour) {
+                if(parseFloat(allTime || 0 ) >= workOfHour) {
                   allTime = workOfHour;
-                  tmp.allTime = workOfHour || 0;
+                  tmp.allTimes = workOfHour || 0;
                 } else {
-                  tmp.allTime = allTime || 0;
+                  tmp.allTimes = allTime || 0;
                 }
 
-                let workRate = ((parseFloat(salary || '0') / 8) * parseFloat(allTime)).toFixed(3);
+                // let workRate = ((salary / 8) * (parseFloat(otTime) * 1.111) ).toFixed(2);
+                let workRate = ((parseFloat(salary) / 8) * parseFloat(allTime)).toFixed(3);
                 tmp.workRate = workRate || 0;
                 tmp.workRateMultiply = '1';
 
@@ -1040,14 +1040,14 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
                 }
 
                 let [hoursTmp, minutesTmp] = otTime.toString().split('.').map(Number);
-                let decimalFraction = (minutesTmp || 0) .toFixed(2) / 60;
+                let decimalFraction = (minutesTmp || 0 ).toFixed(2) / 60;
                 // let workRateOT = ((parseFloat(tmpWP.data.dayoffRateOT) * (salary / 8)) * (parseFloat(hoursTmp + decimalFraction))).toFixed(2);
                 // let workRateOT = ((parseFloat(wpResponse1.data.workRateOT ?? 0) * (salary / 8)) * (parseFloat(hoursTmp + decimalFraction)) ).toFixed(3);
 
                 //cal OT
-                let workRateOT = (((parseFloat(salary) / 8) * parseFloat(wpResponse1.data.workRateOT)) * (parseFloat( (((parseFloat(hoursTmp || '0') * 60) + parseFloat(minutesTmp || '0')) / 60))).toFixed(3));
+                let workRateOT = (((parseFloat(salary) / 8) * parseFloat(tmpWP.data.workRateOT)) * (parseFloat( (((parseFloat(hoursTmp || '0') * 60) + parseFloat(minutesTmp || '0')) / 60) ))).toFixed(3);
                 tmp.workRateOT = workRateOT || 0;
-                tmp.workRateOTMultiply = wpResponse1.data.workRateOT || 0;
+                tmp.workRateOTMultiply = tmpWP.data.workRateOT || 0;
 
                 sumWorkHour += parseFloat(allTime) || 0;
                 sumWorkRate += parseFloat(workRate) || 0;
@@ -1337,135 +1337,76 @@ router.get('/getWeekendDates', async (req, res) => {
       return res.status(404).json({ error: 'Workplace not found' });
     }
 
+    // วันหยุดหน่วยงาน (daysOff)
     const daysOff = workplace.daysOff || [];
+    // วันหยุดนักขัตฤกษ์ (publicHoliday)
     const publicHoliday = workplace.publicHoliday || [];
-    
-    // แปลง publicHoliday object ให้เป็น Date สำหรับการคำนวณ
-    const publicHolidayDates = publicHoliday.map(holiday => {
+
+    // daysOff: แปลงเป็น yyyy-mm-dd string เฉพาะที่อยู่ในช่วงเวลา
+    const year = Number(yyyy);
+    const month = Number(mm);
+    let prevMonth = month - 1;
+    let prevYear = year;
+    if (prevMonth === 0) {
+      prevMonth = 12;
+      prevYear -= 1;
+    }
+    const startDate = new Date(prevYear, prevMonth - 1, 21);
+    const endDate = new Date(year, month - 1, 20);
+
+    // daysOff
+    const daysOffDates = daysOff.map(d => {
       try {
-        if (holiday && holiday.date) {
-          // รูปแบบใหม่ที่เป็น object {date, note}
-          return new Date(holiday.date);
-        } else {
-          // รูปแบบเก่าที่เป็น Date โดยตรง
-          return new Date(holiday);
-        }
-      } catch (error) {
-        console.error('❌ Error parsing publicHoliday date:', error, holiday);
-        return null;
+        return d instanceof Date ? d.toISOString().slice(0,10) : new Date(d).toISOString().slice(0,10);
+      } catch {
+        return d;
       }
-    }).filter(date => date instanceof Date && !isNaN(date.getTime()));
-    
-    console.log(`Found ${daysOff.length} daysOff and ${publicHolidayDates.length} publicHoliday dates`);
-    
-    // รวมวันหยุดนักขัตฤกษ์เข้ากับวันหยุดหน่วยงาน
-    const allHolidays = [...daysOff, ...publicHolidayDates];
-    const grouped = getWeekendDatesGrouped(yyyy, mm, allHolidays);
-    
-    // Automatically update publicHoliday with dayOffOnly
-    if (grouped.dayOffOnly && grouped.dayOffOnly.length > 0) {
+    }).filter(dateStr => {
+      const d = new Date(dateStr);
+      return d >= startDate && d <= endDate;
+    });
+
+    // publicHoliday
+    const publicHolidayDates = publicHoliday.map(h => {
       try {
-        // Wait for the update to complete before sending response
-        // เปลี่ยนเป็น await เพื่อรอให้ทำงานเสร็จก่อนส่งคำตอบ
-        await updatePublicHoliday(workplaceId, yyyy, mm, grouped.dayOffOnly);
-        console.log(`✅ Successfully updated publicHoliday for workplace ${workplaceId} with ${grouped.dayOffOnly.length} days`);
-      } catch (err) {
-        console.error(`❌ Failed to update publicHoliday:`, err);
-        // ยังส่งข้อมูลกลับแม้มีข้อผิดพลาดในการอัปเดต publicHoliday
+        if (h && h.date) return new Date(h.date).toISOString().slice(0,10);
+        return new Date(h).toISOString().slice(0,10);
+      } catch {
+        return h;
+      }
+    }).filter(dateStr => {
+      const d = new Date(dateStr);
+      return d >= startDate && d <= endDate;
+    });
+
+    // ตรวจสอบวันเสาร์-อาทิตย์ในช่วงเวลา
+    const weekendSet = new Set();
+    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+      const day = d.getDay();
+      if (day === 0 || day === 6) {
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        weekendSet.add(`${yyyy}-${mm}-${dd}`);
       }
     }
 
-    // ดึงข้อมูล workplace อีกครั้งหลังอัปเดต เพื่อให้ได้ข้อมูลล่าสุด
-    if (grouped.dayOffOnly && grouped.dayOffOnly.length > 0) {
-      try {
-        const updatedWorkplace = await Workplace.findOne({ workplaceId });
-        if (updatedWorkplace && updatedWorkplace.publicHoliday) {
-          console.log(`✅ Updated workplace has ${updatedWorkplace.publicHoliday.length} public holidays`);
-        }
-      } catch (error) {
-        console.error('❌ Error fetching updated workplace:', error);
-      }
-    }
+    // weekendAndDayOff: เฉพาะ daysOff ที่อยู่ในช่วงเวลา
+    const weekendAndDayOff = [...daysOffDates].sort();
+    // dayOffOnly: เฉพาะ publicHoliday ที่อยู่ในช่วงเวลา
+    const dayOffOnly = [...publicHolidayDates].sort();
+    // weekendOnly: วันเสาร์-อาทิตย์ในช่วงเวลา ที่ไม่อยู่ใน daysOff
+    const daysOffSet = new Set(daysOffDates);
+    const weekendOnly = Array.from(weekendSet).filter(dateStr => !daysOffSet.has(dateStr)).sort();
 
-    res.json(grouped);
+    res.json({ weekendOnly, dayOffOnly, weekendAndDayOff });
   } catch (error) {
     console.error('❌ Error in /getWeekendDates:', error);
     res.status(500).json({ error: 'Internal Server Error', detail: error.message });
   }
 });
 
-function getWeekendDatesGrouped(yyyy, mm, daysOff = []) {
-  const year = Number(yyyy);
-  const month = Number(mm);
-
-  let prevMonth = month - 1;
-  let prevYear = year;
-  if (prevMonth === 0) {
-    prevMonth = 12;
-    prevYear -= 1;
-  }
-
-  const startDate = new Date(prevYear, prevMonth - 1, 21);
-  const endDate = new Date(year, month - 1, 20);
-
-  const weekendSet = new Set();
-  const dayOffSet = new Set();
-
-  // สร้าง Set ของวันหยุดพิเศษ (ในช่วงเวลาเท่านั้น)
-  for (const item of daysOff) {
-    try {
-      // รองรับทั้งรูปแบบ Date และ Object {date, note}
-      const dateValue = item.date ? item.date : item;
-      const d = new Date(dateValue);
-      
-      if (!isNaN(d.getTime()) && d >= startDate && d <= endDate) {
-        const yyyy = d.getFullYear();
-        const mm = String(d.getMonth() + 1).padStart(2, '0');
-        const dd = String(d.getDate()).padStart(2, '0');
-        dayOffSet.add(`${yyyy}-${mm}-${dd}`);
-      }
-    } catch (err) {
-      console.error('❌ Error processing date in getWeekendDatesGrouped:', err, item);
-    }
-  }
-
-  // ตรวจสอบวันเสาร์-อาทิตย์ในช่วงเวลา
-  for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-    const day = d.getDay(); // 0 = อาทิตย์, 6 = เสาร์
-    if (day === 0 || day === 6) {
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      const dd = String(d.getDate()).padStart(2, '0');
-      weekendSet.add(`${yyyy}-${mm}-${dd}`);
-    }
-  }
-
-  // แยกกลุ่ม
-  const weekendOnly = [];
-  const dayOffOnly = [];
-  const weekendAndDayOff = [];
-
-  const allDates = new Set([...weekendSet, ...dayOffSet]);
-  for (const date of allDates) {
-    const isWeekend = weekendSet.has(date);
-    const isDayOff = dayOffSet.has(date);
-
-    if (isWeekend && isDayOff) {
-      weekendAndDayOff.push(date);
-    } else if (isWeekend) {
-      weekendOnly.push(date);
-    } else if (isDayOff) {
-      dayOffOnly.push(date);
-    }
-  }
-
-  // เรียงลำดับทั้งหมดก่อนคืนค่า
-  return {
-    weekendOnly: weekendOnly.sort(),
-    dayOffOnly: dayOffOnly.sort(),
-    weekendAndDayOff: weekendAndDayOff.sort(),
-  };
-}
+// ...existing code...
 
 // Get list of conclude 
 router.get('/list', async (req, res) => {
