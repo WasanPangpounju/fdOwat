@@ -44,8 +44,10 @@ router.get('/listselect', async (req, res) => {
 // Count workplaces with non-empty daysOff
 router.get('/count-daysOff', async (req, res) => {
   try {
-    const count = await countWorkplaceWithDaysOff();
-    res.json({ count });
+    // ดึง workplace ที่มี daysOff ไม่ว่าง
+    const workplaces = await Workplace.find({ daysOff: { $exists: true, $not: { $size: 0 } } }, 'workplaceId');
+    const ids = workplaces.map(w => w.workplaceId);
+    res.json({ count: ids.length, workplaceIds: ids });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
