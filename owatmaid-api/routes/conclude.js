@@ -1231,7 +1231,6 @@ let addSalaryDailyx = await addSalaryDaily.filter(item1 => item1.id !== '1210');
   // res.json(concludeData );
 });
 
-
 // Helper: parse 'YYYY-MM-DD' or 'YYYY/MM/DD' as local date (force local, never UTC)
 function parseLocalDate(str) {
   if (!str) return null;
@@ -1239,13 +1238,39 @@ function parseLocalDate(str) {
   if (typeof str === 'object' && str.date) str = str.date;
   if (typeof str === 'string') {
     // force local for ISO string
-    let parts = str.includes('-') ? str.split('-') : str.split('/');
-    if (parts.length === 3) {
-      // handle 'YYYY-MM-DD' or 'YYYY/MM/DD'
-      return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    let separator = str.includes('-') ? '-' : (str.includes('/') ? '/' : null);
+    if (separator) {
+      let parts = str.split(separator);
+      if (parts.length === 3) {
+        // handle 'YYYY-MM-DD' or 'YYYY/MM/DD'
+        // สร้าง Date แบบ local (year, month-1, day) เพื่อป้องกัน timezone shift
+        const year = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1; // month ใน JS เริ่มจาก 0
+        const day = parseInt(parts[2], 10);
+        
+        if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+          console.log(`Converting ${str} to local date: ${year}-${month+1}-${day}`);
+          return new Date(year, month, day);
+        }
+      }
     }
   }
-  return new Date(str); // fallback
+  
+  // ถ้าทำอย่างอื่นไม่ได้ ลองใช้ new Date(str) แต่ต้องระวังเรื่อง timezone
+  console.warn(`Warning: Using new Date() directly for: ${str} - this may cause timezone issues`);
+  return new Date(str); // fallback (อาจเกิด timezone shift)
+}
+
+// Helper: format a Date object as 'YYYY-MM-DD'
+function formatDateToYYYYMMDD(date) {
+  if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
+    return null;
+  }
+  
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
 }
 
 router.get('/getWeekendDates', async (req, res) => {
@@ -1282,26 +1307,62 @@ router.get('/getWeekendDates', async (req, res) => {
     const daysOffDates = daysOff.map(d => {
       try {
         const local = parseLocalDate(d);
-        return local instanceof Date && !isNaN(local) ? local.toISOString().slice(0,10) : d;
-      } catch {
-        return d;
+        if (!local || isNaN(local.getTime())) {
+          console.error(`❌ Invalid daysOff date: ${d}`);
+          return null;
+        }
+        
+        // Format date as 'YYYY-MM-DD'
+        const yyyy = local.getFullYear();
+        const mm = String(local.getMonth() + 1).padStart(2, '0');
+        const dd = String(local.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+      } catch (err) {
+        console.error(`Error parsing daysOff date: ${d}`, err);
+        return null;
       }
     }).filter(dateStr => {
-      const d = parseLocalDate(dateStr);
-      return d && d >= startDate && d <= endDate;
+      if (!dateStr) return false; // กรองค่า null ออก
+      
+      try {
+        const d = parseLocalDate(dateStr);
+        return d && !isNaN(d.getTime()) && d >= startDate && d <= endDate;
+      } catch (err) {
+        console.error(`Error filtering daysOff date: ${dateStr}`, err);
+        return false;
+      }
     });
 
     // publicHoliday
     const publicHolidayDates = publicHoliday.map(h => {
       try {
-        const local = parseLocalDate(h && h.date ? h.date : h);
-        return local instanceof Date && !isNaN(local) ? local.toISOString().slice(0,10) : h;
-      } catch {
-        return h;
+        const dateValue = h && h.date ? h.date : h;
+        const local = parseLocalDate(dateValue);
+        
+        if (!local || isNaN(local.getTime())) {
+          console.error(`❌ Invalid publicHoliday date: ${dateValue}`);
+          return null;
+        }
+        
+        // Format date as 'YYYY-MM-DD'
+        const yyyy = local.getFullYear();
+        const mm = String(local.getMonth() + 1).padStart(2, '0');
+        const dd = String(local.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+      } catch (err) {
+        console.error(`Error parsing publicHoliday date: ${h}`, err);
+        return null;
       }
     }).filter(dateStr => {
-      const d = parseLocalDate(dateStr);
-      return d && d >= startDate && d <= endDate;
+      if (!dateStr) return false; // กรองค่า null ออก
+      
+      try {
+        const d = parseLocalDate(dateStr);
+        return d && !isNaN(d.getTime()) && d >= startDate && d <= endDate;
+      } catch (err) {
+        console.error(`Error filtering publicHoliday date: ${dateStr}`, err);
+        return false;
+      }
     });
 
     // ตรวจสอบวันเสาร์-อาทิตย์ในช่วงเวลา
@@ -1830,7 +1891,7 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
           apiMonth = "1";
           apiYear = (parseInt(year) + 1).toString();
         } else {
-          apiMonth = (month + 1).toString();
+          apiMonth = (parseInt(month) + 1).toString();
           apiYear = year;
         }
       } else {
@@ -2275,11 +2336,19 @@ router.post('/updateDayOffOnly', async (req, res) => {
   try {
     const { workplaceId, publicHolidays } = req.body;
 
-    if (!workplaceId || !publicHolidays) {
-      return res.status(400).json({ error: 'Missing required parameters: workplaceId, publicHolidays' });
+    if (!workplaceId) {
+      return res.status(400).json({ error: 'Missing required parameter: workplaceId' });
     }
 
-    console.log('Received publicHolidays in updateDayOffOnly:', publicHolidays);
+    if (!publicHolidays) {
+      return res.status(400).json({ error: 'Missing required parameter: publicHolidays' });
+    }
+    
+    if (!Array.isArray(publicHolidays)) {
+      return res.status(400).json({ error: 'publicHolidays must be an array' });
+    }
+
+    console.log('Received publicHolidays in updateDayOffOnly:', JSON.stringify(publicHolidays));
 
     // ตรวจสอบว่าหน่วยงานมีอยู่จริงหรือไม่
     const workplace = await Workplace.findOne({ workplaceId });
@@ -2291,21 +2360,39 @@ router.post('/updateDayOffOnly', async (req, res) => {
     const holidayData = publicHolidays.map(holiday => {
       try {
         if (typeof holiday === 'string') {
-          // ถ้าเป็น string (format เก่า) ให้แปลงเป็น object
+          // ถ้าเป็น string (format เก่า) ให้แปลงเป็น object และใช้ parseLocalDate
+          const localDate = parseLocalDate(holiday);
+          if (!localDate || isNaN(localDate.getTime())) {
+            console.error(`❌ Invalid date format for holiday: ${holiday}`);
+            return null;
+          }
+          
           return {
-            date: new Date(holiday),
+            date: localDate,
             note: ''
           };
         } else if (holiday && holiday.date) {
-          // ถ้าเป็น object ที่มี date และ note
+          // ถ้าเป็น object ที่มี date และ note ใช้ parseLocalDate
+          const localDate = parseLocalDate(holiday.date);
+          if (!localDate || isNaN(localDate.getTime())) {
+            console.error(`❌ Invalid date format for holiday.date: ${holiday.date}`);
+            return null;
+          }
+          
           return {
-            date: new Date(holiday.date),
+            date: localDate,
             note: holiday.note || ''
           };
         } else {
-          // fallback
+          // fallback - ใช้ parseLocalDate
+          const localDate = parseLocalDate(holiday);
+          if (!localDate || isNaN(localDate.getTime())) {
+            console.error(`❌ Invalid holiday format:`, holiday);
+            return null;
+          }
+          
           return {
-            date: new Date(holiday),
+            date: localDate,
             note: ''
           };
         }
@@ -2318,6 +2405,12 @@ router.post('/updateDayOffOnly', async (req, res) => {
     console.log('Parsed holiday data:', holidayData);
 
     // อัปเดตข้อมูลในฐานข้อมูล (อัปเดต publicHoliday เท่านั้น)
+    console.log('Attempting to update with holiday data:', holidayData.map(h => ({
+      dateObj: h.date,
+      dateStr: h.date ? formatDateToYYYYMMDD(h.date) : null,
+      note: h.note
+    })));
+    
     const updated = await Workplace.findOneAndUpdate(
       { workplaceId },
       { 
