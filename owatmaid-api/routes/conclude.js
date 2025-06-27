@@ -1308,29 +1308,69 @@ router.get('/getWeekendDates', async (req, res) => {
     const endDate = new Date(year, month - 1, 20);
 
     // daysOff
-    const daysOffDates = daysOff.map(d => {
+    const daysOffDates = daysOff.map((d, index) => {
       try {
+        console.log(`🔍 Processing daysOff ${index + 1}:`, d);
         const local = parseLocalDate(d);
-        return local instanceof Date && !isNaN(local) ? local.toISOString().slice(0,10) : d;
-      } catch {
-        return d;
+        if (!local || isNaN(local.getTime())) {
+          console.error(`❌ Invalid daysOff date: ${d}`);
+          return null;
+        }
+        
+        // Format เป็น YYYY-MM-DD แบบ local
+        const formattedDate = `${local.getFullYear()}-${String(local.getMonth() + 1).padStart(2, '0')}-${String(local.getDate()).padStart(2, '0')}`;
+        console.log(`✅ daysOff ${index + 1}: ${d} -> ${formattedDate}`);
+        return formattedDate;
+      } catch (err) {
+        console.error(`❌ Error processing daysOff ${index + 1}:`, err);
+        return null;
       }
     }).filter(dateStr => {
-      const d = parseLocalDate(dateStr);
-      return d && d >= startDate && d <= endDate;
+      if (!dateStr) return false;
+      
+      try {
+        const d = parseLocalDate(dateStr);
+        const inRange = d && !isNaN(d.getTime()) && d >= startDate && d <= endDate;
+        console.log(`🔍 daysOff ${dateStr} in range: ${inRange}`);
+        return inRange;
+      } catch (err) {
+        console.error(`❌ Error filtering daysOff:`, err);
+        return false;
+      }
     });
 
     // publicHoliday
-    const publicHolidayDates = publicHoliday.map(h => {
+    const publicHolidayDates = publicHoliday.map((h, index) => {
       try {
-        const local = parseLocalDate(h && h.date ? h.date : h);
-        return local instanceof Date && !isNaN(local) ? local.toISOString().slice(0,10) : h;
-      } catch {
-        return h;
+        const dateValue = h && h.date ? h.date : h;
+        console.log(`🔍 Processing publicHoliday ${index + 1}:`, h, `-> dateValue:`, dateValue);
+        
+        const local = parseLocalDate(dateValue);
+        if (!local || isNaN(local.getTime())) {
+          console.error(`❌ Invalid publicHoliday date: ${dateValue}`);
+          return null;
+        }
+        
+        // Format เป็น YYYY-MM-DD แบบ local
+        const formattedDate = `${local.getFullYear()}-${String(local.getMonth() + 1).padStart(2, '0')}-${String(local.getDate()).padStart(2, '0')}`;
+        console.log(`✅ publicHoliday ${index + 1}: ${dateValue} -> ${formattedDate}`);
+        return formattedDate;
+      } catch (err) {
+        console.error(`❌ Error processing publicHoliday ${index + 1}:`, err);
+        return null;
       }
     }).filter(dateStr => {
-      const d = parseLocalDate(dateStr);
-      return d && d >= startDate && d <= endDate;
+      if (!dateStr) return false;
+      
+      try {
+        const d = parseLocalDate(dateStr);
+        const inRange = d && !isNaN(d.getTime()) && d >= startDate && d <= endDate;
+        console.log(`🔍 publicHoliday ${dateStr} in range [${startDate.toISOString().slice(0,10)} - ${endDate.toISOString().slice(0,10)}]: ${inRange}`);
+        return inRange;
+      } catch (err) {
+        console.error(`❌ Error filtering publicHoliday:`, err);
+        return false;
+      }
     });
 
     // ตรวจสอบวันเสาร์-อาทิตย์ในช่วงเวลา
@@ -1352,6 +1392,11 @@ router.get('/getWeekendDates', async (req, res) => {
     // weekendOnly: วันเสาร์-อาทิตย์ในช่วงเวลา ที่ไม่อยู่ใน daysOff
     const daysOffSet = new Set(daysOffDates);
     const weekendOnly = Array.from(weekendSet).filter(dateStr => !daysOffSet.has(dateStr)).sort();
+
+    console.log('📊 getWeekendDates Final Results:');
+    console.log('   🏢 daysOff (weekendAndDayOff):', weekendAndDayOff);
+    console.log('   🎉 publicHoliday (dayOffOnly):', dayOffOnly);
+    console.log('   📅 weekendOnly:', weekendOnly);
 
     res.json({ weekendOnly, dayOffOnly, weekendAndDayOff });
   } catch (error) {
