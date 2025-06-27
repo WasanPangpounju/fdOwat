@@ -22,6 +22,62 @@ mongoose.connect(connectionString, {
 const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'MongoDB connection error:'));
 
+// Helper: parse 'YYYY-MM-DD' or 'YYYY/MM/DD' as local date (force local, never UTC)
+function parseLocalDate(str) {
+  if (!str) return null;
+  if (str instanceof Date) return str;
+  if (typeof str === 'object' && str.date) str = str.date;
+  if (typeof str === 'string') {
+    
+    // ถ้าเป็น ISO timestamp (เช่น 2025-06-02T17:00:00.000Z)
+    if (str.includes('T') && (str.includes('Z') || str.includes('+'))) {
+      console.log(`🔍 [workplaces] Parsing ISO timestamp: ${str}`);
+      const isoDate = new Date(str);
+      if (!isNaN(isoDate.getTime())) {
+        // แปลง ISO date เป็น local date โดยใช้ local timezone
+        const localYear = isoDate.getFullYear();
+        const localMonth = isoDate.getMonth();
+        const localDay = isoDate.getDate();
+        
+        // สร้าง Date object ใหม่แบบ local timezone
+        const localDate = new Date(localYear, localMonth, localDay);
+        console.log(`✅ [workplaces] ISO to local: ${str} -> ${localYear}-${String(localMonth + 1).padStart(2, '0')}-${String(localDay).padStart(2, '0')}`);
+        return localDate;
+      }
+    }
+    
+    // force local for simple date string
+    let parts = str.includes('-') ? str.split('-') : str.split('/');
+    if (parts.length === 3) {
+      // handle 'YYYY-MM-DD' or 'YYYY/MM/DD'
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1; // month index starts from 0
+      const day = parseInt(parts[2], 10);
+      
+      if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+        const localDate = new Date(year, month, day);
+        console.log(`✅ [workplaces] String to local: ${str} -> ${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
+        return localDate; // ✅ สร้างแบบ local timezone
+      }
+    }
+  }
+  
+  // ❌ ไม่ใช้ new Date(str) เป็น fallback เพื่อป้องกัน timezone bug
+  console.error(`❌ [workplaces] parseLocalDate: Cannot parse "${str}" - unsupported format`);
+  return null;
+}
+
+// Helper: format a Date object as 'YYYY-MM-DD'
+function formatDateToYYYYMMDD(date) {
+  if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
+    return null;
+  }
+  
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
 
 
 // Get list of workplaces
@@ -48,14 +104,50 @@ router.get('/:workplaceId', async (req, res) => {
     try {
         const workplace = await Workplace.findOne({ workplaceId: req.params.workplaceId });
         if (workplace) {
+            // ✅ แปลง publicHoliday dates ให้ถูกต้องก่อน return
+            if (workplace.publicHoliday && workplace.publicHoliday.length > 0) {
+                console.log(`🔍 [workplaces GET] Processing ${workplace.publicHoliday.length} public holidays for workplace ${req.params.workplaceId}`);
+                
+                workplace.publicHoliday = workplace.publicHoliday.map((holiday, index) => {
+                    try {
+                        // ถ้า holiday.date เป็น Date object อยู่แล้ว ก็ใช้เลย
+                        if (holiday.date instanceof Date) {
+                            const formattedDate = formatDateToYYYYMMDD(holiday.date);
+                            console.log(`✅ [workplaces GET] Holiday ${index + 1}: Date object -> ${formattedDate}`);
+                            return {
+                                date: holiday.date,
+                                note: holiday.note || ''
+                            };
+                        }
+                        
+                        // ถ้าเป็น string ให้แปลงด้วย parseLocalDate
+                        const localDate = parseLocalDate(holiday.date);
+                        if (localDate) {
+                            const formattedDate = formatDateToYYYYMMDD(localDate);
+                            console.log(`✅ [workplaces GET] Holiday ${index + 1}: ${holiday.date} -> ${formattedDate}`);
+                            return {
+                                date: localDate,
+                                note: holiday.note || ''
+                            };
+                        }
+                        
+                        console.error(`❌ [workplaces GET] Invalid holiday date:`, holiday);
+                        return null;
+                    } catch (error) {
+                        console.error(`❌ [workplaces GET] Error processing holiday ${index + 1}:`, error);
+                        return null;
+                    }
+                }).filter(h => h !== null);
+            }
+            
             res.json(workplace);
         } else {
             res.status(404).json({ error: 'workplace not found' });
         }
     } catch (error) {
+        console.error('❌ [workplaces GET] Error:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
-
 });
 
 
@@ -744,7 +836,7 @@ router.post('/update-public-holidays/:workplaceId', async (req, res) => {
         const response = {
             message: 'อัปเดต PublicHoliday สำเร็จ',
             publicHolidayCount: publicHolidays.length,
-            publicHolidayDates: publicHolidays.map(holiday => holiday.date.toISOString().split('T')[0]), // แสดงวันที่ในรูปแบบ YYYY-MM-DD
+            publicHolidayDates: publicHolidays.map(holiday => formatDateToYYYYMMDD(holiday.date)).filter(date => date), // ✅ ใช้ formatDateToYYYYMMDD แทน toISOString
             workplace: updatedWorkplace
         };
 
@@ -770,21 +862,28 @@ router.post('/sync-public-holidays/:workplaceId', async (req, res) => {
             return res.status(400).json({ error: 'ต้องระบุ workplaceId' });
         }
 
-        // แปลง ISO date string เป็น Date objects
-        const parsedPublicHoliday = publicHoliday.map(holiday => {
+        // แปลง ISO date string เป็น Date objects ด้วย parseLocalDate
+        const parsedPublicHoliday = publicHoliday.map((holiday, index) => {
             try {
+                console.log(`🔍 [workplaces] Processing holiday ${index + 1}:`, holiday);
+                
+                const localDate = parseLocalDate(holiday.date);
+                if (!localDate) {
+                    console.error(`❌ [workplaces] Invalid date format for holiday ${index + 1}: ${holiday.date}`);
+                    return null;
+                }
+                
+                console.log(`✅ [workplaces] Holiday ${index + 1} parsed: ${holiday.date} -> ${formatDateToYYYYMMDD(localDate)}`);
+                
                 return {
-                    date: new Date(holiday.date),
+                    date: localDate,
                     note: holiday.note || ""
                 };
             } catch (error) {
-                console.error('Error parsing date:', error);
-                return {
-                    date: new Date(),
-                    note: holiday.note || ""
-                };
+                console.error(`❌ [workplaces] Error parsing holiday ${index + 1}:`, error);
+                return null;
             }
-        }).filter(h => !isNaN(h.date.getTime()));
+        }).filter(h => h !== null);
 
         console.log('Received and parsed publicHoliday:', parsedPublicHoliday);
 
