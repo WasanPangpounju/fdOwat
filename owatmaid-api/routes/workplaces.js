@@ -936,4 +936,108 @@ router.post('/sync-public-holidays/:workplaceId', async (req, res) => {
     }
 });
 
+// เพิ่มวันหยุดส่วนกลางไปทุกหน่วยงาน
+router.post('/add-global-holiday', async (req, res) => {
+    try {
+        const { date, note } = req.body;
+        
+        // ตรวจสอบว่ามีข้อมูลวันที่หรือไม่
+        if (!date) {
+            return res.status(400).json({
+                success: false,
+                message: "กรุณาระบุวันที่ในรูปแบบ YYYY-MM-DD เช่น 2025-05-01"
+            });
+        }
+        
+        console.log(`🌏 [workplaces] กำลังเพิ่มวันหยุดส่วนกลาง: ${date} - ${note || "ไม่มีหมายเหตุ"}`);
+        
+        // 1. ดึงหน่วยงานทั้งหมดจาก database
+        const workplaces = await Workplace.find({});
+        console.log(`📊 [workplaces] พบหน่วยงานทั้งหมด: ${workplaces.length} หน่วยงาน`);
+        
+        let successCount = 0;
+        let skipCount = 0;
+        let errorCount = 0;
+        const results = [];
+        
+        // 2. เพิ่มวันหยุดไปทุกหน่วยงาน
+        for (const workplace of workplaces) {
+            try {
+                // ตรวจสอบว่ามีวันหยุดนี้อยู่แล้วหรือไม่ (ใช้ parseLocalDate)
+                const holidayDate = parseLocalDate(date);
+                if (!holidayDate) {
+                    console.error(`❌ [workplaces] ไม่สามารถแปลงวันที่: ${date}`);
+                    continue;
+                }
+                
+                const exists = workplace.publicHoliday.some(holiday => {
+                    const existingDate = parseLocalDate(holiday.date || holiday);
+                    if (!existingDate) return false;
+                    return formatDateToYYYYMMDD(existingDate) === formatDateToYYYYMMDD(holidayDate);
+                });
+                
+                if (!exists) {
+                    // เพิ่มวันหยุดใหม่
+                    workplace.publicHoliday.push({
+                        date: holidayDate,
+                        note: note || "",
+                        isGlobal: true
+                    });
+                    
+                    await workplace.save();
+                    
+                    console.log(`✅ [workplaces] สำเร็จ: หน่วยงาน ${workplace.workplaceId} - ${workplace.workplaceName}`);
+                    successCount++;
+                    results.push({
+                        workplaceId: workplace.workplaceId,
+                        workplaceName: workplace.workplaceName,
+                        status: 'success'
+                    });
+                } else {
+                    console.log(`⚠️ [workplaces] หน่วยงาน ${workplace.workplaceId} มีวันหยุดนี้อยู่แล้ว`);
+                    skipCount++;
+                    results.push({
+                        workplaceId: workplace.workplaceId,
+                        workplaceName: workplace.workplaceName,
+                        status: 'already_exists'
+                    });
+                }
+            } catch (workplaceError) {
+                console.error(`❌ [workplaces] Error สำหรับหน่วยงาน ${workplace.workplaceId}:`, workplaceError.message);
+                errorCount++;
+                results.push({
+                    workplaceId: workplace.workplaceId,
+                    workplaceName: workplace.workplaceName,
+                    status: 'error',
+                    error: workplaceError.message
+                });
+            }
+        }
+        
+        // 3. ส่งผลลัพธ์กลับ
+        res.json({
+            success: true,
+            message: `เพิ่มวันหยุด "${note || date}" ไปยังหน่วยงานเรียบร้อย`,
+            data: {
+                date: formatDateToYYYYMMDD(parseLocalDate(date)),
+                note: note || "",
+                totalWorkplaces: workplaces.length,
+                successCount: successCount,
+                skipCount: skipCount,
+                errorCount: errorCount
+            },
+            summary: `✅ สำเร็จ: ${successCount} | ⚠️ มีอยู่แล้ว: ${skipCount} | ❌ ผิดพลาด: ${errorCount}`,
+            results: results
+        });
+        
+    } catch (error) {
+        console.error('❌ [workplaces] Global holiday creation error:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message,
+            message: "เกิดข้อผิดพลาดในการเพิ่มวันหยุดส่วนกลาง"
+        });
+    }
+});
+
 module.exports = router;
