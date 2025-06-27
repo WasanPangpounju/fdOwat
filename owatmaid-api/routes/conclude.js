@@ -1354,29 +1354,103 @@ router.get('/getWeekendDates', async (req, res) => {
     const startDate = new Date(prevYear, prevMonth - 1, 21);
     const endDate = new Date(year, month - 1, 20);
 
-    // daysOff
+    // daysOff - ใช้ force local date เช่นเดียวกัน
     const daysOffDates = daysOff.map(d => {
       try {
-        return d instanceof Date ? d.toISOString().slice(0,10) : new Date(d).toISOString().slice(0,10);
-      } catch {
-        return d;
+        // จัดการกับ Date object
+        if (d instanceof Date) {
+          const yyyy = d.getFullYear();
+          const mm = String(d.getMonth() + 1).padStart(2, '0');
+          const dd = String(d.getDate()).padStart(2, '0');
+          return `${yyyy}-${mm}-${dd}`;
+        }
+        
+        // จัดการกับ string 'YYYY-MM-DD' หรือ 'YYYY/MM/DD' โดย force local
+        if (typeof d === 'string') {
+          let parts = d.includes('-') ? d.split('-') : (d.includes('/') ? d.split('/') : null);
+          if (parts && parts.length === 3) {
+            // สร้าง Date แบบ local (year, month-1, day) เพื่อป้องกัน timezone shift
+            const date = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+            if (!isNaN(date.getTime())) {
+              const yyyy = date.getFullYear();
+              const mm = String(date.getMonth() + 1).padStart(2, '0');
+              const dd = String(date.getDate()).padStart(2, '0');
+              return `${yyyy}-${mm}-${dd}`;
+            }
+          }
+        }
+        
+        // ถ้าไม่สามารถ parse ได้ให้คืนค่าเดิม
+        return typeof d === 'string' ? d : '';
+      } catch (err) {
+        console.error('Error parsing daysOff date:', err);
+        return '';
       }
     }).filter(dateStr => {
-      const d = new Date(dateStr);
-      return d >= startDate && d <= endDate;
+      if (!dateStr) return false;
+      
+      try {
+        // ใช้วิธีเดียวกันในการแปลง string เป็น Date แบบ local สำหรับเปรียบเทียบช่วงเวลา
+        const parts = dateStr.split('-');
+        if (parts.length === 3) {
+          const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+          return !isNaN(d.getTime()) && d >= startDate && d <= endDate;
+        }
+        return false;
+      } catch {
+        return false;
+      }
     });
 
-    // publicHoliday
+    // publicHoliday - ใช้ force local date เพื่อป้องกัน timezone shift
     const publicHolidayDates = publicHoliday.map(h => {
       try {
-        if (h && h.date) return new Date(h.date).toISOString().slice(0,10);
-        return new Date(h).toISOString().slice(0,10);
-      } catch {
-        return h;
+        // รับทั้งกรณี object {date: '...'} หรือเป็น string
+        let dateStr = h && h.date ? h.date : h;
+        
+        // จัดการกับ Date object
+        if (dateStr instanceof Date) {
+          const yyyy = dateStr.getFullYear();
+          const mm = String(dateStr.getMonth() + 1).padStart(2, '0');
+          const dd = String(dateStr.getDate()).padStart(2, '0');
+          return `${yyyy}-${mm}-${dd}`;
+        }
+        
+        // จัดการกับ string 'YYYY-MM-DD' หรือ 'YYYY/MM/DD' โดย force local
+        if (typeof dateStr === 'string') {
+          let parts = dateStr.includes('-') ? dateStr.split('-') : (dateStr.includes('/') ? dateStr.split('/') : null);
+          if (parts && parts.length === 3) {
+            // สร้าง Date แบบ local (year, month-1, day) เพื่อป้องกัน timezone shift
+            const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+            if (!isNaN(d.getTime())) {
+              const yyyy = d.getFullYear();
+              const mm = String(d.getMonth() + 1).padStart(2, '0');
+              const dd = String(d.getDate()).padStart(2, '0');
+              return `${yyyy}-${mm}-${dd}`;
+            }
+          }
+        }
+        
+        // ถ้าไม่สามารถ parse ได้ให้คืนค่าเดิม
+        return typeof dateStr === 'string' ? dateStr : '';
+      } catch (err) {
+        console.error('Error parsing publicHoliday date:', err);
+        return '';
       }
     }).filter(dateStr => {
-      const d = new Date(dateStr);
-      return d >= startDate && d <= endDate;
+      if (!dateStr) return false;
+      
+      try {
+        // ใช้วิธีเดียวกันในการแปลง string เป็น Date แบบ local สำหรับเปรียบเทียบช่วงเวลา
+        const parts = dateStr.split('-');
+        if (parts.length === 3) {
+          const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+          return !isNaN(d.getTime()) && d >= startDate && d <= endDate;
+        }
+        return false;
+      } catch {
+        return false;
+      }
     });
 
     // ตรวจสอบวันเสาร์-อาทิตย์ในช่วงเวลา
@@ -2369,21 +2443,30 @@ router.post('/updateDayOffOnly', async (req, res) => {
     const holidayData = publicHolidays.map(holiday => {
       try {
         if (typeof holiday === 'string') {
-          // ถ้าเป็น string (format เก่า) ให้แปลงเป็น object
+          // ถ้าเป็น string (format เก่า) ให้แปลงเป็น object และใช้ parseLocalDate
+          const localDate = parseLocalDateStr(holiday);
+          if (!localDate) return null;
+          
           return {
-            date: new Date(holiday),
+            date: localDate,
             note: ''
           };
         } else if (holiday && holiday.date) {
-          // ถ้าเป็น object ที่มี date และ note
+          // ถ้าเป็น object ที่มี date และ note ใช้ parseLocalDate
+          const localDate = parseLocalDateStr(holiday.date);
+          if (!localDate) return null;
+          
           return {
-            date: new Date(holiday.date),
+            date: localDate,
             note: holiday.note || ''
           };
         } else {
-          // fallback
+          // fallback - ใช้ parseLocalDate
+          const localDate = parseLocalDateStr(holiday);
+          if (!localDate) return null;
+          
           return {
-            date: new Date(holiday),
+            date: localDate,
             note: ''
           };
         }
