@@ -41,6 +41,15 @@ router.get('/listselect', async (req, res) => {
 
 });
 
+// Count workplaces with non-empty daysOff
+router.get('/count-daysOff', async (req, res) => {
+  try {
+    const count = await countWorkplaceWithDaysOff();
+    res.json({ count });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // Get  workplace by Id
 router.get('/:workplaceId', async (req, res) => {
@@ -684,15 +693,5 @@ router.post("/add-work-schedule/:workplaceId", async (req, res) => {
       res.status(500).json({ error: error.message });
     }
   });
-
-// Count workplaces with non-empty daysOff
-router.get('/count-daysOff', async (req, res) => {
-  try {
-    const count = await countWorkplaceWithDaysOff();
-    res.json({ count });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
 
 module.exports = router;
