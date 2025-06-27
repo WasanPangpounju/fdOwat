@@ -446,7 +446,7 @@ console.log(workRate + ' workRate ');
                 // let workRateOT = ((parseFloat(tmpWP.data.dayoffRateOT) * (salary / 8)) * (parseFloat(hoursTmp + decimalFraction))).toFixed(2);
 
                 //cal OT
-                let workRateOT = (((parseFloat(salary) / 8) * parseFloat(tmpWP.data.workRateOT)) * (parseFloat( (((parseFloat(hoursTmp || '0') * 60) + (parseFloat(minutesTmp || '0') )) / 60) ))).toFixed(3);
+                let workRateOT = (((parseFloat(salary) / 8) * parseFloat(tmpWP.data.workRateOT)) * (parseFloat( (((parseFloat(hoursTmp || '0') * 60) + parseFloat(minutesTmp || '0')) / 60) ))).toFixed(3);
                 tmp.workRateOT = workRateOT || 0;
                 tmp.workRateOTMultiply = tmpWP.data.workRateOT || 0;
 
@@ -701,9 +701,9 @@ const         wpDataCalculator1 = await {
                 // let workRateOT = ((parseFloat(wpResponse1.data.workRateOT ?? 0) * (salary / 8)) * (parseFloat(hoursTmp + decimalFraction)) ).toFixed(3);
 
                 //cal OT
-                let workRateOT = (((parseFloat(salary) / 8) * parseFloat(wpResponse1.data.workRateOT)) * (parseFloat( (((parseFloat(hoursTmp || '0') * 60) + parseFloat(minutesTmp || '0')) / 60) ))).toFixed(3);
+                let workRateOT = (((parseFloat(salary) / 8) * parseFloat(tmpWP.data.workRateOT)) * (parseFloat( (((parseFloat(hoursTmp || '0') * 60) + parseFloat(minutesTmp || '0')) / 60) ))).toFixed(3);
                 tmp.workRateOT = workRateOT || 0;
-                tmp.workRateOTMultiply = wpResponse1.data.workRateOT || 0;
+                tmp.workRateOTMultiply = tmpWP.data.workRateOT || 0;
 
                 sumWorkHour += parseFloat(allTime) || 0;
                 sumWorkRate += parseFloat(workRate) || 0;
@@ -943,7 +943,7 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
                 // let workRateOT = ((parseFloat(tmpWP.data.dayoffRateOT) * (salary / 8)) * (parseFloat(hoursTmp + decimalFraction))).toFixed(2);
 
                 //cal OT
-                let workRateOT = ((parseFloat(wpResponse1.data.holidayOT) * (salary / 8)) * (parseFloat( (((hoursTmp * 60) + (minutesTmp )) / 60) )) ).toFixed(3);
+                let workRateOT = ((parseFloat(wpResponse1.data.holidayOT) * (salary / 8)) * (parseFloat( (((hoursTmp * 60) + (minutesTmp )) / 60)  )) ).toFixed(3);
                 tmp.workRateOT = workRateOT || 0;
                 tmp.workRateOTMultiply = wpResponse1.data.holidayOT || 0;
 
@@ -963,6 +963,8 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
                 tmp.workType = 'specialDayOff';
 
               } else if (dayOffCheck1.includes(str1)) {
+                console.log('day off rate');
+
                 if (salary === 0 || salary == upsalary  ) {
                   salary = wpResponse1.data.workRate + parseFloat(upsalary   || '0');
                 }
@@ -1014,19 +1016,20 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
                 tmp.workType = 'dayOff';
 
               } else {
+                // console.log('default rate');
                 if (salary === 0 || salary == upsalary  ) {
-                  salary = parseFloat(tmpWP.data.workRate || '0')+ parseFloat(upsalary   || '0');
+                  salary = parseFloat(wpResponse1.data.workRate || '0') + parseFloat(upsalary   || '0');
                 }
 
-                if(parseFloat(allTime || 0 ) >= workOfHour) {
+
+                if (parseFloat(allTime || '0') >= workOfHour) {
                   allTime = workOfHour;
-                  tmp.allTimes = workOfHour || 0;
+                  tmp.allTime = workOfHour || 0;
                 } else {
-                  tmp.allTimes = allTime || 0;
+                  tmp.allTime = allTime || 0;
                 }
 
-                // let workRate = ((salary / 8) * (parseFloat(otTime) * 1.111) ).toFixed(2);
-                let workRate = ((parseFloat(salary) / 8) * parseFloat(allTime)).toFixed(3);
+                let workRate = ((parseFloat(salary || '0') / 8) * parseFloat(allTime)).toFixed(3);
                 tmp.workRate = workRate || 0;
                 tmp.workRateMultiply = '1';
 
@@ -1040,7 +1043,7 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
                 }
 
                 let [hoursTmp, minutesTmp] = otTime.toString().split('.').map(Number);
-                let decimalFraction = (minutesTmp || 0 ).toFixed(2) / 60;
+                let decimalFraction = (minutesTmp || 0) .toFixed(2) / 60;
                 // let workRateOT = ((parseFloat(tmpWP.data.dayoffRateOT) * (salary / 8)) * (parseFloat(hoursTmp + decimalFraction))).toFixed(2);
                 // let workRateOT = ((parseFloat(wpResponse1.data.workRateOT ?? 0) * (salary / 8)) * (parseFloat(hoursTmp + decimalFraction)) ).toFixed(3);
 
@@ -1229,99 +1232,20 @@ let addSalaryDailyx = await addSalaryDaily.filter(item1 => item1.id !== '1210');
 });
 
 
-// Function to update publicHoliday in workplace
-async function updatePublicHoliday(workplaceId, yyyy, mm, dayOffOnly) {
-  try {
-    const workplace = await Workplace.findOne({ workplaceId });
-    if (!workplace) {
-      console.error(`❌ Cannot update publicHoliday: Workplace ${workplaceId} not found`);
-      return false;
+// Helper: parse 'YYYY-MM-DD' or 'YYYY/MM/DD' as local date (force local, never UTC)
+function parseLocalDate(str) {
+  if (!str) return null;
+  if (str instanceof Date) return str;
+  if (typeof str === 'object' && str.date) str = str.date;
+  if (typeof str === 'string') {
+    // force local for ISO string
+    let parts = str.includes('-') ? str.split('-') : str.split('/');
+    if (parts.length === 3) {
+      // handle 'YYYY-MM-DD' or 'YYYY/MM/DD'
+      return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
     }
-
-    // Get existing publicHoliday dates
-    let existingDates = workplace.publicHoliday || [];
-    
-    // Convert existing dates to a format we can work with
-    const existingHolidays = existingDates.map(holiday => {
-      if (holiday && typeof holiday === 'object' && holiday.date) {
-        // รูปแบบใหม่ที่เป็น object {date, note}
-        return {
-          date: new Date(holiday.date),
-          note: holiday.note || ""
-        };
-      } else {
-        // รูปแบบเก่าที่เป็น Date โดยตรง
-        return {
-          date: new Date(holiday),
-          note: ""
-        };
-      }
-    }).filter(h => h.date instanceof Date && !isNaN(h.date.getTime()));
-    
-    // Remove any existing dates from the same month if updating a specific month
-    if (yyyy && mm) {
-      const year = Number(yyyy);
-      const month = Number(mm);
-      
-      // Filter out dates from the month we're updating (21st of previous month to 20th of current month)
-      let prevMonth = month - 1;
-      let prevYear = year;
-      if (prevMonth === 0) {
-        prevMonth = 12;
-        prevYear -= 1;
-      }
-      
-      const startDate = new Date(prevYear, prevMonth - 1, 21);
-      const endDate = new Date(year, month - 1, 20);
-      
-      console.log(`Filtering dates between ${startDate.toISOString()} and ${endDate.toISOString()}`);
-      
-      // Keep only dates outside the range we're updating
-      const filteredHolidays = existingHolidays.filter(holiday => {
-        const d = holiday.date;
-        return d < startDate || d > endDate;
-      });
-      
-      console.log(`Removed ${existingHolidays.length - filteredHolidays.length} dates from the update range`);
-      existingHolidays.length = 0; // Clear the array
-      existingHolidays.push(...filteredHolidays); // Update with filtered dates
-    }
-    
-    // Add new dayOffOnly dates
-    const newHolidays = dayOffOnly.map(dateStr => ({
-      date: new Date(dateStr),
-      note: ""
-    })).filter(h => h.date instanceof Date && !isNaN(h.date.getTime()));
-    
-    // Check for duplicates before adding
-    const updatedHolidays = [...existingHolidays];
-    
-    for (const newHoliday of newHolidays) {
-      // Check if this date already exists
-      const isDuplicate = existingHolidays.some(existing => 
-        existing.date.getFullYear() === newHoliday.date.getFullYear() &&
-        existing.date.getMonth() === newHoliday.date.getMonth() &&
-        existing.date.getDate() === newHoliday.date.getDate()
-      );
-      
-      if (!isDuplicate) {
-        updatedHolidays.push(newHoliday);
-      }
-    }
-    
-    // Update the workplace
-    await Workplace.findOneAndUpdate(
-      { workplaceId },
-      { publicHoliday: updatedHolidays },
-      { new: true }
-    );
-    
-    console.log(`✅ Updated publicHoliday for workplace ${workplaceId}: Added ${newHolidays.length} holidays`);
-    return true;
-  } catch (error) {
-    console.error(`❌ Error updating publicHoliday for workplace ${workplaceId}:`, error);
-    return false;
   }
+  return new Date(str); // fallback
 }
 
 router.get('/getWeekendDates', async (req, res) => {
@@ -1342,7 +1266,7 @@ router.get('/getWeekendDates', async (req, res) => {
     // วันหยุดนักขัตฤกษ์ (publicHoliday)
     const publicHoliday = workplace.publicHoliday || [];
 
-    // daysOff: แปลงเป็น yyyy-mm-dd string เฉพาะที่อยู่ในช่วงเวลา
+    // daysOff: แปลงเป็น yyyy-mm-dd string เฉพาะที่อยู่ในช่วงเวลา (local date)
     const year = Number(yyyy);
     const month = Number(mm);
     let prevMonth = month - 1;
@@ -1354,103 +1278,47 @@ router.get('/getWeekendDates', async (req, res) => {
     const startDate = new Date(prevYear, prevMonth - 1, 21);
     const endDate = new Date(year, month - 1, 20);
 
-    // daysOff - ใช้ force local date เช่นเดียวกัน
+    // daysOff
     const daysOffDates = daysOff.map(d => {
       try {
-        // จัดการกับ Date object
-        if (d instanceof Date) {
-          const yyyy = d.getFullYear();
-          const mm = String(d.getMonth() + 1).padStart(2, '0');
-          const dd = String(d.getDate()).padStart(2, '0');
-          return `${yyyy}-${mm}-${dd}`;
-        }
-        
-        // จัดการกับ string 'YYYY-MM-DD' หรือ 'YYYY/MM/DD' โดย force local
-        if (typeof d === 'string') {
-          let parts = d.includes('-') ? d.split('-') : (d.includes('/') ? d.split('/') : null);
-          if (parts && parts.length === 3) {
-            // สร้าง Date แบบ local (year, month-1, day) เพื่อป้องกัน timezone shift
-            const date = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
-            if (!isNaN(date.getTime())) {
-              const yyyy = date.getFullYear();
-              const mm = String(date.getMonth() + 1).padStart(2, '0');
-              const dd = String(date.getDate()).padStart(2, '0');
-              return `${yyyy}-${mm}-${dd}`;
-            }
-          }
-        }
-        
-        // ถ้าไม่สามารถ parse ได้ให้คืนค่าเดิม
-        return typeof d === 'string' ? d : '';
-      } catch (err) {
-        console.error('Error parsing daysOff date:', err);
-        return '';
+        const local = parseLocalDate(d);
+        return local instanceof Date && !isNaN(local) ? local.toISOString().slice(0,10) : d;
+      } catch {
+        return d;
       }
     }).filter(dateStr => {
-      if (!dateStr) return false;
-      
-      try {
-        // ใช้วิธีเดียวกันในการแปลง string เป็น Date แบบ local สำหรับเปรียบเทียบช่วงเวลา
-        const parts = dateStr.split('-');
-        if (parts.length === 3) {
-          const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
-          return !isNaN(d.getTime()) && d >= startDate && d <= endDate;
-        }
-        return false;
-      } catch {
-        return false;
-      }
+      const d = parseLocalDate(dateStr);
+      return d && d >= startDate && d <= endDate;
     });
 
-    // publicHoliday - ใช้ force local date เพื่อป้องกัน timezone shift
+    // publicHoliday (force local parse, never fallback to Date(str) for string)
     const publicHolidayDates = publicHoliday.map(h => {
       try {
-        // รับทั้งกรณี object {date: '...'} หรือเป็น string
+        // รับทั้ง object {date: 'YYYY-MM-DD'} หรือ string 'YYYY-MM-DD'
         let dateStr = h && h.date ? h.date : h;
-        
-        // จัดการกับ Date object
-        if (dateStr instanceof Date) {
-          const yyyy = dateStr.getFullYear();
-          const mm = String(dateStr.getMonth() + 1).padStart(2, '0');
-          const dd = String(dateStr.getDate()).padStart(2, '0');
-          return `${yyyy}-${mm}-${dd}`;
-        }
-        
-        // จัดการกับ string 'YYYY-MM-DD' หรือ 'YYYY/MM/DD' โดย force local
         if (typeof dateStr === 'string') {
-          let parts = dateStr.includes('-') ? dateStr.split('-') : (dateStr.includes('/') ? dateStr.split('/') : null);
-          if (parts && parts.length === 3) {
-            // สร้าง Date แบบ local (year, month-1, day) เพื่อป้องกัน timezone shift
-            const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
-            if (!isNaN(d.getTime())) {
-              const yyyy = d.getFullYear();
-              const mm = String(d.getMonth() + 1).padStart(2, '0');
-              const dd = String(d.getDate()).padStart(2, '0');
-              return `${yyyy}-${mm}-${dd}`;
-            }
+          // parseLocalDate แบบ force local เท่านั้น
+          let parts = dateStr.includes('-') ? dateStr.split('-') : dateStr.split('/');
+          if (parts.length === 3) {
+            const local = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+            return local instanceof Date && !isNaN(local) ? local.toISOString().slice(0,10) : dateStr;
           }
         }
-        
-        // ถ้าไม่สามารถ parse ได้ให้คืนค่าเดิม
-        return typeof dateStr === 'string' ? dateStr : '';
-      } catch (err) {
-        console.error('Error parsing publicHoliday date:', err);
-        return '';
+        // ถ้าไม่ใช่ string หรือ parse ไม่ได้ return เดิม
+        return dateStr;
+      } catch {
+        return h;
       }
     }).filter(dateStr => {
-      if (!dateStr) return false;
-      
-      try {
-        // ใช้วิธีเดียวกันในการแปลง string เป็น Date แบบ local สำหรับเปรียบเทียบช่วงเวลา
-        const parts = dateStr.split('-');
+      // filter เฉพาะวันที่อยู่ในช่วง
+      let d = null;
+      if (typeof dateStr === 'string') {
+        let parts = dateStr.includes('-') ? dateStr.split('-') : dateStr.split('/');
         if (parts.length === 3) {
-          const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
-          return !isNaN(d.getTime()) && d >= startDate && d <= endDate;
+          d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
         }
-        return false;
-      } catch {
-        return false;
       }
+      return d && d >= startDate && d <= endDate;
     });
 
     // ตรวจสอบวันเสาร์-อาทิตย์ในช่วงเวลา
@@ -1535,7 +1403,6 @@ router.get('/listdelete', async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
-
 
 // Get  conclude record by conclude Id
 router.get('/:month/:employeeId', async (req, res) => {
@@ -1721,7 +1588,6 @@ router.post('/create', async (req, res) => {
   }
 });
 
-
 // Update existing records in workplaceTimerecordEmp
 router.put('/update/:concludeRecordId', async (req, res) => {
   const concludeIdToUpdate = req.params.concludeRecordId;
@@ -1769,7 +1635,6 @@ router.post('/delete-records', async (req, res) => {
     res.status(500).send('Error deleting records: ' + error.message);
   }
 });
-
 
 
 function groupByWorkplaceId(records) {
@@ -1907,7 +1772,7 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
     const workplaceData = workplaceResponse.data;
     
     // ใช้ค่า workRate จาก API โดยตรง
-    const workRateFromAPI = parseFloat(workplaceData.workRate || '0');
+       const workRateFromAPI = parseFloat(workplaceData.workRate || '0');
     console.log(`📊 ดึงค่าแรงจาก API สำหรับ workplace ${workplaceId}: ${workRateFromAPI}`);
     
     // เก็บค่าที่ได้จาก API ไว้ใน dataCal
@@ -2079,7 +1944,7 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
     // ตรวจสอบวันหยุดพิเศษ
     let isDayOff = false;
     for(let itemDay of workplaces?.[0]?.daysOff || []) {
-      if(toBangkokDate(itemDay) === dateString) {
+      if(toBangkokDate(itemDay) === date) {
         console.log('special day off ' + toBangkokDate(itemDay) + ' = ' + date);
         isDayOff = true;
         break;  
@@ -2443,30 +2308,21 @@ router.post('/updateDayOffOnly', async (req, res) => {
     const holidayData = publicHolidays.map(holiday => {
       try {
         if (typeof holiday === 'string') {
-          // ถ้าเป็น string (format เก่า) ให้แปลงเป็น object และใช้ parseLocalDate
-          const localDate = parseLocalDateStr(holiday);
-          if (!localDate) return null;
-          
+          // ถ้าเป็น string (format เก่า) ให้แปลงเป็น object
           return {
-            date: localDate,
+            date: new Date(holiday),
             note: ''
           };
         } else if (holiday && holiday.date) {
-          // ถ้าเป็น object ที่มี date และ note ใช้ parseLocalDate
-          const localDate = parseLocalDateStr(holiday.date);
-          if (!localDate) return null;
-          
+          // ถ้าเป็น object ที่มี date และ note
           return {
-            date: localDate,
+            date: new Date(holiday.date),
             note: holiday.note || ''
           };
         } else {
-          // fallback - ใช้ parseLocalDate
-          const localDate = parseLocalDateStr(holiday);
-          if (!localDate) return null;
-          
+          // fallback
           return {
-            date: localDate,
+            date: new Date(holiday),
             note: ''
           };
         }
