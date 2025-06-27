@@ -1,6 +1,6 @@
 const connectionString = require('../config');
 
-const {Workplace} = require('./models/workplaceModel');
+const {Workplace, countWorkplaceWithDaysOff} = require('./models/workplaceModel');
 
 var express = require('express');
 var router = express.Router();
@@ -684,5 +684,15 @@ router.post("/add-work-schedule/:workplaceId", async (req, res) => {
       res.status(500).json({ error: error.message });
     }
   });
+
+// Count workplaces with non-empty daysOff
+router.get('/count-daysOff', async (req, res) => {
+  try {
+    const count = await countWorkplaceWithDaysOff();
+    res.json({ count });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 module.exports = router;
