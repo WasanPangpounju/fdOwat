@@ -129,9 +129,9 @@ router.get('/:workplaceId', async (req, res) => {
                             return null;
                         }
                         
-                        // ✅ ส่ง local Date object ที่ถูกต้องกลับไป
+                        // ✅ ส่ง formatted date string แทน Date object เพื่อป้องกัน timezone serialization
                         return {
-                            date: correctedDate,
+                            date: formatDateToYYYYMMDD(correctedDate), // ✅ ส่งเป็น string แทน Date object
                             note: holiday.note || '',
                             _id: holiday._id
                         };
