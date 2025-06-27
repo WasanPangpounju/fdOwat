@@ -282,21 +282,13 @@ const workplaceSchema = new mongoose.Schema({
     specialWorkTimeDay: [SpecialWorkTimeSchema],
 });
 
-// Static method for counting workplaces with non-empty daysOff
-workplaceSchema.statics.countWithDaysOff = function() {
-  return this.countDocuments({ daysOff: { $exists: true, $not: { $size: 0 } } });
-};
-
 // Create the workplace model based on the schema
 const Workplace = mongoose.model('Workplace', workplaceSchema);
 
-// Utility function for direct use
-async function countWorkplaceWithDaysOff() {
-  return await Workplace.countWithDaysOff();
-}
+
+// module.exports = Workplace;
 
 module.exports = {
   Workplace,        // model
-  workplaceSchema,  // schema
-  countWorkplaceWithDaysOff // utility function
+  workplaceSchema   // schema
 };
