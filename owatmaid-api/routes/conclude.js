@@ -446,7 +446,7 @@ console.log(workRate + ' workRate ');
                 // let workRateOT = ((parseFloat(tmpWP.data.dayoffRateOT) * (salary / 8)) * (parseFloat(hoursTmp + decimalFraction))).toFixed(2);
 
                 //cal OT
-                let workRateOT = (((parseFloat(salary) / 8) * parseFloat(tmpWP.data.workRateOT)) * (parseFloat( (((parseFloat(hoursTmp || '0') * 60) + (parseFloat(minutesTmp || '0') )) / 60) ))).toFixed(3);
+                let workRateOT = (((parseFloat(salary) / 8) * parseFloat(tmpWP.data.workRateOT)) * (parseFloat( (((parseFloat(hoursTmp || '0') * 60) + parseFloat(minutesTmp || '0')) / 60) ))).toFixed(3);
                 tmp.workRateOT = workRateOT || 0;
                 tmp.workRateOTMultiply = tmpWP.data.workRateOT || 0;
 
@@ -701,9 +701,9 @@ const         wpDataCalculator1 = await {
                 // let workRateOT = ((parseFloat(wpResponse1.data.workRateOT ?? 0) * (salary / 8)) * (parseFloat(hoursTmp + decimalFraction)) ).toFixed(3);
 
                 //cal OT
-                let workRateOT = (((parseFloat(salary) / 8) * parseFloat(wpResponse1.data.workRateOT)) * (parseFloat( (((parseFloat(hoursTmp || '0') * 60) + parseFloat(minutesTmp || '0')) / 60) ))).toFixed(3);
+                let workRateOT = (((parseFloat(salary) / 8) * parseFloat(tmpWP.data.workRateOT)) * (parseFloat( (((parseFloat(hoursTmp || '0') * 60) + parseFloat(minutesTmp || '0')) / 60) ))).toFixed(3);
                 tmp.workRateOT = workRateOT || 0;
-                tmp.workRateOTMultiply = wpResponse1.data.workRateOT || 0;
+                tmp.workRateOTMultiply = tmpWP.data.workRateOT || 0;
 
                 sumWorkHour += parseFloat(allTime) || 0;
                 sumWorkRate += parseFloat(workRate) || 0;
@@ -943,7 +943,7 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
                 // let workRateOT = ((parseFloat(tmpWP.data.dayoffRateOT) * (salary / 8)) * (parseFloat(hoursTmp + decimalFraction))).toFixed(2);
 
                 //cal OT
-                let workRateOT = ((parseFloat(wpResponse1.data.holidayOT) * (salary / 8)) * (parseFloat( (((hoursTmp * 60) + (minutesTmp )) / 60) )) ).toFixed(3);
+                let workRateOT = ((parseFloat(wpResponse1.data.holidayOT) * (salary / 8)) * (parseFloat( (((hoursTmp * 60) + (minutesTmp )) / 60)  )) ).toFixed(3);
                 tmp.workRateOT = workRateOT || 0;
                 tmp.workRateOTMultiply = wpResponse1.data.holidayOT || 0;
 
@@ -1014,19 +1014,20 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
                 tmp.workType = 'dayOff';
 
               } else {
+                // console.log('default rate');
                 if (salary === 0 || salary == upsalary  ) {
-                  salary = parseFloat(tmpWP.data.workRate || '0')+ parseFloat(upsalary   || '0');
+                  salary = parseFloat(wpResponse1.data.workRate || '0') + parseFloat(upsalary   || '0');
                 }
 
-                if(parseFloat(allTime || 0 ) >= workOfHour) {
+
+                if (parseFloat(allTime || '0') >= workOfHour) {
                   allTime = workOfHour;
-                  tmp.allTimes = workOfHour || 0;
+                  tmp.allTime = workOfHour || 0;
                 } else {
-                  tmp.allTimes = allTime || 0;
+                  tmp.allTime = allTime || 0;
                 }
 
-                // let workRate = ((salary / 8) * (parseFloat(otTime) * 1.111) ).toFixed(2);
-                let workRate = ((parseFloat(salary) / 8) * parseFloat(allTime)).toFixed(3);
+                let workRate = ((parseFloat(salary || '0') / 8) * parseFloat(allTime)).toFixed(3);
                 tmp.workRate = workRate || 0;
                 tmp.workRateMultiply = '1';
 
@@ -1040,7 +1041,7 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
                 }
 
                 let [hoursTmp, minutesTmp] = otTime.toString().split('.').map(Number);
-                let decimalFraction = (minutesTmp || 0 ).toFixed(2) / 60;
+                let decimalFraction = (minutesTmp || 0) .toFixed(2) / 60;
                 // let workRateOT = ((parseFloat(tmpWP.data.dayoffRateOT) * (salary / 8)) * (parseFloat(hoursTmp + decimalFraction))).toFixed(2);
                 // let workRateOT = ((parseFloat(wpResponse1.data.workRateOT ?? 0) * (salary / 8)) * (parseFloat(hoursTmp + decimalFraction)) ).toFixed(3);
 
@@ -1229,99 +1230,16 @@ let addSalaryDailyx = await addSalaryDaily.filter(item1 => item1.id !== '1210');
 });
 
 
-// Function to update publicHoliday in workplace
-async function updatePublicHoliday(workplaceId, yyyy, mm, dayOffOnly) {
-  try {
-    const workplace = await Workplace.findOne({ workplaceId });
-    if (!workplace) {
-      console.error(`❌ Cannot update publicHoliday: Workplace ${workplaceId} not found`);
-      return false;
-    }
-
-    // Get existing publicHoliday dates
-    let existingDates = workplace.publicHoliday || [];
-    
-    // Convert existing dates to a format we can work with
-    const existingHolidays = existingDates.map(holiday => {
-      if (holiday && typeof holiday === 'object' && holiday.date) {
-        // รูปแบบใหม่ที่เป็น object {date, note}
-        return {
-          date: new Date(holiday.date),
-          note: holiday.note || ""
-        };
-      } else {
-        // รูปแบบเก่าที่เป็น Date โดยตรง
-        return {
-          date: new Date(holiday),
-          note: ""
-        };
-      }
-    }).filter(h => h.date instanceof Date && !isNaN(h.date.getTime()));
-    
-    // Remove any existing dates from the same month if updating a specific month
-    if (yyyy && mm) {
-      const year = Number(yyyy);
-      const month = Number(mm);
-      
-      // Filter out dates from the month we're updating (21st of previous month to 20th of current month)
-      let prevMonth = month - 1;
-      let prevYear = year;
-      if (prevMonth === 0) {
-        prevMonth = 12;
-        prevYear -= 1;
-      }
-      
-      const startDate = new Date(prevYear, prevMonth - 1, 21);
-      const endDate = new Date(year, month - 1, 20);
-      
-      console.log(`Filtering dates between ${startDate.toISOString()} and ${endDate.toISOString()}`);
-      
-      // Keep only dates outside the range we're updating
-      const filteredHolidays = existingHolidays.filter(holiday => {
-        const d = holiday.date;
-        return d < startDate || d > endDate;
-      });
-      
-      console.log(`Removed ${existingHolidays.length - filteredHolidays.length} dates from the update range`);
-      existingHolidays.length = 0; // Clear the array
-      existingHolidays.push(...filteredHolidays); // Update with filtered dates
-    }
-    
-    // Add new dayOffOnly dates
-    const newHolidays = dayOffOnly.map(dateStr => ({
-      date: new Date(dateStr),
-      note: ""
-    })).filter(h => h.date instanceof Date && !isNaN(h.date.getTime()));
-    
-    // Check for duplicates before adding
-    const updatedHolidays = [...existingHolidays];
-    
-    for (const newHoliday of newHolidays) {
-      // Check if this date already exists
-      const isDuplicate = existingHolidays.some(existing => 
-        existing.date.getFullYear() === newHoliday.date.getFullYear() &&
-        existing.date.getMonth() === newHoliday.date.getMonth() &&
-        existing.date.getDate() === newHoliday.date.getDate()
-      );
-      
-      if (!isDuplicate) {
-        updatedHolidays.push(newHoliday);
-      }
-    }
-    
-    // Update the workplace
-    await Workplace.findOneAndUpdate(
-      { workplaceId },
-      { publicHoliday: updatedHolidays },
-      { new: true }
-    );
-    
-    console.log(`✅ Updated publicHoliday for workplace ${workplaceId}: Added ${newHolidays.length} holidays`);
-    return true;
-  } catch (error) {
-    console.error(`❌ Error updating publicHoliday for workplace ${workplaceId}:`, error);
-    return false;
+// Helper: parse 'YYYY-MM-DD' or 'YYYY/MM/DD' as local date
+function parseLocalDate(str) {
+  if (!str) return null;
+  if (str instanceof Date) return str;
+  if (typeof str === 'object' && str.date) str = str.date;
+  let parts = str.includes('-') ? str.split('-') : str.split('/');
+  if (parts.length === 3) {
+    return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
   }
+  return new Date(str); // fallback
 }
 
 router.get('/getWeekendDates', async (req, res) => {
@@ -1342,7 +1260,7 @@ router.get('/getWeekendDates', async (req, res) => {
     // วันหยุดนักขัตฤกษ์ (publicHoliday)
     const publicHoliday = workplace.publicHoliday || [];
 
-    // daysOff: แปลงเป็น yyyy-mm-dd string เฉพาะที่อยู่ในช่วงเวลา
+    // daysOff: แปลงเป็น yyyy-mm-dd string เฉพาะที่อยู่ในช่วงเวลา (local date)
     const year = Number(yyyy);
     const month = Number(mm);
     let prevMonth = month - 1;
@@ -1357,26 +1275,27 @@ router.get('/getWeekendDates', async (req, res) => {
     // daysOff
     const daysOffDates = daysOff.map(d => {
       try {
-        return d instanceof Date ? d.toISOString().slice(0,10) : new Date(d).toISOString().slice(0,10);
+        const local = parseLocalDate(d);
+        return local instanceof Date && !isNaN(local) ? local.toISOString().slice(0,10) : d;
       } catch {
         return d;
       }
     }).filter(dateStr => {
-      const d = new Date(dateStr);
-      return d >= startDate && d <= endDate;
+      const d = parseLocalDate(dateStr);
+      return d && d >= startDate && d <= endDate;
     });
 
     // publicHoliday
     const publicHolidayDates = publicHoliday.map(h => {
       try {
-        if (h && h.date) return new Date(h.date).toISOString().slice(0,10);
-        return new Date(h).toISOString().slice(0,10);
+        const local = parseLocalDate(h && h.date ? h.date : h);
+        return local instanceof Date && !isNaN(local) ? local.toISOString().slice(0,10) : h;
       } catch {
         return h;
       }
     }).filter(dateStr => {
-      const d = new Date(dateStr);
-      return d >= startDate && d <= endDate;
+      const d = parseLocalDate(dateStr);
+      return d && d >= startDate && d <= endDate;
     });
 
     // ตรวจสอบวันเสาร์-อาทิตย์ในช่วงเวลา
@@ -2005,7 +1924,7 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
     // ตรวจสอบวันหยุดพิเศษ
     let isDayOff = false;
     for(let itemDay of workplaces?.[0]?.daysOff || []) {
-      if(toBangkokDate(itemDay) === dateString) {
+      if(toBangkokDate(itemDay) === date) {
         console.log('special day off ' + toBangkokDate(itemDay) + ' = ' + date);
         isDayOff = true;
         break;  
