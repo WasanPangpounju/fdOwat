@@ -1291,33 +1291,16 @@ router.get('/getWeekendDates', async (req, res) => {
       return d && d >= startDate && d <= endDate;
     });
 
-    // publicHoliday (force local parse, never fallback to Date(str) for string)
+    // publicHoliday
     const publicHolidayDates = publicHoliday.map(h => {
       try {
-        // รับทั้ง object {date: 'YYYY-MM-DD'} หรือ string 'YYYY-MM-DD'
-        let dateStr = h && h.date ? h.date : h;
-        if (typeof dateStr === 'string') {
-          // parseLocalDate แบบ force local เท่านั้น
-          let parts = dateStr.includes('-') ? dateStr.split('-') : dateStr.split('/');
-          if (parts.length === 3) {
-            const local = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
-            return local instanceof Date && !isNaN(local) ? local.toISOString().slice(0,10) : dateStr;
-          }
-        }
-        // ถ้าไม่ใช่ string หรือ parse ไม่ได้ return เดิม
-        return dateStr;
+        const local = parseLocalDate(h && h.date ? h.date : h);
+        return local instanceof Date && !isNaN(local) ? local.toISOString().slice(0,10) : h;
       } catch {
         return h;
       }
     }).filter(dateStr => {
-      // filter เฉพาะวันที่อยู่ในช่วง
-      let d = null;
-      if (typeof dateStr === 'string') {
-        let parts = dateStr.includes('-') ? dateStr.split('-') : dateStr.split('/');
-        if (parts.length === 3) {
-          d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
-        }
-      }
+      const d = parseLocalDate(dateStr);
       return d && d >= startDate && d <= endDate;
     });
 
@@ -1772,7 +1755,7 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
     const workplaceData = workplaceResponse.data;
     
     // ใช้ค่า workRate จาก API โดยตรง
-       const workRateFromAPI = parseFloat(workplaceData.workRate || '0');
+    const workRateFromAPI = parseFloat(workplaceData.workRate || '0');
     console.log(`📊 ดึงค่าแรงจาก API สำหรับ workplace ${workplaceId}: ${workRateFromAPI}`);
     
     // เก็บค่าที่ได้จาก API ไว้ใน dataCal
