@@ -110,29 +110,31 @@ router.get('/:workplaceId', async (req, res) => {
                 
                 workplace.publicHoliday = workplace.publicHoliday.map((holiday, index) => {
                     try {
-                        // ถ้า holiday.date เป็น Date object อยู่แล้ว ก็ใช้เลย
+                        let correctedDate;
+                        
+                        // ถ้า holiday.date เป็น Date object อยู่แล้ว
                         if (holiday.date instanceof Date) {
-                            const formattedDate = formatDateToYYYYMMDD(holiday.date);
-                            console.log(`✅ [workplaces GET] Holiday ${index + 1}: Date object -> ${formattedDate}`);
-                            return {
-                                date: holiday.date,
-                                note: holiday.note || ''
-                            };
+                            // ใช้ parseLocalDate เพื่อแปลงเป็น local date ที่ถูกต้อง
+                            const isoString = holiday.date.toISOString();
+                            correctedDate = parseLocalDate(isoString);
+                            console.log(`✅ [workplaces GET] Holiday ${index + 1}: Date object (${isoString}) -> ${formatDateToYYYYMMDD(correctedDate)}`);
+                        } else {
+                            // ถ้าเป็น string ให้แปลงด้วย parseLocalDate
+                            correctedDate = parseLocalDate(holiday.date);
+                            console.log(`✅ [workplaces GET] Holiday ${index + 1}: ${holiday.date} -> ${formatDateToYYYYMMDD(correctedDate)}`);
                         }
                         
-                        // ถ้าเป็น string ให้แปลงด้วย parseLocalDate
-                        const localDate = parseLocalDate(holiday.date);
-                        if (localDate) {
-                            const formattedDate = formatDateToYYYYMMDD(localDate);
-                            console.log(`✅ [workplaces GET] Holiday ${index + 1}: ${holiday.date} -> ${formattedDate}`);
-                            return {
-                                date: localDate,
-                                note: holiday.note || ''
-                            };
+                        if (!correctedDate) {
+                            console.error(`❌ [workplaces GET] Invalid holiday date:`, holiday);
+                            return null;
                         }
                         
-                        console.error(`❌ [workplaces GET] Invalid holiday date:`, holiday);
-                        return null;
+                        // ✅ ส่ง local Date object ที่ถูกต้องกลับไป
+                        return {
+                            date: correctedDate,
+                            note: holiday.note || '',
+                            _id: holiday._id
+                        };
                     } catch (error) {
                         console.error(`❌ [workplaces GET] Error processing holiday ${index + 1}:`, error);
                         return null;
