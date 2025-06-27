@@ -1238,7 +1238,25 @@ function parseLocalDate(str) {
   if (str instanceof Date) return str;
   if (typeof str === 'object' && str.date) str = str.date;
   if (typeof str === 'string') {
-    // force local for ISO string
+    
+    // ถ้าเป็น ISO timestamp (เช่น 2025-06-02T17:00:00.000Z)
+    if (str.includes('T') && (str.includes('Z') || str.includes('+'))) {
+      console.log(`🔍 Parsing ISO timestamp: ${str}`);
+      const isoDate = new Date(str);
+      if (!isNaN(isoDate.getTime())) {
+        // แปลง ISO date เป็น local date โดยใช้ local timezone
+        const localYear = isoDate.getFullYear();
+        const localMonth = isoDate.getMonth();
+        const localDay = isoDate.getDate();
+        
+        // สร้าง Date object ใหม่แบบ local timezone
+        const localDate = new Date(localYear, localMonth, localDay);
+        console.log(`✅ ISO to local: ${str} -> ${localYear}-${String(localMonth + 1).padStart(2, '0')}-${String(localDay).padStart(2, '0')}`);
+        return localDate;
+      }
+    }
+    
+    // force local for simple date string
     let parts = str.includes('-') ? str.split('-') : str.split('/');
     if (parts.length === 3) {
       // handle 'YYYY-MM-DD' or 'YYYY/MM/DD'
@@ -1247,7 +1265,9 @@ function parseLocalDate(str) {
       const day = parseInt(parts[2], 10);
       
       if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
-        return new Date(year, month, day); // ✅ สร้างแบบ local timezone
+        const localDate = new Date(year, month, day);
+        console.log(`✅ String to local: ${str} -> ${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
+        return localDate; // ✅ สร้างแบบ local timezone
       }
     }
   }
@@ -2288,7 +2308,7 @@ router.post('/updateDayOffOnly', async (req, res) => {
       return res.status(400).json({ error: 'Missing required parameters: workplaceId, publicHolidays' });
     }
 
-    console.log('Received publicHolidays in updateDayOffOnly:', publicHolidays);
+    console.log('🔍 Received publicHolidays in updateDayOffOnly:', JSON.stringify(publicHolidays, null, 2));
 
     // ตรวจสอบว่าหน่วยงานมีอยู่จริงหรือไม่
     const workplace = await Workplace.findOne({ workplaceId });
@@ -2297,7 +2317,9 @@ router.post('/updateDayOffOnly', async (req, res) => {
     }
 
     // แปลงวันหยุดนักขัตฤกษ์เป็นรูปแบบ object {date, note}
-    const holidayData = publicHolidays.map(holiday => {
+    const holidayData = publicHolidays.map((holiday, index) => {
+      console.log(`🔍 Processing holiday ${index + 1}:`, holiday);
+      
       try {
         let dateStr = null;
         let note = '';
@@ -2306,14 +2328,17 @@ router.post('/updateDayOffOnly', async (req, res) => {
           // ถ้าเป็น string (format เก่า)
           dateStr = holiday;
           note = '';
+          console.log(`📅 Holiday ${index + 1} is string: "${dateStr}"`);
         } else if (holiday && holiday.date) {
           // ถ้าเป็น object ที่มี date และ note
           dateStr = holiday.date;
           note = holiday.note || '';
+          console.log(`📅 Holiday ${index + 1} is object: date="${dateStr}", note="${note}"`);
         } else {
           // fallback
           dateStr = holiday;
           note = '';
+          console.log(`📅 Holiday ${index + 1} fallback: "${dateStr}"`);
         }
         
         // ✅ ใช้ parseLocalDate แทน new Date() เพื่อป้องกัน timezone shift
@@ -2323,14 +2348,15 @@ router.post('/updateDayOffOnly', async (req, res) => {
           return null;
         }
         
-        console.log(`✅ Parsed holiday: "${dateStr}" -> ${localDate.getFullYear()}-${String(localDate.getMonth() + 1).padStart(2, '0')}-${String(localDate.getDate()).padStart(2, '0')}`);
+        const formattedDate = `${localDate.getFullYear()}-${String(localDate.getMonth() + 1).padStart(2, '0')}-${String(localDate.getDate()).padStart(2, '0')}`;
+        console.log(`✅ Holiday ${index + 1} final result: "${dateStr}" -> ${formattedDate}`);
         
         return {
           date: localDate,
           note: note
         };
       } catch (error) {
-        console.error('❌ Error parsing holiday date:', error);
+        console.error(`❌ Error parsing holiday ${index + 1}:`, error);
         return null;
       }
     }).filter(item => item !== null);
