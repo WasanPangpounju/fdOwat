@@ -1245,7 +1245,8 @@ function parseLocalDate(str) {
       return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
     }
   }
-  return new Date(str); // fallback
+  // ไม่ใช้ fallback เป็น new Date(str) อีกต่อไป เพราะทำให้เกิด timezone bug
+  return null;
 }
 
 router.get('/getWeekendDates', async (req, res) => {
@@ -1291,35 +1292,40 @@ router.get('/getWeekendDates', async (req, res) => {
       return d && d >= startDate && d <= endDate;
     });
 
-    // publicHoliday (force local parse, never fallback to Date(str) for string)
-    const publicHolidayDates = publicHoliday.map(h => {
-      try {
-        // รับทั้ง object {date: 'YYYY-MM-DD'} หรือ string 'YYYY-MM-DD'
-        let dateStr = h && h.date ? h.date : h;
-        if (typeof dateStr === 'string') {
-          // parseLocalDate แบบ force local เท่านั้น
-          let parts = dateStr.includes('-') ? dateStr.split('-') : dateStr.split('/');
-          if (parts.length === 3) {
-            const local = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
-            return local instanceof Date && !isNaN(local) ? local.toISOString().slice(0,10) : dateStr;
+    // publicHoliday (force local parse only)
+    const publicHolidayDates = publicHoliday
+      .map(h => {
+        try {
+          // รับทั้ง object {date: 'YYYY-MM-DD'} หรือ string 'YYYY-MM-DD'
+          let dateStr = h && h.date ? h.date : h;
+          if (typeof dateStr === 'string') {
+            // ใช้วิธี split และสร้าง Date ด้วย (year, month-1, day) เพื่อป้องกัน timezone bug
+            let parts = dateStr.includes('-') ? dateStr.split('-') : dateStr.split('/');
+            if (parts.length === 3) {
+              const local = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+              if (local instanceof Date && !isNaN(local)) {
+                // แปลงกลับเป็น ISO string เพื่อใช้ในการเปรียบเทียบ
+                const yyyy = local.getFullYear();
+                const mm = String(local.getMonth() + 1).padStart(2, '0');
+                const dd = String(local.getDate()).padStart(2, '0');
+                return `${yyyy}-${mm}-${dd}`;
+              }
+            }
           }
+          // ถ้าไม่ใช่ string หรือ parse ไม่ได้ return null เพื่อให้ filter กรองออกไป
+          return null;
+        } catch {
+          return null;
         }
-        // ถ้าไม่ใช่ string หรือ parse ไม่ได้ return เดิม
-        return dateStr;
-      } catch {
-        return h;
-      }
-    }).filter(dateStr => {
-      // filter เฉพาะวันที่อยู่ในช่วง
-      let d = null;
-      if (typeof dateStr === 'string') {
-        let parts = dateStr.includes('-') ? dateStr.split('-') : dateStr.split('/');
-        if (parts.length === 3) {
-          d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
-        }
-      }
-      return d && d >= startDate && d <= endDate;
-    });
+      })
+      .filter(dateStr => {
+        if (!dateStr) return false;
+        
+        // แปลงเป็น local date เพื่อเปรียบเทียบกับ startDate และ endDate
+        let parts = dateStr.split('-');
+        const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+        return d && d >= startDate && d <= endDate;
+      });
 
     // ตรวจสอบวันเสาร์-อาทิตย์ในช่วงเวลา
     const weekendSet = new Set();
@@ -1772,7 +1778,7 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
     const workplaceData = workplaceResponse.data;
     
     // ใช้ค่า workRate จาก API โดยตรง
-       const workRateFromAPI = parseFloat(workplaceData.workRate || '0');
+    const workRateFromAPI = parseFloat(workplaceData.workRate || '0');
     console.log(`📊 ดึงค่าแรงจาก API สำหรับ workplace ${workplaceId}: ${workRateFromAPI}`);
     
     // เก็บค่าที่ได้จาก API ไว้ใน dataCal
