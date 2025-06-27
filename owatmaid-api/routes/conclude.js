@@ -1234,31 +1234,36 @@ let addSalaryDailyx = await addSalaryDaily.filter(item1 => item1.id !== '1210');
 // Helper: parse 'YYYY-MM-DD' or 'YYYY/MM/DD' as local date (force local, never UTC)
 function parseLocalDate(str) {
   if (!str) return null;
+  
+  // ถ้าเป็น Date object อยู่แล้ว
   if (str instanceof Date) return str;
+  
+  // ถ้าเป็น object ที่มี property date
   if (typeof str === 'object' && str.date) str = str.date;
+  
+  // ถ้าเป็น string 'YYYY-MM-DD' หรือ 'YYYY/MM/DD'
   if (typeof str === 'string') {
-    // force local for ISO string
-    let separator = str.includes('-') ? '-' : (str.includes('/') ? '/' : null);
+    const separator = str.includes('-') ? '-' : (str.includes('/') ? '/' : null);
     if (separator) {
-      let parts = str.split(separator);
+      const parts = str.split(separator);
       if (parts.length === 3) {
-        // handle 'YYYY-MM-DD' or 'YYYY/MM/DD'
         // สร้าง Date แบบ local (year, month-1, day) เพื่อป้องกัน timezone shift
         const year = parseInt(parts[0], 10);
         const month = parseInt(parts[1], 10) - 1; // month ใน JS เริ่มจาก 0
         const day = parseInt(parts[2], 10);
         
         if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
-          console.log(`Converting ${str} to local date: ${year}-${month+1}-${day}`);
-          return new Date(year, month, day);
+          const localDate = new Date(year, month, day);
+          console.log(`✅ parseLocalDate: ${str} -> ${formatDateToYYYYMMDD(localDate)}`);
+          return localDate;
         }
       }
     }
   }
   
-  // ถ้าทำอย่างอื่นไม่ได้ ลองใช้ new Date(str) แต่ต้องระวังเรื่อง timezone
-  console.warn(`Warning: Using new Date() directly for: ${str} - this may cause timezone issues`);
-  return new Date(str); // fallback (อาจเกิด timezone shift)
+  // ❌ ไม่ใช้ new Date(str) เลยเพื่อป้องกัน timezone bug
+  console.error(`❌ parseLocalDate failed for: ${str}`);
+  return null;
 }
 
 // Helper: format a Date object as 'YYYY-MM-DD'
@@ -1333,10 +1338,12 @@ router.get('/getWeekendDates', async (req, res) => {
       }
     });
 
-    // publicHoliday
+    // publicHoliday - ต้องแปลงด้วย parseLocalDate เพื่อป้องกัน timezone shift
     const publicHolidayDates = publicHoliday.map(h => {
       try {
         const dateValue = h && h.date ? h.date : h;
+        console.log(`🔍 Processing publicHoliday:`, h, `-> dateValue:`, dateValue);
+        
         const local = parseLocalDate(dateValue);
         
         if (!local || isNaN(local.getTime())) {
@@ -1344,13 +1351,11 @@ router.get('/getWeekendDates', async (req, res) => {
           return null;
         }
         
-        // Format date as 'YYYY-MM-DD'
-        const yyyy = local.getFullYear();
-        const mm = String(local.getMonth() + 1).padStart(2, '0');
-        const dd = String(local.getDate()).padStart(2, '0');
-        return `${yyyy}-${mm}-${dd}`;
+        const formattedDate = formatDateToYYYYMMDD(local);
+        console.log(`✅ publicHoliday parsed: ${dateValue} -> ${formattedDate}`);
+        return formattedDate;
       } catch (err) {
-        console.error(`Error parsing publicHoliday date: ${h}`, err);
+        console.error(`❌ Error parsing publicHoliday date: ${h}`, err);
         return null;
       }
     }).filter(dateStr => {
@@ -1358,12 +1363,16 @@ router.get('/getWeekendDates', async (req, res) => {
       
       try {
         const d = parseLocalDate(dateStr);
-        return d && !isNaN(d.getTime()) && d >= startDate && d <= endDate;
+        const inRange = d && !isNaN(d.getTime()) && d >= startDate && d <= endDate;
+        console.log(`🔍 publicHoliday ${dateStr} in range [${formatDateToYYYYMMDD(startDate)} - ${formatDateToYYYYMMDD(endDate)}]: ${inRange}`);
+        return inRange;
       } catch (err) {
-        console.error(`Error filtering publicHoliday date: ${dateStr}`, err);
+        console.error(`❌ Error filtering publicHoliday date: ${dateStr}`, err);
         return false;
       }
     });
+
+    console.log('📅 Final publicHolidayDates:', publicHolidayDates);
 
     // ตรวจสอบวันเสาร์-อาทิตย์ในช่วงเวลา
     const weekendSet = new Set();
@@ -1384,6 +1393,11 @@ router.get('/getWeekendDates', async (req, res) => {
     // weekendOnly: วันเสาร์-อาทิตย์ในช่วงเวลา ที่ไม่อยู่ใน daysOff
     const daysOffSet = new Set(daysOffDates);
     const weekendOnly = Array.from(weekendSet).filter(dateStr => !daysOffSet.has(dateStr)).sort();
+
+    console.log('📊 Final response data:');
+    console.log('   weekendOnly:', weekendOnly);
+    console.log('   dayOffOnly:', dayOffOnly);
+    console.log('   weekendAndDayOff:', weekendAndDayOff);
 
     res.json({ weekendOnly, dayOffOnly, weekendAndDayOff });
   } catch (error) {
@@ -2348,7 +2362,7 @@ router.post('/updateDayOffOnly', async (req, res) => {
       return res.status(400).json({ error: 'publicHolidays must be an array' });
     }
 
-    console.log('Received publicHolidays in updateDayOffOnly:', JSON.stringify(publicHolidays));
+    console.log('🔍 Received publicHolidays in updateDayOffOnly:', JSON.stringify(publicHolidays));
 
     // ตรวจสอบว่าหน่วยงานมีอยู่จริงหรือไม่
     const workplace = await Workplace.findOne({ workplaceId });
@@ -2357,57 +2371,58 @@ router.post('/updateDayOffOnly', async (req, res) => {
     }
 
     // แปลงวันหยุดนักขัตฤกษ์เป็นรูปแบบ object {date, note}
-    const holidayData = publicHolidays.map(holiday => {
+    const holidayData = publicHolidays.map((holiday, index) => {
+      console.log(`🔍 Processing holiday ${index + 1}:`, holiday);
+      
       try {
+        let dateStr = null;
+        let note = '';
+        
         if (typeof holiday === 'string') {
-          // ถ้าเป็น string (format เก่า) ให้แปลงเป็น object และใช้ parseLocalDate
-          const localDate = parseLocalDate(holiday);
-          if (!localDate || isNaN(localDate.getTime())) {
-            console.error(`❌ Invalid date format for holiday: ${holiday}`);
-            return null;
-          }
-          
-          return {
-            date: localDate,
-            note: ''
-          };
+          // ถ้าเป็น string (format เก่า)
+          dateStr = holiday;
+          note = '';
         } else if (holiday && holiday.date) {
-          // ถ้าเป็น object ที่มี date และ note ใช้ parseLocalDate
-          const localDate = parseLocalDate(holiday.date);
-          if (!localDate || isNaN(localDate.getTime())) {
-            console.error(`❌ Invalid date format for holiday.date: ${holiday.date}`);
-            return null;
-          }
-          
-          return {
-            date: localDate,
-            note: holiday.note || ''
-          };
+          // ถ้าเป็น object ที่มี date และ note
+          dateStr = holiday.date;
+          note = holiday.note || '';
         } else {
-          // fallback - ใช้ parseLocalDate
-          const localDate = parseLocalDate(holiday);
-          if (!localDate || isNaN(localDate.getTime())) {
-            console.error(`❌ Invalid holiday format:`, holiday);
-            return null;
-          }
-          
-          return {
-            date: localDate,
-            note: ''
-          };
+          // fallback
+          dateStr = holiday;
+          note = '';
         }
+        
+        console.log(`🔍 Extracted dateStr: "${dateStr}"`);
+        
+        const localDate = parseLocalDate(dateStr);
+        if (!localDate || isNaN(localDate.getTime())) {
+          console.error(`❌ Invalid date format for holiday: ${dateStr}`);
+          return null;
+        }
+        
+        const result = {
+          date: localDate,
+          note: note
+        };
+        
+        console.log(`✅ Holiday ${index + 1} parsed: ${dateStr} -> ${formatDateToYYYYMMDD(localDate)}`);
+        return result;
+        
       } catch (error) {
-        console.error('Error parsing holiday date:', error);
+        console.error(`❌ Error parsing holiday ${index + 1}:`, error);
         return null;
       }
-    }).filter(item => item !== null && !isNaN(item.date.getTime()));
+    }).filter(item => item !== null);
 
-    console.log('Parsed holiday data:', holidayData);
+    console.log('✅ Final parsed holiday data:', holidayData.map(h => ({
+      dateFormatted: formatDateToYYYYMMDD(h.date),
+      note: h.note
+    })));
 
     // อัปเดตข้อมูลในฐานข้อมูล (อัปเดต publicHoliday เท่านั้น)
-    console.log('Attempting to update with holiday data:', holidayData.map(h => ({
-      dateObj: h.date,
-      dateStr: h.date ? formatDateToYYYYMMDD(h.date) : null,
+    console.log('💾 Attempting to update with holiday data:', holidayData.map(h => ({
+      originalDate: h.date,
+      formattedDate: formatDateToYYYYMMDD(h.date),
       note: h.note
     })));
     
@@ -2420,7 +2435,11 @@ router.post('/updateDayOffOnly', async (req, res) => {
     );
 
     console.log(`✅ Updated publicHoliday for workplace ${workplaceId}: ${holidayData.length} public holidays`);
-    console.log('Updated workplace publicHoliday:', updated?.publicHoliday);
+    console.log('💾 Updated workplace publicHoliday in DB:', updated?.publicHoliday?.map(h => ({
+      dateInDB: h.date,
+      formattedDate: formatDateToYYYYMMDD(h.date),
+      note: h.note
+    })));
 
     res.json({
       message: 'อัปเดต publicHoliday สำเร็จ',
