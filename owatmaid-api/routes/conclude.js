@@ -2168,28 +2168,11 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
               : ((record.beforeTotalOtTime || 0) * ((parseFloat(dataRate?.workRateOT || '0')) * salary || 0)) || 0
           );
 
-          // cashOt = await (
-          //   parseFloat(dataRate?.workRateOT || '0') > 5
-          //     ? parseFloat(dataRate?.workRateOT || '0') || 0
-          //     : ((record.totalOtTime || 0) * ((parseFloat(dataRate?.workRateOT || '0')) * salary || 0)) || 0
-          // );
-// แก้ไขให้คิด OT แบบเป็นนาที
-const cashOt = await (
-  parseFloat(dataRate?.workRateOT || '0') > 5
-    ? parseFloat(dataRate?.workRateOT || '0') || 0
-    : (
-        // แปลง record.totalOtTime เช่น 1.30 → 1 + (30/60) = 1.5
-        ((() => {
-          const time = (record.totalOtTime || '0').toString();
-          if (time.includes('.')) {
-            const [h, m] = time.split('.').map(Number);
-            return h + (m / 60);
-          } else {
-            return parseFloat(time);
-          }
-        })()) * ((parseFloat(dataRate?.workRateOT || '0')) * salary || 0)
-      ) || 0
-);
+          cashOt = await (
+            parseFloat(dataRate?.workRateOT || '0') > 5
+              ? parseFloat(dataRate?.workRateOT || '0') || 0
+              : ((record.totalOtTime || 0) * ((parseFloat(dataRate?.workRateOT || '0')) * salary || 0)) || 0
+          );
 
           // คำนวณค่าแรงสำหรับวันทำงานปกติ
           cashWork = await (record.totalTime || 0) * parseFloat(salary || 0);
