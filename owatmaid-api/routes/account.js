@@ -4325,15 +4325,30 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
       }
 
       const processedRecord = record.toObject();
+      
+      // คำนวณ sumOt1p5 ใหม่แบบ real-time
+      let recalculatedSumOt1p5 = 0;
       if (processedRecord.employee_record && Array.isArray(processedRecord.employee_record)) {
         processedRecord.employee_record.forEach(rec => {
+          // แปลงค่า totalOtTime ให้เป็นทศนิยม
           if (rec.totalOtTime) {
             const [hours, minutes] = String(rec.totalOtTime).split('.').map(Number);
             const decimalOt = (hours || 0) + ((minutes || 0) / 60);
             rec.totalOtTime = decimalOt.toFixed(2);
           }
+          
+          // คำนวณ sumOt1p5 จากวันทำงานปกติเท่านั้น
+          if (rec.dayType === "work" && rec.totalOtTime) {
+            const [hours, minutes] = String(rec.totalOtTime).split('.').map(Number);
+            const decimalOt = (hours || 0) + ((minutes || 0) / 60);
+            recalculatedSumOt1p5 += decimalOt;
+          }
         });
       }
+      
+      // อัปเดตค่า sumOt1p5 ที่คำนวณใหม่
+      processedRecord.sumOt1p5 = recalculatedSumOt1p5.toFixed(2);
+      console.log(`🔄 คำนวณ sumOt1p5 ใหม่สำหรับพนักงาน ${record.employeeId}: ${processedRecord.sumOt1p5}`);
 
       groupedResult[empWorkplaceId].push({
         ...processedRecord,
