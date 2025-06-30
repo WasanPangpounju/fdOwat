@@ -2168,10 +2168,21 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
               : ((record.beforeTotalOtTime || 0) * ((parseFloat(dataRate?.workRateOT || '0')) * salary || 0)) || 0
           );
 
+          // cashOt = await (
+          //   parseFloat(dataRate?.workRateOT || '0') > 5
+          //     ? parseFloat(dataRate?.workRateOT || '0') || 0
+          //     : ((record.totalOtTime || 0) * ((parseFloat(dataRate?.workRateOT || '0')) * salary || 0)) || 0
+          // );
+//แก้ไขเวลา OT ให้คิดจากหน่วยนาที
+const tmpHour = Math.floor(record.totalOtTime || 0); // 1
+const tmpRawDecimal = (record.totalOtTime || 0) - tmpHour; // 0.30
+const tmpMinute = Math.round(tmpRawDecimal * 100); // 30 นาที (เพราะ *100 จาก .30)
+const totalDecimalHour = tmpHour + (tmpMinute / 60); // 1 + 30/60 = 1.5
+
           cashOt = await (
             parseFloat(dataRate?.workRateOT || '0') > 5
               ? parseFloat(dataRate?.workRateOT || '0') || 0
-              : ((record.totalOtTime || 0) * ((parseFloat(dataRate?.workRateOT || '0')) * salary || 0)) || 0
+              : ((totalDecimalHour || 0 ) * ((parseFloat(dataRate?.workRateOT || '0')) * salary || 0)) || 0
           );
 
           // คำนวณค่าแรงสำหรับวันทำงานปกติ
