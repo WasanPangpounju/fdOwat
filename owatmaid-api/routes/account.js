@@ -5157,6 +5157,13 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
 
 
   sumTimeOt = sumTimeOt.toFixed(2);
+  sumTimeWork = sumTimeWork.toFixed(2);
+  sumOt1p5 = sumOt1p5.toFixed(2);
+  sumOt3 = sumOt3.toFixed(2);
+  sumOtPublicHoliday = sumOtPublicHoliday.toFixed(2);
+  cashcustomizeDayoff = (cashcustomizeDayoff || 0).toFixed(2);
+  publicHolidayCash = (publicHolidayCash || 0).toFixed(2);
+  cashSpecialDay = (cashSpecialDay || 0).toFixed(2);
 
 
   return await {
