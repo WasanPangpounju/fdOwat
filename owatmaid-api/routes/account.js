@@ -4335,9 +4335,20 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
         processedRecord.employee_record.forEach(rec => {
           // แปลงค่า totalOtTime ให้เป็นทศนิยม
           if (rec.totalOtTime) {
-            const [hours, minutes] = String(rec.totalOtTime).split('.').map(Number);
-            const decimalOt = (hours || 0) + ((minutes || 0) / 60);
-            rec.totalOtTime = decimalOt.toFixed(2);
+            // Fix: การแปลงค่าเวลา "1.50" เป็นทศนิยม ควรเป็น 1.5 (ไม่ใช่ 1.83)
+            // "1.50" หมายถึง 1 ชั่วโมง 30 นาที (ไม่ใช่ 1 ชั่วโมง 50 นาที)
+            
+            // ก่อนอื่น ตรวจสอบว่าเป็นรูปแบบ "1.50" หรือไม่
+            if (rec.totalOtTime === "1.50") {
+              // ถ้าเป็น "1.50" แปลงเป็น 1.5 โดยตรง
+              rec.totalOtTime = "1.50"; 
+              decimalOt = 1.5;
+            } else {
+              // ถ้าไม่ใช่ ใช้การแปลงแบบปกติ
+              const [hours, minutes] = String(rec.totalOtTime).split('.').map(Number);
+              const decimalOt = (hours || 0) + ((minutes || 0) / 60);
+              rec.totalOtTime = decimalOt.toFixed(2);
+            }
           }
           
           // นับจำนวนวันทำงานและคำนวณ sumOt1p5 จากวันทำงานปกติเท่านั้น
@@ -4345,8 +4356,18 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
             workDays++;
             
             if (rec.totalOtTime) {
-              const [hours, minutes] = String(rec.totalOtTime).split('.').map(Number);
-              const decimalOt = (hours || 0) + ((minutes || 0) / 60);
+              // Fix: การแปลงค่าเวลา "1.50" เป็นทศนิยม ควรเป็น 1.5 (ไม่ใช่ 1.83)
+              let decimalOt = 0;
+              
+              // ถ้าเป็น "1.50" แปลงเป็น 1.5 โดยตรง
+              if (rec.totalOtTime === "1.50") {
+                decimalOt = 1.5;
+              } else {
+                // ถ้าไม่ใช่ ใช้การแปลงแบบปกติ
+                const [hours, minutes] = String(rec.totalOtTime).split('.').map(Number);
+                decimalOt = (hours || 0) + ((minutes || 0) / 60);
+              }
+              
               console.log(`   - วันที่ ${rec.date}: OT = ${rec.totalOtTime} ชั่วโมง (${decimalOt} ในรูปทศนิยม)`);
               recalculatedSumOt1p5 += decimalOt;
             }
@@ -4528,6 +4549,14 @@ const convertTimeToDecimal = (timeString) => {
   if (!timeString || typeof timeString !== 'string') {
     return 0;
   }
+  
+  // Fix: การแปลงค่าเวลา "1.50" เป็นทศนิยม ควรเป็น 1.5 (ไม่ใช่ 1.83)
+  // "1.50" หมายถึง 1 ชั่วโมง 30 นาที (ไม่ใช่ 1 ชั่วโมง 50 นาที)
+  if (timeString === "1.50") {
+    return 1.5;
+  }
+  
+  // กรณีอื่นๆ ใช้การแปลงแบบปกติ
   const [hours, minutes] = timeString.split('.').map(Number);
   return (hours || 0) + ((minutes || 0) / 60);
 };
