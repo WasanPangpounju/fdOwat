@@ -4840,13 +4840,20 @@ try {
           } else {
 
             if (record?.dayType === "work") {
+              console.log(`\n--- 🔁 กำลังประมวลผลวันที่: ${record.date}, ประเภท: ${record.dayType} ---`);
 
               dayWorkCount += 1;
               sumTimeWork += convertTimeToDecimal(record.totalTime);
               sumTimeOt += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalOtTime);
               sumCashWork = sumCashWork + parseFloat(record?.cashWork || '0');
               sumCashOt = sumCashOt + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0');
-              sumOt1p5 += convertTimeToDecimal(record.totalOtTime);
+              
+              const otTimeDecimal = convertTimeToDecimal(record.totalOtTime);
+              console.log(`   - เวลา OT ('${record.totalOtTime}') แปลงเป็นทศนิยมได้: ${otTimeDecimal}`);
+              console.log(`   - ค่า sumOt1p5 (ก่อนบวก): ${sumOt1p5}`);
+              sumOt1p5 += otTimeDecimal;
+              console.log(`   - ค่า sumOt1p5 (หลังบวก): ${sumOt1p5}`);
+              
               sumCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
               sumCashWorkMul[record?.cashOtMul] += parseFloat(record?.cashBeforeOt || '0');
 
