@@ -4320,12 +4320,23 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
               }
             }
 
-      if (!groupedResult[empWorkplaceId]) {
+           if (!groupedResult[empWorkplaceId]) {
         groupedResult[empWorkplaceId] = [];
       }
 
+      const processedRecord = record.toObject();
+      if (processedRecord.employee_record && Array.isArray(processedRecord.employee_record)) {
+        processedRecord.employee_record.forEach(rec => {
+          if (rec.totalOtTime) {
+            const [hours, minutes] = String(rec.totalOtTime).split('.').map(Number);
+            const decimalOt = (hours || 0) + ((minutes || 0) / 60);
+            rec.totalOtTime = decimalOt.toFixed(2);
+          }
+        });
+      }
+
       groupedResult[empWorkplaceId].push({
-        ...record.toObject(),
+        ...processedRecord,
         employeeName: employee.name + ' ' + (employee.lastName || ''),
         workplaceName: employee.workplaceName || '', // if available
       });
