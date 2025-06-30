@@ -4328,7 +4328,10 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
       
       // คำนวณ sumOt1p5 ใหม่แบบ real-time
       let recalculatedSumOt1p5 = 0;
+      let workDays = 0;
+      
       if (processedRecord.employee_record && Array.isArray(processedRecord.employee_record)) {
+        // วนลูปตรวจสอบแต่ละวัน
         processedRecord.employee_record.forEach(rec => {
           // แปลงค่า totalOtTime ให้เป็นทศนิยม
           if (rec.totalOtTime) {
@@ -4337,18 +4340,23 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
             rec.totalOtTime = decimalOt.toFixed(2);
           }
           
-          // คำนวณ sumOt1p5 จากวันทำงานปกติเท่านั้น
-          if (rec.dayType === "work" && rec.totalOtTime) {
-            const [hours, minutes] = String(rec.totalOtTime).split('.').map(Number);
-            const decimalOt = (hours || 0) + ((minutes || 0) / 60);
-            recalculatedSumOt1p5 += decimalOt;
+          // นับจำนวนวันทำงานและคำนวณ sumOt1p5 จากวันทำงานปกติเท่านั้น
+          if (rec.dayType === "work") {
+            workDays++;
+            
+            if (rec.totalOtTime) {
+              const [hours, minutes] = String(rec.totalOtTime).split('.').map(Number);
+              const decimalOt = (hours || 0) + ((minutes || 0) / 60);
+              console.log(`   - วันที่ ${rec.date}: OT = ${rec.totalOtTime} ชั่วโมง (${decimalOt} ในรูปทศนิยม)`);
+              recalculatedSumOt1p5 += decimalOt;
+            }
           }
         });
       }
       
       // อัปเดตค่า sumOt1p5 ที่คำนวณใหม่
       processedRecord.sumOt1p5 = recalculatedSumOt1p5.toFixed(2);
-      console.log(`🔄 คำนวณ sumOt1p5 ใหม่สำหรับพนักงาน ${record.employeeId}: ${processedRecord.sumOt1p5}`);
+      console.log(`🔄 คำนวณ sumOt1p5 ใหม่สำหรับพนักงาน ${record.employeeId}: จำนวนวันทำงาน ${workDays} วัน, รวม OT ${processedRecord.sumOt1p5} ชั่วโมง`);
 
       groupedResult[empWorkplaceId].push({
         ...processedRecord,
