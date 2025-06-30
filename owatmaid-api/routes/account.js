@@ -4848,11 +4848,8 @@ try {
               sumCashWork = sumCashWork + parseFloat(record?.cashWork || '0');
               sumCashOt = sumCashOt + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0');
               
-              const otTimeDecimal = convertTimeToDecimal(record.totalOtTime);
-              console.log(`   - เวลา OT ('${record.totalOtTime}') แปลงเป็นทศนิยมได้: ${otTimeDecimal}`);
-              console.log(`   - ค่า sumOt1p5 (ก่อนบวก): ${sumOt1p5}`);
-              sumOt1p5 += otTimeDecimal;
-              console.log(`   - ค่า sumOt1p5 (หลังบวก): ${sumOt1p5}`);
+              // ไม่ต้องบวกสะสม totalOtTime แล้ว เพราะจะคำนวณจากจำนวนวันทำงาน × 1.5 แทน
+              console.log(`   - วันทำงานที่: ${dayWorkCount}`);
               
               sumCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
               sumCashWorkMul[record?.cashOtMul] += parseFloat(record?.cashBeforeOt || '0');
@@ -5162,6 +5159,10 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
 
   console.log(`💰 ค่าประกันสังคมที่จะบันทึก: ${socialSecurity} บาท`);
 
+  console.log(`\n✅ --- สรุปการคำนวณ sumOt1p5 ---`);
+  console.log(`   - จำนวนวันทำงาน: ${dayWorkCount}`);
+  sumOt1p5 = dayWorkCount * 1.5;
+  console.log(`   - ผลรวมสุดท้ายของ sumOt1p5: ${dayWorkCount} × 1.5 = ${sumOt1p5}`);
 
   sumTimeOt = sumTimeOt.toFixed(2);
   sumTimeWork = sumTimeWork.toFixed(2);
