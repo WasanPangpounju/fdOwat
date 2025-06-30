@@ -5137,6 +5137,11 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
 
   console.log(`💰 ค่าประกันสังคมที่จะบันทึก: ${socialSecurity} บาท`);
 
+  const [hours, minutes] = String(sumTimeOt).split('.').map(Number);
+  const decimalOt = (hours || 0) + ((minutes || 0) / 60);
+  sumTimeOt = decimalOt.toFixed(2);
+
+
   return await {
     dayWorkCount,
     dayOffCount,
