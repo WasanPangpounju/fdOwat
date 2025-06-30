@@ -4501,6 +4501,14 @@ router.post('/searchtimerecordemployee', async (req, res) => {
   }
 });
 
+const convertTimeToDecimal = (timeString) => {
+  if (!timeString || typeof timeString !== 'string') {
+    return 0;
+  }
+  const [hours, minutes] = timeString.split('.').map(Number);
+  return (hours || 0) + ((minutes || 0) / 60);
+};
+
 
 
 const calculateCashValues = async (employeeId, employee_record, month, year) => {
@@ -4804,48 +4812,49 @@ try {
         } catch (error) {
           console.error(`❌ เกิดข้อผิดพลาดในการตรวจสอบวันหยุดที่กำหนดเอง:`, error.message);
         }
-
         if (record?.dayType === 'stop') {
           console.log(record?.dayType);
           dayOffCount += 1;
           sumcashDayOffCount = parseFloat(sumcashDayOffCount || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0')
 
-          sumTimeOt = parseFloat(sumTimeOt || 0) + parseFloat(record.beforeTotalOtTime || '0') + parseFloat(record.totalTime || '0') + parseFloat(record.totalOtTime || '0')
-          sumCashOt = parseFloat(sumCashOt || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0')
-          sumOt3 += parseFloat(record.totalOtTime || '0');  
-          sumOtPublicHoliday += parseFloat(record.totalTime || '0'); // เพิ่มผลรวมของ totalOtTime ในวันหยุดนักขัตฤกษ์
-          sumCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
+            sumTimeOt += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalTime) + convertTimeToDecimal(record.totalOtTime);
+            sumCashOt = parseFloat(sumCashOt || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0')
+            sumOt3 += convertTimeToDecimal(record.totalOtTime);
+            sumOtPublicHoliday += convertTimeToDecimal(record.totalTime); // เพิ่มผลรวมของ totalOtTime ในวันหยุดนักขัตฤกษ์
+            sumCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
+
           sumCashWorkMul[record?.cashOtMul] += parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0');
 
-          timeCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
-          timeCashWorkMul[record?.cashOtMul] += parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0');
+          timeCashWorkMul[record?.cashWorkMul] += convertTimeToDecimal(record.totalTime);
+          timeCashWorkMul[record?.cashOtMul] += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalOtTime);
 
         } else
           if (record?.dayType === 'specialDayOff') {
             specialDayOff += 1;
-            sumTimeOt = parseFloat(sumTimeOt || 0) + parseFloat(record.beforeTotalOtTime || '0') + parseFloat(record.totalTime || '0') + parseFloat(record.totalOtTime || '0')
+            sumTimeOt += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalTime) + convertTimeToDecimal(record.totalOtTime);
             sumCashOt = parseFloat(sumCashOt || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0')
 
             sumCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
             sumCashWorkMul[record?.cashOtMul] += parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0');
 
-            timeCashWorkMul[record?.cashWorkMul] += parseFloat(record.totalTime || '0');
-            timeCashWorkMul[record?.cashOtMul] += parseFloat(record.beforeTotalOtTime || '0') + parseFloat(record.totalOtTime || '0');
+            timeCashWorkMul[record?.cashWorkMul] += convertTimeToDecimal(record.totalTime);
+            timeCashWorkMul[record?.cashOtMul] += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalOtTime);
 
           } else {
 
             if (record?.dayType === "work") {
+
               dayWorkCount += 1;
-              sumTimeWork = sumTimeWork + parseFloat(record.totalTime || '0');
-              sumTimeOt = sumTimeOt + parseFloat(record.beforeTotalOtTime || '0') + parseFloat(record.totalOtTime || '0');
+              sumTimeWork += convertTimeToDecimal(record.totalTime);
+              sumTimeOt += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalOtTime);
               sumCashWork = sumCashWork + parseFloat(record?.cashWork || '0');
               sumCashOt = sumCashOt + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0');
-              sumOt1p5 += parseFloat(record.totalOtTime || '0');
+              sumOt1p5 += convertTimeToDecimal(record.totalOtTime);
               sumCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
               sumCashWorkMul[record?.cashOtMul] += parseFloat(record?.cashBeforeOt || '0');
 
-              timeCashWorkMul[record?.cashWorkMul] += parseFloat(record.totalTime || '0');
-              timeCashWorkMul[record?.cashOtMul] += parseFloat(record.beforeTotalOtTime || '0') + parseFloat(record.totalOtTime || '0');
+              timeCashWorkMul[record?.cashWorkMul] += convertTimeToDecimal(record.totalTime);
+              timeCashWorkMul[record?.cashOtMul] += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalOtTime);
 
               // Handle addSalaryDailyList clearly:
               if (record.addSalaryDaily && record.addSalaryDaily.length > 0) {
@@ -5148,9 +5157,8 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
 
   console.log(`💰 ค่าประกันสังคมที่จะบันทึก: ${socialSecurity} บาท`);
 
-  const [hours, minutes] = String(sumTimeOt).split('.').map(Number);
-  const decimalOt = (hours || 0) + ((minutes || 0) / 60);
-  sumTimeOt = decimalOt.toFixed(2);
+
+  sumTimeOt = sumTimeOt.toFixed(2);
 
 
   return await {
