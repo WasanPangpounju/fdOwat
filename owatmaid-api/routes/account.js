@@ -4335,18 +4335,18 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
         processedRecord.employee_record.forEach(rec => {
           // แปลงค่า totalOtTime ให้เป็นทศนิยม
           if (rec.totalOtTime) {
-            // Fix: การแปลงค่าเวลา "1.50" เป็นทศนิยม ควรเป็น 1.5 (ไม่ใช่ 1.83)
-            // "1.50" หมายถึง 1 ชั่วโมง 30 นาที (ไม่ใช่ 1 ชั่วโมง 50 นาที)
+            // Fix: การแปลงค่าเวลาที่ลงท้ายด้วย ".50" เป็นทศนิยม ควรเป็น X.5 (ไม่ใช่ X.83)
+            let decimalOt = 0;
             
-            // ก่อนอื่น ตรวจสอบว่าเป็นรูปแบบ "1.50" หรือไม่
-            if (rec.totalOtTime === "1.50") {
-              // ถ้าเป็น "1.50" แปลงเป็น 1.5 โดยตรง
-              rec.totalOtTime = "1.50"; 
-              decimalOt = 1.5;
+            // ตรวจสอบว่าเป็นรูปแบบ "X.50" หรือไม่
+            if (typeof rec.totalOtTime === 'string' && rec.totalOtTime.endsWith('.50')) {
+              const hours = parseInt(rec.totalOtTime.split('.')[0]);
+              decimalOt = hours + 0.5;
+              rec.totalOtTime = decimalOt.toFixed(2);
             } else {
-              // ถ้าไม่ใช่ ใช้การแปลงแบบปกติ
+              // กรณีอื่นๆ ใช้การแปลงแบบปกติ
               const [hours, minutes] = String(rec.totalOtTime).split('.').map(Number);
-              const decimalOt = (hours || 0) + ((minutes || 0) / 60);
+              decimalOt = (hours || 0) + ((minutes || 0) / 60);
               rec.totalOtTime = decimalOt.toFixed(2);
             }
           }
@@ -4356,14 +4356,15 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
             workDays++;
             
             if (rec.totalOtTime) {
-              // Fix: การแปลงค่าเวลา "1.50" เป็นทศนิยม ควรเป็น 1.5 (ไม่ใช่ 1.83)
+              // Fix: การแปลงค่าเวลาที่ลงท้ายด้วย ".50" เป็นทศนิยม ควรเป็น X.5 (ไม่ใช่ X.83)
               let decimalOt = 0;
               
-              // ถ้าเป็น "1.50" แปลงเป็น 1.5 โดยตรง
-              if (rec.totalOtTime === "1.50") {
-                decimalOt = 1.5;
+              // ตรวจสอบว่าเป็นรูปแบบ "X.50" หรือไม่
+              if (typeof rec.totalOtTime === 'string' && rec.totalOtTime.endsWith('.50')) {
+                const hours = parseInt(rec.totalOtTime.split('.')[0]);
+                decimalOt = hours + 0.5;
               } else {
-                // ถ้าไม่ใช่ ใช้การแปลงแบบปกติ
+                // กรณีอื่นๆ ใช้การแปลงแบบปกติ
                 const [hours, minutes] = String(rec.totalOtTime).split('.').map(Number);
                 decimalOt = (hours || 0) + ((minutes || 0) / 60);
               }
@@ -4550,10 +4551,14 @@ const convertTimeToDecimal = (timeString) => {
     return 0;
   }
   
-  // Fix: การแปลงค่าเวลา "1.50" เป็นทศนิยม ควรเป็น 1.5 (ไม่ใช่ 1.83)
-  // "1.50" หมายถึง 1 ชั่วโมง 30 นาที (ไม่ใช่ 1 ชั่วโมง 50 นาที)
-  if (timeString === "1.50") {
-    return 1.5;
+  // Fix: การแปลงค่าเวลาที่ลงท้ายด้วย ".50" เป็นทศนิยม ควรเป็น X.5 (ไม่ใช่ X.83)
+  // เช่น "1.50" คือ 1 ชั่วโมง 30 นาที (ไม่ใช่ 1 ชั่วโมง 50 นาที) ควรเป็น 1.5
+  // เช่น "2.50" คือ 2 ชั่วโมง 30 นาที (ไม่ใช่ 2 ชั่วโมง 50 นาที) ควรเป็น 2.5
+  
+  // ตรวจสอบว่าเป็นรูปแบบ "X.50" หรือไม่
+  if (timeString.endsWith('.50')) {
+    const hours = parseInt(timeString.split('.')[0]);
+    return hours + 0.5;
   }
   
   // กรณีอื่นๆ ใช้การแปลงแบบปกติ
