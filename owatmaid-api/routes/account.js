@@ -4834,10 +4834,7 @@ try {
             sumTimeOt += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalTime) + convertTimeToDecimal(record.totalOtTime);
             sumCashOt = parseFloat(sumCashOt || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0')
 
-            sumCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
-            sumCashWorkMul[record?.cashOtMul] += parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0');
 
-            timeCashWorkMul[record?.cashWorkMul] += convertTimeToDecimal(record.totalTime);
             timeCashWorkMul[record?.cashOtMul] += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalOtTime);
 
           } else {
@@ -4852,6 +4849,7 @@ try {
               sumOt1p5 += convertTimeToDecimal(record.totalOtTime);
               sumCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
               sumCashWorkMul[record?.cashOtMul] += parseFloat(record?.cashBeforeOt || '0');
+
 
               timeCashWorkMul[record?.cashWorkMul] += convertTimeToDecimal(record.totalTime);
               timeCashWorkMul[record?.cashOtMul] += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalOtTime);
