@@ -5152,7 +5152,7 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
     console.log(' * ' + element.id + ' ' + element.SpSalary);
     let check = await checkCalTax(element.id);
     if (check) {
-      addSalarySocialSecurity = parseFloat(addSalarySocialSecurity || 0) + parseFloat(element.SpSalary);
+      addSalarySocialSecurity =  parseFloat(element.SpSalary);
     }
   }
 
