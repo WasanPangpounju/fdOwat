@@ -5216,8 +5216,8 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
     console.log(`💰 - ${totalIncome} × ${socialSecurityP} = ${socialSecurityBeforeCeil} บาท`);
     
     // คำนวณประกันสังคมสำหรับพนักงานเงินเดือน (รวมเงินพิเศษทุกประเภทในการคำนวณ)
-    socialSecurity = Math.ceil(socialSecurityBeforeCeil);
-    console.log(`💰 - Math.ceil(${socialSecurityBeforeCeil}) = ${socialSecurity} บาท`);
+    socialSecurity = Math.round(socialSecurityBeforeCeil);
+    console.log(`💰 - Math.round(${socialSecurityBeforeCeil}) = ${socialSecurity} บาท`);
     console.log(`💰 ✅ ประกันสังคมสำหรับพนักงานเงินเดือน: ${socialSecurity} บาท`);
   } else {
     console.log(`💰 ✅ พนักงานรายวัน (salaryMonth = ${salaryMonth} = 0)`);
