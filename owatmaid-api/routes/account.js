@@ -5339,6 +5339,7 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
   return await {
     dayWorkCount,
     dayOffCount,
+    specialDayOff,
     customizeDayoff, // เพิ่มฟิลด์ customizeDayoff
     cashcustomizeDayoff, // เพิ่มฟิลด์ cashcustomizeDayoff
     publicHolidayCount, // เพิ่มฟิลด์ publicHolidayCount
