@@ -424,6 +424,7 @@ const employeeSchema = new mongoose.Schema({
     sumAddSalary: String,
     sumSalaryForTax: String,
     tax: String,
+    fund: String,
     
       customWorkplace: workplaceSchema, // 👈 ใช้ schema ทั้งก้อนได้เลย
   });

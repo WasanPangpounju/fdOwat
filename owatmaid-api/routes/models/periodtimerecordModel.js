@@ -64,7 +64,12 @@ sumCashOt : String,
 sumcashDayOffCount: String,
 socialSecurity: String,
 tax: String,
+fund: String,
 cashSpecialDay: String,
+
+sumSocialSecurity: String,
+sumTax: String,
+sumFund: String,
 
 addSalaryList: [
   {
@@ -77,6 +82,19 @@ addSalaryList: [
     message: String,
   }
 ],
+
+    deductSalaryList: [
+      {
+        id: String,
+        name: String,
+        amount: String,
+        payType: String,
+        installment: String,
+        nameType: String,
+        message: String,
+      },
+    ],
+
 sumCashWorkMul : {},
 timeCashWorkMul : {},
 
