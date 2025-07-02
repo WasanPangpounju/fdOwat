@@ -4631,8 +4631,7 @@ let timeCashWorkMul = {
   let dailyWage = 0; // ค่าแรงต่อวัน สำหรับคำนวณ cashcustomizeDayoff
 
   let dayWorkCount = 0;
-  let dayOffCount = 0;
-  let specialDayOff = 0;
+
   let customizeDayoff = 0; // เพิ่มตัวแปรสำหรับเก็บจำนวนวันหยุดที่กำหนดเอง
   let sumTimeWork = 0;
   let sumTimeOt = 0;
