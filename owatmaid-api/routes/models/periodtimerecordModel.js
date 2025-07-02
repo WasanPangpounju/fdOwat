@@ -5,6 +5,7 @@ const periodEmployeeTimerecordSchema = new mongoose.Schema({
   year: String,
   employeeId: String,
   employeeName: String,
+  prefix: String, // เพิ่ม prefix field
   month: String,
   status: String,
   employee_record: [{
