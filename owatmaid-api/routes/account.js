@@ -4464,6 +4464,16 @@ router.post('/searchtimerecordemployee', async (req, res) => {
       }
 
       try {
+        // ดึงข้อมูล prefix จาก Employee model
+        let employeePrefix = '';
+        try {
+          const employee = await Employee.findOne({ employeeId: doc.employeeId });
+          employeePrefix = employee?.prefix || '';
+          console.log(`🔍 Found prefix for ${doc.employeeId}: ${employeePrefix}`);
+        } catch (prefixError) {
+          console.warn(`⚠️ Could not fetch prefix for employee ${doc.employeeId}:`, prefixError.message);
+        }
+
         const calculatedValues = await calculateCashValues(
           doc.employeeId,
           doc.employee_record,
@@ -4471,6 +4481,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           doc.year
         );
         const updateData = await {
+          prefix: employeePrefix, // เพิ่ม prefix ใหม่
           dayWorkCount: String(calculatedValues.dayWorkCount),
           dayOffCount: String(calculatedValues.dayOffCount),
           specialDayOff: String(calculatedValues.specialDayOff),
@@ -4503,7 +4514,8 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         
         // แสดงข้อมูลสำคัญที่จะบันทึก
         console.log(`\n📝 ข้อมูลที่จะบันทึกสำหรับพนักงาน ${doc.employeeId}:`);
-        console.log(`🔍 dayWorkCount: ${updateData.dayWorkCount}`);
+        console.log(`� prefix: ${updateData.prefix}`);
+        console.log(`�🔍 dayWorkCount: ${updateData.dayWorkCount}`);
         console.log(`🔍 customizeDayoff: ${updateData.customizeDayoff}`);
         console.log(`💰 cashcustomizeDayoff: ${updateData.cashcustomizeDayoff}`);
         console.log(`⏱️ sumOt1p5: ${updateData.sumOt1p5}`); 
