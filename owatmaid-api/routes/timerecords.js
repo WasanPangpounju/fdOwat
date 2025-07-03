@@ -1459,59 +1459,17 @@ router.post('/searchtimerecordemployee', async (req, res) => {
               let newDayType = 'work'; // default เป็น work
               let newCashWorkMul = '1'; // default multiplier
               
-              // 🎯 กรณีพิเศษสำหรับ workplace 10493 - ตรวจสอบเฉพาะ dayOffOnly เท่านั้น
+              // 🎯 กรณีพิเศษสำหรับ workplace 10493 - บังคับให้เป็น work ทุกวันโดยไม่มีข้อยกเว้น
               if (record.workplaceId === '10493') {
-                console.log(`🔧 [searchtimerecordemployee] workplace 10493: ตรวจสอบเฉพาะ dayOffOnly เท่านั้น`);
+                console.log(`🔧 [searchtimerecordemployee] workplace 10493: บังคับให้เป็น work ทุกวันโดยไม่มีข้อยกเว้น`);
                 
-                // ตรวจสอบ dayOffOnly จาก conclude/getWeekendDates เท่านั้น
-                try {
-                  const weekendResponse = await axios.get(`${sURL}/conclude/getWeekendDates?yyyy=${year}&mm=${month.padStart(2, '0')}&workplaceId=${record.workplaceId}`);
-                  const weekendData = weekendResponse.data;
-                  
-                  console.log(`🔍 [searchtimerecordemployee] ตรวจสอบ dayOffOnly สำหรับ workplace ${record.workplaceId}:`, weekendData.dayOffOnly);
-                  
-                  if (weekendData && weekendData.dayOffOnly && weekendData.dayOffOnly.length > 0) {
-                    const recordDateStr = `${year}-${month.padStart(2, '0')}-${record.date.padStart(2, '0')}`;
-                    console.log(`📅 [searchtimerecordemployee] วันที่ต้องตรวจสอบ dayOffOnly: ${recordDateStr}`);
-                    console.log(`📅 [searchtimerecordemployee] รายการ dayOffOnly:`, weekendData.dayOffOnly);
-                    
-                    const isDayOffOnly = weekendData.dayOffOnly.includes(recordDateStr);
-                    console.log(`✅ [searchtimerecordemployee] ผลการตรวจสอบ dayOffOnly: ${isDayOffOnly}`);
-                    
-                    if (isDayOffOnly) {
-                      console.log(`🚨 [searchtimerecordemployee] workplace 10493: วันที่ ${record.date} อยู่ใน dayOffOnly - เปลี่ยนเป็น stop`);
-                      newDayType = 'stop';
-                      newCashWorkMul = '2';
-                    } else {
-                      console.log(`✅ [searchtimerecordemployee] workplace 10493: วันที่ ${record.date} ไม่อยู่ใน dayOffOnly - เป็น work`);
-                      newDayType = 'work';
-                      newCashWorkMul = '1';
-                    }
-                  } else {
-                    console.log(`⚠️ [searchtimerecordemployee] workplace 10493: ไม่มี dayOffOnly - เป็น work ทุกวัน`);
-                    newDayType = 'work';
-                    newCashWorkMul = '1';
-                  }
-                } catch (weekendError) {
-                  console.error(`❌ [searchtimerecordemployee] ไม่สามารถดึงข้อมูล dayOffOnly สำหรับ workplace ${record.workplaceId}:`, weekendError.message);
-                  // fallback สำหรับ 10493 ถ้าดึงข้อมูลไม่ได้
-                  console.log(`� [searchtimerecordemployee] fallback สำหรับ workplace 10493: dayType = work`);
-                  newDayType = 'work';
-                  newCashWorkMul = '1';
-                }
+                // บังคับให้เป็น work ทุกวันโดยไม่ตรวจสอบอะไรเลย
+                record.dayType = 'work';
+                record.cashWorkMul = '1';
                 
-                // อัปเดตค่าสำหรับ workplace 10493
-                if (record.dayType !== newDayType) {
-                  console.log(`🔄 [searchtimerecordemployee] workplace 10493 อัปเดต dayType: ${record.dayType} -> ${newDayType}`);
-                  record.dayType = newDayType;
-                }
+                console.log(`✅ [searchtimerecordemployee] workplace 10493: วันที่ ${record.date} ถูกบังคับเป็น work (cashWorkMul = 1)`);
                 
-                if (record.cashWorkMul !== newCashWorkMul) {
-                  console.log(`🔄 [searchtimerecordemployee] workplace 10493 อัปเดต cashWorkMul: ${record.cashWorkMul} -> ${newCashWorkMul}`);
-                  record.cashWorkMul = newCashWorkMul;
-                }
-                
-                continue; // ข้ามการตรวจสอบอื่นๆ สำหรับ workplace 10493
+                continue; // ข้ามการตรวจสอบอื่นๆ ทั้งหมดสำหรับ workplace 10493
               }
               
               // �🔥 PRIORITY 1: ตรวจสอบ publicHoliday ก่อนเป็นอันดับแรก (สำหรับ workplace อื่นๆ)
