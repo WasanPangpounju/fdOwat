@@ -4466,12 +4466,27 @@ router.post('/searchtimerecordemployee', async (req, res) => {
       try {
         // ดึงข้อมูล prefix จาก Employee model
         let employeePrefix = '';
+        let isSpecialWorkplace = false;
         try {
           const employee = await Employee.findOne({ employeeId: doc.employeeId });
           employeePrefix = employee?.prefix || '';
+          isSpecialWorkplace = employee?.workplace === '10493';
           console.log(`🔍 Found prefix for ${doc.employeeId}: ${employeePrefix}`);
+          console.log(`🔍 Workplace for ${doc.employeeId}: ${employee?.workplace} (isSpecial: ${isSpecialWorkplace})`);
         } catch (prefixError) {
           console.warn(`⚠️ Could not fetch prefix for employee ${doc.employeeId}:`, prefixError.message);
+        }
+
+        // แก้ไข dayType สำหรับหน่วยงาน 10493 - ทำงานทุกวัน
+        if (isSpecialWorkplace && doc.employee_record) {
+          console.log(`🔧 แก้ไข dayType สำหรับหน่วยงานพิเศษ 10493 - พนักงาน ${doc.employeeId}`);
+          doc.employee_record.forEach((record, index) => {
+            const originalDayType = record.dayType;
+            if (record.dayType === 'stop' || record.dayType === 'specialDayOff') {
+              record.dayType = 'work';
+              console.log(`   - วันที่ ${record.date}: เปลี่ยนจาก "${originalDayType}" เป็น "work"`);
+            }
+          });
         }
 
         const calculatedValues = await calculateCashValues(
@@ -4881,6 +4896,11 @@ try {
         } catch (error) {
           console.error(`❌ เกิดข้อผิดพลาดในการตรวจสอบวันหยุดที่กำหนดเอง:`, error.message);
         }
+        
+        // เงื่อนไขพิเศษสำหรับหน่วยงาน 10493 - ตรวจสอบก่อนการตรวจสอบ dayType อื่นๆ
+        // หมายเหตุ: dayType ถูกเปลี่ยนเป็น "work" แล้วในขั้นตอน searchtimerecordemployee
+        const isSpecialWorkplace = employeeProfile && employeeProfile[0] && employeeProfile[0].workplace === '10493';
+        
         if (record?.dayType === 'stop') {
           console.log(record?.dayType);
           dayOffCount += 1;
@@ -4908,16 +4928,8 @@ try {
 
           } else {
 
-            // เงื่อนไขพิเศษสำหรับหน่วยงาน 10493 - ทำงานทุกวัน
-            const isSpecialWorkplace = employeeProfile && employeeProfile[0] && employeeProfile[0].workplace === '10493';
-            const shouldTreatAsWork = isSpecialWorkplace || (record?.dayType === "work");
-
-            if (shouldTreatAsWork) {
-              if (isSpecialWorkplace) {
-                console.log(`\n--- 🔁 หน่วยงานพิเศษ 10493: กำลังประมวลผลวันที่: ${record.date}, ถือเป็นวันทำงาน (dayType จริง: ${record.dayType}) ---`);
-              } else {
-                console.log(`\n--- 🔁 กำลังประมวลผลวันที่: ${record.date}, ประเภท: ${record.dayType} ---`);
-              }
+            if (record?.dayType === "work") {
+              console.log(`\n--- 🔁 กำลังประมวลผลวันที่: ${record.date}, ประเภท: ${record.dayType} ---`);
 
               dayWorkCount += 1;
               sumTimeWork += convertTimeToDecimal(record.totalTime);
