@@ -5500,7 +5500,14 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
     
     // คำนวณ sumCashWorkMul["2"] เฉพาะสำหรับ 10493
     const calculatedSumCashWorkMul2 = holidayHour * parseFloat(sumOtPublicHoliday);
-    sumCashWorkMul["2"] = calculatedSumCashWorkMul2;
+    sumCashWorkMul["2"] = calculatedSumCashWorkMul2
+    ;
+    sumCashWorkMul["1.5"] = sumCashOt - sumcashDayOffCount;
+    
+
+
+
+
     
     console.log(`💰 สูตรการคำนวณสำหรับหน่วยงาน 10493: holidayHour (${holidayHour}) × sumOtPublicHoliday (${sumOtPublicHoliday}) = ${calculatedSumCashWorkMul2}`);
     console.log(`💰 sumCashWorkMul["2"] = ${sumCashWorkMul["2"]}`);
