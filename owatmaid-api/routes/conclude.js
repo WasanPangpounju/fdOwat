@@ -1839,6 +1839,21 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
     // กรณีที่เรียก API ไม่สำเร็จ จะใช้ค่าจากฐานข้อมูลต่อไป
   }
 
+  if (workplaceId === '10493') {
+    console.log(`🏢 หน่วยงาน ${workplaceId} กำหนดให้ dayType = work เสมอ`);
+    dataCal.dayType = 'work';
+    dataCal.workRate = dataCal.workRateFromAPI ? dataCal.workRateFromAPI / 8 : 0;
+    dataCal.worktTime = 0;
+    dataCal.workRateOT = 1.5; // ค่าเริ่มต้นสำหรับ OT
+    dataCal.worktTimeOT = 0;
+    dataCal.worktTimeStartOT = 0;
+    dataCal.dayoffRateHour = 1;
+    dataCal.dayoffRateOT = 1;
+    dataCal.holidayHour = 1;
+    dataCal.holidayOT = 1;
+    return dataCal;
+  }
+
   // Construct the search query based on the provided parameters
   let query = {};
   if (workplaceId !== '') {
