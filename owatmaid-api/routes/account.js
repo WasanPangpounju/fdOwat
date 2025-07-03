@@ -5485,7 +5485,7 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
       const workplaceSettings = workplaceResponse.data;
       
       // ใช้ field workOfHour เป็น holidayHour (หรือถ้ามี field holidayHour ก็ใช้แทน)
-      holidayHour = parseFloat(workplaceSettings.workOfHour || workplaceSettings.holidayHour || 8);
+      holidayHour = parseFloat(workplaceSettings.holidayHour || 8);
       
       console.log(`🏢 การตั้งค่าหน่วยงาน ${workplaceId}:`);
       console.log(`   - workOfHour (ใช้เป็น holidayHour): ${workplaceSettings.workOfHour}`);
