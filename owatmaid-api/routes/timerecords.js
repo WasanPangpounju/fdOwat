@@ -1184,6 +1184,21 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
     // Query the workplace collection for matching documents
     const result = await timerecordEmployee.find(query);
 
+
+    if (result && result.length > 0) {
+      for (let employee of result) {
+        if (employee.employee_record && employee.employee_record.length > 0) {
+          for (let record of employee.employee_record) {
+            if (record.workplaceId === '10493') {
+              console.log(`🔧 อัปเดต dayType สำหรับ workplace 10493: ${record.dayType} -> work`);
+              record.dayType = 'work';
+              record.cashWorkMul = '1'; // ตัวคูณค่าแรงเป็น 1
+            }
+          }
+        }
+      }
+    }
+
     await res.status(200).json({ result});
   } catch (error) {
     console.error(error);
