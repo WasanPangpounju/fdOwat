@@ -5478,7 +5478,7 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
     // ดึงข้อมูล holidayHour จากการตั้งค่าหน่วยงาน
     let holidayHour = 0;
     try {
-      const workplaceApiUrl = `http://localhost:3000/workplace/${workplaceId}`;
+      const workplaceApiUrl = `http://10.10.110.7:3000/workplace/${workplaceId}`;
       console.log(`🏢 เรียก API การตั้งค่าหน่วยงานเพื่อดึง holidayHour: ${workplaceApiUrl}`);
       
       const workplaceResponse = await axios.get(workplaceApiUrl);
