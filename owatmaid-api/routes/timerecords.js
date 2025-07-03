@@ -1279,48 +1279,88 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
               
               // 🔥 PRIORITY 3: ตรวจสอบการตั้งค่า workTimeDay (เฉพาะถ้าไม่ใช่วันหยุด)
               if (workplace.workTimeDay && workplace.workTimeDay.length > 0) {
-                // ตรวจสอบว่ามีการตั้งค่าให้ทำงานทุกวันหรือไม่
-                const allDayWorkConfig = workplace.workTimeDay.find(config => {
+                console.log(`🔍 ตรวจสอบ workTimeDay สำหรับ workplace ${record.workplaceId}:`, workplace.workTimeDay);
+                
+                // ตรวจสอบว่ามีการตั้งค่าให้ทำงานทุกวันหรือไม่ โดยตรวจสอบทุกวัน (0-6)
+                const workDays = new Set(); // เก็บวันที่ตั้งค่าเป็น work
+                const stopDays = new Set(); // เก็บวันที่ตั้งค่าเป็น stop
+                
+                workplace.workTimeDay.forEach(config => {
                   const startDayIndex = thaiDays.indexOf(config.startDay);
                   const endDayIndex = thaiDays.indexOf(config.endDay);
                   
-                  // ถ้าตั้งค่าอาทิตย์ถึงเสาร์ = ทำงานทุกวัน
-                  return (config.startDay === 'อาทิตย์' && config.endDay === 'เสาร์' && config.workOrStop === 'work');
+                  console.log(`📝 Config: ${config.startDay}(${startDayIndex}) - ${config.endDay}(${endDayIndex}) = ${config.workOrStop}`);
+                  
+                  if (startDayIndex !== -1 && endDayIndex !== -1) {
+                    if (startDayIndex <= endDayIndex) {
+                      // ช่วงวันปกติ (เช่น จันทร์-ศุกร์)
+                      for (let i = startDayIndex; i <= endDayIndex; i++) {
+                        if (config.workOrStop === 'work') {
+                          workDays.add(i);
+                          stopDays.delete(i); // ลบออกจาก stop ถ้ามี
+                        } else {
+                          stopDays.add(i);
+                          workDays.delete(i); // ลบออกจาก work ถ้ามี
+                        }
+                      }
+                    } else {
+                      // ช่วงวันข้ามสัปดาห์ (เช่น ศุกร์-อาทิตย์)
+                      for (let i = startDayIndex; i <= 6; i++) {
+                        if (config.workOrStop === 'work') {
+                          workDays.add(i);
+                          stopDays.delete(i);
+                        } else {
+                          stopDays.add(i);
+                          workDays.delete(i);
+                        }
+                      }
+                      for (let i = 0; i <= endDayIndex; i++) {
+                        if (config.workOrStop === 'work') {
+                          workDays.add(i);
+                          stopDays.delete(i);
+                        } else {
+                          stopDays.add(i);
+                          workDays.delete(i);
+                        }
+                      }
+                    }
+                  }
                 });
                 
-                if (allDayWorkConfig) {
-                  console.log(`✅ พบการตั้งค่าทำงานทุกวัน (อาทิตย์-เสาร์) - dayType = work`);
+                console.log(`📊 Work days: [${Array.from(workDays).sort()}], Stop days: [${Array.from(stopDays).sort()}]`);
+                
+                // ตรวจสอบว่าทุกวัน (0-6) อยู่ใน workDays หรือไม่
+                const allDaysAreWork = [0, 1, 2, 3, 4, 5, 6].every(day => workDays.has(day));
+                
+                if (allDaysAreWork) {
+                  console.log(`✅ พบการตั้งค่าทำงานทุกวัน (ครอบคลุม 0-6) - dayType = work`);
                   newDayType = 'work';
                   newCashWorkMul = '1';
                 } else {
-                  // ค้นหาการตั้งค่าสำหรับวันนี้
-                  const dayConfig = workplace.workTimeDay.find(config => {
-                    const startDayIndex = thaiDays.indexOf(config.startDay);
-                    const endDayIndex = thaiDays.indexOf(config.endDay);
-                    
-                    if (startDayIndex <= endDayIndex) {
-                      // ช่วงวันปกติ (เช่น จันทร์-ศุกร์)
-                      return dayOfWeek >= startDayIndex && dayOfWeek <= endDayIndex;
-                    } else {
-                      // ช่วงวันข้ามสัปดาห์ (เช่น ศุกร์-อาทิตย์)
-                      return dayOfWeek >= startDayIndex || dayOfWeek <= endDayIndex;
-                    }
-                  });
-                  
-                  if (dayConfig) {
-                    newDayType = dayConfig.workOrStop;
-                    newCashWorkMul = dayConfig.workOrStop === 'work' ? '1' : '2';
-                    console.log(`✅ พบการตั้งค่า workTimeDay: ${dayConfig.startDay}-${dayConfig.endDay} = ${dayConfig.workOrStop}`);
+                  // ตรวจสอบการตั้งค่าสำหรับวันนี้โดยเฉพาะ
+                  if (workDays.has(dayOfWeek)) {
+                    newDayType = 'work';
+                    newCashWorkMul = '1';
+                    console.log(`✅ วัน ${dayName} (${dayOfWeek}) ตั้งค่าเป็น work`);
+                  } else if (stopDays.has(dayOfWeek)) {
+                    newDayType = 'stop';
+                    newCashWorkMul = '2';
+                    console.log(`✅ วัน ${dayName} (${dayOfWeek}) ตั้งค่าเป็น stop`);
                   } else {
-                    console.log(`⚠️ ไม่พบการตั้งค่าสำหรับวัน ${dayName} - ใช้ค่าเริ่มต้น: work`);
+                    console.log(`⚠️ ไม่พบการตั้งค่าสำหรับวัน ${dayName} (${dayOfWeek}) - ใช้ค่าเริ่มต้น: work`);
+                    newDayType = 'work';
+                    newCashWorkMul = '1';
                   }
                 }
               } else {
                 console.log(`⚠️ workplace ${record.workplaceId} ไม่มีการตั้งค่า workTimeDay - ถือว่าทุกวันเป็น work`);
+                newDayType = 'work';
+                newCashWorkMul = '1';
               }
               
-              // 🎯 กรณีพิเศษสำหรับ workplace 10493 - บังคับให้เป็น work เสมอ (แต่ยัง respect publicHoliday และ dayOffOnly)
-              if (record.workplaceId === '10493' && newDayType !== 'stop') {
+              // 🎯 กรณีพิเศษสำหรับ workplace 10493 - บังคับให้เป็น work เสมอ 
+              // (publicHoliday และ dayOffOnly จะ continue ไปแล้วข้างต้น ไม่มาถึงจุดนี้)
+              if (record.workplaceId === '10493') {
                 console.log(`🔧 workplace 10493: บังคับ dayType = work (เดิม: ${newDayType})`);
                 newDayType = 'work';
                 newCashWorkMul = '1';
