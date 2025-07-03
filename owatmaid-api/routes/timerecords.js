@@ -1447,12 +1447,33 @@ router.post('/searchtimerecordemployee', async (req, res) => {
               const workplace = workplaceResponse.data;
               
               // สร้างวันที่จาก record
-              const recordDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(record.date));
-              const dayOfWeek = recordDate.getDay(); // 0 = อาทิตย์, 1 = จันทร์, ..., 6 = เสาร์
+              let recordDate;
+              let dayOfWeek = 0;
+              let dayName = 'ไม่ทราบ';
               
-              // แปลงเลขวันเป็นชื่อวันภาษาไทย
-              const thaiDays = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์', 'เสาร์'];
-              const dayName = thaiDays[dayOfWeek];
+              try {
+                // ตรวจสอบและแปลงค่าวันที่
+                const dateValue = parseInt(record.date);
+                const monthValue = parseInt(month);
+                const yearValue = parseInt(year);
+                
+                console.log(`📅 [searchtimerecordemployee] พารามิเตอร์วันที่: date=${dateValue}, month=${monthValue}, year=${yearValue}`);
+                
+                if (!isNaN(dateValue) && !isNaN(monthValue) && !isNaN(yearValue)) {
+                  recordDate = new Date(yearValue, monthValue - 1, dateValue);
+                  dayOfWeek = recordDate.getDay(); // 0 = อาทิตย์, 1 = จันทร์, ..., 6 = เสาร์
+                  
+                  // แปลงเลขวันเป็นชื่อวันภาษาไทย
+                  const thaiDays = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์', 'เสาร์'];
+                  dayName = thaiDays[dayOfWeek];
+                  
+                  console.log(`📅 [searchtimerecordemployee] วันที่สร้างได้: ${recordDate.toDateString()}, dayOfWeek: ${dayOfWeek}, dayName: ${dayName}`);
+                } else {
+                  console.error(`❌ [searchtimerecordemployee] ข้อมูลวันที่ไม่ถูกต้อง: date=${record.date}, month=${month}, year=${year}`);
+                }
+              } catch (dateError) {
+                console.error(`❌ [searchtimerecordemployee] เกิดข้อผิดพลาดในการสร้างวันที่:`, dateError);
+              }
               
               console.log(`🔍 [searchtimerecordemployee] ตรวจสอบ workplace ${record.workplaceId} วันที่ ${record.date} (${dayName}, dayOfWeek: ${dayOfWeek}) เดือน ${month} ปี ${year}`);
               
