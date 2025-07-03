@@ -4482,6 +4482,8 @@ router.post('/searchtimerecordemployee', async (req, res) => {
               const workplaceResponse = await axios.get(`${sURL}/workplace/${record.workplaceId}`);
               const workplace = workplaceResponse.data;
               
+              console.log(`🏢 [accounting/searchtimerecordemployee] ข้อมูล workplace ${record.workplaceId} ทั้งหมด:`, JSON.stringify(workplace, null, 2));
+              
               // สร้างวันที่จาก record
               const recordDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(record.date));
               const dayOfWeek = recordDate.getDay(); // 0 = อาทิตย์, 1 = จันทร์, ..., 6 = เสาร์
@@ -4490,14 +4492,17 @@ router.post('/searchtimerecordemployee', async (req, res) => {
               const thaiDays = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์', 'เสาร์'];
               const dayName = thaiDays[dayOfWeek];
               
-              console.log(`🔍 [accounting/searchtimerecordemployee] ตรวจสอบ workplace ${record.workplaceId} วันที่ ${record.date} (${dayName})`);
+              console.log(`🔍 [accounting/searchtimerecordemployee] ตรวจสอบ workplace ${record.workplaceId} วันที่ ${record.date} (${dayName}, dayOfWeek: ${dayOfWeek}) เดือน ${month} ปี ${year}`);
               
               let newDayType = 'work'; // default เป็น work
               let newCashWorkMul = '1'; // default multiplier
               
               // 🔥 PRIORITY 1: ตรวจสอบ publicHoliday ก่อนเป็นอันดับแรก
+              console.log(`🔍 [accounting/searchtimerecordemployee] ตรวจสอบ publicHoliday สำหรับ workplace ${record.workplaceId}:`, workplace.publicHoliday);
+              
               if (workplace.publicHoliday && workplace.publicHoliday.length > 0) {
                 const recordDateStr = `${year}-${month.padStart(2, '0')}-${record.date.padStart(2, '0')}`;
+                console.log(`📅 [accounting/searchtimerecordemployee] วันที่ต้องตรวจสอบ: ${recordDateStr}`);
                 
                 const isPublicHoliday = workplace.publicHoliday.some(holiday => {
                   let holidayDateStr = '';
@@ -4511,8 +4516,11 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                       holidayDateStr = `${year}-${month}-${day}`;
                     }
                   }
+                  console.log(`🗓️ [accounting/searchtimerecordemployee] เปรียบเทียบ holiday: ${holidayDateStr} กับ record: ${recordDateStr}`);
                   return holidayDateStr === recordDateStr;
                 });
+                
+                console.log(`✅ [accounting/searchtimerecordemployee] ผลการตรวจสอบ publicHoliday: ${isPublicHoliday}`);
                 
                 if (isPublicHoliday) {
                   console.log(`🚨 [accounting/searchtimerecordemployee] PRIORITY 1: วันที่ ${record.date} เป็นวันหยุดนักขัตฤกษ์ (publicHoliday) - เปลี่ยนเป็น stop`);
@@ -4532,6 +4540,8 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                   
                   continue; // ข้ามการตรวจสอบอื่นๆ เพราะ publicHoliday เป็น priority สูงสุด
                 }
+              } else {
+                console.log(`⚠️ [accounting/searchtimerecordemployee] workplace ${record.workplaceId} ไม่มี publicHoliday หรือเป็น array ว่าง`);
               }
               
               // 🔥 PRIORITY 2: ตรวจสอบ dayOffOnly จาก conclude/getWeekendDates 
@@ -4539,9 +4549,15 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                 const weekendResponse = await axios.get(`${sURL}/conclude/getWeekendDates?yyyy=${year}&mm=${month.padStart(2, '0')}&workplaceId=${record.workplaceId}`);
                 const weekendData = weekendResponse.data;
                 
+                console.log(`🔍 [accounting/searchtimerecordemployee] ตรวจสอบ dayOffOnly สำหรับ workplace ${record.workplaceId}:`, weekendData.dayOffOnly);
+                
                 if (weekendData && weekendData.dayOffOnly && weekendData.dayOffOnly.length > 0) {
                   const recordDateStr = `${year}-${month.padStart(2, '0')}-${record.date.padStart(2, '0')}`;
+                  console.log(`📅 [accounting/searchtimerecordemployee] วันที่ต้องตรวจสอบ dayOffOnly: ${recordDateStr}`);
+                  console.log(`📅 [accounting/searchtimerecordemployee] รายการ dayOffOnly:`, weekendData.dayOffOnly);
+                  
                   const isDayOffOnly = weekendData.dayOffOnly.includes(recordDateStr);
+                  console.log(`✅ [accounting/searchtimerecordemployee] ผลการตรวจสอบ dayOffOnly: ${isDayOffOnly}`);
                   
                   if (isDayOffOnly) {
                     console.log(`🚨 [accounting/searchtimerecordemployee] PRIORITY 2: วันที่ ${record.date} อยู่ใน dayOffOnly - เปลี่ยนเป็น stop`);
@@ -4561,12 +4577,16 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                     
                     continue; // ข้ามการตรวจสอบอื่นๆ
                   }
+                } else {
+                  console.log(`⚠️ [accounting/searchtimerecordemployee] workplace ${record.workplaceId} ไม่มี dayOffOnly หรือเป็น array ว่าง`);
                 }
               } catch (weekendError) {
                 console.error(`❌ [accounting/searchtimerecordemployee] ไม่สามารถดึงข้อมูล dayOffOnly สำหรับ workplace ${record.workplaceId}:`, weekendError.message);
               }
               
               // 🔥 PRIORITY 3: ตรวจสอบการตั้งค่า workTimeDay (เฉพาะถ้าไม่ใช่วันหยุด)
+              console.log(`🔍 [accounting/searchtimerecordemployee] ตรวจสอบ workTimeDay สำหรับ workplace ${record.workplaceId}:`, workplace.workTimeDay);
+              
               if (workplace.workTimeDay && workplace.workTimeDay.length > 0) {
                 console.log(`🔍 [accounting/searchtimerecordemployee] ตรวจสอบ workTimeDay สำหรับ workplace ${record.workplaceId}:`, workplace.workTimeDay);
                 
