@@ -2027,13 +2027,24 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
       dataCal.dayType = await 'specialDayOff';
     } else {
       // ตรวจสอบประเภทวัน
-      for(const workTimeDay of workplaces[0].workTimeDay) {
-        let check = await checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumberx);
+      // ✅ ถ้าไม่มี workTimeDay หรือเป็น array ว่าง ให้ถือว่าทุกวันเป็น work
+      if (!workplaces[0].workTimeDay || workplaces[0].workTimeDay.length === 0) {
+        console.log('ไม่มีการกำหนด workTimeDay หรือเป็น array ว่าง - กำหนด dayType = work');
+        dataCal.dayType = 'work';
+      } else {
+        let dayTypeFound = false;
+        for(const workTimeDay of workplaces[0].workTimeDay) {
+          let check = await checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumberx);
 
-        if(check === true) {
-          dataCal.dayType = await workTimeDay.workOrStop;
-          break;
-        } else {
+          if(check === true) {
+            dataCal.dayType = await workTimeDay.workOrStop;
+            dayTypeFound = true;
+            break;
+          }
+        }
+        
+        // ✅ ถ้าไม่พบ dayType ที่ตรงกับวันนี้ ให้กำหนดเป็น work
+        if(!dayTypeFound) {
           dataCal.dayType = 'work';
         }
       }
