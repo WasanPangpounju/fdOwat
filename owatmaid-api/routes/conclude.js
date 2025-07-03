@@ -1835,23 +1835,8 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
     // เก็บค่าที่ได้จาก API ไว้ใน dataCal
     dataCal.workRateFromAPI = workRateFromAPI;
   } catch (error) {
-    console.error(`❌ ไม่สามารถดึงข้อมูลจาก API ได้สาหรับ workplace ${workplaceId}:`, error.message);
+    console.error(`❌ ไม่สามารถดึงข้อมูลจาก API ได้สำหรับ workplace ${workplaceId}:`, error.message);
     // กรณีที่เรียก API ไม่สำเร็จ จะใช้ค่าจากฐานข้อมูลต่อไป
-  }
-
-  if (workplaceId === '10493') {
-    console.log(`🏢 หน่วยงาน ${workplaceId} กำหนดให้ dayType = work เสมอ`);
-    dataCal.dayType = 'work';
-    dataCal.workRate = dataCal.workRateFromAPI ? dataCal.workRateFromAPI / 8 : 0;
-    dataCal.worktTime = 0;
-    dataCal.workRateOT = 1.5; // ค่าเริ่มต้นสำหรับ OT
-    dataCal.worktTimeOT = 0;
-    dataCal.worktTimeStartOT = 0;
-    dataCal.dayoffRateHour = 1;
-    dataCal.dayoffRateOT = 1;
-    dataCal.holidayHour = 1;
-    dataCal.holidayOT = 1;
-    return dataCal;
   }
 
   // Construct the search query based on the provided parameters
@@ -2027,24 +2012,13 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
       dataCal.dayType = await 'specialDayOff';
     } else {
       // ตรวจสอบประเภทวัน
-      // ✅ ถ้าไม่มี workTimeDay หรือเป็น array ว่าง ให้ถือว่าทุกวันเป็น work
-      if (!workplaces[0].workTimeDay || workplaces[0].workTimeDay.length === 0) {
-        console.log('ไม่มีการกำหนด workTimeDay หรือเป็น array ว่าง - กำหนด dayType = work');
-        dataCal.dayType = 'work';
-      } else {
-        let dayTypeFound = false;
-        for(const workTimeDay of workplaces[0].workTimeDay) {
-          let check = await checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumberx);
+      for(const workTimeDay of workplaces[0].workTimeDay) {
+        let check = await checkdayType(workTimeDay.startDay, workTimeDay.endDay, dayNumberx);
 
-          if(check === true) {
-            dataCal.dayType = await workTimeDay.workOrStop;
-            dayTypeFound = true;
-            break;
-          }
-        }
-        
-        // ✅ ถ้าไม่พบ dayType ที่ตรงกับวันนี้ ให้กำหนดเป็น work
-        if(!dayTypeFound) {
+        if(check === true) {
+          dataCal.dayType = await workTimeDay.workOrStop;
+          break;
+        } else {
           dataCal.dayType = 'work';
         }
       }

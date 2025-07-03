@@ -5326,16 +5326,6 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
   console.log(`\n✅ --- สรุปการคำนวณ sumOt1p5 ---`);
   console.log(`   - ผลรวมสุดท้ายของ sumOt1p5: ${sumOt1p5}`);
 
-  // 🔧 คำนวณ dayWorkCount ใหม่: วันทำงาน - วันหยุดนักขัตฤกษ์ที่ไม่ได้มาทำงาน
-  const originalDayWorkCount = dayWorkCount;
-  const adjustedDayWorkCount = dayWorkCount - publicHolidayCount;
-  
-  console.log(`\n💼 === คำนวณ dayWorkCount สำหรับ Accounting ===`);
-  console.log(`💼 - วันทำงานเดิม (dayType="work"): ${originalDayWorkCount} วัน`);
-  console.log(`💼 - วันหยุดนักขัตฤกษ์ที่ไม่ได้มาทำงาน (publicHolidayCount): ${publicHolidayCount} วัน`);
-  console.log(`💼 - dayWorkCount ใหม่ (สำหรับ accounting): ${originalDayWorkCount} - ${publicHolidayCount} = ${adjustedDayWorkCount} วัน`);
-  console.log(`💼 ========================================`);
-
   sumTimeOt = sumTimeOt.toFixed(2);
   sumTimeWork = sumTimeWork.toFixed(2);
   sumOt1p5 = sumOt1p5.toFixed(2);
@@ -5347,7 +5337,7 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
 
 
   return await {
-    dayWorkCount: adjustedDayWorkCount, // 🔧 ใช้ค่าใหม่ที่หัก publicHolidayCount แล้ว
+    dayWorkCount,
     dayOffCount,
     specialDayOff,
     customizeDayoff, // เพิ่มฟิลด์ customizeDayoff

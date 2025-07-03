@@ -1167,129 +1167,24 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
     // Construct the search query based on the provided parameters
     const query = {};
 
+
     if (month !== '') {
+      //query.month = new Date(date);
       query.month = { $regex: new RegExp(month , 'i') };
     }
 
-    if (year !== '') {
+    if (year!== '') {
       query.year = { $regex: new RegExp(year , 'i') };
     }
 
-    if (month == '' && year == '') {
+    if ( month == '' && year== '') {
       res.status(200).json({});
-      return;
     }
 
     // Query the workplace collection for matching documents
     const result = await timerecordEmployee.find(query);
 
-    // ✅ คำนวณ dayType ใหม่ตามการตั้งค่า workTimeDay จาก workplace API
-    if (result && result.length > 0) {
-      for (let employee of result) {
-        if (employee.employee_record && employee.employee_record.length > 0) {
-          for (let record of employee.employee_record) {
-            try {
-              // ดึงข้อมูล workplace configuration
-              const workplaceResponse = await axios.get(`${sURL}/workplace/${record.workplaceId}`);
-              const workplace = workplaceResponse.data;
-              
-              // สร้างวันที่จาก record
-              const recordDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(record.date));
-              const dayOfWeek = recordDate.getDay(); // 0 = อาทิตย์, 1 = จันทร์, ..., 6 = เสาร์
-              
-              // แปลงเลขวันเป็นชื่อวันภาษาไทย
-              const thaiDays = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์', 'เสาร์'];
-              const dayName = thaiDays[dayOfWeek];
-              
-              console.log(`🔍 ตรวจสอบ workplace ${record.workplaceId} วันที่ ${record.date} (${dayName})`);
-              
-              let newDayType = 'work'; // default เป็น work
-              let newCashWorkMul = '1'; // default multiplier
-              
-              // 🔥 PRIORITY: ตรวจสอบ dayOffOnly จาก conclude/getWeekendDates ก่อน
-              try {
-                const weekendResponse = await axios.get(`${sURL}/conclude/getWeekendDates?yyyy=${year}&mm=${month.padStart(2, '0')}&workplaceId=${record.workplaceId}`);
-                const weekendData = weekendResponse.data;
-                
-                if (weekendData && weekendData.dayOffOnly && weekendData.dayOffOnly.length > 0) {
-                  // สร้างรูปแบบวันที่เพื่อเปรียบเทียบ
-                  const recordDateStr = `${year}-${month.padStart(2, '0')}-${record.date.padStart(2, '0')}`;
-                  
-                  // ตรวจสอบว่าวันที่นี้อยู่ใน dayOffOnly หรือไม่
-                  const isDayOffOnly = weekendData.dayOffOnly.includes(recordDateStr);
-                  
-                  if (isDayOffOnly) {
-                    console.log(`🚨 PRIORITY: วันที่ ${record.date} อยู่ใน dayOffOnly - เปลี่ยนเป็น stop`);
-                    newDayType = 'stop';
-                    newCashWorkMul = '2';
-                  } else {
-                    console.log(`✅ วันที่ ${record.date} ไม่อยู่ใน dayOffOnly - ใช้กฎปกติ`);
-                  }
-                }
-              } catch (weekendError) {
-                console.error(`❌ ไม่สามารถดึงข้อมูล dayOffOnly สำหรับ workplace ${record.workplaceId}:`, weekendError.message);
-              }
-              
-              // ถ้าไม่ใช่ dayOffOnly จึงตรวจสอบการตั้งค่า workTimeDay (เฉพาะถ้า dayType ยังเป็น work)
-              if (newDayType === 'work' && workplace.workTimeDay && workplace.workTimeDay.length > 0) {
-                // ค้นหาการตั้งค่าสำหรับวันนี้
-                const dayConfig = workplace.workTimeDay.find(config => {
-                  const startDayIndex = thaiDays.indexOf(config.startDay);
-                  const endDayIndex = thaiDays.indexOf(config.endDay);
-                  
-                  if (startDayIndex <= endDayIndex) {
-                    // ช่วงวันปกติ (เช่น จันทร์-ศุกร์)
-                    return dayOfWeek >= startDayIndex && dayOfWeek <= endDayIndex;
-                  } else {
-                    // ช่วงวันข้ามสัปดาห์ (เช่น ศุกร์-อาทิตย์)
-                    return dayOfWeek >= startDayIndex || dayOfWeek <= endDayIndex;
-                  }
-                });
-                
-                if (dayConfig) {
-                  newDayType = dayConfig.workOrStop;
-                  newCashWorkMul = dayConfig.workOrStop === 'work' ? '1' : '2';
-                  console.log(`✅ พบการตั้งค่า workTimeDay: ${dayConfig.startDay}-${dayConfig.endDay} = ${dayConfig.workOrStop}`);
-                } else {
-                  console.log(`⚠️ ไม่พบการตั้งค่าสำหรับวัน ${dayName} - ใช้ค่าเริ่มต้น: work`);
-                }
-              } else if (newDayType === 'work') {
-                console.log(`⚠️ workplace ${record.workplaceId} ไม่มีการตั้งค่า workTimeDay - ถือว่าทุกวันเป็น work`);
-              }
-              
-              // 🎯 กรณีพิเศษสำหรับ workplace 10493 - บังคับให้เป็น work เสมอ (แต่ยัง respect dayOffOnly)
-              if (record.workplaceId === '10493' && newDayType !== 'stop') {
-                console.log(`🔧 workplace 10493: บังคับ dayType = work (เดิม: ${newDayType})`);
-                newDayType = 'work';
-                newCashWorkMul = '1';
-              }
-              
-              // อัปเดตค่า
-              if (record.dayType !== newDayType) {
-                console.log(`🔄 อัปเดต dayType: ${record.dayType} -> ${newDayType}`);
-                record.dayType = newDayType;
-              }
-              
-              if (record.cashWorkMul !== newCashWorkMul) {
-                console.log(`🔄 อัปเดต cashWorkMul: ${record.cashWorkMul} -> ${newCashWorkMul}`);
-                record.cashWorkMul = newCashWorkMul;
-              }
-              
-            } catch (workplaceError) {
-              console.error(`❌ ไม่สามารถดึงข้อมูล workplace ${record.workplaceId}:`, workplaceError.message);
-              // ถ้าดึงข้อมูล workplace ไม่ได้ ให้ใช้กฎพิเศษสำหรับ 10493
-              if (record.workplaceId === '10493') {
-                console.log(`🔧 fallback สำหรับ workplace 10493: dayType = work`);
-                record.dayType = 'work';
-                record.cashWorkMul = '1';
-              }
-            }
-          }
-        }
-      }
-    }
-
-    await res.status(200).json({ result });
+    await res.status(200).json({ result});
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Internal server error' });

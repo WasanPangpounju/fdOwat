@@ -649,7 +649,7 @@ const specialDaylist = [];
             let dayOffSum = 0;
 
             // Parse workTimeDay to get day off list
-            if (workplace.workTimeDay && workplace.workTimeDay.length > 0) {
+            if (workplace.workTimeDay) {
                 workplace.workTimeDay.forEach(item => {
                     if (item.workOrStop === 'stop') {
                         try {
@@ -679,10 +679,6 @@ const specialDaylist = [];
                     }
                 });
                 console.log('dayOffList: ', dayOffList);
-            } else {
-                // ✅ ถ้าไม่มีการกำหนด workTimeDay หรือเป็น array ว่าง ให้ถือว่าทุกวันเป็น work (ไม่มีวันหยุด)
-                console.log('ไม่มีการกำหนด workTimeDay หรือเป็น array ว่าง - ถือว่าทุกวันเป็นวันทำงาน');
-                console.log('dayOffList: []');
             }
 
             // Convert the month string to an integer
