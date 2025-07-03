@@ -5019,8 +5019,10 @@ try {
             sumCashOt = parseFloat(sumCashOt || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0')
             sumOt3 += convertTimeToDecimal(record.totalOtTime);
             sumOtPublicHoliday += convertTimeToDecimal(record.totalTime); // เพิ่มผลรวมของ totalOtTime ในวันหยุดนักขัตฤกษ์
-            sumCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
-            console.log(`📊 เพิ่ม sumCashWorkMul[${record?.cashWorkMul}] += ${record?.cashWork || '0'}`);
+            
+            // ไม่บวก sumCashWorkMul สำหรับ dayType = "stop" เพื่อให้ sumCashWorkMul["1"] ตรงกับ sumCashWork
+            console.log(`📊 ไม่เพิ่ม sumCashWorkMul สำหรับ dayType="stop" วันที่ ${record.date}`);
+            // sumCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
 
           sumCashWorkMul[record?.cashOtMul] += parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0');
 
