@@ -1835,7 +1835,7 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
     // เก็บค่าที่ได้จาก API ไว้ใน dataCal
     dataCal.workRateFromAPI = workRateFromAPI;
   } catch (error) {
-    console.error(`❌ ไม่สามารถดึงข้อมูลจาก API ได้สำหรับ workplace ${workplaceId}:`, error.message);
+    console.error(`❌ ไม่สามารถดึงข้อมูลจาก API ได้สาหรับ workplace ${workplaceId}:`, error.message);
     // กรณีที่เรียก API ไม่สำเร็จ จะใช้ค่าจากฐานข้อมูลต่อไป
   }
 
