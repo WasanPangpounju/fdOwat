@@ -4494,16 +4494,52 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         // แก้ไข dayType สำหรับหน่วยงาน 10493 - ทำงานทุกวัน
         if (isSpecialWorkplace && doc.employee_record) {
           console.log(`🔧 แก้ไข dayType สำหรับหน่วยงานพิเศษ 10493 - พนักงาน ${doc.employeeId}`);
+          
+          // ดึงข้อมูล dayOffOnly จาก API
+          let dayOffOnlyDates = [];
+          try {
+            const month = String(doc.month).padStart(2, '0');
+            const year = doc.year;
+            const apiUrl = `${sURL}/workplace/getweekend?month=${month}&year=${year}`;
+            console.log(`🔍 เรียก API วันหยุด: ${apiUrl}`);
+            
+            const weekendResponse = await axios.get(apiUrl);
+            const weekendData = weekendResponse.data;
+            dayOffOnlyDates = weekendData.dayOffOnly || [];
+            
+            console.log(`📅 วันหยุดนักขัตฤกษ์ที่ต้องเป็น stop: ${JSON.stringify(dayOffOnlyDates)}`);
+          } catch (error) {
+            console.error(`❌ ไม่สามารถดึงข้อมูลวันหยุดได้:`, error.message);
+          }
+          
           let changedCount = 0;
           doc.employee_record.forEach((record, index) => {
             const originalDayType = record.dayType;
-            if (record.dayType === 'stop' || record.dayType === 'specialDayOff') {
-              record.dayType = 'work';
-              changedCount++;
-              console.log(`   - วันที่ ${record.date}: เปลี่ยนจาก "${originalDayType}" เป็น "work"`);
+            
+            // สร้างวันที่ในรูปแบบ YYYY-MM-DD
+            const dateStr = `${doc.year}-${String(doc.month).padStart(2, '0')}-${String(record.date).padStart(2, '0')}`;
+            
+            // ตรวจสอบว่าวันนี้อยู่ใน dayOffOnly หรือไม่
+            const isDayOffOnly = dayOffOnlyDates.includes(dateStr);
+            
+            if (isDayOffOnly) {
+              // วันใน dayOffOnly ต้องเป็น "stop"
+              if (record.dayType !== 'stop') {
+                record.dayType = 'stop';
+                changedCount++;
+                console.log(`   - วันที่ ${record.date}: เปลี่ยนจาก "${originalDayType}" เป็น "stop" (วันหยุดนักขัตฤกษ์)`);
+              }
+            } else {
+              // วันอื่นๆ ต้องเป็น "work"
+              if (record.dayType !== 'work') {
+                record.dayType = 'work';
+                changedCount++;
+                console.log(`   - วันที่ ${record.date}: เปลี่ยนจาก "${originalDayType}" เป็น "work"`);
+              }
             }
           });
-          console.log(`✅ เปลี่ยน dayType ทั้งหมด ${changedCount} รายการ`);
+          
+          console.log(`✅ เปลี่ยน dayType ทั้งหมด ${changedCount} รายการสำหรับพนักงาน ${doc.employeeId}`);
         } else {
           if (!isSpecialWorkplace) {
             console.log(`ℹ️ พนักงาน ${doc.employeeId} ไม่ใช่หน่วยงาน 10493 - ไม่เปลี่ยน dayType`);
