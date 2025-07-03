@@ -41,6 +41,8 @@ function Salaryresult() {
   const [bankCustom, setBankCustom] = useState(0); //ค่าทำเนียม
   const [sumDeduct, setSumDeduct] = useState(0); //sum deduct immedate
   const [sumDeductInstallment, setSumDeductInstallment] = useState(0); //sum deduct installment
+  const [localPublicHolidayCash, setLocalPublicHolidayCash] = useState(0);
+
 
   const [employeeId, setEmployeeId] = useState(""); //รหัสหน่วยงาน
   const [name, setName] = useState(""); //ชื่อหน่วยงาน
@@ -1821,7 +1823,6 @@ function Salaryresult() {
   const [error, setError] = useState(null); // Store errors
 
   const [localSocialSecurity , setLocalSocialSecurity] = useState(0);
-  const [localCashSpecialDay , setLocalCashSpecialDay ] = useState(0);
 
 
   const updateData = async () => {
@@ -1832,6 +1833,7 @@ function Salaryresult() {
       updatedResult[0] = {
         ...updatedResult[0],
         socialSecurity: localSocialSecurity,
+        publicHolidayCash: localPublicHolidayCash,
       };
   
       setAccountingResult(updatedResult);
@@ -1841,8 +1843,7 @@ function Salaryresult() {
         _id: updatedResult[0]._id, // ต้องมี _id เพื่อให้อัปเดตถูก document
         updates: {
           socialSecurity: localSocialSecurity,
-          // หากต้องการส่งค่าอื่นเพิ่มเติม เช่น cashSpecialDay:
-          // cashSpecialDay: updatedResult[0].cashSpecialDay,
+          publicHolidayCash: localPublicHolidayCash,
         },
       };
   
@@ -1868,7 +1869,7 @@ function Salaryresult() {
 useEffect(() => {
   if(accountingResult?.[0]?.socialSecurity ){
     const ssBase = parseFloat(accountingResult?.[0]?.socialSecurity || 0);
-    const cash = parseFloat(localCashSpecialDay || 0);
+    const cash = parseFloat(localPublicHolidayCash || 0);
     const ss = ssBase + cash * 0.05;
     let roundedSS = Math.round(ss); // เปลี่ยนจาก const เป็น let
     if(roundedSS > 750) {
@@ -1876,14 +1877,14 @@ useEffect(() => {
     }
     setLocalSocialSecurity(roundedSS);
   }
-}, [localCashSpecialDay]);
+}, [localPublicHolidayCash]);
   async function handleSearchAccounting() {
     event.preventDefault();
 
 setAccountingResult({});
 setLoading(true);
 setError(null);
-setLocalCashSpecialDay(0);
+setLocalPublicHolidayCash(0);
 setLocalSocialSecurity(0);
 
 if(staffId !== '') {
@@ -1904,12 +1905,12 @@ try {
 
   if (response.data?.result?.length > 0) {
     await setAccountingResult(response.data.result);
-    let cash = await parseFloat(response.data.result[0]?.cashSpecialDay || 0);
+    let cash = await parseFloat(response.data.result[0]?.publicHolidayCash || 0);
     let ss = await parseFloat(response.data.result[0]?.socialSecurity || 0) + cash * 0.05;
   if(ss  > 750) {
     ss  = 750;
   }
-    await setLocalCashSpecialDay(cash);
+    await setLocalPublicHolidayCash(cash);
     await setLocalSocialSecurity(Math.round(ss) );
     // alert(JSON.stringify(accountingResult[0].addSalaryList,null,2));
 // alert('hi' + accountingResult[0].addSalaryList[0].SpSalary)
@@ -2409,25 +2410,25 @@ try {
                           <th style={cellStyle}>
                             <div class="row">
                               <div >
-                              <input
+   <input
   type="number"
   className="form-control text-center" 
   id="specialDay"
   placeholder="0.00"
   step="0.01"
   min="0"
-  value={localCashSpecialDay} // ไม่ parse หรือ toFixed ที่นี่
+  value={localPublicHolidayCash} // เปลี่ยนเป็น localPublicHolidayCash
   onChange={(e) => {
     const newValue = e.target.value;
 
-    setLocalCashSpecialDay(newValue);
+    setLocalPublicHolidayCash(newValue); // เปลี่ยนเป็น setLocalPublicHolidayCash
 
     // แปลงค่าก่อนเก็บใน accountingResult ให้เป็น float
     setAccountingResult((prev) => {
       const updated = [...prev];
       updated[0] = {
         ...updated[0],
-        cashSpecialDay: parseFloat(newValue || 0), // parse ตรงนี้
+        publicHolidayCash: parseFloat(newValue || 0), // เปลี่ยนเป็น publicHolidayCash
       };
       return updated;
     });
@@ -2441,8 +2442,9 @@ try {
                           
                           <th style={cellStyle}></th>
                           <th style={cellStyle}>
-                          {accountingResult?.[0]?.cashSpecialDay || '0'}
+                            {accountingResult?.[0]?.publicHolidayCash || '0'}
                           </th>
+
                         </tr>
                       </tbody>
                     </table>
@@ -2475,7 +2477,7 @@ try {
   const total = 
     parseFloat(accountingResult?.[0]?.sumCashWork || '0') + 
     parseFloat(accountingResult?.[0]?.sumCashOt || '0') +
-    parseFloat(accountingResult?.[0]?.cashSpecialDay || '0') + 
+    parseFloat(accountingResult?.[0]?.publicHolidayCash || '0') + 
     parseFloat(
       accountingResult?.[0]?.addSalaryList?.reduce(
         (total, item) => total + parseFloat(item.SpSalary || '0'),
@@ -2514,7 +2516,7 @@ try {
   const incomeTotal = 
     parseFloat(accountingResult?.[0]?.sumCashWork || '0') + 
     parseFloat(accountingResult?.[0]?.sumCashOt || '0') +
-    parseFloat(accountingResult?.[0]?.cashSpecialDay || '0') + 
+    parseFloat(accountingResult?.[0]?.publicHolidayCash || '0') + 
     parseFloat(
       accountingResult?.[0]?.addSalaryList?.reduce(
         (total, item) => total + parseFloat(item.SpSalary || '0'),

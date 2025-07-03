@@ -11,7 +11,9 @@ import "react-datepicker/dist/react-datepicker.css";
 
 import moment from "moment";
 import "moment/locale/th"; // Import the Thai locale data
+
 function SalarySlipPDF({ employeeList, workplaceList }) {
+  // ...existing state variables...
   const [workplacrId, setWorkplacrId] = useState(""); //รหัสหน่วยงาน
   const [workplacrName, setWorkplacrName] = useState(""); //รหัสหน่วยงาน
 
@@ -28,8 +30,8 @@ function SalarySlipPDF({ employeeList, workplaceList }) {
   const [searchEmployeeName, setSearchEmployeeName] = useState("");
 
   const [responseDataAll, setResponseDataAll] = useState([]);
-
-    const [cashWorkData, setCashWorkData] = useState([]);
+  const [cashWorkData, setCashWorkData] = useState([]);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
 
   const [month, setMonth] = useState("01");
@@ -43,6 +45,53 @@ function SalarySlipPDF({ employeeList, workplaceList }) {
   ).reverse();
 
   const [selectedOption, setSelectedOption] = useState("option1");
+
+  // ฟังก์ชันสำหรับดึงข้อมูลพนักงานจาก API
+  const getEmployeeBankNumber = async (employeeId) => {
+    console.log("🚀 START: getEmployeeBankNumber called with employeeId:", employeeId);
+    
+    try {
+      console.log(`🏦 กำลังดึงเลขบัญชีสำหรับพนักงาน ID: ${employeeId}`);
+      console.log("🌐 Sending request to API...");
+      
+      const response = await axios.post("http://10.10.110.7:3000/employee/search", {
+        employeeId: employeeId
+      });
+      
+      console.log("✅ API Response received:");
+      console.log("📊 Response status:", response.status);
+      console.log("📋 Response data:", response.data);
+      
+      // แก้ไข: ตรวจสอบ response.data.employees แทน response.data
+      if (response.data && response.data.employees && response.data.employees.length > 0) {
+        const employee = response.data.employees[0];
+        console.log("👤 Employee data found:", employee);
+        
+        const banknumber = employee.banknumber || "Unknown";
+        console.log(`🏦 พบเลขบัญชี: ${banknumber} สำหรับพนักงาน ${employeeId}`);
+        console.log("✅ END: Returning banknumber:", banknumber);
+        return banknumber;
+      } else {
+        console.log(`❌ ไม่พบข้อมูลพนักงาน ID: ${employeeId}`);
+        console.log("🔍 Available data structure:", {
+          hasData: !!response.data,
+          hasEmployees: !!(response.data && response.data.employees),
+          employeesLength: response.data?.employees?.length || 0
+        });
+        console.log("❌ END: Returning 'Unknown'");
+        return "Unknown";
+      }
+    } catch (error) {
+      console.error(`💥 Error fetching employee bank number for ${employeeId}:`, error);
+      console.error("💥 Error details:", {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      });
+      console.log("❌ END: Returning 'Unknown' due to error");
+      return "Unknown";
+    }
+  };
 
   const handleSelectChange = (e) => {
     const value = e.target.value;
@@ -101,26 +150,37 @@ function SalarySlipPDF({ employeeList, workplaceList }) {
 useEffect(() => {
   const fetchData = () => {
     const dataTest = {
-      year: year,
-      month: month,
+      year: year.toString(),
+      month: month.toString().padStart(2, '0'),
     };
 
-    // เปลี่ยนจาก /accounting/calsalarylist เป็น /timerecord/listempdeletexx
+    console.log("🚀 Sending POST request to API:", "http://10.10.110.7:3000/accounting/searchtimerecordemployee");
+    console.log("📅 Request data:", dataTest);
+    console.log("🔍 Selected option:", selectedOption);
+    console.log("🏢 Search workplace ID:", searchWorkplaceId);
+    console.log("👤 Search employee ID:", searchEmployeeId);
+
+    // เปลี่ยนเป็น POST http://10.10.110.7:3000/accounting/searchtimerecordemployee
     axios
-      .get(endpoint + "/timerecord/listempdeletexx", dataTest)
+      .post("http://10.10.110.7:3000/accounting/searchtimerecordemployee", dataTest)
       .then((response) => {
+        console.log("✅ API Response received:", response.data);
+        console.log("📊 Total records from API:", response.data?.result?.length || 0);
         if (selectedOption == "option1") {
-          const responseData = response.data;
+          const responseData = response.data.result; // แก้ไข: เข้าถึง result array
+          console.log("🔄 Processing Option 1 (Workplace filter)");
 
           // Filter data based on searchWorkplaceId if provided
           const filteredData = searchWorkplaceId
             ? responseData.filter((item) => {
                 // กรองตาม workplaceId จาก employee_record
-                return item.employee_record.some(
+                return item.employee_record && item.employee_record.some(
                   (record) => record.workplaceId === searchWorkplaceId
                 );
               })
             : responseData;
+
+          console.log("🏢 After workplace filter:", filteredData.length, "records");
 
           // Sort filteredData by workplaceId in ascending order
           filteredData.sort((a, b) => {
@@ -141,18 +201,23 @@ useEffect(() => {
 
           // Filter by year and month
           const dateFilteredData = filteredData.filter(
-            (item) => item.year === year.toString() && item.month === month
+            (item) => item.year === year.toString() && item.month === month.toString().padStart(2, '0')
           );
 
+          console.log("📅 After date filter:", dateFilteredData.length, "records");
+          console.log("📋 Final filtered data:", dateFilteredData);
           setResponseDataAll(dateFilteredData);
         } else if (selectedOption == "option2") {
-          const responseData = response.data;
+          const responseData = response.data.result; // แก้ไข: เข้าถึง result array
+          console.log("🔄 Processing Option 2 (Employee filter)");
 
           // Filter data based on searchEmployeeId if provided
           const filteredData = searchEmployeeId
             ? responseData.filter((item) => item.employeeId === searchEmployeeId)
             : responseData;
 
+          console.log("👤 After employee filter:", filteredData.length, "records");
+
           // Sort filteredData by workplaceId in ascending order
           filteredData.sort((a, b) => {
             const workplaceA = a.employee_record[0]?.workplaceId || "";
@@ -172,14 +237,21 @@ useEffect(() => {
 
           // Filter by year and month
           const dateFilteredData = filteredData.filter(
-            (item) => item.year === year.toString() && item.month === month
+            (item) => item.year === year.toString() && item.month === month.toString().padStart(2, '0')
           );
 
+          console.log("📅 After date filter:", dateFilteredData.length, "records");
+          console.log("📋 Final filtered data:", dateFilteredData);
           setResponseDataAll(dateFilteredData);
         }
       })
       .catch((error) => {
-        console.error("Error:", error);
+        console.error("❌ API Error:", error);
+        console.error("❌ Error message:", error.message);
+        if (error.response) {
+          console.error("❌ Response status:", error.response.status);
+          console.error("❌ Response data:", error.response.data);
+        }
       });
   };
 
@@ -280,7 +352,24 @@ const getSumCashWork = (employeeId) => {
   return employeeData ? parseFloat(employeeData.sumCashWork || 0) : 0;
 };
 
-const generatePDF = () => {
+const generatePDF = async () => {
+  // ADD - ป้องกันการกดซ้ำ
+  if (isGeneratingPDF) return;
+  
+  // ADD - ตรวจสอบข้อมูล
+  if (!responseDataAll || responseDataAll.length === 0) {
+    alert("กรุณารอให้ข้อมูลโหลดเสร็จก่อน หรือเลือกเงื่อนไขการค้นหา");
+    return;
+  }
+  
+  try {
+    setIsGeneratingPDF(true); // ADD - เริ่ม loading
+    console.log("🎯 START: generatePDF function called");
+  console.log("📊 ResponseDataAll length:", responseDataAll?.length);
+  console.log("📊 ResponseDataAll data:", responseDataAll);
+   
+
+  
   // Create a new instance of jsPDF
   const pdf = new jsPDF();
 
@@ -333,6 +422,8 @@ const generatePDF = () => {
 
   // Loop through the names and ages arrays to add content to the PDF
   for (let i = 0; i < responseDataAll.length; i += 2) {
+    console.log(`🔄 Processing employee loop iteration ${i}/${responseDataAll.length}`);
+    
     // Add a page for each pair of names
     if (i > 0) {
       pdf.addPage();
@@ -340,6 +431,7 @@ const generatePDF = () => {
 
     // ใช้ข้อมูลจาก employee_record แทน accountingRecord
     const currentEmployee = responseDataAll[i];
+    console.log(`👤 Processing employee ${i}:`, currentEmployee?.employeeId, currentEmployee?.employeeName);
     const employeeRecords = currentEmployee.employee_record || [];
     const addSalaryList = currentEmployee.addSalaryList || [];
 
@@ -391,6 +483,10 @@ const generatePDF = () => {
       (item) => item.id === "1535"
     );
 
+    const formattedAddSalaryFood = addSalaryList.filter(
+      (item) => item.id === "1330"
+    );
+
     // Calculate the sum of SpSalary values in the filtered array
     const sumAmountHardWorking = formattedAmountHardWorking.reduce(
       (total, item) => total + parseFloat(item.SpSalary || 0),
@@ -398,6 +494,11 @@ const generatePDF = () => {
     );
 
     const sumAddSalaryTavel = formattedAddSalaryTavel.reduce(
+      (total, item) => total + parseFloat(item.SpSalary || 0),
+      0
+    );
+
+    const sumAddSalaryFood = formattedAddSalaryFood.reduce(
       (total, item) => total + parseFloat(item.SpSalary || 0),
       0
     );
@@ -416,7 +517,7 @@ const generatePDF = () => {
     const head2 = 155;
 
     pdf.text(`รหัส`, 7, head);
-    pdf.text(`ชื่อ-สกุล`, 40, head);
+    pdf.text(`ชื่อ-สกุล`, 30, head);
     pdf.text(`หน่วยงาน`, 80, head);
 
     // ใช้ workplaceId จาก employee_record
@@ -430,12 +531,19 @@ const generatePDF = () => {
     const workplaceName = workplace ? workplace.workplaceName : "Unknown";
     pdf.text(`${workplaceName}`, 103, head);
 
-    const bankCheck = employeeList.find(
-      (item) => item.workplace === currentWorkplaceId
-    );
-
-    const banknumber = bankCheck && bankCheck.banknumber ? bankCheck.banknumber : "Unknown";
-    pdf.text(`เลขที่บัญชี ${banknumber}`, 155, head);
+    // ดึงเลขบัญชีจาก API แทนการใช้ bankCheck เดิม
+    console.log("📋 About to call getEmployeeBankNumber with:", currentEmployee?.employeeId);
+    console.log("👤 Current employee data:", currentEmployee);
+    console.log("🔍 Employee ID exists?", !!currentEmployee?.employeeId);
+    
+    if (!currentEmployee?.employeeId) {
+      console.error("❌ No employeeId found in currentEmployee!");
+      console.log("🔍 Available keys in currentEmployee:", Object.keys(currentEmployee || {}));
+    }
+    
+    const banknumber = await getEmployeeBankNumber(currentEmployee.employeeId);
+    console.log("💰 Final banknumber result:", banknumber);
+    pdf.text(`เลขที่บัญชี ${banknumber}`, 168, head);
 
     // สวัสดิการหลัก
     const namesWithSpecificIds = addSalaryList
@@ -479,22 +587,61 @@ const generatePDF = () => {
       textArray.push("เงินเดือน");
       countArray.push(workDays.toString());
       valueArray.push(
-        totalCashWork.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+      currentEmployee.sumCashWorkMul["1"].toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
       );
     }
+  const pubDayCount = parseFloat(currentEmployee.publicHolidayCount || 0);
+  const pubDayCash = parseFloat(currentEmployee.publicHolidayCash || 0);
 
-    // เงิน OT
-    if (totalCashOt > 0) {
-      const otHours = employeeRecords.reduce((sum, record) => {
-        return sum + parseFloat(record.totalOtTime || 0);
-      }, 0);
-
-      textArray.push("ค่าล่วงเวลา");
-      countArray.push(otHours.toFixed(1));
+     if (pubDayCount > 0) {
+      textArray.push("วันหยุดนักขัตฤกษ์");
+      countArray.push(pubDayCount.toString());
       valueArray.push(
-        totalCashOt.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+      currentEmployee.publicHolidayCash
       );
     }
+
+
+const ot15Hours = parseFloat(currentEmployee.sumOt1p5 || 0);
+  
+
+
+const ot15Cash = parseFloat(currentEmployee.sumCashOt || 0);
+
+if (ot15Hours > 0 && ot15Cash > 0) {
+  textArray.push("ค่าล่วงเวลา 1.5 เท่า");
+  countArray.push(ot15Hours.toFixed(2));
+  valueArray.push(
+    currentEmployee.sumCashWorkMul["1.5"].toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+  );
+}
+
+
+const ot2Hours = parseFloat(currentEmployee.sumOtPublicHoliday || 0);
+
+const ot2Cash = parseFloat(currentEmployee.sumCashWorkMul?.["2"] || 0);
+
+if (ot2Hours > 0 && ot2Cash > 0) {
+  textArray.push("ค่าล่วงเวลา 2 เท่า");
+  countArray.push(ot2Hours.toFixed(2));
+  valueArray.push(
+    ot2Cash.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+  );
+}
+
+// ค่าล่วงเวลา 3 เท่า
+const ot3Hours = parseFloat(currentEmployee.sumOt3 || 0);
+
+const ot3Cash = parseFloat(currentEmployee.sumCashWorkMul?.["3"] || 0);
+
+if (ot3Hours > 0 && ot3Cash > 0) {
+  textArray.push("ค่าล่วงเวลา 3 เท่า");
+  countArray.push(ot3Hours.toFixed(2));
+  valueArray.push(
+    ot3Cash.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+  );
+}
+
 
     // สวัสดิการหลัก
     if (result.sumSpSalary > 0) {
@@ -523,29 +670,19 @@ const generatePDF = () => {
       );
     }
 
-    // วันหยุดนักขัติฤกษ์
-    if (specialDayOff > 0) {
-      const specialDayAmount = parseFloat(currentEmployee.cashSpecialDay || 0);
-      if (specialDayAmount > 0) {
-        textArray.push("วันหยุดนักขัติฤกษ์");
-        countArray.push(specialDayOff.toString());
-        valueArray.push(
-          specialDayAmount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-        );
-      }
-    }
+
 
     // รวมเงินพิเศษ
-    const totalSpSalary = addSalaryFiltered.reduce(
-      (sum, salary) => sum + salary.SpSalary,
-      0
-    );
+    // const totalSpSalary = addSalaryFiltered.reduce(
+    //   (sum, salary) => sum + salary.SpSalary,
+    //   0
+    // );
 
-    if (totalSpSalary > 0) {
-      textArray.push("รวมเงินพิเศษ");
+    if (sumAddSalaryFood > 0) {
+      textArray.push("ค่าอาหาร");
       countArray.push("");
       valueArray.push(
-        totalSpSalary.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        sumAddSalaryFood.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
       );
     }
 
@@ -564,12 +701,22 @@ const generatePDF = () => {
     }
 
     // รายการหัก
+    const feeTransfer = [];
     const textDedustArray = [];
     const valueDedustArray = [];
 
+     // ค่าธรรมเนียมการโอนเงิน
+    const transferFee = parseFloat(currentEmployee.transferFee || 0);
+    if (transferFee >= 0) {
+      textDedustArray.push("ค่าธรรมเนียมการโอนเงิน");
+      valueDedustArray.push(
+        transferFee.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+      );
+    }
+
     // ภาษี
     const tax = parseFloat(currentEmployee.tax || 0);
-    if (tax > 0) {
+    if (tax >= 0) {
       textDedustArray.push("หักภาษีเงินได้");
       valueDedustArray.push(
         tax.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
@@ -608,8 +755,8 @@ const generatePDF = () => {
 
     pdf.rect(162 + 9, 28, 25, 25);
     pdf.rect(162 + 9, 28, 25, 15);
-    pdf.text(`วันที่จ่าย`, 180, 35);
-    pdf.text(`Payroll Date`, 177, 38);
+    pdf.text(`วันที่จ่าย`, 179, 35);
+    pdf.text(`Payroll Date`, 176, 38);
 
     pdf.rect(162 + 9, 77, 25, 25);
     pdf.rect(162 + 9, 77, 25, 15);
@@ -632,11 +779,11 @@ const generatePDF = () => {
     pdf.text(`ค่าลดหย่อนอื่นๆ`, 133, 108);
 
     pdf.rect(112, 119, 50, 12);
-    pdf.text(`ลงชื่อพนักงาน`, 125, 130);
+    pdf.text(`ลงชื่อพนักงาน`, 130, 130);
 
     // แสดงข้อมูลพนักงาน
     pdf.text(`${currentEmployee.employeeId}`, 13, head);
-    pdf.text(`${currentEmployee.employeeName}`, 50, head);
+    pdf.text(`${currentEmployee.prefix} ${currentEmployee.employeeName}`, 40, head);
 
     // แสดงรายการรายได้
     let y = 44;
@@ -674,7 +821,7 @@ const generatePDF = () => {
     const incomeTotal = 
       parseFloat(currentEmployee?.sumCashWork || '0') + 
       parseFloat(currentEmployee?.sumCashOt || '0') +
-      parseFloat(currentEmployee?.cashSpecialDay || '0') + 
+      parseFloat(currentEmployee?.publicHolidayCash || '0') + 
       parseFloat(
         currentEmployee?.addSalaryList?.reduce(
           (total, item) => total + parseFloat(item.SpSalary || '0'),
@@ -710,7 +857,7 @@ const generatePDF = () => {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
       })}`,
-      188,
+      190,
       98,
       { align: "right" }
     );
@@ -726,13 +873,13 @@ const generatePDF = () => {
 
       // คำนวณข้อมูลสำหรับพนักงานคนที่ 2
       const workDays2 = employeeRecords2.filter(record => record.dayType === "work").length;
-      const totalCashWork2 = employeeRecords2.reduce((sum, record) => {
-        return sum + parseFloat(record.cashWork || 0);
-      }, 0);
+      const totalCashWork2 = parseFloat(currentEmployee.sumCashWorkMul["1"] || 0);
 
-      const totalCashOt2 = employeeRecords2.reduce((sum, record) => {
-        return sum + parseFloat(record.cashOt || 0);
-      }, 0);
+
+      const totalCashOt1p5 = parseFloat(currentEmployee2.sumCashWorkMul["1.5"] || 0);
+      const totalCashOt2 = parseFloat(currentEmployee2.sumCashWorkMul["2"] || 0);
+      const totalCashOt3 = parseFloat(currentEmployee2.sumCashWorkMul["3"] || 0);
+
 
       // สวัสดิการหลักสำหรับพนักงานคนที่ 2
       const result2 = addSalaryList2
@@ -758,6 +905,10 @@ const generatePDF = () => {
         .filter((item) => item.id === "1535")
         .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
 
+      const sumAddSalaryFood = addSalaryList2
+        .filter((item) => item.id === "1330")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+
       // วันหยุดนักขัติฤกษ์สำหรับพนักงานคนที่ 2
       const specialDayOff2 = parseInt(currentEmployee2.specialDayOff || 0);
       const specialDayAmount2 = parseFloat(currentEmployee2.cashSpecialDay || 0);
@@ -771,7 +922,7 @@ const generatePDF = () => {
       // แสดงข้อมูลพนักงานคนที่ 2
       const currentWorkplaceId2 = employeeRecords2[0]?.workplaceId;
       pdf.text(`รหัส`, 7, head2);
-      pdf.text(`ชื่อ-สกุล`, 40, head2);
+      pdf.text(`ชื่อ-สกุล`, 30, head2);
       pdf.text(`หน่วยงาน`, 80, head2);
       pdf.text(`${currentWorkplaceId2 || ""}`, 93, head2);
 
@@ -782,12 +933,12 @@ const generatePDF = () => {
       const workplaceName2 = workplace2 ? workplace2.workplaceName : "Unknown";
       pdf.text(`${workplaceName2}`, 103, head2);
 
-      const bankCheck2 = employeeList.find(
-        (item) => item.workplace === currentWorkplaceId2
-      );
-
-      const banknumber2 = bankCheck2 && bankCheck2.banknumber ? bankCheck2.banknumber : "Unknown";
-      pdf.text(`เลขที่บัญชี ${banknumber2}`, 155, head2);
+      // ดึงเลขบัญชีจาก API แทนการใช้ bankCheck2 เดิม
+      console.log("📋 About to call getEmployeeBankNumber (Employee 2) with:", currentEmployee2.employeeId);
+      console.log("👤 Current employee2 data:", currentEmployee2);
+      const banknumber2 = await getEmployeeBankNumber(currentEmployee2.employeeId);
+      console.log("💰 Final banknumber2 result:", banknumber2);
+      pdf.text(`เลขที่บัญชี ${banknumber2}`, 168, head2);
 
       // วาดตารางสำหรับพนักงานคนที่ 2
       pdf.rect(7, head2 + 3, 155, 74);
@@ -819,8 +970,8 @@ const generatePDF = () => {
 
       pdf.rect(162 + 9, head2 + 3, 25, 25);
       pdf.rect(162 + 9, head2 + 3, 25, 15);
-      pdf.text(`วันที่จ่าย`, 180, head2 + 9);
-      pdf.text(`Payroll Date`, 177, head2 + 12);
+      pdf.text(`วันที่จ่าย`, 179, head2 + 9);
+      pdf.text(`Payroll Date`, 176, head2 + 12);
 
       pdf.rect(162 + 9, head2 + 52, 25, 25);
       pdf.rect(162 + 9, head2 + 52, 25, 15);
@@ -843,16 +994,16 @@ const generatePDF = () => {
       pdf.text(`ค่าลดหย่อนอื่นๆ`, 133, head2 + 83);
 
       pdf.rect(112, head2 + 94, 50, 12);
-      pdf.text(`ลงชื่อพนักงาน`, 125, head2 + 105);
+      pdf.text(`ลงชื่อพนักงาน`, 130, head2 + 105);
 
       pdf.text(`${currentEmployee2.employeeId}`, 13, head2);
-      pdf.text(`${currentEmployee2.employeeName}`, 50, head2);
+      pdf.text(`${currentEmployee2.prefix} ${currentEmployee2.employeeName}`, 40, head2);
 
       // สร้างรายการรายได้สำหรับพนักงานคนที่ 2
       const textArray2 = [];
       const countArray2 = [];
       const valueArray2 = [];
-
+ 
       if (totalCashWork2 > 0) {
         textArray2.push("เงินเดือน");
         countArray2.push(workDays2.toString());
@@ -860,16 +1011,44 @@ const generatePDF = () => {
           totalCashWork2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
         );
       }
+      const pubDayCount2 = parseFloat(currentEmployee2.publicHolidayCount || 0);
+      const pubDayCash2 = parseFloat(currentEmployee2.publicHolidayCash || 0);
+
+      if (pubDayCount2 > 0) {
+        textArray2.push("วันหยุดนักขัตฤกษ์");
+        countArray2.push(pubDayCount2.toFixed(2));
+        valueArray2.push(
+          pubDayCash2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+      
+      if (totalCashOt1p5 > 0) {
+        const otHours1p5 = parseFloat(currentEmployee2.sumOt1p5 || 0);
+
+        textArray2.push("ค่าล่วงเวลา 1.5 เท่า");
+        countArray2.push(otHours1p5.toFixed(2));
+        valueArray2.push(
+          totalCashOt1p5.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
 
       if (totalCashOt2 > 0) {
-        const otHours2 = employeeRecords2.reduce((sum, record) => {
-          return sum + parseFloat(record.totalOtTime || 0);
-        }, 0);
+        const otHours2 = parseFloat(currentEmployee2.sumOtPublicHoliday || 0);
 
-        textArray2.push("ค่าล่วงเวลา");
-        countArray2.push(otHours2.toFixed(1));
+        textArray2.push("ค่าล่วงเวลา 2 เท่า");
+        countArray2.push(otHours2.toFixed(2));
         valueArray2.push(
           totalCashOt2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
+      if (totalCashOt3 > 0) {
+        const otHours3 = parseFloat(currentEmployee2.sumOt3 || 0);
+
+        textArray2.push("ค่าล่วงเวลา 3 เท่า");
+        countArray2.push(otHours3.toFixed(2));
+        valueArray2.push(
+          totalCashOt3.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
         );
       }
 
@@ -897,25 +1076,37 @@ const generatePDF = () => {
         );
       }
 
-      if (specialDayOff2 > 0 && specialDayAmount2 > 0) {
-        textArray2.push("วันหยุดนักขัติฤกษ์");
-        countArray2.push(specialDayOff2.toString());
-        valueArray2.push(
-          specialDayAmount2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-        );
-      }
+       if (sumAddSalaryFood > 0) {
+          // Push the text to textArray and the value to valueArray
+          textArray2.push("ค่าอาหาร");
+          countArray2.push("");
+          valueArray2.push(
+            sumAddSalaryFood.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+          );
+          console.log("77.1");
+        }
+
+      
 
       // รายการหักสำหรับพนักงานคนที่ 2
       const textDedustArray2 = [];
       const valueDedustArray2 = [];
 
       const tax2 = parseFloat(currentEmployee2.tax || 0);
-      if (tax2 > 0) {
+      if (tax2 >= 0) {
         textDedustArray2.push("หักภาษีเงินได้");
         valueDedustArray2.push(
           tax2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
         );
       }
+      const feeTransfer2 = parseFloat(currentEmployee2.transferFee || 0);
+      if (feeTransfer2 >= 0) {
+        textDedustArray2.push("ค่าธรรมเนียมการโอน");
+        valueDedustArray2.push(
+          feeTransfer2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
 
       const socialSecurity2 = parseFloat(currentEmployee2.socialSecurity || 0);
       if (socialSecurity2 > 0) {
@@ -960,7 +1151,7 @@ const generatePDF = () => {
       const incomeTotal2 = 
         parseFloat(currentEmployee2?.sumCashWork || '0') + 
         parseFloat(currentEmployee2?.sumCashOt || '0') +
-        parseFloat(currentEmployee2?.cashSpecialDay || '0') + 
+        parseFloat(currentEmployee2?.publicHolidayCash || '0') + 
         parseFloat(
           currentEmployee2?.addSalaryList?.reduce(
             (total, item) => total + parseFloat(item.SpSalary || '0'),
@@ -980,6 +1171,7 @@ const generatePDF = () => {
 
       // รวมเงินหักสำหรับพนักงานคนที่ 2
       const totalDeductions2 = tax2 + socialSecurity2;
+      
       pdf.text(
         `${totalDeductions2.toLocaleString('th-TH', {
           minimumFractionDigits: 2,
@@ -996,7 +1188,7 @@ const generatePDF = () => {
           minimumFractionDigits: 2,
           maximumFractionDigits: 2
         })}`,
-        188,
+        190,
         head2 + 72,
         { align: "right" }
       );
@@ -1008,10 +1200,17 @@ const generatePDF = () => {
 
   // Open the generated PDF in a new tab
   window.open(pdf.output("bloburl"), "_blank");
+  
+  } catch (error) {
+    console.error("❌ Error generating PDF:", error); // ADD - error handling  
+    alert("เกิดข้อผิดพลาดในการสร้าง PDF"); // ADD - user notification
+  } finally {
+    setIsGeneratingPDF(false); // ADD - จบ loading
+  }
 };
 
 
-  const generatePDFAudit = () => {
+  const generatePDFAudit = async () => {
     const names = ["Alice", "Bob", "Charlie", "David", "Eva"];
     const ages = [25, 30, 22, 35, 28];
 
@@ -1182,12 +1381,8 @@ const generatePDF = () => {
       // Add it to the PDF
       pdf.text(`${workplaceName}`, 103, head);
 
-      const bankCheck = employeeList.find(
-        (item) => item.workplace === responseDataAll[i].workplace
-      );
-
-      // กำหนดค่า banknumber โดยตรวจสอบว่ามีค่าใน bankCheck หรือไม่
-      const banknumber = bankCheck && bankCheck.banknumber ? bankCheck.banknumber : "Unknown";
+      // ดึงเลขบัญชีจาก API แทนการใช้ bankCheck เดิม
+      const banknumber = await getEmployeeBankNumber(responseDataAll[i].employeeId);
 
       pdf.text(`เลขที่บัญชี ${banknumber}`, 155, head);
 
@@ -1760,6 +1955,9 @@ const generatePDF = () => {
         const formattedAddSalaryTavel = responseDataAll[i + 1].addSalary.filter(
           (item) => item.id === "1535"
         );
+        const formattedAddSalaryFood = responseDataAll[i + 1].addSalary.filter(
+          (item) => item.id === "1330"
+        );
 
         // Calculate the sum of SpSalary values in the filtered array
         const sumAmountHardWorking = formattedAmountHardWorking.reduce(
@@ -1769,6 +1967,10 @@ const generatePDF = () => {
 
         // Calculate the sum of SpSalary values in the filtered array
         const sumAddSalaryTavel = formattedAddSalaryTavel.reduce(
+          (total, item) => total + parseFloat(item.SpSalary || 0),
+          0
+        );
+        const sumAddSalaryFood = formattedAddSalaryFood.reduce(
           (total, item) => total + parseFloat(item.SpSalary || 0),
           0
         );
@@ -2064,6 +2266,18 @@ const generatePDF = () => {
           );
           console.log("77.1");
         }
+
+        if (sumAddSalaryFood != 0 && sumAddSalaryFood != null) {
+          // Push the text to textArray and the value to valueArray
+          textArray.push("ค่าอาหาร");
+          countArray.push("");
+          valueArray.push(
+            sumAddSalaryFood.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+          );
+          console.log("77.1");
+        }
+
+
         if (sumAmountHardWorking != 0 && sumAmountHardWorking != null) {
           textArray.push("เบี้ยขยัน");
           countArray.push("");
@@ -2198,12 +2412,8 @@ const generatePDF = () => {
         // Add it to the PDF
         pdf.text(`${workplaceName}`, 103, head2);
 
-        const bankCheck = employeeList.find(
-          (item) => item.workplace === responseDataAll[i + 1].workplace
-        );
-
-        // กำหนดค่า banknumber โดยตรวจสอบว่ามีค่าใน bankCheck หรือไม่
-        const banknumber = bankCheck && bankCheck.banknumber ? bankCheck.banknumber : "Unknown";
+        // ดึงเลขบัญชีจาก API แทนการใช้ bankCheck เดิม
+        const banknumber = await getEmployeeBankNumber(responseDataAll[i + 1].employeeId);
 
         pdf.text(`เลขที่บัญชี ${banknumber}`, 155, head2);
 
@@ -2406,6 +2616,7 @@ const generatePDF = () => {
     // Open the generated PDF in a new tab
     window.open(pdf.output("bloburl"), "_blank");
   };
+  
   return (
     // <body class="hold-transition sidebar-mini" className="editlaout">
     //   <div class="wrapper">
@@ -2677,24 +2888,39 @@ const generatePDF = () => {
                 </div>
                 <div class="row">
                   <div class="col-md-3">
-                    <button onClick={generatePDF} class="btn b_save">
-                      {selectedOption === "option1"
-                        ? "ออกสลิป"
-                        : selectedOption === "option2"
+                    <button 
+                      onClick={() => {
+                        console.log("🖱️ Generate PDF button clicked!");
+                        console.log("📊 Current responseDataAll:", responseDataAll);
+                        generatePDF();
+                      }} 
+                      class="btn b_save"
+                      disabled={isGeneratingPDF || !responseDataAll || responseDataAll.length === 0}
+                    >
+                      {isGeneratingPDF ? (
+                        <>
+                          <i className="fas fa-spinner fa-spin me-1"></i>
+                          กำลังสร้างสลิป...
+                        </>
+                      ) : (
+                        selectedOption === "option1"
                           ? "ออกสลิป"
-                          : ""}
+                          : selectedOption === "option2"
+                            ? "ออกสลิป"
+                            : ""
+                      )}
                     </button>
-                  </div>
-                  <div class="col-md-3">
-                    <button onClick={generatePDFAudit} class="btn b_save">
-                      {selectedOption === "option1"
-                        ? "ออกสลิปออดิท"
-                        : selectedOption === "option2"
+                    </div>
+                    <div class="col-md-3">
+                      {/* <button onClick={generatePDFAudit} class="btn b_save">
+                        {selectedOption === "option1"
                           ? "ออกสลิปออดิท"
-                          : ""}
-                    </button>
+                          : selectedOption === "option2"
+                            ? "ออกสลิปออดิท"
+                            : ""}
+                      </button> */}
+                    </div>
                   </div>
-                </div>
 
 
 
@@ -2707,5 +2933,6 @@ const generatePDF = () => {
     </div>
   );
 }
+
 
 export default SalarySlipPDF;

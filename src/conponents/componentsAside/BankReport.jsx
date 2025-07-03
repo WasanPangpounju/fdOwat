@@ -317,7 +317,6 @@ if (filteredByBankAndDate.length > 0) {
   fetchEmployeeDetails();
 }
 
-
 // แสดงข้อมูล filteredByBankAndDate ในรูปแบบ Array
 console.log("----------- ข้อมูล filteredByBankAndDate ในรูปแบบ Array -----------");
 console.log(filteredByBankAndDate); // แสดงข้อมูลทั้ง array
@@ -629,17 +628,44 @@ const handleMonthChange = (e) => {
 };
 
 
-
 const BankReportPDF = () => {
   console.log("ข้อมูลพนักงานที่สมบูรณ์:", completeEmployeeData.length);
 
-  // คำนวณยอดรวม sumCashWork จากข้อมูลที่กรองแล้ว
+  // แก้ไขการคำนวณยอดรวม - ปัดเศษแต่ละรายการก่อนรวม
   const totalCashAmount = completeEmployeeData.reduce((sum, item) => {
-    const cashAmount = item.sumCashWork 
-      ? Number(item.sumCashWork) 
-      : 0;
-    return sum + cashAmount;
+    // คำนวณรายได้รวม
+    const incomeTotal = 
+      Number(item.sumCashWork || '0') + 
+      Number(item.sumCashOt || '0') +
+      Number(item.cashSpecialDay || '0') + 
+      Number(item.publicHolidayCash || '0') + 
+      Number(
+        item.addSalaryList?.reduce(
+          (total, addItem) => total + Number(addItem.SpSalary || '0'),
+          0
+        ) || '0'
+      );
+
+    // คำนวณรายการหัก
+    const deductionTotal =
+      Number(item.socialSecurity || '0') +
+      Number(item.tax || '0') +
+      Number(
+        item.deductSalaryList?.reduce(
+          (total, deductItem) => total + Number(deductItem.amount || '0'),
+          0
+        ) || '0'
+      );
+
+    // เงินสุทธิ - ปัดเศษแต่ละรายการให้เป็น 2 ตำแหน่งทศนิยม
+    const netTotal = Math.round((incomeTotal - deductionTotal) * 100) / 100;
+
+    // รวมยอดที่ปัดเศษแล้ว
+    return Math.round((sum + (isNaN(netTotal) ? 0 : netTotal)) * 100) / 100;
   }, 0);
+
+
+ 
 
   // ถ้าไม่มีข้อมูลหลังการกรอง แสดงหน้า PDF ว่างพร้อมข้อความแจ้ง
   if (completeEmployeeData.length === 0) {
@@ -728,42 +754,49 @@ const BankReportPDF = () => {
                     <Text style={{width: '45%'}}>
                       {employeeName} {employeeLastName} 
                     </Text>
-                    <Text style={{width: '7%', textAlign: 'right', paddingRight: '5px'}}>
-                      {item.employeeDetails ? 
-                        (() => {
-                          const accountingResult = [item];
-                          
-                          const incomeTotal = 
-                            parseFloat(item.sumCashWork || '0') + 
-                            parseFloat(item.sumCashOt || '0') +
-                            parseFloat(item.cashSpecialDay || '0') + 
-                            parseFloat(
-                              item.addSalaryList?.reduce(
-                                (total, addItem) => total + parseFloat(addItem.SpSalary || '0'),
-                                0
-                              ) || '0'
-                            );
+                   <Text style={{width: '7%', textAlign: 'right', paddingRight: '5px'}}>
+  {item.employeeDetails ? 
+    (() => {
+      // คำนวณด้วย Number
+      const incomeTotal = 
+        Number(item.sumCashWork || '0') + 
+        Number(item.sumCashOt || '0') +
+        Number(item.cashSpecialDay || '0') + 
+        Number(item.publicHolidayCash || '0') +
+        Number(
+          item.addSalaryList?.reduce(
+            (total, addItem) => total + Number(addItem.SpSalary || '0'),
+            0
+          ) || '0'
+        );
 
-                          const deductionTotal =
-                            parseFloat(item.socialSecurity || '0') +
-                            parseFloat(item.tax || '0');
+      const deductionTotal =
+        Number(item.socialSecurity || '0') +
+        Number(item.tax || '0') +
+        Number(
+          item.deductSalaryList?.reduce(
+            (total, deductItem) => total + Number(deductItem.amount || '0'),
+            0
+          ) || '0'
+        );
 
-                          const netTotal = incomeTotal - deductionTotal;
+      // ปัดเศษให้เป็น 2 ตำแหน่งทศนิยม เหมือนกับที่แสดงผล
+      const netTotal = Math.round((incomeTotal - deductionTotal) * 100) / 100;
 
-                          return isNaN(netTotal)
-                            ? '0.00'
-                            : netTotal.toLocaleString('th-TH', {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2
-                              });
-                        })() 
-                        : (item.sumCashWork 
-                            ? Number(item.sumCashWork).toLocaleString('th-TH', {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2
-                              })
-                            : '0.00')}
-                    </Text>
+      return isNaN(netTotal)
+        ? '0.00'
+        : netTotal.toLocaleString('th-TH', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+          });
+    })() 
+    : (item.sumCashWork 
+        ? Number(item.sumCashWork).toLocaleString('th-TH', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+          })
+        : '0.00')}
+</Text>
                     
                   </View>
                 );
@@ -1064,11 +1097,7 @@ const BankReportPDF = () => {
                 
               </div>
               <br />
-              <div className="row">
-                <div className="col-md-3">
-                  <button onClick={exportToExcel} className="btn b_save">ออก Excel</button>
-                </div>
-              </div>
+              
               
               {/* เพิ่มส่วนแสดงตัวอย่าง PDF */}
               {showPdfPreview && (

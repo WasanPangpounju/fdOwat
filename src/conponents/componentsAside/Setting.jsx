@@ -82,7 +82,7 @@ function Setting({ workplaceList, employeeList }) {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (selectedDates && selectedPosition && numberOfEmployees !== "") {
+    if (selectedDay && selectedPosition && numberOfEmployees !== "") {
       const newData = {
         day: selectedDay,
         position: selectedPosition,
@@ -485,11 +485,18 @@ function Setting({ workplaceList, employeeList }) {
   const [newWorkplace, setNewWorkplace] = useState(true);
 
   const [selectedDates, setSelectedDates] = useState([]);
+  const [publicHolidayDates, setPublicHolidayDates] = useState([]); // วันหยุดนักขัตฤกษ์
   const [reason, setReason] = useState("");
 
   const [day, setDay] = useState("");
   const [month, setMonth] = useState("");
   const [year, setYear] = useState(new Date().getFullYear());
+
+  // ตัวแปรสำหรับวันหยุดนักขัตฤกษ์
+  const [publicHolidayDay, setPublicHolidayDay] = useState("");
+  const [publicHolidayMonth, setPublicHolidayMonth] = useState("");
+  const [publicHolidayYear, setPublicHolidayYear] = useState(new Date().getFullYear());
+  const [publicHolidayNote, setPublicHolidayNote] = useState(""); // เพิ่มสำหรับหมายเหตุ
 
   const [workRateChange, setWorkRateChange] = useState('');
   const [workRateDayChange, setWorkRateDayChange] = useState("");
@@ -560,6 +567,213 @@ function Setting({ workplaceList, employeeList }) {
 
   const handleReasonChange = (event) => {
     setReason(event.target.value);
+  };
+
+  // ฟังก์ชันสำหรับวันหยุดนักขัตฤกษ์ - แก้ไขให้เก็บข้อมูลไว้ใน state เหมือนวันหยุดหน่วยงาน
+  const handleAddPublicHoliday = () => {
+    if (publicHolidayDay && publicHolidayMonth && publicHolidayYear) {
+      const selectedDate = new Date(`${publicHolidayMonth}/${publicHolidayDay}/${publicHolidayYear}`);
+      if (!isNaN(selectedDate.getTime())) {
+        // ตรวจสอบว่ามีวันที่นี้อยู่แล้วหรือไม่
+        const isDuplicate = publicHolidayDates.some((holiday) => {
+          try {
+            const existingDate = holiday.date || holiday; // รองรับทั้งแบบ object และ Date
+            if (existingDate instanceof Date && !isNaN(existingDate.getTime())) {
+              return existingDate.getDate() === selectedDate.getDate() && 
+                     existingDate.getMonth() === selectedDate.getMonth() && 
+                     existingDate.getFullYear() === selectedDate.getFullYear();
+            }
+            return false;
+          } catch (error) {
+            console.error("Error comparing dates:", error);
+            return false;
+          }
+        });
+        
+        if (!isDuplicate) {
+          // เพิ่มข้อมูลแบบ object ที่มีทั้งวันที่และหมายเหตุ (เก็บไว้ใน state เท่านั้น)
+          const newHoliday = {
+            date: selectedDate,
+            note: publicHolidayNote || ""
+          };
+          
+          const updatedDates = [...publicHolidayDates, newHoliday];
+          setPublicHolidayDates(updatedDates);
+          
+          // ล้างค่าหลังเพิ่มใน state แล้ว
+          setPublicHolidayNote("");
+          setPublicHolidayDay("");
+          setPublicHolidayMonth("");
+          setPublicHolidayYear(new Date().getFullYear());
+          
+          // แสดงข้อความสำเร็จ (ไม่ส่ง API ทันที)
+          
+        
+        }
+      } else {
+        Swal.fire({
+          title: "ข้อมูลไม่ถูกต้อง",
+          text: "วันที่ไม่ถูกต้อง กรุณาเลือกวัน เดือน และปีที่ถูกต้อง",
+          icon: "error"
+        });
+      }
+    } else {
+      Swal.fire({
+        title: "ข้อมูลไม่ครบถ้วน",
+        text: "กรุณาเลือกวัน เดือน และปี สำหรับวันหยุดนักขัตฤกษ์",
+        icon: "warning"
+      });
+    }
+  };
+
+const handleRemovePublicHoliday = async (holidayToRemove) => {
+  try {
+    // กรองออกเฉพาะรายการที่ไม่ใช่รายการที่ต้องการลบ
+    const updatedDates = publicHolidayDates.filter(holiday => {
+      if (holidayToRemove === holiday) return false;
+      
+      // ถ้าต้องเปรียบเทียบวันที่ (ในกรณีที่อาจมีการอ้างอิงวัตถุใหม่แต่เป็นวันที่เดียวกัน)
+      if (holiday.date && holidayToRemove.date) {
+        const date1 = holiday.date;
+        const date2 = holidayToRemove.date;
+        return !(date1.getDate() === date2.getDate() && 
+                date1.getMonth() === date2.getMonth() && 
+                date1.getFullYear() === date2.getFullYear() &&
+                holiday.note === holidayToRemove.note);
+      }
+      
+      return true;
+    });
+    
+    setPublicHolidayDates(updatedDates);
+    
+    // ส่งข้อมูลไป API
+    await updatePublicHolidayToAPI(updatedDates);
+    
+  } catch (error) {
+    console.error("Error removing public holiday:", error);
+    // แสดงข้อความ error เฉพาะเมื่อเกิดข้อผิดพลาดจริง ๆ เท่านั้น
+    Swal.fire({
+      title: "เกิดข้อผิดพลาด",
+      text: "เกิดข้อผิดพลาดในการลบวันหยุดนักขัตฤกษ์",
+      icon: "error"
+    });
+  }
+};
+
+  // ฟังก์ชันส่งข้อมูลวันหยุดนักขัตฤกษ์ไป API
+  const updatePublicHolidayToAPI = async (holidayDates) => {
+    if (!workplaceId) {
+      Swal.fire({
+        title: "ข้อมูลไม่ครบถ้วน",
+        text: "กรุณาเลือกหน่วยงานก่อน",
+        icon: "warning"
+      });
+      return;
+    }
+
+    try {
+      // แปลงข้อมูลให้เป็นรูปแบบที่ API ต้องการ
+      const formattedDates = holidayDates
+        .filter(holiday => {
+          // กรองข้อมูลวันที่ไม่ถูกต้องออก
+          const date = holiday.date || holiday;
+          return date instanceof Date && !isNaN(date.getTime());
+        })
+        .map(holiday => {
+          try {
+            if (holiday.date) {
+              // ข้อมูลใหม่ที่มีทั้ง date และ note
+              const date = holiday.date;
+              if (date instanceof Date && !isNaN(date.getTime())) {
+                // แปลงเป็น string เพื่อส่งไป API
+                return {
+                  date: date.toISOString(),
+                  note: holiday.note || ""
+                };
+              }
+              return null;
+            } else {
+              // ข้อมูลเก่าที่เป็นแค่วันที่
+              if (holiday instanceof Date && !isNaN(holiday.getTime())) {
+                return {
+                  date: holiday.toISOString(),
+                  note: ""
+                };
+              }
+              return null;
+            }
+          } catch (error) {
+            console.error("Error formatting holiday date:", error);
+            return null;
+          }
+        })
+        .filter(item => item !== null);
+
+      console.log("วันหยุดนักขัตฤกษ์ที่กำลังส่งไป API:", formattedDates);
+      
+      // ตรวจสอบว่ามีหมายเหตุถูกส่งไปหรือไม่
+      const holidaysWithNotes = formattedDates.filter(h => h.note && h.note.trim() !== "");
+      console.log(`มีวันหยุด ${holidaysWithNotes.length} รายการที่มีหมายเหตุ`);
+
+      const data = {
+        workplaceId: workplaceId,
+        publicHoliday: formattedDates
+      };
+
+      // ใช้ endpoint ใหม่ที่จะส่งข้อมูลไปอัปเดตใน dayOffOnly
+      const response = await axios.post(
+        `${endpoint}/workplace/sync-public-holidays/${workplaceId}`,
+        data
+      );
+
+      if (response.status === 200) {
+        console.log("อัปเดตวันหยุดนักขัตฤกษ์สำเร็จ และซิงค์ไป dayOffOnly แล้ว", response.data);
+        
+        // หลังจากอัปเดตสำเร็จ เรียกข้อมูลใหม่จาก server เพื่อให้ข้อมูลที่แสดงตรงกับฐานข้อมูล
+        try {
+          const workplace = await axios.get(`${endpoint}/workplace/${workplaceId}`);
+          if (workplace.data && workplace.data.publicHoliday) {
+            // อัปเดต state ด้วยข้อมูลล่าสุด
+            const freshPublicHolidays = workplace.data.publicHoliday
+              .map(holiday => {
+                try {
+                  if (typeof holiday === 'object' && holiday.date) {
+                    console.log("โหลดข้อมูลวันหยุด:", holiday.date, "หมายเหตุ:", holiday.note || "(ไม่มี)");
+                    return {
+                      date: new Date(holiday.date),
+                      note: holiday.note || ""
+                    };
+                  } else {
+                    return {
+                      date: new Date(holiday),
+                      note: ""
+                    };
+                  }
+                } catch (err) {
+                  console.error("Error parsing fresh public holiday:", err);
+                  return null;
+                }
+              })
+              .filter(h => h !== null && h.date instanceof Date && !isNaN(h.date.getTime()));
+            
+            console.log("ข้อมูลวันหยุดนักขัตฤกษ์หลังอัปเดต:", 
+              freshPublicHolidays.map(h => ({
+                วันที่: `${h.date.getDate()}/${h.date.getMonth() + 1}/${h.date.getFullYear()}`,
+                หมายเหตุ: h.note || "(ไม่มี)"
+              }))
+            );
+            
+            setPublicHolidayDates(freshPublicHolidays);
+          }
+        } catch (refreshError) {
+          console.error("ไม่สามารถดึงข้อมูลล่าสุดหลังอัปเดต:", refreshError);
+        }
+      }
+    } catch (error) {
+      console.error("เกิดข้อผิดพลาดในการอัปเดตวันหยุดนักขัตฤกษ์:", error);
+      alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่");
+    }
   };
 
   // const [daysOff, setDaysOff] = useState(Array(10).fill(''));
@@ -1029,8 +1243,74 @@ setWorkTimeDayList_specialwork(workplace.specialWorkTimeDay || []);
     setWorkcount6(workplace.workcount6);
     setWorkcount7(workplace.workcount7);
     const dates = workplace.daysOff.map((dateString) => new Date(dateString));
-
     setSelectedDates(dates);
+    
+    // ดึงข้อมูลวันหยุดนักขัตฤกษ์จาก workplace
+    if (workplace.publicHoliday && workplace.publicHoliday.length > 0) {
+      try {
+        console.log("กำลังโหลดข้อมูลวันหยุดนักขัตฤกษ์:", workplace.publicHoliday);
+        
+        const publicHolidayDatesFromDB = workplace.publicHoliday
+          .map((holiday) => {
+            try {
+              if (typeof holiday === 'object' && holiday.date) {
+                // ข้อมูลใหม่ที่มีทั้ง date และ note
+                const dateStr = typeof holiday.date === 'string' ? holiday.date : holiday.date;
+                const dateObj = new Date(dateStr);
+                
+                console.log("วันหยุดที่โหลด:", dateStr, "หมายเหตุ:", holiday.note || "(ไม่มี)");
+                
+                if (!isNaN(dateObj.getTime())) {
+                  return {
+                    date: dateObj,
+                    note: holiday.note || ""
+                  };
+                }
+                console.warn('วันที่ไม่ถูกต้องใน publicHoliday:', holiday.date);
+                return null;
+              } else if (holiday instanceof Date) {
+                // ถ้าเป็น Date object อยู่แล้ว
+                console.log("วันหยุดที่เป็น Date object:", holiday);
+                return {
+                  date: holiday,
+                  note: ""
+                };
+              } else {
+                // ข้อมูลเก่าที่เป็นแค่วันที่ (string)
+                const dateObj = new Date(holiday);
+                console.log("วันหยุดที่เป็น string:", holiday);
+                if (!isNaN(dateObj.getTime())) {
+                  return {
+                    date: dateObj,
+                    note: ""
+                  };
+                }
+                console.warn('วันที่ไม่ถูกต้องใน publicHoliday:', holiday);
+                return null;
+              }
+            } catch (error) {
+              console.error('Error parsing holiday date:', error, holiday);
+              return null;
+            }
+          })
+          .filter(item => item !== null); // กรองข้อมูลวันที่ไม่ถูกต้องออก
+        
+        console.log("วันหยุดนักขัตฤกษ์ที่แปลงแล้ว:", 
+          publicHolidayDatesFromDB.map(h => ({
+            วันที่: `${h.date.getDate()}/${h.date.getMonth() + 1}/${h.date.getFullYear()}`,
+            หมายเหตุ: h.note || "(ไม่มี)"
+          }))
+        );
+        
+        setPublicHolidayDates(publicHolidayDatesFromDB);
+      } catch (error) {
+        console.error('Error processing public holidays:', error);
+        setPublicHolidayDates([]);
+      }
+    } else {
+      setPublicHolidayDates([]);
+    }
+    
     setReason(workplace.reason);
 
     // employeeIdLists
@@ -1186,7 +1466,36 @@ setWorkRateChange(workplace.workRateChange)
       workRateDayoffNumber: workRateDayoffNumber,
       workRateDayoffRate: workRateDayoffRate,
       // workplaceAddress: workplaceAddress,
-      daysOff: selectedDates,
+      // แก้ไขการส่งข้อมูลวันที่ไป API เพื่อให้วันที่ตรงกับหน้าบ้าน
+      daysOff: selectedDates.map(date => {
+        // แปลง Date เป็น ISO string ที่เวลาเป็น 00:00:00 ตาม local timezone
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        const day = date.getDate();
+        return new Date(Date.UTC(year, month, day));
+      }),
+      // เพิ่มข้อมูลวันหยุดนักขัตฤกษ์
+      publicHoliday: publicHolidayDates
+        .filter(holiday => {
+          const date = holiday.date || holiday;
+          return date instanceof Date && !isNaN(date.getTime());
+        })
+        .map(holiday => {
+          try {
+            const date = holiday.date || holiday;
+            if (date instanceof Date && !isNaN(date.getTime())) {
+              return {
+                date: date.toISOString(), // แปลงเป็น ISO string เพื่อส่งไป API
+                note: holiday.note || ""
+              };
+            }
+            return null;
+          } catch (error) {
+            console.error("Error converting date for API:", error);
+            return null;
+          }
+        })
+        .filter(item => item !== null),
       workRateChange: workRateChange,
       reason: reason,
 
@@ -1322,12 +1631,17 @@ if (newWorkplace) {
   try {
     const response = await axios.post(endpoint + "/workplace/create", data);
     if (response) {
-          Swal.fire({
+      Swal.fire({
         title: "บันทึกสำเร็จ",
         text: "ข้อมูลหน่วยงานถูกบันทึกเรียบร้อยแล้ว",
         icon: "success",
         draggable: true
-});
+      });
+      
+      // sync วันหยุดนักขัตฤกษ์ไป API หลังจากสร้างหน่วยงานสำเร็จ
+      if (publicHolidayDates.length > 0) {
+        await updatePublicHolidayToAPI(publicHolidayDates);
+      }
     }
   } catch (error) {
     console.error("Error details:", error);
@@ -1375,15 +1689,26 @@ if (newWorkplace) {
       data
     );
     // setEmployeesResult(response.data.employees);
-        if (response) {
-          alert("บันทึกสำเร็จ");
-          // Clear the query parameters
-          const newUrl = window.location.origin + window.location.pathname; // Removes the query string
+    if (response) {
+      Swal.fire({
+        title: "บันทึกสำเร็จ",
+        text: "ข้อมูลหน่วยงานถูกบันทึกเรียบร้อยแล้ว",
+        icon: "success",
+        draggable: true
+      });
+      
+      // sync วันหยุดนักขัตฤกษ์ไป API หลังจากอัปเดตหน่วยงานสำเร็จ
+      if (publicHolidayDates.length > 0) {
+        await updatePublicHolidayToAPI(publicHolidayDates);
+      }
+      
+      // Clear the query parameters
+      const newUrl = window.location.origin + window.location.pathname; // Removes the query string
 
-          // Update the URL without reloading the page
-          window.history.replaceState({}, document.title, newUrl);
-          window.location.reload();
-        }
+      // Update the URL without reloading the page
+      window.history.replaceState({}, document.title, newUrl);
+      window.location.reload();
+    }
       } catch (error) {
         alert("กรุณาตรวจสอบข้อมูลในช่องกรอกข้อมูล");
         window.location.reload();
@@ -2750,6 +3075,7 @@ if (newWorkplace) {
                                 value={workRateDayoffNumber}
                                 onChange={(e) =>
                                   setWorkRateDayoffNumber(e.target.value)
+                                  
                                 }
                                 onInput={(e) => {
                                   // Remove any non-digit characters
@@ -2803,28 +3129,27 @@ if (newWorkplace) {
                                 จำนวนเงินต่อวัน
                               </label>
                               <input
-                                type="text"
-                                class="form-control"
-                                id="workRateDayoffRate"
-                                placeholder="จำนวนเงินต่อวัน"
-                                value={workRateDayoffRate}
-                                onChange={(e) =>
-                                  setworkRateDayoffRate(e.target.value)
-                                }
-                                onInput={(e) => {
-                                  // Remove any non-digit characters
-                                  e.target.value = e.target.value.replace(
-                                    /[^0-9.]/g,
-                                    ""
-                                  );
+                                  type="text"
+                                  className="form-control"
+                                  id="workRateDayoffRate"
+                                  placeholder="จำนวนเงินต่อวัน"
+                                  value={workRateDayoffRate}
+                                  onChange={(e) => {
+                                    let input = e.target.value;
 
-                                  // Ensure only one '.' is allowed
-                                  const parts = e.target.value.split(".");
-                                  if (parts.length > 2) {
-                                    e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
-                                  }
-                                }}
-                              />
+                                    // Remove characters that are not digits or "."
+                                    input = input.replace(/[^0-9.]/g, '');
+
+                                    // Ensure only one "." is allowed
+                                    const parts = input.split('.');
+                                    if (parts.length > 2) {
+                                      input = `${parts[0]}.${parts[1]}`;
+                                    }
+
+                                    setworkRateDayoffRate(input);
+                                  }}
+                                />
+
                             </div>
                           </div>
                         </div>
@@ -2961,12 +3286,6 @@ if (newWorkplace) {
                                   )
                                 }
                                 onInput={(e) => {
-                                  // Remove any non-digit characters
-                                  e.target.value = e.target.value.replace(
-                                    /[^0-9.]/g,
-                                    ""
-                                  );
-
                                   // Ensure only one '.' is allowed
                                   const parts = e.target.value.split(".");
                                   if (parts.length > 2) {
@@ -2975,7 +3294,6 @@ if (newWorkplace) {
                                 }}
                               />
                             </div>
-                            {/* <span>Result Time: {time.resultTime}</span> */}
                             <div class="col-md-2">
                               <input
                                 type="text"
@@ -2990,12 +3308,6 @@ if (newWorkplace) {
                                   )
                                 }
                                 onInput={(e) => {
-                                  // Remove any non-digit characters
-                                  e.target.value = e.target.value.replace(
-                                    /[^0-9.]/g,
-                                    ""
-                                  );
-
                                   // Ensure only one '.' is allowed
                                   const parts = e.target.value.split(".");
                                   if (parts.length > 2) {
@@ -3018,12 +3330,6 @@ if (newWorkplace) {
                                   )
                                 }
                                 onInput={(e) => {
-                                  // Remove any non-digit characters
-                                  e.target.value = e.target.value.replace(
-                                    /[^0-9.]/g,
-                                    ""
-                                  );
-
                                   // Ensure only one '.' is allowed
                                   const parts = e.target.value.split(".");
                                   if (parts.length > 2) {
@@ -3476,181 +3782,306 @@ if (newWorkplace) {
                   </table>
                 </section>
 
-                <h2 class="title">วันหยุดหน่วยงาน</h2>
-                <section class="Frame">
-                  <div>
-                    <label>เลือกวันหยุดของหน่วยงาน:</label>
-
-                    <div>
-                      <div className="row">
-                        <div className="col-md-3">
-                          <label style={{ margin: "0.5rem" }}>วันที่:</label>
-                        </div>
-                        <div className="col-md-3">
-                          <label style={{ marginRight: "0.5rem" }}>
-                            เดือน:
-                          </label>
-                        </div>
-
-                        <div className="col-md-3">
-                          <label style={{ margin: "0.5rem" }}>ปี:</label>
-                        </div>
-                      </div>
-
-                      <div className="row">
-                        <div className="col-md-3">
-                          <select
-                            className="form-control"
-                            value={day}
-                            onChange={(e) => setDay(e.target.value)}
-                          >
-                            <option value="">Select day</option>
-                            {Array.from({ length: 31 }, (_, i) => i + 1).map(
-                              (day) => (
-                                <option key={day} value={day}>
-                                  {day}
-                                </option>
-                              )
-                            )}
-                          </select>
-                        </div>
-                        <div className="col-md-3">
-                          <select
-                            className="form-control"
-                            value={month}
-                            onChange={(e) => setMonth(e.target.value)}
-                          >
-                            <option value="">Select month</option>
-                            {Array.from({ length: 12 }, (_, i) => i + 1).map(
-                              (month) => (
-                                <option key={month} value={month}>
-                                  {month}
-                                </option>
-                              )
-                            )}
-                          </select>
-                        </div>
-
-                        <div className="col-md-3">
-                          <select
-                            className="form-control"
-                            value={year}
-                            onChange={(e) => setYear(e.target.value)}
-                          >
-                            <option value="">Select year</option>
-                            {Array.from(
-                              { length: 7 },
-                              (_, i) => new Date().getFullYear() + 3 - i
-                            ).map((year) => (
-                              <option key={year} value={year}>
-                                {year + 543}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                      <br />
-
-                      <button
-                        type="button"
-                        className="btn btn-primary"
-                        onClick={handleAddDate}
-                      >
-                        เพิ่ม
-                      </button>
-                    </div>
-
-                    <br />
-                    {/* {selectedDates.length > 0 && (
+                {/* จัดวันหยุดทั้งสองประเภทให้อยู่ข้างกัน */}
+                <div className="row">
+                  {/* วันหยุดหน่วยงาน */}
+                  <div className="col-md-6">
+                    <h2 className="title" >
+                      วันหยุดหน่วยงาน
+                    </h2>
+                    <section className="Frame" style={{ minHeight: '450px' }}>
                       <div>
-                        วันหยุดหน่วยงาน (เดือน/วัน/ปี)
-                        <br />
-                        <ol>
-                          {selectedDates.map((date, index) => (
-                            <li key={index}>
-                              <div className="row">
-                                <div
-                                  className="col-md-1"
-                                  style={{ borderTop: "2px solid black" }}
-                                >
-                                  {date instanceof Date &&
-                                  !isNaN(date.getTime())
-                                    ? date.toLocaleDateString()
-                                    : `${day}/${month}/${year} (Invalid Date)`}{" "}
-                                </div>
-                                <div
-                                  className="col-md-1"
-                                  style={{ borderTop: "2px solid black" }}
-                                >
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRemoveDate(date)}
-                                    className="btn clean"
-                                    style={{ margin: "0.5rem", width: "6rem" }}
-                                  >
-                                    ลบออก
-                                  </button>
-                                </div>
-                              </div>
-                            </li>
-                          ))}
-                        </ol>
-                      </div>
-                    )} */}
+                        <label>เลือกวันหยุดของหน่วยงาน:</label>
 
-                
-{selectedDates.length > 0 && (
-  <div>
-    วันหยุดหน่วยงาน (เดือน/วัน/ปี)
-    <br />
-    <ol>
+                        <div>
+                          <div className="row">
+                            <div className="col-md-4">
+                              <label style={{ margin: "0.5rem", fontWeight: 'bold' }}>วันที่:</label>
+                            </div>
+                            <div className="col-md-4">
+                              <label style={{ marginRight: "0.5rem", fontWeight: 'bold' }}>
+                                เดือน:
+                              </label>
+                            </div>
+                            <div className="col-md-4">
+                              <label style={{ margin: "0.5rem", fontWeight: 'bold' }}>ปี:</label>
+                            </div>
+                          </div>
+
+                          <div className="row">
+                            <div className="col-md-4">
+                              <select
+                                className="form-control"
+                                value={day}
+                                onChange={(e) => setDay(e.target.value)}
+                                style={{ borderRadius: '6px' }}
+                              >
+                                <option value="">เลือกวันที่</option>
+                                {Array.from({ length: 31 }, (_, i) => i + 1).map(
+                                  (day) => (
+                                    <option key={day} value={day}>
+                                      {day}
+                                    </option>
+                                  )
+                                )}
+                              </select>
+                            </div>
+                            <div className="col-md-4">
+                              <select
+                                className="form-control"
+                                value={month}
+                                onChange={(e) => setMonth(e.target.value)}
+                                style={{ borderRadius: '6px' }}
+                              >
+                                <option value="">เลือกเดือน</option>
+                                {Array.from({ length: 12 }, (_, i) => i + 1).map(
+                                  (month) => (
+                                    <option key={month} value={month}>
+                                      {month}
+                                    </option>
+                                  )
+                                )}
+                              </select>
+                            </div>
+                            <div className="col-md-4">
+                              <select
+                                className="form-control"
+                                value={year}
+                                onChange={(e) => setYear(e.target.value)}
+                                style={{ borderRadius: '6px' }}
+                              >
+                                <option value="">เลือกปี</option>
+                                {Array.from(
+                                  { length: 7 },
+                                  (_, i) => new Date().getFullYear() + 3 - i
+                                ).map((year) => (
+                                  <option key={year} value={year}>
+                                    {year + 543}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+                          <br />
+
+                          <button
+                            type="button"
+                            className="btn btn-primary"
+                            onClick={handleAddDate}
+                          >
+                             เพิ่ม
+                          </button>
+                        </div>
+
+                        <br />
+                        
+                        {/* แสดงรายการวันหยุดหน่วยงาน */}
+                        {selectedDates.length > 0 && (
+  <div >
+    <h5>รายการวันหยุดหน่วยงาน (วัน/เดือน/ปี)</h5>
+    <div style={{ maxHeight: '250px', overflowY: 'auto' }}>
       {selectedDates
-        .sort((a, b) => new Date(a) - new Date(b)) // เรียงลำดับจากน้อยไปมาก
+        .sort((a, b) => new Date(a) - new Date(b))
         .map((date, index) => (
-          <li key={index}>
-            <div className="row">
-              <div
-                className="col-md-1"
-                style={{ borderTop: "2px solid black" }}
-              >
-                {date instanceof Date &&
-                  !isNaN(date.getTime())
-                  ? `${date.getDate()}/${date.getMonth() + 1
-                  }/${date.getFullYear() + 543}`
-                  : `${day}/${month}/${year + 543
-                  } (Invalid Date)`}
-              </div>
-              <div
-                className="col-md-1"
-                style={{ borderTop: "2px solid black" }}
-              >
-                <button
-                  type="button"
-                  onClick={() => handleRemoveDate(date)}
-                  className="btn clean"
-                  style={{ margin: "0.5rem", width: "6rem" }}
-                >
-                  ลบออก
-                </button>
-              </div>
-            </div>
-          </li>
+          <div key={index} style={{ 
+            backgroundColor: 'white', 
+            padding: '10px', 
+            marginBottom: '8px', 
+            borderRadius: '6px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            
+            <span style={{ fontSize: '14px', fontWeight: '500' }}>
+              {`${index + 1}. `}
+              {date instanceof Date && !isNaN(date.getTime())
+                ? `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear() + 543}`
+                : "วันที่ไม่ถูกต้อง"}
+            </span>
+            <button
+              type="button"
+              onClick={() => handleRemoveDate(date)}
+              className="btn btn-danger"
+            >
+              ลบ
+            </button>
+          </div>
         ))}
-    </ol>
+    </div>
   </div>
 )}
-
+                      </div>
+                    </section>
                   </div>
-                  {/* <div>
-                    <label>หมายเหตุ:</label>
-                    <input
-                      type="text"
-                      class="form-control"
-                      value={reason}
-                      onChange={handleReasonChange}
-                    />
-                  </div> */}
-                </section>
+
+                  {/* วันหยุดนักขัตฤกษ์ */}
+                  <div className="col-md-6">
+                    <h2 className="title">
+                      วันหยุดนักขัตฤกษ์
+                    </h2>
+                    <section className="Frame" style={{ minHeight: '450px' }}>
+                      <div>
+                        <label >เลือกวันหยุดนักขัตฤกษ์:</label>
+
+                        <div >
+                          <div className="row">
+                            <div className="col-md-4">
+                              <label style={{ margin: "0.5rem", fontWeight: 'bold' }}>วันที่:</label>
+                            </div>
+                            <div className="col-md-4">
+                              <label style={{ marginRight: "0.5rem", fontWeight: 'bold' }}>
+                                เดือน:
+                              </label>
+                            </div>
+                            <div className="col-md-4">
+                              <label style={{ margin: "0.5rem", fontWeight: 'bold' }}>ปี:</label>
+                            </div>
+                          </div>
+
+                          <div className="row">
+                            <div className="col-md-4">
+                              <select
+                                className="form-control"
+                                value={publicHolidayDay}
+                                onChange={(e) => setPublicHolidayDay(e.target.value)}
+                                style={{ borderRadius: '6px' }}
+                              >
+                                <option value="">เลือกวันที่</option>
+                                {Array.from({ length: 31 }, (_, i) => i + 1).map(
+                                  (day) => (
+                                    <option key={day} value={day}>
+                                      {day}
+                                    </option>
+                                  )
+                                )}
+                              </select>
+                            </div>
+                            <div className="col-md-4">
+                              <select
+                                className="form-control"
+                                value={publicHolidayMonth}
+                                onChange={(e) => setPublicHolidayMonth(e.target.value)}
+                                style={{ borderRadius: '6px' }}
+                              >
+                                <option value="">เลือกเดือน</option>
+                                {Array.from({ length: 12 }, (_, i) => i + 1).map(
+                                  (month) => (
+                                    <option key={month} value={month}>
+                                      {month}
+                                    </option>
+                                  )
+                                )}
+                              </select>
+                            </div>
+                            <div className="col-md-4">
+                              <select
+                                className="form-control"
+                                value={publicHolidayYear}
+                                onChange={(e) => setPublicHolidayYear(e.target.value)}
+                                style={{ borderRadius: '6px' }}
+                              >
+                                <option value="">เลือกปี</option>
+                                {Array.from(
+                                  { length: 7 },
+                                  (_, i) => new Date().getFullYear() + 3 - i
+                                ).map((year) => (
+                                  <option key={year} value={year}>
+                                    {year + 543}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                            <br />
+                            <div className="col-md-12 mt-2">
+                                <b className="">หมายเหตุ:</b>
+                                <input 
+                                  className="form-control container mt-2" 
+                                  placeholder="เช่น วันแม่แห่งชาติ" 
+                                  type="text" 
+                                  value={publicHolidayNote}
+                                  onChange={(e) => setPublicHolidayNote(e.target.value)}
+                                />
+                            </div>
+                            
+                          </div>
+                          <br />
+
+                          <button
+                            type="button"
+                            className="btn btn-primary"
+                            onClick={handleAddPublicHoliday}
+                            
+                          >
+                          เพิ่ม
+                          </button>
+                        </div>
+
+                        <br />
+                        
+                        {/* แสดงรายการวันหยุดนักขัตฤกษ์ */}
+                        {publicHolidayDates.length > 0 && (
+                          <div>
+                            <h5>รายการวันหยุดนักขัตฤกษ์ (วัน/เดือน/ปี)</h5>
+                            <div style={{ maxHeight: '250px', overflowY: 'auto' }}>
+                              {publicHolidayDates
+                                .filter(holiday => {
+                                  // กรองเฉพาะข้อมูลที่ถูกต้อง
+                                  const date = holiday.date || holiday;
+                                  return date instanceof Date && !isNaN(date.getTime());
+                                })
+                                .sort((a, b) => {
+                                  const dateA = a.date || a;
+                                  const dateB = b.date || b;
+                                  return dateA - dateB;
+                                })
+                                .map((holiday, index) => (
+                                  <div key={index} style={{ 
+                                    backgroundColor: 'white', 
+                                    padding: '10px', 
+                                    marginBottom: '8px', 
+                                    borderRadius: '6px',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center'
+                                  }}>
+                                    <span style={{ fontSize: '14px', fontWeight: '500' }}>
+                                      {`${index + 1}. `}
+                                      {(() => {
+                                        try {
+                                          const date = holiday.date || holiday;
+                                          if (date instanceof Date && !isNaN(date.getTime())) {
+                                            return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear() + 543}`;
+                                          } else {
+                                            return "วันที่ไม่ถูกต้อง";
+                                          }
+                                        } catch (error) {
+                                          console.error("Error formatting date:", error);
+                                          return "วันที่ไม่ถูกต้อง";
+                                        }
+                                      })()}
+                                      {holiday.note && (
+                                        <span style={{ color: '#666', marginLeft: '8px' }}>
+                                          - {holiday.note}
+                                        </span>
+                                      )}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemovePublicHoliday(holiday)}
+                                      className="btn btn-danger"
+                                    >
+                                      ลบ
+                                    </button>
+                                  </div>
+                                ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </section>
+                  </div>
+                </div>
 
 {/* Special work                   */}
 <h2 class="title">ตั้งค่าวันทํางานพิเศษ</h2>
