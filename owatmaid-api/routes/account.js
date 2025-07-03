@@ -5465,6 +5465,62 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
   console.log(`\n✅ --- สรุปการคำนวณ sumOt1p5 ---`);
   console.log(`   - ผลรวมสุดท้ายของ sumOt1p5: ${sumOt1p5}`);
 
+  // เพิ่มการคำนวณ sumCashWorkMul["2"] เฉพาะสำหรับหน่วยงาน 10493
+  console.log(`\n💰 --- การคำนวณ sumCashWorkMul["2"] ---`);
+  
+  const workplaceId = employeeProfile[0].workplace;
+  console.log(`🏢 หน่วยงานของพนักงาน: ${workplaceId}`);
+  
+  // เฉพาะหน่วยงาน 10493 เท่านั้นที่ใช้สูตรพิเศษ
+  if (workplaceId === "10493") {
+    console.log(`🏢 หน่วยงาน 10493 - ใช้สูตรพิเศษในการคำนวณ sumCashWorkMul["2"]`);
+    
+    // ดึงข้อมูล holidayHour จากการตั้งค่าหน่วยงาน
+    let holidayHour = 0;
+    try {
+      const workplaceApiUrl = `http://localhost:3000/workplace/${workplaceId}`;
+      console.log(`🏢 เรียก API การตั้งค่าหน่วยงานเพื่อดึง holidayHour: ${workplaceApiUrl}`);
+      
+      const workplaceResponse = await axios.get(workplaceApiUrl);
+      const workplaceSettings = workplaceResponse.data;
+      
+      // ใช้ field workOfHour เป็น holidayHour (หรือถ้ามี field holidayHour ก็ใช้แทน)
+      holidayHour = parseFloat(workplaceSettings.workOfHour || workplaceSettings.holidayHour || 8);
+      
+      console.log(`🏢 การตั้งค่าหน่วยงาน ${workplaceId}:`);
+      console.log(`   - workOfHour (ใช้เป็น holidayHour): ${workplaceSettings.workOfHour}`);
+      console.log(`   - holidayHour ที่ใช้คำนวณ: ${holidayHour} ชั่วโมง`);
+      console.log(`   - sumOtPublicHoliday: ${sumOtPublicHoliday} ชั่วโมง`);
+      
+    } catch (error) {
+      console.error(`❌ ไม่สามารถดึงข้อมูลการตั้งค่าหน่วยงานได้:`, error.message);
+      holidayHour = 8; // ใช้ค่าเริ่มต้น 8 ชั่วโมง
+      console.log(`⚠️ ใช้ค่าเริ่มต้น holidayHour = ${holidayHour} ชั่วโมง`);
+    }
+    
+    // คำนวณ sumCashWorkMul["2"] เฉพาะสำหรับ 10493
+    const calculatedSumCashWorkMul2 = holidayHour * parseFloat(sumOtPublicHoliday);
+    sumCashWorkMul["2"] = calculatedSumCashWorkMul2;
+    
+    console.log(`💰 สูตรการคำนวณสำหรับหน่วยงาน 10493: holidayHour (${holidayHour}) × sumOtPublicHoliday (${sumOtPublicHoliday}) = ${calculatedSumCashWorkMul2}`);
+    console.log(`💰 sumCashWorkMul["2"] = ${sumCashWorkMul["2"]}`);
+  } else {
+    console.log(`🏢 หน่วยงาน ${workplaceId} - ใช้การคำนวณ sumCashWorkMul["2"] แบบปกติ`);
+    console.log(`💰 sumCashWorkMul["2"] ค่าเดิม = ${sumCashWorkMul["2"]}`);
+  }
+
+  // ปรับปรุง sumCashWorkMul["1"] สำหรับหน่วยงาน 10493 ให้เท่ากับ sumCashWork
+  if (workplaceId === "10493") {
+    console.log(`\n💰 --- ปรับปรุง sumCashWorkMul["1"] สำหรับหน่วยงาน 10493 ---`);
+    console.log(`💰 sumCashWork ปัจจุบัน: ${sumCashWork}`);
+    console.log(`💰 sumCashWorkMul["1"] เดิม: ${sumCashWorkMul["1"]}`);
+    
+    sumCashWorkMul["1"] = sumCashWork;
+    
+    console.log(`💰 sumCashWorkMul["1"] ใหม่: ${sumCashWorkMul["1"]}`);
+    console.log(`✅ สำหรับหน่วยงาน 10493: sumCashWorkMul["1"] = sumCashWork`);
+  }
+
   sumTimeOt = sumTimeOt.toFixed(2);
   sumTimeWork = sumTimeWork.toFixed(2);
   sumOt1p5 = sumOt1p5.toFixed(2);
