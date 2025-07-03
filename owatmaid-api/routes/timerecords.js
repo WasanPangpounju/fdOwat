@@ -1446,6 +1446,9 @@ router.post('/searchtimerecordemployee', async (req, res) => {
               const workplaceResponse = await axios.get(`${sURL}/workplace/${record.workplaceId}`);
               const workplace = workplaceResponse.data;
               
+              // แปลงเลขวันเป็นชื่อวันภาษาไทย (ประกาศไว้ข้างนอกเพื่อใช้ในหลายที่)
+              const thaiDays = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์', 'เสาร์'];
+              
               // สร้างวันที่จาก record
               let recordDate;
               let dayOfWeek = 0;
@@ -1463,8 +1466,6 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                   recordDate = new Date(yearValue, monthValue - 1, dateValue);
                   dayOfWeek = recordDate.getDay(); // 0 = อาทิตย์, 1 = จันทร์, ..., 6 = เสาร์
                   
-                  // แปลงเลขวันเป็นชื่อวันภาษาไทย
-                  const thaiDays = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์', 'เสาร์'];
                   dayName = thaiDays[dayOfWeek];
                   
                   console.log(`📅 [searchtimerecordemployee] วันที่สร้างได้: ${recordDate.toDateString()}, dayOfWeek: ${dayOfWeek}, dayName: ${dayName}`);
