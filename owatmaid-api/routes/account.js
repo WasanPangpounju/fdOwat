@@ -4500,7 +4500,10 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           try {
             const month = String(doc.month).padStart(2, '0');
             const year = doc.year;
-            const apiUrl = `${sURL}/workplace/getweekend?month=${month}&year=${year}`;
+            
+            // ใช้ workplaceId จาก employee_record
+            const workplaceId = doc.employee_record[0]?.workplaceId || '10493';
+            const apiUrl = `${sURL}/conclude/getWeekendDates?yyyy=${year}&mm=${month}&workplaceId=${workplaceId}`;
             console.log(`🔍 เรียก API วันหยุด: ${apiUrl}`);
             
             const weekendResponse = await axios.get(apiUrl);
