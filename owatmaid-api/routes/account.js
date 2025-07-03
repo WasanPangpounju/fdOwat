@@ -4569,6 +4569,12 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           });
           
           console.log(`✅ เปลี่ยน dayType ทั้งหมด ${changedCount} รายการสำหรับพนักงาน ${doc.employeeId}`);
+          
+          // แสดง dayType ทั้งหมดหลังการเปลี่ยนแปลง
+          console.log(`📋 dayType ทั้งหมดหลังการเปลี่ยนแปลง:`);
+          doc.employee_record.forEach((record, index) => {
+            console.log(`   วันที่ ${record.date}: dayType="${record.dayType}"`);
+          });
         } else {
           if (!isSpecialWorkplace) {
             console.log(`ℹ️ พนักงาน ${doc.employeeId} ไม่ใช่หน่วยงาน 10493 - ไม่เปลี่ยน dayType`);
@@ -5005,7 +5011,7 @@ try {
         const isSpecialWorkplace = employeeProfile && employeeProfile[0] && employeeProfile[0].workplace === '10493';
         
         if (record?.dayType === 'stop') {
-          console.log(record?.dayType);
+          console.log(`📊 วันที่ ${record.date} - dayType: stop, cashWork: ${record?.cashWork || '0'}, cashWorkMul: ${record?.cashWorkMul}`);
           dayOffCount += 1;
           sumcashDayOffCount = parseFloat(sumcashDayOffCount || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0')
 
@@ -5014,6 +5020,7 @@ try {
             sumOt3 += convertTimeToDecimal(record.totalOtTime);
             sumOtPublicHoliday += convertTimeToDecimal(record.totalTime); // เพิ่มผลรวมของ totalOtTime ในวันหยุดนักขัตฤกษ์
             sumCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
+            console.log(`📊 เพิ่ม sumCashWorkMul[${record?.cashWorkMul}] += ${record?.cashWork || '0'}`);
 
           sumCashWorkMul[record?.cashOtMul] += parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0');
 
@@ -5032,6 +5039,7 @@ try {
           } else {
 
             if (record?.dayType === "work") {
+              console.log(`📊 วันที่ ${record.date} - dayType: work, cashWork: ${record?.cashWork || '0'}, cashWorkMul: ${record?.cashWorkMul}`);
               console.log(`\n--- 🔁 กำลังประมวลผลวันที่: ${record.date}, ประเภท: ${record.dayType} ---`);
 
               dayWorkCount += 1;
@@ -5048,6 +5056,7 @@ try {
               console.log(`   - ค่า sumOt1p5 (หลังบวก): ${sumOt1p5}`);
               
               sumCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
+              console.log(`📊 เพิ่ม sumCashWorkMul[${record?.cashWorkMul}] += ${record?.cashWork || '0'}`);
               sumCashWorkMul[record?.cashOtMul] += parseFloat(record?.cashBeforeOt || '0');
 
 
