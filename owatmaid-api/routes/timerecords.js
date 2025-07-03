@@ -1206,8 +1206,32 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
               let newDayType = 'work'; // default เป็น work
               let newCashWorkMul = '1'; // default multiplier
               
-              // ตรวจสอบการตั้งค่า workTimeDay
-              if (workplace.workTimeDay && workplace.workTimeDay.length > 0) {
+              // 🔥 PRIORITY: ตรวจสอบ dayOffOnly จาก conclude/getWeekendDates ก่อน
+              try {
+                const weekendResponse = await axios.get(`${sURL}/conclude/getWeekendDates?yyyy=${year}&mm=${month.padStart(2, '0')}&workplaceId=${record.workplaceId}`);
+                const weekendData = weekendResponse.data;
+                
+                if (weekendData && weekendData.dayOffOnly && weekendData.dayOffOnly.length > 0) {
+                  // สร้างรูปแบบวันที่เพื่อเปรียบเทียบ
+                  const recordDateStr = `${year}-${month.padStart(2, '0')}-${record.date.padStart(2, '0')}`;
+                  
+                  // ตรวจสอบว่าวันที่นี้อยู่ใน dayOffOnly หรือไม่
+                  const isDayOffOnly = weekendData.dayOffOnly.includes(recordDateStr);
+                  
+                  if (isDayOffOnly) {
+                    console.log(`🚨 PRIORITY: วันที่ ${record.date} อยู่ใน dayOffOnly - เปลี่ยนเป็น stop`);
+                    newDayType = 'stop';
+                    newCashWorkMul = '2';
+                  } else {
+                    console.log(`✅ วันที่ ${record.date} ไม่อยู่ใน dayOffOnly - ใช้กฎปกติ`);
+                  }
+                }
+              } catch (weekendError) {
+                console.error(`❌ ไม่สามารถดึงข้อมูล dayOffOnly สำหรับ workplace ${record.workplaceId}:`, weekendError.message);
+              }
+              
+              // ถ้าไม่ใช่ dayOffOnly จึงตรวจสอบการตั้งค่า workTimeDay (เฉพาะถ้า dayType ยังเป็น work)
+              if (newDayType === 'work' && workplace.workTimeDay && workplace.workTimeDay.length > 0) {
                 // ค้นหาการตั้งค่าสำหรับวันนี้
                 const dayConfig = workplace.workTimeDay.find(config => {
                   const startDayIndex = thaiDays.indexOf(config.startDay);
@@ -1225,16 +1249,16 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
                 if (dayConfig) {
                   newDayType = dayConfig.workOrStop;
                   newCashWorkMul = dayConfig.workOrStop === 'work' ? '1' : '2';
-                  console.log(`✅ พบการตั้งค่า: ${dayConfig.startDay}-${dayConfig.endDay} = ${dayConfig.workOrStop}`);
+                  console.log(`✅ พบการตั้งค่า workTimeDay: ${dayConfig.startDay}-${dayConfig.endDay} = ${dayConfig.workOrStop}`);
                 } else {
                   console.log(`⚠️ ไม่พบการตั้งค่าสำหรับวัน ${dayName} - ใช้ค่าเริ่มต้น: work`);
                 }
-              } else {
+              } else if (newDayType === 'work') {
                 console.log(`⚠️ workplace ${record.workplaceId} ไม่มีการตั้งค่า workTimeDay - ถือว่าทุกวันเป็น work`);
               }
               
-              // 🎯 กรณีพิเศษสำหรับ workplace 10493 - บังคับให้เป็น work เสมอ
-              if (record.workplaceId === '10493') {
+              // 🎯 กรณีพิเศษสำหรับ workplace 10493 - บังคับให้เป็น work เสมอ (แต่ยัง respect dayOffOnly)
+              if (record.workplaceId === '10493' && newDayType !== 'stop') {
                 console.log(`🔧 workplace 10493: บังคับ dayType = work (เดิม: ${newDayType})`);
                 newDayType = 'work';
                 newCashWorkMul = '1';
