@@ -5088,7 +5088,7 @@ try {
         
         // เงื่อนไขพิเศษสำหรับหน่วยงาน 10493 - ตรวจสอบก่อนการตรวจสอบ dayType อื่นๆ
         // หมายเหตุ: dayType ถูกเปลี่ยนเป็น "work" แล้วในขั้นตอน searchtimerecordemployee
-        const isSpecialWorkplace = employeeProfile && employeeProfile[0] && employeeProfile[0].workplace === '10493';
+        const isSpecialWorkplace = employeeProfile && employeeProfile[0] && employeeProfile[0].workplace === '';
         
         if (record?.dayType === 'stop') {
           console.log(`📊 วันที่ ${record.date} - dayType: stop, cashWork: ${record?.cashWork || '0'}, cashWorkMul: ${record?.cashWorkMul}`);
