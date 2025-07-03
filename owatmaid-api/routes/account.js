@@ -4470,9 +4470,23 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         try {
           const employee = await Employee.findOne({ employeeId: doc.employeeId });
           employeePrefix = employee?.prefix || '';
-          isSpecialWorkplace = employee?.workplace === '10493';
+          
+          // ตรวจสอบ workplace แบบละเอียด
+          const workplace = employee?.workplace;
+          console.log(`🔍 Raw workplace data for ${doc.employeeId}:`, workplace, typeof workplace);
+          
+          // ตรวจสอบหลายรูปแบบ (string, number)
+          isSpecialWorkplace = workplace === '10493' || workplace === 10493 || String(workplace) === '10493';
+          
+          // ตรวจสอบจาก workplaceId ใน employee_record ด้วย (กรณีที่ Employee model ไม่มีข้อมูล workplace)
+          if (!isSpecialWorkplace && doc.employee_record && doc.employee_record.length > 0) {
+            const recordWorkplaceId = doc.employee_record[0].workplaceId;
+            console.log(`🔍 Checking workplaceId from record:`, recordWorkplaceId, typeof recordWorkplaceId);
+            isSpecialWorkplace = recordWorkplaceId === '10493' || recordWorkplaceId === 10493 || String(recordWorkplaceId) === '10493';
+          }
+          
           console.log(`🔍 Found prefix for ${doc.employeeId}: ${employeePrefix}`);
-          console.log(`🔍 Workplace for ${doc.employeeId}: ${employee?.workplace} (isSpecial: ${isSpecialWorkplace})`);
+          console.log(`🔍 Workplace for ${doc.employeeId}: ${workplace} (isSpecial: ${isSpecialWorkplace})`);
         } catch (prefixError) {
           console.warn(`⚠️ Could not fetch prefix for employee ${doc.employeeId}:`, prefixError.message);
         }
@@ -4480,13 +4494,23 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         // แก้ไข dayType สำหรับหน่วยงาน 10493 - ทำงานทุกวัน
         if (isSpecialWorkplace && doc.employee_record) {
           console.log(`🔧 แก้ไข dayType สำหรับหน่วยงานพิเศษ 10493 - พนักงาน ${doc.employeeId}`);
+          let changedCount = 0;
           doc.employee_record.forEach((record, index) => {
             const originalDayType = record.dayType;
             if (record.dayType === 'stop' || record.dayType === 'specialDayOff') {
               record.dayType = 'work';
+              changedCount++;
               console.log(`   - วันที่ ${record.date}: เปลี่ยนจาก "${originalDayType}" เป็น "work"`);
             }
           });
+          console.log(`✅ เปลี่ยน dayType ทั้งหมด ${changedCount} รายการ`);
+        } else {
+          if (!isSpecialWorkplace) {
+            console.log(`ℹ️ พนักงาน ${doc.employeeId} ไม่ใช่หน่วยงาน 10493 - ไม่เปลี่ยน dayType`);
+          }
+          if (!doc.employee_record) {
+            console.log(`⚠️ ไม่มีข้อมูล employee_record สำหรับพนักงาน ${doc.employeeId}`);
+          }
         }
 
         const calculatedValues = await calculateCashValues(
@@ -4527,13 +4551,21 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           sumCashWorkMul: calculatedValues.sumCashWorkMul,
         };
         
+        // เพิ่มการบันทึก employee_record ที่เปลี่ยนแปลงแล้วด้วย
+        updateData.employee_record = doc.employee_record;
+        
         // แสดงข้อมูลสำคัญที่จะบันทึก
         console.log(`\n📝 ข้อมูลที่จะบันทึกสำหรับพนักงาน ${doc.employeeId}:`);
         console.log(`� prefix: ${updateData.prefix}`);
         console.log(`�🔍 dayWorkCount: ${updateData.dayWorkCount}`);
         console.log(`🔍 customizeDayoff: ${updateData.customizeDayoff}`);
         console.log(`💰 cashcustomizeDayoff: ${updateData.cashcustomizeDayoff}`);
-        console.log(`⏱️ sumOt1p5: ${updateData.sumOt1p5}`); 
+        console.log(`⏱️ sumOt1p5: ${updateData.sumOt1p5}`);
+        
+        // แสดงตัวอย่าง dayType ที่เปลี่ยนแปลง
+        if (doc.employee_record && doc.employee_record.length > 0) {
+          console.log(`📅 ตัวอย่าง dayType: วันที่ ${doc.employee_record[0].date} = "${doc.employee_record[0].dayType}"`);
+        }
         
         // ตรวจสอบว่ามีรายการ addSalaryList หรือไม่
         if (calculatedValues.addSalaryList && calculatedValues.addSalaryList.length > 0) {
@@ -4544,11 +4576,17 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         }
         // ✅ Log BEFORE update
         // console.log(`🔍 BEFORE update (doc ${doc._id}):`, JSON.stringify(doc.addSalaryList, null, 2));
+
+        // บันทึกการเปลี่ยนแปลง employee_record (รวมถึง dayType ที่แก้ไข) ลงฐานข้อมูล
+        const fullUpdateData = {
+          ...updateData,
+          employee_record: doc.employee_record // รวม employee_record ที่แก้ไข dayType แล้ว
+        };
     
         // Update and get updated document
         const updatedDoc = await timerecordEmployee.findByIdAndUpdate(
           doc._id,
-          { $set: updateData },
+          { $set: fullUpdateData },
           { new: true, upsert: true }
         );
     
