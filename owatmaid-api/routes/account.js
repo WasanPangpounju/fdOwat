@@ -4493,6 +4493,12 @@ router.post('/searchtimerecordemployee', async (req, res) => {
               doc.month,
               doc.year
             );
+            
+        // สำหรับหน่วยงานพิเศษ ให้ใช้ employee_record ที่ถูกแก้ไข dayType แล้ว
+        const finalEmployeeRecord = isSpecialWorkplace && calculatedValues.employee_record 
+          ? calculatedValues.employee_record 
+          : doc.employee_record;
+          
         const updateData = await {
           dayWorkCount: String(calculatedValues.dayWorkCount),
           dayOffCount: String(calculatedValues.dayOffCount),
@@ -4547,6 +4553,12 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           { $set: updateData },
           { new: true, upsert: true }
         );
+        
+        // สำหรับหน่วยงานพิเศษ ให้แทนที่ employee_record ด้วยข้อมูลที่แก้ไข dayType แล้ว
+        if (isSpecialWorkplace && calculatedValues.employee_record) {
+          updatedDoc.employee_record = finalEmployeeRecord;
+          console.log(`🟡 อัพเดท employee_record สำหรับหน่วยงานพิเศษแล้ว`);
+        }
     
         // ✅ Log AFTER update
         // console.log(`🚀 AFTER update (doc ${doc._id}):`, JSON.stringify(updatedDoc.addSalaryList, null, 2));
@@ -4818,7 +4830,8 @@ const calculateCashValuesForSpecialWorkplace = async (employeeId, employee_recor
     sumAddSalaryDaily,
     sumCashWorkMul,
     timeCashWorkMul,
-    addSalaryList
+    addSalaryList,
+    employee_record // ส่ง employee_record ที่ถูกแก้ไข dayType แล้วกลับไปด้วย
   };
 };
 
