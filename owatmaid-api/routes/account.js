@@ -4822,12 +4822,8 @@ let timeCashWorkMul = {
   let sumAddSalaryDaily = {};
   let addSalaryDailyList = [];
   let monthlySalaries = [];
-  let addSalaryList = []; // ⚠️ Reset เป็น array ว่างทุกครั้ง เพื่อป้องกันการซ้ำซ้อน
+  let addSalaryList = [];
   let selectedSpecialDays = [];
-  
-  // 📝 Log: เริ่มต้นการคำนวณสำหรับพนักงาน
-  console.log(`\n🔢 [calculateCashValues] เริ่มต้นการคำนวณสำหรับพนักงาน ${employeeId} (${month}/${year})`);
-  console.log(`🔢 [calculateCashValues] ⚠️ Reset addSalaryList เป็น array ว่าง เพื่อป้องกันการซ้ำซ้อน`);
 
   if (parseFloat(salaryTmp || '0') > 1660) {
     salaryMonth = parseFloat(salaryTmp || '0');
@@ -5108,55 +5104,32 @@ try {
 
               // Handle addSalaryDailyList clearly:
               if (record.addSalaryDaily && record.addSalaryDaily.length > 0) {
-                console.log(`  📋 ประมวลผล addSalaryDaily สำหรับวันที่ ${record.date}: ${record.addSalaryDaily.length} รายการ`);
-                
                 record.addSalaryDaily.forEach((salaryItem) => {
                   const cleanSalaryItemId = String(salaryItem.id).trim();
                   const amount = parseFloat(salaryItem.SpSalary || 0);
 
-                  console.log(`    💰 รายการ ID: ${cleanSalaryItemId}, Name: ${salaryItem.name}, จำนวน: ${amount}`);
-
-                  // 🔍 ค้นหารายการที่มีอยู่แล้วใน addSalaryList
-                  const existingIndex = addSalaryList.findIndex(
+                  const existingItem = addSalaryList.find(
                     item => String(item.id).trim() === cleanSalaryItemId
                   );
 
-                  if (existingIndex !== -1) {
-                    // อัปเดตรายการที่มีอยู่แล้ว
-                    const existingItem = addSalaryList[existingIndex];
-                    const oldAmount = parseFloat(existingItem.SpSalary || 0);
-                    const oldMessage = parseFloat(existingItem.message || 0);
-                    
-                    // รวมค่า SpSalary และเพิ่มจำนวนครั้ง
-                    addSalaryList[existingIndex] = {
-                      ...existingItem,
-                      SpSalary: oldAmount + amount,
-                      message: oldMessage + 1
-                    };
+                  if (existingItem) {
+                    existingItem.SpSalary = parseFloat(existingItem.SpSalary || 0) + amount;
+                    existingItem.message = parseFloat(existingItem.message || 0) + 1;
 
-                    console.log(`    🔄 อัปเดตรายการเดิม: ${oldAmount} + ${amount} = ${oldAmount + amount} (ครั้งที่ ${oldMessage + 1})`);
+                    // Find the exact index
+                    const index = addSalaryList.findIndex(item => item.id === existingItem.id);
+
+                    if (index !== -1) {
+                      // Override existing item
+                      addSalaryList[index] = existingItem;
+                    }
 
                   } else {
-                    // เพิ่มรายการใหม่
-                    const newSalaryItem = {
-                      ...salaryItem,
-                      SpSalary: amount,
-                      message: 1
-                    };
-                    addSalaryList.push(newSalaryItem);
-                    console.log(`    ➕ เพิ่มรายการใหม่: ID ${cleanSalaryItemId}, Name: ${salaryItem.name}, จำนวน: ${amount}`);
-                  }
+                    // Otherwise push new
+                    salaryItem.message = 1; 
+                    addSalaryList.push(salaryItem);
+                  } //end else
                 }); //end foreach
-                
-                console.log(`  📋 สรุป addSalaryList หลังประมวลผลวันที่ ${record.date}: ${addSalaryList.length} รายการ`);
-                
-                // 📊 แสดงสรุปรายการปัจจุบัน
-                if (addSalaryList.length > 0) {
-                  console.log(`  📋 รายการปัจจุบันใน addSalaryList:`);
-                  addSalaryList.forEach((item, index) => {
-                    console.log(`    ${index + 1}. ${item.name} (ID: ${item.id}): ${item.SpSalary} บาท (${item.message} ครั้ง)`);
-                  });
-                }
               }
             }
           }
@@ -5356,43 +5329,7 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
     monthlySalaries = await addSalary.filter(salary => salary.roundOfSalary === 'monthly');
   }
 
-  // 🔄 รวมเงินเดือนรายเดือนเข้ากับ addSalaryList โดยป้องกันการซ้ำซ้อน
-  console.log(`\n🔄 กำลังรวมเงินเดือนรายเดือน ${monthlySalaries.length} รายการ`);
-  
-  monthlySalaries.forEach((monthlySalary) => {
-    const cleanSalaryItemId = String(monthlySalary.id).trim();
-    const amount = parseFloat(monthlySalary.SpSalary || 0);
-
-    console.log(`  📋 เงินเดือนรายเดือน - ID: ${cleanSalaryItemId}, Name: ${monthlySalary.name}, จำนวน: ${amount}`);
-
-    // 🔍 ค้นหารายการที่มีอยู่แล้วใน addSalaryList
-    const existingIndex = addSalaryList.findIndex(
-      item => String(item.id).trim() === cleanSalaryItemId
-    );
-
-    if (existingIndex !== -1) {
-      // อัปเดตรายการที่มีอยู่แล้ว (ไม่ควรเกิดขึ้นกับรายเดือน แต่เพิ่มเพื่อความปลอดภัย)
-      const existingItem = addSalaryList[existingIndex];
-      const oldAmount = parseFloat(existingItem.SpSalary || 0);
-      
-      addSalaryList[existingIndex] = {
-        ...existingItem,
-        SpSalary: oldAmount + amount,
-        message: parseFloat(existingItem.message || 0) + 1
-      };
-      
-      console.log(`    🔄 [เงินเดือนรายเดือน] อัปเดตรายการเดิม: ${oldAmount} + ${amount} = ${oldAmount + amount}`);
-    } else {
-      // เพิ่มรายการใหม่
-      const newSalaryItem = {
-        ...monthlySalary,
-        SpSalary: amount,
-        message: 1
-      };
-      addSalaryList.push(newSalaryItem);
-      console.log(`    ➕ [เงินเดือนรายเดือน] เพิ่มรายการใหม่: ${monthlySalary.name} = ${amount} บาท`);
-    }
-  });
+  addSalaryList = await addSalaryList.concat(monthlySalaries);
 
   console.log(`\n🔍 === การตรวจสอบเงินพิเศษที่คิดประกันสังคม ===`);
   console.log(`🔍 จำนวนรายการเงินพิเศษทั้งหมด: ${addSalaryList.length} รายการ`);
@@ -5568,19 +5505,6 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
   cashcustomizeDayoff = (cashcustomizeDayoff || 0).toFixed(2);
   publicHolidayCash = (publicHolidayCash || 0).toFixed(2);
   cashSpecialDay = (cashSpecialDay || 0).toFixed(2);
-
-  // 📋 Log สรุป addSalaryList ก่อนการ return
-  console.log(`\n📋 === สรุป addSalaryList ก่อนการ return ===`);
-  console.log(`🔢 จำนวนรายการ addSalaryList: ${addSalaryList.length}`);
-  if (addSalaryList.length > 0) {
-    console.log(`📋 รายการ addSalaryList:`);
-    addSalaryList.forEach((item, index) => {
-      console.log(`  ${index + 1}. ID: ${item.id}, SpSalary: ${item.SpSalary}, message: ${item.message}, salaryType: ${item.salaryType || 'N/A'}`);
-    });
-  } else {
-    console.log(`⚠️ ไม่มีรายการ addSalaryList`);
-  }
-  console.log(`📋 ==========================================\n`);
 
 
   return await {
