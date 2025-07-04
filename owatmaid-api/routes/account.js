@@ -4654,14 +4654,27 @@ const calculateCashValuesForSpecialWorkplace = async (employeeId, employee_recor
   let cashcustomizeDayoff = 0;
 
   console.log(`🟡 [Special Workplace] ใช้ logic พิเศษสำหรับหน่วยงานที่ทำงาน 7 วัน`);
+  console.log(`🟡 [Debug] จำนวน employee_record: ${employee_record.length} รายการ`);
+  
+  // Debug: แสดงข้อมูลของ employee_record
+  employee_record.forEach((record, index) => {
+    console.log(`🟡 [Debug] Record ${index}: day=${record.day}, dayType=${record.dayType}, allTimes=${record.allTimes}, workRate=${record.workRate}`);
+  });
   
   // Logic สำหรับหน่วยงานพิเศษ - สำหรับหน่วยงานที่ทำงาน 7 วัน dayType จะเป็น "work" ทุกวัน
   for (const record of employee_record) {
-    if (!record.day) continue;
+    if (!record.day) {
+      console.log(`🟡 [Skip] ข้ามเนื่องจากไม่มี day: ${JSON.stringify(record)}`);
+      continue;
+    }
     
-    // สำหรับหน่วยงานที่ทำงาน 7 วัน - ประมวลผลเฉพาะวันที่ dayType = "work" เท่านั้น
-    if (record.dayType === "work") {
-      console.log(`🟡 ประมวลผลวันที่: ${record.day}, dayType: ${record.dayType}`);
+    // สำหรับหน่วยงานที่ทำงาน 7 วัน - ตรวจสอบหลายเงื่อนไข
+    const shouldCalculate = record.dayType === "work" || 
+                           (record.dayType === "" && (record.allTimes > 0 || record.workRate > 0)) ||
+                           (record.dayType === undefined && (record.allTimes > 0 || record.workRate > 0));
+    
+    if (shouldCalculate) {
+      console.log(`🟡 ประมวลผลวันที่: ${record.day}, dayType: ${record.dayType || 'ไม่ระบุ'}, เงื่อนไข: ผ่าน`);
       
       dayWorkCount++;
       
@@ -4698,7 +4711,9 @@ const calculateCashValuesForSpecialWorkplace = async (employeeId, employee_recor
         }
       }
     } else {
-      // สำหรับ dayType อื่นๆ ให้จัดการตามประเภท
+      // สำหรับ record ที่ไม่ผ่านเงื่อนไขการคำนวณ
+      console.log(`🟡 ไม่ประมวลผลวันที่: ${record.day}, dayType: ${record.dayType || 'ไม่ระบุ'}, allTimes: ${record.allTimes}, workRate: ${record.workRate}`);
+      
       if (record.dayType === "stop") {
         dayOffCount++;
         console.log(`🟡 วันหยุด: ${record.day}, dayType: ${record.dayType}`);
@@ -4708,8 +4723,6 @@ const calculateCashValuesForSpecialWorkplace = async (employeeId, employee_recor
       } else if (record.dayType === "holiday") {
         publicHolidayCount++;
         console.log(`🟡 วันหยุดนักขัตฤกษ์: ${record.day}, dayType: ${record.dayType}`);
-      } else {
-        console.log(`🟡 ประเภทวันอื่นๆ: ${record.day}, dayType: ${record.dayType || 'ไม่ระบุ'}`);
       }
     }
   }
