@@ -4466,251 +4466,12 @@ router.post('/searchtimerecordemployee', async (req, res) => {
       try {
         // ดึงข้อมูล prefix จาก Employee model
         let employeePrefix = '';
-        let isSpecialWorkplace = false;
         try {
           const employee = await Employee.findOne({ employeeId: doc.employeeId });
           employeePrefix = employee?.prefix || '';
-          
-          // ตรวจสอบ workplace แบบละเอียด
-          const workplace = employee?.workplace;
-          console.log(`🔍 Raw workplace data for ${doc.employeeId}:`, workplace, typeof workplace);
-          
-         
-          isSpecialWorkplace = workplace === '10493' || workplace === 10493 || String(workplace) === '10493';
-          
-          // ตรวจสอบจาก workplaceId ใน employee_record ด้วย (กรณีที่ Employee model ไม่มีข้อมูล workplace)
-          if (!isSpecialWorkplace && doc.employee_record && doc.employee_record.length > 0) {
-            const recordWorkplaceId = doc.employee_record[0].workplaceId;
-            console.log(`🔍 Checking workplaceId from record:`, recordWorkplaceId, typeof recordWorkplaceId);
-            
-            // ตรวจสอบ 10493 ก่อน
-            isSpecialWorkplace = recordWorkplaceId === '10493' || recordWorkplaceId === 10493 || String(recordWorkplaceId) === '10493';
-            
-            // ถ้าไม่ใช่ 10493 ให้ตรวจสอบว่าเป็นหน่วยงานประเภท "ทำงานทุกวัน" หรือไม่
-            if (!isSpecialWorkplace) {
-              try {
-                const workplaceApiUrl = `http://10.10.110.7:3000/workplace/${recordWorkplaceId}`;
-                const workplaceResponse = await axios.get(workplaceApiUrl);
-                const workplaceSettings = workplaceResponse.data;
-                
-                // ตรวจสอบ workTimeDay เพื่อดูว่าเป็นหน่วยงานประเภท "ทำงานทุกวัน" หรือไม่
-                if (workplaceSettings.workTimeDay && Array.isArray(workplaceSettings.workTimeDay)) {
-                  const workOrStopValues = workplaceSettings.workTimeDay.map(day => day.workOrStop);
-                  const hasWork = workOrStopValues.includes('work');
-                  const hasStop = workOrStopValues.includes('stop');
-                  
-                  if (hasWork && !hasStop) {
-                    // กรณีมีแค่ "work" อย่างเดียว = หน่วยงานที่ทำงานทุกวัน
-                    isSpecialWorkplace = true;
-                    console.log(`✅ หน่วยงาน ${recordWorkplaceId} เป็นประเภท "ทำงานทุกวัน" (มีแค่ work อย่างเดียว)`);
-                  }
-                }
-              } catch (error) {
-                console.log(`⚠️ ไม่สามารถตรวจสอบประเภทหน่วยงาน ${recordWorkplaceId} ได้:`, error.message);
-              }
-            }
-          }
-          
           console.log(`🔍 Found prefix for ${doc.employeeId}: ${employeePrefix}`);
-          console.log(`🔍 Workplace for ${doc.employeeId}: ${workplace} (isSpecial: ${isSpecialWorkplace})`);
         } catch (prefixError) {
           console.warn(`⚠️ Could not fetch prefix for employee ${doc.employeeId}:`, prefixError.message);
-        }
-
-        // แก้ไข dayType สำหรับหน่วยงานประเภท "ทำงานทุกวัน"
-        if (isSpecialWorkplace && doc.employee_record) {
-          // ใช้ workplaceId จาก employee_record
-          const workplaceId = doc.employee_record[0]?.workplaceId || employeeProfile[0]?.workplace;
-          console.log(`🔧 ตรวจสอบหน่วยงาน ${workplaceId} สำหรับพนักงาน ${doc.employeeId}`);
-          
-          // ตรวจสอบว่าเป็นหน่วยงานประเภท "ทำงานทุกวัน" หรือไม่
-          let isAllDaysWorkType = false;
-          
-          try {
-            const workplaceApiUrl = `http://10.10.110.7:3000/workplace/${workplaceId}`;
-            console.log(`🔍 เรียก API เพื่อตรวจสอบประเภทหน่วยงาน: ${workplaceApiUrl}`);
-            
-            const workplaceResponse = await axios.get(workplaceApiUrl);
-            const workplaceSettings = workplaceResponse.data;
-            
-            // ตรวจสอบ workTimeDay เพื่อดูว่าเป็นหน่วยงานแบบไหน
-            if (workplaceSettings.workTimeDay && Array.isArray(workplaceSettings.workTimeDay)) {
-              const workOrStopValues = workplaceSettings.workTimeDay.map(day => day.workOrStop);
-              const hasWork = workOrStopValues.includes('work');
-              const hasStop = workOrStopValues.includes('stop');
-              
-              console.log(`🔍 workOrStop values: ${JSON.stringify(workOrStopValues)}`);
-              console.log(`🔍 มี work: ${hasWork}, มี stop: ${hasStop}`);
-              
-              if (hasWork && !hasStop) {
-                // กรณีมีแค่ "work" อย่างเดียว = หน่วยงานที่ทำงานทุกวัน
-                isAllDaysWorkType = true;
-                console.log(`✅ หน่วยงาน ${workplaceId} เป็นประเภท "ทำงานทุกวัน" (มีแค่ work อย่างเดียว)`);
-              } else if (hasWork && hasStop) {
-                // กรณีมีทั้ง "work" และ "stop" = หน่วยงานปกติ
-                isAllDaysWorkType = false;
-                console.log(`✅ หน่วยงาน ${workplaceId} เป็นประเภท "ปกติ" (มีทั้ง work และ stop)`);
-              } else {
-                // กรณีอื่นๆ ใช้ workOfWeek หรือตรวจสอบหน่วยงานพิเศษ
-                isAllDaysWorkType = workplaceSettings.workOfWeek === '7' || workplaceId === '10493';
-                console.log(`⚠️ ไม่สามารถระบุประเภทจาก workTimeDay ได้ ใช้ workOfWeek หรือ workplaceId แทน: ${isAllDaysWorkType ? 'ทำงานทุกวัน' : 'ปกติ'}`);
-              }
-            } else {
-              // กรณีไม่มี workTimeDay ใช้ workOfWeek หรือตรวจสอบหน่วยงานพิเศษ
-              isAllDaysWorkType = workplaceSettings.workOfWeek === '7' || workplaceId === '10493';
-              console.log(`⚠️ ไม่มีข้อมูล workTimeDay ใช้ workOfWeek หรือ workplaceId แทน: ${isAllDaysWorkType ? 'ทำงานทุกวัน' : 'ปกติ'}`);
-            }
-          } catch (error) {
-            console.error(`❌ ไม่สามารถดึงข้อมูลการตั้งค่าหน่วยงานได้:`, error.message);
-            // กรณีไม่สามารถดึงข้อมูลได้ ให้ตรวจสอบจาก workplaceId
-            isAllDaysWorkType = workplaceId === '10493';
-            console.log(`⚠️ ใช้การตรวจสอบ workplaceId แทน: ${isAllDaysWorkType ? 'ทำงานทุกวัน (10493)' : 'ปกติ'}`);
-          }
-          
-          if (isAllDaysWorkType) {
-            console.log(`🏢 หน่วยงาน ${workplaceId} เป็นประเภทที่ทำงานทุกวัน - ดำเนินการปรับแต่ง dayType`);
-          
-          // ดึงข้อมูล dayOffOnly จาก API
-          let dayOffOnlyDates = [];
-          try {
-            const month = String(doc.month).padStart(2, '0');
-            const year = doc.year;
-            const apiUrl = `${sURL}/conclude/getWeekendDates?yyyy=${year}&mm=${month}&workplaceId=${workplaceId}`;
-            console.log(`🔍 เรียก API วันหยุด: ${apiUrl}`);
-            
-            const weekendResponse = await axios.get(apiUrl);
-            const weekendData = weekendResponse.data;
-            dayOffOnlyDates = weekendData.dayOffOnly || [];
-            
-            console.log(`📅 วันหยุดนักขัตฤกษ์ที่ต้องเป็น stop: ${JSON.stringify(dayOffOnlyDates)}`);
-          } catch (error) {
-            console.error(`❌ ไม่สามารถดึงข้อมูลวันหยุดได้:`, error.message);
-          }
-          
-          // ปรับแต่ง dayType สำหรับหน่วยงาน 10493 - ทำงานทุกวัน ยกเว้นวันหยุดนักขัตฤกษ์
-          let changedCount = 0;
-          doc.employee_record.forEach((record, index) => {
-            const originalDayType = record.dayType;
-            
-            // สร้างวันที่ในรูปแบบ YYYY-MM-DD
-            const dateStr = `${doc.year}-${String(doc.month).padStart(2, '0')}-${String(record.date).padStart(2, '0')}`;
-            
-            // ตรวจสอบว่าวันนี้เป็นวันใดในสัปดาห์
-            const dateObj = new Date(dateStr);
-            const dayOfWeek = dateObj.getDay(); // 0=อาทิตย์, 1=จันทร์, ..., 6=เสาร์
-            const dayNames = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์', 'เสาร์'];
-            const dayName = dayNames[dayOfWeek];
-            
-            // ตรวจสอบว่าวันนี้อยู่ใน dayOffOnly หรือไม่
-            const isDayOffOnly = dayOffOnlyDates.includes(dateStr);
-            
-            console.log(`🔍 วันที่ ${record.date} (${dateStr}) เป็น${dayName}, isDayOffOnly: ${isDayOffOnly}, dayType เดิม: ${originalDayType}`);
-            
-            if (isDayOffOnly) {
-              // วันหยุดนักขัตฤกษ์ ต้องเป็น "stop" เสมอ
-              if (record.dayType !== 'stop') {
-                record.dayType = 'stop';
-                changedCount++;
-                console.log(`   ✅ เปลี่ยนจาก "${originalDayType}" เป็น "stop" (วันหยุดนักขัตฤกษ์)`);
-              } else {
-                console.log(`   ✅ คงเดิม "stop" (วันหยุดนักขัตฤกษ์)`);
-              }
-            } else {
-              // หน่วยงาน 10493 ทำงานทุกวัน รวมถึงวันอาทิตย์
-              if (record.dayType !== 'work') {
-                record.dayType = 'work';
-                changedCount++;
-                console.log(`   ✅ เปลี่ยนจาก "${originalDayType}" เป็น "work" (หน่วยงาน 10493 ทำงานทุกวัน)`);
-              } else {
-                console.log(`   ✅ คงเดิม "work" (หน่วยงาน 10493 ทำงานทุกวัน)`);
-              }
-            }
-          });
-          
-          console.log(`✅ เปลี่ยน dayType ทั้งหมด ${changedCount} รายการสำหรับพนักงาน ${doc.employeeId}`);
-          
-          // ปรับปรุง cashWork และ cashWorkMul สำหรับหน่วยงาน 10493 (ทุกครั้ง ไม่ว่า changedCount จะเป็นเท่าไหร่)
-          console.log(`\n🔧 ปรับปรุง cashWork และ cashWorkMul สำหรับหน่วยงาน 10493...`);
-          
-          // ดึงข้อมูลการตั้งค่าหน่วยงานเพื่อใช้คำนวณ cashWork
-          let workplaceSettings = null;
-          try {
-            const workplaceApiUrl = `http://10.10.110.7:3000/workplace/${workplaceId}`;
-            console.log(`🔗 เรียก API: ${workplaceApiUrl}`);
-            const workplaceResponse = await axios.get(workplaceApiUrl);
-            workplaceSettings = workplaceResponse.data;
-            
-            console.log(`🏢 ได้รับการตั้งค่าหน่วยงาน ${workplaceId}:`);
-            console.log(`   - workRate: ${workplaceSettings.workRate} บาท/วัน`);
-            console.log(`   - dayoffRate: ${workplaceSettings.dayoffRate} บาท/วัน`);
-            console.log(`   - workOfHour: ${workplaceSettings.workOfHour} ชั่วโมง/วัน`);
-          } catch (error) {
-            console.error(`❌ ไม่สามารถดึงข้อมูลการตั้งค่าหน่วยงานได้:`, error.message);
-          }
-          
-          // อัพเดต cashWork และ cashWorkMul สำหรับทุก record
-          let updatedCount = 0;
-          doc.employee_record.forEach((record, index) => {
-            const originalCashWork = record.cashWork;
-            const originalCashWorkMul = record.cashWorkMul;
-            
-            if (workplaceSettings) {
-              if (record.dayType === 'work') {
-                // วันทำงาน ใช้ workRate
-                const newCashWork = String(workplaceSettings.workRate || 0);
-                const newCashWorkMul = "1"; // ค่าปกติ
-                
-                record.cashWork = newCashWork;
-                record.cashWorkMul = newCashWorkMul;
-                updatedCount++;
-                
-                console.log(`   📝 วันที่ ${record.date} (${record.dayType}): `);
-                console.log(`      - cashWork: ${originalCashWork} → ${newCashWork} (ใช้ workRate: ${workplaceSettings.workRate})`);
-                console.log(`      - cashWorkMul: ${originalCashWorkMul} → ${newCashWorkMul}`);
-                
-              } else if (record.dayType === 'stop') {
-                // วันหยุด ใช้ dayoffRate
-                const newCashWork = String(workplaceSettings.dayoffRate || 0);
-                const newCashWorkMul = "2"; // ค่าวันหยุด
-                
-                record.cashWork = newCashWork;
-                record.cashWorkMul = newCashWorkMul;
-                updatedCount++;
-                
-                console.log(`   📝 วันที่ ${record.date} (${record.dayType}): `);
-                console.log(`      - cashWork: ${originalCashWork} → ${newCashWork} (ใช้ dayoffRate: ${workplaceSettings.dayoffRate})`);
-                console.log(`      - cashWorkMul: ${originalCashWorkMul} → ${newCashWorkMul}`);
-              } else {
-                console.log(`   ⏭️ วันที่ ${record.date} (${record.dayType}): ข้าม (dayType ไม่ใช่ work หรือ stop)`);
-              }
-            } else {
-              console.log(`   ⚠️ วันที่ ${record.date}: ไม่สามารถอัพเดตได้ (ไม่มีข้อมูล workplaceSettings)`);
-            }
-          });
-          
-          console.log(`✅ ปรับปรุง cashWork และ cashWorkMul เสร็จสิ้น (อัพเดต ${updatedCount} รายการ)`);
-          
-          // แสดง dayType ทั้งหมดหลังการเปลี่ยนแปลง
-          console.log(`📋 dayType, cashWork และ cashWorkMul ทั้งหมดหลังการเปลี่ยนแปลง:`);
-          doc.employee_record.forEach((record, index) => {
-            const dateStr = `${doc.year}-${String(doc.month).padStart(2, '0')}-${String(record.date).padStart(2, '0')}`;
-            const dateObj = new Date(dateStr);
-            const dayOfWeek = dateObj.getDay();
-            const dayNames = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์', 'เสาร์'];
-            const dayName = dayNames[dayOfWeek];
-            console.log(`   วันที่ ${record.date} (${dayName}): dayType="${record.dayType}", cashWork="${record.cashWork}", cashWorkMul="${record.cashWorkMul}"`);
-          });
-          
-          } else {
-            console.log(`🏢 หน่วยงาน ${workplaceId} เป็นประเภทปกติ - ไม่ปรับแต่ง dayType และ cashWork`);
-          }
-        } else {
-          if (!isSpecialWorkplace) {
-            console.log(`ℹ️ พนักงาน ${doc.employeeId} ไม่ใช่หน่วยงานพิเศษ - ไม่เปลี่ยน dayType`);
-          }
-          if (!doc.employee_record) {
-            console.log(`⚠️ ไม่มีข้อมูล employee_record สำหรับพนักงาน ${doc.employeeId}`);
-          }
         }
 
         const calculatedValues = await calculateCashValues(
@@ -4751,21 +4512,13 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           sumCashWorkMul: calculatedValues.sumCashWorkMul,
         };
         
-        // เพิ่มการบันทึก employee_record ที่เปลี่ยนแปลงแล้วด้วย
-        updateData.employee_record = doc.employee_record;
-        
         // แสดงข้อมูลสำคัญที่จะบันทึก
         console.log(`\n📝 ข้อมูลที่จะบันทึกสำหรับพนักงาน ${doc.employeeId}:`);
         console.log(`� prefix: ${updateData.prefix}`);
         console.log(`�🔍 dayWorkCount: ${updateData.dayWorkCount}`);
         console.log(`🔍 customizeDayoff: ${updateData.customizeDayoff}`);
         console.log(`💰 cashcustomizeDayoff: ${updateData.cashcustomizeDayoff}`);
-        console.log(`⏱️ sumOt1p5: ${updateData.sumOt1p5}`);
-        
-        // แสดงตัวอย่าง dayType ที่เปลี่ยนแปลง
-        if (doc.employee_record && doc.employee_record.length > 0) {
-          console.log(`📅 ตัวอย่าง dayType: วันที่ ${doc.employee_record[0].date} = "${doc.employee_record[0].dayType}"`);
-        }
+        console.log(`⏱️ sumOt1p5: ${updateData.sumOt1p5}`); 
         
         // ตรวจสอบว่ามีรายการ addSalaryList หรือไม่
         if (calculatedValues.addSalaryList && calculatedValues.addSalaryList.length > 0) {
@@ -4776,17 +4529,11 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         }
         // ✅ Log BEFORE update
         // console.log(`🔍 BEFORE update (doc ${doc._id}):`, JSON.stringify(doc.addSalaryList, null, 2));
-
-        // บันทึกการเปลี่ยนแปลง employee_record (รวมถึง dayType ที่แก้ไข) ลงฐานข้อมูล
-        const fullUpdateData = {
-          ...updateData,
-          employee_record: doc.employee_record // รวม employee_record ที่แก้ไข dayType แล้ว
-        };
     
         // Update and get updated document
         const updatedDoc = await timerecordEmployee.findByIdAndUpdate(
           doc._id,
-          { $set: fullUpdateData },
+          { $set: updateData },
           { new: true, upsert: true }
         );
     
@@ -5134,13 +4881,8 @@ try {
         } catch (error) {
           console.error(`❌ เกิดข้อผิดพลาดในการตรวจสอบวันหยุดที่กำหนดเอง:`, error.message);
         }
-        
-        // เงื่อนไขพิเศษสำหรับหน่วยงาน 10493 - ตรวจสอบก่อนการตรวจสอบ dayType อื่นๆ
-        // หมายเหตุ: dayType ถูกเปลี่ยนเป็น "work" แล้วในขั้นตอน searchtimerecordemployee
-        const isSpecialWorkplace = employeeProfile && employeeProfile[0] && employeeProfile[0].workplace === '10493';
-        
         if (record?.dayType === 'stop') {
-          console.log(`📊 วันที่ ${record.date} - dayType: stop, cashWork: ${record?.cashWork || '0'}, cashWorkMul: ${record?.cashWorkMul}`);
+          console.log(record?.dayType);
           dayOffCount += 1;
           sumcashDayOffCount = parseFloat(sumcashDayOffCount || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0')
 
@@ -5148,15 +4890,7 @@ try {
             sumCashOt = parseFloat(sumCashOt || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0')
             sumOt3 += convertTimeToDecimal(record.totalOtTime);
             sumOtPublicHoliday += convertTimeToDecimal(record.totalTime); // เพิ่มผลรวมของ totalOtTime ในวันหยุดนักขัตฤกษ์
-            
-            // เฉพาะหน่วยงาน 10493: ไม่บวก sumCashWorkMul สำหรับ dayType = "stop"
-            if (isSpecialWorkplace) {
-              console.log(`📊 หน่วยงาน 10493: ไม่เพิ่ม sumCashWorkMul สำหรับ dayType="stop" วันที่ ${record.date}`);
-            } else {
-              // หน่วยงานอื่นๆ: บวก sumCashWorkMul ตามปกติ
-              sumCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
-              console.log(`📊 หน่วยงานอื่น: เพิ่ม sumCashWorkMul[${record?.cashWorkMul}] += ${record?.cashWork || '0'}`);
-            }
+            sumCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
 
           sumCashWorkMul[record?.cashOtMul] += parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0');
 
@@ -5175,7 +4909,6 @@ try {
           } else {
 
             if (record?.dayType === "work") {
-              console.log(`📊 วันที่ ${record.date} - dayType: work, cashWork: ${record?.cashWork || '0'}, cashWorkMul: ${record?.cashWorkMul}`);
               console.log(`\n--- 🔁 กำลังประมวลผลวันที่: ${record.date}, ประเภท: ${record.dayType} ---`);
 
               dayWorkCount += 1;
@@ -5192,7 +4925,6 @@ try {
               console.log(`   - ค่า sumOt1p5 (หลังบวก): ${sumOt1p5}`);
               
               sumCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
-              console.log(`📊 เพิ่ม sumCashWorkMul[${record?.cashWorkMul}] += ${record?.cashWork || '0'}`);
               sumCashWorkMul[record?.cashOtMul] += parseFloat(record?.cashBeforeOt || '0');
 
 
@@ -5203,22 +4935,15 @@ try {
               if (record.addSalaryDaily && record.addSalaryDaily.length > 0) {
                 record.addSalaryDaily.forEach((salaryItem) => {
                   const cleanSalaryItemId = String(salaryItem.id).trim();
-                  const dailyRate = parseFloat(salaryItem.SpSalary || 0); // ค่าต่อวัน
+                  const amount = parseFloat(salaryItem.SpSalary || 0);
 
                   const existingItem = addSalaryList.find(
                     item => String(item.id).trim() === cleanSalaryItemId
                   );
 
                   if (existingItem) {
-                    // นับจำนวนวันที่มาทำงาน (เพิ่ม 1 วัน)
+                    existingItem.SpSalary = parseFloat(existingItem.SpSalary || 0) + amount;
                     existingItem.message = parseFloat(existingItem.message || 0) + 1;
-                    // คำนวณใหม่: ค่าต่อวัน × จำนวนวัน
-                    existingItem.SpSalary = dailyRate * existingItem.message;
-
-                    console.log(`💰 อัพเดตเงินพิเศษรายวัน ${existingItem.name} (ID: ${cleanSalaryItemId}):`);
-                    console.log(`   - ค่าต่อวัน: ${dailyRate} บาท`);
-                    console.log(`   - จำนวนวัน: ${existingItem.message} วัน`);
-                    console.log(`   - ยอดรวม: ${existingItem.SpSalary} บาท`);
 
                     // Find the exact index
                     const index = addSalaryList.findIndex(item => item.id === existingItem.id);
@@ -5229,19 +4954,9 @@ try {
                     }
 
                   } else {
-                    // เงินพิเศษรายการใหม่ - วันแรก
-                    const newSalaryItem = {
-                      ...salaryItem,
-                      message: 1,  // วันแรก
-                      SpSalary: dailyRate  // ค่าต่อวัน × 1
-                    };
-                    
-                    console.log(`💰 เพิ่มเงินพิเศษรายวันใหม่ ${newSalaryItem.name} (ID: ${cleanSalaryItemId}):`);
-                    console.log(`   - ค่าต่อวัน: ${dailyRate} บาท`);
-                    console.log(`   - จำนวนวัน: 1 วัน`);
-                    console.log(`   - ยอดรวม: ${newSalaryItem.SpSalary} บาท`);
-                    
-                    addSalaryList.push(newSalaryItem);
+                    // Otherwise push new
+                    salaryItem.message = 1; 
+                    addSalaryList.push(salaryItem);
                   } //end else
                 }); //end foreach
               }
@@ -5610,92 +5325,6 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
 
   console.log(`\n✅ --- สรุปการคำนวณ sumOt1p5 ---`);
   console.log(`   - ผลรวมสุดท้ายของ sumOt1p5: ${sumOt1p5}`);
-
-  // เพิ่มการคำนวณ sumCashWorkMul["2"] เฉพาะสำหรับหน่วยงาน 10493
-  console.log(`\n💰 --- การคำนวณ sumCashWorkMul["2"] ---`);
-  
-  const workplaceId = employeeProfile[0].workplace;
-  console.log(`🏢 หน่วยงานของพนักงาน: ${workplaceId}`);
-  
-  // เฉพาะหน่วยงาน 10493 เท่านั้นที่ใช้สูตรพิเศษ
-  if (workplaceId === "10493") {
-    console.log(`🏢 หน่วยงาน 10493 - ใช้สูตรพิเศษในการคำนวณ sumCashWorkMul["2"]`);
-    
-    // ดึงข้อมูล holidayHour จากการตั้งค่าหน่วยงาน
-    let holidayHour = 0;
-    try {
-      const workplaceApiUrl = `http://10.10.110.7:3000/workplace/${workplaceId}`;
-      console.log(`🏢 เรียก API การตั้งค่าหน่วยงานเพื่อดึง holidayHour: ${workplaceApiUrl}`);
-      
-      const workplaceResponse = await axios.get(workplaceApiUrl);
-      const workplaceSettings = workplaceResponse.data;
-      
-      // ใช้ field workOfHour เป็น holidayHour (หรือถ้ามี field holidayHour ก็ใช้แทน)
-      holidayHour = parseFloat(workplaceSettings.holidayHour || 8);
-      
-      console.log(`🏢 การตั้งค่าหน่วยงาน ${workplaceId}:`);
-      console.log(`   - workOfHour (ใช้เป็น holidayHour): ${workplaceSettings.workOfHour}`);
-      console.log(`   - holidayHour ที่ใช้คำนวณ: ${holidayHour} ชั่วโมง`);
-      console.log(`   - sumOtPublicHoliday: ${sumOtPublicHoliday} ชั่วโมง`);
-      
-    } catch (error) {
-      console.error(`❌ ไม่สามารถดึงข้อมูลการตั้งค่าหน่วยงานได้:`, error.message);
-      holidayHour = 8; // ใช้ค่าเริ่มต้น 8 ชั่วโมง
-      console.log(`⚠️ ใช้ค่าเริ่มต้น holidayHour = ${holidayHour} ชั่วโมง`);
-    }
-    
-    // คำนวณ sumCashWorkMul["2"] เฉพาะสำหรับ 10493
-    const calculatedSumCashWorkMul2 = holidayHour * parseFloat(sumOtPublicHoliday);
-    sumCashWorkMul["2"] = calculatedSumCashWorkMul2;
-    
-    console.log(`💰 สูตรการคำนวณสำหรับหน่วยงาน 10493: holidayHour (${holidayHour}) × sumOtPublicHoliday (${sumOtPublicHoliday}) = ${calculatedSumCashWorkMul2}`);
-    console.log(`💰 sumCashWorkMul["2"] = ${sumCashWorkMul["2"]}`);
-  } else {
-    console.log(`🏢 หน่วยงาน ${workplaceId} - ใช้การคำนวณ sumCashWorkMul["2"] แบบปกติ`);
-    console.log(`💰 sumCashWorkMul["2"] ค่าเดิม = ${sumCashWorkMul["2"]}`);
-  }
-
-  // ปรับปรุง sumCashWorkMul["1"] สำหรับหน่วยงานประเภท "ทำงานทุกวัน" ให้เท่ากับ sumCashWork
-  // ตรวจสอบว่าเป็นหน่วยงานประเภท "ทำงานทุกวัน" หรือไม่
-  let isAllDaysWorkTypeForMul1 = false;
-  
-  try {
-    const workplaceApiUrl = `http://10.10.110.7:3000/workplace/${workplaceId}`;
-    const workplaceResponse = await axios.get(workplaceApiUrl);
-    const workplaceSettings = workplaceResponse.data;
-    
-    // ตรวจสอบ workTimeDay เพื่อดูว่าเป็นหน่วยงานแบบไหน
-    if (workplaceSettings.workTimeDay && Array.isArray(workplaceSettings.workTimeDay)) {
-      const workOrStopValues = workplaceSettings.workTimeDay.map(day => day.workOrStop);
-      const hasWork = workOrStopValues.includes('work');
-      const hasStop = workOrStopValues.includes('stop');
-      
-      if (hasWork && !hasStop) {
-        // กรณีมีแค่ "work" อย่างเดียว = หน่วยงานที่ทำงานทุกวัน
-        isAllDaysWorkTypeForMul1 = true;
-      } else {
-        // กรณีอื่นๆ ตรวจสอบหน่วยงานพิเศษ
-        isAllDaysWorkTypeForMul1 = workplaceId === '10493';
-      }
-    } else {
-      // กรณีไม่มี workTimeDay ตรวจสอบหน่วยงานพิเศษ
-      isAllDaysWorkTypeForMul1 = workplaceId === '10493';
-    }
-  } catch (error) {
-    // กรณีไม่สามารถดึงข้อมูลได้ ให้ตรวจสอบเฉพาะหน่วยงานพิเศษ
-    isAllDaysWorkTypeForMul1 = workplaceId === '10493';
-  }
-  
-  if (isAllDaysWorkTypeForMul1) {
-    console.log(`\n💰 --- ปรับปรุง sumCashWorkMul["1"] สำหรับหน่วยงานประเภทที่ทำงานทุกวัน (${workplaceId}) ---`);
-    console.log(`💰 sumCashWork ปัจจุบัน: ${sumCashWork}`);
-    console.log(`💰 sumCashWorkMul["1"] เดิม: ${sumCashWorkMul["1"]}`);
-    
-    sumCashWorkMul["1"] = sumCashWork;
-    
-    console.log(`💰 sumCashWorkMul["1"] ใหม่: ${sumCashWorkMul["1"]}`);
-    console.log(`✅ สำหรับหน่วยงานประเภทที่ทำงานทุกวัน: sumCashWorkMul["1"] = sumCashWork`);
-  }
 
   sumTimeOt = sumTimeOt.toFixed(2);
   sumTimeWork = sumTimeWork.toFixed(2);
