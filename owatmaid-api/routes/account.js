@@ -4554,8 +4554,34 @@ router.post('/searchtimerecordemployee', async (req, res) => {
             const originalDayType = record.dayType;
             
             if (isInDayOffOnly || isInWeekendAndDayOff) {
-              // วันนี้เป็นวันหยุด - เปลี่ยนเป็น "stop"
+              // วันนี้เป็นวันหยุด - เปลี่ยนเป็น "stop" และคำนวณค่าแรงวันหยุด
               record.dayType = "stop";
+              
+              // คำนวณค่าแรงวันหยุด: holidayHour × totalOtTime (หรือ totalTime ถ้าไม่มี OT)
+              try {
+                const { Workplace } = require('./models/workplaceModel');
+                const workplace = await Workplace.findOne({ workplaceId: employeeWorkplaceId });
+                const holidayHour = parseFloat(workplace?.holidayHour || 0);
+                const holidayOT = parseFloat(workplace?.holidayOT || 2); // อัตราเท่าตัวสำหรับวันหยุด
+                
+                const workingHours = parseFloat(record.totalTime || 0);
+                
+                if (holidayHour > 0 && workingHours > 0) {
+                  const newCashWork = (holidayHour * workingHours).toFixed(0);
+                  const oldCashWork = record.cashWork;
+                  const oldCashWorkMul = record.cashWorkMul;
+                  
+                  record.cashWork = newCashWork;
+                  record.cashWorkMul = holidayOT.toString(); // อัตราเท่าตัวสำหรับวันหยุด
+                  
+                  console.log(`    🏖️ ปรับค่าแรงวันหยุด: ${oldCashWork} (×${oldCashWorkMul}) → ${newCashWork} (×${holidayOT})`);
+                  console.log(`    📊 คำนวณ: holidayHour(${holidayHour}) × workingHours(${workingHours}) = ${newCashWork}`);
+                  totalUpdatedDayType++;
+                }
+              } catch (holidayErr) {
+                console.warn(`⚠️ ไม่สามารถคำนวณค่าแรงวันหยุดได้:`, holidayErr.message);
+              }
+              
               console.log(`  🛑 วันที่ ${record.date} เป็นวันหยุด - เปลี่ยน: ${originalDayType} → stop`);
             } else {
               // วันนี้เป็นวันทำงาน - บังคับเป็น "work" และคำนวณค่าแรงใหม่
