@@ -4475,14 +4475,40 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           const workplace = employee?.workplace;
           console.log(`🔍 Raw workplace data for ${doc.employeeId}:`, workplace, typeof workplace);
           
-          // ตรวจสอบหลายรูปแบบ (string, number)
+         
           isSpecialWorkplace = workplace === '10493' || workplace === 10493 || String(workplace) === '10493';
           
           // ตรวจสอบจาก workplaceId ใน employee_record ด้วย (กรณีที่ Employee model ไม่มีข้อมูล workplace)
           if (!isSpecialWorkplace && doc.employee_record && doc.employee_record.length > 0) {
             const recordWorkplaceId = doc.employee_record[0].workplaceId;
             console.log(`🔍 Checking workplaceId from record:`, recordWorkplaceId, typeof recordWorkplaceId);
+            
+            // ตรวจสอบ 10493 ก่อน
             isSpecialWorkplace = recordWorkplaceId === '10493' || recordWorkplaceId === 10493 || String(recordWorkplaceId) === '10493';
+            
+            // ถ้าไม่ใช่ 10493 ให้ตรวจสอบว่าเป็นหน่วยงานประเภท "ทำงานทุกวัน" หรือไม่
+            if (!isSpecialWorkplace) {
+              try {
+                const workplaceApiUrl = `http://10.10.110.7:3000/workplace/${recordWorkplaceId}`;
+                const workplaceResponse = await axios.get(workplaceApiUrl);
+                const workplaceSettings = workplaceResponse.data;
+                
+                // ตรวจสอบ workTimeDay เพื่อดูว่าเป็นหน่วยงานประเภท "ทำงานทุกวัน" หรือไม่
+                if (workplaceSettings.workTimeDay && Array.isArray(workplaceSettings.workTimeDay)) {
+                  const workOrStopValues = workplaceSettings.workTimeDay.map(day => day.workOrStop);
+                  const hasWork = workOrStopValues.includes('work');
+                  const hasStop = workOrStopValues.includes('stop');
+                  
+                  if (hasWork && !hasStop) {
+                    // กรณีมีแค่ "work" อย่างเดียว = หน่วยงานที่ทำงานทุกวัน
+                    isSpecialWorkplace = true;
+                    console.log(`✅ หน่วยงาน ${recordWorkplaceId} เป็นประเภท "ทำงานทุกวัน" (มีแค่ work อย่างเดียว)`);
+                  }
+                }
+              } catch (error) {
+                console.log(`⚠️ ไม่สามารถตรวจสอบประเภทหน่วยงาน ${recordWorkplaceId} ได้:`, error.message);
+              }
+            }
           }
           
           console.log(`🔍 Found prefix for ${doc.employeeId}: ${employeePrefix}`);
@@ -4491,13 +4517,58 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           console.warn(`⚠️ Could not fetch prefix for employee ${doc.employeeId}:`, prefixError.message);
         }
 
-        // แก้ไข dayType สำหรับหน่วยงาน 10493 - ทำงานทุกวัน
+        // แก้ไข dayType สำหรับหน่วยงานประเภท "ทำงานทุกวัน"
         if (isSpecialWorkplace && doc.employee_record) {
-          console.log(`🔧 แก้ไข dayType สำหรับหน่วยงานพิเศษ 10493 - พนักงาน ${doc.employeeId}`);
-          
           // ใช้ workplaceId จาก employee_record
-          const workplaceId = doc.employee_record[0]?.workplaceId || '10493';
-          console.log(`🏢 WorkplaceId: ${workplaceId}`);
+          const workplaceId = doc.employee_record[0]?.workplaceId || employeeProfile[0]?.workplace;
+          console.log(`🔧 ตรวจสอบหน่วยงาน ${workplaceId} สำหรับพนักงาน ${doc.employeeId}`);
+          
+          // ตรวจสอบว่าเป็นหน่วยงานประเภท "ทำงานทุกวัน" หรือไม่
+          let isAllDaysWorkType = false;
+          
+          try {
+            const workplaceApiUrl = `http://10.10.110.7:3000/workplace/${workplaceId}`;
+            console.log(`🔍 เรียก API เพื่อตรวจสอบประเภทหน่วยงาน: ${workplaceApiUrl}`);
+            
+            const workplaceResponse = await axios.get(workplaceApiUrl);
+            const workplaceSettings = workplaceResponse.data;
+            
+            // ตรวจสอบ workTimeDay เพื่อดูว่าเป็นหน่วยงานแบบไหน
+            if (workplaceSettings.workTimeDay && Array.isArray(workplaceSettings.workTimeDay)) {
+              const workOrStopValues = workplaceSettings.workTimeDay.map(day => day.workOrStop);
+              const hasWork = workOrStopValues.includes('work');
+              const hasStop = workOrStopValues.includes('stop');
+              
+              console.log(`🔍 workOrStop values: ${JSON.stringify(workOrStopValues)}`);
+              console.log(`🔍 มี work: ${hasWork}, มี stop: ${hasStop}`);
+              
+              if (hasWork && !hasStop) {
+                // กรณีมีแค่ "work" อย่างเดียว = หน่วยงานที่ทำงานทุกวัน
+                isAllDaysWorkType = true;
+                console.log(`✅ หน่วยงาน ${workplaceId} เป็นประเภท "ทำงานทุกวัน" (มีแค่ work อย่างเดียว)`);
+              } else if (hasWork && hasStop) {
+                // กรณีมีทั้ง "work" และ "stop" = หน่วยงานปกติ
+                isAllDaysWorkType = false;
+                console.log(`✅ หน่วยงาน ${workplaceId} เป็นประเภท "ปกติ" (มีทั้ง work และ stop)`);
+              } else {
+                // กรณีอื่นๆ ใช้ workOfWeek หรือตรวจสอบหน่วยงานพิเศษ
+                isAllDaysWorkType = workplaceSettings.workOfWeek === '7' || workplaceId === '10493';
+                console.log(`⚠️ ไม่สามารถระบุประเภทจาก workTimeDay ได้ ใช้ workOfWeek หรือ workplaceId แทน: ${isAllDaysWorkType ? 'ทำงานทุกวัน' : 'ปกติ'}`);
+              }
+            } else {
+              // กรณีไม่มี workTimeDay ใช้ workOfWeek หรือตรวจสอบหน่วยงานพิเศษ
+              isAllDaysWorkType = workplaceSettings.workOfWeek === '7' || workplaceId === '10493';
+              console.log(`⚠️ ไม่มีข้อมูล workTimeDay ใช้ workOfWeek หรือ workplaceId แทน: ${isAllDaysWorkType ? 'ทำงานทุกวัน' : 'ปกติ'}`);
+            }
+          } catch (error) {
+            console.error(`❌ ไม่สามารถดึงข้อมูลการตั้งค่าหน่วยงานได้:`, error.message);
+            // กรณีไม่สามารถดึงข้อมูลได้ ให้ตรวจสอบจาก workplaceId
+            isAllDaysWorkType = workplaceId === '10493';
+            console.log(`⚠️ ใช้การตรวจสอบ workplaceId แทน: ${isAllDaysWorkType ? 'ทำงานทุกวัน (10493)' : 'ปกติ'}`);
+          }
+          
+          if (isAllDaysWorkType) {
+            console.log(`🏢 หน่วยงาน ${workplaceId} เป็นประเภทที่ทำงานทุกวัน - ดำเนินการปรับแต่ง dayType`);
           
           // ดึงข้อมูล dayOffOnly จาก API
           let dayOffOnlyDates = [];
@@ -4629,9 +4700,13 @@ router.post('/searchtimerecordemployee', async (req, res) => {
             const dayName = dayNames[dayOfWeek];
             console.log(`   วันที่ ${record.date} (${dayName}): dayType="${record.dayType}", cashWork="${record.cashWork}", cashWorkMul="${record.cashWorkMul}"`);
           });
+          
+          } else {
+            console.log(`🏢 หน่วยงาน ${workplaceId} เป็นประเภทปกติ - ไม่ปรับแต่ง dayType และ cashWork`);
+          }
         } else {
           if (!isSpecialWorkplace) {
-            console.log(`ℹ️ พนักงาน ${doc.employeeId} ไม่ใช่หน่วยงาน 10493 - ไม่เปลี่ยน dayType`);
+            console.log(`ℹ️ พนักงาน ${doc.employeeId} ไม่ใช่หน่วยงานพิเศษ - ไม่เปลี่ยน dayType`);
           }
           if (!doc.employee_record) {
             console.log(`⚠️ ไม่มีข้อมูล employee_record สำหรับพนักงาน ${doc.employeeId}`);
