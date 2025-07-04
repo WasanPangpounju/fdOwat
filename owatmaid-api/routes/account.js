@@ -4658,25 +4658,21 @@ const calculateCashValuesForSpecialWorkplace = async (employeeId, employee_recor
   
   // Debug: แสดงข้อมูลของ employee_record
   employee_record.forEach((record, index) => {
-    console.log(`🟡 [Debug] Record ${index}: day=${record.day}, dayType=${record.dayType}, allTimes=${record.allTimes}, workRate=${record.workRate}`);
+    console.log(`🟡 [Debug] Record ${index}: date=${record.date}, day=${record.day}, dayType=${record.dayType}, allTimes=${record.allTimes}, workRate=${record.workRate}`);
   });
   
-  // Logic สำหรับหน่วยงานพิเศษ - สำหรับหน่วยงานที่ทำงาน 7 วัน dayType จะเป็น "work" ทุกวัน
+  // Logic สำหรับหน่วยงานพิเศษ - ใช้ record.date และต้องเป็น dayType = "work"
   for (const record of employee_record) {
-    if (!record.day) {
-      console.log(`🟡 [Skip] ข้ามเนื่องจากไม่มี day: ${JSON.stringify(record)}`);
+    if (!record.date) {
+      console.log(`🟡 [Skip] ข้ามเนื่องจากไม่มี date: ${JSON.stringify(record)}`);
       continue;
     }
     
-    // สำหรับหน่วยงานที่ทำงาน 7 วัน - ตรวจสอบหลายเงื่อนไข
-    const shouldCalculate = record.dayType === "work" || 
-                           (record.dayType === "" && (record.allTimes > 0 || record.workRate > 0)) ||
-                           (record.dayType === undefined && (record.allTimes > 0 || record.workRate > 0));
-    
-    if (shouldCalculate) {
-      console.log(`🟡 ประมวลผลวันที่: ${record.day}, dayType: ${record.dayType || 'ไม่ระบุ'}, เงื่อนไข: ผ่าน`);
+    // สำหรับหน่วยงานที่ทำงาน 7 วัน - ประมวลผลเฉพาะ dayType = "work" เท่านั้น
+    if (record?.dayType === "work") {
+      console.log(`\n--- 🟡 กำลังประมวลผลวันที่: ${record.date}, ประเภท: ${record.dayType} ---`);
       
-      dayWorkCount++;
+      dayWorkCount += 1;
       
       // คำนวณเวลาและเงิน
       const workTime = parseFloat(record.allTimes || 0);
@@ -4689,7 +4685,7 @@ const calculateCashValuesForSpecialWorkplace = async (employeeId, employee_recor
       sumCashWork += workRate;
       sumCashOt += otRate;
       
-      console.log(`🟡 วันที่ ${record.day}: workTime=${workTime}, otTime=${otTime}, workRate=${workRate}, otRate=${otRate}`);
+      console.log(`🟡 วันที่ ${record.date}: workTime=${workTime}, otTime=${otTime}, workRate=${workRate}, otRate=${otRate}`);
       
       // จัดการ addSalary สำหรับหน่วยงานพิเศษ
       if (record.addSalary && Array.isArray(record.addSalary)) {
@@ -4711,18 +4707,18 @@ const calculateCashValuesForSpecialWorkplace = async (employeeId, employee_recor
         }
       }
     } else {
-      // สำหรับ record ที่ไม่ผ่านเงื่อนไขการคำนวณ
-      console.log(`🟡 ไม่ประมวลผลวันที่: ${record.day}, dayType: ${record.dayType || 'ไม่ระบุ'}, allTimes: ${record.allTimes}, workRate: ${record.workRate}`);
+      // สำหรับ dayType อื่นๆ ให้จัดการตามประเภท
+      console.log(`🟡 ไม่ประมวลผลวันที่: ${record.date}, dayType: ${record.dayType || 'ไม่ระบุ'}`);
       
-      if (record.dayType === "stop") {
+      if (record?.dayType === "stop") {
         dayOffCount++;
-        console.log(`🟡 วันหยุด: ${record.day}, dayType: ${record.dayType}`);
-      } else if (record.dayType === "specialDayOff") {
+        console.log(`🟡 วันหยุด: ${record.date}, dayType: ${record.dayType}`);
+      } else if (record?.dayType === "specialDayOff") {
         specialDayOff++;
-        console.log(`🟡 วันหยุดพิเศษ: ${record.day}, dayType: ${record.dayType}`);
-      } else if (record.dayType === "holiday") {
+        console.log(`🟡 วันหยุดพิเศษ: ${record.date}, dayType: ${record.dayType}`);
+      } else if (record?.dayType === "holiday") {
         publicHolidayCount++;
-        console.log(`🟡 วันหยุดนักขัตฤกษ์: ${record.day}, dayType: ${record.dayType}`);
+        console.log(`🟡 วันหยุดนักขัตฤกษ์: ${record.date}, dayType: ${record.dayType}`);
       }
     }
   }
