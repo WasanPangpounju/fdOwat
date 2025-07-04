@@ -86,6 +86,8 @@ res.json(x.data);
 
 
 //get accounting by id
+// ⚠️ DISABLED OLD ROUTE - ใช้ route '/searchtimerecordemployee' แทน
+/*
 router.post('/calsalaryemp', async (req, res) => {
   try {
     const { year, month ,   employeeId , updateStatus} = await req.body;
@@ -1161,9 +1163,11 @@ console.log('upsalary year' + upSalary_year + ' month ' + upSalary_month);
 
 
 });
+*/
+// ⚠️ END OF DISABLED OLD ROUTE
 
-
-
+// ⚠️ DISABLED OLD ROUTE - ใช้ route '/searchtimerecordemployee' แทน
+/*
   router.post('/calsalary', async (req, res) => {
     // router.get('/:employeeId', async (req, res) => {
 
@@ -1293,7 +1297,8 @@ data.accountingRecord.total = await 0;
 
 //======
 
-
+// ⚠️ DISABLED OLD ROUTE - ใช้ route '/searchtimerecordemployee' แทน
+/*
 //get all accounting
 router.post('/calsalarylist', async (req, res) => {
   try {
@@ -2976,7 +2981,8 @@ if(! dayW.includes( getDayNumberFromDate( responseConclude.data.recordConclude[c
 //   }
 // });
 
-
+// ⚠️ DISABLED OLD ROUTE - ใช้ route '/searchtimerecordemployee' แทน
+/*
   router.post('/calsalary', async (req, res) => {
     // router.get('/:employeeId', async (req, res) => {
 
@@ -3102,7 +3108,8 @@ data.accountingRecord.total = await 0;
   }
 
 });
-
+*/
+// ⚠️ END OF DISABLED OLD ROUTE
 
 // Get  accounting record by accounting Id
 router.post('/search', async (req, res) => {
@@ -3309,6 +3316,8 @@ function getDayNumber(dayName) {
 }
 
 //==========x
+// ⚠️ END OF DISABLED OLD ROUTE
+
 //get all accounting
 router.post('/calsalarytest', async (req, res) => {
   try {
