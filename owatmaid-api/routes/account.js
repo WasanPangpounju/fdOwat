@@ -4505,10 +4505,35 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         if (isWorkplace7Days && doc.employee_record) {
           console.log(`🔄 กำลังปรับ dayType สำหรับพนักงาน ${doc.employeeId} (${doc.employeeName}) ในเดือน ${doc.month}/${doc.year}`);
           
+          // ดึงข้อมูลหน่วยงานเพื่อหาค่า workRate
+          let workplaceWorkRate = 0;
+          try {
+            const { Workplace } = require('./models/workplaceModel');
+            const workplace = await Workplace.findOne({ workplaceId: employeeWorkplaceId });
+            workplaceWorkRate = parseFloat(workplace?.workRate || 0);
+            console.log(`📊 หน่วยงาน ${employeeWorkplaceId} มี workRate: ${workplaceWorkRate}`);
+          } catch (wpErr) {
+            console.warn(`⚠️ ไม่สามารถดึงข้อมูล workRate ของหน่วยงาน ${employeeWorkplaceId}:`, wpErr.message);
+          }
+          
           for (const record of doc.employee_record) {
             if (record.dayType !== "work") {
               console.log(`  - เปลี่ยนวันที่ ${record.date}: ${record.dayType} → work`);
               record.dayType = "work";
+              
+              // คำนวณ cashWork และ cashWorkMul ใหม่สำหรับวันทำงานปกติ
+              if (workplaceWorkRate > 0 && record.totalTime) {
+                const totalHours = parseFloat(record.totalTime || 0);
+                const newCashWork = (workplaceWorkRate).toFixed(0);
+                const oldCashWork = record.cashWork;
+                const oldCashWorkMul = record.cashWorkMul;
+                
+                record.cashWork = newCashWork;
+                record.cashWorkMul = "1"; // อัตราปกติสำหรับวันทำงาน
+                
+                console.log(`    💰 ปรับค่าแรง: ${oldCashWork} (×${oldCashWorkMul}) → ${newCashWork} (×1)`);
+              }
+              
               totalUpdatedDayType++;
             }
           }
