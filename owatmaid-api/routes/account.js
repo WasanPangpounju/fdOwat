@@ -4464,12 +4464,35 @@ router.post('/searchtimerecordemployee', async (req, res) => {
       }
 
       try {
-        const calculatedValues = await calculateCashValues(
-          doc.employeeId,
-          doc.employee_record,
-          doc.month,
-          doc.year
-        );
+        // Get employee profile to check workplace information
+        const employeeProfile = await getEmployeeProfile(doc.employeeId);
+        
+        // Get workplace information
+        let isSpecialWorkplace = false;
+        if (employeeProfile && employeeProfile[0] && employeeProfile[0].workplace) {
+          const workplaceList = await axios.get(sURL + '/workplace/list');
+          const foundWorkplace = workplaceList.data.find(workplace => workplace.workplaceId === employeeProfile[0].workplace);
+          
+          if (foundWorkplace && foundWorkplace.workOfWeek === "7") {
+            isSpecialWorkplace = true;
+            console.log(`🟡 พบหน่วยงานพิเศษ (workOfWeek=7) สำหรับพนักงาน ${doc.employeeId}`);
+          }
+        }
+        
+        // Use appropriate calculation function based on workplace type
+        const calculatedValues = isSpecialWorkplace 
+          ? await calculateCashValuesForSpecialWorkplace(
+              doc.employeeId,
+              doc.employee_record,
+              doc.month,
+              doc.year
+            )
+          : await calculateCashValues(
+              doc.employeeId,
+              doc.employee_record,
+              doc.month,
+              doc.year
+            );
         const updateData = await {
           dayWorkCount: String(calculatedValues.dayWorkCount),
           dayOffCount: String(calculatedValues.dayOffCount),
@@ -4567,15 +4590,98 @@ const convertTimeToDecimal = (timeString) => {
 };
 
 
-const workplaceEveryday = async () => {
-  try {
-    const response = await axios.get('http://10.10.110.7:3000/workplace/10493');
-    console.log('workOfWeek data:', response.data.workOfWeek);
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching workplace data:', error);
-    return null;
+
+// ฟังก์ชันสำหรับคำนวณค่าต่างๆ สำหรับหน่วยงานพิเศษที่ทำงานทุกวัน (workOfWeek = "7")
+const calculateCashValuesForSpecialWorkplace = async (employeeId, employee_record, month, year) => {
+  console.log(`\n🟡 [calculateCashValuesForSpecialWorkplace] เริ่มต้นการคำนวณสำหรับหน่วยงานพิเศษ พนักงาน ${employeeId} (${month}/${year})`);
+  
+  const employeeProfile = await getEmployeeProfile(employeeId);
+  const salaryTmp = parseFloat(employeeProfile[0].salary || '0') || 0;
+  
+  let addSalaryList = [];
+  let dayWorkCount = 0;
+  let dayOffCount = 0;
+  let sumTimeWork = 0;
+  let sumTimeOt = 0;
+  let sumCashWork = 0;
+  let sumCashOt = 0;
+
+  console.log(`🟡 [Special Workplace] ใช้ logic พิเศษสำหรับหน่วยงานที่ทำงาน 7 วัน`);
+  
+  // Logic สำหรับหน่วยงานพิเศษ - สำหรับหน่วยงานที่ทำงาน 7 วัน dayType จะเป็น "work" ทุกวัน
+  for (const record of employee_record) {
+    if (!record.day) continue;
+    
+    // สำหรับหน่วยงานที่ทำงาน 7 วัน - ประมวลผลเฉพาะวันที่ dayType = "work" เท่านั้น
+    if (record.dayType === "work") {
+      console.log(`🟡 ประมวลผลวันที่: ${record.day}, dayType: ${record.dayType}`);
+      
+      dayWorkCount++;
+      sumTimeWork += parseFloat(record.allTimes || 0);
+      sumTimeOt += parseFloat(record.otTimes || 0);
+      sumCashWork += parseFloat(record.workRate || 0);
+      sumCashOt += parseFloat(record.workRateOT || 0);
+      
+      // จัดการ addSalary สำหรับหน่วยงานพิเศษ
+      if (record.addSalary && Array.isArray(record.addSalary)) {
+        for (const salary of record.addSalary) {
+          const existingIndex = addSalaryList.findIndex(item => item.id === salary.id);
+          if (existingIndex !== -1) {
+            addSalaryList[existingIndex].SpSalary = 
+              (parseFloat(addSalaryList[existingIndex].SpSalary) || 0) + 
+              (parseFloat(salary.SpSalary) || 0);
+          } else {
+            addSalaryList.push({
+              id: salary.id,
+              name: salary.name,
+              SpSalary: parseFloat(salary.SpSalary) || 0
+            });
+          }
+        }
+      }
+    } else {
+      // สำหรับ dayType อื่นๆ ให้จัดการตามประเภท
+      if (record.dayType === "stop") {
+        dayOffCount++;
+        console.log(`🟡 วันหยุด: ${record.day}, dayType: ${record.dayType}`);
+      } else if (record.dayType === "specialDayOff") {
+        // วันหยุดพิเศษ
+        console.log(`🟡 วันหยุดพิเศษ: ${record.day}, dayType: ${record.dayType}`);
+      } else if (record.dayType === "holiday") {
+        // วันหยุดนักขัตฤกษ์
+        console.log(`🟡 วันหยุดนักขัตฤกษ์: ${record.day}, dayType: ${record.dayType}`);
+      } else {
+        console.log(`🟡 ประเภทวันอื่นๆ: ${record.day}, dayType: ${record.dayType || 'ไม่ระบุ'}`);
+      }
+    }
   }
+  
+  console.log(`🟡 [Special Workplace] รายการเงินเพิ่มรวม: ${addSalaryList.length} รายการ`);
+
+  return {
+    dayWorkCount,
+    dayOffCount,
+    specialDayOff: 0,
+    customizeDayoff: 0,
+    cashcustomizeDayoff: 0,
+    publicHolidayCount: 0,
+    publicHolidayCash: 0,
+    sumTimeWork,
+    sumTimeOt,
+    sumCashWork,
+    sumCashOt,
+    sumcashDayOffCount: 0,
+    socialSecurity: 0,
+    tax: 0,
+    cashSpecialDay: 0,
+    sumOt1p5: 0,
+    sumOt3: 0,
+    sumOtPublicHoliday: 0,
+    sumAddSalaryDaily: 0,
+    sumCashWorkMul: 0,
+    timeCashWorkMul: 0,
+    addSalaryList
+  };
 };
 
 const calculateCashValues = async (employeeId, employee_record, month, year) => {
