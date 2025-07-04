@@ -4567,6 +4567,16 @@ const convertTimeToDecimal = (timeString) => {
 };
 
 
+const workplaceEveryday = async () => {
+  try {
+    const response = await axios.get('http://10.10.110.7:3000/workplace/10493');
+    console.log('workOfWeek data:', response.data.workOfWeek);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching workplace data:', error);
+    return null;
+  }
+};
 
 const calculateCashValues = async (employeeId, employee_record, month, year) => {
   // ดึงข้อมูลการตั้งค่าพื้นฐานของระบบ
