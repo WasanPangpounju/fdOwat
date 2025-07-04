@@ -11,7 +11,6 @@ const jwt = require('jsonwebtoken');
 const bodyParser = require('body-parser');
 const { months } = require('moment');
 const { el, ca, it } = require('date-fns/locale');
-const axios = require('axios');
 
 //Connect mongodb
 mongoose.connect(connectionString, {
@@ -22,62 +21,6 @@ mongoose.connect(connectionString, {
 const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'MongoDB connection error:'));
 
-// Helper: parse 'YYYY-MM-DD' or 'YYYY/MM/DD' as local date (force local, never UTC)
-function parseLocalDate(str) {
-  if (!str) return null;
-  if (str instanceof Date) return str;
-  if (typeof str === 'object' && str.date) str = str.date;
-  if (typeof str === 'string') {
-    
-    // ถ้าเป็น ISO timestamp (เช่น 2025-06-02T17:00:00.000Z)
-    if (str.includes('T') && (str.includes('Z') || str.includes('+'))) {
-      console.log(`🔍 [workplaces] Parsing ISO timestamp: ${str}`);
-      const isoDate = new Date(str);
-      if (!isNaN(isoDate.getTime())) {
-        // แปลง ISO date เป็น local date โดยใช้ local timezone
-        const localYear = isoDate.getFullYear();
-        const localMonth = isoDate.getMonth();
-        const localDay = isoDate.getDate();
-        
-        // สร้าง Date object ใหม่แบบ local timezone
-        const localDate = new Date(localYear, localMonth, localDay);
-        console.log(`✅ [workplaces] ISO to local: ${str} -> ${localYear}-${String(localMonth + 1).padStart(2, '0')}-${String(localDay).padStart(2, '0')}`);
-        return localDate;
-      }
-    }
-    
-    // force local for simple date string
-    let parts = str.includes('-') ? str.split('-') : str.split('/');
-    if (parts.length === 3) {
-      // handle 'YYYY-MM-DD' or 'YYYY/MM/DD'
-      const year = parseInt(parts[0], 10);
-      const month = parseInt(parts[1], 10) - 1; // month index starts from 0
-      const day = parseInt(parts[2], 10);
-      
-      if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
-        const localDate = new Date(year, month, day);
-        console.log(`✅ [workplaces] String to local: ${str} -> ${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
-        return localDate; // ✅ สร้างแบบ local timezone
-      }
-    }
-  }
-  
-  // ❌ ไม่ใช้ new Date(str) เป็น fallback เพื่อป้องกัน timezone bug
-  console.error(`❌ [workplaces] parseLocalDate: Cannot parse "${str}" - unsupported format`);
-  return null;
-}
-
-// Helper: format a Date object as 'YYYY-MM-DD'
-function formatDateToYYYYMMDD(date) {
-  if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
-    return null;
-  }
-  
-  const yyyy = date.getFullYear();
-  const mm = String(date.getMonth() + 1).padStart(2, '0');
-  const dd = String(date.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
-}
 
 
 // Get list of workplaces
@@ -85,124 +28,6 @@ router.get('/list', async (req, res) => {
     const workplaces = await Workplace.find();
     res.json(workplaces);
 });
-
-router.post('/remove-global-holiday', async (req, res) => {
-    try {
-        const { date, note } = req.body;
-        
-        // ตรวจสอบว่ามีข้อมูลวันที่หรือไม่
-        if (!date) {
-            return res.status(400).json({
-                success: false,
-                message: "กรุณาระบุวันที่ในรูปแบบ YYYY-MM-DD เช่น 2025-08-12"
-            });
-        }
-        
-        console.log(`🗑️ [workplaces] กำลังลบวันหยุดส่วนกลาง: ${date} - ${note || "ไม่มีหมายเหตุ"}`);
-        
-        // 1. ดึงหน่วยงานทั้งหมดจาก database
-        const workplaces = await Workplace.find({});
-        console.log(`📊 [workplaces] พบหน่วยงานทั้งหมด: ${workplaces.length} หน่วยงาน`);
-        
-        let successCount = 0;
-        let notFoundCount = 0;
-        let errorCount = 0;
-        const results = [];
-        
-        // 2. ลบวันหยุดออกจากทุกหน่วยงาน
-        for (const workplace of workplaces) {
-            try {
-                // แปลงวันที่ที่จะลบ
-                const targetDate = parseLocalDate(date);
-                if (!targetDate) {
-                    console.error(`❌ [workplaces] ไม่สามารถแปลงวันที่: ${date}`);
-                    continue;
-                }
-                
-                const targetDateString = formatDateToYYYYMMDD(targetDate);
-                const originalLength = workplace.publicHoliday.length;
-                
-                // ลบวันหยุดที่ตรงกับวันที่และหมายเหตุ (ถ้าระบุ)
-                workplace.publicHoliday = workplace.publicHoliday.filter(holiday => {
-                    const holidayDate = parseLocalDate(holiday.date || holiday);
-                    if (!holidayDate) return true; // เก็บไว้ถ้าแปลงวันที่ไม่ได้
-                    
-                    const holidayDateString = formatDateToYYYYMMDD(holidayDate);
-                    const dateMatches = holidayDateString === targetDateString;
-                    
-                    // ถ้าระบุ note ให้เช็ค note ด้วย
-                    if (note) {
-                        const noteMatches = (holiday.note || "") === note;
-                        return !(dateMatches && noteMatches);
-                    } else {
-                        // ถ้าไม่ระบุ note ให้ลบทุก holiday ที่วันที่ตรงกัน
-                        return !dateMatches;
-                    }
-                });
-                
-                // ตรวจสอบว่ามีการลบหรือไม่
-                const newLength = workplace.publicHoliday.length;
-                const removedCount = originalLength - newLength;
-                
-                if (removedCount > 0) {
-                    await workplace.save();
-                    
-                    console.log(`✅ [workplaces] สำเร็จลบ ${removedCount} วันหยุด: หน่วยงาน ${workplace.workplaceId} - ${workplace.workplaceName}`);
-                    successCount++;
-                    results.push({
-                        workplaceId: workplace.workplaceId,
-                        workplaceName: workplace.workplaceName,
-                        status: 'success',
-                        removedCount: removedCount
-                    });
-                } else {
-                    console.log(`⚠️ [workplaces] ไม่พบวันหยุดที่ต้องการลบ: หน่วยงาน ${workplace.workplaceId}`);
-                    notFoundCount++;
-                    results.push({
-                        workplaceId: workplace.workplaceId,
-                        workplaceName: workplace.workplaceName,
-                        status: 'not_found'
-                    });
-                }
-            } catch (workplaceError) {
-                console.error(`❌ [workplaces] Error สำหรับหน่วยงาน ${workplace.workplaceId}:`, workplaceError.message);
-                errorCount++;
-                results.push({
-                    workplaceId: workplace.workplaceId,
-                    workplaceName: workplace.workplaceName,
-                    status: 'error',
-                    error: workplaceError.message
-                });
-            }
-        }
-        
-        // 3. ส่งผลลัพธ์กลับ
-        res.json({
-            success: true,
-            message: `ลบวันหยุด "${note || date}" ออกจากหน่วยงานเรียบร้อย`,
-            data: {
-                date: formatDateToYYYYMMDD(parseLocalDate(date)),
-                note: note || "",
-                totalWorkplaces: workplaces.length,
-                successCount: successCount,
-                notFoundCount: notFoundCount,
-                errorCount: errorCount
-            },
-            summary: `✅ ลบสำเร็จ: ${successCount} | ⚠️ ไม่พบ: ${notFoundCount} | ❌ ผิดพลาด: ${errorCount}`,
-            results: results
-        });
-        
-    } catch (error) {
-        console.error('❌ [workplaces] Global holiday removal error:', error);
-        res.status(500).json({ 
-            success: false, 
-            error: error.message,
-            message: "เกิดข้อผิดพลาดในการลบวันหยุดส่วนกลาง"
-        });
-    }
-});
-
-
 
 // Get list id name and address of workplaces
 router.get('/listselect', async (req, res) => {
@@ -222,61 +47,14 @@ router.get('/:workplaceId', async (req, res) => {
     try {
         const workplace = await Workplace.findOne({ workplaceId: req.params.workplaceId });
         if (workplace) {
-            // 🔍 Log ค่า workOfWeek
-            console.log(`📊 หน่วยงาน ${req.params.workplaceId} (${workplace.workplaceName}) มี workOfWeek: "${workplace.workOfWeek || 'ไม่ระบุ'}" วัน`);
-            
-            if (workplace.workOfWeek === "7") {
-                console.log(`✅ หน่วยงาน ${req.params.workplaceId} ทำงาน 7 วัน/สัปดาห์`);
-            } else {
-                console.log(`ℹ️ หน่วยงาน ${req.params.workplaceId} ทำงาน ${workplace.workOfWeek || 'ไม่ระบุ'} วัน/สัปดาห์`);
-            }
-            
-            // ✅ แปลง publicHoliday dates ให้ถูกต้องก่อน return
-            if (workplace.publicHoliday && workplace.publicHoliday.length > 0) {
-                console.log(`🔍 [workplaces GET] Processing ${workplace.publicHoliday.length} public holidays for workplace ${req.params.workplaceId}`);
-                
-                workplace.publicHoliday = workplace.publicHoliday.map((holiday, index) => {
-                    try {
-                        let correctedDate;
-                        
-                        // ถ้า holiday.date เป็น Date object อยู่แล้ว
-                        if (holiday.date instanceof Date) {
-                            // ใช้ parseLocalDate เพื่อแปลงเป็น local date ที่ถูกต้อง
-                            const isoString = holiday.date.toISOString();
-                            correctedDate = parseLocalDate(isoString);
-                            console.log(`✅ [workplaces GET] Holiday ${index + 1}: Date object (${isoString}) -> ${formatDateToYYYYMMDD(correctedDate)}`);
-                        } else {
-                            // ถ้าเป็น string ให้แปลงด้วย parseLocalDate
-                            correctedDate = parseLocalDate(holiday.date);
-                            console.log(`✅ [workplaces GET] Holiday ${index + 1}: ${holiday.date} -> ${formatDateToYYYYMMDD(correctedDate)}`);
-                        }
-                        
-                        if (!correctedDate) {
-                            console.error(`❌ [workplaces GET] Invalid holiday date:`, holiday);
-                            return null;
-                        }
-                        
-                        // ✅ ส่ง formatted date string แทน Date object เพื่อป้องกัน timezone serialization
-                        return {
-                            date: formatDateToYYYYMMDD(correctedDate), // ✅ ส่งเป็น string แทน Date object
-                            note: holiday.note || '',
-                            _id: holiday._id
-                        };
-                    } catch (error) {
-                        console.error(`❌ [workplaces GET] Error processing holiday ${index + 1}:`, error);
-                        return null;
-                    }
-                }).filter(h => h !== null);
-            }
-            
             res.json(workplace);
         } else {
             res.status(404).json({ error: 'workplace not found' });
         }
     } catch (error) {
-        console.error('❌ [workplaces GET] Error:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
+
 });
 
 
@@ -504,7 +282,6 @@ router.post('/create', async (req, res) => {
         workRateDayoffRate,
         daysOff,
         daysOffMap,
-        publicHoliday, 
         workplaceAddress,
         reason,
         employeeIdList,
@@ -588,8 +365,7 @@ router.post('/create', async (req, res) => {
         workRateDayoffNumber,
         workRateDayoffRate,
         daysOff,
-        daysOffMap,
-        publicHoliday: [], // เพิ่มฟิลด์ publicHoliday
+                daysOffMap,
         workplaceAddress,
         reason,
         employeeIdList,
@@ -908,263 +684,5 @@ router.post("/add-work-schedule/:workplaceId", async (req, res) => {
       res.status(500).json({ error: error.message });
     }
   });
-
-// API endpoint สำหรับอัปเดต PublicHoliday จาก dayOffOnly
-router.post('/update-public-holidays/:workplaceId', async (req, res) => {
-    try {
-        const { workplaceId } = req.params;
-        const { year } = req.body;
-
-        if (!workplaceId || !year) {
-            return res.status(400).json({ error: 'ต้องระบุ workplaceId และ year' });
-        }
-
-        // ตรวจสอบว่าหน่วยงานมีอยู่จริงหรือไม่
-        const workplace = await Workplace.findOne({ workplaceId });
-        if (!workplace) {
-            return res.status(404).json({ error: `ไม่พบหน่วยงานรหัส ${workplaceId}` });
-        }
-
-        // 1. เรียก API getWeekendDates เพื่อดึงข้อมูล dayOffOnly
-        const publicHolidays = [];
-        const failedMonths = [];
-        
-        // สำหรับทุกเดือนในปี
-        for (let month = 1; month <= 12; month++) {
-            const monthStr = month.toString().padStart(2, '0');
-            // เรียกใช้งาน API conclude/getWeekendDates
-            try {
-                // ใช้ server URL จากตัวแปร config
-                const baseUrl = process.env.API_BASE_URL || 'http://localhost:3000';
-                const response = await axios.get(`${baseUrl}/conclude/getWeekendDates?yyyy=${year}&mm=${monthStr}&workplaceId=${workplaceId}`);
-                
-                if (response.data && response.data.dayOffOnly) {
-                    // แปลง string date เป็น object {date, note}
-                    const monthHolidays = response.data.dayOffOnly.map(dateStr => ({
-                        date: new Date(dateStr),
-                        note: '' // ไม่มีหมายเหตุสำหรับข้อมูลจาก dayOffOnly
-                    }));
-                    publicHolidays.push(...monthHolidays);
-                    console.log(`✅ เดือน ${monthStr}: ดึง ${monthHolidays.length} วันหยุดสำเร็จ`);
-                }
-            } catch (error) {
-                console.error(`❌ Error getting weekend dates for ${year}-${monthStr}:`, error.message);
-                failedMonths.push(monthStr);
-                // ไม่ return error ในลูป แต่ทำต่อไปเพื่อรวบรวมข้อมูลให้ได้มากที่สุด
-            }
-        }
-
-        // 2. อัปเดตข้อมูล publicHoliday ในหน่วยงาน
-        const updatedWorkplace = await Workplace.findOneAndUpdate(
-            { workplaceId: workplaceId },
-            { publicHoliday: publicHolidays },
-            { new: true }
-        );
-
-        // สร้าง response
-        const response = {
-            message: 'อัปเดต PublicHoliday สำเร็จ',
-            publicHolidayCount: publicHolidays.length,
-            publicHolidayDates: publicHolidays.map(holiday => formatDateToYYYYMMDD(holiday.date)).filter(date => date), // ✅ ใช้ formatDateToYYYYMMDD แทน toISOString
-            workplace: updatedWorkplace
-        };
-
-        // ถ้ามีเดือนที่ไม่สามารถดึงข้อมูลได้ ให้แสดงเตือน
-        if (failedMonths.length > 0) {
-            response.warning = `ไม่สามารถดึงข้อมูลวันหยุดจากเดือน: ${failedMonths.join(', ')}`;
-        }
-
-        res.json(response);
-    } catch (error) {
-        console.error('Error updating public holidays:', error);
-        res.status(500).json({ error: 'เกิดข้อผิดพลาดในการอัปเดต PublicHoliday', details: error.message });
-    }
-});
-
-// API endpoint สำหรับส่งข้อมูลวันหยุดนักขัตฤกษ์ไปอัปเดตใน dayOffOnly
-router.post('/sync-public-holidays/:workplaceId', async (req, res) => {
-    try {
-        const { workplaceId } = req.params;
-        const { publicHoliday } = req.body;
-
-        if (!workplaceId) {
-            return res.status(400).json({ error: 'ต้องระบุ workplaceId' });
-        }
-
-        // แปลง ISO date string เป็น Date objects ด้วย parseLocalDate
-        const parsedPublicHoliday = publicHoliday.map((holiday, index) => {
-            try {
-                console.log(`🔍 [workplaces] Processing holiday ${index + 1}:`, holiday);
-                
-                const localDate = parseLocalDate(holiday.date);
-                if (!localDate) {
-                    console.error(`❌ [workplaces] Invalid date format for holiday ${index + 1}: ${holiday.date}`);
-                    return null;
-                }
-                
-                console.log(`✅ [workplaces] Holiday ${index + 1} parsed: ${holiday.date} -> ${formatDateToYYYYMMDD(localDate)}`);
-                
-                return {
-                    date: localDate,
-                    note: holiday.note || ""
-                };
-            } catch (error) {
-                console.error(`❌ [workplaces] Error parsing holiday ${index + 1}:`, error);
-                return null;
-            }
-        }).filter(h => h !== null);
-
-        console.log('Received and parsed publicHoliday:', parsedPublicHoliday);
-
-        // ตรวจสอบว่าหน่วยงานมีอยู่จริงหรือไม่
-        const workplace = await Workplace.findOne({ workplaceId });
-        if (!workplace) {
-            return res.status(404).json({ error: `ไม่พบหน่วยงานรหัส ${workplaceId}` });
-        }
-
-        // อัปเดต publicHoliday ในฐานข้อมูล
-        await Workplace.findOneAndUpdate(
-            { workplaceId: workplaceId },
-            { publicHoliday: parsedPublicHoliday || [] },
-            { new: true }
-        );
-
-        // ส่งข้อมูลไปอัปเดตใน conclude API
-        if (parsedPublicHoliday && parsedPublicHoliday.length > 0) {
-            try {
-                // เรียกใช้ API conclude/updateDayOffOnly เพื่ออัปเดตข้อมูล
-                const baseUrl = process.env.API_BASE_URL || 'http://localhost:3000';
-                const apiUrl = baseUrl.includes('localhost') 
-                    ? 'http://localhost:3000/conclude/updateDayOffOnly'
-                    : `${baseUrl}/conclude/updateDayOffOnly`;
-
-                console.log('Syncing publicHoliday to conclude API at:', apiUrl);
-                
-                const updateResponse = await axios.post(apiUrl, {
-                    workplaceId: workplaceId,
-                    publicHolidays: parsedPublicHoliday
-                });
-
-                console.log('✅ Successfully synced public holidays to conclude API:', updateResponse.data);
-            } catch (error) {
-                console.error('❌ Error syncing to conclude API:', error.message);
-                // ไม่ return error เพราะอัปเดตฐานข้อมูลสำเร็จแล้ว
-            }
-        }
-
-        res.json({
-            message: 'อัปเดตวันหยุดนักขัตฤกษ์สำเร็จ',
-            publicHolidayCount: publicHoliday ? publicHoliday.length : 0,
-            workplaceId: workplaceId
-        });
-    } catch (error) {
-        console.error('Error syncing public holidays:', error);
-        res.status(500).json({ error: 'เกิดข้อผิดพลาดในการอัปเดตวันหยุดนักขัตฤกษ์', details: error.message });
-    }
-});
-
-// เพิ่มวันหยุดส่วนกลางไปทุกหน่วยงาน
-router.post('/add-global-holiday', async (req, res) => {
-    try {
-        const { date, note } = req.body;
-        
-        // ตรวจสอบว่ามีข้อมูลวันที่หรือไม่
-        if (!date) {
-            return res.status(400).json({
-                success: false,
-                message: "กรุณาระบุวันที่ในรูปแบบ YYYY-MM-DD เช่น 2025-05-01"
-            });
-        }
-        
-        console.log(`🌏 [workplaces] กำลังเพิ่มวันหยุดส่วนกลาง: ${date} - ${note || "ไม่มีหมายเหตุ"}`);
-        
-        // 1. ดึงหน่วยงานทั้งหมดจาก database
-        const workplaces = await Workplace.find({});
-        console.log(`📊 [workplaces] พบหน่วยงานทั้งหมด: ${workplaces.length} หน่วยงาน`);
-        
-        let successCount = 0;
-        let skipCount = 0;
-        let errorCount = 0;
-        const results = [];
-        
-        // 2. เพิ่มวันหยุดไปทุกหน่วยงาน
-        for (const workplace of workplaces) {
-            try {
-                // ตรวจสอบว่ามีวันหยุดนี้อยู่แล้วหรือไม่ (ใช้ parseLocalDate)
-                const holidayDate = parseLocalDate(date);
-                if (!holidayDate) {
-                    console.error(`❌ [workplaces] ไม่สามารถแปลงวันที่: ${date}`);
-                    continue;
-                }
-                
-                const exists = workplace.publicHoliday.some(holiday => {
-                    const existingDate = parseLocalDate(holiday.date || holiday);
-                    if (!existingDate) return false;
-                    return formatDateToYYYYMMDD(existingDate) === formatDateToYYYYMMDD(holidayDate);
-                });
-                
-                if (!exists) {
-                    // เพิ่มวันหยุดใหม่
-                    workplace.publicHoliday.push({
-                        date: holidayDate,
-                        note: note || "",
-                        isGlobal: true
-                    });
-                    
-                    await workplace.save();
-                    
-                    console.log(`✅ [workplaces] สำเร็จ: หน่วยงาน ${workplace.workplaceId} - ${workplace.workplaceName}`);
-                    successCount++;
-                    results.push({
-                        workplaceId: workplace.workplaceId,
-                        workplaceName: workplace.workplaceName,
-                        status: 'success'
-                    });
-                } else {
-                    console.log(`⚠️ [workplaces] หน่วยงาน ${workplace.workplaceId} มีวันหยุดนี้อยู่แล้ว`);
-                    skipCount++;
-                    results.push({
-                        workplaceId: workplace.workplaceId,
-                        workplaceName: workplace.workplaceName,
-                        status: 'already_exists'
-                    });
-                }
-            } catch (workplaceError) {
-                console.error(`❌ [workplaces] Error สำหรับหน่วยงาน ${workplace.workplaceId}:`, workplaceError.message);
-                errorCount++;
-                results.push({
-                    workplaceId: workplace.workplaceId,
-                    workplaceName: workplace.workplaceName,
-                    status: 'error',
-                    error: workplaceError.message
-                });
-            }
-        }
-        
-        // 3. ส่งผลลัพธ์กลับ
-        res.json({
-            success: true,
-            message: `เพิ่มวันหยุด "${note || date}" ไปยังหน่วยงานเรียบร้อย`,
-            data: {
-                date: formatDateToYYYYMMDD(parseLocalDate(date)),
-                note: note || "",
-                totalWorkplaces: workplaces.length,
-                successCount: successCount,
-                skipCount: skipCount,
-                errorCount: errorCount
-            },
-            summary: `✅ สำเร็จ: ${successCount} | ⚠️ มีอยู่แล้ว: ${skipCount} | ❌ ผิดพลาด: ${errorCount}`,
-            results: results
-        });
-        
-    } catch (error) {
-        console.error('❌ [workplaces] Global holiday creation error:', error);
-        res.status(500).json({ 
-            success: false, 
-            error: error.message,
-            message: "เกิดข้อผิดพลาดในการเพิ่มวันหยุดส่วนกลาง"
-        });
-    }
-});
 
 module.exports = router;
