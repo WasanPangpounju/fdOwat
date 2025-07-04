@@ -4517,24 +4517,28 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           }
           
           for (const record of doc.employee_record) {
-            if (record.dayType !== "work") {
-              console.log(`  - เปลี่ยนวันที่ ${record.date}: ${record.dayType} → work`);
-              record.dayType = "work";
+            console.log(`🔍 ตรวจสอบ record วันที่ ${record.date}: dayType=${record.dayType}, cashWork=${record.cashWork}, cashWorkMul=${record.cashWorkMul}`);
+            
+            // เปลี่ยน dayType และคำนวณใหม่ทุกครั้งสำหรับหน่วยงานที่ทำงาน 7 วัน
+            const originalDayType = record.dayType;
+            record.dayType = "work";
+            
+            // คำนวณ cashWork และ cashWorkMul ใหม่สำหรับวันทำงานปกติ
+            if (workplaceWorkRate > 0 && record.totalTime) {
+              const totalHours = parseFloat(record.totalTime || 0);
+              const newCashWork = (workplaceWorkRate).toFixed(0);
+              const oldCashWork = record.cashWork;
+              const oldCashWorkMul = record.cashWorkMul;
               
-              // คำนวณ cashWork และ cashWorkMul ใหม่สำหรับวันทำงานปกติ
-              if (workplaceWorkRate > 0 && record.totalTime) {
-                const totalHours = parseFloat(record.totalTime || 0);
-                const newCashWork = (workplaceWorkRate).toFixed(0);
-                const oldCashWork = record.cashWork;
-                const oldCashWorkMul = record.cashWorkMul;
-                
-                record.cashWork = newCashWork;
-                record.cashWorkMul = "1"; // อัตราปกติสำหรับวันทำงาน
-                
-                console.log(`    💰 ปรับค่าแรง: ${oldCashWork} (×${oldCashWorkMul}) → ${newCashWork} (×1)`);
-              }
+              record.cashWork = newCashWork;
+              record.cashWorkMul = "1"; // อัตราปกติสำหรับวันทำงาน
               
+              console.log(`    💰 ปรับค่าแรง: ${oldCashWork} (×${oldCashWorkMul}) → ${newCashWork} (×1)`);
               totalUpdatedDayType++;
+            }
+            
+            if (originalDayType !== "work") {
+              console.log(`  - เปลี่ยนวันที่ ${record.date}: ${originalDayType} → work`);
             }
           }
           
