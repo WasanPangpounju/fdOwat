@@ -4501,8 +4501,13 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         
         // ⚠️ เฉพาะหน่วยงานที่ทำงาน 7 วัน/สัปดาห์เท่านั้น - ป้องกันกระทบหน่วยงานอื่น
         let totalUpdatedDayType = 0;
+        let modifiedEmployeeRecord = doc.employee_record; // ใช้ข้อมูลต้นฉบับ
+        
         if (isWorkplace7Days && doc.employee_record) {
           console.log(`🔄 [7-DAY WORKPLACE] กำลังปรับ dayType สำหรับพนักงาน ${doc.employeeId} (${doc.employeeName}) ในหน่วยงาน ${employeeWorkplaceId} ที่ทำงาน 7 วัน/สัปดาห์`);
+          
+          // สำเนาข้อมูล employee_record เพื่อไม่กระทบการคำนวณของหน่วยงานอื่น
+          modifiedEmployeeRecord = JSON.parse(JSON.stringify(doc.employee_record));
           
           // ดึงข้อมูลหน่วยงานเพื่อหาค่า workRate (เฉพาะหน่วยงานที่ทำงาน 7 วัน)
           let workplaceWorkRate = 0;
@@ -4541,7 +4546,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
             console.warn(`⚠️ ไม่สามารถดึงข้อมูลวันหยุดได้:`, apiErr.message);
           }
           
-          for (const record of doc.employee_record) {
+          for (const record of modifiedEmployeeRecord) {
             console.log(`🔍 ตรวจสอบ record วันที่ ${record.date}: dayType=${record.dayType}, cashWork=${record.cashWork}, cashWorkMul=${record.cashWorkMul}`);
             
             // สร้างรูปแบบวันที่เพื่อเปรียบเทียบ (YYYY-MM-DD)
@@ -4612,10 +4617,10 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           }
         }
 
-        // คำนวณค่าต่างๆ ใหม่หลังจากเปลี่ยน dayType (ถ้ามี)
+        // คำนวณค่าต่างๆ ใหม่ - ใช้ข้อมูลที่เหมาะสม
         const calculatedValues = await calculateCashValues(
           doc.employeeId,
-          doc.employee_record,
+          modifiedEmployeeRecord, // ใช้ข้อมูลที่ปรับแล้วสำหรับหน่วยงาน 7 วัน หรือข้อมูลต้นฉบับสำหรับหน่วยงานอื่น
           doc.month,
           doc.year
         );
@@ -4644,8 +4649,8 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           // clearly ensure all SpSalary are numbers
           addSalaryList: calculatedValues.addSalaryList,
           sumCashWorkMul: calculatedValues.sumCashWorkMul,
-          // เพิ่มการอัพเดต employee_record ด้วย (รวมการเปลี่ยน dayType)
-          employee_record: doc.employee_record
+          // เพิ่มการอัพเดต employee_record ด้วย (ใช้ข้อมูลที่ปรับแล้ว)
+          employee_record: modifiedEmployeeRecord
         };
         
         // แสดงข้อมูลสำคัญที่จะบันทึก
