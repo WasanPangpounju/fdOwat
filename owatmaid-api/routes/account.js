@@ -4667,7 +4667,12 @@ const calculateCashValuesForSpecialWorkplace = async (employeeId, employee_recor
   "2": 0, 
   "3": 0
 };
-  let timeCashWorkMul = 0;
+  let timeCashWorkMul = {
+    "1": 0,
+    "1.5": 0,
+    "2": 0, 
+    "3": 0
+  };
   let cashcustomizeDayoff = 0;
 
   console.log(`🟡 [Special Workplace] ใช้ logic พิเศษสำหรับหน่วยงานที่ทำงาน 7 วัน`);
@@ -4717,77 +4722,132 @@ const calculateCashValuesForSpecialWorkplace = async (employeeId, employee_recor
       }
     }
     
-    // สำหรับหน่วยงานที่ทำงาน 7 วัน - ประมวลผลเฉพาะ dayType = "work" เท่านั้น
-    if (record?.dayType === "work") {
-      console.log(`\n--- 🟡 กำลังประมวลผลวันที่: ${record.date}, ประเภท: ${record.dayType} ---`);
-      
-      dayWorkCount += 1;
-      
-      // คำนวณเวลาและเงิน
-      const workTime = parseFloat(record.allTimes || 0);
-      const otTime = parseFloat(record.otTimes || 0);
-      const workRate = parseFloat(record.workRate || 0);
-      const otRate = parseFloat(record.workRateOT || 0);
-      
-      sumTimeWork += workTime;
-      sumTimeOt += otTime;
-      sumCashWork += workRate;
-      sumCashOt += otRate;
-      
-      console.log(`🟡 วันที่ ${record.date}: workTime=${workTime}, otTime=${otTime}, workRate=${workRate}, otRate=${otRate}`);
-      
-      // เพิ่ม sumCashWorkMul logic เหมือนใน calculateCashValues
-      if (record?.cashWorkMul) {
-        if (!sumCashWorkMul[record?.cashWorkMul]) {
-          sumCashWorkMul[record?.cashWorkMul] = 0;
-        }
+    // Initialize sumCashWorkMul and timeCashWorkMul for this record
+    if (!sumCashWorkMul[record?.cashWorkMul]) {
+      sumCashWorkMul[record?.cashWorkMul] = 0;
+    }
+    if (!timeCashWorkMul[record?.cashWorkMul]) {
+      timeCashWorkMul[record?.cashWorkMul] = 0;
+    }
+    
+    // ประมวลผลตาม dayType แบบเดียวกับ calculateCashValues
+    if (record?.dayType !== '') {
+      if (record?.dayType === 'stop') {
+        console.log(`🟡 ประมวลผลวันหยุด: ${record.date}, dayType: ${record.dayType}`);
+        dayOffCount += 1;
+        sumcashDayOffCount = parseFloat(sumcashDayOffCount || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0');
+        
+        sumTimeOt += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalTime) + convertTimeToDecimal(record.totalOtTime);
+        sumCashOt = parseFloat(sumCashOt || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0');
+        sumOt3 += convertTimeToDecimal(record.totalOtTime);
+        sumOtPublicHoliday += convertTimeToDecimal(record.totalTime);
+        
         sumCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
-        console.log(`🟡 sumCashWorkMul[${record?.cashWorkMul}] += ${record?.cashWork} = ${sumCashWorkMul[record?.cashWorkMul]}`);
-      }
-      
-      if (record?.cashOtMul) {
-        if (!sumCashWorkMul[record?.cashOtMul]) {
-          sumCashWorkMul[record?.cashOtMul] = 0;
-        }
         sumCashWorkMul[record?.cashOtMul] += parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0');
-        console.log(`🟡 sumCashWorkMul[${record?.cashOtMul}] += ${parseFloat(record?.cashBeforeOt || '0')} + ${parseFloat(record?.cashOt || '0')} = ${sumCashWorkMul[record?.cashOtMul]}`);
-      }
-      
-      // จัดการ addSalary สำหรับหน่วยงานพิเศษ
-      if (record.addSalary && Array.isArray(record.addSalary)) {
-        for (const salary of record.addSalary) {
-          const existingIndex = addSalaryList.findIndex(item => item.id === salary.id);
-          if (existingIndex !== -1) {
-            addSalaryList[existingIndex].SpSalary = 
-              (parseFloat(addSalaryList[existingIndex].SpSalary) || 0) + 
-              (parseFloat(salary.SpSalary) || 0);
-            console.log(`🟡 อัพเดท addSalary ID ${salary.id}: ${addSalaryList[existingIndex].SpSalary}`);
-          } else {
-            addSalaryList.push({
-              id: salary.id,
-              name: salary.name,
-              SpSalary: parseFloat(salary.SpSalary) || 0
-            });
-            console.log(`🟡 เพิ่ม addSalary ID ${salary.id}: ${salary.SpSalary}`);
+        
+        timeCashWorkMul[record?.cashWorkMul] += convertTimeToDecimal(record.totalTime);
+        timeCashWorkMul[record?.cashOtMul] += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalOtTime);
+        
+      } else if (record?.dayType === 'specialDayOff') {
+        console.log(`🟡 ประมวลผลวันหยุดพิเศษ: ${record.date}, dayType: ${record.dayType}`);
+        specialDayOff += 1;
+        sumTimeOt += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalTime) + convertTimeToDecimal(record.totalOtTime);
+        sumCashOt = parseFloat(sumCashOt || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0');
+        
+        timeCashWorkMul[record?.cashOtMul] += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalOtTime);
+        
+      } else if (record?.dayType === "work") {
+        console.log(`\n--- 🟡 กำลังประมวลผลวันที่: ${record.date}, ประเภท: ${record.dayType} ---`);
+        
+        dayWorkCount += 1;
+        
+        // คำนวณเวลาและเงินแบบเดียวกับ calculateCashValues
+        sumTimeWork += convertTimeToDecimal(record.totalTime);
+        sumTimeOt += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalOtTime);
+        sumCashWork += parseFloat(record?.cashWork || '0');
+        sumCashOt += parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0');
+        
+        // คำนวณ sumOt1p5 (เวลา OT ปกติ)
+        const otTimeDecimal = convertTimeToDecimal(record.totalOtTime);
+        console.log(`🟡 เวลา OT ('${record.totalOtTime}') แปลงเป็นทศนิยมได้: ${otTimeDecimal}`);
+        sumOt1p5 += otTimeDecimal;
+        
+        console.log(`🟡 วันที่ ${record.date}: totalTime=${record.totalTime}, totalOtTime=${record.totalOtTime}, cashWork=${record.cashWork}, cashOt=${record.cashOt}`);
+        
+        // เพิ่ม sumCashWorkMul logic เหมือนใน calculateCashValues
+        sumCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
+        sumCashWorkMul[record?.cashOtMul] += parseFloat(record?.cashBeforeOt || '0');
+        
+        console.log(`🟡 sumCashWorkMul[${record?.cashWorkMul}] += ${record?.cashWork} = ${sumCashWorkMul[record?.cashWorkMul]}`);
+        
+        // คำนวณ timeCashWorkMul
+        timeCashWorkMul[record?.cashWorkMul] += convertTimeToDecimal(record.totalTime);
+        timeCashWorkMul[record?.cashOtMul] += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalOtTime);
+        
+        // จัดการ addSalaryDaily เหมือนใน calculateCashValues
+        if (record.addSalaryDaily && record.addSalaryDaily.length > 0) {
+          record.addSalaryDaily.forEach((salaryItem) => {
+            const cleanSalaryItemId = String(salaryItem.id).trim();
+            const amount = parseFloat(salaryItem.SpSalary || 0);
+
+            const existingItem = addSalaryList.find(
+              item => String(item.id).trim() === cleanSalaryItemId
+            );
+
+            if (existingItem) {
+              existingItem.SpSalary = parseFloat(existingItem.SpSalary || 0) + amount;
+              existingItem.message = parseFloat(existingItem.message || 0) + 1;
+
+              const index = addSalaryList.findIndex(item => item.id === existingItem.id);
+              if (index !== -1) {
+                addSalaryList[index] = existingItem;
+              }
+            } else {
+              salaryItem.message = 1; 
+              addSalaryList.push(salaryItem);
+            }
+          });
+        }
+        
+        // จัดการ addSalary สำหรับหน่วยงานพิเศษ
+        if (record.addSalary && Array.isArray(record.addSalary)) {
+          for (const salary of record.addSalary) {
+            const existingIndex = addSalaryList.findIndex(item => item.id === salary.id);
+            if (existingIndex !== -1) {
+              addSalaryList[existingIndex].SpSalary = 
+                (parseFloat(addSalaryList[existingIndex].SpSalary) || 0) + 
+                (parseFloat(salary.SpSalary) || 0);
+              console.log(`🟡 อัพเดท addSalary ID ${salary.id}: ${addSalaryList[existingIndex].SpSalary}`);
+            } else {
+              addSalaryList.push({
+                id: salary.id,
+                name: salary.name,
+                SpSalary: parseFloat(salary.SpSalary) || 0
+              });
+              console.log(`🟡 เพิ่ม addSalary ID ${salary.id}: ${salary.SpSalary}`);
+            }
           }
         }
-      }
-    } else {
-      // สำหรับ dayType อื่นๆ ให้จัดการตามประเภท
-      console.log(`🟡 ไม่ประมวลผลวันที่: ${record.date}, dayType: ${record.dayType || 'ไม่ระบุ'}`);
-      
-      if (record?.dayType === "stop") {
-        dayOffCount++;
-        console.log(`🟡 วันหยุด: ${record.date}, dayType: ${record.dayType}`);
-      } else if (record?.dayType === "specialDayOff") {
-        specialDayOff++;
-        console.log(`🟡 วันหยุดพิเศษ: ${record.date}, dayType: ${record.dayType}`);
-      } else if (record?.dayType === "holiday") {
-        publicHolidayCount++;
-        console.log(`🟡 วันหยุดนักขัตฤกษ์: ${record.date}, dayType: ${record.dayType}`);
+      } else {
+        console.log(`🟡 ไม่ประมวลผลวันที่: ${record.date}, dayType: ${record.dayType || 'ไม่ระบุ'}`);
       }
     }
   }
+  
+  
+  // คำนวณ sumCashWorkMul["1.5"] เหมือนใน calculateCashValues
+  console.log(`🟡 คำนวณค่า sumCashWorkMul["1.5"] สำหรับหน่วยงานพิเศษ`);
+  console.log(`🟡 sumCashOt: ${sumCashOt} บาท`);
+  console.log(`🟡 sumcashDayOffCount: ${sumcashDayOffCount} บาท`);
+
+  // ถ้า sumCashOt มากกว่า sumcashDayOffCount ให้คำนวณผลต่าง แต่ถ้าน้อยกว่าให้เป็น 0
+  if (sumCashOt >= sumcashDayOffCount) {
+    sumCashWorkMul["1.5"] = sumCashOt - sumcashDayOffCount;
+  } else {
+    sumCashWorkMul["1.5"] = 0;
+  }
+
+  console.log(`🟡 sumCashWorkMul["1.5"] ที่คำนวณได้: ${sumCashWorkMul["1.5"].toFixed(2)} บาท`);
   
   // คำนวณ publicHolidayCash และ cashcustomizeDayoff จาก sumCashWorkMul
   if (sumCashWorkMul["1"] && dayWorkCount > 0) {
@@ -4807,20 +4867,97 @@ const calculateCashValuesForSpecialWorkplace = async (employeeId, employee_recor
     // กรณีไม่มีข้อมูลพอสำหรับการคำนวณ
     console.log(`🟡 ⚠️ ไม่พบข้อมูล sumCashWorkMul["1"] หรือ dayWorkCount = 0`);
   }
-  
-  // คำนวณ Social Security และ Tax
-  const totalSalary = sumCashWork + sumCashOt;
-  let finalSocialSecurity = 0;
-  let finalTax = 0;
-  
-  if (totalSalary > 0) {
-    if (socialSecurityP > 0) {
-      finalSocialSecurity = Math.min(totalSalary * (socialSecurityP / 100), socialSecurity);
-    }
-    if (taxP > 0) {
-      finalTax = totalSalary * (taxP / 100);
+
+  // จัดการ addSalary monthly และคำนวณ addSalarySocialSecurity เหมือนใน calculateCashValues
+  let monthlySalaries = [];
+  if (addSalary && addSalary.length > 0) {
+    monthlySalaries = await addSalary.filter(salary => salary.roundOfSalary === 'monthly');
+  }
+
+  addSalaryList = await addSalaryList.concat(monthlySalaries);
+
+  for (const element of addSalaryList) {
+    console.log(`🟡 addSalary: ${element.id} ${element.SpSalary}`);
+    let check = await checkCalTax(element.id);
+    if (check) {
+      addSalarySocialSecurity = parseFloat(addSalarySocialSecurity || 0) + parseFloat(element.SpSalary);
     }
   }
+
+  // คำนวณ Social Security และ Tax เหมือนใน calculateCashValues
+  console.log(`\n🟡 === การคำนวณประกันสังคม (socialSecurity) สำหรับหน่วยงานพิเศษ ===`);
+  console.log(`🟡 salaryMonth: ${salaryMonth} บาท`);
+  console.log(`🟡 sumCashWork: ${sumCashWork} บาท`);
+  console.log(`🟡 addSalarySocialSecurity: ${addSalarySocialSecurity} บาท`);
+  console.log(`🟡 cashSpecialDay: ${cashSpecialDay} บาท`);
+  console.log(`🟡 cashcustomizeDayoff: ${cashcustomizeDayoff} บาท`);
+  console.log(`🟡 publicHolidayCash: ${publicHolidayCash} บาท`);
+  console.log(`🟡 อัตราการหักประกันสังคม (socialSecurityP): ${socialSecurityP * 100}%`);
+
+  if (salaryMonth !== 0) {
+    dayWorkCount = 30;
+    sumCashWork = salaryMonth;
+    // คำนวณประกันสังคมสำหรับพนักงานเงินเดือน (รวมเงินพิเศษทุกประเภทในการคำนวณ)
+    socialSecurity = Math.ceil(
+      (parseFloat(salaryMonth || 0) + 
+       parseFloat(addSalarySocialSecurity || 0) + 
+       parseFloat(cashcustomizeDayoff || 0) + 
+       parseFloat(publicHolidayCash || 0)) * socialSecurityP
+    );
+    console.log(`🟡 คำนวณประกันสังคมสำหรับพนักงานเงินเดือน: ${socialSecurity} บาท`);
+  } else {
+    //กรณีหักภาษี ณ ที่จ่าย 3% (ภ.ง.ด.)
+    if (costtype === "ภ.ง.ด.3") {
+      socialSecurity = 0;
+      // คำนวณภาษีหัก ณ ที่จ่าย รวมเงินพิเศษทุกประเภท
+      tax = Math.ceil(
+        (parseFloat(sumCashWork || 0) + 
+         parseFloat(sumCashOt || 0) + 
+         parseFloat(addSalarySocialSecurity || 0) + 
+         parseFloat(cashSpecialDay || 0) + 
+         parseFloat(cashcustomizeDayoff || 0) + 
+         parseFloat(publicHolidayCash || 0)) * 0.03
+      );
+      console.log(`🟡 คำนวณภาษีหัก ณ ที่จ่าย 3%: ${tax} บาท`);
+    } else {
+      // คำนวณประกันสังคมสำหรับพนักงานรายวัน (รวมเงินพิเศษทุกประเภทในการคำนวณ)
+      socialSecurity = Math.ceil(
+        (parseFloat(sumCashWork || 0) + 
+         parseFloat(addSalarySocialSecurity || 0) + 
+         parseFloat(cashSpecialDay || 0) + 
+         parseFloat(cashcustomizeDayoff || 0) + 
+         parseFloat(publicHolidayCash || 0)) * socialSecurityP
+      );
+      console.log(`🟡 คำนวณประกันสังคมสำหรับพนักงานรายวัน: ${socialSecurity} บาท`);
+    }
+  }
+
+  // ตรวจสอบและปรับค่าประกันสังคมตามเงื่อนไข
+  console.log(`🟡 ค่าประกันสังคมก่อนปรับตามเงื่อนไข: ${socialSecurity} บาท`);
+
+  //check socialSecurity != 0 and < 83 set to 83
+  if (socialSecurity !== 0 && socialSecurity < 83) {
+    console.log(`🟡 ค่าประกันสังคมน้อยกว่า 83 บาท และไม่เป็น 0 จึงปรับให้เป็น 83 บาท`);
+    socialSecurity = 83;
+  }
+  //check max socialSecurity   
+  if (socialSecurity !== 0 && socialSecurity > 750) {
+    console.log(`🟡 ค่าประกันสังคมมากกว่า 750 บาท จึงปรับให้เป็น 750 บาท`);
+    socialSecurity = 750;
+  }
+
+  console.log(`🟡 ค่าประกันสังคมที่จะบันทึก: ${socialSecurity} บาท`);
+
+  // แปลงค่าทศนิยมเหมือนใน calculateCashValues
+  sumTimeOt = sumTimeOt.toFixed(2);
+  sumTimeWork = sumTimeWork.toFixed(2);
+  sumOt1p5 = sumOt1p5.toFixed(2);
+  sumOt3 = sumOt3.toFixed(2);
+  sumOtPublicHoliday = sumOtPublicHoliday.toFixed(2);
+  cashcustomizeDayoff = (cashcustomizeDayoff || 0).toFixed(2);
+  publicHolidayCash = (publicHolidayCash || 0).toFixed(2);
+  cashSpecialDay = (cashSpecialDay || 0).toFixed(2);
+  
   
   console.log(`🟡 [Special Workplace] สรุปผลการคำนวณ:`);
   console.log(`🟡 - วันทำงาน: ${dayWorkCount} วัน`);
@@ -4829,8 +4966,8 @@ const calculateCashValuesForSpecialWorkplace = async (employeeId, employee_recor
   console.log(`🟡 - เวลา OT: ${sumTimeOt} ชั่วโมง`);
   console.log(`🟡 - เงินเดือน: ${sumCashWork} บาท`);
   console.log(`🟡 - เงิน OT: ${sumCashOt} บาท`);
-  console.log(`🟡 - ประกันสังคม: ${finalSocialSecurity} บาท`);
-  console.log(`🟡 - ภาษี: ${finalTax} บาท`);
+  console.log(`🟡 - ประกันสังคม: ${socialSecurity} บาท`);
+  console.log(`🟡 - ภาษี: ${tax} บาท`);
   console.log(`🟡 - sumCashWorkMul:`, sumCashWorkMul);
   console.log(`🟡 - รายการเงินเพิ่ม: ${addSalaryList.length} รายการ`);
 
@@ -4847,8 +4984,8 @@ const calculateCashValuesForSpecialWorkplace = async (employeeId, employee_recor
     sumCashWork,
     sumCashOt,
     sumcashDayOffCount,
-    socialSecurity: finalSocialSecurity,
-    tax: finalTax,
+    socialSecurity,
+    tax,
     cashSpecialDay,
     sumOt1p5,
     sumOt3,
