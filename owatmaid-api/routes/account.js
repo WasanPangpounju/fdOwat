@@ -4515,21 +4515,17 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           
           if (totalUpdatedDayType > 0) {
             console.log(`✅ ปรับ dayType เป็น "work" ทั้งหมด ${totalUpdatedDayType} รายการสำหรับพนักงาน ${doc.employeeId}`);
-            
-            // บันทึกข้อมูลที่เปลี่ยนแปลงกลับไปที่ฐานข้อมูล
-            await timerecordEmployee.updateOne(
-              { _id: doc._id },
-              { $set: { employee_record: doc.employee_record } }
-            );
           }
         }
 
+        // คำนวณค่าต่างๆ ใหม่หลังจากเปลี่ยน dayType (ถ้ามี)
         const calculatedValues = await calculateCashValues(
           doc.employeeId,
           doc.employee_record,
           doc.month,
           doc.year
         );
+        
         const updateData = await {
           prefix: employeePrefix, // เพิ่ม prefix ใหม่
           dayWorkCount: String(calculatedValues.dayWorkCount),
@@ -4551,16 +4547,21 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           sumOt3: String(calculatedValues.sumOt3 || 0), // เพิ่มบรรทัดนี้
           sumOtPublicHoliday: String(calculatedValues.sumOtPublicHoliday || 0), // 
 
-
           // clearly ensure all SpSalary are numbers
-          // addSalaryList: calculatedValues.addSalaryList.map(item => ({
-          //   ...item,
-          //   SpSalary: parseFloat(item.SpSalary) || 0,
-          //   message : parseF item.message,
-          // })),
           addSalaryList: calculatedValues.addSalaryList,
           sumCashWorkMul: calculatedValues.sumCashWorkMul,
+          // เพิ่มการอัพเดต employee_record ด้วย (รวมการเปลี่ยน dayType)
+          employee_record: doc.employee_record
         };
+        
+        // แสดงข้อมูลสำคัญที่จะบันทึก
+        if (isWorkplace7Days && totalUpdatedDayType > 0) {
+          console.log(`\n📝 ข้อมูลที่จะบันทึกหลังจากเปลี่ยน dayType สำหรับพนักงาน ${doc.employeeId}:`);
+          console.log(`🔍 prefix: ${updateData.prefix}`);
+          console.log(`🔍 dayWorkCount: ${updateData.dayWorkCount}`);
+          console.log(`💰 sumCashWork: ${updateData.sumCashWork}`);
+          console.log(`💰 sumCashWorkMul: ${JSON.stringify(calculatedValues.sumCashWorkMul)}`);
+        }
         
         // แสดงข้อมูลสำคัญที่จะบันทึก
         console.log(`\n📝 ข้อมูลที่จะบันทึกสำหรับพนักงาน ${doc.employeeId}:`);
