@@ -4558,61 +4558,66 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           
           console.log(`✅ เปลี่ยน dayType ทั้งหมด ${changedCount} รายการสำหรับพนักงาน ${doc.employeeId}`);
           
-          // ปรับปรุง cashWork และ cashWorkMul หลังจากเปลี่ยน dayType
-          if (changedCount > 0) {
-            console.log(`\n🔧 ปรับปรุง cashWork และ cashWorkMul หลังจากเปลี่ยน dayType...`);
+          // ปรับปรุง cashWork และ cashWorkMul สำหรับหน่วยงาน 10493 (ทุกครั้ง ไม่ว่า changedCount จะเป็นเท่าไหร่)
+          console.log(`\n🔧 ปรับปรุง cashWork และ cashWorkMul สำหรับหน่วยงาน 10493...`);
+          
+          // ดึงข้อมูลการตั้งค่าหน่วยงานเพื่อใช้คำนวณ cashWork
+          let workplaceSettings = null;
+          try {
+            const workplaceApiUrl = `http://10.10.110.7:3000/workplace/${workplaceId}`;
+            console.log(`🔗 เรียก API: ${workplaceApiUrl}`);
+            const workplaceResponse = await axios.get(workplaceApiUrl);
+            workplaceSettings = workplaceResponse.data;
             
-            // ดึงข้อมูลการตั้งค่าหน่วยงานเพื่อใช้คำนวณ cashWork
-            let workplaceSettings = null;
-            try {
-              const workplaceApiUrl = `http://10.10.110.7:3000/workplace/${workplaceId}`;
-              const workplaceResponse = await axios.get(workplaceApiUrl);
-              workplaceSettings = workplaceResponse.data;
-              
-              console.log(`🏢 ใช้การตั้งค่าหน่วยงาน ${workplaceId}:`);
-              console.log(`   - workRate: ${workplaceSettings.workRate} บาท/วัน`);
-              console.log(`   - dayoffRate: ${workplaceSettings.dayoffRate} บาท/วัน`);
-            } catch (error) {
-              console.error(`❌ ไม่สามารถดึงข้อมูลการตั้งค่าหน่วยงานได้:`, error.message);
-            }
-            
-            // อัพเดต cashWork และ cashWorkMul สำหรับทุก record
-            doc.employee_record.forEach((record, index) => {
-              const originalCashWork = record.cashWork;
-              const originalCashWorkMul = record.cashWorkMul;
-              
-              if (workplaceSettings) {
-                if (record.dayType === 'work') {
-                  // วันทำงาน ใช้ workRate
-                  const newCashWork = String(workplaceSettings.workRate || 0);
-                  const newCashWorkMul = "1"; // ค่าปกติ
-                  
-                  record.cashWork = newCashWork;
-                  record.cashWorkMul = newCashWorkMul;
-                  
-                  console.log(`   📝 วันที่ ${record.date} (${record.dayType}): `);
-                  console.log(`      - cashWork: ${originalCashWork} → ${newCashWork} (workRate: ${workplaceSettings.workRate})`);
-                  console.log(`      - cashWorkMul: ${originalCashWorkMul} → ${newCashWorkMul}`);
-                  
-                } else if (record.dayType === 'stop') {
-                  // วันหยุด ใช้ dayoffRate
-                  const newCashWork = String(workplaceSettings.dayoffRate || 0);
-                  const newCashWorkMul = "2"; // ค่าวันหยุด
-                  
-                  record.cashWork = newCashWork;
-                  record.cashWorkMul = newCashWorkMul;
-                  
-                  console.log(`   📝 วันที่ ${record.date} (${record.dayType}): `);
-                  console.log(`      - cashWork: ${originalCashWork} → ${newCashWork} (dayoffRate: ${workplaceSettings.dayoffRate})`);
-                  console.log(`      - cashWorkMul: ${originalCashWorkMul} → ${newCashWorkMul}`);
-                }
-              } else {
-                console.log(`   ⚠️ วันที่ ${record.date}: ไม่สามารถอัพเดตได้ (ไม่มีข้อมูล workplaceSettings)`);
-              }
-            });
-            
-            console.log(`✅ ปรับปรุง cashWork และ cashWorkMul เสร็จสิ้น`);
+            console.log(`🏢 ได้รับการตั้งค่าหน่วยงาน ${workplaceId}:`);
+            console.log(`   - workRate: ${workplaceSettings.workRate} บาท/วัน`);
+            console.log(`   - dayoffRate: ${workplaceSettings.dayoffRate} บาท/วัน`);
+            console.log(`   - workOfHour: ${workplaceSettings.workOfHour} ชั่วโมง/วัน`);
+          } catch (error) {
+            console.error(`❌ ไม่สามารถดึงข้อมูลการตั้งค่าหน่วยงานได้:`, error.message);
           }
+          
+          // อัพเดต cashWork และ cashWorkMul สำหรับทุก record
+          let updatedCount = 0;
+          doc.employee_record.forEach((record, index) => {
+            const originalCashWork = record.cashWork;
+            const originalCashWorkMul = record.cashWorkMul;
+            
+            if (workplaceSettings) {
+              if (record.dayType === 'work') {
+                // วันทำงาน ใช้ workRate
+                const newCashWork = String(workplaceSettings.workRate || 0);
+                const newCashWorkMul = "1"; // ค่าปกติ
+                
+                record.cashWork = newCashWork;
+                record.cashWorkMul = newCashWorkMul;
+                updatedCount++;
+                
+                console.log(`   📝 วันที่ ${record.date} (${record.dayType}): `);
+                console.log(`      - cashWork: ${originalCashWork} → ${newCashWork} (ใช้ workRate: ${workplaceSettings.workRate})`);
+                console.log(`      - cashWorkMul: ${originalCashWorkMul} → ${newCashWorkMul}`);
+                
+              } else if (record.dayType === 'stop') {
+                // วันหยุด ใช้ dayoffRate
+                const newCashWork = String(workplaceSettings.dayoffRate || 0);
+                const newCashWorkMul = "2"; // ค่าวันหยุด
+                
+                record.cashWork = newCashWork;
+                record.cashWorkMul = newCashWorkMul;
+                updatedCount++;
+                
+                console.log(`   📝 วันที่ ${record.date} (${record.dayType}): `);
+                console.log(`      - cashWork: ${originalCashWork} → ${newCashWork} (ใช้ dayoffRate: ${workplaceSettings.dayoffRate})`);
+                console.log(`      - cashWorkMul: ${originalCashWorkMul} → ${newCashWorkMul}`);
+              } else {
+                console.log(`   ⏭️ วันที่ ${record.date} (${record.dayType}): ข้าม (dayType ไม่ใช่ work หรือ stop)`);
+              }
+            } else {
+              console.log(`   ⚠️ วันที่ ${record.date}: ไม่สามารถอัพเดตได้ (ไม่มีข้อมูล workplaceSettings)`);
+            }
+          });
+          
+          console.log(`✅ ปรับปรุง cashWork และ cashWorkMul เสร็จสิ้น (อัพเดต ${updatedCount} รายการ)`);
           
           // แสดง dayType ทั้งหมดหลังการเปลี่ยนแปลง
           console.log(`📋 dayType, cashWork และ cashWorkMul ทั้งหมดหลังการเปลี่ยนแปลง:`);
