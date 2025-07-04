@@ -701,18 +701,10 @@ if (ot3Hours > 0 && ot3Cash > 0) {
     }
 
     // รายการหัก
-    const feeTransfer = [];
     const textDedustArray = [];
     const valueDedustArray = [];
 
-     // ค่าธรรมเนียมการโอนเงิน
-    const transferFee = parseFloat(currentEmployee.transferFee || 0);
-    if (transferFee >= 0) {
-      textDedustArray.push("ค่าธรรมเนียมการโอนเงิน");
-      valueDedustArray.push(
-        transferFee.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-      );
-    }
+
 
     // ภาษี
     const tax = parseFloat(currentEmployee.tax || 0);
@@ -1099,13 +1091,7 @@ if (ot3Hours > 0 && ot3Cash > 0) {
           tax2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
         );
       }
-      const feeTransfer2 = parseFloat(currentEmployee2.transferFee || 0);
-      if (feeTransfer2 >= 0) {
-        textDedustArray2.push("ค่าธรรมเนียมการโอน");
-        valueDedustArray2.push(
-          feeTransfer2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-        );
-      }
+ 
 
 
       const socialSecurity2 = parseFloat(currentEmployee2.socialSecurity || 0);
