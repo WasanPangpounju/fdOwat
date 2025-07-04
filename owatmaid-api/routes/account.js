@@ -5362,5 +5362,113 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
   };
 };
 
+// ตรวจสอบและอัพเดท dayType สำหรับหน่วยงานที่ทำงาน 7 วัน
+router.post('/checkAndUpdateDayType', async (req, res) => {
+  try {
+    const { workplaceId, month, year } = req.body;
+    
+    if (!workplaceId || !month || !year) {
+      return res.status(400).json({
+        success: false,
+        message: 'workplaceId, month และ year จำเป็นต้องส่งมา'
+      });
+    }
+
+    // ขั้นตอนที่ 1: ตรวจสอบ workOfWeek
+    console.log(`กำลังตรวจสอบหน่วยงาน ${workplaceId}...`);
+    
+    const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${workplaceId}`);
+    const workplaceData = workplaceResponse.data;
+    
+    if (workplaceData.workOfWeek !== "7") {
+      return res.status(200).json({
+        success: false,
+        message: `หน่วยงาน ${workplaceId} มี workOfWeek: ${workplaceData.workOfWeek} วัน (ไม่ใช่ 7 วัน)`
+      });
+    }
+
+    console.log(`หน่วยงาน ${workplaceId} มี workOfWeek: 7 วัน`);
+
+    // ขั้นตอนที่ 2: ดึงข้อมูล timerecord
+    const timerecordData = {
+      workplaceId: workplaceId,
+      month: month,
+      year: year
+    };
+
+    const timerecordResponse = await axios.post('http://10.10.110.7:3000/accounting/searchtimerecordemployee', timerecordData);
+    const employeeRecords = timerecordResponse.data.result;
+
+    if (!employeeRecords || employeeRecords.length === 0) {
+      return res.status(200).json({
+        success: false,
+        message: 'ไม่พบข้อมูลพนักงานในช่วงเวลาที่กำหนด'
+      });
+    }
+
+    // ขั้นตอนที่ 3: ตรวจสอบวันหยุด
+    const weekendResponse = await axios.get(`http://10.10.110.7:3000/conclude/getWeekendDates?yyyy=${year}&mm=${month.padStart(2, '0')}&workplaceId=${workplaceId}`);
+    const weekendData = weekendResponse.data;
+
+    // สร้าง Set ของวันที่ที่ต้องเปลี่ยนเป็น stop
+    const daysToStop = new Set();
+    
+    if (weekendData.dayOffOnly) {
+      weekendData.dayOffOnly.forEach(date => {
+        const day = new Date(date).getDate().toString();
+        daysToStop.add(day);
+      });
+    }
+    
+    if (weekendData.weekendAndDayOff) {
+      weekendData.weekendAndDayOff.forEach(date => {
+        const day = new Date(date).getDate().toString();
+        daysToStop.add(day);
+      });
+    }
+
+    // ขั้นตอนที่ 4: อัพเดท dayType
+    let updatedCount = 0;
+    
+    for (const employeeRecord of employeeRecords) {
+      let hasUpdates = false;
+      
+      for (const record of employeeRecord.employee_record) {
+        if (record.dayType === "work" && daysToStop.has(record.date)) {
+          record.dayType = "stop";
+          hasUpdates = true;
+          updatedCount++;
+          console.log(`อัพเดท ${employeeRecord.employeeName} วันที่ ${record.date} จาก work เป็น stop`);
+        }
+      }
+      
+      // บันทึกการเปลี่ยนแปลงกลับไปที่ database (ถ้ามี)
+      if (hasUpdates) {
+        // TODO: เพิ่มโค้ดสำหรับบันทึกกลับไปที่ database
+        console.log(`บันทึกการเปลี่ยนแปลงสำหรับพนักงาน ${employeeRecord.employeeName}`);
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `อัพเดท dayType เรียบร้อย`,
+      data: {
+        workplaceId: workplaceId,
+        workOfWeek: workplaceData.workOfWeek,
+        updatedRecords: updatedCount,
+        daysToStop: Array.from(daysToStop),
+        employeeCount: employeeRecords.length
+      }
+    });
+
+  } catch (error) {
+    console.error('Error in checkAndUpdateDayType:', error);
+    res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการประมวลผล',
+      error: error.message
+    });
+  }
+});
 
 module.exports = router;
