@@ -4606,6 +4606,12 @@ const convertTimeToDecimal = (timeString) => {
 // ฟังก์ชันสำหรับคำนวณค่าต่างๆ สำหรับหน่วยงานพิเศษที่ทำงานทุกวัน (workOfWeek = "7")
 const calculateCashValuesForSpecialWorkplace = async (employeeId, employee_record, month, year) => {
   console.log(`\n🟡 [calculateCashValuesForSpecialWorkplace] เริ่มต้นการคำนวณสำหรับหน่วยงานพิเศษ พนักงาน ${employeeId} (${month}/${year})`);
+  console.log(`🟡 [calculateCashValuesForSpecialWorkplace] จำนวน employee_record ที่รับเข้ามา: ${employee_record.length} รายการ`);
+  
+  // แสดงข้อมูล employee_record ที่รับเข้ามา
+  employee_record.forEach((record, index) => {
+    console.log(`🟡 [Input] Record ${index}: date=${record.date}, dayType=${record.dayType}, totalTime=${record.totalTime}, cashWork=${record.cashWork}`);
+  });
   
   // ดึงข้อมูลการตั้งค่าพื้นฐานของระบบ
   const settingResult = await axios.get(sURL + '/basicsetting/');
@@ -4691,12 +4697,13 @@ const calculateCashValuesForSpecialWorkplace = async (employeeId, employee_recor
     }
     
     // สำหรับหน่วยงานที่ทำงาน 7 วัน - แก้ไข dayType จาก "stop" เป็น "work" ถ้ามีข้อมูลการทำงาน
-    if (record?.dayType === "stop" && (record.totalTime > 0 || record.cashWork > 0)) {
+    if (record?.dayType === "stop" && (parseFloat(record.totalTime) > 0 || parseFloat(record.cashWork) > 0)) {
       console.log(`🟡 แก้ไข dayType จาก "stop" เป็น "work" สำหรับวันที่ ${record.date} (หน่วยงาน 7 วัน)`);
+      console.log(`🟡 เงื่อนไข: totalTime=${record.totalTime} (${parseFloat(record.totalTime)}), cashWork=${record.cashWork} (${parseFloat(record.cashWork)})`);
       record.dayType = "work";
       
       // คำนวณ cashWork ใหม่จาก workplace workRate
-      if (record.workplaceId && record.totalTime > 0) {
+      if (record.workplaceId && parseFloat(record.totalTime) > 0) {
         try {
           const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${record.workplaceId}`);
           const workplaceData = workplaceResponse.data;
