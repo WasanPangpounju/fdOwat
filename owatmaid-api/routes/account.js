@@ -4689,6 +4689,32 @@ const calculateCashValuesForSpecialWorkplace = async (employeeId, employee_recor
     if (record?.dayType === "stop" && (record.totalTime > 0 || record.cashWork > 0)) {
       console.log(`🟡 แก้ไข dayType จาก "stop" เป็น "work" สำหรับวันที่ ${record.date} (หน่วยงาน 7 วัน)`);
       record.dayType = "work";
+      
+      // คำนวณ cashWork ใหม่จาก workplace workRate
+      if (record.workplaceId && record.totalTime > 0) {
+        try {
+          const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${record.workplaceId}`);
+          const workplaceData = workplaceResponse.data;
+          
+          if (workplaceData && workplaceData.workRate) {
+            const hourlyRate = parseFloat(workplaceData.workRate) || 0;
+            const workHours = parseFloat(record.totalTime) || 0;
+            const newCashWork = hourlyRate * workHours;
+            
+            console.log(`🟡 คำนวณ cashWork ใหม่สำหรับวันที่ ${record.date}:`);
+            console.log(`   - workRate จาก workplace: ${hourlyRate} บาท/ชั่วโมง`);
+            console.log(`   - totalTime: ${workHours} ชั่วโมง`);
+            console.log(`   - cashWork เดิม: ${record.cashWork}`);
+            console.log(`   - cashWork ใหม่: ${newCashWork}`);
+            
+            record.cashWork = newCashWork.toString();
+          } else {
+            console.log(`🟡 ⚠️ ไม่พบ workRate ใน workplace ${record.workplaceId}`);
+          }
+        } catch (error) {
+          console.error(`🟡 ❌ ข้อผิดพลาดในการดึงข้อมูล workplace ${record.workplaceId}:`, error.message);
+        }
+      }
     }
     
     // สำหรับหน่วยงานที่ทำงาน 7 วัน - ประมวลผลเฉพาะ dayType = "work" เท่านั้น
