@@ -4673,6 +4673,12 @@ const calculateCashValuesForSpecialWorkplace = async (employeeId, employee_recor
       continue;
     }
     
+    // สำหรับหน่วยงานที่ทำงาน 7 วัน - แก้ไข dayType จาก "stop" เป็น "work" ถ้ามีข้อมูลการทำงาน
+    if (record?.dayType === "stop" && (record.totalTime > 0 || record.cashWork > 0)) {
+      console.log(`🟡 แก้ไข dayType จาก "stop" เป็น "work" สำหรับวันที่ ${record.date} (หน่วยงาน 7 วัน)`);
+      record.dayType = "work";
+    }
+    
     // สำหรับหน่วยงานที่ทำงาน 7 วัน - ประมวลผลเฉพาะ dayType = "work" เท่านั้น
     if (record?.dayType === "work") {
       console.log(`\n--- 🟡 กำลังประมวลผลวันที่: ${record.date}, ประเภท: ${record.dayType} ---`);
