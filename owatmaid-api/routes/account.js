@@ -4565,7 +4565,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
             // ดึงข้อมูลการตั้งค่าหน่วยงานเพื่อใช้คำนวณ cashWork
             let workplaceSettings = null;
             try {
-              const workplaceApiUrl = `${sURL}/workplace/${workplaceId}`;
+              const workplaceApiUrl = `http://10.10.110.7:3000/workplace/${workplaceId}`;
               const workplaceResponse = await axios.get(workplaceApiUrl);
               workplaceSettings = workplaceResponse.data;
               
@@ -4584,27 +4584,30 @@ router.post('/searchtimerecordemployee', async (req, res) => {
               if (workplaceSettings) {
                 if (record.dayType === 'work') {
                   // วันทำงาน ใช้ workRate
-                  record.cashWork = String(workplaceSettings.workRate || 0);
-                  record.cashWorkMul = "1"; // ค่าปกติ
+                  const newCashWork = String(workplaceSettings.workRate || 0);
+                  const newCashWorkMul = "1"; // ค่าปกติ
                   
-                  if (originalCashWork !== record.cashWork) {
-                    console.log(`   📝 วันที่ ${record.date}: อัพเดต cashWork จาก ${originalCashWork} เป็น ${record.cashWork} (workRate)`);
-                  }
-                  if (originalCashWorkMul !== record.cashWorkMul) {
-                    console.log(`   📝 วันที่ ${record.date}: อัพเดต cashWorkMul จาก ${originalCashWorkMul} เป็น ${record.cashWorkMul}`);
-                  }
+                  record.cashWork = newCashWork;
+                  record.cashWorkMul = newCashWorkMul;
+                  
+                  console.log(`   📝 วันที่ ${record.date} (${record.dayType}): `);
+                  console.log(`      - cashWork: ${originalCashWork} → ${newCashWork} (workRate: ${workplaceSettings.workRate})`);
+                  console.log(`      - cashWorkMul: ${originalCashWorkMul} → ${newCashWorkMul}`);
+                  
                 } else if (record.dayType === 'stop') {
                   // วันหยุด ใช้ dayoffRate
-                  record.cashWork = String(workplaceSettings.dayoffRate || 0);
-                  record.cashWorkMul = "2"; // ค่าวันหยุด
+                  const newCashWork = String(workplaceSettings.dayoffRate || 0);
+                  const newCashWorkMul = "2"; // ค่าวันหยุด
                   
-                  if (originalCashWork !== record.cashWork) {
-                    console.log(`   📝 วันที่ ${record.date}: อัพเดต cashWork จาก ${originalCashWork} เป็น ${record.cashWork} (dayoffRate)`);
-                  }
-                  if (originalCashWorkMul !== record.cashWorkMul) {
-                    console.log(`   📝 วันที่ ${record.date}: อัพเดต cashWorkMul จาก ${originalCashWorkMul} เป็น ${record.cashWorkMul}`);
-                  }
+                  record.cashWork = newCashWork;
+                  record.cashWorkMul = newCashWorkMul;
+                  
+                  console.log(`   📝 วันที่ ${record.date} (${record.dayType}): `);
+                  console.log(`      - cashWork: ${originalCashWork} → ${newCashWork} (dayoffRate: ${workplaceSettings.dayoffRate})`);
+                  console.log(`      - cashWorkMul: ${originalCashWorkMul} → ${newCashWorkMul}`);
                 }
+              } else {
+                console.log(`   ⚠️ วันที่ ${record.date}: ไม่สามารถอัพเดตได้ (ไม่มีข้อมูล workplaceSettings)`);
               }
             });
             
