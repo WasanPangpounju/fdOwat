@@ -1209,7 +1209,18 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
                   // Fix dayType from "stop" to "work" if there's actual work data
                   if (record?.dayType === "stop" && (parseFloat(record.totalTime) > 0 || parseFloat(record.cashWork) > 0)) {
                     console.log(`🟡 [timerecords] แก้ไข dayType จาก "stop" เป็น "work" สำหรับวันที่ ${record.date} (หน่วยงาน 7 วัน)`);
+                    
+                    // เก็บสถานะเดิมไว้ในฟิลด์ originalDayType สำหรับ frontend
+                    record.originalDayType = record.dayType;
+                    // เพิ่มฟิลด์ใหม่เพื่อระบุว่าเป็นหน่วยงานพิเศษ
+                    record.isSpecialWorkplace = true;
+                    record.specialWorkplaceStatus = "มาทำงาน"; // สำหรับ frontend แสดงผล
+                    
                     record.dayType = "work";
+                  } else if (record?.dayType === "stop") {
+                    // สำหรับ record ที่เป็น stop จริงๆ (ไม่มีข้อมูลการทำงาน)
+                    record.isSpecialWorkplace = true;
+                    record.specialWorkplaceStatus = "วันหยุด"; // สำหรับ frontend แสดงผล
                   }
                 });
               }
