@@ -5203,15 +5203,22 @@ try {
               if (record.addSalaryDaily && record.addSalaryDaily.length > 0) {
                 record.addSalaryDaily.forEach((salaryItem) => {
                   const cleanSalaryItemId = String(salaryItem.id).trim();
-                  const amount = parseFloat(salaryItem.SpSalary || 0);
+                  const dailyRate = parseFloat(salaryItem.SpSalary || 0); // ค่าต่อวัน
 
                   const existingItem = addSalaryList.find(
                     item => String(item.id).trim() === cleanSalaryItemId
                   );
 
                   if (existingItem) {
-                    existingItem.SpSalary = parseFloat(existingItem.SpSalary || 0) + amount;
+                    // นับจำนวนวันที่มาทำงาน (เพิ่ม 1 วัน)
                     existingItem.message = parseFloat(existingItem.message || 0) + 1;
+                    // คำนวณใหม่: ค่าต่อวัน × จำนวนวัน
+                    existingItem.SpSalary = dailyRate * existingItem.message;
+
+                    console.log(`💰 อัพเดตเงินพิเศษรายวัน ${existingItem.name} (ID: ${cleanSalaryItemId}):`);
+                    console.log(`   - ค่าต่อวัน: ${dailyRate} บาท`);
+                    console.log(`   - จำนวนวัน: ${existingItem.message} วัน`);
+                    console.log(`   - ยอดรวม: ${existingItem.SpSalary} บาท`);
 
                     // Find the exact index
                     const index = addSalaryList.findIndex(item => item.id === existingItem.id);
@@ -5222,9 +5229,19 @@ try {
                     }
 
                   } else {
-                    // Otherwise push new
-                    salaryItem.message = 1; 
-                    addSalaryList.push(salaryItem);
+                    // เงินพิเศษรายการใหม่ - วันแรก
+                    const newSalaryItem = {
+                      ...salaryItem,
+                      message: 1,  // วันแรก
+                      SpSalary: dailyRate  // ค่าต่อวัน × 1
+                    };
+                    
+                    console.log(`💰 เพิ่มเงินพิเศษรายวันใหม่ ${newSalaryItem.name} (ID: ${cleanSalaryItemId}):`);
+                    console.log(`   - ค่าต่อวัน: ${dailyRate} บาท`);
+                    console.log(`   - จำนวนวัน: 1 วัน`);
+                    console.log(`   - ยอดรวม: ${newSalaryItem.SpSalary} บาท`);
+                    
+                    addSalaryList.push(newSalaryItem);
                   } //end else
                 }); //end foreach
               }
