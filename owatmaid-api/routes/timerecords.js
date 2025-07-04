@@ -3,6 +3,7 @@ const sURL = 'http://localhost:3000';
 
 const timerecordEmployee = require('./models/periodtimerecordModel');
 const workplaceTimerecords = require('./models/periodworkplacetimerecordModel');
+const Employee = require('./models/employeeModel'); // เพิ่ม import สำหรับ Employee model
 
 const axios = require('axios');
 
@@ -1167,7 +1168,6 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
     // Construct the search query based on the provided parameters
     const query = {};
 
-
     if (month !== '') {
       //query.month = new Date(date);
       query.month = { $regex: new RegExp(month , 'i') };
@@ -1179,17 +1179,81 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
 
     if ( month == '' && year== '') {
       res.status(200).json({});
+      return;
     }
 
     // Query the workplace collection for matching documents
     const result = await timerecordEmployee.find(query);
 
-    await res.status(200).json({ result});
+    // Process each result to apply special workplace logic
+    const processedResult = await Promise.all(result.map(async (doc) => {
+      try {
+        // Create a copy of the document to avoid modifying the original
+        const processedDoc = JSON.parse(JSON.stringify(doc));
+        
+        // Get employee profile to check workplace type
+        const employeeProfile = await getEmployeeProfile(processedDoc.employeeId);
+        
+        if (employeeProfile && employeeProfile[0] && employeeProfile[0].workplace) {
+          // Check if this is a special workplace (workOfWeek = "7")
+          try {
+            const workplaceList = await axios.get(sURL + '/workplace/list');
+            const foundWorkplace = workplaceList.data.find(workplace => workplace.workplaceId === employeeProfile[0].workplace);
+            
+            if (foundWorkplace && foundWorkplace.workOfWeek === "7") {
+              console.log(`🟡 [timerecords] พบหน่วยงานพิเศษ (workOfWeek=7) สำหรับพนักงาน ${processedDoc.employeeId}`);
+              
+              // Apply special workplace logic to fix dayType
+              if (processedDoc.employee_record && Array.isArray(processedDoc.employee_record)) {
+                processedDoc.employee_record.forEach(record => {
+                  // Fix dayType from "stop" to "work" if there's actual work data
+                  if (record?.dayType === "stop" && (parseFloat(record.totalTime) > 0 || parseFloat(record.cashWork) > 0)) {
+                    console.log(`🟡 [timerecords] แก้ไข dayType จาก "stop" เป็น "work" สำหรับวันที่ ${record.date} (หน่วยงาน 7 วัน)`);
+                    record.dayType = "work";
+                  }
+                });
+              }
+            }
+          } catch (workplaceError) {
+            console.error(`❌ [timerecords] ข้อผิดพลาดในการตรวจสอบ workplace:`, workplaceError.message);
+          }
+        }
+        
+        return processedDoc;
+      } catch (processError) {
+        console.error(`❌ [timerecords] ข้อผิดพลาดในการประมวลผลเอกสาร:`, processError.message);
+        return doc; // Return original document if processing fails
+      }
+    }));
+
+    await res.status(200).json({ result: processedResult});
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+
+// Helper function to get employee profile (copied from account.js)
+const getEmployeeProfile = async (employeeId) => {
+  try {
+    const query = {};
+    if (employeeId) {
+      query.employeeId = employeeId;
+    }
+
+    // Query the employee collection for matching documents
+    const employees = await Employee.find(query);
+
+    if(employees ) {
+      return employees ;
+    } else {
+      return null;
+    }
+  } catch (error) {
+    console.error('Error fetching employee profile:', error);
+    return null;
+  }
+};
 
 //search timerecordEmployee 
 router.post('/searchtimerecordemployee', async (req, res) => {
