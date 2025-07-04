@@ -222,6 +222,15 @@ router.get('/:workplaceId', async (req, res) => {
     try {
         const workplace = await Workplace.findOne({ workplaceId: req.params.workplaceId });
         if (workplace) {
+            // 🔍 Log ค่า workOfWeek
+            console.log(`📊 หน่วยงาน ${req.params.workplaceId} (${workplace.workplaceName}) มี workOfWeek: "${workplace.workOfWeek || 'ไม่ระบุ'}" วัน`);
+            
+            if (workplace.workOfWeek === "7") {
+                console.log(`✅ หน่วยงาน ${req.params.workplaceId} ทำงาน 7 วัน/สัปดาห์`);
+            } else {
+                console.log(`ℹ️ หน่วยงาน ${req.params.workplaceId} ทำงาน ${workplace.workOfWeek || 'ไม่ระบุ'} วัน/สัปดาห์`);
+            }
+            
             // ✅ แปลง publicHoliday dates ให้ถูกต้องก่อน return
             if (workplace.publicHoliday && workplace.publicHoliday.length > 0) {
                 console.log(`🔍 [workplaces GET] Processing ${workplace.publicHoliday.length} public holidays for workplace ${req.params.workplaceId}`);
