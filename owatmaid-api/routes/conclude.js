@@ -2339,24 +2339,60 @@ router.post('/searchtimerecordemployee', async (req, res) => {
             const foundWorkplace = workplaceList.data.find(workplace => workplace.workplaceId === employeeProfile[0].workplace);
             
             if (foundWorkplace && foundWorkplace.workOfWeek === "7") {
-              console.log(`🟡 [conclude/searchtimerecordemployee] พบหน่วยงานพิเศษ (workOfWeek=7) - แก้ไข dayType สำหรับพนักงาน ${doc.employeeId}`);
+              console.log(`🟡 [conclude/searchtimerecordemployee] พบหน่วยงานพิเศษ (workOfWeek=7) - แก้ไข dayType และ cashWork สำหรับพนักงาน ${doc.employeeId}`);
               
-              // แก้ไข dayType ให้เป็น "work" ทุกวัน
+              let needsRecalculation = false;
+              
+              // แก้ไข dayType ให้เป็น "work" ทุกวัน และตรวจสอบว่าต้องคำนวณใหม่หรือไม่
               doc.employee_record.forEach((record, index) => {
                 const originalDayType = record.dayType;
                 record.dayType = "work"; // บังคับให้เป็น work ทุกวัน
                 
                 if (originalDayType !== "work") {
                   console.log(`  📅 วันที่ ${record.date}: เปลี่ยน dayType จาก "${originalDayType}" เป็น "work"`);
+                  needsRecalculation = true;
                 }
               });
+              
+              // หาก dayType มีการเปลี่ยนแปลง ให้คำนวณ cashWork ใหม่ด้วยอัตราค่าแรงปกติ
+              if (needsRecalculation) {
+                console.log(`🔄 [conclude/searchtimerecordemployee] คำนวณ cashWork ใหม่ด้วยอัตราค่าแรงปกติสำหรับพนักงาน ${doc.employeeId}`);
+                
+                // Get employee profile for salary calculation
+                const employeeProfile = await getEmployeeProfile(doc.employeeId);
+                if (employeeProfile && employeeProfile[0]) {
+                  const salaryTmp = parseFloat(employeeProfile[0].salary || '0') || 0;
+                  let salary = 0;
+
+                  // Calculate hourly rate
+                  if(parseFloat(salaryTmp || '0') > 1660) {
+                    salary = await ((parseFloat(salaryTmp || '0') / 30)/ 8).toFixed(3);
+                  } else {
+                    salary = await (parseFloat(salaryTmp || '0')/ 8).toFixed(3);
+                  }
+                  
+                  // Recalculate cashWork for each record using work rate (multiplier = 1)
+                  doc.employee_record.forEach((record, index) => {
+                    const originalCashWork = record.cashWork;
+                    const originalCashWorkMul = record.cashWorkMul;
+                    
+                    // คำนวณ cashWork ใหม่ด้วยอัตราค่าแรงปกติ (ไม่มีตัวคูณพิเศษ)
+                    record.cashWork = (record.totalTime || 0) * parseFloat(salary || 0);
+                    record.cashWorkMul = "1"; // ตัวคูณค่าแรงปกติเป็น 1
+                    
+                    if (originalCashWork !== record.cashWork || originalCashWorkMul !== record.cashWorkMul) {
+                      console.log(`  💰 วันที่ ${record.date}: เปลี่ยน cashWork จาก ${originalCashWork} (mul: ${originalCashWorkMul}) เป็น ${record.cashWork} (mul: ${record.cashWorkMul})`);
+                    }
+                  });
+                }
+              }
               
               // บันทึกการเปลี่ยนแปลงลงฐานข้อมูล
               try {
                 await doc.save();
-                console.log(`💾 บันทึกการเปลี่ยนแปลง dayType สำหรับพนักงาน ${doc.employeeId} เสร็จสิ้น`);
+                console.log(`💾 บันทึกการเปลี่ยนแปลง dayType และ cashWork สำหรับพนักงาน ${doc.employeeId} เสร็จสิ้น`);
               } catch (saveError) {
-                console.error(`❌ ไม่สามารถบันทึกการเปลี่ยนแปลง dayType สำหรับพนักงาน ${doc.employeeId}:`, saveError.message);
+                console.error(`❌ ไม่สามารถบันทึกการเปลี่ยนแปลง dayType และ cashWork สำหรับพนักงาน ${doc.employeeId}:`, saveError.message);
               }
             }
           } catch (workplaceError) {
