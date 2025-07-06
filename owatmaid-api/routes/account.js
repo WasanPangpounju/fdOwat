@@ -4293,28 +4293,41 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
       if (workplaceId && empWorkplaceId !== workplaceId) continue;
 
             // 🔥 เพิ่มเช็ค dayWorkCount หรือ dayOffCount
-            if (!record.dayWorkCount || !record.dayOffCount) {
-              console.log(`🔍 Missing dayWorkCount or dayOffCount for employeeId=${record.employeeId} month ${record.month} year ${record.year}`);
+            if (!record.dayWorkCount || record.dayWorkCount === "0" || !record.dayOffCount) {
+              console.log(`🔍 Missing or zero dayWorkCount/dayOffCount for employeeId=${record.employeeId} month ${record.month} year ${record.year}`);
       
               try {
                 const apiRes = await axios.post(sURL + '/conclude/searchtimerecordemployee', {
                   employeeId: record.employeeId,
                   month: record.month,
                   year: record.year,
-                            });
-                            const apiRes1 = await axios.post(sURL + '/accounting/searchtimerecordemployee', {
-                              employeeId: record.employeeId,
-                              month: record.month,
-                              year: record.year,
-                                        });
-            
-                // สมมติ API /conclude/searchtimerecordemployee ส่งข้อมูลที่อัปเดตกลับมา
-                // const updatedData = awaitapiRes.data;
-                // record = await apiRes.data;
-      
-                // อัปเดตข้อมูลใน record (ถ้ามา)
-                // if (updatedData.dayWorkCount !== undefined) record.dayWorkCount = updatedData.dayWorkCount;
-                // if (updatedData.dayOffCount !== undefined) record.dayOffCount = updatedData.dayOffCount;
+                });
+                
+                console.log(`🔄 API Response from /conclude/searchtimerecordemployee for ${record.employeeId}:`, JSON.stringify(apiRes.data, null, 2));
+                
+                // อัปเดตข้อมูลใน record จากผลลัพธ์ของ API
+                if (apiRes.data && apiRes.data.length > 0) {
+                  const updatedData = apiRes.data[0];
+                  
+                  if (updatedData.summary) {
+                    // ใช้ข้อมูล summary ที่คำนวณแล้ว
+                    record.dayWorkCount = updatedData.summary.dayWorkCount || record.dayWorkCount;
+                    record.dayOffCount = updatedData.summary.dayOffCount || record.dayOffCount;
+                    record.publicHolidayCount = updatedData.summary.publicHolidayCount || record.publicHolidayCount;
+                    record.sumCashWork = updatedData.summary.sumCashWork || record.sumCashWork;
+                    record.sumCashOt = updatedData.summary.sumCashOt || record.sumCashOt;
+                    record.sumOt1p5 = updatedData.summary.sumOt1p5 || record.sumOt1p5;
+                    record.sumOt3 = updatedData.summary.sumOt3 || record.sumOt3;
+                    record.sumOtPublicHoliday = updatedData.summary.sumOtPublicHoliday || record.sumOtPublicHoliday;
+                    record.sumCashWorkMul = updatedData.summary.sumCashWorkMul || record.sumCashWorkMul;
+                    record.timeCashWorkMul = updatedData.summary.timeCashWorkMul || record.timeCashWorkMul;
+                    record.addSalaryList = updatedData.summary.addSalaryList || record.addSalaryList;
+                    
+                    console.log(`✅ Updated summary for ${record.employeeId}: dayWorkCount=${record.dayWorkCount}, dayOffCount=${record.dayOffCount}`);
+                  } else {
+                    console.log(`⚠️ No summary field in API response for ${record.employeeId}`);
+                  }
+                }
               } catch (error) {
                 console.error(`❌ Error fetching updated timerecord for employeeId=${record.employeeId}`, error.message);
               }

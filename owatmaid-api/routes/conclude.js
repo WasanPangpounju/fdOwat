@@ -2768,7 +2768,61 @@ router.post('/searchtimerecordemployee', async (req, res) => {
       });
     }
     
-    await res.status(200).json({ result: processedResult });
+    // คำนวณ summary สำหรับแต่ละ record
+    const resultWithSummary = await Promise.all(processedResult.map(async (doc) => {
+      const result = { ...doc };
+      
+      // เพิ่มการคำนวณ summary ถ้ามีข้อมูล employee_record
+      if (doc.employeeId && doc.month && doc.year && doc.employee_record && doc.employee_record.length > 0) {
+        console.log(`🟢 [conclude/searchtimerecordemployee] กำลังคำนวณ summary สำหรับพนักงาน ${doc.employeeId} (${doc.month}/${doc.year})`);
+        
+        // Get employee profile to check workplace information
+        const employeeProfile = await getEmployeeProfile(doc.employeeId);
+        
+        if (employeeProfile && employeeProfile[0] && employeeProfile[0].workplace) {
+          // Get workplace information
+          try {
+            const workplaceList = await axios.get(sURL + '/workplace/list');
+            const foundWorkplace = workplaceList.data.find(workplace => workplace.workplaceId === employeeProfile[0].workplace);
+            
+            if (foundWorkplace) {
+              // Convert employee_record to the format expected by summary calculation
+              const employee_record = doc.employee_record.map(record => ({
+                date: record.date ? record.date : '',
+                dayType: record.dayType || "work",
+                totalTime: record.totalTime || '0',
+                totalOtTime: record.totalOtTime || '0',
+                cashWork: record.cashWork || 0,
+                cashOt: record.cashOt || 0,
+                cashWorkMul: record.cashWorkMul || "1",
+                cashOtMul: record.cashOtMul || "1.5",
+                addSalaryDaily: record.addSalaryDaily || []
+              }));
+              
+              let summary;
+              if (foundWorkplace.workOfWeek === "7") {
+                // Use special workplace calculation
+                summary = await calculateSummaryForSpecialWorkplace(doc.employeeId, employee_record, doc.month, doc.year);
+              } else {
+                // Use regular workplace calculation
+                summary = await calculateSummaryForNormalWorkplace(doc.employeeId, employee_record, doc.month, doc.year);
+              }
+              
+              result.summary = summary;
+              console.log(`🟢 [conclude/searchtimerecordemployee] Summary calculated for ${doc.employeeId}: dayWorkCount=${summary.dayWorkCount}, dayOffCount=${summary.dayOffCount}`);
+            }
+          } catch (error) {
+            console.error(`❌ Error calculating summary for ${doc.employeeId}:`, error.message);
+          }
+        }
+      }
+      
+      return result;
+    }));
+    
+    console.log(`✅ [conclude/searchtimerecordemployee] ส่งผลลัพธ์พร้อม summary ${resultWithSummary.length} รายการ`);
+    
+    await res.status(200).json({ result: resultWithSummary });
 
   } catch (error) {
     console.error(error);
