@@ -1910,7 +1910,7 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
       } else {
         // วันที่ 1-20 ของเดือนนี้ (เช่น พฤษภาคม)
         // ใช้ข้อมูลของเดือนนี้ (เช่น พฤษภาคม)
-        apiMonth = month.toString().padStart(2, '0');
+        apiMonth = month.toString(); // ไม่ต้อง padStart เพื่อให้เป็น "5" แทน "05"
         apiYear = year;
       }
       
@@ -2095,9 +2095,16 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
       const bangkokDate = `${displayYear}-${displayMonth}-${paddedDay}`;
       
       console.log(`📅 ตรวจสอบวันที่: ${bangkokDate} (วันที่ ${record.date} เดือน ${displayMonth}/${displayYear})`);
+      console.log(`🔍 เรียก checkDayRate สำหรับวันที่ ${record.date}`);
 
       const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate, record.date, 
         employeeProfile?.[0]?.customWorkplace);
+      
+      console.log(`🔍 ผลลัพธ์จาก checkDayRate สำหรับวันที่ ${record.date}:`, {
+        dayType: dataRate?.dayType,
+        cashOtMul: dataRate?.cashOtMul,
+        workRate: dataRate?.workRate
+      });
 
       let cashBeforeOt = 0;
       let cashWork = 0;
@@ -2138,6 +2145,7 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
 
           cashWork = await (record.totalTime || 0) * (parseFloat(salary || '0') * parseFloat(dataRate?.dayoffRateHour || '0')) || 0;
           dayType = await dataRate?.dayType || 0;
+          console.log(`🔍 dayType จาก dataRate (stop) สำหรับวันที่ ${record.date}: ${dayType}`);
           cashBeforeOtMul = dataRate?.dayoffRateOT || 0;
           cashWorkMul = dataRate?.dayoffRateHour || 0;
           cashOtMul = dataCal.cashOtMul || dataRate?.dayoffRateOT || 0; // ใช้ค่าจาก dataCal.cashOtMul ถ้ามี
@@ -2695,7 +2703,12 @@ async function calculateSummaryForSpecialWorkplace(employeeId, employee_record, 
   
   // วนลูปผ่านทุกวันใน employee_record
   for (const record of employee_record) {
-    console.log(`  📅 วันที่ ${record.date}: dayType="${record.dayType}"`);
+    // สร้างวันที่ในรูปแบบ YYYY-MM-DD เพื่อแสดงใน log
+    const paddedMonth = month.toString().padStart(2, '0');
+    const paddedDay = record.date.toString().padStart(2, '0');
+    const fullDate = `${year}-${paddedMonth}-${paddedDay}`;
+    
+    console.log(`  📅 วันที่ ${record.date} (${fullDate}): dayType="${record.dayType}"`);
     
     // ตรวจสอบ dayType ที่เป็นอยู่จริง
     if (record.dayType === "stop") {
@@ -2739,7 +2752,12 @@ async function calculateSummaryForNormalWorkplace(employeeId, employee_record, m
   
   // วนลูปผ่านทุกวันใน employee_record
   for (const record of employee_record) {
-    console.log(`  📅 วันที่ ${record.date}: dayType="${record.dayType}", cashWorkMul="${record.cashWorkMul}"`);
+    // สร้างวันที่ในรูปแบบ YYYY-MM-DD เพื่อแสดงใน log
+    const paddedMonth = month.toString().padStart(2, '0');
+    const paddedDay = record.date.toString().padStart(2, '0');
+    const fullDate = `${year}-${paddedMonth}-${paddedDay}`;
+    
+    console.log(`  📅 วันที่ ${record.date} (${fullDate}): dayType="${record.dayType}", cashWorkMul="${record.cashWorkMul}"`);
     
     // นับจำนวนวันตาม dayType
     if (record.dayType === "work") {
