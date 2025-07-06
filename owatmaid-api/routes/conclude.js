@@ -1673,20 +1673,28 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
         }
       }
       
-      // ตรวจสอบ weekendOnly (วันหยุดสุดสัปดาห์เท่านั้น)
+      // ตรวจสอบ weekendOnly (วันหยุดสุดสัปดาห์เท่านั้น) - เฉพาะสำหรับหน่วยงาน 7 วัน
       if (weekendData.weekendOnly && weekendData.weekendOnly.length > 0) {
         console.log(`📅 วันใน weekendOnly: ${JSON.stringify(weekendData.weekendOnly)}`);
         
         if (weekendData.weekendOnly.includes(dateStr)) {
-          // วันที่อยู่ใน weekendOnly ให้เป็น work ทั้งหมด (ทั้งเสาร์และอาทิตย์)
-          if (dayOfWeek === 6) { // วันเสาร์
-            console.log(`✅ พบวันที่ ${dateStr} เป็นวันเสาร์ใน weekendOnly -> dayType = work`);
-            dataCal.dayType = 'work';
-            return dataCal;
-          } else if (dayOfWeek === 0) { // วันอาทิตย์
-            console.log(`✅ พบวันที่ ${dateStr} เป็นวันอาทิตย์ใน weekendOnly -> dayType = work`);
-            dataCal.dayType = 'work';
-            return dataCal;
+          // ตรวจสอบว่าหน่วยงานนี้ทำงาน 7 วันหรือไม่
+          const workOfWeek = workplaces?.[0]?.workOfWeek || customWorkplace?.workOfWeek;
+          
+          if (workOfWeek === "7") {
+            // เฉพาะหน่วยงาน 7 วัน: วันที่อยู่ใน weekendOnly ให้เป็น work ทั้งหมด
+            if (dayOfWeek === 6) { // วันเสาร์
+              console.log(`✅ หน่วยงาน 7 วัน: พบวันที่ ${dateStr} เป็นวันเสาร์ใน weekendOnly -> dayType = work`);
+              dataCal.dayType = 'work';
+              return dataCal;
+            } else if (dayOfWeek === 0) { // วันอาทิตย์
+              console.log(`✅ หน่วยงาน 7 วัน: พบวันที่ ${dateStr} เป็นวันอาทิตย์ใน weekendOnly -> dayType = work`);
+              dataCal.dayType = 'work';
+              return dataCal;
+            }
+          } else {
+            // หน่วยงานปกติ: วันที่อยู่ใน weekendOnly ยังคงเป็นวันหยุดตามปกติ
+            console.log(`ℹ️ หน่วยงานปกติ: วันที่ ${dateStr} อยู่ใน weekendOnly แต่ไม่เปลี่ยน dayType`);
           }
         }
       }
