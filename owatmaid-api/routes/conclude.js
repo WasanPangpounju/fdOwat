@@ -506,97 +506,239 @@ const         wpDataCalculator1 = await {
 
         //get workplace data for calculator
         const wpResponse1 = await axios.post(sURL + '/workplace/caldata', wpDataCalculator1);
-        
-        console.log('🔄 [autocreate] กำลังใช้ฟังก์ชัน calculateCashValues ใหม่แทนโค้ดเก่า (Single-workplace)');
-        
-        // ใช้ฟังก์ชัน calculateCashValues แทนโค้ดเก่า
-        // รวบรวมข้อมูลทั้งหมดเป็น array ก่อน
-        const employee_records_single = data1.recordworkplace[0].employee_workplaceRecord
-          .filter(element => {
-            let dateParts = element.date.split('/');
-            let str1 = parseInt(dateParts[0], 10);
-            return str1 > 20 && str1 <= lastday;
-          })
-          .map(element => ({
-            date: parseInt(element.date.split('/')[0], 10), // เอาเฉพาะวันที่
-            totalTime: convertTimeToDecimal(element.allTime || '0'), 
-            totalOtTime: convertTimeToDecimal(element.otTime || '0'),
-            beforeTotalOtTime: 0, // ไม่มีข้อมูลนี้ในโค้ดเก่า
-            workplaceId: element.workplaceId,
-            wGroup: [], // จะถูกเติมภายในฟังก์ชัน
-            shift: element.shift || '',
-            specialtSalary: element.specialtSalary || '',
-            specialtSalaryOT: element.specialtSalaryOT || '',
-            originalElement: element // เก็บข้อมูลเดิมไว้
-          }));
+        // console.log(JSON.stringify( wpResponse1.data, null,2) );
+        const workOfHour = await wpResponse1.data.workOfHour || 0;
+        const workOfOT = await parseFloat(wpResponse1.data.workOfOT) || 0;
+        const workOfOT_subHour = await parseFloat(wpResponse1.data.workOfOT_subHour) || 0;
+        const workOfOT_subMinute = await parseFloat(wpResponse1.data.workOfOT_subMinute) || 0;
+        const workOfOT_breakMinute = await parseFloat(wpResponse1.data.workOfOT_breakMinute ) || 0;
 
-        try {
-          // เรียกใช้ calculateCashValues ด้วย parameters ที่ถูกต้อง
-          const calculatedResults_single = await calculateCashValues(
-            employeeId, 
-            employee_records_single, 
-            parseInt(prevMonth), // ใช้ prevMonth สำหรับวันที่ 21-31
-            parseInt(year1)     // ใช้ year1 สำหรับวันที่ 21-31
-          );
+        const dayOff1 = await wpResponse1.data.workplaceDayOffList || [];
+        // console.log('dayOff1 ' + dayOff1 );
+        const specialDayOff1 = await wpResponse1.data.specialDaylist || [];
+        const dayOffCheck1 = [];
+        if (dayOff1.length !== 0) {
+          await dayOff1.forEach(item => {
+            let dateoffParts = item.split('-');
+            let str2 = parseInt(dateoffParts[2], 10);
+            // console.log(str2 );
+            dayOffCheck1.push(str2);
+          });
+          // console.log('dayOffCheck1' + JSON.stringify(dayOffCheck1,null,2));
+        }
 
-          // แปลงผลลัพธ์ให้ตรงกับรูปแบบเดิม
-          for (let i = 0; i < calculatedResults_single.length; i++) {
-            const calculatedData = calculatedResults_single[i];
-            const originalElement = employee_records_single[i].originalElement;
+        for (const element of data1.recordworkplace[0].employee_workplaceRecord) {
+          const tmp = {};
 
-            // สร้าง tmp object ตามรูปแบบเดิม
-            const tmp = {
-              day: calculatedData.date + '/' + prevMonth + '/' + year1,
-              workplaceId: originalElement.workplaceId || '',
-              allTimes: calculatedData.totalTime.toString(),
-              workRate: calculatedData.cashWork.toString(),
-              workRateMultiply: calculatedData.cashWorkMul.toString(),
-              otTimes: calculatedData.totalOtTime.toString(), 
-              workRateOT: calculatedData.cashOt.toString(),
-              workRateOTMultiply: calculatedData.cashOtMul.toString(),
-              workType: calculatedData.dayType || 'work',
-              addSalaryDay: '',
-              shift: originalElement.shift || 0
-            };
+          let dateParts = element.date.split('/');
+          let str1 = parseInt(dateParts[0], 10);
+          // console.log('*str1 ' + str1);
 
-            // อัปเดตตัวแปรสำหรับ summary
-            sumWorkHour += calculatedData.totalTime || 0;
-            sumWorkRate += calculatedData.cashWork || 0;
-            sumWorkHourOt += calculatedData.totalOtTime || 0;
-            sumWorkRateOt += calculatedData.cashOt || 0;
+          if (str1 > 20 && str1 <= lastday) {
+
+            tmp.day = str1 + '/' + prevMonth + '/' + year1;
+            tmp.workplaceId = element.workplaceId || '';
+            let parts = element.allTime.split('.');
+
+            let hours = parseInt(parts[0], 10) || 0;
+            let minutes = parts.length > 1 ? parseInt(parts[1], 10) : 0;
+
+            let scaledMinutes = (minutes * 100) / 60;
+            let allTime = Number(`${hours}.${scaledMinutes}`) || 0;
+
+            tmp.allTimes = `${hours}.${scaledMinutes}` || '0';
+
+            let parts1 = element.otTime.split('.');
+
+            let hours1 = parseInt(parts1[0], 10) || 0;
+            let minutes1 = parts1.length > 1 ? parseInt(parts1[1], 10) : 0;
+
+            // let scaledMinutes1 = (minutes1 * 100) / 60;
+            let scaledMinutes1 = minutes1;
+
+            // let otTime = parseFloat(`${hours1}.${scaledMinutes1}`).toFixed(2) || 0;
+            // let otTime = ((parseFloat(hours1 || 0) *60) + parseFloat(scaledMinutes1 || 0) /60).toFixed(2) || 0;
+            let otTime = `${parseFloat(hours1 || 0)}.${parseFloat(scaledMinutes1 || 0 ) } `;
+
+            
+            tmp.otTimes = `${hours1}.${scaledMinutes1}` || 0;
+
+
+            if (element.specialtSalary !== '' || element.specialtSalaryOT !== '') {
+              // console.log('special rate')
+              tmp.workRate = element.specialtSalary || '';
+              tmp.workRateMultiply = Number(element.specialtSalary || 0) / Number(wpResponse1.data.workRate || 0);
+
+              tmp.workRateOT = element.specialtSalaryOT || '';
+              tmp.workRateOTMultiply = Number(element.specialtSalaryOT || 0) / (Number(wpResponse1.data.workRate || 0) / 8);
+              tmp.workType = 'specialtSalary';
+
+              sumWorkHour += parseFloat(allTime) || 0;
+              sumWorkRate += parseFloat(element.specialtSalary) || 0;
+              sumWorkHourOt += parseFloat(otTime) || 0;
+              sumWorkRateOt += parseFloat(element.specialtSalaryOT) || 0;
+
+            } else {
+              if (specialDayOff1.includes(Number(str1))) {
+// console.log('special day off rate');                
+
+                if (salary === 0 || salary == upsalary  ) {
+                  salary = parseFloat(wpResponse1.data.workRate || '0') + parseFloat(upsalary   || '0');
+                }
+
+                if (allTime >= workOfHour) {
+                  allTime = workOfHour;
+                  tmp.allTime = workOfHour;
+                } else {
+                  tmp.allTime = allTime;
+                }
+
+                let workRate = ((parseFloat(tmpWP.data.holidayHour) * (salary / 8)) * parseFloat(allTime)).toFixed(3);
+                tmp.workRate = workRate || 0;
+                tmp.workRateMultiply = wpResponse1.data.holidayHour || 0;
+                if (otTime >= workOfOT) {
+                  otTime = workOfOT;
+                  // tmp.otTimes = workOfOT || 0;
+                  tmp.otTimes = Math.floor(((workOfOT_subHour *60 + workOfOT_subMinute) - workOfOT_breakMinute)/ 60) + '.' + ((workOfOT_subHour *60 + workOfOT_subMinute) - workOfOT_breakMinute)% 60;
+
+                } else {
+                  tmp.otTimes = otTime || 0;
+                }
+
+                // ใช้ฟังก์ชัน convertTimeToDecimal แทนการแปลงด้วยตัวเอง
+                let decimalOtTime = convertTimeToDecimal(otTime);
+                // let workRateOT = ((parseFloat(tmpWP.data.dayoffRateOT) * (salary / 8)) * decimalOtTime).toFixed(2);
+
+                //cal OT
+                let workRateOT = ((parseFloat(wpResponse1.data.holidayOT) * (salary / 8)) * decimalOtTime).toFixed(3);
+                tmp.workRateOT = workRateOT || 0;
+                tmp.workRateOTMultiply = wpResponse1.data.holidayOT || 0;
+
+                sumWorkHour += parseFloat(allTime) || 0;
+                sumWorkRate += parseFloat(workRate) || 0;
+                sumWorkHourOt += convertTimeToDecimal(otTime) || 0;
+                sumWorkRateOt += parseFloat(workRateOT) || 0;
+                if(dataEmp.employees[0].salary && parseFloat(dataEmp.employees[0].salary) > 0 ) {
+
+                } else {
+                  salary = 0;
+                }
+
+                workRate = 0;
+                workRateOT = 0;
+                tmp.workType = 'specialDayOff';
+
+              } else if (dayOffCheck1.includes(str1)) {
+                console.log('day off rate');
+
+                if (salary === 0 || salary == upsalary  ) {
+                  salary = wpResponse1.data.workRate + parseFloat(upsalary   || '0');
+                }
+
+
+                if (allTime >= workOfHour) {
+                  allTime = workOfHour;
+                  tmp.allTime = workOfHour;
+                } else {
+                  tmp.allTime = allTime;
+                }
+
+                let workRate = ((parseFloat(wpResponse1.data.dayoffRateHour ) * (salary  / 8)) * parseFloat(allTime));
+                tmp.workRate = workRate || 0;
+                tmp.workRateMultiply = wpResponse1.data.dayoffRateHour || 0;
+
+                if (otTime >= workOfOT) {
+                  otTime = workOfOT;
+                  // tmp.otTimes = workOfOT || 0;
+                  tmp.otTimes = Math.floor(((workOfOT_subHour *60 + workOfOT_subMinute) - workOfOT_breakMinute)/ 60) + '.' + ((workOfOT_subHour *60 + workOfOT_subMinute) - workOfOT_breakMinute)% 60;
+
+                } else {
+                  tmp.otTimes = otTime || 0;
+                }
+
+                let [hoursTmp, minutesTmp] = otTime.toString().split('.').map(Number);
+                let decimalFraction = (minutesTmp || 0).toFixed(2) / 60;
+                // let workRateOT = ((parseFloat(tmpWP.data.dayoffRateOT) * (salary / 8)) * (parseFloat(hoursTmp + decimalFraction))).toFixed(2);
+
+                //cal OT
+                let workRateOT = ((parseFloat(wpResponse1.data.dayoffRateOT ?? 0) * (salary / 8)) * (parseFloat( (((hoursTmp * 60) + (minutesTmp )) / 60) )) ).toFixed(3);
+                tmp.workRateOT = workRateOT || 0;
+                tmp.workRateOTMultiply = wpResponse1.data.dayoffRateOT || 0;
+
+                
+                sumWorkHour += parseFloat(allTime) || 0;
+                sumWorkRate += parseFloat(workRate) || 0;
+                sumWorkHourOt += parseFloat((parseFloat(hoursTmp + decimalFraction))) || 0;
+                sumWorkRateOt += parseFloat(workRateOT) || 0;
+
+                if(dataEmp.employees[0].salary && parseFloat(dataEmp.employees[0].salary) > 0 ) {
+
+                } else {
+                  salary = 0;
+                }
+
+                workRate = 0;
+                workRateOT = 0;
+                tmp.workType = 'dayOff';
+
+              } else {
+                // console.log('default rate');
+                if (salary === 0 || salary == upsalary  ) {
+                  salary = parseFloat(wpResponse1.data.workRate || '0') + parseFloat(upsalary   || '0');
+                }
+
+
+                if (parseFloat(allTime || '0') >= workOfHour) {
+                  allTime = workOfHour;
+                  tmp.allTime = workOfHour || 0;
+                } else {
+                  tmp.allTime = allTime || 0;
+                }
+
+                let workRate = ((parseFloat(salary || '0') / 8) * parseFloat(allTime)).toFixed(3);
+                tmp.workRate = workRate || 0;
+                tmp.workRateMultiply = '1';
+
+                if (otTime >= workOfOT) {
+                  otTime = workOfOT;
+                  // tmp.otTimes = workOfOT || 0;
+                  tmp.otTimes = Math.floor(((workOfOT_subHour *60 + workOfOT_subMinute) - workOfOT_breakMinute)/ 60) + '.' + ((workOfOT_subHour *60 + workOfOT_subMinute) - workOfOT_breakMinute)% 60;
+
+                } else {
+                  tmp.otTimes = otTime || 0;
+                }
+
+                let [hoursTmp, minutesTmp] = otTime.toString().split('.').map(Number);
+                let decimalFraction = (minutesTmp || 0) .toFixed(2) / 60;
+                // let workRateOT = ((parseFloat(tmpWP.data.dayoffRateOT) * (salary / 8)) * (parseFloat(hoursTmp + decimalFraction))).toFixed(2);
+                // let workRateOT = ((parseFloat(wpResponse1.data.workRateOT ?? 0) * (salary / 8)) * (parseFloat(hoursTmp + decimalFraction)) ).toFixed(3);
+
+                //cal OT
+                let workRateOT = (((parseFloat(salary) / 8) * parseFloat(tmpWP.data.workRateOT)) * (parseFloat( (((parseFloat(hoursTmp || '0') * 60) + parseFloat(minutesTmp || '0')) / 60) ))).toFixed(3);
+                tmp.workRateOT = workRateOT || 0;
+                tmp.workRateOTMultiply = tmpWP.data.workRateOT || 0;
+
+                sumWorkHour += parseFloat(allTime) || 0;
+                sumWorkRate += parseFloat(workRate) || 0;
+                sumWorkHourOt += parseFloat((parseFloat(hoursTmp + decimalFraction))) || 0;
+                sumWorkRateOt += parseFloat(workRateOT) || 0;
+
+                if(dataEmp.employees[0].salary && parseFloat(dataEmp.employees[0].salary) > 0 ) {
+
+                } else {
+                  salary = 0;
+                }
+
+                workRate = 0;
+                workRateOT = 0;
+                tmp.workType = 'workDay';
+
+              }
+            }
+            tmp.addSalaryDay = '';
+            tmp.shift = element.shift || 0;
 
             concludeRecord.push(tmp);
-          }
-
-        } catch (error) {
-          console.error(`❌ Error in calculateCashValues (Single-workplace):`, error);
-          // ใช้ค่าเริ่มต้นถ้าเกิด error - กลับไปใช้โค้ดเก่า
-          for (const element of data1.recordworkplace[0].employee_workplaceRecord) {
-            let dateParts = element.date.split('/');
-            let str1 = parseInt(dateParts[0], 10);
-            
-            if (str1 > 20 && str1 <= lastday) {
-              const record = {
-                date: str1,
-                totalTime: convertTimeToDecimal(element.allTime || '0'), 
-                totalOtTime: convertTimeToDecimal(element.otTime || '0')
-              };
-              
-              const tmp = {
-                day: str1 + '/' + prevMonth + '/' + year1,
-                workplaceId: element.workplaceId || '',
-                allTimes: record.totalTime.toString(),
-                workRate: '0',
-                workRateMultiply: '1',
-                otTimes: record.totalOtTime.toString(),
-                workRateOT: '0', 
-                workRateOTMultiply: '1',
-                workType: 'work',
-                addSalaryDay: '',
-                shift: element.shift || 0
-              };
-              concludeRecord.push(tmp);
-            }
           }
         }
 
@@ -714,84 +856,242 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
         }
 
         // Do something with wCalList after all promises have been resolved
-        console.log('🔄 [autocreate] กำลังใช้ฟังก์ชัน calculateCashValues ใหม่แทนโค้ดเก่า (Multi-workplace)');
-        
-        // ใช้ฟังก์ชัน calculateCashValues แทนโค้ดเก่า
-        // รวบรวมข้อมูลทั้งหมดเป็น array ก่อน
-        const employee_records = data.recordworkplace[0].employee_workplaceRecord.map(element => ({
-          date: parseInt(element.date.split('/')[0], 10), // เอาเฉพาะวันที่
-          totalTime: convertTimeToDecimal(element.allTime || '0'), 
-          totalOtTime: convertTimeToDecimal(element.otTime || '0'),
-          beforeTotalOtTime: 0, // ไม่มีข้อมูลนี้ในโค้ดเก่า
-          workplaceId: element.workplaceId,
-          wGroup: [], // จะถูกเติมภายในฟังก์ชัน
-          shift: element.shift || '',
-          specialtSalary: element.specialtSalary || '',
-          specialtSalaryOT: element.specialtSalaryOT || '',
-          originalElement: element // เก็บข้อมูลเดิมไว้
-        }));
+        // console.log('Workplace Calculation List:', wCalList);
+        for (const element of data.recordworkplace[0].employee_workplaceRecord) {
+          const tmp = {};
 
-        try {
-          // เรียกใช้ calculateCashValues ด้วย parameters ที่ถูกต้อง
-          const calculatedResults = await calculateCashValues(
-            employeeId, 
-            employee_records, 
-            parseInt(month), 
-            parseInt(year)
-          );
+          const tmpWP = wCalList.find(item => item.workplaceId === element.workplaceId);
+          // console.log('workRateOT : ' + JSON.stringify(tmpWP.data.workRateOT ,2 ,null) );
 
-          // แปลงผลลัพธ์ให้ตรงกับรูปแบบเดิม
-          for (let i = 0; i < calculatedResults.length; i++) {
-            const calculatedData = calculatedResults[i];
-            const originalElement = employee_records[i].originalElement;
+          // const workOfHour = await tmpWP.data.workOfHour || 0;
+          // const workOfOT = await parseFloat(tmpWP.data.workOfOT) || 0;
+          // const dayOff = tmpWP.data.workplaceDayOffList || [];
+          // const specialDayOff = tmpWP.data.specialDaylist || [];
 
-            // สร้าง tmp object ตามรูปแบบเดิม
-            const tmp = {
-              day: calculatedData.date + '/' + month + '/' + year,
-              workplaceId: originalElement.workplaceId || '',
-              allTimes: calculatedData.totalTime.toString(),
-              workRate: calculatedData.cashWork.toString(),
-              workRateMultiply: calculatedData.cashWorkMul.toString(),
-              otTimes: calculatedData.totalOtTime.toString(), 
-              workRateOT: calculatedData.cashOt.toString(),
-              workRateOTMultiply: calculatedData.cashOtMul.toString(),
-              workType: calculatedData.dayType || 'work',
-              addSalaryDay: '',
-              shift: originalElement.shift || 0
-            };
+          const workOfHour = await (tmpWP?.data?.workOfHour) ?? 0;
+          const workOfOT = await parseFloat(tmpWP?.data?.workOfOT) ?? 0;
+          const workOfOT_subHour = parseFloat(tmpWP?.data?.workOfOT_subHour) ?? 0;
+          const workOfOT_subMinute = await parseFloat(tmpWP?.data?.workOfOT_subMinute) ?? 0;
+          const workOfOT_breakMinute = await parseFloat(tmpWP?.data?.workOfOT_breakMinute) ?? 0;
+  
+          const dayOff = await tmpWP?.data?.workplaceDayOffList ?? [];
+          const specialDayOff = await tmpWP?.data?.specialDaylist ?? [];
+          const dayOffCheck = [];
 
-            // อัปเดตตัวแปรสำหรับ summary
-            sumWorkHour += calculatedData.totalTime || 0;
-            sumWorkRate += calculatedData.cashWork || 0;
-            sumWorkHourOt += calculatedData.totalOtTime || 0;
-            sumWorkRateOt += calculatedData.cashOt || 0;
-
-            concludeRecord.push(tmp);
+          if (dayOff.length !== 0) {
+            dayOff.forEach(item => {
+              let dateoffParts = item.split('-');
+              let str2 = parseInt(dateoffParts[2], 10);
+              dayOffCheck.push(str2);
+            });
           }
 
-        } catch (error) {
-          console.error(`❌ Error in calculateCashValues (Multi-workplace):`, error);
-          // ใช้ค่าเริ่มต้นถ้าเกิด error - กลับไปใช้โค้ดเก่า
-          for (const element of data.recordworkplace[0].employee_workplaceRecord) {
-            const record = {
-              date: parseInt(element.date.split('/')[0], 10),
-              totalTime: convertTimeToDecimal(element.allTime || '0'), 
-              totalOtTime: convertTimeToDecimal(element.otTime || '0')
-            };
+
+          let dateParts = element.date.split('/');
+          let str1 = parseInt(dateParts[0], 10);
+
+          if (str1 > 20 && str1 <= lastday) {
+
+            tmp.day = str1 + '/' + prevMonth + '/' + year1;
+            tmp.workplaceId = element.workplaceId || '';
+            let parts = element.allTime.split('.');
+
+            let hours = parseInt(parts[0], 10) || 0;
+            let minutes = parts.length > 1 ? parseInt(parts[1], 10) : 0;
+
+            let scaledMinutes = (minutes * 100) / 60;
+            let allTime = Number(`${hours}.${scaledMinutes}`) || 0;
+
+            tmp.allTimes = `${hours}.${scaledMinutes}` || '0';
+
+            let parts1 = element.otTime.split('.');
+
+            let hours1 = parseInt(parts1[0], 10) || 0;
+            let minutes1 = parts1.length > 1 ? parseInt(parts1[1], 10) : 0;
+
+            // let scaledMinutes1 = (minutes1 * 100) / 60;
+            let scaledMinutes1 = minutes1;
+
+            // let otTime = parseFloat(`${hours1}.${scaledMinutes1}`).toFixed(2) || 0;
+            // let otTime = ((parseFloat(hours1 || 0) *60) + parseFloat(scaledMinutes1 || 0) /60).toFixed(2) || 0;
+            let otTime = `${parseFloat(hours1 || 0)}.${parseFloat(scaledMinutes1 || 0 ) } `;
+
             
-            const tmp = {
-              day: record.date + '/' + month + '/' + year,
-              workplaceId: element.workplaceId || '',
-              allTimes: record.totalTime.toString(),
-              workRate: '0',
-              workRateMultiply: '1',
-              otTimes: record.totalOtTime.toString(),
-              workRateOT: '0', 
-              workRateOTMultiply: '1',
-              workType: 'work',
-              addSalaryDay: '',
-              shift: element.shift || 0
-            };
+            tmp.otTimes = `${hours1}.${scaledMinutes1}` || 0;
+
+
+            if (element.specialtSalary !== '' || element.specialtSalaryOT !== '') {
+              tmp.workRate = element.specialtSalary || '';
+              tmp.workRateMultiply = Number(element.specialtSalary || 0) / Number(wpResponse.data.workRate || 0);
+
+              tmp.workRateOT = element.specialtSalaryOT || '';
+              tmp.workRateOTMultiply = Number(element.specialtSalaryOT || 0) / (Number(wpResponse.data.workRate || 0) / 8);
+              tmp.workType = 'specialtSalary';
+
+              sumWorkHour += parseFloat(allTime) || 0;
+              sumWorkRate += parseFloat(element.specialtSalary) || 0;
+              sumWorkHourOt += parseFloat(otTime) || 0;
+              sumWorkRateOt += parseFloat(element.specialtSalaryOT) || 0;
+
+            } else {
+              if (specialDayOff1.includes(Number(str1))) {
+                if (salary === 0 || salary == upsalary  ) {
+                  salary = parseFloat(wpResponse.data.workRate || '0') + parseFloat(upsalary   || '0');
+                }
+
+                if (allTime >= workOfHour) {
+                  allTime = workOfHour;
+                  tmp.allTime = workOfHour;
+                } else {
+                  tmp.allTime = allTime;
+                }
+
+                let workRate = ((parseFloat(tmpWP.data.holidayHour) * (salary / 8)) * parseFloat(allTime)).toFixed(3);
+                tmp.workRate = workRate || 0;
+                tmp.workRateMultiply = wpResponse1.data.holidayHour || 0;
+                if (otTime >= workOfOT) {
+                  otTime = workOfOT;
+                  // tmp.otTimes = workOfOT || 0;
+                  tmp.otTimes = Math.floor(((workOfOT_subHour *60 + workOfOT_subMinute) - workOfOT_breakMinute)/ 60) + '.' + ((workOfOT_subHour *60 + workOfOT_subMinute) - workOfOT_breakMinute)% 60;
+
+                } else {
+                  tmp.otTimes = otTime || 0;
+                }
+
+                let [hoursTmp, minutesTmp] = otTime.toString().split('.').map(Number);
+                let decimalFraction = (minutesTmp || 0).toFixed(2) / 60;
+                // let workRateOT = ((parseFloat(tmpWP.data.dayoffRateOT) * (salary / 8)) * (parseFloat(hoursTmp + decimalFraction))).toFixed(2);
+
+                //cal OT
+                let workRateOT = ((parseFloat(wpResponse1.data.holidayOT) * (salary / 8)) * (parseFloat( (((hoursTmp * 60) + (minutesTmp )) / 60)  )) ).toFixed(3);
+                tmp.workRateOT = workRateOT || 0;
+                tmp.workRateOTMultiply = wpResponse1.data.holidayOT || 0;
+
+                sumWorkHour += parseFloat(allTime) || 0;
+                sumWorkRate += parseFloat(workRate) || 0;
+                sumWorkHourOt += parseFloat((parseFloat(hoursTmp + decimalFraction))) || 0;
+                sumWorkRateOt += parseFloat(workRateOT) || 0;
+
+                if(dataEmp.employees[0].salary && parseFloat(dataEmp.employees[0].salary) > 0 ) {
+
+                } else {
+                  salary = 0;
+                }
+
+                workRate = 0;
+                workRateOT = 0;
+                tmp.workType = 'specialDayOff';
+
+              } else if (dayOffCheck1.includes(str1)) {
+                console.log('day off rate');
+
+                if (salary === 0 || salary == upsalary  ) {
+                  salary = wpResponse1.data.workRate + parseFloat(upsalary   || '0');
+                }
+
+
+                if (allTime >= workOfHour) {
+                  allTime = workOfHour;
+                  tmp.allTime = workOfHour;
+                } else {
+                  tmp.allTime = allTime;
+                }
+
+                let workRate = ((parseFloat(wpResponse1.data.dayoffRateHour ) * (salary  / 8)) * parseFloat(allTime));
+                tmp.workRate = workRate || 0;
+                tmp.workRateMultiply = wpResponse1.data.dayoffRateHour || 0;
+
+                if (otTime >= workOfOT) {
+                  otTime = workOfOT;
+                  // tmp.otTimes = workOfOT || 0;
+                  tmp.otTimes = Math.floor(((workOfOT_subHour *60 + workOfOT_subMinute) - workOfOT_breakMinute)/ 60) + '.' + ((workOfOT_subHour *60 + workOfOT_subMinute) - workOfOT_breakMinute)% 60;
+
+                } else {
+                  tmp.otTimes = otTime || 0;
+                }
+
+                let [hoursTmp, minutesTmp] = otTime.toString().split('.').map(Number);
+                let decimalFraction = (minutesTmp || 0).toFixed(2) / 60;
+                // let workRateOT = ((parseFloat(tmpWP.data.dayoffRateOT) * (salary / 8)) * (parseFloat(hoursTmp + decimalFraction))).toFixed(2);
+
+                //cal OT
+                let workRateOT = ((parseFloat(wpResponse1.data.dayoffRateOT ?? 0) * (salary / 8)) * (parseFloat( (((hoursTmp * 60) + (minutesTmp )) / 60) )) ).toFixed(3);
+                tmp.workRateOT = workRateOT || 0;
+                tmp.workRateOTMultiply = wpResponse1.data.dayoffRateOT || 0;
+
+                
+                sumWorkHour += parseFloat(allTime) || 0;
+                sumWorkRate += parseFloat(workRate) || 0;
+                sumWorkHourOt += parseFloat((parseFloat(hoursTmp + decimalFraction))) || 0;
+                sumWorkRateOt += parseFloat(workRateOT) || 0;
+
+                if(dataEmp.employees[0].salary && parseFloat(dataEmp.employees[0].salary) > 0 ) {
+
+                } else {
+                  salary = 0;
+                }
+
+                workRate = 0;
+                workRateOT = 0;
+                tmp.workType = 'dayOff';
+
+              } else {
+                // console.log('default rate');
+                if (salary === 0 || salary == upsalary  ) {
+                  salary = parseFloat(wpResponse1.data.workRate || '0') + parseFloat(upsalary   || '0');
+                }
+
+
+                if (parseFloat(allTime || '0') >= workOfHour) {
+                  allTime = workOfHour;
+                  tmp.allTime = workOfHour || 0;
+                } else {
+                  tmp.allTime = allTime || 0;
+                }
+
+                let workRate = ((parseFloat(salary || '0') / 8) * parseFloat(allTime)).toFixed(3);
+                tmp.workRate = workRate || 0;
+                tmp.workRateMultiply = '1';
+
+                if (otTime >= workOfOT) {
+                  otTime = workOfOT;
+                  // tmp.otTimes = workOfOT || 0;
+                  tmp.otTimes = Math.floor(((workOfOT_subHour *60 + workOfOT_subMinute) - workOfOT_breakMinute)/ 60) + '.' + ((workOfOT_subHour *60 + workOfOT_subMinute) - workOfOT_breakMinute)% 60;
+
+                } else {
+                  tmp.otTimes = otTime || 0;
+                }
+
+                let [hoursTmp, minutesTmp] = otTime.toString().split('.').map(Number);
+                let decimalFraction = (minutesTmp || 0) .toFixed(2) / 60;
+                // let workRateOT = ((parseFloat(tmpWP.data.dayoffRateOT) * (salary / 8)) * (parseFloat(hoursTmp + decimalFraction))).toFixed(2);
+                // let workRateOT = ((parseFloat(wpResponse1.data.workRateOT ?? 0) * (salary / 8)) * (parseFloat(hoursTmp + decimalFraction)) ).toFixed(3);
+
+                //cal OT
+                let workRateOT = (((parseFloat(salary) / 8) * parseFloat(tmpWP.data.workRateOT)) * (parseFloat( (((parseFloat(hoursTmp || '0') * 60) + parseFloat(minutesTmp || '0')) / 60) ))).toFixed(3);
+                tmp.workRateOT = workRateOT || 0;
+                tmp.workRateOTMultiply = tmpWP.data.workRateOT || 0;
+
+                sumWorkHour += parseFloat(allTime) || 0;
+                sumWorkRate += parseFloat(workRate) || 0;
+                sumWorkHourOt += parseFloat((parseFloat(hoursTmp + decimalFraction))) || 0;
+                sumWorkRateOt += parseFloat(workRateOT) || 0;
+
+                if(dataEmp.employees[0].salary && parseFloat(dataEmp.employees[0].salary) > 0 ) {
+
+                } else {
+                  salary = 0;
+                }
+
+                workRate = 0;
+                workRateOT = 0;
+                tmp.workType = 'workDay';
+
+              }
+            }
+            tmp.addSalaryDay = '';
+            tmp.shift = element.shift || 0;
+
             concludeRecord.push(tmp);
           }
         }
