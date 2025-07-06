@@ -4709,6 +4709,13 @@ const calculateCashValuesForSpecialWorkplace = async (employeeId, employee_recor
       
       record.dayType = "work";
       
+      // สำหรับหน่วยงานพิเศษ - ปรับ cashWorkMul ให้เป็น "1" เพื่อไม่ให้แสดงเป็น OT2
+      if (record.cashWorkMul === "2" && parseFloat(record.totalOtTime || 0) === 0) {
+        console.log(`🟡 ปรับ cashWorkMul จาก "2" เป็น "1" สำหรับงานปกติ (ไม่ใช่ OT)`);
+        record.originalCashWorkMul = record.cashWorkMul;
+        record.cashWorkMul = "1";
+      }
+      
       // คำนวณ cashWork ใหม่จาก workplace workRate
       if (record.workplaceId && parseFloat(record.totalTime) > 0) {
         try {
