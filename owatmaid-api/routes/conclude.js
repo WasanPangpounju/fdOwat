@@ -2796,8 +2796,21 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                 summary = await calculateSummaryForNormalWorkplace(doc.employeeId, employee_record, doc.month, doc.year);
               }
               
-              result.summary = summary;
+              // Copy ค่าจาก summary ไปยัง root level
+              result.dayWorkCount = summary.dayWorkCount;
+              result.dayOffCount = summary.dayOffCount;
+              result.publicHolidayCount = summary.publicHolidayCount;
+              result.sumCashWork = summary.sumCashWork;
+              result.sumCashOt = summary.sumCashOt;
+              result.sumOt1p5 = summary.sumOt1p5;
+              result.sumOt3 = summary.sumOt3;
+              result.sumOtPublicHoliday = summary.sumOtPublicHoliday;
+              result.sumCashWorkMul = summary.sumCashWorkMul;
+              result.timeCashWorkMul = summary.timeCashWorkMul;
+              result.addSalaryList = summary.addSalaryList;
+              
               console.log(`🟢 [conclude/searchtimerecordemployee] Summary calculated for ${doc.employeeId}: dayWorkCount=${summary.dayWorkCount}, dayOffCount=${summary.dayOffCount}`);
+              console.log(`🟢 [conclude/searchtimerecordemployee] Copied to root level - no summary object in response`);
             }
           } catch (error) {
             console.error(`❌ Error calculating summary for ${doc.employeeId}:`, error.message);
