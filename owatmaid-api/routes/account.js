@@ -4664,10 +4664,9 @@ const calculateCashValuesForSpecialWorkplace = async (employeeId, employee_recor
     
     // ตรวจสอบว่ามีการทำงานหรือไม่
     const hasWork = (parseFloat(record.cashWork || 0) > 0 || parseFloat(record.allTimes || 0) > 0);
-
     
     if (record.dayType === "work") {
-      dayWorkCount += 1;
+      dayWorkCount++;
       sumTimeWork += convertTimeToDecimal(record.allTimes || '0');
       sumTimeOt += convertTimeToDecimal(record.otTimes || '0');
       sumCashWork += parseFloat(record.cashWork || 0);
@@ -4677,7 +4676,10 @@ const calculateCashValuesForSpecialWorkplace = async (employeeId, employee_recor
       const workMul = record.cashWorkMul || "1";
       const otMul = record.cashOtMul || "1.5";
       
-   
+      if (!sumCashWorkMul[workMul]) sumCashWorkMul[workMul] = 0;
+      if (!sumCashWorkMul[otMul]) sumCashWorkMul[otMul] = 0;
+      if (!timeCashWorkMul[workMul]) timeCashWorkMul[workMul] = 0;
+      if (!timeCashWorkMul[otMul]) timeCashWorkMul[otMul] = 0;
       
       sumCashWorkMul[workMul] += parseFloat(record.cashWork || 0);
       if (record.cashOt) {
