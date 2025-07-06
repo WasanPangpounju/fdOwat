@@ -4727,6 +4727,12 @@ const calculateCashValuesForSpecialWorkplace = async (employeeId, employee_recor
           console.error(`🟡 ❌ ข้อผิดพลาดในการดึงข้อมูล workplace ${record.workplaceId}:`, error.message);
         }
       }
+      
+      // แก้ไข cashWorkMul สำหรับวันทำงานปกติในหน่วยงานพิเศษ
+      if (record.cashWorkMul && record.cashWorkMul !== "1") {
+        console.log(`🟡 แก้ไข cashWorkMul จาก "${record.cashWorkMul}" เป็น "1" สำหรับงานปกติในหน่วยงาน 7 วัน (วันที่ ${record.date})`);
+        record.cashWorkMul = "1";
+      }
     }
     
     // Initialize sumCashWorkMul and timeCashWorkMul for this record
@@ -4765,6 +4771,12 @@ const calculateCashValuesForSpecialWorkplace = async (employeeId, employee_recor
         
       } else if (record?.dayType === "work") {
         console.log(`\n--- 🟡 กำลังประมวลผลวันที่: ${record.date}, ประเภท: ${record.dayType} ---`);
+        
+        // แก้ไข cashWorkMul สำหรับวันทำงานปกติในหน่วยงานพิเศษ (ทุกวันทำงาน)
+        if (record.cashWorkMul && record.cashWorkMul !== "1") {
+          console.log(`🟡 แก้ไข cashWorkMul จาก "${record.cashWorkMul}" เป็น "1" สำหรับงานปกติในหน่วยงาน 7 วัน (วันที่ ${record.date})`);
+          record.cashWorkMul = "1";
+        }
         
         dayWorkCount += 1;
         

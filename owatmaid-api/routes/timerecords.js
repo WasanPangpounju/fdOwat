@@ -1211,6 +1211,12 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
                     console.log(`🟡 [timerecords] แก้ไข dayType จาก "stop" เป็น "work" สำหรับวันที่ ${record.date} (หน่วยงาน 7 วัน)`);
                     record.dayType = "work";
                   }
+                  
+                  // Fix cashWorkMul for normal work days in special workplaces
+                  if (record?.dayType === "work" && record.cashWorkMul && record.cashWorkMul !== "1") {
+                    console.log(`🟡 [timerecords] แก้ไข cashWorkMul จาก "${record.cashWorkMul}" เป็น "1" สำหรับงานปกติในหน่วยงาน 7 วัน (วันที่ ${record.date})`);
+                    record.cashWorkMul = "1";
+                  }
                 });
               }
             }
