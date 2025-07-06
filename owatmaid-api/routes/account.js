@@ -4522,19 +4522,27 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           // })),
           addSalaryList: calculatedValues.addSalaryList,
           sumCashWorkMul: calculatedValues.sumCashWorkMul,
+          timeCashWorkMul: calculatedValues.timeCashWorkMul,
         };
         
         // แสดงข้อมูลสำคัญที่จะบันทึก
-        console.log(`\n📝 ข้อมูลที่จะบันทึกสำหรับพนักงาน ${doc.employeeId}:`);
+        console.log(`\n📝 ข้อมูลที่จะบันทึกสำหรับพนักงาน ${doc.employeeId} (${isSpecialWorkplace ? 'หน่วยงานพิเศษ' : 'หน่วยงานปกติ'}):`);
         console.log(`🔍 dayWorkCount: ${updateData.dayWorkCount}`);
+        console.log(`🔍 dayOffCount: ${updateData.dayOffCount}`);
+        console.log(`🔍 publicHolidayCount: ${updateData.publicHolidayCount}`);
         console.log(`🔍 customizeDayoff: ${updateData.customizeDayoff}`);
         console.log(`💰 cashcustomizeDayoff: ${updateData.cashcustomizeDayoff}`);
-        console.log(`⏱️ sumOt1p5: ${updateData.sumOt1p5}`); 
+        console.log(`💰 publicHolidayCash: ${updateData.publicHolidayCash}`);
+        console.log(`⏱️ sumOt1p5: ${updateData.sumOt1p5}`);
+        console.log(`⏱️ sumOt3: ${updateData.sumOt3}`);
+        console.log(`💰 sumCashWork: ${updateData.sumCashWork}`);
+        console.log(`💰 sumCashOt: ${updateData.sumCashOt}`);
+        console.log(`💰 sumCashWorkMul: ${JSON.stringify(calculatedValues.sumCashWorkMul)}`);
         
         // ตรวจสอบว่ามีรายการ addSalaryList หรือไม่
         if (calculatedValues.addSalaryList && calculatedValues.addSalaryList.length > 0) {
           console.log(`📋 จำนวนรายการ addSalaryList: ${calculatedValues.addSalaryList.length}`);
-          console.log(`📋 ตัวอย่างรายการแรก: ${JSON.stringify(calculatedValues.addSalaryList[0].SpSalary, null, 2)}`);
+          console.log(`📋 ตัวอย่างรายการแรก: ${JSON.stringify(calculatedValues.addSalaryList[0], null, 2)}`);
         } else {
           console.log(`⚠️ ไม่มีรายการ addSalaryList`);
         }
@@ -4619,26 +4627,63 @@ const calculateCashValuesForSpecialWorkplace = async (employeeId, employee_recor
   let addSalaryList = [];
   let dayWorkCount = 0;
   let dayOffCount = 0;
+  let publicHolidayCount = 0;
   let sumTimeWork = 0;
   let sumTimeOt = 0;
   let sumCashWork = 0;
   let sumCashOt = 0;
+  let sumcashDayOffCount = 0;
+  let sumOt1p5 = 0;
+  let sumOt3 = 0;
+  let sumOtPublicHoliday = 0;
+  let sumCashWorkMul = { "1": 0, "1.5": 0, "2": 0, "3": 0 };
+  let timeCashWorkMul = { "1": 0, "1.5": 0, "2": 0, "3": 0 };
 
   console.log(`🟡 [Special Workplace] ใช้ logic พิเศษสำหรับหน่วยงานที่ทำงาน 7 วัน`);
+  console.log(`🟡 [Special Workplace] จำนวนวันทั้งหมดในบันทึก: ${employee_record.length} วัน`);
   
-  // Logic สำหรับหน่วยงานพิเศษ - สำหรับหน่วยงานที่ทำงาน 7 วัน dayType จะเป็น "work" ทุกวัน
+  // สำหรับหน่วยงานพิเศษ - ใช้ logic ที่สอดคล้องกับการปรับแก้ใน conclude.js
+  // หน่วยงานพิเศษจะมี dayType = "work" เมื่อมีการทำงาน และ dayType = "stop" เมื่อเป็นวันหยุด
   for (const record of employee_record) {
     if (!record.day) continue;
     
-    // สำหรับหน่วยงานที่ทำงาน 7 วัน - ประมวลผลเฉพาะวันที่ dayType = "work" เท่านั้น
+    console.log(`🟡 ประมวลผลวันที่: ${record.day}, dayType: ${record.dayType}, cashWorkMul: ${record.cashWorkMul}`);
+    
+    // ตรวจสอบว่ามีการทำงานหรือไม่
+    const hasWork = (parseFloat(record.cashWork || 0) > 0 || parseFloat(record.allTimes || 0) > 0);
+    
     if (record.dayType === "work") {
-      console.log(`🟡 ประมวลผลวันที่: ${record.day}, dayType: ${record.dayType}`);
-      
       dayWorkCount++;
-      sumTimeWork += parseFloat(record.allTimes || 0);
-      sumTimeOt += parseFloat(record.otTimes || 0);
-      sumCashWork += parseFloat(record.workRate || 0);
-      sumCashOt += parseFloat(record.workRateOT || 0);
+      sumTimeWork += convertTimeToDecimal(record.allTimes || '0');
+      sumTimeOt += convertTimeToDecimal(record.otTimes || '0');
+      sumCashWork += parseFloat(record.cashWork || 0);
+      sumCashOt += parseFloat(record.cashOt || 0);
+      
+      // จัดการ sumCashWorkMul สำหรับหน่วยงานพิเศษ
+      const workMul = record.cashWorkMul || "1";
+      const otMul = record.cashOtMul || "1.5";
+      
+      if (!sumCashWorkMul[workMul]) sumCashWorkMul[workMul] = 0;
+      if (!sumCashWorkMul[otMul]) sumCashWorkMul[otMul] = 0;
+      if (!timeCashWorkMul[workMul]) timeCashWorkMul[workMul] = 0;
+      if (!timeCashWorkMul[otMul]) timeCashWorkMul[otMul] = 0;
+      
+      sumCashWorkMul[workMul] += parseFloat(record.cashWork || 0);
+      if (record.cashOt) {
+        sumCashWorkMul[otMul] += parseFloat(record.cashOt || 0);
+      }
+      
+      timeCashWorkMul[workMul] += convertTimeToDecimal(record.allTimes || '0');
+      if (record.otTimes) {
+        timeCashWorkMul[otMul] += convertTimeToDecimal(record.otTimes || '0');
+      }
+      
+      // เก็บข้อมูล OT - สำหรับวันทำงานปกติ (cashWorkMul = "1")
+      if (record.cashWorkMul === "1") {
+        sumOt1p5 += convertTimeToDecimal(record.otTimes || '0');
+      }
+      
+      console.log(`🟡 วันทำงาน: ${record.day}, เวลา: ${record.allTimes}, OT: ${record.otTimes}, cashWork: ${record.cashWork}, cashOt: ${record.cashOt}`);
       
       // จัดการ addSalary สำหรับหน่วยงานพิเศษ
       if (record.addSalary && Array.isArray(record.addSalary)) {
@@ -4657,24 +4702,58 @@ const calculateCashValuesForSpecialWorkplace = async (employeeId, employee_recor
           }
         }
       }
-    } else {
-      // สำหรับ dayType อื่นๆ ให้จัดการตามประเภท
-      if (record.dayType === "stop") {
-        dayOffCount++;
-        console.log(`🟡 วันหยุด: ${record.day}, dayType: ${record.dayType}`);
-      } else if (record.dayType === "specialDayOff") {
-        // วันหยุดพิเศษ
-        console.log(`🟡 วันหยุดพิเศษ: ${record.day}, dayType: ${record.dayType}`);
-      } else if (record.dayType === "holiday") {
-        // วันหยุดนักขัตฤกษ์
-        console.log(`🟡 วันหยุดนักขัตฤกษ์: ${record.day}, dayType: ${record.dayType}`);
-      } else {
-        console.log(`🟡 ประเภทวันอื่นๆ: ${record.day}, dayType: ${record.dayType || 'ไม่ระบุ'}`);
+    } else if (record.dayType === "stop") {
+      // วันหยุด/วันหยุดนักขัตฤกษ์ (cashWorkMul = "2")
+      
+      // สำหรับวันหยุด ให้บวกเข้าไปใน sumcashDayOffCount และ sumCashOt
+      sumcashDayOffCount += parseFloat(record.cashWork || 0) + parseFloat(record.cashOt || 0);
+      sumCashOt += parseFloat(record.cashWork || 0) + parseFloat(record.cashOt || 0);
+      
+      sumOt3 += convertTimeToDecimal(record.otTimes || '0');
+      sumOtPublicHoliday += convertTimeToDecimal(record.allTimes || '0');
+      
+      // จัดการ sumCashWorkMul สำหรับวันหยุด
+      const workMul = record.cashWorkMul || "2";
+      const otMul = record.cashOtMul || "3";
+      
+      if (!sumCashWorkMul[workMul]) sumCashWorkMul[workMul] = 0;
+      if (!sumCashWorkMul[otMul]) sumCashWorkMul[otMul] = 0;
+      if (!timeCashWorkMul[workMul]) timeCashWorkMul[workMul] = 0;
+      if (!timeCashWorkMul[otMul]) timeCashWorkMul[otMul] = 0;
+      
+      sumCashWorkMul[workMul] += parseFloat(record.cashWork || 0);
+      if (record.cashOt) {
+        sumCashWorkMul[otMul] += parseFloat(record.cashOt || 0);
       }
+      
+      timeCashWorkMul[workMul] += convertTimeToDecimal(record.allTimes || '0');
+      if (record.otTimes) {
+        timeCashWorkMul[otMul] += convertTimeToDecimal(record.otTimes || '0');
+      }
+      
+      // ถ้าเป็นวันหยุดและไม่มีการทำงาน ให้นับเป็น publicHolidayCount
+      if (!hasWork) {
+        publicHolidayCount++;
+        console.log(`🟡 วันหยุดที่ไม่มีงาน: ${record.day}, dayType: ${record.dayType}`);
+      } else {
+        dayOffCount++;
+        console.log(`🟡 วันหยุดที่มีงาน: ${record.day}, dayType: ${record.dayType}, เวลา: ${record.allTimes}, cashWork: ${record.cashWork}`);
+      }
+    } else {
+      console.log(`🟡 ประเภทวันอื่นๆ: ${record.day}, dayType: ${record.dayType || 'ไม่ระบุ'}`);
     }
   }
   
-  console.log(`🟡 [Special Workplace] รายการเงินเพิ่มรวม: ${addSalaryList.length} รายการ`);
+  console.log(`🟡 [Special Workplace] สรุปผล:`);
+  console.log(`🟡 - dayWorkCount: ${dayWorkCount} วัน`);
+  console.log(`🟡 - dayOffCount: ${dayOffCount} วัน`);
+  console.log(`🟡 - publicHolidayCount: ${publicHolidayCount} วัน`);
+  console.log(`🟡 - sumCashWork: ${sumCashWork} บาท`);
+  console.log(`🟡 - sumCashOt: ${sumCashOt} บาท`);
+  console.log(`🟡 - sumOt1p5: ${sumOt1p5} ชม.`);
+  console.log(`🟡 - sumOt3: ${sumOt3} ชม.`);
+  console.log(`🟡 - รายการเงินเพิ่มรวม: ${addSalaryList.length} รายการ`);
+  console.log(`🟡 - sumCashWorkMul: ${JSON.stringify(sumCashWorkMul)}`);
 
   return {
     dayWorkCount,
@@ -4682,22 +4761,22 @@ const calculateCashValuesForSpecialWorkplace = async (employeeId, employee_recor
     specialDayOff: 0,
     customizeDayoff: 0,
     cashcustomizeDayoff: 0,
-    publicHolidayCount: 0,
+    publicHolidayCount,
     publicHolidayCash: 0,
     sumTimeWork,
     sumTimeOt,
     sumCashWork,
     sumCashOt,
-    sumcashDayOffCount: 0,
+    sumcashDayOffCount,
     socialSecurity: 0,
     tax: 0,
     cashSpecialDay: 0,
-    sumOt1p5: 0,
-    sumOt3: 0,
-    sumOtPublicHoliday: 0,
+    sumOt1p5,
+    sumOt3,
+    sumOtPublicHoliday,
     sumAddSalaryDaily: 0,
-    sumCashWorkMul: 0,
-    timeCashWorkMul: 0,
+    sumCashWorkMul,
+    timeCashWorkMul,
     addSalaryList
   };
 };
