@@ -3090,15 +3090,27 @@ async function calculateSummaryForNormalWorkplace(employeeId, employee_record, m
   
   // วนลูปผ่านทุกวันใน employee_record
   for (const record of employee_record) {
-    console.log(`  📅 วันที่ ${record.date}: dayType="${record.dayType}"`);
+    console.log(`  📅 วันที่ ${record.date}: dayType="${record.dayType}", cashWorkMul="${record.cashWorkMul}"`);
     
     // นับจำนวนวันตาม dayType
     if (record.dayType === "work") {
       dayWorkCount++;
+      console.log(`    ✅ นับวันทำงาน dayWorkCount: ${dayWorkCount}`);
+    } else if (record.dayType === "stop") {
+      // สำหรับหน่วยงานปกติ stop อาจหมายถึงวันหยุดหรือวันหยุดนักขัตฤกษ์
+      if (record.cashWorkMul === "2") {
+        publicHolidayCount++; // วันหยุดนักขัตฤกษ์ (cashWorkMul = 2)
+        console.log(`    ✅ นับวันหยุดนักขัตฤกษ์ publicHolidayCount: ${publicHolidayCount}`);
+      } else {
+        dayOffCount++; // วันหยุดปกติ
+        console.log(`    ✅ นับวันหยุดปกติ dayOffCount: ${dayOffCount}`);
+      }
     } else if (record.dayType === "dayOff") {
       dayOffCount++;
+      console.log(`    ✅ นับวันหยุด (dayOff) dayOffCount: ${dayOffCount}`);
     } else if (record.dayType === "publicHoliday") {
       publicHolidayCount++;
+      console.log(`    ✅ นับวันหยุดนักขัตฤกษ์ (publicHoliday) publicHolidayCount: ${publicHolidayCount}`);
     }
   }
 
