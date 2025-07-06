@@ -2050,6 +2050,9 @@ const getEmployeeProfile = async (employeeId) => {
   }
 
 }
+
+const { calculateCashValuesForSpecialWorkplace } = require('../utils/specialWorkplaceUtils');
+
 const calculateCashValues = async (employeeId, employee_record, month, year) => {
   const employeeProfile = await getEmployeeProfile(employeeId);
   const salaryTmp = parseFloat(employeeProfile[0].salary || '0') || 0;
