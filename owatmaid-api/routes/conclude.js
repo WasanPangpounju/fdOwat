@@ -135,6 +135,13 @@ let upSalary_month  = '';
 
     
     let year1 = await Number(year);
+    
+    // ตรวจสอบว่า month มีค่าหรือไม่
+    if (!month) {
+      console.error('❌ Error: month is null or undefined');
+      return res.status(400).json({ message: 'Month is required' });
+    }
+    
     // Convert the month string to an integer
     let monthInt = await parseInt(month, 10);
 
@@ -214,8 +221,14 @@ if((prevMonth  == upSalary_month ) && (year1  == upSalary_year ) ) {
       //check employee working in multi workplace
       const wGroup1 = await groupByWorkplaceId(data1.recordworkplace[0].employee_workplaceRecord);
       // await console.log('wGroup1  :' + JSON.stringify(wGroup1,2,null));
+      
+      // ตรวจสอบว่า wGroup1 มีค่าหรือไม่
+      if (!wGroup1 || typeof wGroup1 !== 'object') {
+        console.error('❌ Error: wGroup1 is null, undefined, or not an object');
+        return res.status(500).json({ message: 'Error processing workplace groups' });
+      }
+      
       await console.log('count :' + Object.keys(wGroup1).length);
-
 
       // if (wGroup1) {
       const keys = await Object.keys(wGroup1);
@@ -226,7 +239,7 @@ if((prevMonth  == upSalary_month ) && (year1  == upSalary_year ) ) {
       if (keys.length > 1 && dataEmp.employees[0].workplace  !== '10105') {
         console.log('process : 21 - '+ lastday);
 
-        for (const workplaceId of Object.keys(wGroup1)) {
+        for (const workplaceId of Object.keys(wGroup1 || {})) {
           const group1 = wGroup1[workplaceId];
           // console.log(`Workplace ID: ${group.workplaceId}, Workplace Name: ${group.workplaceName}`);
           const wpDataCalculator1 = {
@@ -806,6 +819,13 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
       // console.log('wGroup X ' + JSON.stringify(wGroup    ,2,null))
       // console.log('wGroup X ' + Object.keys(wGroup).length)
       // if (wGroup) {
+      
+      // ตรวจสอบว่า wGroup มีค่าหรือไม่
+      if (!wGroup || typeof wGroup !== 'object') {
+        console.error('❌ Error: wGroup is null, undefined, or not an object');
+        return res.status(500).json({ message: 'Error processing workplace groups' });
+      }
+      
       const keys = await Object.keys(wGroup);
       // console.log('wGroup keys:', keys); // Log the keys of wGroup
       // console.log('wGroup keys length:', keys.length); // Log the length of the keys
@@ -813,7 +833,7 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
       if (keys.length > 1 && dataEmp.employees[0].workplace  !== '10105') {
         console.log('process 2');
 
-        for (const workplaceId of Object.keys(wGroup)) {
+        for (const workplaceId of Object.keys(wGroup || {})) {
           const group = wGroup[workplaceId];
           // console.log(`Workplace ID: ${group.workplaceId}, Workplace Name: ${group.workplaceName}`);
           const wpDataCalculator = {
@@ -2110,7 +2130,7 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
         console.log(`🔍 เรียก checkDayRate สำหรับวันที่ ${record.date} (วันสำคัญ)`);
       }
 
-      const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate, record.date, 
+      const dataRate = await checkDayRate(workplaceId, record.wGroup || [], bangkokDate, record.date, 
         employeeProfile?.[0]?.customWorkplace);
       
       if (record.date == 1 || record.date == 5) {
@@ -2126,9 +2146,10 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
       let cashOt = 0;
       let cashBeforeOtMul = 0;
       let cashWorkMul = 0;
-      let cashOtMul = dataCal.cashOtMul || 0; // ใช้ค่าจาก dataCal.cashOtMul ถ้ามี
+      let cashOtMul = 0; // จะได้รับค่าจาก checkDayRate หรือ dataRate
       let dayType = '';
       let addSalaryDaily = [];
+      let dataCal = {}; // กำหนดตัวแปร dataCal
 
       // ถ้ามีค่า workRate จาก API ให้ใช้ค่านั้น
       if (dataRate?.workRateFromAPI) {
@@ -2163,8 +2184,8 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
           console.log(`🔍 dayType จาก dataRate (stop) สำหรับวันที่ ${record.date}: ${dayType}`);
           cashBeforeOtMul = dataRate?.dayoffRateOT || 0;
           cashWorkMul = dataRate?.dayoffRateHour || 0;
-          cashOtMul = dataCal.cashOtMul || dataRate?.dayoffRateOT || 0; // ใช้ค่าจาก dataCal.cashOtMul ถ้ามี
-          console.log(`🎯 dayOff: dataCal.cashOtMul=${dataCal.cashOtMul}, final cashOtMul=${cashOtMul}`);
+          cashOtMul = dataRate?.dayoffRateOT || 0;
+          console.log(`🎯 dayOff: cashOtMul=${cashOtMul}`);
           addSalaryDaily = [];
         } else if(dataRate?.dayType === 'specialDayOff') {
           cashBeforeOt = await (
@@ -2286,7 +2307,7 @@ const rawDate = new Date(year, month - 1, record.date); // สร้างวั
 const bangkokDate = toBangkokDate(rawDate); // ปรับให้ตรงกับเวลาไทย
 
 // const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate , record.date );
-const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate , record.date ,
+const dataRate = await checkDayRate(workplaceId, record.wGroup || [], bangkokDate , record.date ,
   employeeProfile?.[0]?.customWorkplace );
 
 
@@ -2418,7 +2439,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                       const bangkokDate = toBangkokDate(rawDate);
                       
                       // Get the correct work rate from checkDayRate function using foundWorkplace.workplaceId
-                      const dataRate = await checkDayRate(foundWorkplace.workplaceId, record.wGroup, bangkokDate, record.date, 
+                      const dataRate = await checkDayRate(foundWorkplace.workplaceId, record.wGroup || [], bangkokDate, record.date, 
                         employeeProfile?.[0]?.customWorkplace);
                       
                       // คำนวณ cashWork ใหม่ด้วยอัตราค่าแรงปกติจาก checkDayRate (ไม่มีตัวคูณพิเศษ)
