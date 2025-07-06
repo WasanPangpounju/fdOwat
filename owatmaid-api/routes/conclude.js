@@ -2328,8 +2328,25 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                     const apiUrl = `${sURL}/conclude/getWeekendDates?yyyy=${processedDoc.year}&mm=${processedDoc.month}&workplaceId=${foundWorkplace.workplaceId}`;
                     console.log(`📡 [conclude] เรียก API: ${apiUrl}`);
                     const weekendResponse = await axios.get(apiUrl);
-                    console.log(`✅ [conclude] ได้รับข้อมูลวันหยุด ${weekendResponse.data.length} รายการ`);
-                    return { record, weekendData: weekendResponse.data };
+                    
+                    // ตรวจสอบรูปแบบของข้อมูลที่ได้รับ
+                    console.log(`🔍 [conclude] ตรวจสอบรูปแบบข้อมูล:`, typeof weekendResponse.data, Array.isArray(weekendResponse.data));
+                    console.log(`📋 [conclude] ข้อมูลดิบที่ได้รับ:`, JSON.stringify(weekendResponse.data, null, 2));
+                    
+                    let weekendData = [];
+                    if (Array.isArray(weekendResponse.data)) {
+                      weekendData = weekendResponse.data;
+                    } else if (weekendResponse.data && Array.isArray(weekendResponse.data.weekendDates)) {
+                      weekendData = weekendResponse.data.weekendDates;
+                    } else if (weekendResponse.data && weekendResponse.data.data && Array.isArray(weekendResponse.data.data)) {
+                      weekendData = weekendResponse.data.data;
+                    } else {
+                      console.warn(`⚠️ [conclude] รูปแบบข้อมูลไม่คาดคิด จาก getWeekendDates:`, weekendResponse.data);
+                      weekendData = [];
+                    }
+                    
+                    console.log(`✅ [conclude] ได้รับข้อมูลวันหยุด ${weekendData.length} รายการ`);
+                    return { record, weekendData };
                   } catch (error) {
                     console.warn(`⚠️ [conclude] ไม่สามารถเรียก getWeekendDates สำหรับวันที่ ${record.date}:`, error.message);
                     return { record, weekendData: [] };
@@ -2340,10 +2357,16 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                 
                 recordsWithWeekendData.forEach(({ record, weekendData }) => {
                   console.log(`🔍 [conclude] ตรวจสอบ record วันที่ ${record.date}: dayType="${record.dayType}", totalTime="${record.totalTime}", cashWork="${record.cashWork}", cashWorkMul="${record.cashWorkMul}"`);
-                  console.log(`📊 [conclude] ข้อมูลวันหยุดสำหรับวันที่ ${record.date}:`, weekendData.length > 0 ? weekendData.map(d => `วันที่ ${d.day}: ${d.dayType}`).join(', ') : 'ไม่มีข้อมูล');
+                  console.log(`📊 [conclude] ข้อมูลวันหยุดสำหรับวันที่ ${record.date}:`, Array.isArray(weekendData) && weekendData.length > 0 ? weekendData.map(d => `วันที่ ${d.day}: ${d.dayType}`).join(', ') : 'ไม่มีข้อมูล');
+                  
+                  // ตรวจสอบให้แน่ใจว่า weekendData เป็น array
+                  if (!Array.isArray(weekendData)) {
+                    console.warn(`⚠️ [conclude] weekendData ไม่ใช่ array สำหรับวันที่ ${record.date}:`, typeof weekendData, weekendData);
+                    weekendData = [];
+                  }
                   
                   // Check if this date is dayOffOnly or weekendAndDayOff
-                  const dayData = weekendData.find(d => d.day == record.date);
+                  const dayData = weekendData.find(d => d && d.day == record.date);
                   const isDayOff = dayData && (dayData.dayType === "dayOffOnly" || dayData.dayType === "weekendAndDayOff");
                   
                   console.log(`🎯 [conclude] วันที่ ${record.date} - พบข้อมูลวันหยุด: ${dayData ? `${dayData.dayType}` : 'ไม่พบ'}, เป็นวันหยุด: ${isDayOff ? 'ใช่' : 'ไม่'}`);
@@ -2460,8 +2483,25 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                     const apiUrl = `${sURL}/conclude/getWeekendDates?yyyy=${year}&mm=${month}&workplaceId=${foundWorkplace.workplaceId}`;
                     console.log(`📡 [conclude] Second pass - เรียก API: ${apiUrl}`);
                     const weekendResponse = await axios.get(apiUrl);
-                    console.log(`✅ [conclude] Second pass - ได้รับข้อมูลวันหยุด ${weekendResponse.data.length} รายการ`);
-                    return { record, weekendData: weekendResponse.data };
+                    
+                    // ตรวจสอบรูปแบบของข้อมูลที่ได้รับ
+                    console.log(`🔍 [conclude] Second pass - ตรวจสอบรูปแบบข้อมูล:`, typeof weekendResponse.data, Array.isArray(weekendResponse.data));
+                    console.log(`📋 [conclude] Second pass - ข้อมูลดิบที่ได้รับ:`, JSON.stringify(weekendResponse.data, null, 2));
+                    
+                    let weekendData = [];
+                    if (Array.isArray(weekendResponse.data)) {
+                      weekendData = weekendResponse.data;
+                    } else if (weekendResponse.data && Array.isArray(weekendResponse.data.weekendDates)) {
+                      weekendData = weekendResponse.data.weekendDates;
+                    } else if (weekendResponse.data && weekendResponse.data.data && Array.isArray(weekendResponse.data.data)) {
+                      weekendData = weekendResponse.data.data;
+                    } else {
+                      console.warn(`⚠️ [conclude] Second pass - รูปแบบข้อมูลไม่คาดคิด จาก getWeekendDates:`, weekendResponse.data);
+                      weekendData = [];
+                    }
+                    
+                    console.log(`✅ [conclude] Second pass - ได้รับข้อมูลวันหยุด ${weekendData.length} รายการ`);
+                    return { record, weekendData };
                   } catch (error) {
                     console.warn(`⚠️ Second pass - ไม่สามารถเรียก getWeekendDates สำหรับวันที่ ${record.date}:`, error.message);
                     return { record, weekendData: [] };
@@ -2472,10 +2512,16 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                 
                 recordsWithWeekendData.forEach(({ record, weekendData }) => {
                   console.log(`🔍 [conclude] Second pass - ตรวจสอบ record วันที่ ${record.date}: dayType="${record.dayType}", totalTime="${record.totalTime}", cashWork="${record.cashWork}", cashWorkMul="${record.cashWorkMul}"`);
-                  console.log(`📊 [conclude] Second pass - ข้อมูลวันหยุดสำหรับวันที่ ${record.date}:`, weekendData.length > 0 ? weekendData.map(d => `วันที่ ${d.day}: ${d.dayType}`).join(', ') : 'ไม่มีข้อมูล');
+                  console.log(`📊 [conclude] Second pass - ข้อมูลวันหยุดสำหรับวันที่ ${record.date}:`, Array.isArray(weekendData) && weekendData.length > 0 ? weekendData.map(d => `วันที่ ${d.day}: ${d.dayType}`).join(', ') : 'ไม่มีข้อมูล');
+                  
+                  // ตรวจสอบให้แน่ใจว่า weekendData เป็น array
+                  if (!Array.isArray(weekendData)) {
+                    console.warn(`⚠️ [conclude] Second pass - weekendData ไม่ใช่ array สำหรับวันที่ ${record.date}:`, typeof weekendData, weekendData);
+                    weekendData = [];
+                  }
                   
                   // Check if this date is dayOffOnly or weekendAndDayOff
-                  const dayData = weekendData.find(d => d.day == record.date);
+                  const dayData = weekendData.find(d => d && d.day == record.date);
                   const isDayOff = dayData && (dayData.dayType === "dayOffOnly" || dayData.dayType === "weekendAndDayOff");
                   
                   console.log(`🎯 [conclude] Second pass - วันที่ ${record.date} - พบข้อมูลวันหยุด: ${dayData ? `${dayData.dayType}` : 'ไม่พบ'}, เป็นวันหยุด: ${isDayOff ? 'ใช่' : 'ไม่'}`);
