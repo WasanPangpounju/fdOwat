@@ -2286,54 +2286,6 @@ router.post('/searchtimerecordemployee', async (req, res) => {
 
     // Query the collection
     const result = await timerecordEmployee.find(query);
-
-    // Process each result to apply special workplace logic
-    const processedResult = await Promise.all(result.map(async (doc) => {
-      try {
-        // Create a copy of the document to avoid modifying the original
-        const processedDoc = JSON.parse(JSON.stringify(doc));
-        
-        // Get employee profile to check workplace type
-        const employeeProfile = await getEmployeeProfile(processedDoc.employeeId);
-        
-        if (employeeProfile && employeeProfile[0] && employeeProfile[0].workplace) {
-          // Check if this is a special workplace (workOfWeek = "7")
-          try {
-            const workplaceList = await axios.get(sURL + '/workplace/list');
-            const foundWorkplace = workplaceList.data.find(workplace => workplace.workplaceId === employeeProfile[0].workplace);
-            
-            if (foundWorkplace && foundWorkplace.workOfWeek === "7") {
-              console.log(`🟡 [conclude/searchtimerecordemployee] พบหน่วยงานพิเศษ (workOfWeek=7) สำหรับพนักงาน ${processedDoc.employeeId}`);
-              
-              // Apply special workplace logic to fix dayType and cashWorkMul
-              if (processedDoc.employee_record && Array.isArray(processedDoc.employee_record)) {
-                processedDoc.employee_record.forEach(record => {
-                  // Fix dayType from "stop" to "work" if there's actual work data
-                  if (record?.dayType === "stop" && (parseFloat(record.totalTime) > 0 || parseFloat(record.cashWork) > 0)) {
-                    console.log(`🟡 [conclude] แก้ไข dayType จาก "stop" เป็น "work" สำหรับวันที่ ${record.date} (หน่วยงาน 7 วัน)`);
-                    record.dayType = "work";
-                  }
-                  
-                  // Fix cashWorkMul for ALL work days in special workplaces
-                  if (record?.dayType === "work" && record.cashWorkMul && record.cashWorkMul !== "1") {
-                    console.log(`🟡 [conclude] แก้ไข cashWorkMul จาก "${record.cashWorkMul}" เป็น "1" สำหรับงานปกติในหน่วยงาน 7 วัน (วันที่ ${record.date})`);
-                    record.cashWorkMul = "1";
-                  }
-                });
-              }
-            }
-          } catch (workplaceError) {
-            console.error(`❌ [conclude] ข้อผิดพลาดในการตรวจสอบ workplace:`, workplaceError.message);
-          }
-        }
-        
-        return processedDoc;
-      } catch (processError) {
-        console.error(`❌ [conclude] ข้อผิดพลาดในการประมวลผลเอกสาร:`, processError.message);
-        return doc; // Return original document if processing fails
-      }
-    }));
-
 // console.log("result  " , result[0].employee_record.length)
     // Check if any record has missing cash values
     // let updateNeeded = false;
@@ -2347,7 +2299,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     // }
     let updateNeeded = false;
 
-    for (const doc of processedResult) {
+    for (const doc of result) {
         // ข้ามเอกสารที่ status มีค่า (ไม่ว่าง)
   if (doc.status && doc.status.trim() !== "") {
     // console.log(`⏩ Skipping calculation for employeeId=${doc.employeeId} because status="${doc.status}"`);
@@ -2367,20 +2319,14 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         
         if (JSON.stringify(updatedRecords) !== JSON.stringify(doc.employee_record)) {
           doc.employee_record = updatedRecords;
-          
-          // Save the updated document to database if it's a real MongoDB document
-          const originalDoc = await timerecordEmployee.findById(doc._id);
-          if (originalDoc) {
-            originalDoc.employee_record = updatedRecords;
-            await originalDoc.save();
-            updateNeeded = true;
-          }
+          await doc.save();
+          updateNeeded = true;
         }
       } catch (error) {
         console.error("❌ Error in calculateCashValues:", error);
       }
     }
-    await res.status(200).json({ result: processedResult });
+    await res.status(200).json({ result });
 
   } catch (error) {
     console.error(error);
