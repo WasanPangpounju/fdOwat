@@ -2339,6 +2339,9 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                   
                   console.log(`📊 [conclude] ข้อมูลวันหยุดสำหรับวันที่ ${record.date}:`, JSON.stringify(actualWeekendData, null, 2));
                   
+                  // เก็บค่า dayType เดิมเพื่อเปรียบเทียบ
+                  const originalDayType = record.dayType;
+                  
                   // ตรวจสอบว่าวันนี้เป็นวันหยุดหรือไม่ (dayOffOnly หรือ weekendAndDayOff เท่านั้น)
                   let isDayOff = false;
                   let dayOffReason = '';
@@ -2427,9 +2430,25 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                   
                   console.log(`✅ [conclude] ผลลัพธ์สำหรับวันที่ ${record.date}: dayType="${record.dayType}", cashWork="${record.cashWork}", cashWorkMul="${record.cashWorkMul}", totalTime="${record.totalTime}"`);
                   console.log(`📋 [conclude] สถานะสุดท้าย - วันหยุด: ${isDayOff ? 'ใช่' : 'ไม่'}, มีการทำงาน: ${(parseFloat(record.totalTime || '0') > 0 || parseFloat(record.cashWork || '0') > 0) ? 'ใช่' : 'ไม่'}`);
+                  
+                  // Log การเปลี่ยนแปลง dayType เพื่อติดตาม dayWorkCount
+                  if (originalDayType !== record.dayType) {
+                    console.log(`🔄 [conclude] dayType เปลี่ยนจาก "${originalDayType}" เป็น "${record.dayType}" สำหรับวันที่ ${record.date}`);
+                  }
                 });
                 
                 console.log(`🎯 [conclude] เสร็จสิ้นการแก้ไขสำหรับหน่วยงานพิเศษ พนักงาน ${processedDoc.employeeId}`);
+                
+                // สรุปผลการนับ dayWorkCount หลังการปรับแก้
+                const workDaysAfterFix = processedDoc.employee_record.filter(r => r.dayType === "work").length;
+                const stopDaysAfterFix = processedDoc.employee_record.filter(r => r.dayType === "stop").length;
+                const totalDaysAfterFix = processedDoc.employee_record.length;
+                
+                console.log(`📊 [conclude] สรุปผลการปรับแก้สำหรับพนักงาน ${processedDoc.employeeId}:`);
+                console.log(`📊 - วันทำงาน (dayType="work"): ${workDaysAfterFix} วัน`);
+                console.log(`📊 - วันหยุด (dayType="stop"): ${stopDaysAfterFix} วัน`);
+                console.log(`📊 - รวมทั้งหมด: ${totalDaysAfterFix} วัน`);
+                console.log(`📊 - dayWorkCount ที่จะส่งไปคำนวณ summary: ${workDaysAfterFix}`);
               }
             } else {
               console.log(`ℹ️ [conclude] หน่วยงาน ${foundWorkplace ? foundWorkplace.workplaceId : 'ไม่ทราบ'} ไม่ใช่หน่วยงานพิเศษ (workOfWeek=${foundWorkplace ? foundWorkplace.workOfWeek : 'ไม่ทราบ'})`);
@@ -2524,6 +2543,9 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                   
                   console.log(`📊 [conclude] Second pass - ข้อมูลวันหยุดสำหรับวันที่ ${record.date}:`, JSON.stringify(actualWeekendData, null, 2));
                   
+                  // เก็บค่า dayType เดิมเพื่อเปรียบเทียบ
+                  const originalDayTypeSecond = record.dayType;
+                  
                   // ตรวจสอบว่าวันนี้เป็นวันหยุดหรือไม่ (dayOffOnly หรือ weekendAndDayOff เท่านั้น)
                   let isDayOff = false;
                   let dayOffReason = '';
@@ -2593,9 +2615,25 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                   
                   // Log สรุปผลลัพธ์ second pass
                   console.log(`✅ [conclude] Second pass - ผลลัพธ์สำหรับวันที่ ${record.date}: dayType="${record.dayType}", cashWork="${record.cashWork}", cashWorkMul="${record.cashWorkMul}", totalTime="${record.totalTime}"`);
+                  
+                  // Log การเปลี่ยนแปลง dayType เพื่อติดตาม dayWorkCount
+                  if (originalDayTypeSecond !== record.dayType) {
+                    console.log(`🔄 [conclude] Second pass - dayType เปลี่ยนจาก "${originalDayTypeSecond}" เป็น "${record.dayType}" สำหรับวันที่ ${record.date}`);
+                  }
                 });
                 
                 console.log(`🎯 [conclude] Second pass - เสร็จสิ้นการแก้ไขสำหรับหน่วยงานพิเศษ พนักงาน ${employeeId}`);
+                
+                // สรุปผลการนับ dayWorkCount หลังการปรับแก้ second pass
+                const workDaysAfterSecondFix = doc.employee_record.filter(r => r.dayType === "work").length;
+                const stopDaysAfterSecondFix = doc.employee_record.filter(r => r.dayType === "stop").length;
+                const totalDaysAfterSecondFix = doc.employee_record.length;
+                
+                console.log(`📊 [conclude] Second pass - สรุปผลการปรับแก้สำหรับพนักงาน ${employeeId}:`);
+                console.log(`📊 - วันทำงาน (dayType="work"): ${workDaysAfterSecondFix} วัน`);
+                console.log(`📊 - วันหยุด (dayType="stop"): ${stopDaysAfterSecondFix} วัน`);
+                console.log(`📊 - รวมทั้งหมด: ${totalDaysAfterSecondFix} วัน`);
+                console.log(`📊 - dayWorkCount ที่จะส่งไปคำนวณ summary (Second pass): ${workDaysAfterSecondFix}`);
               }
             } catch (workplaceError) {
               console.error(`❌ [conclude] ข้อผิดพลาดในการตรวจสอบ workplace (second pass):`, workplaceError.message);
@@ -2617,18 +2655,22 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     
     console.log(`🎯 [conclude/searchtimerecordemployee] เสร็จสิ้นการประมวลผล - ส่งผลลัพธ์ ${processedResult.length} รายการ`);
     
-    // Log summary ของ special workplaces
+    // Log summary ของ special workplaces และ dayWorkCount
     const specialWorkplaceRecords = processedResult.filter(doc => {
       return doc.employee_record && Array.isArray(doc.employee_record) && doc.employee_record.length > 0;
     });
     
     if (specialWorkplaceRecords.length > 0) {
-      console.log(`📋 [conclude/searchtimerecordemployee] สรุปผลลัพธ์สำหรับหน่วยงานพิเศษ:`);
+      console.log(`📋 [conclude/searchtimerecordemployee] สรุปผลลัพธ์ dayWorkCount สำหรับทุกพนักงาน:`);
       specialWorkplaceRecords.forEach((doc, index) => {
         const workDays = doc.employee_record.filter(r => r.dayType === "work").length;
         const stopDays = doc.employee_record.filter(r => r.dayType === "stop").length;
         const totalRecords = doc.employee_record.length;
-        console.log(`  - รายการ ${index + 1}: พนักงาน ${doc.employeeId} - ทำงาน: ${workDays} วัน, หยุด: ${stopDays} วัน, รวม: ${totalRecords} วัน`);
+        console.log(`  - รายการ ${index + 1}: พนักงาน ${doc.employeeId} - ทำงาน: ${workDays} วัน (dayWorkCount), หยุด: ${stopDays} วัน, รวม: ${totalRecords} วัน`);
+        
+        // แสดงรายละเอียด dayType ของแต่ละวัน
+        const dailyDetails = doc.employee_record.map(r => `วันที่${r.date}:${r.dayType}`).join(', ');
+        console.log(`    รายละเอียด: ${dailyDetails}`);
       });
     }
     
