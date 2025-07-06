@@ -2384,6 +2384,18 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                       console.log(`🟡 [conclude] แก้ไข dayType จาก "stop" เป็น "work" สำหรับวันที่ ${record.date} (หน่วยงาน 7 วัน)`);
                       console.log(`🟡 เงื่อนไข: totalTime=${record.totalTime} (${parseFloat(record.totalTime || '0')}), cashWork=${record.cashWork} (${parseFloat(record.cashWork || '0')})`);
                       record.dayType = "work";
+                      
+                      // คำนวณ cashWork ใหม่สำหรับวันทำงาน (ไม่ใช่วันหยุด)
+                      if (foundWorkplace.workRate && record.totalTime) {
+                        const workRate = parseFloat(foundWorkplace.workRate || '0');
+                        const totalTime = parseFloat(record.totalTime || '0');
+                        if (workRate > 0 && totalTime > 0) {
+                          const newCashWork = workRate * totalTime;
+                          console.log(`🔄 [conclude] คำนวณ cashWork ใหม่สำหรับวันทำงาน: ${workRate} x ${totalTime} = ${newCashWork} (เดิม: ${record.cashWork})`);
+                          record.cashWork = newCashWork.toFixed(2);
+                          record._cashWorkRecalculated = true; // Mark as recalculated
+                        }
+                      }
                     }
                     
                     // cashWorkMul = "1" เมื่อ dayType = "work" (วันทำงาน)
@@ -2393,8 +2405,8 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                     }
                   }
                   
-                  // Additional fix: สำหรับหน่วยงานพิเศษ ให้คำนวณ cashWork ใหม่ด้วย workRate
-                  if (record?.dayType === "work" && foundWorkplace.workRate && record.totalTime) {
+                  // Additional fix: สำหรับหน่วยงานพิเศษ ให้คำนวณ cashWork ใหม่ด้วย workRate (สำหรับ records ที่ยังไม่ได้คำนวณใหม่)
+                  if (record?.dayType === "work" && foundWorkplace.workRate && record.totalTime && !record._cashWorkRecalculated) {
                     const workRate = parseFloat(foundWorkplace.workRate || '0');
                     const totalTime = parseFloat(record.totalTime || '0');
                     console.log(`💰 [conclude] ตรวจสอบการคำนวณ cashWork - workRate: ${workRate}, totalTime: ${totalTime}`);
@@ -2407,7 +2419,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                       console.log(`⚠️ [conclude] ไม่สามารถคำนวณ cashWork ได้ - workRate หรือ totalTime ไม่ถูกต้อง`);
                     }
                   } else {
-                    console.log(`ℹ️ [conclude] ข้าม การคำนวณ cashWork - dayType: ${record?.dayType}, workRate: ${foundWorkplace.workRate}, totalTime: ${record.totalTime}`);
+                    console.log(`ℹ️ [conclude] ข้าม การคำนวณ cashWork - dayType: ${record?.dayType}, workRate: ${foundWorkplace.workRate}, totalTime: ${record.totalTime}, recalculated: ${record._cashWorkRecalculated || false}`);
                   }
                   
                   console.log(`✅ [conclude] ผลลัพธ์สำหรับวันที่ ${record.date}: dayType="${record.dayType}", cashWork="${record.cashWork}", cashWorkMul="${record.cashWorkMul}", totalTime="${record.totalTime}"`);
@@ -2538,6 +2550,18 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                     if (record?.dayType === "stop" && (parseFloat(record.totalTime || '0') > 0 || parseFloat(record.cashWork || '0') > 0)) {
                       console.log(`🟡 [conclude] Second pass - แก้ไข dayType จาก "stop" เป็น "work" สำหรับวันที่ ${record.date}`);
                       record.dayType = "work";
+                      
+                      // คำนวณ cashWork ใหม่สำหรับวันทำงาน (ไม่ใช่วันหยุด)
+                      if (foundWorkplace.workRate && record.totalTime) {
+                        const workRate = parseFloat(foundWorkplace.workRate || '0');
+                        const totalTime = parseFloat(record.totalTime || '0');
+                        if (workRate > 0 && totalTime > 0) {
+                          const newCashWork = workRate * totalTime;
+                          console.log(`🔄 [conclude] Second pass - คำนวณ cashWork ใหม่สำหรับวันทำงาน: ${workRate} x ${totalTime} = ${newCashWork} (เดิม: ${record.cashWork})`);
+                          record.cashWork = newCashWork.toFixed(2);
+                          record._cashWorkRecalculated = true; // Mark as recalculated
+                        }
+                      }
                     }
                     
                     // cashWorkMul = "1" เมื่อ dayType = "work" (วันทำงาน)
