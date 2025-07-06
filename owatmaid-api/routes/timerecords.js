@@ -1510,5 +1510,49 @@ router.put('/updateworkplacetimerecords/:workplaceRecordId', async (req, res) =>
   }
 });
 
+// Delete a specific employee timerecord by MongoDB _id
+router.delete('/deletetimerecordbyid/:recordId', async (req, res) => {
+  try {
+    const recordId = req.params.recordId;
+    
+    console.log(`🗑️ [DELETE] ลบ employee timerecord ด้วย _id: ${recordId}`);
+    
+    // Delete the specific record by _id
+    const deleteResult = await timerecordEmployee.findByIdAndDelete(recordId);
+    
+    if (deleteResult) {
+      console.log(`✅ [DELETE] ลบ record สำเร็จ: ${recordId}`);
+      console.log(`✅ ข้อมูลที่ลบ: employeeId=${deleteResult.employeeId}, month=${deleteResult.month}, year=${deleteResult.year}`);
+      
+      res.status(200).json({
+        success: true,
+        message: `ลบ employee timerecord สำเร็จ`,
+        deletedRecord: {
+          _id: deleteResult._id,
+          employeeId: deleteResult.employeeId,
+          employeeName: deleteResult.employeeName,
+          month: deleteResult.month,
+          year: deleteResult.year
+        }
+      });
+    } else {
+      console.log(`❌ [DELETE] ไม่พบ record ที่ต้องการลบ: ${recordId}`);
+      res.status(404).json({
+        success: false,
+        message: `ไม่พบ employee timerecord ที่ต้องการลบ`,
+        recordId: recordId
+      });
+    }
+    
+  } catch (error) {
+    console.error("❌ [DELETE] Error:", error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Internal server error',
+      message: error.message 
+    });
+  }
+});
+
 
 module.exports = router;
