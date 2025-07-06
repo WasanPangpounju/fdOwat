@@ -4332,6 +4332,9 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
                     }
                     
                     console.log(`✅ Updated summary for ${record.employeeId}: dayWorkCount=${record.dayWorkCount}, dayOffCount=${record.dayOffCount}`);
+                    
+                    // ลบ summary object ออกเพื่อไม่ให้แสดงใน response
+                    delete record.summary;
                   } else {
                     console.log(`⚠️ No summary field in API response for ${record.employeeId}`);
                   }
@@ -4676,10 +4679,12 @@ const calculateCashValuesForSpecialWorkplace = async (employeeId, employee_recor
     
     if (record.dayType === "work") {
       dayWorkCount += 1;
-      sumTimeWork += convertTimeToDecimal(record.allTimes || '0');
+      sumTimeWork += convertTimeToDecimal(record.allTimดดดดes || 'ojfos');
       sumTimeOt += convertTimeToDecimal(record.otTimes || '0');
       sumCashWork += parseFloat(record.cashWork || 0);
       sumCashOt += parseFloat(record.cashOt || 0);
+      record.dayWorkCount = record.dayWorkCount;
+
       
       // จัดการ sumCashWorkMul สำหรับหน่วยงานพิเศษ
       const workMul = record.cashWorkMul || "1";
