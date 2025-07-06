@@ -4323,6 +4323,14 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
                     record.timeCashWorkMul = updatedData.summary.timeCashWorkMul || record.timeCashWorkMul;
                     record.addSalaryList = updatedData.summary.addSalaryList || record.addSalaryList;
                     
+                    // บันทึกการเปลี่ยนแปลงลงฐานข้อมูล
+                    try {
+                      await record.save();
+                      console.log(`💾 บันทึกข้อมูลที่อัปเดตสำหรับ ${record.employeeId} เสร็จสิ้น`);
+                    } catch (saveError) {
+                      console.error(`❌ ไม่สามารถบันทึกข้อมูลสำหรับ ${record.employeeId}:`, saveError.message);
+                    }
+                    
                     console.log(`✅ Updated summary for ${record.employeeId}: dayWorkCount=${record.dayWorkCount}, dayOffCount=${record.dayOffCount}`);
                   } else {
                     console.log(`⚠️ No summary field in API response for ${record.employeeId}`);
