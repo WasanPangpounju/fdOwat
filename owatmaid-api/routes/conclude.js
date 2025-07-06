@@ -1678,14 +1678,14 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
         console.log(`📅 วันใน weekendOnly: ${JSON.stringify(weekendData.weekendOnly)}`);
         
         if (weekendData.weekendOnly.includes(dateStr)) {
-          // ตรวจสอบว่าเป็นวันเสาร์หรือวันอาทิตย์
+          // วันที่อยู่ใน weekendOnly ให้เป็น work ทั้งหมด (ทั้งเสาร์และอาทิตย์)
           if (dayOfWeek === 6) { // วันเสาร์
             console.log(`✅ พบวันที่ ${dateStr} เป็นวันเสาร์ใน weekendOnly -> dayType = work`);
             dataCal.dayType = 'work';
             return dataCal;
           } else if (dayOfWeek === 0) { // วันอาทิตย์
-            console.log(`✅ พบวันที่ ${dateStr} เป็นวันอาทิตย์ใน weekendOnly -> dayType = stop`);
-            dataCal.dayType = 'stop';
+            console.log(`✅ พบวันที่ ${dateStr} เป็นวันอาทิตย์ใน weekendOnly -> dayType = work`);
+            dataCal.dayType = 'work';
             return dataCal;
           }
         }
