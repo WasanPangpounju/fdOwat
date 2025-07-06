@@ -1185,24 +1185,8 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
     // Query the workplace collection for matching documents
     const result = await timerecordEmployee.find(query);
 
-    // Remove duplicates based on employeeId (keep the latest one)
-    const uniqueResult = [];
-    const employeeMap = new Map();
-    
-    result.forEach(doc => {
-      const existingDoc = employeeMap.get(doc.employeeId);
-      if (!existingDoc || new Date(doc.__v || 0) > new Date(existingDoc.__v || 0)) {
-        employeeMap.set(doc.employeeId, doc);
-      }
-    });
-    
-    // Convert Map back to array
-    const deduplicatedResult = Array.from(employeeMap.values());
-    
-    console.log(`🔍 พบข้อมูลทั้งหมด: ${result.length} records, หลังลบ duplicate: ${deduplicatedResult.length} records`);
-
     // Process each result to apply special workplace logic
-    const processedResult = await Promise.all(deduplicatedResult.map(async (doc) => {
+    const processedResult = await Promise.all(result.map(async (doc) => {
       try {
         // Create a copy of the document to avoid modifying the original
         const processedDoc = JSON.parse(JSON.stringify(doc));
@@ -1225,25 +1209,7 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
                   // Fix dayType from "stop" to "work" if there's actual work data
                   if (record?.dayType === "stop" && (parseFloat(record.totalTime) > 0 || parseFloat(record.cashWork) > 0)) {
                     console.log(`🟡 [timerecords] แก้ไข dayType จาก "stop" เป็น "work" สำหรับวันที่ ${record.date} (หน่วยงาน 7 วัน)`);
-                    
-                    // เก็บสถานะเดิมไว้ในฟิลด์ originalDayType สำหรับ frontend
-                    record.originalDayType = record.dayType;
-                    // เพิ่มฟิลด์ใหม่เพื่อระบุว่าเป็นหน่วยงานพิเศษ
-                    record.isSpecialWorkplace = true;
-                    record.specialWorkplaceStatus = "มาทำงาน"; // สำหรับ frontend แสดงผล
-                    
                     record.dayType = "work";
-                    
-                    // สำหรับหน่วยงานพิเศษ - ปรับ cashWorkMul ให้เป็น "1" เพื่อไม่ให้แสดงเป็น OT2
-                    if (record.cashWorkMul === "2" && parseFloat(record.totalOtTime || 0) === 0) {
-                      console.log(`🟡 [timerecords] ปรับ cashWorkMul จาก "2" เป็น "1" สำหรับงานปกติ (ไม่ใช่ OT)`);
-                      record.originalCashWorkMul = record.cashWorkMul;
-                      record.cashWorkMul = "1";
-                    }
-                  } else if (record?.dayType === "stop") {
-                    // สำหรับ record ที่เป็น stop จริงๆ (ไม่มีข้อมูลการทำงาน)
-                    record.isSpecialWorkplace = true;
-                    record.specialWorkplaceStatus = "วันหยุด"; // สำหรับ frontend แสดงผล
                   }
                 });
               }

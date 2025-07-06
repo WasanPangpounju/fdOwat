@@ -4700,21 +4700,7 @@ const calculateCashValuesForSpecialWorkplace = async (employeeId, employee_recor
     if (record?.dayType === "stop" && (parseFloat(record.totalTime) > 0 || parseFloat(record.cashWork) > 0)) {
       console.log(`🟡 แก้ไข dayType จาก "stop" เป็น "work" สำหรับวันที่ ${record.date} (หน่วยงาน 7 วัน)`);
       console.log(`🟡 เงื่อนไข: totalTime=${record.totalTime} (${parseFloat(record.totalTime)}), cashWork=${record.cashWork} (${parseFloat(record.cashWork)})`);
-      
-      // เก็บสถานะเดิมไว้ในฟิลด์ originalDayType สำหรับ frontend
-      record.originalDayType = record.dayType;
-      // เพิ่มฟิลด์ใหม่เพื่อระบุว่าเป็นหน่วยงานพิเศษ
-      record.isSpecialWorkplace = true;
-      record.specialWorkplaceStatus = "มาทำงาน"; // สำหรับ frontend แสดงผล
-      
       record.dayType = "work";
-      
-      // สำหรับหน่วยงานพิเศษ - ปรับ cashWorkMul ให้เป็น "1" เพื่อไม่ให้แสดงเป็น OT2
-      if (record.cashWorkMul === "2" && parseFloat(record.totalOtTime || 0) === 0) {
-        console.log(`🟡 ปรับ cashWorkMul จาก "2" เป็น "1" สำหรับงานปกติ (ไม่ใช่ OT)`);
-        record.originalCashWorkMul = record.cashWorkMul;
-        record.cashWorkMul = "1";
-      }
       
       // คำนวณ cashWork ใหม่จาก workplace workRate
       if (record.workplaceId && parseFloat(record.totalTime) > 0) {
@@ -4741,10 +4727,6 @@ const calculateCashValuesForSpecialWorkplace = async (employeeId, employee_recor
           console.error(`🟡 ❌ ข้อผิดพลาดในการดึงข้อมูล workplace ${record.workplaceId}:`, error.message);
         }
       }
-    } else if (record?.dayType === "stop") {
-      // สำหรับ record ที่เป็น stop จริงๆ (ไม่มีข้อมูลการทำงาน)
-      record.isSpecialWorkplace = true;
-      record.specialWorkplaceStatus = "วันหยุด"; // สำหรับ frontend แสดงผล
     }
     
     // Initialize sumCashWorkMul and timeCashWorkMul for this record
