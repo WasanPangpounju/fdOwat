@@ -2367,20 +2367,29 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                 summary = await calculateSummaryForNormalWorkplace(doc.employeeId, employee_record, doc.month, doc.year);
               }
               
-              // Copy ค่าจาก summary ไปยัง root level (ไม่ส่ง summary object)
-              resultDoc.dayWorkCount = summary.dayWorkCount;
-              resultDoc.dayOffCount = summary.dayOffCount;
-              resultDoc.publicHolidayCount = summary.publicHolidayCount;
-              resultDoc.sumCashWork = summary.sumCashWork;
-              resultDoc.sumCashOt = summary.sumCashOt;
-              resultDoc.sumOt1p5 = summary.sumOt1p5;
-              resultDoc.sumOt3 = summary.sumOt3;
-              resultDoc.sumOtPublicHoliday = summary.sumOtPublicHoliday;
-              resultDoc.sumCashWorkMul = summary.sumCashWorkMul;
-              resultDoc.timeCashWorkMul = summary.timeCashWorkMul;
-              resultDoc.addSalaryList = summary.addSalaryList;
+              // Copy ค่าจาก summary ไปยัง root level (เฉพาะค่าที่ดีกว่าเดิม)
+              // ถ้าค่าเดิมมีอยู่แล้วและไม่ใช่ "0" ให้ใช้ค่าเดิม
+              resultDoc.dayWorkCount = (resultDoc.dayWorkCount && resultDoc.dayWorkCount !== "0") ? resultDoc.dayWorkCount : summary.dayWorkCount;
+              resultDoc.dayOffCount = (resultDoc.dayOffCount && resultDoc.dayOffCount !== "0") ? resultDoc.dayOffCount : summary.dayOffCount;
+              resultDoc.publicHolidayCount = (resultDoc.publicHolidayCount && resultDoc.publicHolidayCount !== "0") ? resultDoc.publicHolidayCount : summary.publicHolidayCount;
+              resultDoc.sumCashWork = (resultDoc.sumCashWork && resultDoc.sumCashWork !== "0") ? resultDoc.sumCashWork : summary.sumCashWork;
+              resultDoc.sumCashOt = (resultDoc.sumCashOt && resultDoc.sumCashOt !== "0") ? resultDoc.sumCashOt : summary.sumCashOt;
+              resultDoc.sumOt1p5 = (resultDoc.sumOt1p5 && resultDoc.sumOt1p5 !== "0") ? resultDoc.sumOt1p5 : summary.sumOt1p5;
+              resultDoc.sumOt3 = (resultDoc.sumOt3 && resultDoc.sumOt3 !== "0") ? resultDoc.sumOt3 : summary.sumOt3;
+              resultDoc.sumOtPublicHoliday = (resultDoc.sumOtPublicHoliday && resultDoc.sumOtPublicHoliday !== "0") ? resultDoc.sumOtPublicHoliday : summary.sumOtPublicHoliday;
               
-              console.log(`🟢 [conclude/searchtimerecordemployee] Summary calculated for ${doc.employeeId}: dayWorkCount=${summary.dayWorkCount}, dayOffCount=${summary.dayOffCount}`);
+              // สำหรับ object ให้เช็คว่ามีค่าที่ไม่ใช่ 0 หรือไม่
+              if (!resultDoc.sumCashWorkMul || Object.values(resultDoc.sumCashWorkMul).every(v => v === 0)) {
+                resultDoc.sumCashWorkMul = summary.sumCashWorkMul;
+              }
+              if (!resultDoc.timeCashWorkMul || Object.values(resultDoc.timeCashWorkMul).every(v => v === 0)) {
+                resultDoc.timeCashWorkMul = summary.timeCashWorkMul;
+              }
+              if (!resultDoc.addSalaryList || resultDoc.addSalaryList.length === 0) {
+                resultDoc.addSalaryList = summary.addSalaryList;
+              }
+              
+              console.log(`🟢 [conclude/searchtimerecordemployee] ใช้ค่าที่ดีที่สุดสำหรับ ${doc.employeeId}: dayWorkCount=${resultDoc.dayWorkCount}, dayOffCount=${resultDoc.dayOffCount}`);
               console.log(`🟢 [conclude/searchtimerecordemployee] Copied to root level - no summary object in response`);
             }
           } catch (error) {
