@@ -1924,6 +1924,7 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
       
       // แสดงข้อมูลเพื่อตรวจสอบ
       console.log(`📅 วันที่ต้องการตรวจสอบ: ${dateStr} (รูปแบบ: YYYY-MM-DD)`);
+      console.log(`🔍 ข้อมูลจาก API:`, JSON.stringify(weekendData, null, 2));
       
       // ตรวจสอบ weekendAndDayOff ก่อน (วันหยุดสุดสัปดาห์และวันหยุดพิเศษ)
       if (weekendData.weekendAndDayOff && weekendData.weekendAndDayOff.length > 0) {
@@ -2685,7 +2686,7 @@ function convertTimeToDecimal(timeString) {
  * บังคับให้ทุกวันเป็น "work" ไม่สนใจ dayType
  */
 async function calculateSummaryForSpecialWorkplace(employeeId, employee_record, month, year) {
-  console.log(`🔶 [calculateSummaryForSpecialWorkplace] คำนวณ summary สำหรับหน่วยงานพิเศษ - บังคับทุกวันเป็น work`);
+  console.log(`🔶 [calculateSummaryForSpecialWorkplace] คำนวณ summary สำหรับหน่วยงานพิเศษ - เคารพ dayType ที่เป็น stop`);
   console.log(`🔶 พนักงาน ${employeeId} (${month}/${year})`);
   
   let dayWorkCount = 0;
@@ -2694,17 +2695,23 @@ async function calculateSummaryForSpecialWorkplace(employeeId, employee_record, 
   
   // วนลูปผ่านทุกวันใน employee_record
   for (const record of employee_record) {
-    console.log(`  📅 วันที่ ${record.date}: dayType="${record.dayType}" -> บังคับเป็น "work"`);
+    console.log(`  📅 วันที่ ${record.date}: dayType="${record.dayType}"`);
     
-    // บังคับให้ทุกวันเป็น work สำหรับหน่วยงานพิเศษ
-    dayWorkCount++;
-    console.log(`    ✅ นับวันทำงาน (บังคับ) dayWorkCount: ${dayWorkCount}`);
+    // ตรวจสอบ dayType ที่เป็นอยู่จริง
+    if (record.dayType === "stop") {
+      dayOffCount++;
+      console.log(`    🛑 นับวันหยุดพิเศษ (stop) dayOffCount: ${dayOffCount}`);
+    } else {
+      // สำหรับหน่วยงานพิเศษ วันอื่นๆ ที่ไม่ใช่ stop จะเป็น work
+      dayWorkCount++;
+      console.log(`    ✅ นับวันทำงาน dayWorkCount: ${dayWorkCount}`);
+    }
   }
 
   const summary = {
     dayWorkCount: dayWorkCount.toString(),
-    dayOffCount: "0", // บังคับเป็น 0
-    publicHolidayCount: "0", // บังคับเป็น 0
+    dayOffCount: dayOffCount.toString(), // ใช้ค่าจริงที่นับได้
+    publicHolidayCount: "0", // หน่วยงานพิเศษไม่มีวันหยุดนักขัตฤกษ์แยกต่างหาก
     sumCashWork: "0",
     sumCashOt: "0",
     sumOt1p5: "0",
@@ -2715,7 +2722,7 @@ async function calculateSummaryForSpecialWorkplace(employeeId, employee_record, 
     addSalaryList: []
   };
 
-  console.log(`🔶 [Special Workplace] Summary: dayWorkCount=${summary.dayWorkCount} (บังคับทุกวันเป็น work)`);
+  console.log(`🔶 [Special Workplace] Summary: dayWorkCount=${summary.dayWorkCount}, dayOffCount=${summary.dayOffCount}`);
   return summary;
 }
 
