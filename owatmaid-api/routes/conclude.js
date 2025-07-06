@@ -1947,23 +1947,8 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
         }
       }
       
-      // ตรวจสอบ weekendOnly (วันหยุดสุดสัปดาห์เท่านั้น)
-      if (weekendData.weekendOnly && weekendData.weekendOnly.length > 0) {
-        console.log(`📅 วันใน weekendOnly: ${JSON.stringify(weekendData.weekendOnly)}`);
-        
-        if (weekendData.weekendOnly.includes(dateStr)) {
-          // ตรวจสอบว่าเป็นวันเสาร์หรือวันอาทิตย์
-          if (dayOfWeek === 6) { // วันเสาร์
-            console.log(`✅ พบวันที่ ${dateStr} เป็นวันเสาร์ใน weekendOnly -> dayType = work`);
-            dataCal.dayType = 'work';
-            return dataCal;
-          } else if (dayOfWeek === 0) { // วันอาทิตย์
-            console.log(`✅ พบวันที่ ${dateStr} เป็นวันอาทิตย์ใน weekendOnly -> dayType = stop`);
-            dataCal.dayType = 'stop';
-            return dataCal;
-          }
-        }
-      }
+      // หมายเหตุ: ไม่ตรวจสอบ weekendOnly ตามความต้องการใหม่
+      // เฉพาะ dayOffOnly และ weekendAndDayOff เท่านั้นที่จะกำหนด dayType = 'stop'
       
       // ตรวจสอบเพิ่มเติมสำหรับวันที่ 10 มิถุนายน 2025
      
@@ -2357,23 +2342,39 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                 
                 recordsWithWeekendData.forEach(({ record, weekendData }) => {
                   console.log(`🔍 [conclude] ตรวจสอบ record วันที่ ${record.date}: dayType="${record.dayType}", totalTime="${record.totalTime}", cashWork="${record.cashWork}", cashWorkMul="${record.cashWorkMul}"`);
-                  console.log(`📊 [conclude] ข้อมูลวันหยุดสำหรับวันที่ ${record.date}:`, Array.isArray(weekendData) && weekendData.length > 0 ? weekendData.map(d => `วันที่ ${d.day}: ${d.dayType}`).join(', ') : 'ไม่มีข้อมูล');
                   
-                  // ตรวจสอบให้แน่ใจว่า weekendData เป็น array
-                  if (!Array.isArray(weekendData)) {
-                    console.warn(`⚠️ [conclude] weekendData ไม่ใช่ array สำหรับวันที่ ${record.date}:`, typeof weekendData, weekendData);
-                    weekendData = [];
+                  // ตรวจสอบให้แน่ใจว่า weekendData มี structure ถูกต้อง
+                  let actualWeekendData = weekendData;
+                  if (Array.isArray(weekendData)) {
+                    console.log(`📊 [conclude] weekendData เป็น array ขนาด ${weekendData.length} สำหรับวันที่ ${record.date}`);
+                    actualWeekendData = weekendData[0] || {}; // ใช้ element แรกหากเป็น array
                   }
                   
-                  // Check if this date is dayOffOnly or weekendAndDayOff
-                  const dayData = weekendData.find(d => d && d.day == record.date);
-                  const isDayOff = dayData && (dayData.dayType === "dayOffOnly" || dayData.dayType === "weekendAndDayOff");
+                  console.log(`📊 [conclude] ข้อมูลวันหยุดสำหรับวันที่ ${record.date}:`, JSON.stringify(actualWeekendData, null, 2));
                   
-                  console.log(`🎯 [conclude] วันที่ ${record.date} - พบข้อมูลวันหยุด: ${dayData ? `${dayData.dayType}` : 'ไม่พบ'}, เป็นวันหยุด: ${isDayOff ? 'ใช่' : 'ไม่'}`);
+                  // ตรวจสอบว่าวันนี้เป็นวันหยุดหรือไม่ (dayOffOnly หรือ weekendAndDayOff เท่านั้น)
+                  let isDayOff = false;
+                  let dayOffReason = '';
+                  
+                  if (actualWeekendData.dayOffOnly && Array.isArray(actualWeekendData.dayOffOnly)) {
+                    if (actualWeekendData.dayOffOnly.includes(record.date)) {
+                      isDayOff = true;
+                      dayOffReason = 'dayOffOnly (วันหยุดนักขัตฤกษ์)';
+                    }
+                  }
+                  
+                  if (!isDayOff && actualWeekendData.weekendAndDayOff && Array.isArray(actualWeekendData.weekendAndDayOff)) {
+                    if (actualWeekendData.weekendAndDayOff.includes(record.date)) {
+                      isDayOff = true;
+                      dayOffReason = 'weekendAndDayOff (วันหยุดหน่วยงาน)';
+                    }
+                  }
+                  
+                  console.log(`🎯 [conclude] วันที่ ${record.date} - เป็นวันหยุด: ${isDayOff ? `ใช่ (${dayOffReason})` : 'ไม่'}`);
                   
                   if (isDayOff) {
                     // Force dayType to "stop" for official day off
-                    console.log(`🔴 [conclude] วันที่ ${record.date} เป็น ${dayData.dayType} - เปลี่ยน dayType จาก "${record.dayType}" เป็น "stop"`);
+                    console.log(`🔴 [conclude] วันที่ ${record.date} เป็น ${dayOffReason} - เปลี่ยน dayType จาก "${record.dayType}" เป็น "stop"`);
                     record.dayType = "stop";
                     // cashWorkMul = "2" เฉพาะเมื่อ dayType = "stop" (วันหยุด)
                     console.log(`🔴 [conclude] เปลี่ยน cashWorkMul จาก "${record.cashWorkMul}" เป็น "2" (วันหยุด)`);
@@ -2390,8 +2391,9 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                         const workRate = parseFloat(foundWorkplace.workRate || '0');
                         const totalTime = parseFloat(record.totalTime || '0');
                         if (workRate > 0 && totalTime > 0) {
-                          const newCashWork = workRate * totalTime;
-                          console.log(`🔄 [conclude] คำนวณ cashWork ใหม่สำหรับวันทำงาน: ${workRate} x ${totalTime} = ${newCashWork} (เดิม: ${record.cashWork})`);
+                          // สำหรับหน่วยงานพิเศษ (workOfWeek = "7") ใช้ workRate เป็นค่าต่อวัน
+                          const newCashWork = workRate; // ใช้ workRate เป็นค่าต่อวัน ไม่คูณด้วยชั่วโมง
+                          console.log(`🔄 [conclude] คำนวณ cashWork ใหม่สำหรับวันทำงาน (หน่วยงานพิเศษ): workRate = ${workRate} (per day) (เดิม: ${record.cashWork})`);
                           record.cashWork = newCashWork.toFixed(2);
                           record._cashWorkRecalculated = true; // Mark as recalculated
                         }
@@ -2412,8 +2414,9 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                     console.log(`💰 [conclude] ตรวจสอบการคำนวณ cashWork - workRate: ${workRate}, totalTime: ${totalTime}`);
                     
                     if (workRate > 0 && totalTime > 0) {
-                      const recalculatedCashWork = workRate * totalTime;
-                      console.log(`🔄 [conclude] คำนวณ cashWork ใหม่: ${workRate} x ${totalTime} = ${recalculatedCashWork} (เดิม: ${record.cashWork})`);
+                      // สำหรับหน่วยงานพิเศษ (workOfWeek = "7") ใช้ workRate เป็นค่าต่อวัน
+                      const recalculatedCashWork = workRate; // ใช้ workRate เป็นค่าต่อวัน ไม่คูณด้วยชั่วโมง
+                      console.log(`🔄 [conclude] คำนวณ cashWork ใหม่ (หน่วยงานพิเศษ): workRate = ${workRate} (per day) (เดิม: ${record.cashWork})`);
                       record.cashWork = recalculatedCashWork.toFixed(2);
                     } else {
                       console.log(`⚠️ [conclude] ไม่สามารถคำนวณ cashWork ได้ - workRate หรือ totalTime ไม่ถูกต้อง`);
@@ -2524,23 +2527,39 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                 
                 recordsWithWeekendData.forEach(({ record, weekendData }) => {
                   console.log(`🔍 [conclude] Second pass - ตรวจสอบ record วันที่ ${record.date}: dayType="${record.dayType}", totalTime="${record.totalTime}", cashWork="${record.cashWork}", cashWorkMul="${record.cashWorkMul}"`);
-                  console.log(`📊 [conclude] Second pass - ข้อมูลวันหยุดสำหรับวันที่ ${record.date}:`, Array.isArray(weekendData) && weekendData.length > 0 ? weekendData.map(d => `วันที่ ${d.day}: ${d.dayType}`).join(', ') : 'ไม่มีข้อมูล');
                   
-                  // ตรวจสอบให้แน่ใจว่า weekendData เป็น array
-                  if (!Array.isArray(weekendData)) {
-                    console.warn(`⚠️ [conclude] Second pass - weekendData ไม่ใช่ array สำหรับวันที่ ${record.date}:`, typeof weekendData, weekendData);
-                    weekendData = [];
+                  // ตรวจสอบให้แน่ใจว่า weekendData มี structure ถูกต้อง
+                  let actualWeekendData = weekendData;
+                  if (Array.isArray(weekendData)) {
+                    console.log(`📊 [conclude] Second pass - weekendData เป็น array ขนาด ${weekendData.length} สำหรับวันที่ ${record.date}`);
+                    actualWeekendData = weekendData[0] || {}; // ใช้ element แรกหากเป็น array
                   }
                   
-                  // Check if this date is dayOffOnly or weekendAndDayOff
-                  const dayData = weekendData.find(d => d && d.day == record.date);
-                  const isDayOff = dayData && (dayData.dayType === "dayOffOnly" || dayData.dayType === "weekendAndDayOff");
+                  console.log(`📊 [conclude] Second pass - ข้อมูลวันหยุดสำหรับวันที่ ${record.date}:`, JSON.stringify(actualWeekendData, null, 2));
                   
-                  console.log(`🎯 [conclude] Second pass - วันที่ ${record.date} - พบข้อมูลวันหยุด: ${dayData ? `${dayData.dayType}` : 'ไม่พบ'}, เป็นวันหยุด: ${isDayOff ? 'ใช่' : 'ไม่'}`);
+                  // ตรวจสอบว่าวันนี้เป็นวันหยุดหรือไม่ (dayOffOnly หรือ weekendAndDayOff เท่านั้น)
+                  let isDayOff = false;
+                  let dayOffReason = '';
+                  
+                  if (actualWeekendData.dayOffOnly && Array.isArray(actualWeekendData.dayOffOnly)) {
+                    if (actualWeekendData.dayOffOnly.includes(record.date)) {
+                      isDayOff = true;
+                      dayOffReason = 'dayOffOnly (วันหยุดนักขัตฤกษ์)';
+                    }
+                  }
+                  
+                  if (!isDayOff && actualWeekendData.weekendAndDayOff && Array.isArray(actualWeekendData.weekendAndDayOff)) {
+                    if (actualWeekendData.weekendAndDayOff.includes(record.date)) {
+                      isDayOff = true;
+                      dayOffReason = 'weekendAndDayOff (วันหยุดหน่วยงาน)';
+                    }
+                  }
+                  
+                  console.log(`🎯 [conclude] Second pass - วันที่ ${record.date} - เป็นวันหยุด: ${isDayOff ? `ใช่ (${dayOffReason})` : 'ไม่'}`);
                   
                   if (isDayOff) {
                     // Force dayType to "stop" for official day off
-                    console.log(`🔴 [conclude] Second pass - วันที่ ${record.date} เป็น ${dayData.dayType} - เปลี่ยน dayType จาก "${record.dayType}" เป็น "stop"`);
+                    console.log(`🔴 [conclude] Second pass - วันที่ ${record.date} เป็น ${dayOffReason} - เปลี่ยน dayType จาก "${record.dayType}" เป็น "stop"`);
                     record.dayType = "stop";
                     // cashWorkMul = "2" เฉพาะเมื่อ dayType = "stop" (วันหยุด)
                     console.log(`🔴 [conclude] Second pass - เปลี่ยน cashWorkMul จาก "${record.cashWorkMul}" เป็น "2" (วันหยุด)`);
@@ -2556,8 +2575,9 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                         const workRate = parseFloat(foundWorkplace.workRate || '0');
                         const totalTime = parseFloat(record.totalTime || '0');
                         if (workRate > 0 && totalTime > 0) {
-                          const newCashWork = workRate * totalTime;
-                          console.log(`🔄 [conclude] Second pass - คำนวณ cashWork ใหม่สำหรับวันทำงาน: ${workRate} x ${totalTime} = ${newCashWork} (เดิม: ${record.cashWork})`);
+                          // สำหรับหน่วยงานพิเศษ (workOfWeek = "7") ใช้ workRate เป็นค่าต่อวัน
+                          const newCashWork = workRate; // ใช้ workRate เป็นค่าต่อวัน ไม่คูณด้วยชั่วโมง
+                          console.log(`🔄 [conclude] Second pass - คำนวณ cashWork ใหม่สำหรับวันทำงาน (หน่วยงานพิเศษ): workRate = ${workRate} (per day) (เดิม: ${record.cashWork})`);
                           record.cashWork = newCashWork.toFixed(2);
                           record._cashWorkRecalculated = true; // Mark as recalculated
                         }

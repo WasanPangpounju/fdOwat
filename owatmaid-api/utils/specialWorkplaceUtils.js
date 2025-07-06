@@ -62,11 +62,11 @@ const calculateCashValuesForSpecialWorkplace = async (employeeId, employee_recor
             record.dayType = "work";
           }
           
-          // คำนวณ cashWork ใหม่โดยใช้ workRate * totalTime
+          // คำนวณ cashWork ใหม่โดยใช้ workRate (per day) สำหรับหน่วยงานพิเศษ
           const workRate = parseFloat(workplace.workRate || '0');
-          const recalculatedCashWork = workRate * totalTime;
+          const recalculatedCashWork = workRate; // ใช้ workRate เป็นค่าต่อวัน ไม่คูณด้วยชั่วโมง
           
-          console.log(`🔄 [specialWorkplaceUtils] คำนวณ cashWork ใหม่: ${workRate} x ${totalTime} = ${recalculatedCashWork}`);
+          console.log(`🔄 [specialWorkplaceUtils] คำนวณ cashWork ใหม่สำหรับหน่วยงานพิเศษ: workRate = ${workRate} (per day)`);
           record.cashWork = recalculatedCashWork.toFixed(2);
           
           // สำหรับวันทำงานปกติใน special workplace ให้ใช้ multiplier = 1
