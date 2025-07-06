@@ -2531,6 +2531,18 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                 console.log(`📊 - วันหยุด (dayType="stop"): ${stopDaysAfterFix} วัน`);
                 console.log(`📊 - รวมทั้งหมด: ${totalDaysAfterFix} วัน`);
                 console.log(`📊 - dayWorkCount ที่จะส่งไปคำนวณ summary: ${workDaysAfterFix}`);
+                
+                // ✅ บันทึกการเปลี่ยนแปลง dayType ลงฐานข้อมูลหลังจากแก้ไขหน่วยงานพิเศษ
+                try {
+                  const originalDoc = await timerecordEmployee.findById(processedDoc._id);
+                  if (originalDoc) {
+                    originalDoc.employee_record = processedDoc.employee_record;
+                    await originalDoc.save();
+                    console.log(`💾 [conclude] บันทึกการเปลี่ยนแปลง dayType สำหรับพนักงาน ${processedDoc.employeeId} แล้ว`);
+                  }
+                } catch (saveError) {
+                  console.error(`❌ [conclude] ไม่สามารถบันทึกการเปลี่ยนแปลงได้:`, saveError.message);
+                }
               }
             } else {
               console.log(`ℹ️ [conclude] หน่วยงาน ${foundWorkplace ? foundWorkplace.workplaceId : 'ไม่ทราบ'} ไม่ใช่หน่วยงานพิเศษ (workOfWeek=${foundWorkplace ? foundWorkplace.workOfWeek : 'ไม่ทราบ'})`);
