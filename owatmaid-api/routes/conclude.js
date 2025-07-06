@@ -2356,17 +2356,30 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                   let isDayOff = false;
                   let dayOffReason = '';
                   
+                  // สร้างรูปแบบวันที่ที่สมบูรณ์สำหรับเปรียบเทียบ
+                  // record.date เป็นตัวเลขวันที่ (เช่น 19) ต้องแปลงเป็น YYYY-MM-DD
+                  const recordYear = processedDoc.year;
+                  const recordMonth = String(processedDoc.month).padStart(2, '0');
+                  const recordDay = String(record.date).padStart(2, '0');
+                  const fullDate = `${recordYear}-${recordMonth}-${recordDay}`;
+                  
+                  console.log(`🔍 [conclude] เปรียบเทียบวันที่: record.date="${record.date}" -> fullDate="${fullDate}"`);
+                  
                   if (actualWeekendData.dayOffOnly && Array.isArray(actualWeekendData.dayOffOnly)) {
-                    if (actualWeekendData.dayOffOnly.includes(record.date)) {
+                    console.log(`🔍 [conclude] ตรวจสอบ dayOffOnly:`, actualWeekendData.dayOffOnly);
+                    if (actualWeekendData.dayOffOnly.includes(fullDate)) {
                       isDayOff = true;
                       dayOffReason = 'dayOffOnly (วันหยุดนักขัตฤกษ์)';
+                      console.log(`✅ [conclude] พบวันที่ ${fullDate} ใน dayOffOnly`);
                     }
                   }
                   
                   if (!isDayOff && actualWeekendData.weekendAndDayOff && Array.isArray(actualWeekendData.weekendAndDayOff)) {
-                    if (actualWeekendData.weekendAndDayOff.includes(record.date)) {
+                    console.log(`🔍 [conclude] ตรวจสอบ weekendAndDayOff:`, actualWeekendData.weekendAndDayOff);
+                    if (actualWeekendData.weekendAndDayOff.includes(fullDate)) {
                       isDayOff = true;
                       dayOffReason = 'weekendAndDayOff (วันหยุดหน่วยงาน)';
+                      console.log(`✅ [conclude] พบวันที่ ${fullDate} ใน weekendAndDayOff`);
                     }
                   }
                   
@@ -2541,17 +2554,30 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                   let isDayOff = false;
                   let dayOffReason = '';
                   
+                  // สร้างรูปแบบวันที่ที่สมบูรณ์สำหรับเปรียบเทียบ
+                  // record.date เป็นตัวเลขวันที่ (เช่น 19) ต้องแปลงเป็น YYYY-MM-DD
+                  const recordYear = year; // ใช้ year จาก parameter
+                  const recordMonth = String(month).padStart(2, '0'); // ใช้ month จาก parameter
+                  const recordDay = String(record.date).padStart(2, '0');
+                  const fullDate = `${recordYear}-${recordMonth}-${recordDay}`;
+                  
+                  console.log(`🔍 [conclude] Second pass - เปรียบเทียบวันที่: record.date="${record.date}" -> fullDate="${fullDate}"`);
+                  
                   if (actualWeekendData.dayOffOnly && Array.isArray(actualWeekendData.dayOffOnly)) {
-                    if (actualWeekendData.dayOffOnly.includes(record.date)) {
+                    console.log(`🔍 [conclude] Second pass - ตรวจสอบ dayOffOnly:`, actualWeekendData.dayOffOnly);
+                    if (actualWeekendData.dayOffOnly.includes(fullDate)) {
                       isDayOff = true;
                       dayOffReason = 'dayOffOnly (วันหยุดนักขัตฤกษ์)';
+                      console.log(`✅ [conclude] Second pass - พบวันที่ ${fullDate} ใน dayOffOnly`);
                     }
                   }
                   
                   if (!isDayOff && actualWeekendData.weekendAndDayOff && Array.isArray(actualWeekendData.weekendAndDayOff)) {
-                    if (actualWeekendData.weekendAndDayOff.includes(record.date)) {
+                    console.log(`🔍 [conclude] Second pass - ตรวจสอบ weekendAndDayOff:`, actualWeekendData.weekendAndDayOff);
+                    if (actualWeekendData.weekendAndDayOff.includes(fullDate)) {
                       isDayOff = true;
                       dayOffReason = 'weekendAndDayOff (วันหยุดหน่วยงาน)';
+                      console.log(`✅ [conclude] Second pass - พบวันที่ ${fullDate} ใน weekendAndDayOff`);
                     }
                   }
                   
