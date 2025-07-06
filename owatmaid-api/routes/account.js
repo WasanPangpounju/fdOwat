@@ -4547,6 +4547,24 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           { $set: updateData },
           { new: true, upsert: true }
         );
+        
+        // Apply special workplace fixes to the employee_record in the response
+        if (isSpecialWorkplace && updatedDoc.employee_record && Array.isArray(updatedDoc.employee_record)) {
+          console.log(`🟡 [accounting/searchtimerecordemployee] กำลังแก้ไข cashWorkMul สำหรับหน่วยงานพิเศษ`);
+          updatedDoc.employee_record.forEach(record => {
+            // Fix dayType from "stop" to "work" if there's actual work data
+            if (record?.dayType === "stop" && (parseFloat(record.totalTime) > 0 || parseFloat(record.cashWork) > 0)) {
+              console.log(`🟡 [accounting] แก้ไข dayType จาก "stop" เป็น "work" สำหรับวันที่ ${record.date} (หน่วยงาน 7 วัน)`);
+              record.dayType = "work";
+            }
+            
+            // Fix cashWorkMul for ALL work days in special workplaces
+            if (record?.dayType === "work" && record.cashWorkMul && record.cashWorkMul !== "1") {
+              console.log(`🟡 [accounting] แก้ไข cashWorkMul จาก "${record.cashWorkMul}" เป็น "1" สำหรับงานปกติในหน่วยงาน 7 วัน (วันที่ ${record.date})`);
+              record.cashWorkMul = "1";
+            }
+          });
+        }
     
         // ✅ Log AFTER update
         // console.log(`🚀 AFTER update (doc ${doc._id}):`, JSON.stringify(updatedDoc.addSalaryList, null, 2));
