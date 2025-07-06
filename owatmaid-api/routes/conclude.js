@@ -1930,8 +1930,9 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
         console.log(`📅 วันใน weekendAndDayOff: ${JSON.stringify(weekendData.weekendAndDayOff)}`);
         
         if (weekendData.weekendAndDayOff.includes(dateStr)) {
-          console.log(`✅ พบวันที่ ${dateStr} ใน weekendAndDayOff -> กำหนด dayType = stop`);
+          console.log(`✅ พบวันที่ ${dateStr} ใน weekendAndDayOff -> กำหนด dayType = stop, cashOtMul = 2`);
           dataCal.dayType = 'stop';
+          dataCal.cashOtMul = 2;
           return dataCal;
         }
       }
@@ -1941,8 +1942,9 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
         console.log(`📅 วันใน dayOffOnly: ${JSON.stringify(weekendData.dayOffOnly)}`);
         
         if (weekendData.dayOffOnly.includes(dateStr)) {
-          console.log(`✅ พบวันที่ ${dateStr} ใน dayOffOnly -> กำหนด dayType = stop`);
+          console.log(`✅ พบวันที่ ${dateStr} ใน dayOffOnly -> กำหนด dayType = stop, cashOtMul = 2`);
           dataCal.dayType = 'stop';
+          dataCal.cashOtMul = 2;
           return dataCal;
         }
       }
@@ -2101,7 +2103,7 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
       let cashOt = 0;
       let cashBeforeOtMul = 0;
       let cashWorkMul = 0;
-      let cashOtMul = 0;
+      let cashOtMul = dataCal.cashOtMul || 0; // ใช้ค่าจาก dataCal.cashOtMul ถ้ามี
       let dayType = '';
       let addSalaryDaily = [];
 
@@ -2137,7 +2139,8 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
           dayType = await dataRate?.dayType || 0;
           cashBeforeOtMul = dataRate?.dayoffRateOT || 0;
           cashWorkMul = dataRate?.dayoffRateHour || 0;
-          cashOtMul = dataRate?.dayoffRateOT || 0;
+          cashOtMul = dataCal.cashOtMul || dataRate?.dayoffRateOT || 0; // ใช้ค่าจาก dataCal.cashOtMul ถ้ามี
+          console.log(`🎯 dayOff: dataCal.cashOtMul=${dataCal.cashOtMul}, final cashOtMul=${cashOtMul}`);
           addSalaryDaily = [];
         } else if(dataRate?.dayType === 'specialDayOff') {
           cashBeforeOt = await (
@@ -2158,7 +2161,8 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
           dayType = await dataRate?.dayType || 0;
           cashBeforeOtMul = dataRate?.holidayOT || 0;
           cashWorkMul = dataRate?.holidayHour || 0;
-          cashOtMul = dataRate?.holidayOT || 0;
+          cashOtMul = dataCal.cashOtMul || dataRate?.holidayOT || 0; // ใช้ค่าจาก dataCal.cashOtMul ถ้ามี
+          console.log(`🎯 specialDayOff: dataCal.cashOtMul=${dataCal.cashOtMul}, final cashOtMul=${cashOtMul}`);
           addSalaryDaily = [];
         } else if(dataRate?.dayType === "work") {
           // เพิ่มเงื่อนไขสำหรับวันทำงานปกติ (work)
@@ -2188,7 +2192,8 @@ console.log(`🕒 แปลงเวลา OT: ${record.totalOtTime || '0'} -> $
           dayType = await dataRate?.dayType || '';
           cashBeforeOtMul = await dataRate?.workRateOT || 0;
           cashWorkMul = 1; // ตัวคูณค่าแรงปกติเป็น 1
-          cashOtMul = await dataRate?.workRateOT || 0;
+          cashOtMul = dataCal.cashOtMul || dataRate?.workRateOT || 0; // ใช้ค่าจาก dataCal.cashOtMul ถ้ามี
+          console.log(`🎯 work: dataCal.cashOtMul=${dataCal.cashOtMul}, final cashOtMul=${cashOtMul}`);
           
           // เพิ่มเงินพิเศษรายวัน
           addSalaryDaily = [...(employeeProfile[0].addSalary || [])
