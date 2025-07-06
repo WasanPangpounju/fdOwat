@@ -2327,6 +2327,45 @@ router.post('/searchtimerecordemployee', async (req, res) => {
       }
     }
     
+    // แก้ไข dayType สำหรับหน่วยงานพิเศษ (workOfWeek = "7") ให้เป็น "work" ทุกวัน
+    for (const doc of result) {
+      if (doc.employeeId && doc.employee_record && doc.employee_record.length > 0) {
+        // Get employee profile to check workplace type
+        const employeeProfile = await getEmployeeProfile(doc.employeeId);
+        
+        if (employeeProfile && employeeProfile[0] && employeeProfile[0].workplace) {
+          try {
+            const workplaceList = await axios.get(sURL + '/workplace/list');
+            const foundWorkplace = workplaceList.data.find(workplace => workplace.workplaceId === employeeProfile[0].workplace);
+            
+            if (foundWorkplace && foundWorkplace.workOfWeek === "7") {
+              console.log(`🟡 [conclude/searchtimerecordemployee] พบหน่วยงานพิเศษ (workOfWeek=7) - แก้ไข dayType สำหรับพนักงาน ${doc.employeeId}`);
+              
+              // แก้ไข dayType ให้เป็น "work" ทุกวัน
+              doc.employee_record.forEach((record, index) => {
+                const originalDayType = record.dayType;
+                record.dayType = "work"; // บังคับให้เป็น work ทุกวัน
+                
+                if (originalDayType !== "work") {
+                  console.log(`  📅 วันที่ ${record.date}: เปลี่ยน dayType จาก "${originalDayType}" เป็น "work"`);
+                }
+              });
+              
+              // บันทึกการเปลี่ยนแปลงลงฐานข้อมูล
+              try {
+                await doc.save();
+                console.log(`💾 บันทึกการเปลี่ยนแปลง dayType สำหรับพนักงาน ${doc.employeeId} เสร็จสิ้น`);
+              } catch (saveError) {
+                console.error(`❌ ไม่สามารถบันทึกการเปลี่ยนแปลง dayType สำหรับพนักงาน ${doc.employeeId}:`, saveError.message);
+              }
+            }
+          } catch (workplaceError) {
+            console.error(`❌ ข้อผิดพลาดในการตรวจสอบ workplace สำหรับพนักงาน ${doc.employeeId}:`, workplaceError.message);
+          }
+        }
+      }
+    }
+    
     // คำนวณ summary สำหรับแต่ละ record และ copy ไปยัง root level
     const resultWithSummary = await Promise.all(result.map(async (doc) => {
       const resultDoc = { ...doc };
