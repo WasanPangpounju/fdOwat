@@ -2541,4 +2541,98 @@ function convertTimeToDecimal(timeString) {
   return parseFloat((hours + decimalMinutes).toFixed(2));
 }
 
+/**
+ * คำนวณ summary สำหรับหน่วยงานพิเศษ (workOfWeek = "7")
+ * บังคับให้ทุกวันเป็น "work" ไม่สนใจ dayType
+ */
+async function calculateSummaryForSpecialWorkplace(employeeId, employee_record, month, year) {
+  console.log(`🔶 [calculateSummaryForSpecialWorkplace] คำนวณ summary สำหรับหน่วยงานพิเศษ - บังคับทุกวันเป็น work`);
+  console.log(`🔶 พนักงาน ${employeeId} (${month}/${year})`);
+  
+  let dayWorkCount = 0;
+  let dayOffCount = 0;
+  let publicHolidayCount = 0;
+  
+  // วนลูปผ่านทุกวันใน employee_record
+  for (const record of employee_record) {
+    console.log(`  📅 วันที่ ${record.date}: dayType="${record.dayType}" -> บังคับเป็น "work"`);
+    
+    // บังคับให้ทุกวันเป็น work สำหรับหน่วยงานพิเศษ
+    dayWorkCount++;
+    console.log(`    ✅ นับวันทำงาน (บังคับ) dayWorkCount: ${dayWorkCount}`);
+  }
+
+  const summary = {
+    dayWorkCount: dayWorkCount.toString(),
+    dayOffCount: "0", // บังคับเป็น 0
+    publicHolidayCount: "0", // บังคับเป็น 0
+    sumCashWork: "0",
+    sumCashOt: "0",
+    sumOt1p5: "0",
+    sumOt3: "0",
+    sumOtPublicHoliday: "0",
+    sumCashWorkMul: { "1": 0, "2": 0, "3": 0, "1.5": 0 },
+    timeCashWorkMul: { "1": 0, "2": 0, "3": 0, "1.5": 0 },
+    addSalaryList: []
+  };
+
+  console.log(`🔶 [Special Workplace] Summary: dayWorkCount=${summary.dayWorkCount} (บังคับทุกวันเป็น work)`);
+  return summary;
+}
+
+/**
+ * คำนวณ summary สำหรับหน่วยงานปกติ (workOfWeek != "7")
+ * ใช้ dayType ตามที่เป็นอยู่จริง
+ */
+async function calculateSummaryForNormalWorkplace(employeeId, employee_record, month, year) {
+  console.log(`🔷 [calculateSummaryForNormalWorkplace] คำนวณ summary สำหรับหน่วยงานปกติ - พนักงาน ${employeeId} (${month}/${year})`);
+  
+  let dayWorkCount = 0;
+  let dayOffCount = 0;
+  let publicHolidayCount = 0;
+  
+  // วนลูปผ่านทุกวันใน employee_record
+  for (const record of employee_record) {
+    console.log(`  📅 วันที่ ${record.date}: dayType="${record.dayType}", cashWorkMul="${record.cashWorkMul}"`);
+    
+    // นับจำนวนวันตาม dayType
+    if (record.dayType === "work") {
+      dayWorkCount++;
+      console.log(`    ✅ นับวันทำงาน dayWorkCount: ${dayWorkCount}`);
+    } else if (record.dayType === "stop") {
+      // สำหรับหน่วยงานปกติ stop อาจหมายถึงวันหยุดหรือวันหยุดนักขัตฤกษ์
+      if (record.cashWorkMul === "2") {
+        publicHolidayCount++; // วันหยุดนักขัตฤกษ์ (cashWorkMul = 2)
+        console.log(`    ✅ นับวันหยุดนักขัตฤกษ์ publicHolidayCount: ${publicHolidayCount}`);
+      } else {
+        dayOffCount++; // วันหยุดปกติ
+        console.log(`    ✅ นับวันหยุดปกติ dayOffCount: ${dayOffCount}`);
+      }
+    } else if (record.dayType === "dayOff") {
+      dayOffCount++;
+      console.log(`    ✅ นับวันหยุด (dayOff) dayOffCount: ${dayOffCount}`);
+    } else if (record.dayType === "publicHoliday") {
+      publicHolidayCount++;
+      console.log(`    ✅ นับวันหยุดนักขัตฤกษ์ (publicHoliday) publicHolidayCount: ${publicHolidayCount}`);
+    }
+  }
+
+  const summary = {
+    dayWorkCount: dayWorkCount.toString(),
+    dayOffCount: dayOffCount.toString(),
+    publicHolidayCount: publicHolidayCount.toString(),
+    sumCashWork: "0",
+    sumCashOt: "0", 
+    sumOt1p5: "0",
+    sumOt3: "0",
+    sumOtPublicHoliday: "0",
+    sumCashWorkMul: { "1": 0, "2": 0, "3": 0, "1.5": 0 },
+    timeCashWorkMul: { "1": 0, "2": 0, "3": 0, "1.5": 0 },
+    addSalaryList: []
+  };
+
+  console.log(`🔷 [Normal Workplace] Summary: dayWorkCount=${summary.dayWorkCount}, dayOffCount=${summary.dayOffCount}, publicHolidayCount=${summary.publicHolidayCount}`);
+  return summary;
+}
+
 module.exports = router;
