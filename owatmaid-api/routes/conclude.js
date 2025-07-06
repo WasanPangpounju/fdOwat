@@ -1940,7 +1940,10 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
       
       // ตรวจสอบ dayOffOnly (วันหยุดพิเศษเท่านั้น)
       if (weekendData.dayOffOnly && weekendData.dayOffOnly.length > 0) {
-        console.log(`📅 วันใน dayOffOnly: ${JSON.stringify(weekendData.dayOffOnly)}`);
+        if (dateStr === "2025-05-01" || dateStr === "2025-05-05") {
+          console.log(`🎯 ตรวจสอบวันสำคัญ ${dateStr}:`);
+          console.log(`📅 วันใน dayOffOnly: ${JSON.stringify(weekendData.dayOffOnly)}`);
+        }
         
         if (weekendData.dayOffOnly.includes(dateStr)) {
           console.log(`✅ พบวันที่ ${dateStr} ใน dayOffOnly -> กำหนด dayType = stop, cashOtMul = 2`);
@@ -2071,7 +2074,10 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
 
   return Promise.all(
     employee_record.map(async (record) => {
-      console.log(`🔍 กำลังคำนวณวันที่ ${record.date}...`);
+      // แสดง log เฉพาะวันสำคัญ (1, 5) เพื่อไม่ให้ log ยาวเกินไป
+      if (record.date == 1 || record.date == 5) {
+        console.log(`🔍 กำลังคำนวณวันที่ ${record.date} (วันสำคัญ)...`);
+      }
       if((record.date >= 21 && record.date <= 31) && month == 1) {
         year = year - 1;
         month = 12;
@@ -2100,16 +2106,20 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
       const bangkokDate = `${displayYear}-${displayMonth}-${paddedDay}`;
       
       console.log(`📅 ตรวจสอบวันที่: ${bangkokDate} (วันที่ ${record.date} เดือน ${displayMonth}/${displayYear})`);
-      console.log(`🔍 เรียก checkDayRate สำหรับวันที่ ${record.date}`);
+      if (record.date == 1 || record.date == 5) {
+        console.log(`🔍 เรียก checkDayRate สำหรับวันที่ ${record.date} (วันสำคัญ)`);
+      }
 
       const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate, record.date, 
         employeeProfile?.[0]?.customWorkplace);
       
-      console.log(`🔍 ผลลัพธ์จาก checkDayRate สำหรับวันที่ ${record.date}:`, {
-        dayType: dataRate?.dayType,
-        cashOtMul: dataRate?.cashOtMul,
-        workRate: dataRate?.workRate
-      });
+      if (record.date == 1 || record.date == 5) {
+        console.log(`🎯 ผลลัพธ์จาก checkDayRate สำหรับวันที่ ${record.date} (วันสำคัญ):`, {
+          dayType: dataRate?.dayType,
+          cashOtMul: dataRate?.cashOtMul,
+          workRate: dataRate?.workRate
+        });
+      }
 
       let cashBeforeOt = 0;
       let cashWork = 0;
@@ -2234,13 +2244,17 @@ console.log(`🕒 แปลงเวลา OT: ${record.totalOtTime || '0'} -> $
 
       // อัปเดต record.dayType เพื่อให้ตรงกับผลลัพธ์จาก checkDayRate
       if (dayType && dayType !== record.dayType) {
-        console.log(`🔄 อัปเดต dayType สำหรับวันที่ ${record.date}: "${record.dayType}" -> "${dayType}"`);
+        if (record.date == 1 || record.date == 5) {
+          console.log(`🎯 อัปเดต dayType สำหรับวันที่ ${record.date} (วันสำคัญ): "${record.dayType}" -> "${dayType}"`);
+        }
         record.dayType = dayType;
       }
 
       // อัปเดต record.cashOtMul เพื่อให้ตรงกับผลลัพธ์จาก checkDayRate  
       if (cashOtMul && cashOtMul !== record.cashOtMul) {
-        console.log(`🔄 อัปเดต cashOtMul สำหรับวันที่ ${record.date}: "${record.cashOtMul}" -> "${cashOtMul}"`);
+        if (record.date == 1 || record.date == 5) {
+          console.log(`🎯 อัปเดต cashOtMul สำหรับวันที่ ${record.date} (วันสำคัญ): "${record.cashOtMul}" -> "${cashOtMul}"`);
+        }
         record.cashOtMul = cashOtMul;
       }
 
