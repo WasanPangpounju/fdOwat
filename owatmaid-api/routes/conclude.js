@@ -2368,7 +2368,8 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     
     // คำนวณ summary สำหรับแต่ละ record และ copy ไปยัง root level
     const resultWithSummary = await Promise.all(result.map(async (doc) => {
-      const resultDoc = { ...doc };
+      // แปลงเป็น plain object เพื่อเอา Mongoose internal state ออก
+      const resultDoc = doc.toObject ? doc.toObject() : { ...doc };
       
       // เพิ่มการคำนวณ summary ถ้ามีข้อมูล employee_record
       if (doc.employeeId && doc.month && doc.year && doc.employee_record && doc.employee_record.length > 0) {
