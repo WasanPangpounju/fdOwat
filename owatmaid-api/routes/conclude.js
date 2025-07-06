@@ -2266,6 +2266,8 @@ let cashOt = await (record.totalOtTime || 0) * parseFloat(dataRate.workRateOT ||
 router.post('/searchtimerecordemployee', async (req, res) => {
   try {
     const { employeeId, month, year } = await req.body;
+    console.log(`🔍 [conclude/searchtimerecordemployee] เริ่มค้นหาข้อมูล - employeeId: ${employeeId}, month: ${month}, year: ${year}`);
+    
     const query = {};
 
     if (employeeId) {
@@ -2281,11 +2283,131 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     }
 
     if (!employeeId && !month && !year) {
+      console.log(`⚠️ [conclude/searchtimerecordemployee] ไม่มีเงื่อนไขการค้นหา`);
       return await res.status(200).json({});
     }
 
     // Query the collection
     const result = await timerecordEmployee.find(query);
+    console.log(`📊 [conclude/searchtimerecordemployee] พบข้อมูล ${result.length} รายการ`);
+
+    // Process each result to apply special workplace logic
+    const processedResult = await Promise.all(result.map(async (doc) => {
+      try {
+        console.log(`🔄 [conclude] เริ่มประมวลผล employeeId: ${doc.employeeId}, เดือน: ${doc.month}, ปี: ${doc.year}, records: ${doc.employee_record ? doc.employee_record.length : 0}`);
+        
+        // Create a copy of the document to avoid modifying the original
+        const processedDoc = JSON.parse(JSON.stringify(doc));
+        
+        // Get employee profile to check workplace type
+        const employeeProfile = await getEmployeeProfile(processedDoc.employeeId);
+        console.log(`👤 [conclude] ข้อมูลพนักงาน ${processedDoc.employeeId} - workplace: ${employeeProfile && employeeProfile[0] ? employeeProfile[0].workplace : 'ไม่พบ'}`);
+        
+        if (employeeProfile && employeeProfile[0] && employeeProfile[0].workplace) {
+          // Check if this is a special workplace (workOfWeek = "7")
+          try {
+            const workplaceList = await axios.get(sURL + '/workplace/list');
+            const foundWorkplace = workplaceList.data.find(workplace => workplace.workplaceId === employeeProfile[0].workplace);
+            
+            if (foundWorkplace) {
+              console.log(`🏢 [conclude] พบข้อมูลหน่วยงาน ${foundWorkplace.workplaceId} - workOfWeek: ${foundWorkplace.workOfWeek}, workRate: ${foundWorkplace.workRate}`);
+            } else {
+              console.log(`⚠️ [conclude] ไม่พบข้อมูลหน่วยงาน ${employeeProfile[0].workplace}`);
+            }
+            
+            if (foundWorkplace && foundWorkplace.workOfWeek === "7") {
+              console.log(`🟡 [conclude/searchtimerecordemployee] พบหน่วยงานพิเศษ (workOfWeek=7) สำหรับพนักงาน ${processedDoc.employeeId}`);
+              
+              // Apply special workplace logic to fix dayType and cashWorkMul
+              if (processedDoc.employee_record && Array.isArray(processedDoc.employee_record)) {
+                // Get weekend dates for this workplace to check for special days
+                console.log(`🔍 [conclude] เริ่มตรวจสอบวันหยุดสำหรับหน่วยงาน ${foundWorkplace.workplaceId} (${processedDoc.year}/${processedDoc.month})`);
+                
+                const weekendDatesPromises = processedDoc.employee_record.map(async (record) => {
+                  try {
+                    const apiUrl = `${sURL}/conclude/getWeekendDates?yyyy=${processedDoc.year}&mm=${processedDoc.month}&workplaceId=${foundWorkplace.workplaceId}`;
+                    console.log(`📡 [conclude] เรียก API: ${apiUrl}`);
+                    const weekendResponse = await axios.get(apiUrl);
+                    console.log(`✅ [conclude] ได้รับข้อมูลวันหยุด ${weekendResponse.data.length} รายการ`);
+                    return { record, weekendData: weekendResponse.data };
+                  } catch (error) {
+                    console.warn(`⚠️ [conclude] ไม่สามารถเรียก getWeekendDates สำหรับวันที่ ${record.date}:`, error.message);
+                    return { record, weekendData: [] };
+                  }
+                });
+                
+                const recordsWithWeekendData = await Promise.all(weekendDatesPromises);
+                
+                recordsWithWeekendData.forEach(({ record, weekendData }) => {
+                  console.log(`🔍 [conclude] ตรวจสอบ record วันที่ ${record.date}: dayType="${record.dayType}", totalTime="${record.totalTime}", cashWork="${record.cashWork}", cashWorkMul="${record.cashWorkMul}"`);
+                  console.log(`📊 [conclude] ข้อมูลวันหยุดสำหรับวันที่ ${record.date}:`, weekendData.length > 0 ? weekendData.map(d => `วันที่ ${d.day}: ${d.dayType}`).join(', ') : 'ไม่มีข้อมูล');
+                  
+                  // Check if this date is dayOffOnly or weekendAndDayOff
+                  const dayData = weekendData.find(d => d.day == record.date);
+                  const isDayOff = dayData && (dayData.dayType === "dayOffOnly" || dayData.dayType === "weekendAndDayOff");
+                  
+                  console.log(`🎯 [conclude] วันที่ ${record.date} - พบข้อมูลวันหยุด: ${dayData ? `${dayData.dayType}` : 'ไม่พบ'}, เป็นวันหยุด: ${isDayOff ? 'ใช่' : 'ไม่'}`);
+                  
+                  if (isDayOff) {
+                    // Force dayType to "stop" for official day off
+                    console.log(`🔴 [conclude] วันที่ ${record.date} เป็น ${dayData.dayType} - เปลี่ยน dayType จาก "${record.dayType}" เป็น "stop"`);
+                    record.dayType = "stop";
+                    // cashWorkMul = "2" เฉพาะเมื่อ dayType = "stop" (วันหยุด)
+                    console.log(`🔴 [conclude] เปลี่ยน cashWorkMul จาก "${record.cashWorkMul}" เป็น "2" (วันหยุด)`);
+                    record.cashWorkMul = "2";
+                  } else {
+                    // Fix dayType from "stop" to "work" if there's actual work data and it's not an official day off
+                    if (record?.dayType === "stop" && (parseFloat(record.totalTime || '0') > 0 || parseFloat(record.cashWork || '0') > 0)) {
+                      console.log(`🟡 [conclude] แก้ไข dayType จาก "stop" เป็น "work" สำหรับวันที่ ${record.date} (หน่วยงาน 7 วัน)`);
+                      console.log(`🟡 เงื่อนไข: totalTime=${record.totalTime} (${parseFloat(record.totalTime || '0')}), cashWork=${record.cashWork} (${parseFloat(record.cashWork || '0')})`);
+                      record.dayType = "work";
+                    }
+                    
+                    // cashWorkMul = "1" เมื่อ dayType = "work" (วันทำงาน)
+                    if (record?.dayType === "work") {
+                      console.log(`🟡 [conclude] แก้ไข cashWorkMul จาก "${record.cashWorkMul}" เป็น "1" สำหรับวันทำงาน (วันที่ ${record.date})`);
+                      record.cashWorkMul = "1";
+                    }
+                  }
+                  
+                  // Additional fix: สำหรับหน่วยงานพิเศษ ให้คำนวณ cashWork ใหม่ด้วย workRate
+                  if (record?.dayType === "work" && foundWorkplace.workRate && record.totalTime) {
+                    const workRate = parseFloat(foundWorkplace.workRate || '0');
+                    const totalTime = parseFloat(record.totalTime || '0');
+                    console.log(`💰 [conclude] ตรวจสอบการคำนวณ cashWork - workRate: ${workRate}, totalTime: ${totalTime}`);
+                    
+                    if (workRate > 0 && totalTime > 0) {
+                      const recalculatedCashWork = workRate * totalTime;
+                      console.log(`🔄 [conclude] คำนวณ cashWork ใหม่: ${workRate} x ${totalTime} = ${recalculatedCashWork} (เดิม: ${record.cashWork})`);
+                      record.cashWork = recalculatedCashWork.toFixed(2);
+                    } else {
+                      console.log(`⚠️ [conclude] ไม่สามารถคำนวณ cashWork ได้ - workRate หรือ totalTime ไม่ถูกต้อง`);
+                    }
+                  } else {
+                    console.log(`ℹ️ [conclude] ข้าม การคำนวณ cashWork - dayType: ${record?.dayType}, workRate: ${foundWorkplace.workRate}, totalTime: ${record.totalTime}`);
+                  }
+                  
+                  console.log(`✅ [conclude] ผลลัพธ์สำหรับวันที่ ${record.date}: dayType="${record.dayType}", cashWork="${record.cashWork}", cashWorkMul="${record.cashWorkMul}", totalTime="${record.totalTime}"`);
+                  console.log(`📋 [conclude] สถานะสุดท้าย - วันหยุด: ${isDayOff ? 'ใช่' : 'ไม่'}, มีการทำงาน: ${(parseFloat(record.totalTime || '0') > 0 || parseFloat(record.cashWork || '0') > 0) ? 'ใช่' : 'ไม่'}`);
+                });
+                
+                console.log(`🎯 [conclude] เสร็จสิ้นการแก้ไขสำหรับหน่วยงานพิเศษ พนักงาน ${processedDoc.employeeId}`);
+              }
+            } else {
+              console.log(`ℹ️ [conclude] หน่วยงาน ${foundWorkplace ? foundWorkplace.workplaceId : 'ไม่ทราบ'} ไม่ใช่หน่วยงานพิเศษ (workOfWeek=${foundWorkplace ? foundWorkplace.workOfWeek : 'ไม่ทราบ'})`);
+            }
+          } catch (workplaceError) {
+            console.error(`❌ [conclude] ข้อผิดพลาดในการตรวจสอบ workplace:`, workplaceError.message);
+          }
+        }
+        
+        return processedDoc;
+      } catch (processError) {
+        console.error(`❌ [conclude] ข้อผิดพลาดในการประมวลผลเอกสาร:`, processError.message);
+        return doc; // Return original document if processing fails
+      }
+    }));
+
 // console.log("result  " , result[0].employee_record.length)
     // Check if any record has missing cash values
     // let updateNeeded = false;
@@ -2299,7 +2421,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     // }
     let updateNeeded = false;
 
-    for (const doc of result) {
+    for (const doc of processedResult) {
         // ข้ามเอกสารที่ status มีค่า (ไม่ว่าง)
   if (doc.status && doc.status.trim() !== "") {
     // console.log(`⏩ Skipping calculation for employeeId=${doc.employeeId} because status="${doc.status}"`);
@@ -2319,14 +2441,108 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         
         if (JSON.stringify(updatedRecords) !== JSON.stringify(doc.employee_record)) {
           doc.employee_record = updatedRecords;
-          await doc.save();
-          updateNeeded = true;
+          
+          // Apply special workplace logic again after calculateCashValues (additional safety check)
+          const employeeProfile = await getEmployeeProfile(employeeId);
+          if (employeeProfile && employeeProfile[0] && employeeProfile[0].workplace) {
+            try {
+              const workplaceList = await axios.get(sURL + '/workplace/list');
+              const foundWorkplace = workplaceList.data.find(workplace => workplace.workplaceId === employeeProfile[0].workplace);
+              
+              if (foundWorkplace && foundWorkplace.workOfWeek === "7") {
+                console.log(`🟡 [conclude] Second pass - แก้ไขเพิ่มเติมสำหรับหน่วยงานพิเศษ พนักงาน ${employeeId}`);
+                
+                // Get weekend dates to check for special days in second pass too
+                console.log(`🔍 [conclude] Second pass - เริ่มตรวจสอบวันหยุดอีกครั้งสำหรับหน่วยงาน ${foundWorkplace.workplaceId}`);
+                
+                const weekendDatesPromises = doc.employee_record.map(async (record) => {
+                  try {
+                    const apiUrl = `${sURL}/conclude/getWeekendDates?yyyy=${year}&mm=${month}&workplaceId=${foundWorkplace.workplaceId}`;
+                    console.log(`📡 [conclude] Second pass - เรียก API: ${apiUrl}`);
+                    const weekendResponse = await axios.get(apiUrl);
+                    console.log(`✅ [conclude] Second pass - ได้รับข้อมูลวันหยุด ${weekendResponse.data.length} รายการ`);
+                    return { record, weekendData: weekendResponse.data };
+                  } catch (error) {
+                    console.warn(`⚠️ Second pass - ไม่สามารถเรียก getWeekendDates สำหรับวันที่ ${record.date}:`, error.message);
+                    return { record, weekendData: [] };
+                  }
+                });
+                
+                const recordsWithWeekendData = await Promise.all(weekendDatesPromises);
+                
+                recordsWithWeekendData.forEach(({ record, weekendData }) => {
+                  console.log(`🔍 [conclude] Second pass - ตรวจสอบ record วันที่ ${record.date}: dayType="${record.dayType}", totalTime="${record.totalTime}", cashWork="${record.cashWork}", cashWorkMul="${record.cashWorkMul}"`);
+                  console.log(`📊 [conclude] Second pass - ข้อมูลวันหยุดสำหรับวันที่ ${record.date}:`, weekendData.length > 0 ? weekendData.map(d => `วันที่ ${d.day}: ${d.dayType}`).join(', ') : 'ไม่มีข้อมูล');
+                  
+                  // Check if this date is dayOffOnly or weekendAndDayOff
+                  const dayData = weekendData.find(d => d.day == record.date);
+                  const isDayOff = dayData && (dayData.dayType === "dayOffOnly" || dayData.dayType === "weekendAndDayOff");
+                  
+                  console.log(`🎯 [conclude] Second pass - วันที่ ${record.date} - พบข้อมูลวันหยุด: ${dayData ? `${dayData.dayType}` : 'ไม่พบ'}, เป็นวันหยุด: ${isDayOff ? 'ใช่' : 'ไม่'}`);
+                  
+                  if (isDayOff) {
+                    // Force dayType to "stop" for official day off
+                    console.log(`🔴 [conclude] Second pass - วันที่ ${record.date} เป็น ${dayData.dayType} - เปลี่ยน dayType จาก "${record.dayType}" เป็น "stop"`);
+                    record.dayType = "stop";
+                    // cashWorkMul = "2" เฉพาะเมื่อ dayType = "stop" (วันหยุด)
+                    console.log(`🔴 [conclude] Second pass - เปลี่ยน cashWorkMul จาก "${record.cashWorkMul}" เป็น "2" (วันหยุด)`);
+                    record.cashWorkMul = "2";
+                  } else {
+                    // Fix dayType from "stop" to "work" if there's actual work data and it's not an official day off
+                    if (record?.dayType === "stop" && (parseFloat(record.totalTime || '0') > 0 || parseFloat(record.cashWork || '0') > 0)) {
+                      console.log(`🟡 [conclude] Second pass - แก้ไข dayType จาก "stop" เป็น "work" สำหรับวันที่ ${record.date}`);
+                      record.dayType = "work";
+                    }
+                    
+                    // cashWorkMul = "1" เมื่อ dayType = "work" (วันทำงาน)
+                    if (record?.dayType === "work") {
+                      console.log(`🟡 [conclude] Second pass - แก้ไข cashWorkMul จาก "${record.cashWorkMul}" เป็น "1" สำหรับวันทำงาน (วันที่ ${record.date})`);
+                      record.cashWorkMul = "1";
+                    }
+                  }
+                  
+                  // Log สรุปผลลัพธ์ second pass
+                  console.log(`✅ [conclude] Second pass - ผลลัพธ์สำหรับวันที่ ${record.date}: dayType="${record.dayType}", cashWork="${record.cashWork}", cashWorkMul="${record.cashWorkMul}", totalTime="${record.totalTime}"`);
+                });
+                
+                console.log(`🎯 [conclude] Second pass - เสร็จสิ้นการแก้ไขสำหรับหน่วยงานพิเศษ พนักงาน ${employeeId}`);
+              }
+            } catch (workplaceError) {
+              console.error(`❌ [conclude] ข้อผิดพลาดในการตรวจสอบ workplace (second pass):`, workplaceError.message);
+            }
+          }
+          
+          // Save the updated document to database if it's a real MongoDB document
+          const originalDoc = await timerecordEmployee.findById(doc._id);
+          if (originalDoc) {
+            originalDoc.employee_record = doc.employee_record;
+            await originalDoc.save();
+            updateNeeded = true;
+          }
         }
       } catch (error) {
         console.error("❌ Error in calculateCashValues:", error);
       }
     }
-    await res.status(200).json({ result });
+    
+    console.log(`🎯 [conclude/searchtimerecordemployee] เสร็จสิ้นการประมวลผล - ส่งผลลัพธ์ ${processedResult.length} รายการ`);
+    
+    // Log summary ของ special workplaces
+    const specialWorkplaceRecords = processedResult.filter(doc => {
+      return doc.employee_record && Array.isArray(doc.employee_record) && doc.employee_record.length > 0;
+    });
+    
+    if (specialWorkplaceRecords.length > 0) {
+      console.log(`📋 [conclude/searchtimerecordemployee] สรุปผลลัพธ์สำหรับหน่วยงานพิเศษ:`);
+      specialWorkplaceRecords.forEach((doc, index) => {
+        const workDays = doc.employee_record.filter(r => r.dayType === "work").length;
+        const stopDays = doc.employee_record.filter(r => r.dayType === "stop").length;
+        const totalRecords = doc.employee_record.length;
+        console.log(`  - รายการ ${index + 1}: พนักงาน ${doc.employeeId} - ทำงาน: ${workDays} วัน, หยุด: ${stopDays} วัน, รวม: ${totalRecords} วัน`);
+      });
+    }
+    
+    await res.status(200).json({ result: processedResult });
 
   } catch (error) {
     console.error(error);
