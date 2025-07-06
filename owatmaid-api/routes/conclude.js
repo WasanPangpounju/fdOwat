@@ -2227,6 +2227,18 @@ console.log(`🕒 แปลงเวลา OT: ${record.totalOtTime || '0'} -> $
       // แสดงข้อมูลเพื่อตรวจสอบ
       console.log(`💰 วันที่ ${record.date}: dayType=${dayType}, cashWork=${cashWork}, cashOt=${cashOt}`);
 
+      // อัปเดต record.dayType เพื่อให้ตรงกับผลลัพธ์จาก checkDayRate
+      if (dayType && dayType !== record.dayType) {
+        console.log(`🔄 อัปเดต dayType สำหรับวันที่ ${record.date}: "${record.dayType}" -> "${dayType}"`);
+        record.dayType = dayType;
+      }
+
+      // อัปเดต record.cashOtMul เพื่อให้ตรงกับผลลัพธ์จาก checkDayRate  
+      if (cashOtMul && cashOtMul !== record.cashOtMul) {
+        console.log(`🔄 อัปเดต cashOtMul สำหรับวันที่ ${record.date}: "${record.cashOtMul}" -> "${cashOtMul}"`);
+        record.cashOtMul = cashOtMul;
+      }
+
       return {
         ...record,
         cashBeforeOt,
