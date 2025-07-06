@@ -2326,7 +2326,73 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         console.error("❌ Error in calculateCashValues:", error);
       }
     }
-    await res.status(200).json({ result });
+    
+    // คำนวณ summary สำหรับแต่ละ record และ copy ไปยัง root level
+    const resultWithSummary = await Promise.all(result.map(async (doc) => {
+      const resultDoc = { ...doc };
+      
+      // เพิ่มการคำนวณ summary ถ้ามีข้อมูล employee_record
+      if (doc.employeeId && doc.month && doc.year && doc.employee_record && doc.employee_record.length > 0) {
+        console.log(`🟢 [conclude/searchtimerecordemployee] กำลังคำนวณ summary สำหรับพนักงาน ${doc.employeeId} (${doc.month}/${doc.year})`);
+        
+        // Get employee profile to check workplace information
+        const employeeProfile = await getEmployeeProfile(doc.employeeId);
+        
+        if (employeeProfile && employeeProfile[0] && employeeProfile[0].workplace) {
+          // Get workplace information
+          try {
+            const workplaceList = await axios.get(sURL + '/workplace/list');
+            const foundWorkplace = workplaceList.data.find(workplace => workplace.workplaceId === employeeProfile[0].workplace);
+            
+            if (foundWorkplace) {
+              // Convert employee_record to the format expected by summary calculation
+              const employee_record = doc.employee_record.map(record => ({
+                date: record.date ? record.date : '',
+                dayType: record.dayType || "work",
+                totalTime: record.totalTime || '0',
+                totalOtTime: record.totalOtTime || '0',
+                cashWork: record.cashWork || 0,
+                cashOt: record.cashOt || 0,
+                cashWorkMul: record.cashWorkMul || "1",
+                cashOtMul: record.cashOtMul || "1.5",
+                addSalaryDaily: record.addSalaryDaily || []
+              }));
+              
+              let summary;
+              if (foundWorkplace.workOfWeek === "7") {
+                // Use special workplace calculation
+                summary = await calculateSummaryForSpecialWorkplace(doc.employeeId, employee_record, doc.month, doc.year);
+              } else {
+                // Use regular workplace calculation
+                summary = await calculateSummaryForNormalWorkplace(doc.employeeId, employee_record, doc.month, doc.year);
+              }
+              
+              // Copy ค่าจาก summary ไปยัง root level (ไม่ส่ง summary object)
+              resultDoc.dayWorkCount = summary.dayWorkCount;
+              resultDoc.dayOffCount = summary.dayOffCount;
+              resultDoc.publicHolidayCount = summary.publicHolidayCount;
+              resultDoc.sumCashWork = summary.sumCashWork;
+              resultDoc.sumCashOt = summary.sumCashOt;
+              resultDoc.sumOt1p5 = summary.sumOt1p5;
+              resultDoc.sumOt3 = summary.sumOt3;
+              resultDoc.sumOtPublicHoliday = summary.sumOtPublicHoliday;
+              resultDoc.sumCashWorkMul = summary.sumCashWorkMul;
+              resultDoc.timeCashWorkMul = summary.timeCashWorkMul;
+              resultDoc.addSalaryList = summary.addSalaryList;
+              
+              console.log(`🟢 [conclude/searchtimerecordemployee] Summary calculated for ${doc.employeeId}: dayWorkCount=${summary.dayWorkCount}, dayOffCount=${summary.dayOffCount}`);
+              console.log(`🟢 [conclude/searchtimerecordemployee] Copied to root level - no summary object in response`);
+            }
+          } catch (error) {
+            console.error(`❌ Error calculating summary for ${doc.employeeId}:`, error.message);
+          }
+        }
+      }
+      
+      return resultDoc;
+    }));
+    
+    await res.status(200).json({ result: resultWithSummary });
 
   } catch (error) {
     console.error(error);
