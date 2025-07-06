@@ -1538,10 +1538,92 @@ router.post('/search', async (req, res) => {
     // Query the conclude collection for matching documents
     const recordConclude = await conclude.find(query);
 
-    // Log the search results
-    console.log('Search Results:', recordConclude);
+    // Apply special workplace logic to each record (same as in searchtimerecordemployee)
+    const processedResult = [];
+    for (const doc of recordConclude) {
+      if (!doc.concludeRecord || !Array.isArray(doc.concludeRecord)) {
+        processedResult.push(doc);
+        continue;
+      }
 
-    res.status(200).json({ recordConclude });
+      // Get employee profile to check workplace information
+      const employeeProfile = await Employee.findOne({ employeeId: doc.employeeId });
+      
+      if (!employeeProfile || !employeeProfile.workplace) {
+        processedResult.push(doc);
+        continue;
+      }
+
+      // Get workplace information
+      const workplace = await Workplace.findOne({ workplaceId: employeeProfile.workplace });
+      
+      if (!workplace) {
+        processedResult.push(doc);
+        continue;
+      }
+
+      // Apply special workplace logic for workOfWeek = "7"
+      if (workplace.workOfWeek === "7") {
+        console.log(`🟡 [conclude/search] กำลังประมวลผลหน่วยงานพิเศษ (workOfWeek=7) สำหรับพนักงาน ${doc.employeeId}`);
+        
+        // Process each record in concludeRecord
+        for (const record of doc.concludeRecord) {
+          if (!record.day) continue;
+          
+          // Get weekend/holiday info for this specific date
+          const dateStr = record.day.split('/').reverse().join('-'); // Convert DD/MM/YYYY to YYYY-MM-DD
+          
+          try {
+            const holidayResponse = await axios.get(sURL + '/conclude/getWeekendDates', {
+              params: { date: dateStr }
+            });
+            
+            const holidayData = holidayResponse.data || {};
+            const isHoliday = holidayData.dayOffOnly || holidayData.weekendAndDayOff;
+            
+            console.log(`🟡 [conclude/search] วันที่ ${record.day} (${dateStr}): dayOffOnly=${holidayData.dayOffOnly}, weekendAndDayOff=${holidayData.weekendAndDayOff}, isHoliday=${isHoliday}`);
+            
+            // Check if there's actual work
+            const hasWork = parseFloat(record.workRate || 0) > 0 || parseFloat(record.allTimes || 0) > 0;
+            
+            if (isHoliday) {
+              // Holiday logic
+              if (hasWork) {
+                console.log(`🟡 [conclude/search] วันหยุดที่มีงาน: ${record.day} - ตั้งค่า workRateMultiply = "2"`);
+                record.workRateMultiply = "2";
+                record.workRateOTMultiply = "3";
+                // For special workplaces, keep workRate as is (it's already the daily rate)
+              } else {
+                console.log(`🟡 [conclude/search] วันหยุดที่ไม่มีงาน: ${record.day} - ไม่มีการเปลี่ยนแปลง`);
+              }
+            } else {
+              // Regular work day logic
+              if (hasWork) {
+                console.log(`🟡 [conclude/search] วันทำงานปกติ: ${record.day} - ตั้งค่า workRateMultiply = "1"`);
+                record.workRateMultiply = "1";
+                record.workRateOTMultiply = "1.5";
+                // For special workplaces, keep workRate as is (it's already the daily rate)
+              }
+            }
+          } catch (error) {
+            console.error(`🔴 [conclude/search] Error getting holiday info for ${record.day}:`, error.message);
+            // If we can't get holiday info, assume it's a regular work day
+            const hasWork = parseFloat(record.workRate || 0) > 0 || parseFloat(record.allTimes || 0) > 0;
+            if (hasWork) {
+              record.workRateMultiply = "1";
+              record.workRateOTMultiply = "1.5";
+            }
+          }
+        }
+      }
+      
+      processedResult.push(doc);
+    }
+
+    // Log the search results
+    console.log('Search Results:', processedResult.length, 'records processed');
+
+    res.status(200).json({ recordConclude: processedResult });
   } catch (error) {
     console.error('Error occurred during search:', error);
     res.status(500).json({ message: 'Internal server error' });
