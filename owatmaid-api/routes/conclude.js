@@ -2065,8 +2065,13 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
     salary = await (parseFloat(salaryTmp || '0')/ 8).toFixed(3);
   }
 
+  console.log(`🔍 [calculateCashValues] เริ่มคำนวณสำหรับพนักงาน ${employeeId} (${month}/${year})`);
+  console.log(`🔍 จำนวนวันที่มีข้อมูล: ${employee_record.length} วัน`);
+  console.log(`🔍 รายการวันที่: [${employee_record.map(r => r.date).sort((a,b) => a-b).join(', ')}]`);
+
   return Promise.all(
     employee_record.map(async (record) => {
+      console.log(`🔍 กำลังคำนวณวันที่ ${record.date}...`);
       if((record.date >= 21 && record.date <= 31) && month == 1) {
         year = year - 1;
         month = 12;
