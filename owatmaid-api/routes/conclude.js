@@ -2358,32 +2358,36 @@ router.post('/searchtimerecordemployee', async (req, res) => {
               if (needsRecalculation) {
                 console.log(`🔄 [conclude/searchtimerecordemployee] คำนวณ cashWork ใหม่ด้วยอัตราค่าแรงปกติสำหรับพนักงาน ${doc.employeeId}`);
                 
-                // Get employee profile for salary calculation
-                const employeeProfile = await getEmployeeProfile(doc.employeeId);
-                if (employeeProfile && employeeProfile[0]) {
-                  const salaryTmp = parseFloat(employeeProfile[0].salary || '0') || 0;
-                  let salary = 0;
-
-                  // Calculate hourly rate
-                  if(parseFloat(salaryTmp || '0') > 1660) {
-                    salary = await ((parseFloat(salaryTmp || '0') / 30)/ 8).toFixed(3);
-                  } else {
-                    salary = await (parseFloat(salaryTmp || '0')/ 8).toFixed(3);
-                  }
-                  
-                  // Recalculate cashWork for each record using work rate (multiplier = 1)
-                  doc.employee_record.forEach((record, index) => {
-                    const originalCashWork = record.cashWork;
-                    const originalCashWorkMul = record.cashWorkMul;
+                try {
+                  // Get employee profile for salary calculation
+                  const employeeProfile = await getEmployeeProfile(doc.employeeId);
+                  if (employeeProfile && employeeProfile[0]) {
                     
-                    // คำนวณ cashWork ใหม่ด้วยอัตราค่าแรงปกติ (ไม่มีตัวคูณพิเศษ)
-                    record.cashWork = (record.totalTime || 0) * parseFloat(salary || 0);
-                    record.cashWorkMul = "1"; // ตัวคูณค่าแรงปกติเป็น 1
-                    
-                    if (originalCashWork !== record.cashWork || originalCashWorkMul !== record.cashWorkMul) {
-                      console.log(`  💰 วันที่ ${record.date}: เปลี่ยน cashWork จาก ${originalCashWork} (mul: ${originalCashWorkMul}) เป็น ${record.cashWork} (mul: ${record.cashWorkMul})`);
+                    // Recalculate cashWork for each record using the same logic as calculateCashValues
+                    for (const record of doc.employee_record) {
+                      const originalCashWork = record.cashWork;
+                      const originalCashWorkMul = record.cashWorkMul;
+                      
+                      // Use the same logic as calculateCashValues to get the correct work rate
+                      const rawDate = new Date(year, month - 1, record.date);
+                      const bangkokDate = toBangkokDate(rawDate);
+                      
+                      // Get the correct work rate from checkDayRate function using foundWorkplace.workplaceId
+                      const dataRate = await checkDayRate(foundWorkplace.workplaceId, record.wGroup, bangkokDate, record.date, 
+                        employeeProfile?.[0]?.customWorkplace);
+                      
+                      // คำนวณ cashWork ใหม่ด้วยอัตราค่าแรงปกติจาก checkDayRate (ไม่มีตัวคูณพิเศษ)
+                      record.cashWork = (record.totalTime || 0) * parseFloat(dataRate.workRate || '0');
+                      record.cashWorkMul = "1"; // ตัวคูณค่าแรงปกติเป็น 1
+                      
+                      if (originalCashWork !== record.cashWork || originalCashWorkMul !== record.cashWorkMul) {
+                        console.log(`  💰 วันที่ ${record.date}: เปลี่ยน cashWork จาก ${originalCashWork} (mul: ${originalCashWorkMul}) เป็น ${record.cashWork} (mul: ${record.cashWorkMul})`);
+                        console.log(`    📊 ใช้ workRate: ${dataRate.workRate}, totalTime: ${record.totalTime}, การคำนวณ: ${record.totalTime} × ${dataRate.workRate} = ${record.cashWork}`);
+                      }
                     }
-                  });
+                  }
+                } catch (recalcError) {
+                  console.error(`❌ ไม่สามารถคำนวณ cashWork ใหม่สำหรับพนักงาน ${doc.employeeId}:`, recalcError.message);
                 }
               }
               
