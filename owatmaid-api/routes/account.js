@@ -4306,8 +4306,8 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
                 console.log(`🔄 API Response from /conclude/searchtimerecordemployee for ${record.employeeId}:`, JSON.stringify(apiRes.data, null, 2));
                 
                 // อัปเดตข้อมูลใน record จากผลลัพธ์ของ API
-                if (apiRes.data && apiRes.data.length > 0) {
-                  const updatedData = apiRes.data[0];
+                if (apiRes.data && apiRes.data.result && apiRes.data.result.length > 0) {
+                  const updatedData = apiRes.data.result[0];
                   
                   if (updatedData.summary) {
                     // ใช้ข้อมูล summary ที่คำนวณแล้ว
