@@ -1673,28 +1673,20 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
         }
       }
       
-      // ตรวจสอบ weekendOnly (วันหยุดสุดสัปดาห์เท่านั้น) - เฉพาะสำหรับหน่วยงาน 7 วัน
+      // ตรวจสอบ weekendOnly (วันหยุดสุดสัปดาห์เท่านั้น)
       if (weekendData.weekendOnly && weekendData.weekendOnly.length > 0) {
         console.log(`📅 วันใน weekendOnly: ${JSON.stringify(weekendData.weekendOnly)}`);
         
         if (weekendData.weekendOnly.includes(dateStr)) {
-          // ตรวจสอบว่าหน่วยงานนี้ทำงาน 7 วันหรือไม่
-          const workOfWeek = workplaces?.[0]?.workOfWeek || customWorkplace?.workOfWeek;
-          
-          if (workOfWeek === "7") {
-            // เฉพาะหน่วยงาน 7 วัน: วันที่อยู่ใน weekendOnly ให้เป็น work ทั้งหมด
-            if (dayOfWeek === 6) { // วันเสาร์
-              console.log(`✅ หน่วยงาน 7 วัน: พบวันที่ ${dateStr} เป็นวันเสาร์ใน weekendOnly -> dayType = work`);
-              dataCal.dayType = 'work';
-              return dataCal;
-            } else if (dayOfWeek === 0) { // วันอาทิตย์
-              console.log(`✅ หน่วยงาน 7 วัน: พบวันที่ ${dateStr} เป็นวันอาทิตย์ใน weekendOnly -> dayType = work`);
-              dataCal.dayType = 'work';
-              return dataCal;
-            }
-          } else {
-            // หน่วยงานปกติ: วันที่อยู่ใน weekendOnly ยังคงเป็นวันหยุดตามปกติ
-            console.log(`ℹ️ หน่วยงานปกติ: วันที่ ${dateStr} อยู่ใน weekendOnly แต่ไม่เปลี่ยน dayType`);
+          // ตรวจสอบว่าเป็นวันเสาร์หรือวันอาทิตย์
+          if (dayOfWeek === 6) { // วันเสาร์
+            console.log(`✅ พบวันที่ ${dateStr} เป็นวันเสาร์ใน weekendOnly -> dayType = work`);
+            dataCal.dayType = 'work';
+            return dataCal;
+          } else if (dayOfWeek === 0) { // วันอาทิตย์
+            console.log(`✅ พบวันที่ ${dateStr} เป็นวันอาทิตย์ใน weekendOnly -> dayType = stop`);
+            dataCal.dayType = 'stop';
+            return dataCal;
           }
         }
       }
@@ -2113,57 +2105,31 @@ router.post('/searchtimerecordemployee', async (req, res) => {
             const foundWorkplace = workplaceList.data.find(workplace => workplace.workplaceId === employeeProfile[0].workplace);
             
             if (foundWorkplace && foundWorkplace.workOfWeek === "7") {
-              console.log(`🟡 [conclude/searchtimerecordemployee] พบหน่วยงานพิเศษ (workOfWeek=7) - แก้ไข dayType สำหรับพนักงาน ${doc.employeeId}`);
-              console.log(`🔍 สำหรับหน่วยงาน 7 วัน: จะเปลี่ยนเฉพาะวันหยุดสุดสัปดาห์ให้เป็น work แต่คงวันหยุดราชการ (public holidays) เป็น stop`);
+              console.log(`🟡 [conclude/searchtimerecordemployee] พบหน่วยงานพิเศษ (workOfWeek=7) - แก้ไข dayType และ cashWork สำหรับพนักงาน ${doc.employeeId}`);
               
               let needsRecalculation = false;
               
-              // สำหรับหน่วยงาน 7 วัน: เปลี่ยนเฉพาะวันหยุดสุดสัปดาห์ให้เป็น "work" 
-              // แต่คงวันหยุดราชการ (public holidays) เป็น "stop" ตามเดิม
-              for (const record of doc.employee_record) {
+              // แก้ไข dayType ให้เป็น "work" ทุกวัน และตรวจสอบว่าต้องคำนวณใหม่หรือไม่
+              doc.employee_record.forEach((record, index) => {
                 const originalDayType = record.dayType;
+                record.dayType = "work"; // บังคับให้เป็น work ทุกวัน
                 
-                // ตรวจสอบว่าเป็นวันหยุดราชการหรือไม่โดยเรียก checkDayRate
-                const rawDate = new Date(year, month - 1, record.date);
-                const bangkokDate = toBangkokDate(rawDate);
-                
-                try {
-                  const dataRate = await checkDayRate(foundWorkplace.workplaceId, record.wGroup || [], bangkokDate, record.date, 
-                    employeeProfile?.[0]?.customWorkplace);
-                  
-                  // ถ้า checkDayRate คืนค่า dayType = 'stop' แสดงว่าเป็นวันหยุดราชการ ให้คงไว้เป็น stop
-                  // ถ้า checkDayRate คืนค่า dayType อื่น ๆ สำหรับหน่วยงาน 7 วัน ให้เปลี่ยนเป็น work
-                  if (dataRate.dayType === 'stop') {
-                    // คงวันหยุดราชการเป็น stop
-                    if (originalDayType !== 'stop') {
-                      console.log(`  📅 วันที่ ${record.date}: คงไว้เป็น "stop" (วันหยุดราชการ)`);
-                      record.dayType = 'stop';
-                      needsRecalculation = true;
-                    }
-                  } else {
-                    // เปลี่ยนวันอื่น ๆ (รวมวันหยุดสุดสัปดาห์) เป็น work สำหรับหน่วยงาน 7 วัน
-                    if (originalDayType !== 'work') {
-                      console.log(`  📅 วันที่ ${record.date}: เปลี่ยน dayType จาก "${originalDayType}" เป็น "work" (หน่วยงาน 7 วัน)`);
-                      record.dayType = 'work';
-                      needsRecalculation = true;
-                    }
-                  }
-                } catch (checkError) {
-                  console.error(`❌ ไม่สามารถตรวจสอบ dayType สำหรับวันที่ ${record.date}:`, checkError.message);
-                  // กรณีมีข้อผิดพลาด ให้คงค่าเดิมไว้
+                if (originalDayType !== "work") {
+                  console.log(`  📅 วันที่ ${record.date}: เปลี่ยน dayType จาก "${originalDayType}" เป็น "work"`);
+                  needsRecalculation = true;
                 }
-              };
+              });
               
-              // หาก dayType มีการเปลี่ยนแปลง ให้คำนวณค่าแรงใหม่ตาม dayType ที่ถูกต้อง
+              // หาก dayType มีการเปลี่ยนแปลง ให้คำนวณ cashWork ใหม่ด้วยอัตราค่าแรงปกติ
               if (needsRecalculation) {
-                console.log(`🔄 [conclude/searchtimerecordemployee] คำนวณค่าแรงใหม่ตาม dayType ที่ถูกต้องสำหรับพนักงาน ${doc.employeeId}`);
+                console.log(`🔄 [conclude/searchtimerecordemployee] คำนวณ cashWork ใหม่ด้วยอัตราค่าแรงปกติสำหรับพนักงาน ${doc.employeeId}`);
                 
                 try {
                   // Get employee profile for salary calculation
                   const employeeProfile = await getEmployeeProfile(doc.employeeId);
                   if (employeeProfile && employeeProfile[0]) {
                     
-                    // Recalculate cash values for each record using the same logic as calculateCashValues
+                    // Recalculate cashWork for each record using the same logic as calculateCashValues
                     for (const record of doc.employee_record) {
                       const originalCashWork = record.cashWork;
                       const originalCashWorkMul = record.cashWorkMul;
@@ -2176,22 +2142,13 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                       const dataRate = await checkDayRate(foundWorkplace.workplaceId, record.wGroup || [], bangkokDate, record.date, 
                         employeeProfile?.[0]?.customWorkplace);
                       
-                      // คำนวณค่าแรงตาม dayType ที่ถูกต้อง
-                      if (record.dayType === 'stop') {
-                        // คำนวณสำหรับวันหยุดราชการ
-                        record.cashWork = (record.totalTime || 0) * (parseFloat(dataRate.workRate || '0') * parseFloat(dataRate.dayoffRateHour || '0'));
-                        record.cashWorkMul = dataRate.dayoffRateHour || 1;
-                        console.log(`  💰 วันที่ ${record.date} (stop): cashWork=${record.cashWork}, cashWorkMul=${record.cashWorkMul}`);
-                      } else {
-                        // คำนวณสำหรับวันทำงานปกติ (work)
-                        record.cashWork = (record.totalTime || 0) * parseFloat(dataRate.workRate || '0');
-                        record.cashWorkMul = "1"; // ตัวคูณค่าแรงปกติเป็น 1
-                        console.log(`  💰 วันที่ ${record.date} (work): cashWork=${record.cashWork}, cashWorkMul=${record.cashWorkMul}`);
-                      }
+                      // คำนวณ cashWork ใหม่ด้วยอัตราค่าแรงปกติจาก checkDayRate (ไม่มีตัวคูณพิเศษ)
+                      record.cashWork = (record.totalTime || 0) * parseFloat(dataRate.workRate || '0');
+                      record.cashWorkMul = "1"; // ตัวคูณค่าแรงปกติเป็น 1
                       
                       if (originalCashWork !== record.cashWork || originalCashWorkMul !== record.cashWorkMul) {
                         console.log(`  💰 วันที่ ${record.date}: เปลี่ยน cashWork จาก ${originalCashWork} (mul: ${originalCashWorkMul}) เป็น ${record.cashWork} (mul: ${record.cashWorkMul})`);
-                        console.log(`    📊 ใช้ workRate: ${dataRate.workRate}, totalTime: ${record.totalTime}, dayType: ${record.dayType}`);
+                        console.log(`    📊 ใช้ workRate: ${dataRate.workRate}, totalTime: ${record.totalTime}, การคำนวณ: ${record.totalTime} × ${dataRate.workRate} = ${record.cashWork}`);
                       }
                     }
                   }
@@ -2203,9 +2160,9 @@ router.post('/searchtimerecordemployee', async (req, res) => {
               // บันทึกการเปลี่ยนแปลงลงฐานข้อมูล
               try {
                 await doc.save();
-                console.log(`💾 บันทึกการเปลี่ยนแปลง dayType และค่าแรงสำหรับพนักงาน ${doc.employeeId} เสร็จสิ้น`);
+                console.log(`💾 บันทึกการเปลี่ยนแปลง dayType และ cashWork สำหรับพนักงาน ${doc.employeeId} เสร็จสิ้น`);
               } catch (saveError) {
-                console.error(`❌ ไม่สามารถบันทึกการเปลี่ยนแปลง dayType และค่าแรงสำหรับพนักงาน ${doc.employeeId}:`, saveError.message);
+                console.error(`❌ ไม่สามารถบันทึกการเปลี่ยนแปลง dayType และ cashWork สำหรับพนักงาน ${doc.employeeId}:`, saveError.message);
               }
             }
           } catch (workplaceError) {
