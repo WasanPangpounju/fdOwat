@@ -4306,8 +4306,8 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
                 console.log(`🔄 API Response from /conclude/searchtimerecordemployee for ${record.employeeId}:`, JSON.stringify(apiRes.data, null, 2));
                 
                 // อัปเดตข้อมูลใน record จากผลลัพธ์ของ API
-                if (apiRes.data && apiRes.data.length > 0) {
-                  const updatedData = apiRes.data[0];
+                if (apiRes.data && apiRes.data.result && apiRes.data.result.length > 0) {
+                  const updatedData = apiRes.data.result[0];
                   
                   if (updatedData.summary) {
                     // ใช้ข้อมูล summary ที่คำนวณแล้ว
@@ -4323,7 +4323,18 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
                     record.timeCashWorkMul = updatedData.summary.timeCashWorkMul || record.timeCashWorkMul;
                     record.addSalaryList = updatedData.summary.addSalaryList || record.addSalaryList;
                     
+                    // บันทึกการเปลี่ยนแปลงลงฐานข้อมูล
+                    try {
+                      await record.save();
+                      console.log(`💾 บันทึกข้อมูลที่อัปเดตสำหรับ ${record.employeeId} เสร็จสิ้น`);
+                    } catch (saveError) {
+                      console.error(`❌ ไม่สามารถบันทึกข้อมูลสำหรับ ${record.employeeId}:`, saveError.message);
+                    }
+                    
                     console.log(`✅ Updated summary for ${record.employeeId}: dayWorkCount=${record.dayWorkCount}, dayOffCount=${record.dayOffCount}`);
+                    
+                    // ลบ summary object ออกเพื่อไม่ให้แสดงใน response
+                    delete record.summary;
                   } else {
                     console.log(`⚠️ No summary field in API response for ${record.employeeId}`);
                   }
@@ -4664,22 +4675,22 @@ const calculateCashValuesForSpecialWorkplace = async (employeeId, employee_recor
     
     // ตรวจสอบว่ามีการทำงานหรือไม่
     const hasWork = (parseFloat(record.cashWork || 0) > 0 || parseFloat(record.allTimes || 0) > 0);
+
     
     if (record.dayType === "work") {
-      dayWorkCount++;
-      sumTimeWork += convertTimeToDecimal(record.allTimes || '0');
+      dayWorkCount += 1;
+      sumTimeWork += convertTimeToDecimal(record.allTimดดดดes || 'ojfos');
       sumTimeOt += convertTimeToDecimal(record.otTimes || '0');
       sumCashWork += parseFloat(record.cashWork || 0);
       sumCashOt += parseFloat(record.cashOt || 0);
+      record.dayWorkCount = record.dayWorkCount;
+
       
       // จัดการ sumCashWorkMul สำหรับหน่วยงานพิเศษ
       const workMul = record.cashWorkMul || "1";
       const otMul = record.cashOtMul || "1.5";
       
-      if (!sumCashWorkMul[workMul]) sumCashWorkMul[workMul] = 0;
-      if (!sumCashWorkMul[otMul]) sumCashWorkMul[otMul] = 0;
-      if (!timeCashWorkMul[workMul]) timeCashWorkMul[workMul] = 0;
-      if (!timeCashWorkMul[otMul]) timeCashWorkMul[otMul] = 0;
+   
       
       sumCashWorkMul[workMul] += parseFloat(record.cashWork || 0);
       if (record.cashOt) {
