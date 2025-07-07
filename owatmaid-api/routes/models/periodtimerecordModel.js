@@ -64,6 +64,7 @@ sumCashWork : String,
 sumCashOt : String,
 sumcashDayOffCount: String,
 totalAddSalary: String, // เพิ่มฟิลด์สำหรับเก็บยอดรวมเงินเพิ่ม
+totalDeductSalary: String, // เพิ่มฟิลด์สำหรับเก็บยอดรวมเงินหัก
 socialSecurity: String,
 tax: String,
 fund: String,
