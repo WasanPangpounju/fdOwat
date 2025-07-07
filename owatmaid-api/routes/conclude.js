@@ -2051,6 +2051,7 @@ const getEmployeeProfile = async (employeeId) => {
 
 }
 
+
 // ฟังก์ชันคำนวณสำหรับหน่วยงานพิเศษ 7 วัน
 const calculateCashValuesSpecial7Days = async (employeeId, employee_record, month, year) => {
   console.log(`\n💼 === เริ่มคำนวณแบบหน่วยงานพิเศษ 7 วัน ===`);
@@ -2074,13 +2075,6 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
     console.log(`📋 ข้อมูลวันหยุดที่ได้:`);
     console.log(`   - weekendAndDayOff: ${JSON.stringify(weekendData.weekendAndDayOff || [])}`);
     console.log(`   - dayOffOnly: ${JSON.stringify(weekendData.dayOffOnly || [])}`);
-    
-    // รวมวันหยุดทั้งหมดที่ต้องตรวจสอบ
-    const allHolidays = [
-      ...(weekendData.weekendAndDayOff || []),
-      ...(weekendData.dayOffOnly || [])
-    ];
-    console.log(`   - รวมวันหยุดทั้งหมด: ${allHolidays.length} วัน`);
     
   } catch (error) {
     console.error(`❌ ไม่สามารถดึงข้อมูลวันหยุดได้:`, error.message);
@@ -2224,16 +2218,25 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
         cashOtMul = dataRate?.workRateOT || 1.5;
       }
       
-      // เงินเพิ่มพิเศษรายวัน
-      addSalaryDaily = [...(employeeProfile[0].addSalary || [])
-        .filter(salary => salary.roundOfSalary === "daily")
-        .map(salary => ({
-          ...salary,
-          SpSalary: parseFloat(salary.SpSalary) > 100 ? 
-            (parseFloat(salary.SpSalary) / 30).toFixed(2) : 
-            salary.SpSalary
-        }))
-      ];
+      // *** แก้ไขส่วน addSalaryDaily ***
+      // เงินเพิ่มพิเศษรายวัน - คิดทุกวันที่มี totalTime (ไม่ว่า dayType จะเป็นอะไร)
+      if (hasWorked) {
+        // ถ้ามีการทำงาน (totalTime > 0) ให้เพิ่มเงินพิเศษรายวัน
+        addSalaryDaily = [...(employeeProfile[0].addSalary || [])
+          .filter(salary => salary.roundOfSalary === "daily")
+          .map(salary => ({
+            ...salary,
+            SpSalary: parseFloat(salary.SpSalary) > 100 ? 
+              (parseFloat(salary.SpSalary) / 30).toFixed(2) : 
+              salary.SpSalary
+          }))
+        ];
+        console.log(`💵 เพิ่มเงินพิเศษรายวัน: ${addSalaryDaily.length} รายการ (เพราะมี totalTime)`);
+      } else {
+        // ถ้าไม่มีการทำงาน ไม่เพิ่มเงินพิเศษรายวัน
+        addSalaryDaily = [];
+        console.log(`❌ ไม่เพิ่มเงินพิเศษรายวัน (เพราะไม่มี totalTime)`);
+      }
 
       // แสดงผลการคำนวณ
       console.log(`💰 ผลการคำนวณ:`);
@@ -2242,6 +2245,12 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
       console.log(`   - ประเภทวัน: ${dayType}`);
       console.log(`   - เป็นวันหยุด: ${isHoliday ? 'ใช่' : 'ไม่ใช่'}`);
       console.log(`   - มาทำงาน: ${hasWorked ? 'ใช่' : 'ไม่ใช่'}`);
+      console.log(`   - จำนวนเงินเพิ่มรายวัน: ${addSalaryDaily.length} รายการ`);
+      if (addSalaryDaily.length > 0) {
+        addSalaryDaily.forEach(item => {
+          console.log(`     • ${item.name}: ${item.SpSalary} บาท`);
+        });
+      }
 
       return {
         ...record,
@@ -2257,6 +2266,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
     })
   );
 };
+
 const calculateCashValues = async (employeeId, employee_record, month, year) => {
   const employeeProfile = await getEmployeeProfile(employeeId);
   const salaryTmp = parseFloat(employeeProfile[0].salary || '0') || 0;
