@@ -3,7 +3,6 @@ const sURL = 'http://localhost:3000';
 
 const timerecordEmployee = require('./models/periodtimerecordModel');
 const workplaceTimerecords = require('./models/periodworkplacetimerecordModel');
-const Employee = require('./models/employeeModel'); // เพิ่ม import สำหรับ Employee model
 
 const axios = require('axios');
 
@@ -1168,6 +1167,7 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
     // Construct the search query based on the provided parameters
     const query = {};
 
+
     if (month !== '') {
       //query.month = new Date(date);
       query.month = { $regex: new RegExp(month , 'i') };
@@ -1179,87 +1179,17 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
 
     if ( month == '' && year== '') {
       res.status(200).json({});
-      return;
     }
 
     // Query the workplace collection for matching documents
     const result = await timerecordEmployee.find(query);
 
-    // Process each result to apply special workplace logic
-    const processedResult = await Promise.all(result.map(async (doc) => {
-      try {
-        // Create a copy of the document to avoid modifying the original
-        const processedDoc = JSON.parse(JSON.stringify(doc));
-        
-        // Get employee profile to check workplace type
-        const employeeProfile = await getEmployeeProfile(processedDoc.employeeId);
-        
-        if (employeeProfile && employeeProfile[0] && employeeProfile[0].workplace) {
-          // Check if this is a special workplace (workOfWeek = "7")
-          try {
-            const workplaceList = await axios.get(sURL + '/workplace/list');
-            const foundWorkplace = workplaceList.data.find(workplace => workplace.workplaceId === employeeProfile[0].workplace);
-            
-            if (foundWorkplace && foundWorkplace.workOfWeek === "7") {
-              console.log(`🟡 [timerecords] พบหน่วยงานพิเศษ (workOfWeek=7) สำหรับพนักงาน ${processedDoc.employeeId}`);
-              
-              // Apply special workplace logic to fix dayType
-              if (processedDoc.employee_record && Array.isArray(processedDoc.employee_record)) {
-                processedDoc.employee_record.forEach(record => {
-                  // Fix dayType from "stop" to "work" if there's actual work data
-                  if (record?.dayType === "stop" && (parseFloat(record.totalTime) > 0 || parseFloat(record.cashWork) > 0)) {
-                    console.log(`🟡 [timerecords] แก้ไข dayType จาก "stop" เป็น "work" สำหรับวันที่ ${record.date} (หน่วยงาน 7 วัน)`);
-                    record.dayType = "work";
-                  }
-                  
-                  // Fix cashWorkMul for ALL work days in special workplaces (เมื่อ dayType เป็น "work" ให้ cashWorkMul เป็น "1")
-                  if (record?.dayType === "work" && record.cashWorkMul && record.cashWorkMul !== "1") {
-                    console.log(`🟡 [timerecords] แก้ไข cashWorkMul จาก "${record.cashWorkMul}" เป็น "1" สำหรับงานปกติในหน่วยงาน 7 วัน (วันที่ ${record.date})`);
-                    record.cashWorkMul = "1";
-                  }
-                });
-              }
-            }
-          } catch (workplaceError) {
-            console.error(`❌ [timerecords] ข้อผิดพลาดในการตรวจสอบ workplace:`, workplaceError.message);
-          }
-        }
-        
-        return processedDoc;
-      } catch (processError) {
-        console.error(`❌ [timerecords] ข้อผิดพลาดในการประมวลผลเอกสาร:`, processError.message);
-        return doc; // Return original document if processing fails
-      }
-    }));
-
-    await res.status(200).json({ result: processedResult});
+    await res.status(200).json({ result});
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
-
-// Helper function to get employee profile (copied from account.js)
-const getEmployeeProfile = async (employeeId) => {
-  try {
-    const query = {};
-    if (employeeId) {
-      query.employeeId = employeeId;
-    }
-
-    // Query the employee collection for matching documents
-    const employees = await Employee.find(query);
-
-    if(employees ) {
-      return employees ;
-    } else {
-      return null;
-    }
-  } catch (error) {
-    console.error('Error fetching employee profile:', error);
-    return null;
-  }
-};
 
 //search timerecordEmployee 
 router.post('/searchtimerecordemployee', async (req, res) => {
@@ -1297,54 +1227,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     // Query the workplace collection for matching documents
     const result = await timerecordEmployee.find(query);
 
-    // Process each result to apply special workplace logic (same as searchtimerecordmonthyear)
-    const processedResult = await Promise.all(result.map(async (doc) => {
-      try {
-        // Create a copy of the document to avoid modifying the original
-        const processedDoc = JSON.parse(JSON.stringify(doc));
-        
-        // Get employee profile to check workplace type
-        const employeeProfile = await getEmployeeProfile(processedDoc.employeeId);
-        
-        if (employeeProfile && employeeProfile[0] && employeeProfile[0].workplace) {
-          // Check if this is a special workplace (workOfWeek = "7")
-          try {
-            const workplaceList = await axios.get(sURL + '/workplace/list');
-            const foundWorkplace = workplaceList.data.find(workplace => workplace.workplaceId === employeeProfile[0].workplace);
-            
-            if (foundWorkplace && foundWorkplace.workOfWeek === "7") {
-              console.log(`🟡 [searchtimerecordemployee] พบหน่วยงานพิเศษ (workOfWeek=7) สำหรับพนักงาน ${processedDoc.employeeId}`);
-              
-              // Apply special workplace logic to fix dayType and cashWorkMul
-              if (processedDoc.employee_record && Array.isArray(processedDoc.employee_record)) {
-                processedDoc.employee_record.forEach(record => {
-                  // Fix dayType from "stop" to "work" if there's actual work data
-                  if (record?.dayType === "stop" && (parseFloat(record.totalTime) > 0 || parseFloat(record.cashWork) > 0)) {
-                    console.log(`🟡 [searchtimerecordemployee] แก้ไข dayType จาก "stop" เป็น "work" สำหรับวันที่ ${record.date} (หน่วยงาน 7 วัน)`);
-                    record.dayType = "work";
-                  }
-                  
-                  // Fix cashWorkMul for ALL work days in special workplaces
-                  if (record?.dayType === "work" && record.cashWorkMul && record.cashWorkMul !== "1") {
-                    console.log(`🟡 [searchtimerecordemployee] แก้ไข cashWorkMul จาก "${record.cashWorkMul}" เป็น "1" สำหรับงานปกติในหน่วยงาน 7 วัน (วันที่ ${record.date})`);
-                    record.cashWorkMul = "1";
-                  }
-                });
-              }
-            }
-          } catch (workplaceError) {
-            console.error(`❌ [searchtimerecordemployee] ข้อผิดพลาดในการตรวจสอบ workplace:`, workplaceError.message);
-          }
-        }
-        
-        return processedDoc;
-      } catch (processError) {
-        console.error(`❌ [searchtimerecordemployee] ข้อผิดพลาดในการประมวลผลเอกสาร:`, processError.message);
-        return doc; // Return original document if processing fails
-      }
-    }));
-
-    await res.status(200).json({ result: processedResult});
+    await res.status(200).json({ result});
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Internal server error' });
@@ -1560,50 +1443,6 @@ router.put('/updateworkplacetimerecords/:workplaceRecordId', async (req, res) =>
   } catch (error) {
     console.error("❌ Error:", error);
     res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Delete a specific employee timerecord by MongoDB _id
-router.delete('/deletetimerecordbyid/:recordId', async (req, res) => {
-  try {
-    const recordId = req.params.recordId;
-    
-    console.log(`🗑️ [DELETE] ลบ employee timerecord ด้วย _id: ${recordId}`);
-    
-    // Delete the specific record by _id
-    const deleteResult = await timerecordEmployee.findByIdAndDelete(recordId);
-    
-    if (deleteResult) {
-      console.log(`✅ [DELETE] ลบ record สำเร็จ: ${recordId}`);
-      console.log(`✅ ข้อมูลที่ลบ: employeeId=${deleteResult.employeeId}, month=${deleteResult.month}, year=${deleteResult.year}`);
-      
-      res.status(200).json({
-        success: true,
-        message: `ลบ employee timerecord สำเร็จ`,
-        deletedRecord: {
-          _id: deleteResult._id,
-          employeeId: deleteResult.employeeId,
-          employeeName: deleteResult.employeeName,
-          month: deleteResult.month,
-          year: deleteResult.year
-        }
-      });
-    } else {
-      console.log(`❌ [DELETE] ไม่พบ record ที่ต้องการลบ: ${recordId}`);
-      res.status(404).json({
-        success: false,
-        message: `ไม่พบ employee timerecord ที่ต้องการลบ`,
-        recordId: recordId
-      });
-    }
-    
-  } catch (error) {
-    console.error("❌ [DELETE] Error:", error);
-    res.status(500).json({ 
-      success: false,
-      error: 'Internal server error',
-      message: error.message 
-    });
   }
 });
 
