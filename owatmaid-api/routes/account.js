@@ -4509,7 +4509,6 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           //   message : parseF item.message,
           // })),
           addSalaryList: calculatedValues.addSalaryList,
-          deductSalaryList: calculatedValues.deductSalaryList,
           sumCashWorkMul: calculatedValues.sumCashWorkMul,
         };
         
@@ -4627,8 +4626,6 @@ let timeCashWorkMul = {
   const costtype = employeeProfile[0].costtype || '';
 
   let addSalary = employeeProfile?.[0]?.addSalary || [];
-  let deductSalary = employeeProfile?.[0]?.deductSalary || [];
-
   let salary = 0;
   let salaryMonth = 0;
   let dailyWage = 0; // ค่าแรงต่อวัน สำหรับคำนวณ cashcustomizeDayoff
@@ -4655,8 +4652,6 @@ let timeCashWorkMul = {
   let addSalaryDailyList = [];
   let monthlySalaries = [];
   let addSalaryList = [];
-  let deductSalaryList = [];
-
   let selectedSpecialDays = [];
 
   if (parseFloat(salaryTmp || '0') > 1660) {
@@ -5163,11 +5158,6 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
     monthlySalaries = await addSalary.filter(salary => salary.roundOfSalary === 'monthly');
   }
 
-    if (deductSalary&& deductSalary.length > 0) {
-//เพิ่มเงินหักลงในรายการเงินหัก
-      deductSalaryList = deductSalary;
-  }
-
   addSalaryList = await addSalaryList.concat(monthlySalaries);
 
   console.log(`\n🔍 === การตรวจสอบเงินพิเศษที่คิดประกันสังคม ===`);
@@ -5363,7 +5353,6 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
     sumCashWorkMul,
     timeCashWorkMul,
     addSalaryList,
-    deductSalaryList,
     socialSecurity,
     tax,
     cashSpecialDay,

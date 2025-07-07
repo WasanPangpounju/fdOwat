@@ -343,12 +343,12 @@ console.log(workRate + ' workRate ');
                   tmp.otTimes = otTime || 0;
                 }
 
-                // ใช้ฟังก์ชัน convertTimeToDecimal แทนการแปลงด้วยตัวเอง
-                let decimalOtTime = convertTimeToDecimal(otTime);
-                // let workRateOT = ((parseFloat(tmpWP.data.dayoffRateOT) * (salary / 8)) * decimalOtTime).toFixed(2);
+                let [hoursTmp, minutesTmp] = otTime.toString().split('.').map(Number);
+                let decimalFraction = (minutesTmp || 0).toFixed(2) / 60;
+                // let workRateOT = ((parseFloat(tmpWP.data.dayoffRateOT) * (salary / 8)) * (parseFloat(hoursTmp + decimalFraction))).toFixed(2);
 
                 //cal OT
-                let workRateOT = ((parseFloat(tmpWP.data.holidayOT) * (salary / 8)) * decimalOtTime).toFixed(3);
+                let workRateOT = ((parseFloat(tmpWP.data.holidayOT) * (salary / 8)) * (parseFloat( (((hoursTmp * 60) + (minutesTmp )) / 60) )) ).toFixed(3);
                 tmp.workRateOT = workRateOT || '';
                 tmp.workRateOTMultiply = tmpWP.data.holidayOT || 0;
 
@@ -392,9 +392,9 @@ console.log(workRate + ' workRate ');
                   tmp.otTimes = otTime || 0;
                 }
                 
-                // ใช้ฟังก์ชัน convertTimeToDecimal แทนการแปลงด้วยตัวเอง
-                let decimalOtTime = convertTimeToDecimal(otTime);
-                let workRateOT = ((parseFloat(tmpWP.data.dayoffRateOT) * (parseFloat(salary || '0') / 8)) * decimalOtTime).toFixed(3);
+                let [hoursTmp, minutesTmp] = otTime.toString().split('.').map(Number);
+                let decimalFraction = (minutesTmp || 0).toFixed(2) / 60;
+                let workRateOT = ((parseFloat(tmpWP.data.dayoffRateOT) * (parseFloat(salary || '0') / 8)) * (parseFloat(otTime ))).toFixed(3);
 
                 //cal OT
                 tmp.workRateOT = workRateOT || 0;
@@ -402,7 +402,7 @@ console.log(workRate + ' workRate ');
 
                 sumWorkHour += parseFloat(allTime) || 0;
                 sumWorkRate += parseFloat(workRate) || 0;
-                sumWorkHourOt += convertTimeToDecimal(otTime) || 0;
+                sumWorkHourOt += parseFloat((parseFloat(hoursTmp + decimalFraction))) || 0;
                 sumWorkRateOt += parseFloat(workRateOT) || 0;
 
                 if(dataEmp.employees[0].salary && parseFloat(dataEmp.employees[0].salary) > 0 ) {
@@ -441,18 +441,18 @@ console.log(workRate + ' workRate ');
                   tmp.otTimes = otTime || 0;
                 }
 
-                // ใช้ฟังก์ชัน convertTimeToDecimal แทนการแปลงด้วยตัวเอง
-                let decimalOtTime = convertTimeToDecimal(otTime);
-                // let workRateOT = ((parseFloat(tmpWP.data.dayoffRateOT) * (salary / 8)) * decimalOtTime).toFixed(2);
+                let [hoursTmp, minutesTmp] = otTime.toString().split('.').map(Number);
+                let decimalFraction = (minutesTmp || 0 ).toFixed(2) / 60;
+                // let workRateOT = ((parseFloat(tmpWP.data.dayoffRateOT) * (salary / 8)) * (parseFloat(hoursTmp + decimalFraction))).toFixed(2);
 
                 //cal OT
-                let workRateOT = (((parseFloat(salary) / 8) * parseFloat(tmpWP.data.workRateOT)) * decimalOtTime).toFixed(3);
+                let workRateOT = (((parseFloat(salary) / 8) * parseFloat(tmpWP.data.workRateOT)) * (parseFloat( (((parseFloat(hoursTmp || '0') * 60) + parseFloat(minutesTmp || '0')) / 60) ))).toFixed(3);
                 tmp.workRateOT = workRateOT || 0;
                 tmp.workRateOTMultiply = tmpWP.data.workRateOT || 0;
 
                 sumWorkHour += parseFloat(allTime) || 0;
                 sumWorkRate += parseFloat(workRate) || 0;
-                sumWorkHourOt += convertTimeToDecimal(otTime) || 0;
+                sumWorkHourOt += parseFloat((parseFloat(hoursTmp + decimalFraction))) || 0;
                 sumWorkRateOt += parseFloat(workRateOT) || 0;
 
                 if(dataEmp.employees[0].salary && parseFloat(dataEmp.employees[0].salary) > 0 ) {
@@ -592,18 +592,18 @@ const         wpDataCalculator1 = await {
                   tmp.otTimes = otTime || 0;
                 }
 
-                // ใช้ฟังก์ชัน convertTimeToDecimal แทนการแปลงด้วยตัวเอง
-                let decimalOtTime = convertTimeToDecimal(otTime);
-                // let workRateOT = ((parseFloat(tmpWP.data.dayoffRateOT) * (salary / 8)) * decimalOtTime).toFixed(2);
+                let [hoursTmp, minutesTmp] = otTime.toString().split('.').map(Number);
+                let decimalFraction = (minutesTmp || 0).toFixed(2) / 60;
+                // let workRateOT = ((parseFloat(tmpWP.data.dayoffRateOT) * (salary / 8)) * (parseFloat(hoursTmp + decimalFraction))).toFixed(2);
 
                 //cal OT
-                let workRateOT = ((parseFloat(wpResponse1.data.holidayOT) * (salary / 8)) * decimalOtTime).toFixed(3);
+                let workRateOT = ((parseFloat(wpResponse1.data.holidayOT) * (salary / 8)) * (parseFloat( (((hoursTmp * 60) + (minutesTmp )) / 60)  )) ).toFixed(3);
                 tmp.workRateOT = workRateOT || 0;
                 tmp.workRateOTMultiply = wpResponse1.data.holidayOT || 0;
 
                 sumWorkHour += parseFloat(allTime) || 0;
                 sumWorkRate += parseFloat(workRate) || 0;
-                sumWorkHourOt += convertTimeToDecimal(otTime) || 0;
+                sumWorkHourOt += parseFloat((parseFloat(hoursTmp + decimalFraction))) || 0;
                 sumWorkRateOt += parseFloat(workRateOT) || 0;
                 if(dataEmp.employees[0].salary && parseFloat(dataEmp.employees[0].salary) > 0 ) {
 
@@ -1947,28 +1947,20 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
         }
       }
       
-      // ตรวจสอบ weekendOnly (วันหยุดสุดสัปดาห์เท่านั้น) - เฉพาะสำหรับหน่วยงาน 7 วัน
+      // ตรวจสอบ weekendOnly (วันหยุดสุดสัปดาห์เท่านั้น)
       if (weekendData.weekendOnly && weekendData.weekendOnly.length > 0) {
         console.log(`📅 วันใน weekendOnly: ${JSON.stringify(weekendData.weekendOnly)}`);
         
         if (weekendData.weekendOnly.includes(dateStr)) {
-          // ตรวจสอบว่าหน่วยงานนี้ทำงาน 7 วันหรือไม่
-          const workOfWeek = workplaces?.[0]?.workOfWeek || customWorkplace?.workOfWeek;
-          
-          if (workOfWeek === "7") {
-            // เฉพาะหน่วยงาน 7 วัน: วันที่อยู่ใน weekendOnly ให้เป็น work ทั้งหมด
-            if (dayOfWeek === 6) { // วันเสาร์
-              console.log(`✅ หน่วยงาน 7 วัน: พบวันที่ ${dateStr} เป็นวันเสาร์ใน weekendOnly -> dayType = work`);
-              dataCal.dayType = 'work';
-              return dataCal;
-            } else if (dayOfWeek === 0) { // วันอาทิตย์
-              console.log(`✅ หน่วยงาน 7 วัน: พบวันที่ ${dateStr} เป็นวันอาทิตย์ใน weekendOnly -> dayType = work`);
-              dataCal.dayType = 'work';
-              return dataCal;
-            }
-          } else {
-            // หน่วยงานปกติ: วันที่อยู่ใน weekendOnly ยังคงเป็นวันหยุดตามปกติ
-            console.log(`ℹ️ หน่วยงานปกติ: วันที่ ${dateStr} อยู่ใน weekendOnly แต่ไม่เปลี่ยน dayType`);
+          // ตรวจสอบว่าเป็นวันเสาร์หรือวันอาทิตย์
+          if (dayOfWeek === 6) { // วันเสาร์
+            console.log(`✅ พบวันที่ ${dateStr} เป็นวันเสาร์ใน weekendOnly -> dayType = work`);
+            dataCal.dayType = 'work';
+            return dataCal;
+          } else if (dayOfWeek === 0) { // วันอาทิตย์
+            console.log(`✅ พบวันที่ ${dateStr} เป็นวันอาทิตย์ใน weekendOnly -> dayType = stop`);
+            dataCal.dayType = 'stop';
+            return dataCal;
           }
         }
       }
@@ -2181,9 +2173,11 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
           //     ? parseFloat(dataRate?.workRateOT || '0') || 0
           //     : ((record.totalOtTime || 0) * ((parseFloat(dataRate?.workRateOT || '0')) * salary || 0)) || 0
           // );
-//แก้ไขเวลา OT ให้คิดจากหน่วยนาที - ใช้ฟังก์ชัน convertTimeToDecimal
-const totalDecimalHour = convertTimeToDecimal(record.totalOtTime || '0');
-console.log(`🕒 แปลงเวลา OT: ${record.totalOtTime || '0'} -> ${totalDecimalHour} ชั่วโมง`);
+//แก้ไขเวลา OT ให้คิดจากหน่วยนาที
+const tmpHour = Math.floor(record.totalOtTime || 0); // ได้ค่า ชม.
+const tmpRawDecimal = (record.totalOtTime || 0) - tmpHour; // ได้ค่า0.นาที
+const tmpMinute = Math.round(tmpRawDecimal * 100); // x นาที (เพราะ *100 จาก .นาที)
+const totalDecimalHour = tmpHour + (tmpMinute / 60); // 1 + 30/60 = 1.5
 
           cashOt = await (
             parseFloat(dataRate?.workRateOT || '0') > 5
@@ -2525,28 +2519,5 @@ router.post('/add-publicholiday', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
-/**
- * แปลงเวลาจากรูปแบบ "ชั่วโมง.นาที" เป็น "ชั่วโมง.ทศนิยม"
- * ตัวอย่าง: 
- * - 1.30 (1 ชั่วโมง 30 นาที) -> 1.50 (1.5 ชั่วโมง)
- * - 2.45 (2 ชั่วโมง 45 นาที) -> 2.75 (2.75 ชั่วโมง)
- * @param {string|number} timeString - เวลาในรูปแบบ "ชั่วโมง.นาที"
- * @returns {number} - เวลาในรูปแบบ "ชั่วโมง.ทศนิยม"
- */
-function convertTimeToDecimal(timeString) {
-  if (!timeString || timeString === '') return 0;
-  
-  // แยกชั่วโมงและนาที
-  const parts = timeString.toString().split('.');
-  const hours = parseInt(parts[0]) || 0;
-  const minutes = parseInt(parts[1]) || 0;
-  
-  // แปลงนาทีเป็นทศนิยม (นาที/60)
-  const decimalMinutes = minutes / 60;
-  
-  // รวมชั่วโมงและทศนิยม
-  return parseFloat((hours + decimalMinutes).toFixed(2));
-}
 
 module.exports = router;
