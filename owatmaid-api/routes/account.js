@@ -4480,6 +4480,12 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           doc.month,
           doc.year
         );
+        
+        // คำนวณ totalAddSalary จาก addSalaryList
+        const totalAddSalary = calculatedValues.addSalaryList.reduce((total, item) => {
+          return total + (parseFloat(item.SpSalary) || 0);
+        }, 0);
+        
         const updateData = await {
           prefix: employeePrefix, // เพิ่ม prefix ใหม่
           dayWorkCount: String(calculatedValues.dayWorkCount),
@@ -4494,6 +4500,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           sumCashWork: String(calculatedValues.sumCashWork),
           sumCashOt: String(calculatedValues.sumCashOt),
           sumcashDayOffCount: String(calculatedValues.sumcashDayOffCount),
+          totalAddSalary: String(totalAddSalary), // เพิ่มฟิลด์ totalAddSalary
           socialSecurity: String(calculatedValues.socialSecurity),
           tax: String(calculatedValues.tax),
           cashSpecialDay: String(calculatedValues.cashSpecialDay),

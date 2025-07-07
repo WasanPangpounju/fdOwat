@@ -63,6 +63,7 @@ sumTimeOt : String,
 sumCashWork : String,
 sumCashOt : String,
 sumcashDayOffCount: String,
+totalAddSalary: String, // เพิ่มฟิลด์สำหรับเก็บยอดรวมเงินเพิ่ม
 socialSecurity: String,
 tax: String,
 fund: String,
