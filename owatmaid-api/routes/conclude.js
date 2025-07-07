@@ -2268,16 +2268,58 @@ let cashOt = await (record.totalOtTime || 0) * parseFloat(dataRate.workRateOT ||
 router.post('/searchtimerecordemployee', async (req, res) => {
   try {
     const { employeeId, month, year } = await req.body;
+    
+    console.log(`\n🔍 === ตรวจสอบ workOfWeek สำหรับ employeeId: ${employeeId} ===`);
+    
+    // ดึงข้อมูลพนักงานเพื่อหา workplace
+    const employeeProfile = await getEmployeeProfile(employeeId);
+    if (!employeeProfile || employeeProfile.length === 0) {
+      console.log(`❌ ไม่พบข้อมูลพนักงาน employeeId: ${employeeId}`);
+      return res.status(404).json({ error: 'Employee not found' });
+    }
+    
+    const workplaceId = employeeProfile[0].workplace;
+    console.log(`📍 Workplace ID: ${workplaceId}`);
+    
+    // เรียก API เพื่อตรวจสอบ workOfWeek
+    try {
+      const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${workplaceId}`);
+      const workplaceData = workplaceResponse.data;
+      const workOfWeek = workplaceData.workOfWeek || "5"; // default เป็น 5 วันถ้าไม่มีข้อมูล
+      
+      console.log(`\n📊 === ผลการตรวจสอบ workOfWeek ===`);
+      console.log(`👤 EmployeeId: ${employeeId}`);
+      console.log(`🏢 WorkplaceId: ${workplaceId}`);
+      console.log(`📅 Month: ${month}, Year: ${year}`);
+      console.log(`🗓️ WorkOfWeek: ${workOfWeek}`);
+      
+      if (workOfWeek === "7") {
+        console.log(`✅ เป็นหน่วยงานพิเศษ (ทำงาน 7 วัน)`);
+        console.log(`⚠️ ต้องใช้ฟังก์ชันคำนวณแบบพิเศษ`);
+      } else {
+        console.log(`✅ เป็นหน่วยงานปกติ (ทำงาน ${workOfWeek} วัน)`);
+        console.log(`ℹ️ ใช้ฟังก์ชันคำนวณแบบปกติ`);
+      }
+      console.log(`=====================================\n`);
+      
+      // เก็บค่า workOfWeek ไว้ใช้ในการคำนวณ
+      const isSpecialWorkplace = workOfWeek === "7";
+      
+    } catch (error) {
+      console.error(`❌ ไม่สามารถดึงข้อมูล workplace ได้:`, error.message);
+      // ถ้าเรียก API ไม่ได้ให้ใช้ค่า default
+      const workOfWeek = "5";
+      console.log(`⚠️ ใช้ค่า default workOfWeek = ${workOfWeek}`);
+    }
+    
+    // ดำเนินการต่อตามเดิม
     const query = {};
-
     if (employeeId) {
       query.employeeId = await employeeId;
     }
-
     if (month) {
       query.month = await { $regex: new RegExp(month, 'i') };
     }
-
     if (year) {
       query.year = await { $regex: new RegExp(year, 'i') };
     }
@@ -2288,35 +2330,27 @@ router.post('/searchtimerecordemployee', async (req, res) => {
 
     // Query the collection
     const result = await timerecordEmployee.find(query);
-// console.log("result  " , result[0].employee_record.length)
-    // Check if any record has missing cash values
-    // let updateNeeded = false;
-    // for (const doc of result) {
-    //   const updatedRecords = await calculateCashValues(doc.employee_record, month, year );
-    //   if (JSON.stringify(updatedRecords) !== JSON.stringify(doc.employee_record)) {
-    //     doc.employee_record = await updatedRecords;
-    //     await doc.save(); // Save only if changes are made
-    //     updateNeeded = true;
-    //   }
-    // }
+    
     let updateNeeded = false;
-
     for (const doc of result) {
-        // ข้ามเอกสารที่ status มีค่า (ไม่ว่าง)
-  if (doc.status && doc.status.trim() !== "") {
-    // console.log(`⏩ Skipping calculation for employeeId=${doc.employeeId} because status="${doc.status}"`);
-    continue;
-  }
+      // ข้ามเอกสารที่ status มีค่า (ไม่ว่าง)
+      if (doc.status && doc.status.trim() !== "") {
+        continue;
+      }
 
       if (!doc || !Array.isArray(doc.employee_record) || doc.employee_record.length === 0) {
         console.warn(`Skipping invalid or empty document: ${JSON.stringify(doc)}`);
         continue;
       }
     
-      // Debug: ดูค่า record แรกก่อนเรียก calculateCashValues
-      // console.log("🚀 Checking first record:", JSON.stringify(doc.employee_record[0], null, 2));
-    
       try {
+        // TODO: ในอนาคตจะแยกฟังก์ชันคำนวณตาม workOfWeek
+        // if (isSpecialWorkplace) {
+        //   const updatedRecords = await calculateCashValuesSpecial7Days(employeeId, doc.employee_record, month, year);
+        // } else {
+        //   const updatedRecords = await calculateCashValues(employeeId, doc.employee_record, month, year);
+        // }
+        
         const updatedRecords = await calculateCashValues(employeeId, doc.employee_record, month, year);
         
         if (JSON.stringify(updatedRecords) !== JSON.stringify(doc.employee_record)) {
@@ -2328,6 +2362,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         console.error("❌ Error in calculateCashValues:", error);
       }
     }
+    
     await res.status(200).json({ result });
 
   } catch (error) {
