@@ -2050,6 +2050,147 @@ const getEmployeeProfile = async (employeeId) => {
   }
 
 }
+
+// ฟังก์ชันคำนวณสำหรับหน่วยงานพิเศษ 7 วัน
+const calculateCashValuesSpecial7Days = async (employeeId, employee_record, month, year) => {
+  console.log(`\n💼 === เริ่มคำนวณแบบหน่วยงานพิเศษ 7 วัน ===`);
+  console.log(`👤 EmployeeId: ${employeeId}`);
+  console.log(`📅 Month: ${month}, Year: ${year}`);
+  
+  const employeeProfile = await getEmployeeProfile(employeeId);
+  const salaryTmp = parseFloat(employeeProfile[0].salary || '0') || 0;
+  let salary = 0;
+
+  // คำนวณค่าแรงต่อชั่วโมง
+  if(parseFloat(salaryTmp || '0') > 1660) {
+    // กรณีเงินเดือน: หาร 30 วัน และหาร 8 ชั่วโมง
+    salary = await ((parseFloat(salaryTmp || '0') / 30) / 8).toFixed(3);
+    console.log(`💰 พนักงานเงินเดือน: ${salaryTmp} บาท/เดือน = ${salary} บาท/ชั่วโมง`);
+  } else {
+    // กรณีรายวัน: หาร 8 ชั่วโมง
+    salary = await (parseFloat(salaryTmp || '0') / 8).toFixed(3);
+    console.log(`💰 พนักงานรายวัน: ${salaryTmp} บาท/วัน = ${salary} บาท/ชั่วโมง`);
+  }
+
+  return Promise.all(
+    employee_record.map(async (record) => {
+      // จัดการกรณีข้ามปี
+      if((record.date >= 21 && record.date <= 31) && month == 1) {
+        year = year - 1;
+        month = 12;
+      }
+
+      const workplaceId = employeeProfile[0].workplace;
+
+      // สร้างวันที่สำหรับตรวจสอบ
+      let displayMonth, displayYear;
+      
+      if (record.date > 20) {
+        // วันที่ 21-31 ใช้เดือนก่อนหน้า
+        if (parseInt(month) === 1) {
+          displayMonth = "12";
+          displayYear = (parseInt(year) - 1).toString();
+        } else {
+          displayMonth = (parseInt(month) - 1).toString().padStart(2, '0');
+          displayYear = year;
+        }
+      } else {
+        // วันที่ 1-20 ใช้เดือนปัจจุบัน
+        displayMonth = month.toString().padStart(2, '0');
+        displayYear = year;
+      }
+      
+      const paddedDay = record.date.toString().padStart(2, '0');
+      const bangkokDate = `${displayYear}-${displayMonth}-${paddedDay}`;
+      
+      console.log(`\n📅 วันที่ ${bangkokDate} (วันที่ ${record.date})`);
+
+      // เรียกใช้ checkDayRate เพื่อดึงข้อมูลอัตราค่าแรง
+      const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate, record.date, 
+        employeeProfile?.[0]?.customWorkplace);
+
+      // ตรวจสอบว่ามีค่า workRate จาก API หรือไม่
+      if (dataRate?.workRateFromAPI) {
+        salary = parseFloat(dataRate.workRateFromAPI) / 8;
+        console.log(`💰 ใช้ค่าแรงจาก API: ${dataRate.workRateFromAPI} บาท/วัน = ${salary} บาท/ชั่วโมง`);
+      }
+
+      // กำหนดตัวแปรสำหรับเก็บค่าต่างๆ
+      let cashBeforeOt = 0;
+      let cashWork = 0;
+      let cashOt = 0;
+      let cashBeforeOtMul = 0;
+      let cashWorkMul = 0;
+      let cashOtMul = 0;
+      let dayType = '';
+      let addSalaryDaily = [];
+
+      // สำหรับหน่วยงาน 7 วัน ทุกวันถือเป็นวันทำงานปกติ
+      console.log(`🏢 หน่วยงานพิเศษ 7 วัน: ทุกวันเป็นวันทำงาน`);
+      
+      // คำนวณค่าแรงแบบวันทำงานปกติ
+      dayType = 'work';
+      
+      // คำนวณค่าแรงก่อน OT (ถ้ามี)
+      cashBeforeOt = await (
+        parseFloat(dataRate?.workRateOT || '1.5') > 5
+          ? parseFloat(dataRate?.workRateOT || '1.5') || 0
+          : ((record.beforeTotalOtTime || 0) * ((parseFloat(dataRate?.workRateOT || '1.5')) * salary || 0)) || 0
+      );
+
+      // คำนวณค่า OT
+      const tmpHour = Math.floor(record.totalOtTime || 0);
+      const tmpRawDecimal = (record.totalOtTime || 0) - tmpHour;
+      const tmpMinute = Math.round(tmpRawDecimal * 100);
+      const totalDecimalHour = tmpHour + (tmpMinute / 60);
+
+      cashOt = await (
+        parseFloat(dataRate?.workRateOT || '1.5') > 5
+          ? parseFloat(dataRate?.workRateOT || '1.5') || 0
+          : ((totalDecimalHour || 0) * ((parseFloat(dataRate?.workRateOT || '1.5')) * salary || 0)) || 0
+      );
+
+      // คำนวณค่าแรงปกติ
+      cashWork = await (record.totalTime || 0) * parseFloat(salary || 0);
+      
+      // กำหนดตัวคูณ
+      cashBeforeOtMul = dataRate?.workRateOT || 1.5;
+      cashWorkMul = 1; // ค่าแรงปกติตัวคูณเป็น 1
+      cashOtMul = dataRate?.workRateOT || 1.5;
+      
+      // เงินเพิ่มพิเศษรายวัน
+      addSalaryDaily = [...(employeeProfile[0].addSalary || [])
+        .filter(salary => salary.roundOfSalary === "daily")
+        .map(salary => ({
+          ...salary,
+          SpSalary: parseFloat(salary.SpSalary) > 100 ? 
+            (parseFloat(salary.SpSalary) / 30).toFixed(2) : 
+            salary.SpSalary
+        }))
+      ];
+
+      // แสดงผลการคำนวณ
+      console.log(`💰 ผลการคำนวณ:`);
+      console.log(`   - ค่าแรงปกติ: ${cashWork.toFixed(2)} บาท (${record.totalTime} ชม. x ${salary} บาท/ชม.)`);
+      console.log(`   - ค่า OT: ${cashOt.toFixed(2)} บาท (${totalDecimalHour.toFixed(2)} ชม. x ${salary} x ${cashOtMul})`);
+      console.log(`   - ประเภทวัน: ${dayType}`);
+      console.log(`   - เงินเพิ่มรายวัน: ${addSalaryDaily.length} รายการ`);
+
+      return {
+        ...record,
+        cashBeforeOt,
+        cashWork,
+        cashOt,
+        cashBeforeOtMul,
+        cashWorkMul,
+        cashOtMul,
+        dayType,
+        addSalaryDaily,
+      };
+    })
+  );
+};
+
 const calculateCashValues = async (employeeId, employee_record, month, year) => {
   const employeeProfile = await getEmployeeProfile(employeeId);
   const salaryTmp = parseFloat(employeeProfile[0].salary || '0') || 0;
@@ -2265,6 +2406,7 @@ let cashOt = await (record.totalOtTime || 0) * parseFloat(dataRate.workRateOT ||
 };
 
 // Search timerecordEmployee
+// Search timerecordEmployee
 router.post('/searchtimerecordemployee', async (req, res) => {
   try {
     const { employeeId, month, year } = await req.body;
@@ -2282,10 +2424,13 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     console.log(`📍 Workplace ID: ${workplaceId}`);
     
     // เรียก API เพื่อตรวจสอบ workOfWeek
+    let isSpecialWorkplace = false;
+    let workOfWeek = "5"; // default
+    
     try {
       const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${workplaceId}`);
       const workplaceData = workplaceResponse.data;
-      const workOfWeek = workplaceData.workOfWeek || "5"; // default เป็น 5 วันถ้าไม่มีข้อมูล
+      workOfWeek = workplaceData.workOfWeek || "5";
       
       console.log(`\n📊 === ผลการตรวจสอบ workOfWeek ===`);
       console.log(`👤 EmployeeId: ${employeeId}`);
@@ -2296,19 +2441,16 @@ router.post('/searchtimerecordemployee', async (req, res) => {
       if (workOfWeek === "7") {
         console.log(`✅ เป็นหน่วยงานพิเศษ (ทำงาน 7 วัน)`);
         console.log(`⚠️ ต้องใช้ฟังก์ชันคำนวณแบบพิเศษ`);
+        isSpecialWorkplace = true;
       } else {
         console.log(`✅ เป็นหน่วยงานปกติ (ทำงาน ${workOfWeek} วัน)`);
         console.log(`ℹ️ ใช้ฟังก์ชันคำนวณแบบปกติ`);
+        isSpecialWorkplace = false;
       }
       console.log(`=====================================\n`);
       
-      // เก็บค่า workOfWeek ไว้ใช้ในการคำนวณ
-      const isSpecialWorkplace = workOfWeek === "7";
-      
     } catch (error) {
       console.error(`❌ ไม่สามารถดึงข้อมูล workplace ได้:`, error.message);
-      // ถ้าเรียก API ไม่ได้ให้ใช้ค่า default
-      const workOfWeek = "5";
       console.log(`⚠️ ใช้ค่า default workOfWeek = ${workOfWeek}`);
     }
     
@@ -2344,19 +2486,22 @@ router.post('/searchtimerecordemployee', async (req, res) => {
       }
     
       try {
-        // TODO: ในอนาคตจะแยกฟังก์ชันคำนวณตาม workOfWeek
-        // if (isSpecialWorkplace) {
-        //   const updatedRecords = await calculateCashValuesSpecial7Days(employeeId, doc.employee_record, month, year);
-        // } else {
-        //   const updatedRecords = await calculateCashValues(employeeId, doc.employee_record, month, year);
-        // }
+        // เลือกใช้ฟังก์ชันคำนวณตามประเภทหน่วยงาน
+        let updatedRecords;
         
-        const updatedRecords = await calculateCashValues(employeeId, doc.employee_record, month, year);
+        if (isSpecialWorkplace) {
+          console.log(`\n🔄 ใช้ฟังก์ชันคำนวณแบบหน่วยงานพิเศษ 7 วัน`);
+          updatedRecords = await calculateCashValuesSpecial7Days(employeeId, doc.employee_record, month, year);
+        } else {
+          console.log(`\n🔄 ใช้ฟังก์ชันคำนวณแบบหน่วยงานปกติ`);
+          updatedRecords = await calculateCashValues(employeeId, doc.employee_record, month, year);
+        }
         
         if (JSON.stringify(updatedRecords) !== JSON.stringify(doc.employee_record)) {
           doc.employee_record = updatedRecords;
           await doc.save();
           updateNeeded = true;
+          console.log(`✅ อัปเดตข้อมูลสำเร็จ`);
         }
       } catch (error) {
         console.error("❌ Error in calculateCashValues:", error);
