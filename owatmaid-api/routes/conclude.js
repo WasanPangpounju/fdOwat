@@ -1141,6 +1141,13 @@ try {
   console.error(`❌ ไม่สามารถตรวจสอบ workOfWeek ได้:`, error.message);
 }
 
+// นับจำนวนวันจริงที่มา (totalTime) สำหรับหน่วยงานพิเศษ 7 วัน
+let totalWorkDays = 0;
+if (isSpecialWorkplace7Days) {
+  totalWorkDays = concludeRecord.filter(record => parseFloat(record.allTimes || 0) > 0).length;
+  console.log(`📊 หน่วยงานพิเศษ 7 วัน - จำนวนวันทำงานจริง: ${totalWorkDays} วัน`);
+}
+
 // แก้ไขส่วนการสร้าง addSalaryList
 for (let c = 0; c < concludeRecord.length; c++) {
   
@@ -1148,9 +1155,13 @@ for (let c = 0; c < concludeRecord.length; c++) {
   if (isSpecialWorkplace7Days) {
     // สำหรับหน่วยงานพิเศษ 7 วัน - ตรวจสอบว่ามี allTimes หรือไม่
     if (parseFloat(concludeRecord[c].allTimes || 0) > 0) {
-      // มี allTimes (มาทำงาน) ให้เพิ่มเงินพิเศษรายวัน
-      await addSalaryList.push(addSalaryDaily);
-      console.log(`✅ วันที่ ${concludeRecord[c].day} - allTimes: ${concludeRecord[c].allTimes} - เพิ่มเงินพิเศษรายวัน`);
+      // มี allTimes (มาทำงาน) ให้เพิ่มเงินพิเศษรายวันพร้อมปรับ message เป็น totalWorkDays
+      let adjustedAddSalaryDaily = addSalaryDaily.map(item => ({
+        ...item,
+        message: totalWorkDays.toString()  // อัปเดต message เป็นจำนวนวันจริงที่มา
+      }));
+      await addSalaryList.push(adjustedAddSalaryDaily);
+      console.log(`✅ วันที่ ${concludeRecord[c].day} - allTimes: ${concludeRecord[c].allTimes} - เพิ่มเงินพิเศษรายวัน (${totalWorkDays} วัน)`);
     } else {
       // ไม่มี allTimes (ไม่มาทำงาน) ไม่เพิ่มเงินพิเศษ
       await addSalaryList.push([]);
