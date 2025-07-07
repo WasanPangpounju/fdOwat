@@ -1124,6 +1124,82 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
     // await console.log('add salary = ' + JSON.stringify( responseWpList .data ));
     // await console.log('add salary = ' + responseWpList .data.ans.length );
 
+    // ในฟังก์ชัน /calsalaryemp หลังจากสร้าง concludeRecord เสร็จแล้ว
+// ประมาณบรรทัด 1250-1300
+
+// เพิ่มการตรวจสอบ workOfWeek ก่อน
+let isSpecialWorkplace7Days = false;
+try {
+  const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${wpId1}`);
+  const workOfWeek = workplaceResponse.data.workOfWeek || "5";
+  
+  if (workOfWeek === "7") {
+    isSpecialWorkplace7Days = true;
+    console.log(`\n✅ หน่วยงานพิเศษ 7 วัน - จะคิดเงินเพิ่มรายวันทุกวันที่มี allTimes > 0`);
+  }
+} catch (error) {
+  console.error(`❌ ไม่สามารถตรวจสอบ workOfWeek ได้:`, error.message);
+}
+
+// แก้ไขส่วนการสร้าง addSalaryList
+for (let c = 0; c < concludeRecord.length; c++) {
+  
+  // ตรวจสอบว่าเป็นหน่วยงานพิเศษ 7 วัน
+  if (isSpecialWorkplace7Days) {
+    // สำหรับหน่วยงานพิเศษ 7 วัน - ตรวจสอบว่ามี allTimes หรือไม่
+    if (parseFloat(concludeRecord[c].allTimes || 0) > 0) {
+      // มี allTimes (มาทำงาน) ให้เพิ่มเงินพิเศษรายวัน
+      await addSalaryList.push(addSalaryDaily);
+      console.log(`✅ วันที่ ${concludeRecord[c].day} - allTimes: ${concludeRecord[c].allTimes} - เพิ่มเงินพิเศษรายวัน`);
+    } else {
+      // ไม่มี allTimes (ไม่มาทำงาน) ไม่เพิ่มเงินพิเศษ
+      await addSalaryList.push([]);
+      console.log(`❌ วันที่ ${concludeRecord[c].day} - allTimes: 0 - ไม่เพิ่มเงินพิเศษ`);
+    }
+  } else {
+    // หน่วยงานปกติ - ใช้ logic เดิม
+    if(parseFloat(concludeRecord[c].workRateMultiply || 0) <= 1) {
+      if(responseWpList.data.ans && concludeRecord[c].workplaceId !== '10105' && dataEmp.employees[0].workplace !== '30001') {
+        const testx = responseWpList.data.ans.find(item => item.workplaceId == concludeRecord[c].workplaceId)
+        if(testx) {
+          await addSalaryList.push(testx.addSalary);
+        } else {
+          await addSalaryList.push(addSalaryDaily);
+        }
+      } else {
+        // remove 1012 when shift is morning_shift
+        if(concludeRecord[c].shift === 'morning_shift') {
+          let addSalaryDailyx = await addSalaryDaily.filter(item1 => item1.id !== '1210');
+          await addSalaryList.push(addSalaryDailyx);
+        } else {
+          await addSalaryList.push(addSalaryDaily);
+        }
+      }
+    } else {
+      console.log(concludeRecord[c].day + ' workRateMultiply ' + parseFloat(concludeRecord[c].workRateMultiply))
+      await addSalaryList.push([]);
+    }
+  }
+}
+
+// เพิ่ม log สรุปจำนวนวันที่มี allTimes
+console.log(`\n📊 === สรุป addSalaryList สำหรับหน่วยงานพิเศษ 7 วัน ===`);
+let countDaysWithAllTimes = 0;
+let countAddSalaryWithItems = 0;
+
+concludeRecord.forEach((record, index) => {
+  if (parseFloat(record.allTimes || 0) > 0) {
+    countDaysWithAllTimes++;
+  }
+  if (addSalaryList[index] && addSalaryList[index].length > 0) {
+    countAddSalaryWithItems++;
+  }
+});
+
+console.log(`📅 จำนวนวันที่มี allTimes > 0: ${countDaysWithAllTimes} วัน`);
+console.log(`💵 จำนวนวันที่มี addSalaryList: ${countAddSalaryWithItems} วัน`);
+console.log(`✅ ต้องตรงกัน: ${countDaysWithAllTimes === countAddSalaryWithItems ? 'ถูกต้อง' : 'ไม่ตรงกัน!'}`);
+
     for (let c = 0; c < concludeRecord.length; c++) {
       // console.log('concludeRecord ' + concludeRecord [c].workplaceId);
 
@@ -1232,6 +1308,7 @@ let addSalaryDailyx = await addSalaryDaily.filter(item1 => item1.id !== '1210');
 });
 
 
+
 // Helper: parse 'YYYY-MM-DD' or 'YYYY/MM/DD' as local date (force local, never UTC)
 function parseLocalDate(str) {
   if (!str) return null;
@@ -1255,6 +1332,7 @@ function parseLocalDate(str) {
         return localDate;
       }
     }
+    
     
     // force local for simple date string
     let parts = str.includes('-') ? str.split('-') : str.split('/');
