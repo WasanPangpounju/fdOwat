@@ -845,6 +845,52 @@ if(x1535 >0 ) {
 
 } //end before set value
 
+// ในฟังก์ชัน /calsalaryemp หลังจากสร้าง concludeRecord เสร็จแล้ว
+// เพิ่มการตรวจสอบ workOfWeek ก่อน
+let isSpecialWorkplace7Days = false;
+try {
+  const wpId1 = response?.data?.workplace || '';
+  const workplaceResponse = await axios.get(`${sURL}/workplace/${wpId1}`);
+  const workOfWeek = workplaceResponse.data.workOfWeek || "5";
+  
+  if (workOfWeek === "7") {
+    isSpecialWorkplace7Days = true;
+    console.log(`\n✅ หน่วยงานพิเศษ 7 วัน - จะคิดเงินเพิ่มรายวันทุกวันที่มี allTimes > 0`);
+  }
+} catch (error) {
+  console.error(`❌ ไม่สามารถตรวจสอบ workOfWeek ได้:`, error.message);
+}
+
+// นับจำนวนวันจริงที่มา (totalTime) สำหรับหน่วยงานพิเศษ 7 วัน
+let totalWorkDays = 0;
+if (isSpecialWorkplace7Days) {
+  totalWorkDays = responseConclude.data.recordConclude[c].concludeRecord.filter(record => parseFloat(record.allTimes || 0) > 0).length;
+  console.log(`📊 หน่วยงานพิเศษ 7 วัน - จำนวนวันทำงานจริง: ${totalWorkDays} วัน`);
+}
+
+// แก้ไข message ใน addSalaryDayArray สำหรับหน่วยงานพิเศษ 7 วัน
+if (isSpecialWorkplace7Days) {
+  addSalaryDayArray = addSalaryDayArray.map(item => ({
+    ...item,
+    message: totalWorkDays.toString()  // อัปเดต message เป็นจำนวนวันจริงที่มา
+  }));
+  console.log(`🔧 อัปเดต addSalaryDayArray message เป็น: ${totalWorkDays}`);
+}
+
+// เพิ่ม log สรุปจำนวนวันที่มี allTimes
+console.log(`\n📊 === สรุป addSalaryList สำหรับหน่วยงานพิเศษ 7 วัน ===`);
+let countDaysWithAllTimes = 0;
+
+responseConclude.data.recordConclude[c].concludeRecord.forEach((record, index) => {
+  if (parseFloat(record.allTimes || 0) > 0) {
+    countDaysWithAllTimes++;
+  }
+});
+
+console.log(`📅 จำนวนวันที่มี allTimes > 0: ${countDaysWithAllTimes} วัน`);
+console.log(`💵 จำนวน addSalaryDayArray: ${addSalaryDayArray.length} รายการ`);
+console.log(`✅ ต้องตรงกัน: ${countDaysWithAllTimes === addSalaryDayArray.length ? 'ถูกต้อง' : 'ไม่ตรงกัน!'}`);
+
 data.accountingRecord.countDay = countDay;
 data.accountingRecord.countHour = countHour;
 data.accountingRecord.countOtHour = countOtHour;
