@@ -2167,7 +2167,10 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
   }
 
   return Promise.all(
-    employee_record.map(async (record) => {
+    employee_record.map(async (record, index) => {
+      console.log(`\n🔍 === Debug record ดิบที่เข้ามา ${index + 1} ===`);
+      console.log(`Record ต้นฉบับ:`, JSON.stringify(record, null, 2));
+      
       // จัดการกรณีข้ามปี
       if((record.date >= 21 && record.date <= 31) && month == 1) {
         year = year - 1;
