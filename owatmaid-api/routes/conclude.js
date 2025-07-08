@@ -2341,7 +2341,78 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
         addSalaryDaily,
       };
     })
-  );
+  ).then(async (updatedRecords) => {
+    // คำนวณ message สำหรับหน่วยงานพิเศษ 7 วัน: dayWorkCount + publicHolidayCount + individualDayoff
+    console.log(`\n📊 === คำนวณ addSalaryList สำหรับหน่วยงานพิเศษ 7 วัน ===`);
+    
+    // นับจำนวนวันทำงาน (dayWorkCount) - วันที่มี totalTime > 0
+    let dayWorkCount = updatedRecords.filter(record => parseFloat(record.totalTime || 0) > 0).length;
+    
+    // นับจำนวนวันหยุดนักขัตฤกษ์ (publicHolidayCount) - วันที่มี dayType เป็น stop และไม่มี totalTime
+    let publicHolidayCount = updatedRecords.filter(record => 
+      record.dayType === 'stop' && parseFloat(record.totalTime || 0) === 0
+    ).length;
+    
+    // นับจำนวนวันหยุดส่วนตัว (individualDayoff) - วันอื่นๆ ที่ไม่มี totalTime และไม่ใช่ stop
+    let individualDayoff = updatedRecords.filter(record => 
+      parseFloat(record.totalTime || 0) === 0 && record.dayType !== 'stop'
+    ).length;
+    
+    // คำนวณค่า message
+    const messageValue = dayWorkCount + publicHolidayCount + individualDayoff;
+    
+    console.log(`📊 ผลการคำนวณ message:`);
+    console.log(`   📅 dayWorkCount (มาทำงาน): ${dayWorkCount} วัน`);
+    console.log(`   🎊 publicHolidayCount (วันหยุดนักขัตฤกษ์): ${publicHolidayCount} วัน`);
+    console.log(`   🏠 individualDayoff (วันหยุดส่วนตัว): ${individualDayoff} วัน`);
+    console.log(`   💯 message = ${dayWorkCount} + ${publicHolidayCount} + ${individualDayoff} = ${messageValue} วัน`);
+    
+    // สร้าง addSalaryList สำหรับแต่ละวัน
+    const addSalaryList = [];
+    
+    console.log(`🔍 === Debug ข้อมูลที่ได้รับ ===`);
+    console.log(`จำนวน records: ${updatedRecords.length}`);
+    
+    updatedRecords.forEach((record, index) => {
+      console.log(`📝 Record ${index + 1}:`, {
+        date: record.date,
+        totalTime: record.totalTime,
+        allTimes: record.allTimes,
+        startTime: record.startTime,
+        endTime: record.endTime,
+        dayType: record.dayType,
+        cashWork: record.cashWork,
+        workplaceId: record.workplaceId
+      });
+      
+      if (parseFloat(record.totalTime || 0) > 0) {
+        // มี totalTime (มาทำงาน) ให้เพิ่มเงินพิเศษรายวันพร้อมปรับ message เป็น messageValue
+        let adjustedAddSalaryDaily = addSalaryDailyTemplate.map(item => ({
+          ...item,
+          SpSalary: parseFloat(item.SpSalary) > 100 ? 
+            (parseFloat(item.SpSalary) / 30).toFixed(2) : 
+            item.SpSalary,
+          message: messageValue.toString()  // อัปเดต message เป็นค่า dayWorkCount + publicHolidayCount + individualDayoff
+        }));
+        addSalaryList.push(adjustedAddSalaryDaily);
+        console.log(`✅ วันที่ ${record.date} - totalTime: ${record.totalTime} - เพิ่มเงินพิเศษรายวัน (message = ${messageValue} วัน)`);
+      } else {
+        // ไม่มี totalTime (ไม่มาทำงาน) ไม่เพิ่มเงินพิเศษ
+        addSalaryList.push([]);
+        console.log(`❌ วันที่ ${record.date} - totalTime: ${record.totalTime || 0} - ไม่เพิ่มเงินพิเศษ`);
+      }
+    });
+    
+    // อัปเดต addSalaryDaily ในแต่ละ record ให้มี message ที่ถูกต้อง
+    const finalRecords = updatedRecords.map((record, index) => ({
+      ...record,
+      addSalaryDaily: addSalaryList[index]
+    }));
+    
+    console.log(`📋 สรุป addSalaryList: ${addSalaryList.filter(list => list.length > 0).length}/${addSalaryList.length} วันมีเงินพิเศษ`);
+    
+    return finalRecords;
+  });
 };
 
 const calculateCashValues = async (employeeId, employee_record, month, year) => {
