@@ -1141,42 +1141,66 @@ try {
   console.error(`❌ ไม่สามารถตรวจสอบ workOfWeek ได้:`, error.message);
 }
 
-// นับจำนวนวันจริงที่มา (totalTime) สำหรับหน่วยงานพิเศษ 7 วัน
-let totalWorkDays = 0;
+// คำนวณ message สำหรับหน่วยงานพิเศษ 7 วัน: dayWorkCount + publicHolidayCount + individualDayoff
+let messageValue = 0;
 if (isSpecialWorkplace7Days) {
-  totalWorkDays = concludeRecord.filter(record => {
-    // ใช้ totalTime แทน allTimes เพื่อความแม่นยำ
-    return record.totalTime && record.totalTime.toString().trim() !== '' && parseFloat(record.totalTime) > 0;
-  }).length;
-  console.log(`📊 หน่วยงานพิเศษ 7 วัน - จำนวนวันทำงานจริง (จาก totalTime): ${totalWorkDays} วัน`);
+  // นับจำนวนวันทำงาน (dayWorkCount) - วันที่มี allTimes > 0
+  let dayWorkCount = concludeRecord.filter(record => parseFloat(record.allTimes || 0) > 0).length;
   
-  // แสดงรายละเอียดการนับเพื่อตรวจสอบ
-  console.log(`📋 รายละเอียดการนับวัน:`);
+  // นับจำนวนวันหยุดนักขัตฤกษ์ (publicHolidayCount) - วันที่มี workType เป็น specialDayOff
+  let publicHolidayCount = concludeRecord.filter(record => record.workType === 'specialDayOff').length;
+  
+  // นับจำนวนวันหยุดส่วนตัว (individualDayoff) - วันที่มี workType เป็น dayOff
+  let individualDayoff = concludeRecord.filter(record => record.workType === 'dayOff').length;
+  
+  // คำนวณค่า message
+  messageValue = dayWorkCount + publicHolidayCount + individualDayoff;
+  
+  console.log(`📊 หน่วยงานพิเศษ 7 วัน - คำนวณ message:`);
+  console.log(`   📅 dayWorkCount (มาทำงาน): ${dayWorkCount} วัน`);
+  console.log(`   🎊 publicHolidayCount (วันหยุดนักขัตฤกษ์): ${publicHolidayCount} วัน`);
+  console.log(`   🏠 individualDayoff (วันหยุดส่วนตัว): ${individualDayoff} วัน`);
+  console.log(`   💯 message = ${dayWorkCount} + ${publicHolidayCount} + ${individualDayoff} = ${messageValue} วัน`);
+  
+  // แสดงรายละเอียดแต่ละวันเพื่อตรวจสอบ
+  console.log(`📋 รายละเอียดการจำแนกแต่ละวัน:`);
   concludeRecord.forEach((record, index) => {
-    const hasTotalTime = record.totalTime && record.totalTime.toString().trim() !== '' && parseFloat(record.totalTime) > 0;
     const hasAllTimes = parseFloat(record.allTimes || 0) > 0;
-    console.log(`   วันที่ ${record.day}: totalTime = "${record.totalTime || 'ไม่มี'}", allTimes = "${record.allTimes || 'ไม่มี'}" ${hasTotalTime ? '✅ นับ (totalTime)' : '❌ ไม่นับ'} ${hasAllTimes ? '(allTimes >0)' : '(allTimes =0)'}`);
+    const workType = record.workType || 'ไม่มี';
+    let category = '';
+    
+    if (hasAllTimes) {
+      category = '💼 dayWorkCount';
+    } else if (workType === 'specialDayOff') {
+      category = '🎊 publicHolidayCount';
+    } else if (workType === 'dayOff') {
+      category = '🏠 individualDayoff';
+    } else {
+      category = '❌ ไม่นับ';
+    }
+    
+    console.log(`   วันที่ ${record.day}: allTimes="${record.allTimes}", workType="${workType}" → ${category}`);
   });
 }
 
 // แก้ไขส่วนการสร้าง addSalaryList
-for (let c = 0; c < concludeRecord.length; c++) {
+for (let c = 0; c < concludeRecord.length; c++) {messageValue = dayWorkCount + publicHolidayCount + individualDayoff;
   
   // ตรวจสอบว่าเป็นหน่วยงานพิเศษ 7 วัน
   if (isSpecialWorkplace7Days) {
-    // สำหรับหน่วยงานพิเศษ 7 วัน - ตรวจสอบว่ามี totalTime หรือไม่
-    if (concludeRecord[c].totalTime && concludeRecord[c].totalTime.toString().trim() !== '' && parseFloat(concludeRecord[c].totalTime) > 0) {
-      // มี totalTime (มาทำงาน) ให้เพิ่มเงินพิเศษรายวันพร้อมปรับ message เป็น totalWorkDays
+    // สำหรับหน่วยงานพิเศษ 7 วัน - ตรวจสอบว่ามี allTimes หรือไม่
+    if (parseFloat(concludeRecord[c].allTimes || 0) > 0) {
+      // มี allTimes (มาทำงาน) ให้เพิ่มเงินพิเศษรายวันพร้อมปรับ message เป็น messageValue
       let adjustedAddSalaryDaily = addSalaryDaily.map(item => ({
         ...item,
-        message: totalWorkDays.toString()  // อัปเดต message เป็นจำนวนวันจริงที่มา
+        message: messageValue.toString()  // อัปเดต message เป็นค่า dayWorkCount + publicHolidayCount + individualDayoff
       }));
       await addSalaryList.push(adjustedAddSalaryDaily);
-      console.log(`✅ วันที่ ${concludeRecord[c].day} - totalTime: ${concludeRecord[c].totalTime} (allTimes: ${concludeRecord[c].allTimes}) - เพิ่มเงินพิเศษรายวัน (${totalWorkDays} วัน)`);
+      console.log(`✅ วันที่ ${concludeRecord[c].day} - allTimes: ${concludeRecord[c].allTimes} - เพิ่มเงินพิเศษรายวัน (message = ${messageValue} วัน)`);
     } else {
-      // ไม่มี totalTime (ไม่มาทำงาน) ไม่เพิ่มเงินพิเศษ
+      // ไม่มี allTimes (ไม่มาทำงาน) ไม่เพิ่มเงินพิเศษ
       await addSalaryList.push([]);
-      console.log(`❌ วันที่ ${concludeRecord[c].day} - totalTime: ${concludeRecord[c].totalTime || 'ไม่มี'} (allTimes: ${concludeRecord[c].allTimes}) - ไม่เพิ่มเงินพิเศษ`);
+      console.log(`❌ วันที่ ${concludeRecord[c].day} - allTimes: 0 - ไม่เพิ่มเงินพิเศษ`);
     }
   } else {
     // หน่วยงานปกติ - ใช้ logic เดิม
@@ -1204,44 +1228,42 @@ for (let c = 0; c < concludeRecord.length; c++) {
   }
 }
 
-// เพิ่ม log สรุปจำนวนวันที่มี totalTime
+// เพิ่ม log สรุปจำนวนวันตามสูตร dayWorkCount + publicHolidayCount + individualDayoff
 console.log(`\n📊 === สรุป addSalaryList สำหรับหน่วยงานพิเศษ 7 วัน ===`);
-let countDaysWithTotalTime = 0;
+let countDaysWithAllTimes = 0;
 let countAddSalaryWithItems = 0;
+let countPublicHolidays = 0;
+let countIndividualDayoff = 0;
 
 concludeRecord.forEach((record, index) => {
-  if (record.totalTime && record.totalTime.toString().trim() !== '' && parseFloat(record.totalTime) > 0) {
-    countDaysWithTotalTime++;
+  if (parseFloat(record.allTimes || 0) > 0) {
+    countDaysWithAllTimes++;
+  }
+  if (record.workType === 'specialDayOff') {
+    countPublicHolidays++;
+  }
+  if (record.workType === 'dayOff') {
+    countIndividualDayoff++;
   }
   if (addSalaryList[index] && addSalaryList[index].length > 0) {
     countAddSalaryWithItems++;
   }
 });
 
-console.log(`📅 จำนวนวันที่มี totalTime > 0: ${countDaysWithTotalTime} วัน`);
-console.log(`💵 จำนวนวันที่มี addSalaryList: ${countAddSalaryWithItems} วัน`);
-console.log(`✅ ต้องตรงกัน: ${countDaysWithTotalTime === countAddSalaryWithItems ? 'ถูกต้อง' : 'ไม่ตรงกัน!'}`);
+console.log(`📅 จำนวนวันที่มา (allTimes > 0): ${countDaysWithAllTimes} วัน`);
+console.log(`🎊 จำนวนวันหยุดนักขัตฤกษ์ (specialDayOff): ${countPublicHolidays} วัน`);
+console.log(`🏠 จำนวนวันหยุดส่วนตัว (dayOff): ${countIndividualDayoff} วัน`);
+console.log(`💯 message = ${countDaysWithAllTimes} + ${countPublicHolidays} + ${countIndividualDayoff} = ${messageValue} วัน`);
+console.log(`� จำนวนวันที่มี addSalaryList: ${countAddSalaryWithItems} วัน`);
+console.log(`✅ addSalaryList ควรตรงกับ allTimes: ${countDaysWithAllTimes === countAddSalaryWithItems ? 'ถูกต้อง' : 'ไม่ตรงกัน!'}`);
 
-// เพิ่มการตรวจสอบเปรียบเทียบ allTimes และ totalTime
-let countDaysWithAllTimes = 0;
-concludeRecord.forEach((record, index) => {
-  if (parseFloat(record.allTimes || 0) > 0) {
-    countDaysWithAllTimes++;
-  }
-});
-
-console.log(`\n🔍 === เปรียบเทียบ allTimes และ totalTime ===`);
-console.log(`📊 จำนวนวันที่มี allTimes > 0: ${countDaysWithAllTimes} วัน`);
-console.log(`📊 จำนวนวันที่มี totalTime > 0: ${countDaysWithTotalTime} วัน`);
-console.log(`⚖️  ความแตกต่าง: ${Math.abs(countDaysWithAllTimes - countDaysWithTotalTime)} วัน`);
-
-if (countDaysWithAllTimes !== countDaysWithTotalTime) {
-  console.log(`⚠️  มีความแตกต่างระหว่าง allTimes และ totalTime!`);
-  concludeRecord.forEach((record, index) => {
-    const hasAllTimes = parseFloat(record.allTimes || 0) > 0;
-    const hasTotalTime = record.totalTime && record.totalTime.toString().trim() !== '' && parseFloat(record.totalTime) > 0;
-    if (hasAllTimes !== hasTotalTime) {
-      console.log(`   🔍 วันที่ ${record.day}: allTimes="${record.allTimes}", totalTime="${record.totalTime}" - ไม่ตรงกัน!`);
+// ตรวจสอบค่า message ใน addSalaryList
+if (isSpecialWorkplace7Days && addSalaryList.length > 0) {
+  console.log(`\n📝 ตรวจสอบค่า message ใน addSalaryList:`);
+  addSalaryList.forEach((dayItems, dayIndex) => {
+    if (dayItems && dayItems.length > 0) {
+      const record = concludeRecord[dayIndex];
+      console.log(`   วันที่ ${record?.day}: message = "${dayItems[0]?.message}" (ควรเป็น "${messageValue}")`);
     }
   });
 };
