@@ -2228,12 +2228,6 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
       const bangkokDate = `${displayYear}-${displayMonth}-${paddedDay}`;
       
       console.log(`\n📅 วันที่ ${bangkokDate} (วันที่ ${record.date})`);
-      console.log(`⏰ Debug time values:`, {
-        totalTime: record.totalTime,
-        allTimes: record.allTimes,
-        beforeTotalOtTime: record.beforeTotalOtTime,
-        totalOtTime: record.totalOtTime
-      });
 
       // เรียกใช้ checkDayRate เพื่อดึงข้อมูลอัตราค่าแรง
       const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate, record.date, 
@@ -2339,13 +2333,16 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
       // เงินเพิ่มพิเศษรายวัน - คิดทุกวันที่มี totalTime (ไม่ว่า dayType จะเป็นอะไร)
       if (hasWorked) {
         // ถ้ามีการทำงาน (totalTime > 0) ให้เพิ่มเงินพิเศษรายวัน
-        addSalaryDaily = [...addSalaryDailyTemplate.map(salary => ({
-          ...salary,
-          SpSalary: parseFloat(salary.SpSalary) > 100 ? 
-            (parseFloat(salary.SpSalary) / 30).toFixed(2) : 
-            salary.SpSalary
-        }))];
-        console.log(`💵 เพิ่มเงินพิเศษรายวัน: ${addSalaryDaily.length} รายการ (เพราะมี totalTime=${record.totalTime})`);
+        addSalaryDaily = [...(employeeProfile[0].addSalary || [])
+          .filter(salary => salary.roundOfSalary === "daily")
+          .map(salary => ({
+            ...salary,
+            SpSalary: parseFloat(salary.SpSalary) > 100 ? 
+              (parseFloat(salary.SpSalary) / 30).toFixed(2) : 
+              salary.SpSalary
+          }))
+        ];
+        console.log(`💵 เพิ่มเงินพิเศษรายวัน: ${addSalaryDaily.length} รายการ (เพราะมี totalTime)`);
       } else {
         // ถ้าไม่มีการทำงาน ไม่เพิ่มเงินพิเศษรายวัน
         addSalaryDaily = [];
@@ -2407,34 +2404,18 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
     // สร้าง addSalaryList สำหรับแต่ละวัน
     const addSalaryList = [];
     
-    console.log(`🔍 === Debug ข้อมูลที่ได้รับ ===`);
-    console.log(`จำนวน records: ${updatedRecords.length}`);
-    
     updatedRecords.forEach((record, index) => {
-      console.log(`📝 Record ${index + 1}:`, {
-        date: record.date,
-        totalTime: record.totalTime,
-        allTimes: record.allTimes,
-        startTime: record.startTime,
-        endTime: record.endTime,
-        dayType: record.dayType,
-        cashWork: record.cashWork,
-        workplaceId: record.workplaceId
-      });
-      
       if (parseFloat(record.totalTime || 0) > 0) {
         // มี totalTime (มาทำงาน) ให้เพิ่มเงินพิเศษรายวันพร้อมปรับ message เป็น messageValue
-        let adjustedAddSalaryDaily = addSalaryDailyTemplate.map(item => ({
+        let adjustedAddSalaryDaily = addSalaryDaily.map(item => ({
           ...item,
           SpSalary: parseFloat(item.SpSalary) > 100 ? 
             (parseFloat(item.SpSalary) / 30).toFixed(2) : 
             item.SpSalary,
-          message: messageValue.toString(),  // อัปเดต message เป็นค่า dayWorkCount + publicHolidayCount + individualDayoff
-          day: record.date,  // เพิ่ม day field
-          date: record.date  // เพิ่ม date field
+          message: messageValue.toString()  // อัปเดต message เป็นค่า dayWorkCount + publicHolidayCount + individualDayoff
         }));
         addSalaryList.push(adjustedAddSalaryDaily);
-        console.log(`✅ วันที่ ${record.date} - totalTime: ${record.totalTime} - เพิ่มเงินพิเศษรายวัน ${adjustedAddSalaryDaily.length} รายการ (message = ${messageValue} วัน)`);
+        console.log(`✅ วันที่ ${record.date} - totalTime: ${record.totalTime} - เพิ่มเงินพิเศษรายวัน (message = ${messageValue} วัน)`);
       } else {
         // ไม่มี totalTime (ไม่มาทำงาน) ไม่เพิ่มเงินพิเศษ
         addSalaryList.push([]);
