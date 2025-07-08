@@ -1184,7 +1184,7 @@ if (isSpecialWorkplace7Days) {
 }
 
 // แก้ไขส่วนการสร้าง addSalaryList
-for (let c = 0; c < concludeRecord.length; c++) {messageValue = dayWorkCount + publicHolidayCount + individualDayoff;
+for (let c = 0; c < concludeRecord.length; c++) {
   
   // ตรวจสอบว่าเป็นหน่วยงานพิเศษ 7 วัน
   if (isSpecialWorkplace7Days) {
@@ -1268,44 +1268,6 @@ if (isSpecialWorkplace7Days && addSalaryList.length > 0) {
   });
 };
 
-    for (let c = 0; c < concludeRecord.length; c++) {
-      // console.log('concludeRecord ' + concludeRecord [c].workplaceId);
-
-      
-      if(parseFloat(concludeRecord [c].workRateMultiply || 0) <= 1) {
-      if(responseWpList .data.ans && concludeRecord [c].workplaceId !== '10105' && dataEmp.employees[0].workplace  !== '30001') {
-        // console.log('*wid : ' + concludeRecord [c].workplaceId  + 'workplace: ' + dataEmp.employees[0].workplace  )
-      const testx = responseWpList .data.ans.find(item  => item.workplaceId == concludeRecord [c].workplaceId)
-if(testx ) {
-  // console.log('testx ' + JSON.stringify(testx.addSalary,null,2) )
-  await addSalaryList.push(testx.addSalary );
-} else {
-  await addSalaryList.push(addSalaryDaily);
-}
-
-} else {
-
-  // remove 1012 when shift is morning_shift
-if(concludeRecord [c].shift === 'morning_shift') {
-let addSalaryDailyx = await addSalaryDaily.filter(item1 => item1.id !== '1210');
-  await addSalaryList.push(addSalaryDailyx);
-  // console.log(JSON.stringify(addSalaryDailyx) )
-} else {
-  await addSalaryList.push(addSalaryDaily);
-  // console.log('*any xxx ' + concludeRecord [c].shift + ' ' + JSON.stringify(addSalaryDaily,null,2) );
-}
-
-}
-
-      } else{
-        console.log(concludeRecord [c].day + 'workRateMultiply ' + parseFloat(concludeRecord [c].workRateMultiply) )
-        await addSalaryList.push([]);
-
-      }
-
-      // await addSalaryList.push(addSalaryDaily);
-    }
-    
     dataConclude.addSalary = await addSalaryList;
 
     dataConclude.sumWorkHour = sumWorkHour || 0;
