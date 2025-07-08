@@ -864,7 +864,7 @@ try {
 // นับจำนวนวันจริงที่มา (totalTime) สำหรับหน่วยงานพิเศษ 7 วัน
 let totalWorkDays = 0;
 if (isSpecialWorkplace7Days) {
-  totalWorkDays = responseConclude.data.recordConclude[c].concludeRecord.filter(record => parseFloat(record.allTimes || 0) > 0).length;
+  totalWorkDays = responseConclude.data.recordConclude[c].concludeRecord.filter(record => parseFloat(record.totalTime || 0) > 0).length;
   console.log(`📊 หน่วยงานพิเศษ 7 วัน - จำนวนวันทำงานจริง: ${totalWorkDays} วัน`);
 }
 
