@@ -1144,8 +1144,19 @@ try {
 // นับจำนวนวันจริงที่มา (totalTime) สำหรับหน่วยงานพิเศษ 7 วัน
 let totalWorkDays = 0;
 if (isSpecialWorkplace7Days) {
-  totalWorkDays = concludeRecord.filter(record => parseFloat(record.allTimes || 0) > 0).length;
-  console.log(`📊 หน่วยงานพิเศษ 7 วัน - จำนวนวันทำงานจริง: ${totalWorkDays} วัน`);
+  totalWorkDays = concludeRecord.filter(record => {
+    // ใช้ totalTime แทน allTimes เพื่อความแม่นยำ
+    return record.totalTime && record.totalTime.toString().trim() !== '' && parseFloat(record.totalTime) > 0;
+  }).length;
+  console.log(`📊 หน่วยงานพิเศษ 7 วัน - จำนวนวันทำงานจริง (จาก totalTime): ${totalWorkDays} วัน`);
+  
+  // แสดงรายละเอียดการนับเพื่อตรวจสอบ
+  console.log(`📋 รายละเอียดการนับวัน:`);
+  concludeRecord.forEach((record, index) => {
+    const hasTotalTime = record.totalTime && record.totalTime.toString().trim() !== '' && parseFloat(record.totalTime) > 0;
+    const hasAllTimes = parseFloat(record.allTimes || 0) > 0;
+    console.log(`   วันที่ ${record.day}: totalTime = "${record.totalTime || 'ไม่มี'}", allTimes = "${record.allTimes || 'ไม่มี'}" ${hasTotalTime ? '✅ นับ (totalTime)' : '❌ ไม่นับ'} ${hasAllTimes ? '(allTimes >0)' : '(allTimes =0)'}`);
+  });
 }
 
 // แก้ไขส่วนการสร้าง addSalaryList
@@ -1153,19 +1164,19 @@ for (let c = 0; c < concludeRecord.length; c++) {
   
   // ตรวจสอบว่าเป็นหน่วยงานพิเศษ 7 วัน
   if (isSpecialWorkplace7Days) {
-    // สำหรับหน่วยงานพิเศษ 7 วัน - ตรวจสอบว่ามี allTimes หรือไม่
-    if (parseFloat(concludeRecord[c].allTimes || 0) > 0) {
-      // มี allTimes (มาทำงาน) ให้เพิ่มเงินพิเศษรายวันพร้อมปรับ message เป็น totalWorkDays
+    // สำหรับหน่วยงานพิเศษ 7 วัน - ตรวจสอบว่ามี totalTime หรือไม่
+    if (concludeRecord[c].totalTime && concludeRecord[c].totalTime.toString().trim() !== '' && parseFloat(concludeRecord[c].totalTime) > 0) {
+      // มี totalTime (มาทำงาน) ให้เพิ่มเงินพิเศษรายวันพร้อมปรับ message เป็น totalWorkDays
       let adjustedAddSalaryDaily = addSalaryDaily.map(item => ({
         ...item,
         message: totalWorkDays.toString()  // อัปเดต message เป็นจำนวนวันจริงที่มา
       }));
       await addSalaryList.push(adjustedAddSalaryDaily);
-      console.log(`✅ วันที่ ${concludeRecord[c].day} - allTimes: ${concludeRecord[c].allTimes} - เพิ่มเงินพิเศษรายวัน (${totalWorkDays} วัน)`);
+      console.log(`✅ วันที่ ${concludeRecord[c].day} - totalTime: ${concludeRecord[c].totalTime} (allTimes: ${concludeRecord[c].allTimes}) - เพิ่มเงินพิเศษรายวัน (${totalWorkDays} วัน)`);
     } else {
-      // ไม่มี allTimes (ไม่มาทำงาน) ไม่เพิ่มเงินพิเศษ
+      // ไม่มี totalTime (ไม่มาทำงาน) ไม่เพิ่มเงินพิเศษ
       await addSalaryList.push([]);
-      console.log(`❌ วันที่ ${concludeRecord[c].day} - allTimes: 0 - ไม่เพิ่มเงินพิเศษ`);
+      console.log(`❌ วันที่ ${concludeRecord[c].day} - totalTime: ${concludeRecord[c].totalTime || 'ไม่มี'} (allTimes: ${concludeRecord[c].allTimes}) - ไม่เพิ่มเงินพิเศษ`);
     }
   } else {
     // หน่วยงานปกติ - ใช้ logic เดิม
@@ -1193,23 +1204,47 @@ for (let c = 0; c < concludeRecord.length; c++) {
   }
 }
 
-// เพิ่ม log สรุปจำนวนวันที่มี allTimes
+// เพิ่ม log สรุปจำนวนวันที่มี totalTime
 console.log(`\n📊 === สรุป addSalaryList สำหรับหน่วยงานพิเศษ 7 วัน ===`);
-let countDaysWithAllTimes = 0;
+let countDaysWithTotalTime = 0;
 let countAddSalaryWithItems = 0;
 
 concludeRecord.forEach((record, index) => {
-  if (parseFloat(record.allTimes || 0) > 0) {
-    countDaysWithAllTimes++;
+  if (record.totalTime && record.totalTime.toString().trim() !== '' && parseFloat(record.totalTime) > 0) {
+    countDaysWithTotalTime++;
   }
   if (addSalaryList[index] && addSalaryList[index].length > 0) {
     countAddSalaryWithItems++;
   }
 });
 
-console.log(`📅 จำนวนวันที่มี allTimes > 0: ${countDaysWithAllTimes} วัน`);
+console.log(`📅 จำนวนวันที่มี totalTime > 0: ${countDaysWithTotalTime} วัน`);
 console.log(`💵 จำนวนวันที่มี addSalaryList: ${countAddSalaryWithItems} วัน`);
-console.log(`✅ ต้องตรงกัน: ${countDaysWithAllTimes === countAddSalaryWithItems ? 'ถูกต้อง' : 'ไม่ตรงกัน!'}`);
+console.log(`✅ ต้องตรงกัน: ${countDaysWithTotalTime === countAddSalaryWithItems ? 'ถูกต้อง' : 'ไม่ตรงกัน!'}`);
+
+// เพิ่มการตรวจสอบเปรียบเทียบ allTimes และ totalTime
+let countDaysWithAllTimes = 0;
+concludeRecord.forEach((record, index) => {
+  if (parseFloat(record.allTimes || 0) > 0) {
+    countDaysWithAllTimes++;
+  }
+});
+
+console.log(`\n🔍 === เปรียบเทียบ allTimes และ totalTime ===`);
+console.log(`📊 จำนวนวันที่มี allTimes > 0: ${countDaysWithAllTimes} วัน`);
+console.log(`📊 จำนวนวันที่มี totalTime > 0: ${countDaysWithTotalTime} วัน`);
+console.log(`⚖️  ความแตกต่าง: ${Math.abs(countDaysWithAllTimes - countDaysWithTotalTime)} วัน`);
+
+if (countDaysWithAllTimes !== countDaysWithTotalTime) {
+  console.log(`⚠️  มีความแตกต่างระหว่าง allTimes และ totalTime!`);
+  concludeRecord.forEach((record, index) => {
+    const hasAllTimes = parseFloat(record.allTimes || 0) > 0;
+    const hasTotalTime = record.totalTime && record.totalTime.toString().trim() !== '' && parseFloat(record.totalTime) > 0;
+    if (hasAllTimes !== hasTotalTime) {
+      console.log(`   🔍 วันที่ ${record.day}: allTimes="${record.allTimes}", totalTime="${record.totalTime}" - ไม่ตรงกัน!`);
+    }
+  });
+};
 
     for (let c = 0; c < concludeRecord.length; c++) {
       // console.log('concludeRecord ' + concludeRecord [c].workplaceId);
