@@ -2300,19 +2300,25 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
       
       // *** แก้ไขส่วน addSalaryDaily ***
       // เงินเพิ่มพิเศษรายวัน - คิดทุกวันที่มี totalTime (ไม่ว่า dayType จะเป็นอะไร)
-      if (hasWorked) {
-        // ถ้ามีการทำงาน (totalTime > 0) ให้เพิ่มเงินพิเศษรายวัน
-        addSalaryDaily = [...(employeeProfile[0].addSalary || [])
-          .filter(salary => salary.roundOfSalary === "daily")
-          .map(salary => ({
-            ...salary,
-            SpSalary: parseFloat(salary.SpSalary) > 100 ? 
-              (parseFloat(salary.SpSalary) / 30).toFixed(2) : 
-              salary.SpSalary
-          }))
-        ];
-        console.log(`💵 เพิ่มเงินพิเศษรายวัน: ${addSalaryDaily.length} รายการ (เพราะมี totalTime)`);
-      } else {
+      // เงินเพิเศษรายวัน - คิดทุกวันที่มี totalTime (ไม่ว่า dayType จะเป็นอะไร)
+if (hasWorked) {
+  // ตรวจสอบข้อมูลก่อน
+  console.log('🔍 ข้อมูล addSalary จากพนักงาน:', employeeProfile[0].addSalary);
+  
+  addSalaryDaily = [...(employeeProfile[0].addSalary || [])
+    .filter(salary => salary.roundOfSalary === "daily")
+    .map(salary => {
+      console.log('🔍 salary item:', salary); // ตรวจสอบแต่ละ item
+      return {
+        ...salary,
+        SpSalary: parseFloat(salary.SpSalary) > 100 ? 
+          (parseFloat(salary.SpSalary) / 30).toFixed(2) : 
+          salary.SpSalary
+      };
+    })
+  ];
+  console.log(`💵 เพิ่มเงินพิเศษรายวัน: ${addSalaryDaily.length} รายการ (เพราะมี totalTime)`);
+} else {
         // ถ้าไม่มีการทำงาน ไม่เพิ่มเงินพิเศษรายวัน
         addSalaryDaily = [];
         console.log(`❌ ไม่เพิ่มเงินพิเศษรายวัน (เพราะไม่มี totalTime)`);
