@@ -83,8 +83,6 @@ res.json(x.data);
 
 });
 
-
-
 //get accounting by id
 router.post('/calsalaryemp', async (req, res) => {
   try {
