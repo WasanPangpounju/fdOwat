@@ -5318,7 +5318,6 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
     console.log(`\n💰 STEP 3: คำนวณรายได้รวมสำหรับประกันสังคม`);
     const totalIncome = parseFloat(salaryMonth || 0) + 
                        parseFloat(addSalarySocialSecurity || 0) + 
-                    
                        parseFloat(publicHolidayCash || 0);
     
     console.log(`💰 - เงินเดือนพื้นฐาน: ${parseFloat(salaryMonth || 0)} บาท`);
