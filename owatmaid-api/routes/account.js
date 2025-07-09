@@ -5373,8 +5373,8 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
       console.log(`\n💰 STEP 3: คำนวณรายได้รวมสำหรับประกันสังคม`);
       const totalIncome = parseFloat(sumCashWork || 0) + 
                          parseFloat(addSalarySocialSecurity || 0) + 
-                         parseFloat(cashSpecialDay || 0) + 
-                         parseFloat(cashcustomizeDayoff || 0) + 
+                 
+                     
                          parseFloat(publicHolidayCash || 0);
       
       console.log(`💰 - เงินค่าแรงปกติ: ${parseFloat(sumCashWork || 0)} บาท`);
