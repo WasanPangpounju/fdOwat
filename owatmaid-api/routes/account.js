@@ -5087,7 +5087,7 @@ try {
   const sumCashSpecialDay = sumCashWork / dayWorkCount;
   const totalsumCashSpecialDay = sumCashSpecialDay * specialDay
 
-  cashSpecialDay = totalsumCashSpecialDay
+  
   specialDayOff = specialDay;
 
   console.log('cashSpecialDay  ' + cashSpecialDay);
