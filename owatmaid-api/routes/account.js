@@ -4390,8 +4390,11 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
       if (workplaceId && empWorkplaceId !== workplaceId) continue;
 
             // 🔥 เพิ่มเช็ค dayWorkCount หรือ dayOffCount และดึง stopDaysList
-            if (!record.dayWorkCount || !record.dayOffCount) {
-              console.log(`🔍 Missing dayWorkCount or dayOffCount for employeeId=${record.employeeId} month ${record.month} year ${record.year}`);
+            if (!record.dayWorkCount || !record.dayOffCount || !record.stopDaysList) {
+              console.log(`🔍 Missing data for employeeId=${record.employeeId} month ${record.month} year ${record.year}`);
+              console.log(`  - dayWorkCount: ${record.dayWorkCount || 'ไม่มี'}`);
+              console.log(`  - dayOffCount: ${record.dayOffCount || 'ไม่มี'}`);
+              console.log(`  - stopDaysList: ${record.stopDaysList ? 'มี' : 'ไม่มี'}`);
       
               try {
                 const apiRes = await axios.post(sURL + '/conclude/searchtimerecordemployee', {
@@ -4486,8 +4489,10 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
 
       // Debug: ตรวจสอบข้อมูล stopDaysList และ cashcustomizeDayoff
       console.log(`📊 Debug ข้อมูล employee ${record.employeeId}:`);
-      console.log(`  - stopDaysList:`, record.stopDaysList);
-      console.log(`  - cashcustomizeDayoff:`, record.cashcustomizeDayoff);
+      console.log(`  - stopDaysList จาก DB:`, record.stopDaysList);
+      console.log(`  - cashcustomizeDayoff จาก DB:`, record.cashcustomizeDayoff);
+      console.log(`  - status จาก DB:`, record.status);
+      console.log(`  - month: ${record.month}, year: ${record.year}`);
 
       groupedResult[empWorkplaceId].push({
         ...processedRecord,
