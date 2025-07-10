@@ -2396,6 +2396,20 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
     console.log(`✅ อัปเดต customizeDayoff สำเร็จ: ${workedOnStopDays} วัน`);
     console.log(`📊 Update result:`, updateResult);
     
+    // 2. อัปเดต timerecordEmployee collection ด้วย
+    console.log(`\n📝 === อัปเดต timerecordEmployee collection ===`);
+    const timeRecordUpdateResult = await timerecordEmployee.updateOne(
+      { 
+        employeeId: employeeId,
+        month: month,
+        year: year
+      },
+      { $set: { customizeDayoff: workedOnStopDays.toString() } }  // แปลงเป็น string
+    );
+    
+    console.log(`✅ อัปเดต timerecordEmployee collection สำเร็จ: ${workedOnStopDays} วัน`);
+    console.log(`📊 TimeRecord Update result:`, timeRecordUpdateResult);
+    
     // หากการอัปเดตไม่สำเร็จ ลองใช้ collection.updateOne โดยตรง
     if (!updateResult.acknowledged) {
       console.log(`⚠️ ลองใช้ MongoDB collection โดยตรง...`);
