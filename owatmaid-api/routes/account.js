@@ -4599,9 +4599,18 @@ router.post('/searchtimerecordemployee', async (req, res) => {
             const workOfWeek = workplaceResponse.data.workOfWeek || "5";
             
             if (workOfWeek === "7") {
-              // สำหรับหน่วยงาน 7 วัน: ใช้ค่าจาก Employee collection
-              finalCustomizeDayoff = employee?.customizeDayoff || 0;
-              console.log(`🎯 หน่วยงาน 7 วัน - ใช้ customizeDayoff จาก Employee: ${finalCustomizeDayoff}`);
+              // สำหรับหน่วยงาน 7 วัน: ลองใช้ MongoDB โดยตรงเพราะ Mongoose schema อาจไม่รู้จัก field
+              try {
+                const db = Employee.db;
+                const employeeCollection = db.collection('employees');
+                const rawEmployee = await employeeCollection.findOne({ employeeId: doc.employeeId });
+                
+                finalCustomizeDayoff = rawEmployee?.customizeDayoff || 0;
+                console.log(`🎯 หน่วยงาน 7 วัน - ใช้ customizeDayoff จาก MongoDB โดยตรง: ${finalCustomizeDayoff}`);
+              } catch (directError) {
+                console.warn(`⚠️ ไม่สามารถใช้ MongoDB โดยตรงได้, ใช้ค่าจาก Mongoose: ${employee?.customizeDayoff || 0}`);
+                finalCustomizeDayoff = employee?.customizeDayoff || 0;
+              }
             } else {
               console.log(`📅 หน่วยงานปกติ - ใช้ customizeDayoff จาก calculateCashValues: ${finalCustomizeDayoff}`);
             }
