@@ -4389,7 +4389,7 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
 
       if (workplaceId && empWorkplaceId !== workplaceId) continue;
 
-            // 🔥 เพิ่มเช็ค dayWorkCount หรือ dayOffCount
+            // 🔥 เพิ่มเช็ค dayWorkCount หรือ dayOffCount และดึง stopDaysList
             if (!record.dayWorkCount || !record.dayOffCount) {
               console.log(`🔍 Missing dayWorkCount or dayOffCount for employeeId=${record.employeeId} month ${record.month} year ${record.year}`);
       
@@ -4398,20 +4398,27 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
                   employeeId: record.employeeId,
                   month: record.month,
                   year: record.year,
-                            });
-                            const apiRes1 = await axios.post(sURL + '/accounting/searchtimerecordemployee', {
-                              employeeId: record.employeeId,
-                              month: record.month,
-                              year: record.year,
-                                        });
+                });
+                
+                const apiRes1 = await axios.post(sURL + '/accounting/searchtimerecordemployee', {
+                  employeeId: record.employeeId,
+                  month: record.month,
+                  year: record.year,
+                });
             
-                // สมมติ API /conclude/searchtimerecordemployee ส่งข้อมูลที่อัปเดตกลับมา
-                // const updatedData = awaitapiRes.data;
-                // record = await apiRes.data;
+                // ดึง stopDaysList จาก conclude API response
+                if (apiRes.data && apiRes.data.result && apiRes.data.result.length > 0) {
+                  const concludeData = apiRes.data.result[0];
+                  if (concludeData.stopDaysList) {
+                    record.stopDaysList = concludeData.stopDaysList;
+                    console.log(`🟢 ได้ stopDaysList สำหรับ ${record.employeeId}: ${record.stopDaysList.length} วัน`);
+                  }
+                  if (concludeData.cashcustomizeDayoff) {
+                    record.cashcustomizeDayoff = concludeData.cashcustomizeDayoff;
+                    console.log(`💎 ได้ cashcustomizeDayoff สำหรับ ${record.employeeId}: ${record.cashcustomizeDayoff} บาท`);
+                  }
+                }
       
-                // อัปเดตข้อมูลใน record (ถ้ามา)
-                // if (updatedData.dayWorkCount !== undefined) record.dayWorkCount = updatedData.dayWorkCount;
-                // if (updatedData.dayOffCount !== undefined) record.dayOffCount = updatedData.dayOffCount;
               } catch (error) {
                 console.error(`❌ Error fetching updated timerecord for employeeId=${record.employeeId}`, error.message);
               }
@@ -4481,7 +4488,14 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
         ...processedRecord,
         employeeName: employee.name + ' ' + (employee.lastName || ''),
         workplaceName: employee.workplaceName || '', // if available
+        stopDaysList: record.stopDaysList || [], // เพิ่ม stopDaysList
+        cashcustomizeDayoff: record.cashcustomizeDayoff || 0, // เพิ่ม cashcustomizeDayoff
       });
+      
+      // Debug log เพื่อตรวจสอบข้อมูลที่ส่งกลับ
+      console.log(`📤 ส่งข้อมูลกลับสำหรับ ${record.employeeId}:`);
+      console.log(`  - stopDaysList: ${record.stopDaysList ? `${record.stopDaysList.length} วัน` : 'ไม่มี'}`);
+      console.log(`  - cashcustomizeDayoff: ${record.cashcustomizeDayoff || 'ไม่มี'} บาท`);
     }
 
     return res.status(200).json({ groupedResult });
