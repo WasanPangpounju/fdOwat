@@ -2374,6 +2374,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
   console.log(`💵 ค่าแรงต่อวัน: ${dailyWage.toFixed(2)} บาท`);
   console.log(`📅 จำนวนวันหยุดที่ไม่มาทำงาน: ${notWorkedOnStopDays} วัน`);
   console.log(`💸 ค่าแรงที่ต้องหัก: ${totalLostWage.toFixed(2)} บาท`);
+  customizeDayoff = workedOnStopDays;
 
   // เรียก API เพื่อดึงข้อมูลวันหยุด
   let weekendData = {};
