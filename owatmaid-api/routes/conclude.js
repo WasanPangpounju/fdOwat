@@ -2487,7 +2487,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
   console.log(`📅 จำนวนเงินที่ได้customizeDayoff ${totalWorkerWage} วัน`);
   console.log(`📅 จำนวนวันหยุดที่ไม่มาทำงาน: ${notWorkedOnStopDays} วัน`);
   console.log(`💸 ค่าแรงที่ต้องหัก: ${totalLostWage.toFixed(2)} บาท`);
-  console.log(`💎 cashSpecialDay จะถูกตั้งเป็น: ${totalWorkerWage.toFixed(2)} บาท`);
+  console.log(`💎 cashcustomizeDayoff จะถูกตั้งเป็น: ${totalWorkerWage.toFixed(2)} บาท`);
   
 
   // เรียก API เพื่อดึงข้อมูลวันหยุด
@@ -2693,14 +2693,14 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
     })
   );
 
-  // Return an object containing both the updated records and cashSpecialDay
+  // Return an object containing both the updated records and cashcustomizeDayoff
   console.log(`\n💎 === ส่งคืนข้อมูล ===`);
   console.log(`📋 อาร์เรย์ข้อมูลพนักงาน: ${updatedRecords.length} รายการ`);
-  console.log(`💰 cashSpecialDay: ${totalWorkerWage.toFixed(2)} บาท`);
+  console.log(`💰 cashcustomizeDayoff: ${totalWorkerWage.toFixed(2)} บาท`);
   
   return {
     updatedRecords,
-    cashSpecialDay: totalWorkerWage
+    cashcustomizeDayoff: totalWorkerWage
   };
 };
 
@@ -3000,14 +3000,14 @@ router.post('/searchtimerecordemployee', async (req, res) => {
       try {
         // เลือกใช้ฟังก์ชันคำนวณตามประเภทหน่วยงาน
         let updatedRecords;
-        let cashSpecialDay = 0; // เก็บค่า cashSpecialDay สำหรับหน่วยงานพิเศษ 7 วัน
+        let cashcustomizeDayoff = 0; // เก็บค่า cashcustomizeDayoff สำหรับหน่วยงานพิเศษ 7 วัน
         
         if (isSpecialWorkplace) {
           console.log(`\n🔄 ใช้ฟังก์ชันคำนวณแบบหน่วยงานพิเศษ 7 วัน`);
           const result = await calculateCashValuesSpecial7Days(employeeId, doc.employee_record, month, year);
           updatedRecords = result.updatedRecords;
-          cashSpecialDay = result.cashSpecialDay;
-          console.log(`💎 ได้ cashSpecialDay: ${cashSpecialDay} บาท`);
+          cashcustomizeDayoff = result.cashcustomizeDayoff;
+          console.log(`💎 ได้ cashcustomizeDayoff: ${cashcustomizeDayoff} บาท`);
         } else {
           console.log(`\n🔄 ใช้ฟังก์ชันคำนวณแบบหน่วยงานปกติ`);
           updatedRecords = await calculateCashValues(employeeId, doc.employee_record, month, year);
@@ -3016,10 +3016,10 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         if (JSON.stringify(updatedRecords) !== JSON.stringify(doc.employee_record)) {
           doc.employee_record = updatedRecords;
           
-          // สำหรับหน่วยงานพิเศษ 7 วัน ให้เพิ่ม cashSpecialDay ในเอกสาร
+          // สำหรับหน่วยงานพิเศษ 7 วัน ให้เพิ่ม cashcustomizeDayoff ในเอกสาร
           if (isSpecialWorkplace) {
-            doc.cashSpecialDay = cashSpecialDay;
-            console.log(`💎 เซต cashSpecialDay ในเอกสาร: ${cashSpecialDay} บาท`);
+            doc.cashcustomizeDayoff = cashcustomizeDayoff;
+            console.log(`💎 เซต cashcustomizeDayoff ในเอกสาร: ${cashcustomizeDayoff} บาท`);
           }
           
           await doc.save();

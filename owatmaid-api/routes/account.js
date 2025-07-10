@@ -4619,8 +4619,8 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           console.warn(`⚠️ ไม่สามารถตรวจสอบ workplace ได้:`, workplaceError.message);
         }
         
-        // ตรวจสอบว่าเป็นหน่วยงาน 7 วัน และใช้ค่า cashSpecialDay จาก timerecordEmployee document
-        let finalCashSpecialDay = calculatedValues.cashSpecialDay || 0;
+        // ตรวจสอบว่าเป็นหน่วยงาน 7 วัน และใช้ค่า cashcustomizeDayoff จาก timerecordEmployee document
+        let finalCashcustomizeDayoff = calculatedValues.cashSpecialDay || 0;
         try {
           const employee = await Employee.findOne({ employeeId: doc.employeeId });
           const wpId = employee?.workplace || '';
@@ -4630,19 +4630,19 @@ router.post('/searchtimerecordemployee', async (req, res) => {
             const workOfWeek = workplaceResponse.data.workOfWeek || "5";
             
             if (workOfWeek === "7") {
-              // สำหรับหน่วยงาน 7 วัน: ใช้ cashSpecialDay จาก document ที่คำนวณใน conclude.js
-              if (doc.cashSpecialDay !== undefined) {
-                finalCashSpecialDay = doc.cashSpecialDay;
-                console.log(`💎 หน่วยงาน 7 วัน - ใช้ cashSpecialDay จาก document: ${finalCashSpecialDay} บาท`);
+              // สำหรับหน่วยงาน 7 วัน: ใช้ cashcustomizeDayoff จาก document ที่คำนวณใน conclude.js
+              if (doc.cashcustomizeDayoff !== undefined) {
+                finalCashcustomizeDayoff = doc.cashcustomizeDayoff;
+                console.log(`💎 หน่วยงาน 7 วัน - ใช้ cashcustomizeDayoff จาก document: ${finalCashcustomizeDayoff} บาท`);
               } else {
-                console.log(`⚠️ หน่วยงาน 7 วัน - ไม่พบ cashSpecialDay ใน document, ใช้ค่าจาก calculateCashValues: ${finalCashSpecialDay}`);
+                console.log(`⚠️ หน่วยงาน 7 วัน - ไม่พบ cashcustomizeDayoff ใน document, ใช้ค่าจาก calculateCashValues: ${finalCashcustomizeDayoff}`);
               }
             } else {
-              console.log(`📅 หน่วยงานปกติ - ใช้ cashSpecialDay จาก calculateCashValues: ${finalCashSpecialDay}`);
+              console.log(`📅 หน่วยงานปกติ - ใช้ cashSpecialDay จาก calculateCashValues: ${finalCashcustomizeDayoff}`);
             }
           }
         } catch (workplaceError) {
-          console.warn(`⚠️ ไม่สามารถตรวจสอบ workplace สำหรับ cashSpecialDay ได้:`, workplaceError.message);
+          console.warn(`⚠️ ไม่สามารถตรวจสอบ workplace สำหรับ cashcustomizeDayoff ได้:`, workplaceError.message);
         }
         
         const updateData = await {
@@ -4651,7 +4651,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           dayOffCount: String(calculatedValues.dayOffCount),
           specialDayOff: String(calculatedValues.specialDayOff),
           customizeDayoff: String(finalCustomizeDayoff), // ใช้ค่าที่ปรับแล้ว
-          cashcustomizeDayoff: String(calculatedValues.cashcustomizeDayoff || 0), // เพิ่มฟิลด์ cashcustomizeDayoff
+          cashcustomizeDayoff: String(finalCashcustomizeDayoff || 0), // ใช้ค่าที่คำนวณจาก totalWorkerWage สำหรับหน่วยงาน 7 วัน
           publicHolidayCount: String(calculatedValues.publicHolidayCount || 0), // เพิ่มบรรทัดนี้
           publicHolidayCash: String(calculatedValues.publicHolidayCash || 0), // เพิ่มบรรทัดนี้
           sumTimeWork: String(calculatedValues.sumTimeWork),
@@ -4663,7 +4663,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           totalDeductSalary: String(totalDeductSalary), // เพิ่มฟิลด์ totalDeductSalary
           socialSecurity: String(calculatedValues.socialSecurity),
           tax: String(calculatedValues.tax),
-          cashSpecialDay: String(finalCashSpecialDay),
+          cashSpecialDay: String(finalCashcustomizeDayoff), // ใช้ค่าเดียวกันกับ cashcustomizeDayoff เพื่อ backward compatibility
           sumOt1p5: String(calculatedValues.sumOt1p5 || 0), // เพิ่มบรรทัดนี้
           sumOt3: String(calculatedValues.sumOt3 || 0), // เพิ่มบรรทัดนี้
           sumOtPublicHoliday: String(calculatedValues.sumOtPublicHoliday || 0), // 
