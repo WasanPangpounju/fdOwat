@@ -2371,6 +2371,20 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
   try {
     console.log(`\n📝 === อัปเดต customizeDayoff ===`);
     console.log(`🔄 กำลังอัปเดต customizeDayoff จาก ${employeeProfile[0].customizeDayoff || 0} เป็น ${workedOnStopDays}`);
+    console.log(`👤 EmployeeId ที่ใช้ในการค้นหา: "${employeeId}" (type: ${typeof employeeId})`);
+    
+    // ตรวจสอบก่อนว่ามีพนักงานคนนี้หรือไม่
+    const existingEmployee = await Employee.findOne({ employeeId: employeeId });
+    console.log(`🔍 ตรวจสอบพนักงาน: ${existingEmployee ? 'พบข้อมูล' : 'ไม่พบข้อมูล'}`);
+    
+    if (!existingEmployee) {
+      console.log(`❌ ไม่พบพนักงาน employeeId: ${employeeId} ใน Employee collection`);
+      // ลองค้นหาด้วยเงื่อนไขอื่น
+      const allEmployees = await Employee.find({}, { employeeId: 1, _id: 1 }).limit(5);
+      console.log(`📋 ตัวอย่าง employeeId ใน collection:`, allEmployees);
+    } else {
+      console.log(`✅ พบข้อมูลพนักงาน: ${existingEmployee.employeeId}, customizeDayoff ปัจจุบัน: ${existingEmployee.customizeDayoff}`);
+    }
     
     const updateResult = await Employee.updateOne(
       { employeeId: employeeId },
