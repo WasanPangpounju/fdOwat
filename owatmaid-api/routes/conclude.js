@@ -2481,8 +2481,10 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
                     parseFloat(salaryTmp || '0');
   
   const totalLostWage = notWorkedOnStopDays * dailyWage;
+  const totalWorkerWage = workedOnStopDays * dailyWage;
    console.log(`\n💰 === การคำนวณค่าแรง ===`);
   console.log(`💵 ค่าแรงต่อวัน: ${dailyWage.toFixed(2)} บาท`);
+  console.log(`📅 จำนวนเงินที่ได้customizeDayoff ${totalWorkerWage} วัน`);
   console.log(`📅 จำนวนวันหยุดที่ไม่มาทำงาน: ${notWorkedOnStopDays} วัน`);
   console.log(`💸 ค่าแรงที่ต้องหัก: ${totalLostWage.toFixed(2)} บาท`);
   
