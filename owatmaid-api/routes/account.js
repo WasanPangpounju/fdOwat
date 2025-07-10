@@ -4588,12 +4588,34 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           return total + (parseFloat(item.amount) || 0);
         }, 0);
         
+        // ตรวจสอบว่าเป็นหน่วยงาน 7 วัน และใช้ค่า customizeDayoff จาก Employee collection
+        let finalCustomizeDayoff = calculatedValues.customizeDayoff || 0;
+        try {
+          const employee = await Employee.findOne({ employeeId: doc.employeeId });
+          const wpId = employee?.workplace || '';
+          
+          if (wpId) {
+            const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${wpId}`);
+            const workOfWeek = workplaceResponse.data.workOfWeek || "5";
+            
+            if (workOfWeek === "7") {
+              // สำหรับหน่วยงาน 7 วัน: ใช้ค่าจาก Employee collection
+              finalCustomizeDayoff = employee?.customizeDayoff || 0;
+              console.log(`🎯 หน่วยงาน 7 วัน - ใช้ customizeDayoff จาก Employee: ${finalCustomizeDayoff}`);
+            } else {
+              console.log(`📅 หน่วยงานปกติ - ใช้ customizeDayoff จาก calculateCashValues: ${finalCustomizeDayoff}`);
+            }
+          }
+        } catch (workplaceError) {
+          console.warn(`⚠️ ไม่สามารถตรวจสอบ workplace ได้:`, workplaceError.message);
+        }
+        
         const updateData = await {
           prefix: employeePrefix, // เพิ่ม prefix ใหม่
           dayWorkCount: String(calculatedValues.dayWorkCount),
           dayOffCount: String(calculatedValues.dayOffCount),
           specialDayOff: String(calculatedValues.specialDayOff),
-          customizeDayoff: String(calculatedValues.customizeDayoff || 0), // เพิ่มฟิลด์ customizeDayoff
+          customizeDayoff: String(finalCustomizeDayoff), // ใช้ค่าที่ปรับแล้ว
           cashcustomizeDayoff: String(calculatedValues.cashcustomizeDayoff || 0), // เพิ่มฟิลด์ cashcustomizeDayoff
           publicHolidayCount: String(calculatedValues.publicHolidayCount || 0), // เพิ่มบรรทัดนี้
           publicHolidayCash: String(calculatedValues.publicHolidayCash || 0), // เพิ่มบรรทัดนี้
