@@ -2199,6 +2199,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
   const customWorkplace = employeeProfile[0].customWorkplace;
   const workTimeDay = customWorkplace?.workTimeDay || [];
   
+  
   console.log(`\n📋 === ตรวจสอบวันหยุดจาก workTimeDay ===`);
   console.log(`🔍 จำนวนกฎการทำงาน: ${workTimeDay.length} รายการ`);
   
@@ -2365,6 +2366,22 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
   });
   
   console.log(`└─────────────────┴──────────┴─────────────┴────────────┴──────────┴──────────┘`);
+  
+  // อัปเดตค่า customizeDayoff ใน database ให้เท่ากับ workedOnStopDays
+  try {
+    console.log(`\n📝 === อัปเดต customizeDayoff ===`);
+    console.log(`🔄 กำลังอัปเดต customizeDayoff จาก ${employeeProfile[0].customizeDayoff || 0} เป็น ${workedOnStopDays}`);
+    
+    await Employee.updateOne(
+      { employeeId: employeeId },
+      { $set: { customizeDayoff: workedOnStopDays } }
+    );
+    
+    console.log(`✅ อัปเดต customizeDayoff สำเร็จ: ${workedOnStopDays} วัน`);
+  } catch (error) {
+    console.error(`❌ เกิดข้อผิดพลาดในการอัปเดต customizeDayoff:`, error);
+  }
+  
   const dailyWage = parseFloat(salaryTmp || '0') > 1660 ? 
                     (parseFloat(salaryTmp || '0') / 30) : 
                     parseFloat(salaryTmp || '0');
@@ -2374,7 +2391,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
   console.log(`💵 ค่าแรงต่อวัน: ${dailyWage.toFixed(2)} บาท`);
   console.log(`📅 จำนวนวันหยุดที่ไม่มาทำงาน: ${notWorkedOnStopDays} วัน`);
   console.log(`💸 ค่าแรงที่ต้องหัก: ${totalLostWage.toFixed(2)} บาท`);
-  customizeDayoff = workedOnStopDays;
+  
 
   // เรียก API เพื่อดึงข้อมูลวันหยุด
   let weekendData = {};
