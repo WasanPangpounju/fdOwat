@@ -4619,6 +4619,32 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           console.warn(`⚠️ ไม่สามารถตรวจสอบ workplace ได้:`, workplaceError.message);
         }
         
+        // ตรวจสอบว่าเป็นหน่วยงาน 7 วัน และใช้ค่า cashSpecialDay จาก timerecordEmployee document
+        let finalCashSpecialDay = calculatedValues.cashSpecialDay || 0;
+        try {
+          const employee = await Employee.findOne({ employeeId: doc.employeeId });
+          const wpId = employee?.workplace || '';
+          
+          if (wpId) {
+            const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${wpId}`);
+            const workOfWeek = workplaceResponse.data.workOfWeek || "5";
+            
+            if (workOfWeek === "7") {
+              // สำหรับหน่วยงาน 7 วัน: ใช้ cashSpecialDay จาก document ที่คำนวณใน conclude.js
+              if (doc.cashSpecialDay !== undefined) {
+                finalCashSpecialDay = doc.cashSpecialDay;
+                console.log(`💎 หน่วยงาน 7 วัน - ใช้ cashSpecialDay จาก document: ${finalCashSpecialDay} บาท`);
+              } else {
+                console.log(`⚠️ หน่วยงาน 7 วัน - ไม่พบ cashSpecialDay ใน document, ใช้ค่าจาก calculateCashValues: ${finalCashSpecialDay}`);
+              }
+            } else {
+              console.log(`📅 หน่วยงานปกติ - ใช้ cashSpecialDay จาก calculateCashValues: ${finalCashSpecialDay}`);
+            }
+          }
+        } catch (workplaceError) {
+          console.warn(`⚠️ ไม่สามารถตรวจสอบ workplace สำหรับ cashSpecialDay ได้:`, workplaceError.message);
+        }
+        
         const updateData = await {
           prefix: employeePrefix, // เพิ่ม prefix ใหม่
           dayWorkCount: String(calculatedValues.dayWorkCount),
@@ -4637,7 +4663,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           totalDeductSalary: String(totalDeductSalary), // เพิ่มฟิลด์ totalDeductSalary
           socialSecurity: String(calculatedValues.socialSecurity),
           tax: String(calculatedValues.tax),
-          cashSpecialDay: String(calculatedValues.cashSpecialDay),
+          cashSpecialDay: String(finalCashSpecialDay),
           sumOt1p5: String(calculatedValues.sumOt1p5 || 0), // เพิ่มบรรทัดนี้
           sumOt3: String(calculatedValues.sumOt3 || 0), // เพิ่มบรรทัดนี้
           sumOtPublicHoliday: String(calculatedValues.sumOtPublicHoliday || 0), // 
