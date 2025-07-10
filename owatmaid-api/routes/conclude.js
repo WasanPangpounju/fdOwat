@@ -2390,25 +2390,41 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
     const updateResult = await Employee.updateOne(
       { employeeId: employeeId },
       { $set: { customizeDayoff: workedOnStopDays } },
-      { upsert: false }
+      { upsert: false, strict: false }  // เพิ่ม strict: false
     );
     
     console.log(`✅ อัปเดต customizeDayoff สำเร็จ: ${workedOnStopDays} วัน`);
     console.log(`📊 Update result:`, updateResult);
     
-    // หากการอัปเดตไม่สำเร็จ ลองใช้ findOneAndUpdate
+    // หากการอัปเดตไม่สำเร็จ ลองใช้ collection.updateOne โดยตรง
     if (!updateResult.acknowledged) {
-      console.log(`⚠️ ลองใช้ findOneAndUpdate แทน...`);
+      console.log(`⚠️ ลองใช้ MongoDB collection โดยตรง...`);
       
-      const updateResult2 = await Employee.findOneAndUpdate(
-        { employeeId: employeeId },
-        { $set: { customizeDayoff: workedOnStopDays } },
-        { new: true, returnDocument: 'after' }
-      );
-      
-      console.log(`📊 FindOneAndUpdate result:`, updateResult2 ? 'สำเร็จ' : 'ไม่สำเร็จ');
-      if (updateResult2) {
-        console.log(`🎯 ค่า customizeDayoff หลังอัปเดต: ${updateResult2.customizeDayoff}`);
+      try {
+        const db = Employee.db;
+        const collection = db.collection('employees');  // ชื่อ collection จริง
+        
+        const directUpdateResult = await collection.updateOne(
+          { employeeId: employeeId },
+          { $set: { customizeDayoff: workedOnStopDays } }
+        );
+        
+        console.log(`📊 Direct MongoDB update result:`, directUpdateResult);
+        
+        // ตรวจสอบผลลัพธ์
+        const verifyResult = await collection.findOne({ employeeId: employeeId });
+        console.log(`🎯 ค่า customizeDayoff หลัง direct update: ${verifyResult?.customizeDayoff}`);
+        
+      } catch (directError) {
+        console.error(`❌ Direct update ไม่สำเร็จ:`, directError);
+        
+        // วิธีสุดท้าย: ลองสร้าง field ด้วย $addFields
+        console.log(`⚠️ ลองใช้ $addFields...`);
+        const addFieldResult = await Employee.updateOne(
+          { employeeId: employeeId },
+          [{ $addFields: { customizeDayoff: workedOnStopDays } }]
+        );
+        console.log(`📊 AddFields result:`, addFieldResult);
       }
     }
     
