@@ -2431,6 +2431,25 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
     // ตรวจสอบข้อมูลหลังอัปเดต
     const updatedEmployee = await Employee.findOne({ employeeId: employeeId });
     console.log(`🔍 ข้อมูลหลังอัปเดต: customizeDayoff = ${updatedEmployee?.customizeDayoff}`);
+    
+    // หากยัง undefined ลองใช้ MongoDB collection โดยตรง
+    if (updatedEmployee?.customizeDayoff === undefined) {
+      console.log(`⚠️ Mongoose ไม่เห็น field customizeDayoff, ลองตรวจสอบด้วย MongoDB โดยตรง...`);
+      
+      try {
+        const db = Employee.db;
+        const collection = db.collection('employees');
+        
+        const rawDocument = await collection.findOne({ employeeId: employeeId });
+        console.log(`🎯 ข้อมูลจาก MongoDB โดยตรง: customizeDayoff = ${rawDocument?.customizeDayoff}`);
+        
+        if (rawDocument?.customizeDayoff !== undefined) {
+          console.log(`✅ ข้อมูลถูกบันทึกใน MongoDB แล้ว แต่ Mongoose schema ไม่รู้จัก field นี้`);
+        }
+      } catch (directError) {
+        console.error(`❌ ไม่สามารถตรวจสอบด้วย MongoDB โดยตรงได้:`, directError);
+      }
+    }
   } catch (error) {
     console.error(`❌ เกิดข้อผิดพลาดในการอัปเดต customizeDayoff:`, error);
   }
