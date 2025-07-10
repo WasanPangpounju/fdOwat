@@ -19,6 +19,50 @@ const jwt = require('jsonwebtoken');
 const bodyParser = require('body-parser');
 const { months } = require('moment');
 
+const getDayNumberFromName = (dayName) => {
+  const daysMap = {
+    'อาทิตย์': 0,
+    'จันทร์': 1,
+    'อังคาร': 2,
+    'พุธ': 3,
+    'พฤหัส': 4,
+    'ศุกร์': 5,
+    'เสาร์': 6
+  };
+  return daysMap[dayName] !== undefined ? daysMap[dayName] : -1;
+};
+
+const isDateInStopRange = (dayNumber, workTimeDay) => {
+  for (const schedule of workTimeDay) {
+    if (schedule.workOrStop === 'stop') {
+      const startDayNum = getDayNumberFromName(schedule.startDay);
+      const endDayNum = getDayNumberFromName(schedule.endDay);
+      
+      if (startDayNum === -1 || endDayNum === -1) continue;
+      
+      // กรณีวันเดียว (เช่น พุธ-พุธ)
+      if (startDayNum === endDayNum && dayNumber === startDayNum) {
+        return true;
+      }
+      
+      // กรณีช่วงวันปกติ (เช่น จันทร์-ศุกร์)
+      if (startDayNum <= endDayNum) {
+        if (dayNumber >= startDayNum && dayNumber <= endDayNum) {
+          return true;
+        }
+      }
+      // กรณีช่วงวันข้ามสัปดาห์ (เช่น ศุกร์-อาทิตย์)
+      else {
+        if (dayNumber >= startDayNum || dayNumber <= endDayNum) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+};
+
+
 
 //Connect mongodb
 mongoose.connect(connectionString, {
@@ -2151,6 +2195,98 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
   const salaryTmp = parseFloat(employeeProfile[0].salary || '0') || 0;
   const workplaceId = employeeProfile[0].workplace;
   let salary = 0;
+
+  const customWorkplace = employeeProfile[0].customWorkplace;
+  const workTimeDay = customWorkplace?.workTimeDay || [];
+  
+  console.log(`\n📋 === ตรวจสอบวันหยุดจาก workTimeDay ===`);
+  console.log(`🔍 จำนวนกฎการทำงาน: ${workTimeDay.length} รายการ`);
+  
+  // แสดงรายละเอียดวันหยุด
+  const stopDays = [];
+  workTimeDay.forEach((schedule, index) => {
+    console.log(`\n📌 กฎที่ ${index + 1}:`);
+    console.log(`   - วันเริ่มต้น: ${schedule.startDay}`);
+    console.log(`   - วันสิ้นสุด: ${schedule.endDay}`);
+    console.log(`   - สถานะ: ${schedule.workOrStop}`);
+    
+    if (schedule.workOrStop === 'stop') {
+      stopDays.push({
+        startDay: schedule.startDay,
+        endDay: schedule.endDay,
+        startDayNum: getDayNumberFromName(schedule.startDay),
+        endDayNum: getDayNumberFromName(schedule.endDay)
+      });
+    }
+  });
+  
+  console.log(`\n🚫 วันหยุดที่กำหนด: ${stopDays.length} ช่วง`);
+  stopDays.forEach(stop => {
+    console.log(`   - ${stop.startDay} ถึง ${stop.endDay} (${stop.startDayNum} - ${stop.endDayNum})`);
+  });
+
+  // นับจำนวนวันที่ตรงกับวันหยุดในเดือนที่ระบุ
+  const monthInt = parseInt(month);
+  const yearInt = parseInt(year);
+  let stopDayCount = 0;
+  const stopDaysList = [];
+  
+  // วนลูปตรวจสอบวันที่ 21 ของเดือนก่อนหน้า ถึงวันที่ 20 ของเดือนปัจจุบัน
+  console.log(`\n📅 === ตรวจสอบวันหยุดในรอบเงินเดือน ===`);
+  
+  // ตรวจสอบวันที่ 21-31 ของเดือนก่อนหน้า
+  let prevMonth = monthInt - 1;
+  let prevYear = yearInt;
+  if (prevMonth === 0) {
+    prevMonth = 12;
+    prevYear = yearInt - 1;
+  }
+  
+  const lastDayOfPrevMonth = new Date(prevYear, prevMonth, 0).getDate();
+  
+  console.log(`\n📆 ตรวจสอบเดือน ${prevMonth}/${prevYear} (วันที่ 21-${lastDayOfPrevMonth}):`);
+  for (let day = 21; day <= lastDayOfPrevMonth; day++) {
+    const date = new Date(prevYear, prevMonth - 1, day);
+    const dayOfWeek = date.getDay();
+    const dayName = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์', 'เสาร์'][dayOfWeek];
+    
+    if (isDateInStopRange(dayOfWeek, workTimeDay)) {
+      stopDayCount++;
+      stopDaysList.push({
+        date: day,
+        month: prevMonth,
+        year: prevYear,
+        dayName: dayName
+      });
+      console.log(`   ✅ วันที่ ${day}/${prevMonth}/${prevYear} (${dayName}) - เป็นวันหยุด`);
+    }
+  }
+  
+  // ตรวจสอบวันที่ 1-20 ของเดือนปัจจุบัน
+  console.log(`\n📆 ตรวจสอบเดือน ${monthInt}/${yearInt} (วันที่ 1-20):`);
+  for (let day = 1; day <= 20; day++) {
+    const date = new Date(yearInt, monthInt - 1, day);
+    const dayOfWeek = date.getDay();
+    const dayName = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์', 'เสาร์'][dayOfWeek];
+    
+    if (isDateInStopRange(dayOfWeek, workTimeDay)) {
+      stopDayCount++;
+      stopDaysList.push({
+        date: day,
+        month: monthInt,
+        year: yearInt,
+        dayName: dayName
+      });
+      console.log(`   ✅ วันที่ ${day}/${monthInt}/${yearInt} (${dayName}) - เป็นวันหยุด`);
+    }
+  }
+  
+  console.log(`\n📊 === สรุปวันหยุดตาม workTimeDay ===`);
+  console.log(`🔢 จำนวนวันหยุดทั้งหมดในรอบเงินเดือน: ${stopDayCount} วัน`);
+  console.log(`📋 รายละเอียดวันหยุด:`);
+  stopDaysList.forEach((day, index) => {
+    console.log(`   ${index + 1}. วันที่ ${day.date}/${day.month}/${day.year} (${day.dayName})`);
+  });
 
   // เรียก API เพื่อดึงข้อมูลวันหยุด
   let weekendData = {};
