@@ -4846,11 +4846,36 @@ try {
 
   // นับจำนวนวันหยุดที่กำหนดเอง
   if (weekendData.weekendAndDayOff && Array.isArray(weekendData.weekendAndDayOff)) {
-    customizeDayoff = weekendData.weekendAndDayOff.length;
+    
+    // ตรวจสอบว่าเป็นหน่วยงานที่ทำงาน 7 วัน หรือไม่
+    let isSpecialWorkplace7Days = false;
+    try {
+      const wpId = employeeProfile[0].workplace || '';
+      const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${wpId}`);
+      const workOfWeek = workplaceResponse.data.workOfWeek || "5";
+      
+      if (workOfWeek === "7") {
+        isSpecialWorkplace7Days = true;
+        console.log(`✅ หน่วยงานพิเศษ 7 วัน - จะใช้ค่า customizeDayoff จาก Employee collection`);
+      }
+    } catch (error) {
+      console.error(`❌ ไม่สามารถตรวจสอบ workOfWeek ได้:`, error.message);
+    }
+    
+    if (isSpecialWorkplace7Days) {
+      // สำหรับหน่วยงาน 7 วัน: ใช้ค่าจาก Employee collection
+      customizeDayoff = employeeProfile[0].customizeDayoff || 0;
+      console.log(`🎯 หน่วยงาน 7 วัน - ใช้ customizeDayoff จาก Employee collection: ${customizeDayoff} วัน`);
+    } else {
+      // สำหรับหน่วยงานปกติ: ใช้ค่าจาก API เหมือนเดิม
+      customizeDayoff = weekendData.weekendAndDayOff.length;
+      console.log(`📅 หน่วยงานปกติ - ใช้ customizeDayoff จาก API: ${customizeDayoff} วัน`);
+    }
+    
     weekendAndDayOffDates = weekendData.weekendAndDayOff;
     
     console.log(`📅 พบวันหยุดที่กำหนดเอง ${customizeDayoff} วัน: ${JSON.stringify(weekendData.weekendAndDayOff)}`);
-    console.log(`ℹ️ จำนวนวันหยุดที่กำหนดเองเริ่มต้น: ${customizeDayoff} วัน`);
+    console.log(`ℹ️ จำนวนวันหยุดที่กำหนดเองสุดท้าย: ${customizeDayoff} วัน`);
 
     // เก็บสถานะการมาทำงานในวันหยุดที่กำหนดเอง
     let customDayoffStatus = [];
