@@ -2721,10 +2721,12 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
   console.log(`\n💎 === ส่งคืนข้อมูล ===`);
   console.log(`📋 อาร์เรย์ข้อมูลพนักงาน: ${updatedRecords.length} รายการ`);
   console.log(`💰 cashcustomizeDayoff: ${totalWorkerWage.toFixed(2)} บาท`);
+  console.log(`🟢 วันหยุดพิเศษ: ${stopDaysList.length} วัน`);
   
   return {
     updatedRecords,
-    cashcustomizeDayoff: totalWorkerWage
+    cashcustomizeDayoff: totalWorkerWage,
+    stopDaysList: stopDaysList // ส่งรายการวันหยุดไปด้วย
   };
 };
 
@@ -3025,13 +3027,16 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         // เลือกใช้ฟังก์ชันคำนวณตามประเภทหน่วยงาน
         let updatedRecords;
         let cashcustomizeDayoff = 0; // เก็บค่า cashcustomizeDayoff สำหรับหน่วยงานพิเศษ 7 วัน
+        let stopDaysList = []; // เก็บรายการวันหยุดพิเศษ
         
         if (isSpecialWorkplace) {
           console.log(`\n🔄 ใช้ฟังก์ชันคำนวณแบบหน่วยงานพิเศษ 7 วัน`);
           const result = await calculateCashValuesSpecial7Days(employeeId, doc.employee_record, month, year);
           updatedRecords = result.updatedRecords;
           cashcustomizeDayoff = result.cashcustomizeDayoff;
+          stopDaysList = result.stopDaysList || [];
           console.log(`💎 ได้ cashcustomizeDayoff: ${cashcustomizeDayoff} บาท`);
+          console.log(`🟢 ได้วันหยุดพิเศษ: ${stopDaysList.length} วัน`);
         } else {
           console.log(`\n🔄 ใช้ฟังก์ชันคำนวณแบบหน่วยงานปกติ`);
           updatedRecords = await calculateCashValues(employeeId, doc.employee_record, month, year);
@@ -3040,10 +3045,12 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         if (JSON.stringify(updatedRecords) !== JSON.stringify(doc.employee_record)) {
           doc.employee_record = updatedRecords;
           
-          // สำหรับหน่วยงานพิเศษ 7 วัน ให้เพิ่ม cashcustomizeDayoff ในเอกสาร
+          // สำหรับหน่วยงานพิเศษ 7 วัน ให้เพิ่ม cashcustomizeDayoff และ stopDaysList ในเอกสาร
           if (isSpecialWorkplace) {
             doc.cashcustomizeDayoff = cashcustomizeDayoff;
+            doc.stopDaysList = stopDaysList;
             console.log(`💎 เซต cashcustomizeDayoff ในเอกสาร: ${cashcustomizeDayoff} บาท`);
+            console.log(`🟢 เซต stopDaysList ในเอกสาร: ${stopDaysList.length} วัน`);
           }
           
           await doc.save();
