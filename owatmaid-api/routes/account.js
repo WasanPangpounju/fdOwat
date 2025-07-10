@@ -5036,6 +5036,17 @@ let timeCashWorkMul = {
         console.log(`✅ มาทำงานในวันหยุด: ${workedOnStopDays} วัน`);
         console.log(`🔢 กำหนดค่า customizeDayoff = ${customizeDayoff}`);
         
+        // สำหรับหน่วยงาน 7 วัน: ปรับ dayWorkCount โดยหัก workedOnStopDays
+        if (workOfWeek === "7") {
+          const originalDayWorkCount = dayWorkCount;
+          dayWorkCount = dayWorkCount - workedOnStopDays;
+          console.log(`\n🔄 === ปรับ dayWorkCount สำหรับหน่วยงาน 7 วัน ===`);
+          console.log(`📊 dayWorkCount เดิม: ${originalDayWorkCount} วัน`);
+          console.log(`📊 workedOnStopDays: ${workedOnStopDays} วัน`);
+          console.log(`📊 dayWorkCount ใหม่: ${dayWorkCount} วัน`);
+          console.log(`📝 สูตร: dayWorkCount - workedOnStopDays = ${originalDayWorkCount} - ${workedOnStopDays} = ${dayWorkCount}`);
+        }
+        
         // คำนวณค่าแรงสำหรับวันหยุดที่มาทำงาน (ถ้าต้องการ)
         // const dailyWage = salaryTmp > 1660 ? (salaryTmp / 30) : salaryTmp;
         // cashcustomizeDayoff = customizeDayoff * dailyWage;
