@@ -2476,9 +2476,33 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
     console.error(`❌ เกิดข้อผิดพลาดในการอัปเดต customizeDayoff:`, error);
   }
   
-  const dailyWage = parseFloat(salaryTmp || '0') > 1660 ? 
-                    (parseFloat(salaryTmp || '0') / 30) : 
-                    parseFloat(salaryTmp || '0');
+  // ดึงค่า workRate จาก workplace API สำหรับคำนวณ dailyWage
+  let dailyWage = 0;
+  try {
+    const workplaceApiUrl = `http://10.10.110.7:3000/workplace/${workplaceId}`;
+    console.log(`\n🔍 ดึงข้อมูล workRate จาก: ${workplaceApiUrl}`);
+    
+    const workplaceResponse = await axios.get(workplaceApiUrl);
+    const workRate = parseFloat(workplaceResponse.data.workRate || '0');
+    
+    if (workRate > 0) {
+      dailyWage = workRate;
+      console.log(`✅ ใช้ workRate จาก API (workplace: ${workplaceId}): ${dailyWage} บาท/วัน`);
+    } else {
+      // Fallback ใช้การคำนวณเดิมถ้า workRate ไม่มีหรือเป็น 0
+      dailyWage = parseFloat(salaryTmp || '0') > 1660 ? 
+                  (parseFloat(salaryTmp || '0') / 30) : 
+                  parseFloat(salaryTmp || '0');
+      console.log(`⚠️ workRate จาก API เป็น 0 หรือไม่มี, ใช้การคำนวณเดิม: ${dailyWage} บาท/วัน`);
+    }
+  } catch (error) {
+    console.error(`❌ ไม่สามารถดึง workRate จาก API ได้ (workplace: ${workplaceId}):`, error.message);
+    // Fallback ใช้การคำนวณเดิม
+    dailyWage = parseFloat(salaryTmp || '0') > 1660 ? 
+                (parseFloat(salaryTmp || '0') / 30) : 
+                parseFloat(salaryTmp || '0');
+    console.log(`🔄 ใช้การคำนวณเดิม (fallback): ${dailyWage} บาท/วัน`);
+  }
   
   const totalLostWage = notWorkedOnStopDays * dailyWage;
   const totalWorkerWage = workedOnStopDays * dailyWage;
