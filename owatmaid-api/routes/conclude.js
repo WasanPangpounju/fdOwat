@@ -2195,6 +2195,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
   const salaryTmp = parseFloat(employeeProfile[0].salary || '0') || 0;
   const workplaceId = employeeProfile[0].workplace;
   let salary = 0;
+  
 
   const customWorkplace = employeeProfile[0].customWorkplace;
   const workTimeDay = customWorkplace?.workTimeDay || [];
