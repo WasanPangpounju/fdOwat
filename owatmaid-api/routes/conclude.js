@@ -2372,12 +2372,17 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
     console.log(`\n📝 === อัปเดต customizeDayoff ===`);
     console.log(`🔄 กำลังอัปเดต customizeDayoff จาก ${employeeProfile[0].customizeDayoff || 0} เป็น ${workedOnStopDays}`);
     
-    await Employee.updateOne(
+    const updateResult = await Employee.updateOne(
       { employeeId: employeeId },
       { $set: { customizeDayoff: workedOnStopDays } }
     );
     
     console.log(`✅ อัปเดต customizeDayoff สำเร็จ: ${workedOnStopDays} วัน`);
+    console.log(`📊 Update result:`, updateResult);
+    
+    // ตรวจสอบข้อมูลหลังอัปเดต
+    const updatedEmployee = await Employee.findOne({ employeeId: employeeId });
+    console.log(`🔍 ข้อมูลหลังอัปเดต: customizeDayoff = ${updatedEmployee?.customizeDayoff}`);
   } catch (error) {
     console.error(`❌ เกิดข้อผิดพลาดในการอัปเดต customizeDayoff:`, error);
   }
