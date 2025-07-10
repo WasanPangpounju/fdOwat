@@ -53,6 +53,20 @@ dayOffCount : String,
 specialDayOff : String,
 customizeDayoff : String, 
 cashcustomizeDayoff : String, 
+personalDayOff: [{ // เพิ่ม field สำหรับเก็บวันหยุดส่วนบุคคล
+  date: Number,
+  month: Number,
+  year: Number,
+  dayName: String,
+  note: String
+}],
+stopDaysList: [{ // เพิ่ม field สำหรับเก็บรายการวันหยุดพิเศษ (เดิมใช้ชื่อ stopDaysList)
+  date: Number,
+  month: Number,
+  year: Number,
+  dayName: String,
+  note: String
+}],
 sumTimeWork : String,
 publicHolidayCount : String,
 publicHolidayCash : String,

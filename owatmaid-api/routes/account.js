@@ -4389,11 +4389,12 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
 
       if (workplaceId && empWorkplaceId !== workplaceId) continue;
 
-            // 🔥 เพิ่มเช็ค dayWorkCount หรือ dayOffCount และดึง stopDaysList
-            if (!record.dayWorkCount || !record.dayOffCount || !record.stopDaysList) {
+            // 🔥 เพิ่มเช็ค dayWorkCount หรือ dayOffCount และดึง personalDayOff
+            if (!record.dayWorkCount || !record.dayOffCount || !record.personalDayOff) {
               console.log(`🔍 Missing data for employeeId=${record.employeeId} month ${record.month} year ${record.year}`);
               console.log(`  - dayWorkCount: ${record.dayWorkCount || 'ไม่มี'}`);
               console.log(`  - dayOffCount: ${record.dayOffCount || 'ไม่มี'}`);
+              console.log(`  - personalDayOff: ${record.personalDayOff ? 'มี' : 'ไม่มี'}`);
               console.log(`  - stopDaysList: ${record.stopDaysList ? 'มี' : 'ไม่มี'}`);
       
               try {
@@ -4409,10 +4410,16 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
                   year: record.year,
                 });
             
-                // ดึง stopDaysList จาก conclude API response
+                // ดึง personalDayOff จาก conclude API response
                 if (apiRes.data && apiRes.data.result && apiRes.data.result.length > 0) {
                   const concludeData = apiRes.data.result[0];
-                  if (concludeData.stopDaysList) {
+                  if (concludeData.personalDayOff) {
+                    record.personalDayOff = concludeData.personalDayOff;
+                    record.stopDaysList = concludeData.personalDayOff; // ความเข้ากันได้ย้อนหลัง
+                    console.log(`🟢 ได้ personalDayOff สำหรับ ${record.employeeId}: ${record.personalDayOff.length} วัน`);
+                  } else if (concludeData.stopDaysList) {
+                    // fallback ถ้าไม่มี personalDayOff แต่มี stopDaysList
+                    record.personalDayOff = concludeData.stopDaysList;
                     record.stopDaysList = concludeData.stopDaysList;
                     console.log(`🟢 ได้ stopDaysList สำหรับ ${record.employeeId}: ${record.stopDaysList.length} วัน`);
                   }
@@ -4487,8 +4494,9 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
       processedRecord.sumOt1p5 = recalculatedSumOt1p5.toFixed(2);
       console.log(`🔄 คำนวณ sumOt1p5 ใหม่สำหรับพนักงาน ${record.employeeId}: จำนวนวันทำงาน ${workDays} วัน, รวม OT ${processedRecord.sumOt1p5} ชั่วโมง`);
 
-      // Debug: ตรวจสอบข้อมูล stopDaysList และ cashcustomizeDayoff
+      // Debug: ตรวจสอบข้อมูล personalDayOff และ cashcustomizeDayoff
       console.log(`📊 Debug ข้อมูล employee ${record.employeeId}:`);
+      console.log(`  - personalDayOff จาก DB:`, record.personalDayOff);
       console.log(`  - stopDaysList จาก DB:`, record.stopDaysList);
       console.log(`  - cashcustomizeDayoff จาก DB:`, record.cashcustomizeDayoff);
       console.log(`  - status จาก DB:`, record.status);
@@ -4498,13 +4506,15 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
         ...processedRecord,
         employeeName: employee.name + ' ' + (employee.lastName || ''),
         workplaceName: employee.workplaceName || '', // if available
-        // เพิ่ม stopDaysList และ cashcustomizeDayoff เพื่อให้แน่ใจว่าถูกส่งไปยัง frontend
-        stopDaysList: record.stopDaysList || [],
+        // เพิ่ม personalDayOff และ stopDaysList เพื่อให้แน่ใจว่าถูกส่งไปยัง frontend
+        personalDayOff: record.personalDayOff || [],
+        stopDaysList: record.stopDaysList || record.personalDayOff || [], // ความเข้ากันได้ย้อนหลัง
         cashcustomizeDayoff: record.cashcustomizeDayoff || 0
       });
       
       // Debug log เพื่อตรวจสอบข้อมูลที่ส่งกลับ
       console.log(`📤 ส่งข้อมูลกลับสำหรับ ${record.employeeId}:`);
+      console.log(`  - personalDayOff: ${record.personalDayOff ? `${record.personalDayOff.length} วัน` : 'ไม่มี'}`);
       console.log(`  - stopDaysList: ${record.stopDaysList ? `${record.stopDaysList.length} วัน` : 'ไม่มี'}`);
       console.log(`  - cashcustomizeDayoff: ${record.cashcustomizeDayoff || 'ไม่มี'} บาท`);
     }

@@ -2726,7 +2726,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
   return {
     updatedRecords,
     cashcustomizeDayoff: totalWorkerWage,
-    stopDaysList: stopDaysList // ส่งรายการวันหยุดไปด้วย
+    personalDayOff: stopDaysList // เปลี่ยนชื่อให้ชัดเจนขึ้น - ใช้เป็นวันหยุดส่วนบุคคล
   };
 };
 
@@ -3027,16 +3027,16 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         // เลือกใช้ฟังก์ชันคำนวณตามประเภทหน่วยงาน
         let updatedRecords;
         let cashcustomizeDayoff = 0; // เก็บค่า cashcustomizeDayoff สำหรับหน่วยงานพิเศษ 7 วัน
-        let stopDaysList = []; // เก็บรายการวันหยุดพิเศษ
+        let personalDayOff = []; // เก็บรายการวันหยุดส่วนบุคคล
         
         if (isSpecialWorkplace) {
           console.log(`\n🔄 ใช้ฟังก์ชันคำนวณแบบหน่วยงานพิเศษ 7 วัน`);
           const result = await calculateCashValuesSpecial7Days(employeeId, doc.employee_record, month, year);
           updatedRecords = result.updatedRecords;
           cashcustomizeDayoff = result.cashcustomizeDayoff;
-          stopDaysList = result.stopDaysList || [];
+          personalDayOff = result.personalDayOff || [];
           console.log(`💎 ได้ cashcustomizeDayoff: ${cashcustomizeDayoff} บาท`);
-          console.log(`🟢 ได้วันหยุดพิเศษ: ${stopDaysList.length} วัน`);
+          console.log(`🟢 ได้วันหยุดส่วนบุคคล: ${personalDayOff.length} วัน`);
         } else {
           console.log(`\n🔄 ใช้ฟังก์ชันคำนวณแบบหน่วยงานปกติ`);
           updatedRecords = await calculateCashValues(employeeId, doc.employee_record, month, year);
@@ -3045,12 +3045,14 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         if (JSON.stringify(updatedRecords) !== JSON.stringify(doc.employee_record)) {
           doc.employee_record = updatedRecords;
           
-          // สำหรับหน่วยงานพิเศษ 7 วัน ให้เพิ่ม cashcustomizeDayoff และ stopDaysList ในเอกสาร
+          // สำหรับหน่วยงานพิเศษ 7 วัน ให้เพิ่ม cashcustomizeDayoff และ personalDayOff ในเอกสาร
           if (isSpecialWorkplace) {
             doc.cashcustomizeDayoff = cashcustomizeDayoff;
-            doc.stopDaysList = stopDaysList;
+            doc.personalDayOff = personalDayOff;
+            // เก็บข้อมูลใน stopDaysList ด้วยเพื่อความเข้ากันได้ย้อนหลัง
+            doc.stopDaysList = personalDayOff;
             console.log(`💎 เซต cashcustomizeDayoff ในเอกสาร: ${cashcustomizeDayoff} บาท`);
-            console.log(`🟢 เซต stopDaysList ในเอกสาร: ${stopDaysList.length} วัน`);
+            console.log(`🟢 เซต personalDayOff ในเอกสาร: ${personalDayOff.length} วัน`);
           }
           
           await doc.save();
@@ -3069,9 +3071,10 @@ router.post('/searchtimerecordemployee', async (req, res) => {
       console.log(`  - employeeId: ${doc.employeeId}`);
       console.log(`  - month: ${doc.month}, year: ${doc.year}`);
       console.log(`  - cashcustomizeDayoff: ${doc.cashcustomizeDayoff || 'ไม่มี'}`);
+      console.log(`  - personalDayOff: ${doc.personalDayOff ? `${doc.personalDayOff.length} วัน` : 'ไม่มี'}`);
       console.log(`  - stopDaysList: ${doc.stopDaysList ? `${doc.stopDaysList.length} วัน` : 'ไม่มี'}`);
-      if (doc.stopDaysList && doc.stopDaysList.length > 0) {
-        console.log(`    วันหยุดพิเศษ: ${JSON.stringify(doc.stopDaysList)}`);
+      if (doc.personalDayOff && doc.personalDayOff.length > 0) {
+        console.log(`    วันหยุดส่วนบุคคล: ${JSON.stringify(doc.personalDayOff)}`);
       }
     });
     console.log(`=================================\n`);
