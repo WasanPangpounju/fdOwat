@@ -2288,6 +2288,93 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
     console.log(`   ${index + 1}. วันที่ ${day.date}/${day.month}/${day.year} (${day.dayName})`);
   });
 
+  
+  console.log(`\n🔍 === ตรวจสอบการมาทำงานในวันหยุดที่กำหนด ===`);
+  let workedOnStopDays = 0;
+  let notWorkedOnStopDays = 0;
+  const attendanceDetails = [];
+
+  stopDaysList.forEach(stopDay => {
+    // หาข้อมูลการทำงานของวันนั้นใน employee_record
+    const recordForDay = employee_record.find(record => {
+      const recordDate = parseInt(record.date);
+      const recordMonth = recordDate > 20 ? prevMonth : monthInt;
+      const recordYear = recordDate > 20 && prevMonth === 12 ? prevYear : yearInt;
+      
+      return recordDate === stopDay.date && 
+             recordMonth === stopDay.month && 
+             recordYear === stopDay.year;
+    });
+    
+    if (recordForDay) {
+      // ตรวจสอบว่ามีการทำงานหรือไม่จาก totalTime
+      const hasWorked = recordForDay.totalTime && 
+                       recordForDay.totalTime.trim() !== '' && 
+                       parseFloat(recordForDay.totalTime) > 0;
+      
+      if (hasWorked) {
+        workedOnStopDays++;
+        attendanceDetails.push({
+          date: `${stopDay.date}/${stopDay.month}/${stopDay.year}`,
+          dayName: stopDay.dayName,
+          status: 'มาทำงาน',
+          totalTime: recordForDay.totalTime,
+          otTime: recordForDay.totalOtTime || '0',
+          dayType: recordForDay.dayType || 'ไม่ระบุ'
+        });
+        console.log(`   ✅ วันที่ ${stopDay.date}/${stopDay.month}/${stopDay.year} (${stopDay.dayName}) - มาทำงาน ${recordForDay.totalTime} ชั่วโมง`);
+      } else {
+        notWorkedOnStopDays++;
+        attendanceDetails.push({
+          date: `${stopDay.date}/${stopDay.month}/${stopDay.year}`,
+          dayName: stopDay.dayName,
+          status: 'ไม่มาทำงาน',
+          totalTime: '0',
+          otTime: '0',
+          dayType: recordForDay.dayType || 'ไม่ระบุ'
+        });
+        console.log(`   ❌ วันที่ ${stopDay.date}/${stopDay.month}/${stopDay.year} (${stopDay.dayName}) - ไม่มาทำงาน`);
+      }
+    } else {
+      // ไม่พบข้อมูลในระบบ
+      notWorkedOnStopDays++;
+      attendanceDetails.push({
+        date: `${stopDay.date}/${stopDay.month}/${stopDay.year}`,
+        dayName: stopDay.dayName,
+        status: 'ไม่มีข้อมูล',
+        totalTime: '0',
+        otTime: '0',
+        dayType: 'ไม่มีข้อมูล'
+      });
+      console.log(`   ⚠️ วันที่ ${stopDay.date}/${stopDay.month}/${stopDay.year} (${stopDay.dayName}) - ไม่มีข้อมูลในระบบ`);
+    }
+  });
+  
+  // แสดงสรุปผล
+  console.log(`\n📊 === สรุปการมาทำงานในวันหยุด ===`);
+  console.log(`📅 จำนวนวันหยุดทั้งหมด: ${stopDayCount} วัน`);
+  console.log(`✅ มาทำงาน: ${workedOnStopDays} วัน`);
+  console.log(`❌ ไม่มาทำงาน: ${notWorkedOnStopDays} วัน`);
+  console.log(`\n📋 รายละเอียดการมาทำงาน:`);
+  console.log(`┌─────────────────┬──────────┬─────────────┬────────────┬──────────┬──────────┐`);
+  console.log(`│ วันที่          │ วัน      │ สถานะ      │ ชั่วโมงงาน │ OT       │ ประเภท   │`);
+  console.log(`├─────────────────┼──────────┼─────────────┼────────────┼──────────┼──────────┤`);
+  
+  attendanceDetails.forEach(detail => {
+    console.log(`│ ${detail.date.padEnd(15)} │ ${detail.dayName.padEnd(8)} │ ${detail.status.padEnd(11)} │ ${detail.totalTime.padEnd(10)} │ ${detail.otTime.padEnd(8)} │ ${detail.dayType.padEnd(8)} │`);
+  });
+  
+  console.log(`└─────────────────┴──────────┴─────────────┴────────────┴──────────┴──────────┘`);
+  const dailyWage = parseFloat(salaryTmp || '0') > 1660 ? 
+                    (parseFloat(salaryTmp || '0') / 30) : 
+                    parseFloat(salaryTmp || '0');
+  
+  const totalLostWage = notWorkedOnStopDays * dailyWage;
+   console.log(`\n💰 === การคำนวณค่าแรง ===`);
+  console.log(`💵 ค่าแรงต่อวัน: ${dailyWage.toFixed(2)} บาท`);
+  console.log(`📅 จำนวนวันหยุดที่ไม่มาทำงาน: ${notWorkedOnStopDays} วัน`);
+  console.log(`💸 ค่าแรงที่ต้องหัก: ${totalLostWage.toFixed(2)} บาท`);
+
   // เรียก API เพื่อดึงข้อมูลวันหยุด
   let weekendData = {};
   try {
