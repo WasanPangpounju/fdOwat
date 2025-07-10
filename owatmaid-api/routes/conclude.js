@@ -2410,6 +2410,14 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
     console.log(`✅ อัปเดต timerecordEmployee collection สำเร็จ: ${workedOnStopDays} วัน`);
     console.log(`📊 TimeRecord Update result:`, timeRecordUpdateResult);
     
+    // ตรวจสอบข้อมูลใน timerecordEmployee หลังอัปเดต
+    const verifyTimeRecord = await timerecordEmployee.findOne({
+      employeeId: employeeId,
+      month: month,
+      year: year
+    });
+    console.log(`🔍 ตรวจสอบ timerecordEmployee หลังอัปเดต: customizeDayoff = ${verifyTimeRecord?.customizeDayoff}`);
+    
     // หากการอัปเดตไม่สำเร็จ ลองใช้ collection.updateOne โดยตรง
     if (!updateResult.acknowledged) {
       console.log(`⚠️ ลองใช้ MongoDB collection โดยตรง...`);
