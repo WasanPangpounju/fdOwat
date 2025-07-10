@@ -4484,12 +4484,18 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
       processedRecord.sumOt1p5 = recalculatedSumOt1p5.toFixed(2);
       console.log(`🔄 คำนวณ sumOt1p5 ใหม่สำหรับพนักงาน ${record.employeeId}: จำนวนวันทำงาน ${workDays} วัน, รวม OT ${processedRecord.sumOt1p5} ชั่วโมง`);
 
+      // Debug: ตรวจสอบข้อมูล stopDaysList และ cashcustomizeDayoff
+      console.log(`📊 Debug ข้อมูล employee ${record.employeeId}:`);
+      console.log(`  - stopDaysList:`, record.stopDaysList);
+      console.log(`  - cashcustomizeDayoff:`, record.cashcustomizeDayoff);
+
       groupedResult[empWorkplaceId].push({
         ...processedRecord,
         employeeName: employee.name + ' ' + (employee.lastName || ''),
         workplaceName: employee.workplaceName || '', // if available
-        stopDaysList: record.stopDaysList || [], // เพิ่ม stopDaysList
-        cashcustomizeDayoff: record.cashcustomizeDayoff || 0, // เพิ่ม cashcustomizeDayoff
+        // เพิ่ม stopDaysList และ cashcustomizeDayoff เพื่อให้แน่ใจว่าถูกส่งไปยัง frontend
+        stopDaysList: record.stopDaysList || [],
+        cashcustomizeDayoff: record.cashcustomizeDayoff || 0
       });
       
       // Debug log เพื่อตรวจสอบข้อมูลที่ส่งกลับ
