@@ -3062,6 +3062,20 @@ router.post('/searchtimerecordemployee', async (req, res) => {
       }
     }
     
+    // แสดงข้อมูลที่จะส่งกลับเพื่อตรวจสอบ
+    console.log(`\n📤 === ข้อมูลที่จะส่งกลับ ===`);
+    result.forEach((doc, index) => {
+      console.log(`📄 Document ${index + 1}:`);
+      console.log(`  - employeeId: ${doc.employeeId}`);
+      console.log(`  - month: ${doc.month}, year: ${doc.year}`);
+      console.log(`  - cashcustomizeDayoff: ${doc.cashcustomizeDayoff || 'ไม่มี'}`);
+      console.log(`  - stopDaysList: ${doc.stopDaysList ? `${doc.stopDaysList.length} วัน` : 'ไม่มี'}`);
+      if (doc.stopDaysList && doc.stopDaysList.length > 0) {
+        console.log(`    วันหยุดพิเศษ: ${JSON.stringify(doc.stopDaysList)}`);
+      }
+    });
+    console.log(`=================================\n`);
+
     await res.status(200).json({ result });
 
   } catch (error) {

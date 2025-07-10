@@ -4678,15 +4678,21 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           addSalaryList: calculatedValues.addSalaryList,
            deductSalaryList: calculatedValues.deductSalaryList,
           sumCashWorkMul: calculatedValues.sumCashWorkMul,
+          // เพิ่ม stopDaysList สำหรับหน่วยงาน 7 วัน
+          stopDaysList: doc.stopDaysList || [],
         };
         
         // แสดงข้อมูลสำคัญที่จะบันทึก
         console.log(`\n📝 ข้อมูลที่จะบันทึกสำหรับพนักงาน ${doc.employeeId}:`);
-        console.log(`� prefix: ${updateData.prefix}`);
-        console.log(`�🔍 dayWorkCount: ${updateData.dayWorkCount}`);
+        console.log(`🏷️ prefix: ${updateData.prefix}`);
+        console.log(`🔍 dayWorkCount: ${updateData.dayWorkCount}`);
         console.log(`🔍 customizeDayoff: ${updateData.customizeDayoff}`);
         console.log(`💰 cashcustomizeDayoff: ${updateData.cashcustomizeDayoff}`);
         console.log(`⏱️ sumOt1p5: ${updateData.sumOt1p5}`); 
+        console.log(`🟢 stopDaysList: ${updateData.stopDaysList ? `${updateData.stopDaysList.length} วัน` : 'ไม่มี'}`);
+        if (updateData.stopDaysList && updateData.stopDaysList.length > 0) {
+          console.log(`  วันหยุดพิเศษ: ${JSON.stringify(updateData.stopDaysList)}`);
+        }
         
         // ตรวจสอบว่ามีรายการ addSalaryList หรือไม่
         if (calculatedValues.addSalaryList && calculatedValues.addSalaryList.length > 0) {
