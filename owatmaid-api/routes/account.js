@@ -900,36 +900,44 @@ try {
   console.error(`❌ ไม่สามารถตรวจสอบ workOfWeek ได้:`, error.message);
 }
 
+// คำนวณ countAllowance จาก employee_record โดยนับจำนวนวันที่มี totalTime ไม่เป็นค่าว่าง
+console.log(`\n🔍 === คำนวณ countAllowance จาก employee_record ===`);
+countAllowance = employee_record.filter(record => {
+  const hasTotalTime = record.totalTime && record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0;
+  console.log(`   วันที่ ${record.day || 'N/A'}: totalTime="${record.totalTime}" → ${hasTotalTime ? 'นับได้' : 'ไม่นับ'}`);
+  return hasTotalTime;
+}).length;
+
+console.log(`🔍 countAllowance ที่คำนวณได้: ${countAllowance} วัน (จากจำนวนวันที่มี totalTime ไม่เป็นค่าว่าง)`);
+
 let totalWorkDays = 0;
 if (isSpecialWorkplace7Days) {
-  // ใช้ countAllowance แทนการนับ totalTime
-  if (countAllowance > 0) {
-    totalWorkDays = countAllowance;
-    console.log(`📊 หน่วยงานพิเศษ 7 วัน - ใช้ countAllowance: ${countAllowance} วัน`);
-  } else {
-    // fallback เป็นการนับเดิม
-    totalWorkDays = responseConclude.data.recordConclude[c].concludeRecord.filter(record => {
-      // ตรวจสอบว่ามี totalTime และไม่ใช่ค่าว่าง
-      return record.totalTime && record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0;
-    }).length;
-    
-    console.log(`📊 หน่วยงานพิเศษ 7 วัน - จำนวนวันทำงานจริง (จาก totalTime fallback): ${totalWorkDays} วัน`);
-    
-    // แสดงรายละเอียดการนับเพื่อตรวจสอบ
-    console.log(`📋 รายละเอียดการนับวัน:`);
-    responseConclude.data.recordConclude[c].concludeRecord.forEach((record, index) => {
-      const hasTotalTime = record.totalTime && record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0;
-      console.log(`   วันที่ ${record.day}: totalTime = "${record.totalTime || 'ไม่มี'}" ${hasTotalTime ? '✅ นับ' : '❌ ไม่นับ'}`);
-    });
-  }
+  // ใช้ countAllowance ที่คำนวณใหม่
+  totalWorkDays = countAllowance;
+  console.log(`📊 หน่วยงานพิเศษ 7 วัน - ใช้ countAllowance: ${countAllowance} วัน`);
+} else {
+  // สำหรับหน่วยงานปกติ ใช้การนับเดิม
+  totalWorkDays = responseConclude.data.recordConclude[c].concludeRecord.filter(record => {
+    // ตรวจสอบว่ามี totalTime และไม่ใช่ค่าว่าง
+    return record.totalTime && record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0;
+  }).length;
+  
+  console.log(`📊 หน่วยงานปกติ - จำนวนวันทำงานจริง (จาก totalTime): ${totalWorkDays} วัน`);
+  
+  // แสดงรายละเอียดการนับเพื่อตรวจสอบ
+  console.log(`📋 รายละเอียดการนับวัน:`);
+  responseConclude.data.recordConclude[c].concludeRecord.forEach((record, index) => {
+    const hasTotalTime = record.totalTime && record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0;
+    console.log(`   วันที่ ${record.day}: totalTime = "${record.totalTime || 'ไม่มี'}" ${hasTotalTime ? '✅ นับ' : '❌ ไม่นับ'}`);
+  });
 }
 
 if (isSpecialWorkplace7Days) {
   console.log(`🟦 LOG: ค่า totalWorkDays ก่อน map addSalaryDayArray =`, totalWorkDays);
   addSalaryDayArray = addSalaryDayArray.map(item => {
-    // เพิ่มการตรวจสอบ ID สำหรับเงินพิเศษ (1560)
-    if (item.id === "1560") {
-      console.log(`🔍 พบรายการ ID 1560 (${item.name}): กำลังอัปเดต message`);
+    // เพิ่มการตรวจสอบ roundOfSalary สำหรับรายการประเภท daily
+    if (item.roundOfSalary === "daily") {
+      console.log(`🔍 พบรายการ ID ${item.id} (${item.name}) ที่เป็น roundOfSalary=daily: กำลังอัปเดต message`);
       console.log(`   - ค่าเดิม: "${item.message || 'ไม่มี'}"`);
       // ใช้ countAllowance เป็นค่าหลัก หากมี
       const newMessage = countAllowance > 0 ? countAllowance.toString() : totalWorkDays.toString();
@@ -5883,6 +5891,9 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
     sumOtPublicHoliday,
     countAllowance, // เพิ่ม countAllowance เพื่อใช้ในการตั้งค่า message
   };
+  
+  // Log ค่า countAllowance ก่อน return
+  console.log(`🔍 calculateCashValues return countAllowance: ${countAllowance}`);
 };
 
 
