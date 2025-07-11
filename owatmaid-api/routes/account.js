@@ -4684,12 +4684,15 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           doc.year
         );
 
-        // LOG จุดนี้สำหรับ addSalaryList
+        // LOG จุดนี้สำหรับ addSalaryList และ totalWorkDays
         if (Array.isArray(calculatedValues.addSalaryList)) {
           console.log('🟦 LOG: addSalaryList (searchtimerecordemployee)');
           calculatedValues.addSalaryList.forEach((item, idx) => {
             console.log(`   [${idx}] id=${item.id}, name=${item.name}, SpSalary=${item.SpSalary}, message=${item.message}`);
           });
+        }
+        if (typeof calculatedValues.totalWorkDays !== 'undefined') {
+          console.log('🟦 LOG: totalWorkDays (searchtimerecordemployee) =', calculatedValues.totalWorkDays);
         }
 
         // คำนวณ totalAddSalary จาก addSalaryList
