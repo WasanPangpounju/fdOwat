@@ -4683,7 +4683,15 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           doc.month,
           doc.year
         );
-        
+
+        // LOG จุดนี้สำหรับ addSalaryList
+        if (Array.isArray(calculatedValues.addSalaryList)) {
+          console.log('🟦 LOG: addSalaryList (searchtimerecordemployee)');
+          calculatedValues.addSalaryList.forEach((item, idx) => {
+            console.log(`   [${idx}] id=${item.id}, name=${item.name}, SpSalary=${item.SpSalary}, message=${item.message}`);
+          });
+        }
+
         // คำนวณ totalAddSalary จาก addSalaryList
         const totalAddSalary = calculatedValues.addSalaryList.reduce((total, item) => {
           return total + (parseFloat(item.SpSalary) || 0);
