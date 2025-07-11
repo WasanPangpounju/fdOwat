@@ -926,6 +926,7 @@ if (isSpecialWorkplace7Days) {
 }
 
 if (isSpecialWorkplace7Days) {
+  console.log(`🟦 LOG: ค่า totalWorkDays ก่อน map addSalaryDayArray =`, totalWorkDays);
   addSalaryDayArray = addSalaryDayArray.map(item => {
     // เพิ่มการตรวจสอบ ID สำหรับเงินพิเศษ (1560)
     if (item.id === "1560") {
