@@ -4765,10 +4765,10 @@ if (isSpecialWorkplace7Days) {
                   }));
                   
                   console.log(`🔧 อัปเดต message ใน addSalaryList เป็น: ${totalWorkDays} (นับจาก dayType)`);
-                  console.log(`📝 ตัวอย่างรายการที่อัปเดตแล้ว:`, {
-                    id: calculatedValues.addSalaryList[0]?.id,
-                    name: calculatedValues.addSalaryList[0]?.name,
-                    message: calculatedValues.addSalaryList[0]?.message
+                  console.log(`📝 รายการ addSalaryList ที่อัปเดตแล้ว (${calculatedValues.addSalaryList.length} รายการ):`);
+                  
+                  calculatedValues.addSalaryList.forEach((item, index) => {
+                    console.log(`   ${index + 1}. ID: ${item.id || 'ไม่มี'}, Name: ${item.name || 'ไม่มี'}, Message: "${item.message}", SpSalary: ${item.SpSalary || 0}`);
                   });
                 }
               }
