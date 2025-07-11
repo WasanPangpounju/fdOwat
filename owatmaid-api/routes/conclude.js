@@ -2789,7 +2789,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
     }
     return record;
   });
-ห
+
   // Return an object containing both the updated records and cashcustomizeDayoff
   console.log(`\n💎 === ส่งคืนข้อมูล ===`);
   console.log(`📋 อาร์เรย์ข้อมูลพนักงาน: ${finalUpdatedRecords.length} รายการ`);
