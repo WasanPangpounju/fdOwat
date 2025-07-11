@@ -3053,6 +3053,69 @@ router.post('/searchtimerecordemployee', async (req, res) => {
             doc.stopDaysList = personalDayOff;
             console.log(`💎 เซต cashcustomizeDayoff ในเอกสาร: ${cashcustomizeDayoff} บาท`);
             console.log(`🟢 เซต personalDayOff ในเอกสาร: ${personalDayOff.length} วัน`);
+            
+            // === อัปเดต addSalaryList.message สำหรับหน่วยงานพิเศษ 7 วัน ===
+            console.log(`\n🔄 === กำลังอัปเดต addSalaryList.message ===`);
+            
+            // นับวันที่มี dayType (ไม่ว่า work หรือ stop)
+            const daysWithDayType = updatedRecords.filter(record => 
+              record.dayType && record.dayType.trim() !== ""
+            ).length;
+            
+            console.log(`📊 จำนวนวันที่มี dayType: ${daysWithDayType} วัน`);
+            
+            // สร้าง addSalary หากไม่มี โดยใช้ข้อมูลจาก employeeProfile
+            if (!doc.addSalary) {
+              console.log(`🔧 สร้าง addSalary ใหม่จากข้อมูลพนักงาน`);
+              
+              // สร้าง addSalaryList สำหรับทุกวันใน employee_record
+              const addSalaryList = [];
+              const employeeAddSalary = employeeProfile[0].addSalary || [];
+              
+              // สำหรับแต่ละวันใน employee_record
+              updatedRecords.forEach((record, dayIndex) => {
+                const hasWorked = parseFloat(record.allTimes || record.totalTime || 0) > 0;
+                
+                if (hasWorked && record.dayType) {
+                  // ถ้ามีการทำงานและมี dayType ให้เพิ่มเงินพิเศษรายวันพร้อมอัปเดต message
+                  const dailySalary = employeeAddSalary
+                    .filter(salary => salary.roundOfSalary === "daily")
+                    .map(salary => ({
+                      ...salary,
+                      message: daysWithDayType.toString(), // อัปเดต message เป็นจำนวนวันที่มี dayType
+                      SpSalary: parseFloat(salary.SpSalary) > 100 ? 
+                        (parseFloat(salary.SpSalary) / 30).toFixed(2) : 
+                        salary.SpSalary
+                    }));
+                  
+                  addSalaryList.push(dailySalary);
+                  console.log(`✅ วันที่ ${dayIndex + 1}: เพิ่มเงินพิเศษรายวัน (${daysWithDayType} วัน) - ${dailySalary.length} รายการ`);
+                } else {
+                  // ถ้าไม่มีการทำงานหรือไม่มี dayType ไม่เพิ่มเงินพิเศษ
+                  addSalaryList.push([]);
+                  console.log(`❌ วันที่ ${dayIndex + 1}: ไม่เพิ่มเงินพิเศษ (ไม่มีการทำงานหรือไม่มี dayType)`);
+                }
+              });
+              
+              doc.addSalary = addSalaryList;
+              console.log(`🆕 สร้าง addSalary ใหม่: ${addSalaryList.length} วัน`);
+            } else if (Array.isArray(doc.addSalary)) {
+              // ถ้ามี addSalary อยู่แล้ว ให้อัปเดต message
+              doc.addSalary.forEach((salaryArray, index) => {
+                if (Array.isArray(salaryArray)) {
+                  salaryArray.forEach((salaryItem, itemIndex) => {
+                    if (salaryItem && typeof salaryItem === 'object') {
+                      const oldMessage = salaryItem.message;
+                      salaryItem.message = daysWithDayType.toString();
+                      console.log(`✅ addSalary[${index}][${itemIndex}]: อัปเดต message จาก "${oldMessage}" เป็น "${salaryItem.message}"`);
+                    }
+                  });
+                }
+              });
+              console.log(`📝 อัปเดต addSalary.message เป็น "${daysWithDayType}" สำเร็จ`);
+            } else {
+              console.log(`⚠️ addSalary มีโครงสร้างที่ไม่คาดคิด:`, typeof doc.addSalary);
+            }
           }
           
           await doc.save();
@@ -3073,6 +3136,32 @@ router.post('/searchtimerecordemployee', async (req, res) => {
       console.log(`  - cashcustomizeDayoff: ${doc.cashcustomizeDayoff || 'ไม่มี'}`);
       console.log(`  - personalDayOff: ${doc.personalDayOff ? `${doc.personalDayOff.length} วัน` : 'ไม่มี'}`);
       console.log(`  - stopDaysList: ${doc.stopDaysList ? `${doc.stopDaysList.length} วัน` : 'ไม่มี'}`);
+      
+      // แสดงข้อมูล addSalary และ message
+      if (doc.addSalary && Array.isArray(doc.addSalary)) {
+        console.log(`  - addSalary: ${doc.addSalary.length} รายการ`);
+        let messageCount = 0;
+        let totalItemCount = 0;
+        
+        doc.addSalary.forEach((salaryArray, idx) => {
+          if (Array.isArray(salaryArray) && salaryArray.length > 0) {
+            totalItemCount += salaryArray.length;
+            salaryArray.forEach((item, itemIdx) => {
+              if (item && item.message !== undefined) {
+                console.log(`    [${idx}][${itemIdx}] ${item.name || 'ไม่ระบุ'}: message = "${item.message}", SpSalary = "${item.SpSalary}"`);
+                messageCount++;
+              }
+            });
+          } else if (salaryArray.length === 0) {
+            console.log(`    [${idx}] ไม่มีเงินพิเศษ (วันไม่ทำงาน)`);
+          }
+        });
+        
+        console.log(`  📊 สรุป: มี message ${messageCount} รายการ จากทั้งหมด ${totalItemCount} รายการ`);
+      } else {
+        console.log(`  - addSalary: ไม่มี`);
+      }
+      
       if (doc.personalDayOff && doc.personalDayOff.length > 0) {
         console.log(`    วันหยุดส่วนบุคคล: ${JSON.stringify(doc.personalDayOff)}`);
       }
