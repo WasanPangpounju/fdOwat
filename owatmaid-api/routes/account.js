@@ -4612,6 +4612,21 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           doc.month,
           doc.year
         );
+
+        // Log ค่าที่ได้จาก calculateCashValues
+        console.log(`\n🎯 === ค่าที่ได้รับจาก calculateCashValues ===`);
+        console.log(`🎯 calculatedValues.countAllowance: ${calculatedValues.countAllowance}`);
+        console.log(`🎯 calculatedValues.dayWorkCount: ${calculatedValues.dayWorkCount}`);
+        console.log(`🎯 calculatedValues.addSalaryList.length: ${calculatedValues.addSalaryList?.length || 0}`);
+        
+        // แสดงรายละเอียด addSalaryList ที่ได้รับมา
+        if (Array.isArray(calculatedValues.addSalaryList) && calculatedValues.addSalaryList.length > 0) {
+          console.log(`🎯 รายละเอียด addSalaryList ที่ได้รับมา:`);
+          calculatedValues.addSalaryList.forEach((item, idx) => {
+            console.log(`   [${idx}] id=${item.id}, name=${item.name}, SpSalary=${item.SpSalary}, message=${item.message}, roundOfSalary=${item.roundOfSalary || 'N/A'}`);
+          });
+        }
+        console.log(`🎯 =============================`);
         
         // คำนวณ totalAddSalary จาก addSalaryList
         const totalAddSalary = calculatedValues.addSalaryList.reduce((total, item) => {
@@ -5364,6 +5379,27 @@ try {
   
   console.log(`🔍 countAllowance ที่คำนวณได้ (ทั้ง stop และ work): ${countAllowance} วัน`);
 
+  // Log สรุปข้อมูลที่สำคัญ
+  console.log(`\n📊 === สรุปข้อมูลการคำนวณ ===`);
+  console.log(`👤 employeeId: ${employeeId}`);
+  console.log(`📅 เดือน/ปี: ${month}/${year}`);
+  console.log(`📋 จำนวน employee_record ทั้งหมด: ${employee_record.length}`);
+  console.log(`🔢 countAllowance: ${countAllowance} วัน`);
+  console.log(`📊 dayWorkCount: ${dayWorkCount} วัน`);
+  console.log(`📊 dayOffCount: ${dayOffCount} วัน`);
+  console.log(`📊 specialDayOff: ${specialDayOff} วัน`);
+  console.log(`💰 sumCashWork: ${sumCashWork} บาท`);
+  console.log(`💰 sumCashOt: ${sumCashOt} บาท`);
+  console.log(`📋 จำนวนรายการ addSalaryList: ${addSalaryList.length}`);
+  
+  if (addSalaryList.length > 0) {
+    console.log(`📋 รายละเอียด addSalaryList:`);
+    addSalaryList.forEach((item, idx) => {
+      console.log(`   [${idx}] id=${item.id}, name=${item.name}, SpSalary=${item.SpSalary}, message=${item.message}, roundOfSalary=${item.roundOfSalary || 'N/A'}`);
+    });
+  }
+  console.log(`📊 =============================`);
+
   // คำนวณค่า cashcustomizeDayoff
   // ค่าแรงต่อวันคูณจำนวนวันที่ไม่มาทำงาน
   console.log(`\n💰 คำนวณ cashcustomizeDayoff สำหรับพนักงาน ${employeeId}`);
@@ -5765,7 +5801,14 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
   };
   
   // Log ค่า countAllowance ก่อน return
-  console.log(`🔍 calculateCashValues return countAllowance: ${countAllowance}`);
+  console.log(`\n🔍 === ค่าที่จะ return จาก calculateCashValues ===`);
+  console.log(`🔍 countAllowance: ${countAllowance}`);
+  console.log(`🔍 dayWorkCount: ${dayWorkCount}`);
+  console.log(`🔍 dayOffCount: ${dayOffCount}`);
+  console.log(`🔍 addSalaryList.length: ${addSalaryList.length}`);
+  console.log(`🔍 socialSecurity: ${socialSecurity}`);
+  console.log(`🔍 tax: ${tax}`);
+  console.log(`🔍 =============================`);
 };
 
 
