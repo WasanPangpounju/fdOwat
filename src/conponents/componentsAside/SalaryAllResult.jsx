@@ -23,6 +23,7 @@ import { saveAs } from "file-saver";
 function SalaryAllResult({ employeeList, workplaceList }) {
   const [workplacrName, setWorkplacrName] = useState(""); //รหัสหน่วยงาน
   const [sumCashWork, setSumCashWork] = useState(0);
+
   const [workplaces, setWorkplaces] = useState([]);
   const [searchWorkplaceId, setSearchWorkplaceId] = useState("");
   const [workplaceListAll, setWorkplaceListAll] = useState([]);
@@ -349,7 +350,7 @@ filteredEmployees = filteredRecords.map(record => {
     transportAllowance: formatNumber(transportAllowance), // ใช้ค่าที่คำนวณจาก ID "1230"
     welfare: formatNumber(0),
     diligenceAllowance: formatNumber(diligenceAllowance),
-    holidayPay: formatNumber(record.cashSpecialDay || 0),
+    publicHolidayCash: formatNumber(record.publicHolidayCash || 0),
     additionalBeforeTax: formatNumber(0),
     deductionBeforeTax: formatNumber(0),
     additionalNoTax: formatNumber(0),
@@ -364,7 +365,7 @@ filteredEmployees = filteredRecords.map(record => {
       (record.sumCashOt || 0) + 
       transportAllowance + 
       diligenceAllowance + 
-      (record.cashSpecialDay || 0) - 
+      (record.publicHolidayCash || 0) - 
       (record.tax || 0) - 
       (record.socialSecurity || 0)
     )
@@ -501,7 +502,7 @@ const fetchAllWorkplaceData = useCallback(async () => {
       groupedByWorkplace[workplaceId].totalAddSalary += transportAllowance;
       groupedByWorkplace[workplaceId].totalBenefitNonSocial += parseFloat(record.welfare || 0);
       groupedByWorkplace[workplaceId].totalAmountHardWorking += diligenceAllowance;
-      groupedByWorkplace[workplaceId].totalAmountSpecialDay += parseFloat(record.cashSpecialDay || 0);
+      groupedByWorkplace[workplaceId].totalAmountSpecialDay += parseFloat(record.publicHolidayCash || 0);
       groupedByWorkplace[workplaceId].totalSumAddSalaryBeforeTax += parseFloat(record.additionalBeforeTax || 0);
       groupedByWorkplace[workplaceId].totalSumDeductBeforeTaxWithSocial += parseFloat(record.deductionBeforeTax || 0);
       groupedByWorkplace[workplaceId].totalSumAddSalaryBeforeTaxNonSocial += parseFloat(record.additionalNoTax || 0);
@@ -518,7 +519,7 @@ const fetchAllWorkplaceData = useCallback(async () => {
         (parseFloat(record.sumCashOt || 0)) + 
         transportAllowance + 
         diligenceAllowance + 
-        (parseFloat(record.cashSpecialDay || 0)) - 
+        (parseFloat(record.publicHolidayCash || 0)) - 
         (parseFloat(record.tax || 0)) - 
         (parseFloat(record.socialSecurity || 0));
         
@@ -1142,7 +1143,7 @@ const generatePDF01 = async () => {
         currentX += width;
       });
       
-      // วาดหัวตาราง
+      // วาดหัวตาราง     // กำหนดชื่อหน่วยงานและรหัสหน่วยงาน
       const headers = [
         "รหัส", "ชื่อ - สกุล", "วัน", "เงินเดือน", "ค่าล่วงเวลา", 
         "ค่ารถ/โทร/\nตน.", "สวัสดิการ\n(ไม่คิด ปกส.)", "เบี้ยขยัน", "นักขัติ", 
@@ -1626,7 +1627,7 @@ const createWorkplaceTable = (doc, wpId, wpName, employees, startY) => {
     totals.transportation += parseFloat(emp.transportation.replace(/,/g, ''));
     totals.welfare += parseFloat(emp.welfare.replace(/,/g, ''));
     totals.diligence += parseFloat(emp.diligence.replace(/,/g, ''));
-    totals.holiday += parseFloat(emp.holiday.replace(/,/g, ''));
+    totals.holiday += parseFloat(emp.publicHolidayCash.replace(/,/g, ''));
     totals.addBeforeTax += parseFloat(emp.addBeforeTax.replace(/,/g, ''));
     totals.deductBeforeTax += parseFloat(emp.deductBeforeTax.replace(/,/g, ''));
     totals.addNoTax += parseFloat(emp.addNoTax.replace(/,/g, ''));
@@ -5379,7 +5380,7 @@ const exportToExcel = async () => {
           const transportation = parseFloat(emp.transportAllowance?.replace(/,/g, '') || 0);
           const welfare = parseFloat(emp.welfare?.replace(/,/g, '') || 0);
           const diligence = parseFloat(emp.diligenceAllowance?.replace(/,/g, '') || 0);
-          const holiday = parseFloat(emp.publicHolidayCash?.replace(/,/g, '') || 0);
+          const holiday = parseFloat(emp.publicHolidayCash?.replace(/,/g, '') || 5);
           const addBeforeTax = parseFloat(emp.additionalBeforeTax?.replace(/,/g, '') || 0);
           const deductBeforeTax = parseFloat(emp.deductionBeforeTax?.replace(/,/g, '') || 0);
           const addNoTax = parseFloat(emp.additionalNoTax?.replace(/,/g, '') || 0);

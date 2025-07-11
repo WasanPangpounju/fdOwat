@@ -168,7 +168,7 @@ function AsideLeft() {
                       <li className="nav-item bg-success">
                         <Link to="/salarySlipPDF" className="nav-link"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px", marginLeft: '1rem' }}></i> ออกสลิปเงินเดือน</Link>
                       </li>
-                      <li className="nav-item">
+                      <li className="nav-item bg-success">
                         <Link to="/bankReport" className="nav-link"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px", marginLeft: '1rem' }}></i> ออกรายงานธนาคาร</Link>
                       </li>
                     </>

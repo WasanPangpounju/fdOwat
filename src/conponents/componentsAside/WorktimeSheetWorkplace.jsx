@@ -782,6 +782,19 @@ if(sortedData.length > 0) {
         a.employeeId.localeCompare(b.employeeId)
       );
 
+      // Debug: ตรวจสอบข้อมูลที่ได้รับจาก API
+      console.log(`📥 === ข้อมูลที่ได้รับจาก Frontend ===`);
+      console.log(`📊 จำนวนพนักงาน: ${sortedData.length} คน`);
+      if (sortedData.length > 0) {
+        console.log(`🔍 ตัวอย่างข้อมูลพนักงานคนแรก:`);
+        console.log(`  - employeeId: ${sortedData[0].employeeId}`);
+        console.log(`  - personalDayOff:`, sortedData[0].personalDayOff);
+        console.log(`  - stopDaysList:`, sortedData[0].stopDaysList);
+        console.log(`  - cashcustomizeDayoff:`, sortedData[0].cashcustomizeDayoff);
+        console.log(`  - ข้อมูลทั้งหมด:`, sortedData[0]);
+      }
+      console.log(`=================================\n`);
+
       setData(sortedData);
 
       if(sortedData.length > 0) {
@@ -1307,8 +1320,8 @@ const getDateStyle = (day) => {
         // วันหยุดนักขัตฤกษ์ - สีเหลืองทอง (แตกต่างจาก dayOff)
         console.log('Applying dayOffOnly style to:', dateString);
         return { backgroundColor: 'rgb(255, 255, 84)', color: '#000', fontWeight: 'bold', border: '2px solid #FF8C00' }; 
-      case 'weekendAndDayOffdd':
-        // ซ่อนเลขวันที่สำหรับ weekendAndDayOff
+      case 'weekendAndDayOff':
+        // 
         return { 
           backgroundColor: 'rgb(79 ,173,234)', 
           color: '' 
@@ -11103,7 +11116,7 @@ const getDateStyle = (day) => {
                           <tr className="" style={{borderTop:'2px solid #000'}}>
                                         <td className="text-center align-middle">{idx + 1}</td>
                                         <td className="text-left align-middle ">
-                                         {employeePrefixes[record.employeeId] || record.prefix || ''} {record.employeeName || 'ไม่ระบุชื่อ'} <span style={{ float: "right" }}>เช้า</span>
+                                         {employeePrefixes[record.employeeId] || record.prefix || ''} {record.employeeName || 'ไม่ระบุชื่อ'}  <span style={{ float: "right" }}>เช้า</span>
                                     </td>
 
 
@@ -11113,11 +11126,43 @@ const getDateStyle = (day) => {
   const found = record?.employee_record?.find(itemx => itemx.date === day);
   const isWork = found?.dayType === "work";
   
+  // ตรวจสอบว่าวันนี้เป็นวันหยุดพิเศษหรือไม่
+  const isSpecialHoliday = record?.personalDayOff?.some(personalDay => {
+    const personalDayDate = parseInt(personalDay.date);
+    const currentDay = parseInt(day);
+    return personalDayDate === currentDay;
+  }) || record?.stopDaysList?.some(stopDay => {
+    // ความเข้ากันได้ย้อนหลังสำหรับ stopDaysList
+    const stopDayDate = parseInt(stopDay.date);
+    const currentDay = parseInt(day);
+    return stopDayDate === currentDay;
+  });
+  
+  // Debug log เพื่อตรวจสอบ (แสดงเฉพาะคนแรกและ 3 วันแรก)
+  if (idx === 0 && i < 3) {
+    console.log(`🔍 Debug วันที่ ${day}:`);
+    console.log(`   - record.personalDayOff:`, record?.personalDayOff);
+    console.log(`   - record.stopDaysList:`, record?.stopDaysList);
+    console.log(`   - isSpecialHoliday:`, isSpecialHoliday);
+    console.log(`   - isWork:`, isWork);
+  }
+  
+  // กำหนดสีพื้นหลัง
+  let backgroundColor = {};
+  
+  if (isSpecialHoliday) {
+    // backgroundColor = { backgroundColor: "rgb(159,205,99)" }; // สีเขียวอ่อนสำหรับวันหยุดส่วนบุคคล
+    console.log(`🟢 วันที่ ${day} เป็นวันหยุดส่วนบุคคล - ระบายสีเขียว`);
+  } else if (!isWork) {
+    backgroundColor = { backgroundColor: "#bfbdbf" }; // สีเทาสำหรับวันหยุดปกติ
+  }
+  
   return (
     <td 
       key={i} 
       className="text-center align-middle" 
-      style={!isWork ? { backgroundColor: "#bfbdbf" } : {}}
+      style={backgroundColor}
+      title={isSpecialHoliday ? "วันหยุดส่วนบุคคล" : ""} // เพิ่ม tooltip เพื่อตรวจสอบ
     >
       {isWork ? '1' : ''}
     </td>

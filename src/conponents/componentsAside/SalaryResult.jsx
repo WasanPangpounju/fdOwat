@@ -1823,20 +1823,38 @@ function Salaryresult() {
   const [error, setError] = useState(null); // Store errors
 
   const [localSocialSecurity , setLocalSocialSecurity] = useState(0);
+  const [totalAddSalary, setTotalAddSalary] = useState(0); // เก็บยอดรวมเงินเพิ่ม
+  const [totalDeductSalary, setTotalDeductSalary] = useState(0); // เก็บยอดรวมเงินหัก
 
 
   const updateData = async () => {
     if (accountingResult.length > 0) {
       const updatedResult = [...accountingResult];
   
+      // คำนวณยอดรวมเงินเพิ่มจาก addSalaryList
+      const calculatedTotalAddSalary = accountingResult?.[0]?.addSalaryList?.reduce(
+        (total, item) => total + parseFloat(item.SpSalary || '0'), 
+        0
+      ) || 0;
+
+      // คำนวณยอดรวมเงินหักจาก deductSalaryList
+      const calculatedTotalDeductSalary = accountingResult?.[0]?.deductSalaryList?.reduce(
+        (total, item) => total + parseFloat(item.amount || '0'), 
+        0
+      ) || 0;
+
       // อัปเดตค่าภายใน object
       updatedResult[0] = {
         ...updatedResult[0],
         socialSecurity: localSocialSecurity,
         publicHolidayCash: localPublicHolidayCash,
+        totalAddSalary: calculatedTotalAddSalary, // เพิ่มยอดรวมเงินเพิ่ม
+        totalDeductSalary: calculatedTotalDeductSalary, // เพิ่มยอดรวมเงินหัก
       };
   
       setAccountingResult(updatedResult);
+      setTotalAddSalary(calculatedTotalAddSalary); // อัปเดต state
+      setTotalDeductSalary(calculatedTotalDeductSalary); // อัปเดต state เงินหัก
   
       // เตรียมข้อมูลสำหรับส่ง API
       const updatePayload = {
@@ -1844,6 +1862,8 @@ function Salaryresult() {
         updates: {
           socialSecurity: localSocialSecurity,
           publicHolidayCash: localPublicHolidayCash,
+          totalAddSalary: calculatedTotalAddSalary, // เพิ่มยอดรวมเงินเพิ่มลงใน payload
+          totalDeductSalary: calculatedTotalDeductSalary, // เพิ่มยอดรวมเงินหักลงใน payload
         },
       };
   
@@ -1878,6 +1898,28 @@ useEffect(() => {
     setLocalSocialSecurity(roundedSS);
   }
 }, [localPublicHolidayCash]);
+
+// useEffect สำหรับอัปเดตยอดรวมเงินเพิ่มเมื่อ addSalaryList เปลี่ยนแปลง
+useEffect(() => {
+  if(accountingResult?.[0]?.addSalaryList) {
+    const calculatedTotal = accountingResult[0].addSalaryList.reduce(
+      (total, item) => total + parseFloat(item.SpSalary || '0'), 
+      0
+    );
+    setTotalAddSalary(calculatedTotal);
+  }
+}, [accountingResult]);
+
+// useEffect สำหรับอัปเดตยอดรวมเงินหักเมื่อ deductSalaryList เปลี่ยนแปลง
+useEffect(() => {
+  if(accountingResult?.[0]?.deductSalaryList) {
+    const calculatedTotal = accountingResult[0].deductSalaryList.reduce(
+      (total, item) => total + parseFloat(item.amount || '0'), 
+      0
+    );
+    setTotalDeductSalary(calculatedTotal);
+  }
+}, [accountingResult]);
   async function handleSearchAccounting() {
     event.preventDefault();
 
@@ -1886,6 +1928,8 @@ setLoading(true);
 setError(null);
 setLocalPublicHolidayCash(0);
 setLocalSocialSecurity(0);
+setTotalAddSalary(0); // รีเซ็ตยอดรวมเงินเพิ่ม
+setTotalDeductSalary(0); // รีเซ็ตยอดรวมเงินหัก
 
 if(staffId !== '') {
 
@@ -1907,11 +1951,26 @@ try {
     await setAccountingResult(response.data.result);
     let cash = await parseFloat(response.data.result[0]?.publicHolidayCash || 0);
     let ss = await parseFloat(response.data.result[0]?.socialSecurity || 0) + cash * 0.05;
+    
+    // คำนวณยอดรวมเงินเพิ่มจากข้อมูลที่ได้
+    const calculatedTotalAddSalary = response.data.result[0]?.addSalaryList?.reduce(
+      (total, item) => total + parseFloat(item.SpSalary || '0'), 
+      0
+    ) || 0;
+    
+    // คำนวณยอดรวมเงินหักจากข้อมูลที่ได้
+    const calculatedTotalDeductSalary = response.data.result[0]?.deductSalaryList?.reduce(
+      (total, item) => total + parseFloat(item.amount || '0'), 
+      0
+    ) || 0;
+    
   if(ss  > 750) {
     ss  = 750;
   }
     await setLocalPublicHolidayCash(cash);
     await setLocalSocialSecurity(Math.round(ss) );
+    await setTotalAddSalary(calculatedTotalAddSalary); // ตั้งค่ายอดรวมเงินเพิ่ม
+    await setTotalDeductSalary(calculatedTotalDeductSalary); // ตั้งค่ายอดรวมเงินหัก
     // alert(JSON.stringify(accountingResult[0].addSalaryList,null,2));
 // alert('hi' + accountingResult[0].addSalaryList[0].SpSalary)
     // alert(JSON.stringify(response.data?.result[0]?.employee_record[0].addSalaryDaily, null, 2));
@@ -2177,10 +2236,7 @@ try {
                               onClick={togglePopup}
                               style={{ color: color, cursor: "pointer" }}
                             >
-    {accountingResult?.[0]?.addSalaryList?.reduce(
-      (total, item) => total + parseFloat(item.SpSalary || '0'), 
-      0
-    ).toFixed(2)}                              
+                              {totalAddSalary.toFixed(2)}
                             </span>
                             {showPopup && (
                               <div className="popup">
@@ -2211,7 +2267,7 @@ try {
                                         )
                                     )}
                                 </ul>
-                                <button onClick={togglePopup}>Close</button>
+                                <button className="btn btn-danger" onClick={togglePopup}>Close</button>
                               </div>
                             )}
 
@@ -2243,12 +2299,7 @@ try {
   const total = 
     parseFloat(accountingResult?.[0]?.sumCashWork || '0') + 
     parseFloat(accountingResult?.[0]?.sumCashOt || '0') + 
-    parseFloat(
-      accountingResult?.[0]?.addSalaryList?.reduce(
-        (total, item) => total + parseFloat(item.SpSalary || '0'),
-        0
-      ) || '0'
-    );
+    parseFloat(totalAddSalary || '0'); // ใช้ totalAddSalary แทน
 
   return isNaN(total)
     ? ''
@@ -2299,7 +2350,7 @@ try {
                           </th>
                           <th style={cellStyle}>
                           {/*accountingResult?.[0]?.socialSecurity || '0'*/}
-                            {parseFloat(localSocialSecurity || 0).toLocaleString('th-TH', {
+                            {parseFloat(accountingResult?.[0]?.socialSecurity  || '0').toLocaleString('th-TH', {
                               minimumFractionDigits: 2,
                               maximumFractionDigits: 2
                             })}
@@ -2316,19 +2367,12 @@ try {
                               onChange={handleAnyMinusChange}
                             />
                           </td> */}
-                          <th style={cellStyle}>
+                           <th style={cellStyle}>
                             <span
                               onClick={togglePopup}
                               style={{ color: color, cursor: "pointer" }}
                             >
-                              {isNaN(
-                                Number(deductBeforeTax) + Number(deductAfterTax)
-                              )
-                                ? 0.0
-                                : (
-                                  Number(deductBeforeTax) +
-                                  Number(deductAfterTax)
-                                ).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+                              {totalDeductSalary.toFixed(2)}
                             </span>
                             {showPopup && (
                               <div className="popup">
@@ -2340,31 +2384,46 @@ try {
                                     margin: 0,
                                   }}
                                 >
-                                  {deductSalaryList &&
-                                    deductSalaryList.map(
-                                      (deductSalary, index2) =>
-                                        deductSalary.name !== "" && (
+                                  {accountingResult?.[0]?.deductSalaryList&&
+                                    accountingResult?.[0]?.deductSalaryList.map(
+                                      (deductsalary, index) =>
+                                        deductsalary.name !== "" && (
                                           <li
-                                            key={index2}
+                                            key={index}
                                             style={{ marginBottom: "10px" }}
                                           >
-                                            {deductSalary.name} - จำนวน:{" "}
-                                            {deductSalary.amount}
+                                            {deductsalary.name} - จำนวน:{" "}
+                                            {deductsalary.amount}{" "}
+
+                                            {/* {addsalary.roundOfSalary ==
+                                              "daily" && (
+                                                <>* {addsalary.message} วัน</>
+                                              )} */}
                                           </li>
                                         )
                                     )}
                                 </ul>
-                                {/* <button onClick={togglePopup}>Close</button> */}
+                                <button className="btn btn-danger" onClick={togglePopup}>Close</button>
                               </div>
                             )}
-                            {/* {isNaN(Number(deductBeforeTax) + Number(deductAfterTax)) ? 0.00 : (Number(deductBeforeTax) + Number(deductAfterTax)).toFixed(2)} */}
+
+                            {/* {(overAddSalaryDaySum + sumSpSalaryResult).toFixed(2)} */}
+
+                            {/* {namelist.map((employee, index) => (
+                              <tr key={index}>
+                                <th style={headerCellStyle}>{employee.name}</th>
+                                <td style={cellStyle}>{employee.salary}</td>
+                              </tr>
+                            ))} */}
+                            {/* {isNaN(Number(addAmountBeforeTax + addAmountAfterTax)) ? 0.00 : Number(addAmountBeforeTax + addAmountAfterTax).toFixed(2)} */}
                           </th>
                           <th style={cellStyle}>
                           {(() => {
   const total =
     parseFloat(localSocialSecurity || 0) +
-    parseFloat(accountingResult?.[0]?.tax || '0');
-    
+    parseFloat(accountingResult?.[0]?.tax || '0') +
+    parseFloat(totalDeductSalary || '0'); // ใช้ totalDeductSalary แทน
+
   return isNaN(total)
     ? ''
     : total.toLocaleString('th-TH', {
@@ -2478,12 +2537,7 @@ try {
     parseFloat(accountingResult?.[0]?.sumCashWork || '0') + 
     parseFloat(accountingResult?.[0]?.sumCashOt || '0') +
     parseFloat(accountingResult?.[0]?.publicHolidayCash || '0') + 
-    parseFloat(
-      accountingResult?.[0]?.addSalaryList?.reduce(
-        (total, item) => total + parseFloat(item.SpSalary || '0'),
-        0
-      ) || '0'
-    );
+    parseFloat(totalAddSalary || '0'); // ใช้ totalAddSalary แทน
 
   return isNaN(total)
     ? ''
@@ -2499,7 +2553,8 @@ try {
                                                       {(() => {
   const total =
     parseFloat(localSocialSecurity || 0) +
-    parseFloat(accountingResult?.[0]?.tax || '0');
+    parseFloat(accountingResult?.[0]?.tax || '0') +
+    parseFloat(totalDeductSalary || '0'); // เพิ่ม totalDeductSalary
     
   return isNaN(total)
     ? ''
@@ -2517,16 +2572,12 @@ try {
     parseFloat(accountingResult?.[0]?.sumCashWork || '0') + 
     parseFloat(accountingResult?.[0]?.sumCashOt || '0') +
     parseFloat(accountingResult?.[0]?.publicHolidayCash || '0') + 
-    parseFloat(
-      accountingResult?.[0]?.addSalaryList?.reduce(
-        (total, item) => total + parseFloat(item.SpSalary || '0'),
-        0
-      ) || '0'
-    );
+    parseFloat(totalAddSalary || '0'); // ใช้ totalAddSalary แทน
 
   const deductionTotal =
-    parseFloat(accountingResult?.[0]?.socialSecurity || '0') +
-    parseFloat(accountingResult?.[0]?.tax || '0');
+    parseFloat(localSocialSecurity || 0) +
+    parseFloat(accountingResult?.[0]?.tax || '0') +
+    parseFloat(totalDeductSalary || '0'); // เพิ่ม totalDeductSalary
 
   const netTotal = incomeTotal - deductionTotal;
 

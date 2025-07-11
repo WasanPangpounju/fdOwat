@@ -795,7 +795,7 @@ function AddSettingEmp({ workplaceList, employeeList }) {
   }
 
   try {
-    // 🔍 Step 1: ค้นหาพนักงานจาก employeeId
+    // 🔍 ค้นหาพนักงานจาก employeeId เท่านั้น
     const empRes = await axios.post(endpoint + "/employee/search", {
       employeeId: searchEmployeeId,
       name: "",
@@ -806,17 +806,18 @@ function AddSettingEmp({ workplaceList, employeeList }) {
     const employee = empRes.data.employees?.[0];
 
     if (!employee) {
-      alert('ไม่พบพนักงาน');
+      alert('ไม่พบพนักงานรหัส: ' + searchEmployeeId);
       return;
     }
 
     let finalWorkplace = {};
 
-    // ✅ Step 2: ถ้ามี customWorkplace → ใช้เลย
+    // ✅ ถ้ามี customWorkplace → ใช้เลย
     if (employee.customWorkplace && Object.keys(employee.customWorkplace).length > 0) {
       finalWorkplace = employee.customWorkplace;
+      console.log("✅ ใช้การตั้งค่าเฉพาะบุคคล");
     } else {
-      // 🔁 Step 3: ไม่มี custom → ดึง workplace ปกติ
+      // 🔁 ไม่มี custom → ดึง workplace ปกติ
       if (!employee.workplace) {
         alert("พนักงานไม่มีข้อมูล workplace");
         return;
@@ -824,6 +825,7 @@ function AddSettingEmp({ workplaceList, employeeList }) {
 
       const wpRes = await axios.get(`${endpoint}/workplace/${employee.workplace}`);
       finalWorkplace = wpRes.data || {};
+      console.log("✅ ใช้การตั้งค่าหน่วยงานปกติ");
     }
 
     // 🧾 รวมข้อมูลกลับเป็นชุดเดียว
@@ -831,14 +833,18 @@ function AddSettingEmp({ workplaceList, employeeList }) {
       ...employee,
       effectiveWorkplace: finalWorkplace,
     };
-// alert(JSON.stringify(finalWorkplace,null,2))
-handleClickResult(finalWorkplace)
+
+    // แสดงข้อมูลวันหยุดใน console
+    console.log("📅 วันหยุดของพนักงาน:", finalWorkplace.daysOff);
+    console.log("✅ ข้อมูลพนักงาน:", employeeWithWorkplace);
+
+    // โหลดข้อมูลไปยังฟอร์ม
+    handleClickResult(finalWorkplace);
     setShowEmployeeListResult([employeeWithWorkplace]);
-    console.log("✅ employeeWithWorkplace:", employeeWithWorkplace);
 
   } catch (err) {
     console.error("❌ handleSearch error:", err);
-    alert('เกิดข้อผิดพลาดในการค้นหา');
+    alert('เกิดข้อผิดพลาดในการค้นหา: ' + err.message);
   }
 }
 

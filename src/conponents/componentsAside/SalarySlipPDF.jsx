@@ -452,7 +452,7 @@ const generatePDF = async () => {
     }, 0);
 
     // กรองเงินพิเศษตาม ID
-    const excludedIds = ["1350", "1230", "1410", "1535", "1520"];
+    const excludedIds = ["1350", "1230", "1410", "1535", "1520",];
     const addSalaryFiltered = addSalaryList
       .filter((salary) => !excludedIds.includes(salary.id))
       .map((salary) => ({
@@ -487,6 +487,10 @@ const generatePDF = async () => {
       (item) => item.id === "1330"
     );
 
+    const formattedAddSpeacialCash= addSalaryList.filter(
+      (item) => item.id === "1560"
+    );
+
     // Calculate the sum of SpSalary values in the filtered array
     const sumAmountHardWorking = formattedAmountHardWorking.reduce(
       (total, item) => total + parseFloat(item.SpSalary || 0),
@@ -499,6 +503,11 @@ const generatePDF = async () => {
     );
 
     const sumAddSalaryFood = formattedAddSalaryFood.reduce(
+      (total, item) => total + parseFloat(item.SpSalary || 0),
+      0
+    );
+
+    const sumAddSpecialCash = formattedAddSpeacialCash.reduce(
       (total, item) => total + parseFloat(item.SpSalary || 0),
       0
     );
@@ -683,6 +692,14 @@ if (ot3Hours > 0 && ot3Cash > 0) {
       countArray.push("");
       valueArray.push(
         sumAddSalaryFood.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+      );
+    }
+
+    if (sumAddSpecialCash > 0) {
+      textArray.push("ค่าเงินพิเศษ");
+      countArray.push("");
+      valueArray.push(
+        sumAddSpecialCash.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
       );
     }
 
@@ -901,6 +918,10 @@ if (ot3Hours > 0 && ot3Cash > 0) {
         .filter((item) => item.id === "1330")
         .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
 
+      const sumAddSpecialCash = addSalaryList2
+        .filter((item) => item.id === "1560")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+
       // วันหยุดนักขัติฤกษ์สำหรับพนักงานคนที่ 2
       const specialDayOff2 = parseInt(currentEmployee2.specialDayOff || 0);
       const specialDayAmount2 = parseFloat(currentEmployee2.cashSpecialDay || 0);
@@ -1077,6 +1098,16 @@ if (ot3Hours > 0 && ot3Cash > 0) {
           );
           console.log("77.1");
         }
+       if (sumAddSpecialCash > 0) {
+          // Push the text to textArray and the value to valueArray
+          textArray2.push("ค่าเงินพิเศษ");
+          countArray2.push("");
+          valueArray2.push(
+            sumAddSpecialCash.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+          );
+          console.log("77.1");
+        }
+        
 
       
 
@@ -1944,6 +1975,9 @@ if (ot3Hours > 0 && ot3Cash > 0) {
         const formattedAddSalaryFood = responseDataAll[i + 1].addSalary.filter(
           (item) => item.id === "1330"
         );
+        const formattedAddSpeacialCash = responseDataAll[i + 1].addSalary.filter(
+          (item) => item.id === "1560"
+        );
 
         // Calculate the sum of SpSalary values in the filtered array
         const sumAmountHardWorking = formattedAmountHardWorking.reduce(
@@ -1957,6 +1991,10 @@ if (ot3Hours > 0 && ot3Cash > 0) {
           0
         );
         const sumAddSalaryFood = formattedAddSalaryFood.reduce(
+          (total, item) => total + parseFloat(item.SpSalary || 0),
+          0
+        );
+        const sumAddSpecialCash = formattedAddSpecialCash.reduce(
           (total, item) => total + parseFloat(item.SpSalary || 0),
           0
         );
