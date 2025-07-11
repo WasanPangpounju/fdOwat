@@ -4731,6 +4731,18 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           // เพิ่ม stopDaysList สำหรับหน่วยงาน 7 วัน
           stopDaysList: doc.stopDaysList || [],
         };
+
+        // 🎯 อัปเดต message สำหรับ items ที่มี roundOfSalary: "daily" ให้เป็น countAllowance
+        if (updateData.addSalaryList && Array.isArray(updateData.addSalaryList)) {
+          console.log(`🎯 อัปเดต message สำหรับ ${doc.employeeId} (countAllowance: ${calculatedValues.countAllowance})`);
+          updateData.addSalaryList.forEach((item, itemIndex) => {
+            if (item.roundOfSalary === "daily") {
+              const oldMessage = item.message;
+              item.message = calculatedValues.countAllowance;
+              console.log(`🎯   Item[${itemIndex}] (${item.name}): message ${oldMessage} → ${item.message}`);
+            }
+          });
+        }
         
         // แสดงข้อมูลสำคัญที่จะบันทึก
         console.log(`\n📝 ข้อมูลที่จะบันทึกสำหรับพนักงาน ${doc.employeeId}:`);
