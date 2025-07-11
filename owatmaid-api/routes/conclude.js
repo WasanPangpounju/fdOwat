@@ -2573,6 +2573,13 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
 
   const updatedRecords = await Promise.all(
     employee_record.map(async (record) => {
+      console.log(`\n🔍 === ข้อมูลดิบของ record ===`);
+      console.log(`📄 Record keys: ${Object.keys(record).join(', ')}`);
+      console.log(`📅 date: "${record.date}"`);
+      console.log(`⏰ totalTime: "${record.totalTime}"`);
+      console.log(`🕐 allTime: "${record.allTime}"`);
+      console.log(`📊 Record sample: ${JSON.stringify(record, null, 2).substring(0, 500)}...`);
+      
       // จัดการกรณีข้ามปี
       if((record.date >= 21 && record.date <= 31) && month == 1) {
         year = year - 1;
@@ -2728,6 +2735,8 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
       console.log(`   - เป็นวันหยุด: ${isHoliday ? 'ใช่' : 'ไม่ใช่'}`);
       console.log(`   - มาทำงาน: ${hasWorked ? 'ใช่' : 'ไม่ใช่'}`);
       console.log(`   - จำนวนเงินเพิ่มรายวัน: ${addSalaryDaily.length} รายการ`);
+      console.log(`   - totalTime ก่อน return: "${record.totalTime}"`);
+      console.log(`   - date ก่อน return: "${record.date}"`);
       if (addSalaryDaily.length > 0) {
         addSalaryDaily.forEach(item => {
           console.log(`     • ${item.name}: ${item.SpSalary} บาท`);
@@ -2749,25 +2758,42 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
   );
 
   // นับจำนวนวันที่มี totalTime > 0 สำหรับ message ใน addSalary
-  const totalWorkingDays = updatedRecords.filter(record => 
-    record.totalTime && parseFloat(record.totalTime) > 0
-  ).length;
+  console.log(`\n🔍 === ตรวจสอบโครงสร้างข้อมูล updatedRecords ===`);
+  console.log(`📋 จำนวน records: ${updatedRecords.length}`);
   
-  console.log(`\n📊 === นับจำนวนวันทำงานจาก totalTime ===`);
+  // ตรวจสอบ record แรกเพื่อดูโครงสร้าง
+  if (updatedRecords.length > 0) {
+    console.log(`📄 ตัวอย่าง record แรก:`, {
+      date: updatedRecords[0].date,
+      totalTime: updatedRecords[0].totalTime,
+      allKeys: Object.keys(updatedRecords[0])
+    });
+  }
+  
+  // ตรวจสอบทุก record ก่อนนับ
+  const workingDaysDetails = updatedRecords.map((record, index) => {
+    const hasTotalTime = record.totalTime && parseFloat(record.totalTime) > 0;
+    console.log(`📅 Record ${index + 1}: date=${record.date}, totalTime="${record.totalTime}", มีการทำงาน=${hasTotalTime}`);
+    return hasTotalTime;
+  });
+  
+  const totalWorkingDays = workingDaysDetails.filter(Boolean).length;
+  
+  console.log(`\n📊 === สรุปการนับวันทำงานจาก totalTime ===`);
   console.log(`📅 จำนวนวันที่มี totalTime > 0: ${totalWorkingDays} วัน`);
   
   // อัปเดต message ใน addSalaryDaily ของทุก record
-  const finalUpdatedRecords = updatedRecords.map(record => {
+  const finalUpdatedRecords = updatedRecords.map((record, index) => {
     if (record.addSalaryDaily && record.addSalaryDaily.length > 0) {
       record.addSalaryDaily = record.addSalaryDaily.map(salary => ({
         ...salary,
         message: totalWorkingDays.toString() // ใช้จำนวนวันที่มี totalTime > 0
       }));
-      console.log(`📝 อัปเดต message วันที่ ${record.date}: ${totalWorkingDays} วัน`);
+      console.log(`📝 อัปเดต message record ${index + 1} (วันที่ ${record.date}): ${totalWorkingDays} วัน`);
     }
     return record;
   });
-
+ห
   // Return an object containing both the updated records and cashcustomizeDayoff
   console.log(`\n💎 === ส่งคืนข้อมูล ===`);
   console.log(`📋 อาร์เรย์ข้อมูลพนักงาน: ${finalUpdatedRecords.length} รายการ`);
