@@ -911,6 +911,9 @@ countAllowance = employee_record.filter(record => {
 console.log(`🔍 countAllowance ที่คำนวณได้: ${countAllowance} วัน (จากจำนวนวันที่มี totalTime ไม่เป็นค่าว่าง)`);
 
 let totalWorkDays = 0;
+console.log(`\n🔍 === ตรวจสอบประเภทหน่วยงาน ===`);
+console.log(`🔍 isSpecialWorkplace7Days: ${isSpecialWorkplace7Days}`);
+
 if (isSpecialWorkplace7Days) {
   // ใช้ countAllowance ที่คำนวณใหม่
   totalWorkDays = countAllowance;
@@ -934,7 +937,11 @@ if (isSpecialWorkplace7Days) {
 
 if (isSpecialWorkplace7Days) {
   console.log(`🟦 LOG: ค่า totalWorkDays ก่อน map addSalaryDayArray =`, totalWorkDays);
+  console.log(`🟦 LOG: จำนวนรายการใน addSalaryDayArray = ${addSalaryDayArray.length}`);
+  
   addSalaryDayArray = addSalaryDayArray.map(item => {
+    console.log(`🔍 ตรวจสอบรายการ: id=${item.id}, name=${item.name}, roundOfSalary=${item.roundOfSalary}`);
+    
     // เพิ่มการตรวจสอบ roundOfSalary สำหรับรายการประเภท daily
     if (item.roundOfSalary === "daily") {
       console.log(`🔍 พบรายการ ID ${item.id} (${item.name}) ที่เป็น roundOfSalary=daily: กำลังอัปเดต message`);
@@ -947,6 +954,7 @@ if (isSpecialWorkplace7Days) {
         message: newMessage
       };
     } else {
+      console.log(`🔍 รายการ ID ${item.id} ไม่ใช่ daily (roundOfSalary=${item.roundOfSalary}) - ใช้ totalWorkDays`);
       // สำหรับรายการอื่นๆ ยังคงใช้ totalWorkDays
       return {
         ...item,
@@ -954,7 +962,9 @@ if (isSpecialWorkplace7Days) {
       };
     }
   });
-  console.log(`🔧 อัปเดต addSalaryDayArray message เป็น: ${totalWorkDays} (ทั่วไป), ${countAllowance} (สำหรับ ID 1560 ถ้ามี)`);
+  console.log(`🔧 อัปเดต addSalaryDayArray เสร็จแล้ว`);
+} else {
+  console.log(`📊 หน่วยงานปกติ - ไม่ได้อัปเดต addSalaryDayArray message`);
 }
 
 // เพิ่มการตรวจสอบเพิ่มเติม:
