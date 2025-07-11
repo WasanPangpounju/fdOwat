@@ -3146,14 +3146,20 @@ router.post('/searchtimerecordemployee', async (req, res) => {
 
     // แก้ไข message ใน result ให้เป็น countAllowance สำหรับ special workplace
     if (isSpecialWorkplace && countAllowance > 0) {
-      console.log(`🔧 แก้ไข message ใน result ทุกรายการเป็น: ${countAllowance}`);
+      console.log(`🔧 แก้ไข allTime สำหรับวันที่มาทำงาน เป็น: ${countAllowance}`);
       result.forEach((doc, docIndex) => {
         if (doc.employee_record && Array.isArray(doc.employee_record)) {
           doc.employee_record.forEach((record, recordIndex) => {
             const oldAllTimes = record.allTime || "0";
-            // บังคับแทนที่ allTime เป็น countAllowance
-            record.allTime = countAllowance.toString();
-            console.log(`   วันที่ ${record.date}: allTime เปลี่ยนจาก "${oldAllTimes}" เป็น "${countAllowance}"`);
+            
+            // เฉพาะวันที่มาทำงาน (allTime เดิม > 0) ถึงจะเปลี่ยนเป็น countAllowance
+            if (parseFloat(oldAllTimes) > 0) {
+              record.allTime = countAllowance.toString();
+              console.log(`   วันที่ ${record.date}: allTime เปลี่ยนจาก "${oldAllTimes}" เป็น "${countAllowance}" (มาทำงาน)`);
+            } else {
+              // วันที่ไม่มาทำงาน ให้คงเป็น "0"
+              console.log(`   วันที่ ${record.date}: allTime คงเป็น "${oldAllTimes}" (ไม่มาทำงาน)`);
+            }
           });
         }
       });
