@@ -4892,6 +4892,7 @@ let timeCashWorkMul = {
   } catch (workplaceError) {
     console.warn(`⚠️ ไม่สามารถดึงข้อมูล workplace ได้:`, workplaceError.message);
   }
+  
 
   let addSalary = employeeProfile?.[0]?.addSalary || [];
     let deductSalary = employeeProfile?.[0]?.deductSalary || [];

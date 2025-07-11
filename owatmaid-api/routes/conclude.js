@@ -3257,6 +3257,7 @@ router.post('/add-publicholiday', async (req, res) => {
     if (exists) {
       return res.status(409).json({ error: 'Date already exists in publicHoliday' });
     }
+    
     // เพิ่มใหม่
     if (note) {
       publicHoliday.push({ date: new Date(date), note });
