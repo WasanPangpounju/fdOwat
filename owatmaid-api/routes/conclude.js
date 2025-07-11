@@ -2573,13 +2573,6 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
 
   const updatedRecords = await Promise.all(
     employee_record.map(async (record) => {
-      console.log(`\n🔍 === ข้อมูลดิบของ record ===`);
-      console.log(`📄 Record keys: ${Object.keys(record).join(', ')}`);
-      console.log(`📅 date: "${record.date}"`);
-      console.log(`⏰ totalTime: "${record.totalTime}"`);
-      console.log(`🕐 allTime: "${record.allTime}"`);
-      console.log(`📊 Record sample: ${JSON.stringify(record, null, 2).substring(0, 500)}...`);
-      
       // จัดการกรณีข้ามปี
       if((record.date >= 21 && record.date <= 31) && month == 1) {
         year = year - 1;
@@ -2753,6 +2746,9 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
         cashOtMul,
         dayType,
         addSalaryDaily,
+        // แน่ใจว่า totalTime และ date ถูกส่งกลับ
+        totalTime: record.totalTime,
+        date: record.date
       };
     })
   );
