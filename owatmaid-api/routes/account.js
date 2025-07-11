@@ -903,11 +903,20 @@ try {
 // คำนวณ countAllowance จาก employee_record โดยนับจำนวนวันที่มี totalTime ไม่เป็นค่าว่าง
 console.log(`\n🔍 === คำนวณ countAllowance จาก employee_record ===`);
 console.log(`🔍 จำนวน records ทั้งหมด: ${employee_record.length}`);
-console.log(`🔍 ตัวอย่าง record แรก:`, JSON.stringify(employee_record[0], null, 2));
+countAllowance = employee_record.filter(record => {
+  const hasTotalTime = record.totalTime && 
+                      record.totalTime.trim() !== '' && 
+                      parseFloat(record.totalTime) > 0;
+  
+  console.log(`   วันที่ ${record.date || 'N/A'}: totalTime="${record.totalTime}" → ${hasTotalTime ? 'นับได้' : 'ไม่นับ'}`);
+  
+  return hasTotalTime;
+}).length;
 
-// Set countAllowance เป็น 27 โดยตรง
-countAllowance = 27;
-console.log(`🔧 กำหนด countAllowance = 27 (hard coded)`);
+console.log(`🔍 countAllowance ที่คำนวณได้: ${countAllowance} วัน`);
+
+
+
 
 // countAllowance = employee_record.filter(record => {
 //   // ลองตรวจสอบทั้ง totalTime และ allTimes
@@ -920,7 +929,6 @@ console.log(`🔧 กำหนด countAllowance = 27 (hard coded)`);
 //   return isWorking;
 // }).length;
 
-console.log(`🔍 countAllowance ที่คำนวณได้: ${countAllowance} วัน (จากจำนวนวันที่มี totalTime ไม่เป็นค่าว่าง)`);
 
 let totalWorkDays = 0;
 console.log(`\n🔍 === ตรวจสอบประเภทหน่วยงาน ===`);
@@ -951,6 +959,7 @@ if (isSpecialWorkplace7Days) {
   console.log(`🟦 LOG: ค่า totalWorkDays ก่อน map addSalaryDayArray =`, totalWorkDays);
   console.log(`🟦 LOG: จำนวนรายการใน addSalaryDayArray = ${addSalaryDayArray.length}`);
   
+  // อัปเดต addSalaryDayArray
   addSalaryDayArray = addSalaryDayArray.map(item => {
     console.log(`🔍 ตรวจสอบรายการ: id=${item.id}, name=${item.name}, roundOfSalary=${item.roundOfSalary}`);
     
@@ -974,11 +983,24 @@ if (isSpecialWorkplace7Days) {
       };
     }
   });
+  
   console.log(`🔧 อัปเดต addSalaryDayArray เสร็จแล้ว`);
+  
+  // อัปเดต addSalaryList (แยกออกมาต่างหาก)
+  addSalaryList = addSalaryList.map(item => {
+    if (item.roundOfSalary === "daily") {
+      console.log(`🔍 อัปเดต message สำหรับ ${item.name} (ID: ${item.id}) จาก "${item.message}" เป็น "${countAllowance}"`);
+      return {
+        ...item,
+        message: countAllowance.toString()
+      };
+    }
+    return item;
+  });
+  
 } else {
   console.log(`📊 หน่วยงานปกติ - ไม่ได้อัปเดต addSalaryDayArray message`);
 }
-
 // เพิ่มการตรวจสอบเพิ่มเติม:
 
 // เพิ่ม log สรุปจำนวนวันที่มี totalTime (แทน allTimes)
@@ -4714,23 +4736,23 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         );
 
         // LOG จุดนี้สำหรับ addSalaryList และ totalWorkDays
-        if (Array.isArray(calculatedValues.addSalaryList)) {
-          console.log('🟦 LOG: addSalaryList (searchtimerecordemployee)');
-          
-          // อัปเดต message สำหรับรายการที่มี roundOfSalary === "daily" ให้ใช้ countAllowance
-          calculatedValues.addSalaryList.forEach((item, idx) => {
-            if (item.roundOfSalary === "daily") {
-              const oldMessage = item.message;
-              item.message = calculatedValues.countAllowance;
-              console.log(`🔧 อัปเดต message สำหรับ id=${item.id} (roundOfSalary=daily) จาก ${oldMessage} เป็น ${calculatedValues.countAllowance}`);
-            }
-            console.log(`   [${idx}] id=${item.id}, name=${item.name}, SpSalary=${item.SpSalary}, message=${item.message}, roundOfSalary=${item.roundOfSalary || 'N/A'}`);
-          });
-          
-          console.log(`📊 countAllowance ที่ใช้: ${calculatedValues.countAllowance}`);
-        }
+       if (Array.isArray(calculatedValues.addSalaryList)) {
+  console.log('🟦 LOG: addSalaryList (searchtimerecordemployee)');
+  
+  // อัปเดต message สำหรับรายการที่มี roundOfSalary === "daily" ให้ใช้ countAllowance
+  calculatedValues.addSalaryList = calculatedValues.addSalaryList.map((item, idx) => {
+    if (item.roundOfSalary === "daily") {
+      const oldMessage = item.message;
+      item.message = calculatedValues.countAllowance.toString();
+      console.log(`🔧 อัปเดต message สำหรับ id=${item.id} (roundOfSalary=daily) จาก ${oldMessage} เป็น ${calculatedValues.countAllowance}`);
+    }
+    console.log(`   [${idx}] id=${item.id}, name=${item.name}, SpSalary=${item.SpSalary}, message=${item.message}, roundOfSalary=${item.roundOfSalary || 'N/A'}`);
+    return item;
+  });
+  
+  console.log(`📊 countAllowance ที่ใช้: ${calculatedValues.countAllowance}`);
+}
        
-
         // คำนวณ totalAddSalary จาก addSalaryList
         const totalAddSalary = calculatedValues.addSalaryList.reduce((total, item) => {
           return total + (parseFloat(item.SpSalary) || 0);
