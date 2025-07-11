@@ -106,20 +106,15 @@ const concludeSchema = new mongoose.Schema({
 const conclude = mongoose.model('conclude', concludeSchema);
 
 router.post('/autocreate', async (req, res) => {
-  console.log(`\n🚀 === เรียกใช้ /autocreate API ===`);
   const {
     year,
     month,
     employeeId } = await req.body;
-    
-  console.log(`📋 ข้อมูลที่ได้รับ: year=${year}, month=${month}, employeeId=${employeeId}`);
 
   sumWorkHour = 0;
   sumWorkRate = 0;
   sumWorkHourOt = 0;
   sumWorkRateOt = 0;
-
-console.log(`📊 ตัวแปรเริ่มต้น: sumWorkHour=${sumWorkHour}, sumWorkRate=${sumWorkRate}`);
 
 const workplaceListTmp = [];
 let upsalary = 0;
@@ -1178,8 +1173,6 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
 
 // เพิ่มการตรวจสอบ workOfWeek ก่อน
 let isSpecialWorkplace7Days = false;
-let countAllowance = 0; // เพิ่มตัวแปรเก็บค่า countAllowance
-
 try {
   const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${wpId1}`);
   const workOfWeek = workplaceResponse.data.workOfWeek || "5";
@@ -1187,21 +1180,6 @@ try {
   if (workOfWeek === "7") {
     isSpecialWorkplace7Days = true;
     console.log(`\n✅ หน่วยงานพิเศษ 7 วัน - จะคิดเงินเพิ่มรายวันทุกวันที่มี allTimes > 0`);
-    
-    // เรียก API searchtimerecordemployee เพื่อหาค่า countAllowance
-    try {
-      const searchTimeRecordData = {
-        employeeId: employeeId,
-        month: month,
-        year: year
-      };
-      const timeRecordResponse = await axios.post(`http://10.10.110.7:3000/conclude/searchtimerecordemployee`, searchTimeRecordData);
-      countAllowance = timeRecordResponse.data.countAllowance || 0;
-      console.log(`🔢 ได้ countAllowance จาก searchtimerecordemployee: ${countAllowance} วัน`);
-    } catch (error) {
-      console.error(`❌ ไม่สามารถดึง countAllowance ได้:`, error.message);
-      console.log(`⚠️ ใช้ค่า default countAllowance = 0`);
-    }
   }
 } catch (error) {
   console.error(`❌ ไม่สามารถตรวจสอบ workOfWeek ได้:`, error.message);
@@ -1221,20 +1199,13 @@ for (let c = 0; c < concludeRecord.length; c++) {
   if (isSpecialWorkplace7Days) {
     // สำหรับหน่วยงานพิเศษ 7 วัน - ตรวจสอบว่ามี allTimes หรือไม่
     if (parseFloat(concludeRecord[c].allTimes || 0) > 0) {
-      // มี allTimes (มาทำงาน) ให้เพิ่มเงินพิเศษรายวันพร้อมปรับ message เป็น countAllowance
+      // มี allTimes (มาทำงาน) ให้เพิ่มเงินพิเศษรายวันพร้อมปรับ message เป็น totalWorkDays
       let adjustedAddSalaryDaily = addSalaryDaily.map(item => ({
         ...item,
-        message: countAllowance > 0 ? countAllowance.toString() : totalWorkDays.toString()  // ใช้ countAllowance หากมีค่า
+        message: totalWorkDays.toString()  // อัปเดต message เป็นจำนวนวันจริงที่มา
       }));
-      
-      console.log(`🔍 วันที่ ${concludeRecord[c].day} Debug:`);
-      console.log(`  - countAllowance: ${countAllowance}`);
-      console.log(`  - totalWorkDays: ${totalWorkDays}`);
-      console.log(`  - Original addSalaryDaily[0].message: ${addSalaryDaily[0]?.message}`);
-      console.log(`  - Adjusted addSalaryDaily[0].message: ${adjustedAddSalaryDaily[0]?.message}`);
-      
       await addSalaryList.push(adjustedAddSalaryDaily);
-      console.log(`✅ วันที่ ${concludeRecord[c].day} - allTimes: ${concludeRecord[c].allTimes} - เพิ่มเงินพิเศษรายวัน (${countAllowance > 0 ? countAllowance : totalWorkDays} วัน)`);
+      console.log(`✅ วันที่ ${concludeRecord[c].day} - allTimes: ${concludeRecord[c].allTimes} - เพิ่มเงินพิเศษรายวัน (${totalWorkDays} วัน)`);
     } else {
       // ไม่มี allTimes (ไม่มาทำงาน) ไม่เพิ่มเงินพิเศษ
       await addSalaryList.push([]);
@@ -2215,21 +2186,10 @@ const getEmployeeProfile = async (employeeId) => {
 
 
 // ฟังก์ชันคำนวณสำหรับหน่วยงานพิเศษ 7 วัน
-const calculateCashValuesSpecial7Days = async (employeeId, employee_record, month, year, countAllowance = null) => {
+const calculateCashValuesSpecial7Days = async (employeeId, employee_record, month, year) => {
   console.log(`\n💼 === เริ่มคำนวณแบบหน่วยงานพิเศษ 7 วัน ===`);
   console.log(`👤 EmployeeId: ${employeeId}`);
   console.log(`📅 Month: ${month}, Year: ${year}`);
-  
-  // ใช้ countAllowance ที่ส่งมาจาก API แทน totalWorkDays
-  let totalWorkDays = 0;
-  if (countAllowance !== null && countAllowance !== undefined) {
-    totalWorkDays = countAllowance;
-    console.log(`🔢 ใช้ countAllowance ที่ส่งมา: ${countAllowance} วัน`);
-  } else {
-    // fallback เป็นการนับเดิม
-    totalWorkDays = employee_record.filter(record => parseFloat(record.totalTime || 0) > 0).length;
-    console.log(`🔢 ใช้การนับแบบเดิม: ${totalWorkDays} วัน`);
-  }
   
   const employeeProfile = await getEmployeeProfile(employeeId);
   const salaryTmp = parseFloat(employeeProfile[0].salary || '0') || 0;
@@ -2745,7 +2705,6 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
 
       return {
         ...record,
-        allTimes: countAllowance || record.allTimes, // บังคับให้ allTimes = countAllowance
         cashBeforeOt,
         cashWork,
         cashOt,
@@ -2762,8 +2721,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
   console.log(`\n💎 === ส่งคืนข้อมูล ===`);
   console.log(`📋 อาร์เรย์ข้อมูลพนักงาน: ${updatedRecords.length} รายการ`);
   console.log(`💰 cashcustomizeDayoff: ${totalWorkerWage.toFixed(2)} บาท`);
-  console.log(`� วันที่ใช้ในการคำนวณ message: ${countAllowance || totalWorkDays} วัน`);
-  console.log(`�🟢 วันหยุดพิเศษ: ${stopDaysList.length} วัน`);
+  console.log(`🟢 วันหยุดพิเศษ: ${stopDaysList.length} วัน`);
   
   return {
     updatedRecords,
@@ -3022,12 +2980,10 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         console.log(`✅ เป็นหน่วยงานพิเศษ (ทำงาน 7 วัน)`);
         console.log(`⚠️ ต้องใช้ฟังก์ชันคำนวณแบบพิเศษ`);
         isSpecialWorkplace = true;
-        console.log(`🔧 ตั้งค่า isSpecialWorkplace = ${isSpecialWorkplace}`);
       } else {
         console.log(`✅ เป็นหน่วยงานปกติ (ทำงาน ${workOfWeek} วัน)`);
         console.log(`ℹ️ ใช้ฟังก์ชันคำนวณแบบปกติ`);
         isSpecialWorkplace = false;
-        console.log(`🔧 ตั้งค่า isSpecialWorkplace = ${isSpecialWorkplace}`);
       }
       console.log(`=====================================\n`);
       
@@ -3055,31 +3011,6 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     // Query the collection
     const result = await timerecordEmployee.find(query);
     
-    // สร้างตัวแปร countAllowance เพื่อนับจำนวน totalTime ที่ไม่ใช่ค่าว่าง
-    let countAllowance = 0;
-    
-    // นับ totalTime ที่ไม่ใช่ค่าว่างจากข้อมูลที่ได้
-    console.log(`\n🔢 === นับจำนวน totalTime ที่ไม่ใช่ค่าว่าง ===`);
-    result.forEach((doc, docIndex) => {
-      if (doc.employee_record && Array.isArray(doc.employee_record)) {
-        doc.employee_record.forEach((record, recordIndex) => {
-          // ตรวจสอบว่า totalTime ไม่ใช่ค่าว่าง (ไม่ใช่ null, undefined, "", "0", 0)
-          if (record.totalTime && 
-              record.totalTime !== "" && 
-              record.totalTime !== "0" && 
-              record.totalTime !== 0 && 
-              parseFloat(record.totalTime) > 0) {
-            countAllowance++;
-            console.log(`✅ พบ totalTime = "${record.totalTime}" ใน doc ${docIndex + 1}, record ${recordIndex + 1}, วันที่: ${record.date || 'ไม่ระบุ'}`);
-          }
-        });
-      }
-    });
-    
-    console.log(`\n📊 === สรุปผลการนับ ===`);
-    console.log(`🔢 จำนวน totalTime ที่มีค่า (ไม่ใช่ค่าว่าง) ทั้งหมด: ${countAllowance} รายการ`);
-    console.log(`==============================\n`);
-    
     let updateNeeded = false;
     for (const doc of result) {
       // ข้ามเอกสารที่ status มีค่า (ไม่ว่าง)
@@ -3100,8 +3031,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         
         if (isSpecialWorkplace) {
           console.log(`\n🔄 ใช้ฟังก์ชันคำนวณแบบหน่วยงานพิเศษ 7 วัน`);
-          console.log(`🔢 ส่งค่า countAllowance: ${countAllowance} ไปยัง calculateCashValuesSpecial7Days`);
-          const result = await calculateCashValuesSpecial7Days(employeeId, doc.employee_record, month, year, countAllowance);
+          const result = await calculateCashValuesSpecial7Days(employeeId, doc.employee_record, month, year);
           updatedRecords = result.updatedRecords;
           cashcustomizeDayoff = result.cashcustomizeDayoff;
           personalDayOff = result.personalDayOff || [];
@@ -3109,7 +3039,6 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           console.log(`🟢 ได้วันหยุดส่วนบุคคล: ${personalDayOff.length} วัน`);
         } else {
           console.log(`\n🔄 ใช้ฟังก์ชันคำนวณแบบหน่วยงานปกติ`);
-          console.log(`⚠️ isSpecialWorkplace = false, ไม่ใช้ calculateCashValuesSpecial7Days`);
           updatedRecords = await calculateCashValues(employeeId, doc.employee_record, month, year);
         }
         
@@ -3137,7 +3066,6 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     
     // แสดงข้อมูลที่จะส่งกลับเพื่อตรวจสอบ
     console.log(`\n📤 === ข้อมูลที่จะส่งกลับ ===`);
-    console.log(`🔢 countAllowance (totalTime ที่มีค่า): ${countAllowance} รายการ`);
     result.forEach((doc, index) => {
       console.log(`📄 Document ${index + 1}:`);
       console.log(`  - employeeId: ${doc.employeeId}`);
@@ -3151,28 +3079,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     });
     console.log(`=================================\n`);
 
-    // แก้ไข message ใน result ให้เป็น countAllowance สำหรับ special workplace
-    if (isSpecialWorkplace && countAllowance > 0) {
-      console.log(`🔧 แก้ไข allTime สำหรับวันที่มาทำงาน เป็น: ${countAllowance}`);
-      result.forEach((doc, docIndex) => {
-        if (doc.employee_record && Array.isArray(doc.employee_record)) {
-          doc.employee_record.forEach((record, recordIndex) => {
-            const oldAllTimes = record.allTime || "0";
-            
-            // เฉพาะวันที่มาทำงาน (allTime เดิม > 0) ถึงจะเปลี่ยนเป็น countAllowance
-            if (parseFloat(oldAllTimes) > 0) {
-              record.allTime = countAllowance.toString();
-              console.log(`   วันที่ ${record.date}: allTime เปลี่ยนจาก "${oldAllTimes}" เป็น "${countAllowance}" (มาทำงาน)`);
-            } else {
-              // วันที่ไม่มาทำงาน ให้คงเป็น "0"
-              console.log(`   วันที่ ${record.date}: allTime คงเป็น "${oldAllTimes}" (ไม่มาทำงาน)`);
-            }
-          });
-        }
-      });
-    }
-
-    await res.status(200).json({ result, countAllowance });
+    await res.status(200).json({ result });
 
   } catch (error) {
     console.error(error);

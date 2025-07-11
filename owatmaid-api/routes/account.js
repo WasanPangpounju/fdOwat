@@ -5263,8 +5263,6 @@ try {
           console.error(`❌ เกิดข้อผิดพลาดในการตรวจสอบวันหยุดที่กำหนดเอง:`, error.message);
         }
         if (record?.dayType === 'stop') {
-          console.log(`🛑 วันหยุด: วันที่ ${record.date}, cashWork: ${record?.cashWork}, cashWorkMul: ${record?.cashWorkMul}`);
-          console.log(`   📊 sumCashWorkMul["${record?.cashWorkMul}"] ก่อนบวก: ${sumCashWorkMul[record?.cashWorkMul] || 0}`);
           console.log(record?.dayType);
           dayOffCount += 1;
           sumcashDayOffCount = parseFloat(sumcashDayOffCount || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0')
@@ -5274,7 +5272,6 @@ try {
             sumOt3 += convertTimeToDecimal(record.totalOtTime);
             sumOtPublicHoliday += convertTimeToDecimal(record.totalTime); // เพิ่มผลรวมของ totalOtTime ในวันหยุดนักขัตฤกษ์
             sumCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
-            console.log(`   ✅ sumCashWorkMul["${record?.cashWorkMul}"] หลังบวก: ${sumCashWorkMul[record?.cashWorkMul]}`);
 
           sumCashWorkMul[record?.cashOtMul] += parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0');
 
@@ -5293,8 +5290,7 @@ try {
           } else {
 
             if (record?.dayType === "work") {
-              console.log(`\n� วันทำงาน: วันที่ ${record.date}, cashWork: ${record?.cashWork}, cashWorkMul: ${record?.cashWorkMul}`);
-              console.log(`   📊 sumCashWorkMul["${record?.cashWorkMul}"] ก่อนบวก: ${sumCashWorkMul[record?.cashWorkMul] || 0}`);
+              console.log(`\n--- 🔁 กำลังประมวลผลวันที่: ${record.date}, ประเภท: ${record.dayType} ---`);
 
               dayWorkCount += 1;
               sumTimeWork += convertTimeToDecimal(record.totalTime);
@@ -5310,8 +5306,6 @@ try {
               console.log(`   - ค่า sumOt1p5 (หลังบวก): ${sumOt1p5}`);
               
               sumCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
-              console.log(`   ✅ sumCashWorkMul["${record?.cashWorkMul}"] หลังบวก: ${sumCashWorkMul[record?.cashWorkMul]}`);
-              
               sumCashWorkMul[record?.cashOtMul] += parseFloat(record?.cashBeforeOt || '0');
 
 
@@ -5374,17 +5368,8 @@ try {
   const sumCashSpecialDay = sumCashWork / dayWorkCount;
   const totalsumCashSpecialDay = sumCashSpecialDay * specialDay
 
-  // แสดงสรุปการคำนวณ sumCashWorkMul ทั้งหมด
-  console.log(`\n📊 === สรุปการคำนวณ sumCashWorkMul ===`);
-  console.log(`💰 sumCashWorkMul["1"]: ${sumCashWorkMul["1"]} บาท (วันทำงานปกติ)`);
-  console.log(`💰 sumCashWorkMul["1.5"]: ${sumCashWorkMul["1.5"]} บาท (OT)`);
-  console.log(`💰 sumCashWorkMul["2"]: ${sumCashWorkMul["2"]} บาท (วันหยุด)`);
-  console.log(`💰 sumCashWorkMul["3"]: ${sumCashWorkMul["3"]} บาท`);
-  console.log(`📊 จำนวนวันทำงาน (dayWorkCount): ${dayWorkCount} วัน`);
-  console.log(`📊 จำนวนวันหยุด (dayOffCount): ${dayOffCount} วัน`);
-  console.log(`💰 sumCashWork รวม: ${sumCashWork} บาท`);
-  console.log(`🔍 สูตรคาดหวัง: วันทำงาน ${dayWorkCount} × 372 = ${dayWorkCount * 372} บาท`);
-  console.log(`🔍 สูตรคาดหวัง: วันหยุด ${dayOffCount} × 744 = ${dayOffCount * 744} บาท`);
+  
+ 
 
   console.log('cashSpecialDay  ' + cashSpecialDay);
   console.log('dayWorkCount : ' + dayWorkCount);
@@ -5464,38 +5449,6 @@ console.log(`🔍 ค่า publicHolidayCount ที่จะบันทึก
 
 console.log(`\n💰 คำนวณ publicHolidayCash สำหรับพนักงาน ${employeeId}`);
 
-  // สำหรับหน่วยงานพิเศษ ให้ดึงค่าแรงจาก API workplace และคำนวณ sumCashWorkMul["1"] ใหม่
-  try {
-    const workplaceId = employeeProfile[0].workplace;
-    console.log(`\n🔍 === ตรวจสอบหน่วยงานพิเศษ (workplaceId: ${workplaceId}) ===`);
-    
-    if (workplaceId === "10493") {
-      console.log(`🎯 พบหน่วยงานพิเศษ ${workplaceId} - ดึงค่าแรงจาก API`);
-      
-      const workplaceApiUrl = `http://10.10.110.7:3000/workplace/${workplaceId}`;
-      const workplaceResponse = await axios.get(workplaceApiUrl);
-      const workRate = parseFloat(workplaceResponse?.data?.workRate || 0);
-      
-      console.log(`💰 ค่าแรงจาก API (workRate): ${workRate} บาท`);
-      console.log(`📊 จำนวนวันทำงาน (dayWorkCount): ${dayWorkCount} วัน`);
-      
-      if (workRate > 0 && dayWorkCount > 0) {
-        // คำนวณ sumCashWorkMul["1"] ใหม่สำหรับหน่วยงานพิเศษ
-        const newSumCashWorkMul1 = workRate * dayWorkCount;
-        console.log(`🔄 คำนวณ sumCashWorkMul["1"] ใหม่: ${workRate} × ${dayWorkCount} = ${newSumCashWorkMul1} บาท`);
-        console.log(`📝 sumCashWorkMul["1"] เดิม: ${sumCashWorkMul["1"]} บาท`);
-        
-        // กำหนดค่าใหม่
-        sumCashWorkMul["1"] = newSumCashWorkMul1;
-        console.log(`✅ sumCashWorkMul["1"] ใหม่: ${sumCashWorkMul["1"]} บาท`);
-      } else {
-        console.log(`⚠️ ไม่สามารถคำนวณได้ workRate=${workRate}, dayWorkCount=${dayWorkCount}`);
-      }
-    }
-  } catch (error) {
-    console.error(`❌ เกิดข้อผิดพลาดในการดึงข้อมูล workplace: ${error.message}`);
-  }
-
   // ตรวจสอบว่า publicHolidayCount เป็น 0 หรือไม่
   if (publicHolidayCount === 0) {
     // ถ้าไม่มีวันหยุดนักขัตฤกษ์ที่พนักงานไม่มาทำงาน ก็ไม่ต้องจ่ายเงิน
@@ -5506,8 +5459,7 @@ console.log(`\n💰 คำนวณ publicHolidayCash สำหรับพน�
     if (sumCashWorkMul["1"] && dayWorkCount > 0) {
       // คำนวณค่าแรงต่อวันจาก sumCashWorkMul["1"] / dayWorkCount
       const dailyRate = sumCashWorkMul["1"] / dayWorkCount;
-      const publicRate = dailyRate * 2; // คำนวณค่าแรงสำหรับวันหยุดนักขัตฤกษ์
-      publicHolidayCash = publicRate * publicHolidayCount;
+      publicHolidayCash = dailyRate * publicHolidayCount;
       
       console.log(`💰 ค่าแรงต่อวัน (sumCashWorkMul["1"] / dayWorkCount): ${dailyRate.toFixed(2)} บาท`);
       console.log(`💰 จำนวนวันหยุดนักขัตฤกษ์ที่ไม่มาทำงาน: ${publicHolidayCount} วัน`);
