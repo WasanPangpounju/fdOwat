@@ -325,16 +325,21 @@ if((prevMonth  == upSalary_month ) && (year1  == upSalary_year ) ) {
           if (str1 > 20 && str1 <= lastday) {
 
             tmp.day = str1 + '/' + prevMonth + '/' + year;
-            tmp.workplaceId = element.workplaceId || '';
-            let parts = element.allTime.split('.');
+            tmp.workplaceId = element.workplaceId || '';          let parts = element.allTime.split('.');
 
-            let hours = parseInt(parts[0], 10) || 0;
-            let minutes = parts.length > 1 ? parseInt(parts[1], 10) : 0;
+          let hours = parseInt(parts[0], 10) || 0;
+          let minutes = parts.length > 1 ? parseInt(parts[1], 10) : 0;
 
-            let scaledMinutes = (minutes * 100) / 60;
-            let allTime = `${hours}.${scaledMinutes}` || 0;
+          let scaledMinutes = (minutes * 100) / 60;
+          let allTime = `${hours}.${scaledMinutes}` || 0;
 
-            tmp.allTimes = `${hours}.${scaledMinutes}` || 0;
+          console.log(`🕒 คำนวณ allTime วันที่ ${str1}:`);
+          console.log(`   - element.allTime (raw): "${element.allTime}"`);
+          console.log(`   - แยกได้: hours=${hours}, minutes=${minutes}`);
+          console.log(`   - scaledMinutes: ${scaledMinutes}`);
+          console.log(`   - allTime (final): "${allTime}"`);
+
+          tmp.allTimes = `${hours}.${scaledMinutes}` || 0;
 
             let parts1 = element.otTime.split('.');
 
@@ -370,8 +375,10 @@ if((prevMonth  == upSalary_month ) && (year1  == upSalary_year ) ) {
                 if (allTime >= workOfHour) {
                   allTime = workOfHour;
                   tmp.allTimes = workOfHour || 0;
+                  console.log(`🔧 วันหยุดพิเศษ วันที่ ${str1}: allTime (${allTime}) >= workOfHour (${workOfHour}) -> กำหนด allTimes = ${tmp.allTimes}`);
                 } else {
                   tmp.allTimes = allTime || 0;
+                  console.log(`🔧 วันหยุดพิเศษ วันที่ ${str1}: allTime (${allTime}) < workOfHour (${workOfHour}) -> กำหนด allTimes = ${tmp.allTimes}`);
                 }
 
                 let workRate = ((parseFloat(tmpWP.data.holidayHour) * (salary / 8)) * parseFloat(allTime)).toFixed(3);
@@ -419,8 +426,10 @@ console.log(workRate + ' workRate ');
                 if (allTime >= workOfHour) {
                   allTime = workOfHour;
                   tmp.allTimes = workOfHour || 0;
+                  console.log(`🔧 วันหยุดปกติ วันที่ ${str1}: allTime (${allTime}) >= workOfHour (${workOfHour}) -> กำหนด allTimes = ${tmp.allTimes}`);
                 } else {
                   tmp.allTimes = allTime || 0;
+                  console.log(`🔧 วันหยุดปกติ วันที่ ${str1}: allTime (${allTime}) < workOfHour (${workOfHour}) -> กำหนด allTimes = ${tmp.allTimes}`);
                 }
 
                 let workRate = ((parseFloat(tmpWP.data.dayoffRateHour ?? 0) * (parseFloat(salary || 0) / 8)) * parseFloat(allTime)).toFixed(2);
@@ -467,8 +476,10 @@ console.log(workRate + ' workRate ');
                 if(parseFloat(allTime || 0 ) >= workOfHour) {
                   allTime = workOfHour;
                   tmp.allTimes = workOfHour || 0;
+                  console.log(`🕒 วันที่ ${tmp.day}: allTime (${allTime}) >= workOfHour (${workOfHour}) -> กำหนด allTimes = ${tmp.allTimes}`);
                 } else {
                   tmp.allTimes = allTime || 0;
+                  console.log(`🕒 วันที่ ${tmp.day}: allTime (${allTime}) < workOfHour (${workOfHour}) -> กำหนด allTimes = ${tmp.allTimes}`);
                 }
 
                 // let workRate = ((salary / 8) * (parseFloat(otTime) * 1.111) ).toFixed(2);
@@ -1188,8 +1199,15 @@ try {
 // นับจำนวนวันจริงที่มา (totalTime) สำหรับหน่วยงานพิเศษ 7 วัน
 let totalWorkDays = 0;
 if (isSpecialWorkplace7Days) {
+  console.log(`\n🔍 === ตรวจสอบการคำนวณ allTimes สำหรับหน่วยงานพิเศษ 7 วัน ===`);
+  concludeRecord.forEach((record, index) => {
+    const allTimesValue = parseFloat(record.allTimes || 0);
+    console.log(`📅 วันที่ ${record.day}: allTimes = "${record.allTimes}" -> parsed = ${allTimesValue} -> มาทำงาน: ${allTimesValue > 0 ? 'ใช่' : 'ไม่'}`);
+  });
+  
   totalWorkDays = concludeRecord.filter(record => parseFloat(record.allTimes || 0) > 0).length;
   console.log(`📊 หน่วยงานพิเศษ 7 วัน - จำนวนวันทำงานจริง: ${totalWorkDays} วัน`);
+  console.log(`=====================================\n`);
 }
 
 // แก้ไขส่วนการสร้าง addSalaryList
@@ -1198,7 +1216,13 @@ for (let c = 0; c < concludeRecord.length; c++) {
   // ตรวจสอบว่าเป็นหน่วยงานพิเศษ 7 วัน
   if (isSpecialWorkplace7Days) {
     // สำหรับหน่วยงานพิเศษ 7 วัน - ตรวจสอบว่ามี allTimes หรือไม่
-    if (parseFloat(concludeRecord[c].allTimes || 0) > 0) {
+    const allTimesValue = parseFloat(concludeRecord[c].allTimes || 0);
+    console.log(`\n🔍 ตรวจสอบวันที่ ${concludeRecord[c].day}:`);
+    console.log(`   - allTimes (raw): "${concludeRecord[c].allTimes}"`);
+    console.log(`   - allTimes (parsed): ${allTimesValue}`);
+    console.log(`   - เงื่อนไข allTimes > 0: ${allTimesValue > 0}`);
+    
+    if (allTimesValue > 0) {
       // มี allTimes (มาทำงาน) ให้เพิ่มเงินพิเศษรายวันพร้อมปรับ message เป็น totalWorkDays
       let adjustedAddSalaryDaily = addSalaryDaily.map(item => ({
         ...item,
@@ -1206,6 +1230,12 @@ for (let c = 0; c < concludeRecord.length; c++) {
       }));
       await addSalaryList.push(adjustedAddSalaryDaily);
       console.log(`✅ วันที่ ${concludeRecord[c].day} - allTimes: ${concludeRecord[c].allTimes} - เพิ่มเงินพิเศษรายวัน (${totalWorkDays} วัน)`);
+      console.log(`   - จำนวนรายการเงินพิเศษ: ${adjustedAddSalaryDaily.length}`);
+      if (adjustedAddSalaryDaily.length > 0) {
+        adjustedAddSalaryDaily.forEach(item => {
+          console.log(`     • ${item.name}: ${item.SpSalary} บาท (message: "${item.message}")`);
+        });
+      }
     } else {
       // ไม่มี allTimes (ไม่มาทำงาน) ไม่เพิ่มเงินพิเศษ
       await addSalaryList.push([]);
