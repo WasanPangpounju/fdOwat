@@ -947,6 +947,11 @@ if (isSpecialWorkplace7Days) {
     });
   }
 
+  // 🔴 เพิ่ม log ในจุดที่สำคัญ: ก่อน concat และหลัง concat
+  console.log(`\n🔍 === จุดตรวจสอบสำคัญ ===`);
+  console.log(`📝 addSalaryDayArray.length ก่อน concat: ${addSalaryDayArray.length}`);
+  console.log(`📝 addSalaryList.length ก่อน concat: ${addSalaryList.length}`);
+
   data.accountingRecord.countDay = countDay;
   data.accountingRecord.countHour = countHour;
   data.accountingRecord.countOtHour = countOtHour;
@@ -1216,6 +1221,18 @@ if (isSpecialWorkplace7Days) {
       data.accountingRecord.sumAddSalary = await sumAddSalary ||0;
 
       data.addSalary = await addSalaryList || [];
+
+  // 🔴 เพิ่ม log ก่อนบันทึกฐานข้อมูล
+  console.log(`\n💾 === ก่อนบันทึกฐานข้อมูล ===`);
+  console.log(`📝 จำนวน addSalaryList ที่จะบันทึก: ${addSalaryList.length} รายการ`);
+  console.log(`📝 จำนวน data.addSalary ที่จะบันทึก: ${data.addSalary.length} รายการ`);
+  
+  if (isSpecialWorkplace7Days && data.addSalary.length > 0) {
+    console.log(`\n📋 ค่า message ใน data.addSalary ก่อนบันทึก:`);
+    data.addSalary.forEach((item, index) => {
+      console.log(`   ${index + 1}. ${item.name} (ID: ${item.id}): message = "${item.message}"`);
+    });
+  }
 
   data.deductSalary = deductSalaryList || [];
 
