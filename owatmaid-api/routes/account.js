@@ -882,6 +882,16 @@ try {
       const timeRecordResponse = await axios.post(`${sURL}/conclude/searchtimerecordemployee`, searchTimeRecordData);
       countAllowance = timeRecordResponse.data.countAllowance || 0;
       console.log(`🔢 ได้ countAllowance จาก searchtimerecordemployee: ${countAllowance} วัน`);
+      
+      // บังคับให้ allTimes ในทุก record = countAllowance
+      if (countAllowance > 0) {
+        console.log(`🔧 บังคับแทนที่ allTimes ทุกวันเป็น: ${countAllowance}`);
+        responseConclude.data.recordConclude[c].concludeRecord.forEach((record, index) => {
+          const oldAllTimes = record.allTimes;
+          record.allTimes = countAllowance;
+          console.log(`   วันที่ ${record.day || index + 1}: allTimes เปลี่ยนจาก "${oldAllTimes}" เป็น "${countAllowance}"`);
+        });
+      }
     } catch (error) {
       console.error(`❌ ไม่สามารถดึง countAllowance ได้:`, error.message);
       console.log(`⚠️ ใช้ค่า default countAllowance = 0`);

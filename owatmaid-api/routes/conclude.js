@@ -2733,6 +2733,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
 
       return {
         ...record,
+        allTimes: countAllowance || record.allTimes, // บังคับให้ allTimes = countAllowance
         cashBeforeOt,
         cashWork,
         cashOt,
