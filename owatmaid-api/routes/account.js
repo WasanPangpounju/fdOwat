@@ -876,63 +876,45 @@ try {
 
 let totalWorkDays = 0;
 if (isSpecialWorkplace7Days) {
-  // นับวันที่มี totalTime (ไม่ใช่ allTimes)
+  // นับวันที่มี dayType (ไม่ว่าจะเป็น work หรือ stop)
   totalWorkDays = responseConclude.data.recordConclude[c].concludeRecord.filter(record => {
-    // ตรวจสอบว่ามี totalTime และไม่ใช่ค่าว่าง
-    return record.totalTime && record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0;
+    // ตรวจสอบว่ามี dayType และไม่ใช่ค่าว่าง
+    return record.dayType && record.dayType.trim() !== '';
   }).length;
   
-  console.log(`📊 หน่วยงานพิเศษ 7 วัน - จำนวนวันทำงานจริง (จาก totalTime): ${totalWorkDays} วัน`);
+  console.log(`📊 หน่วยงานพิเศษ 7 วัน - จำนวนวันทำงานจริง (จาก dayType): ${totalWorkDays} วัน`);
   
   // แสดงรายละเอียดการนับเพื่อตรวจสอบ
   console.log(`📋 รายละเอียดการนับวัน:`);
   responseConclude.data.recordConclude[c].concludeRecord.forEach((record, index) => {
-    const hasTotalTime = record.totalTime && record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0;
-    console.log(`   วันที่ ${record.day}: totalTime = "${record.totalTime || 'ไม่มี'}" ${hasTotalTime ? '✅ นับ' : '❌ ไม่นับ'}`);
+    const hasDayType = record.dayType && record.dayType.trim() !== '';
+    console.log(`   วันที่ ${record.day}: dayType = "${record.dayType || 'ไม่มี'}" ${hasDayType ? '✅ นับ' : '❌ ไม่นับ'}`);
   });
 }
 
 if (isSpecialWorkplace7Days) {
   addSalaryDayArray = addSalaryDayArray.map(item => ({
     ...item,
-    message: totalWorkDays.toString()  // อัปเดต message เป็นจำนวนวันจริงที่มา
+    message: totalWorkDays.toString()  // อัปเดต message เป็นจำนวนวันที่มี dayType (ไม่ว่า work หรือ stop)
   }));
-  console.log(`🔧 อัปเดต addSalaryDayArray message เป็น: ${totalWorkDays}`);
+  console.log(`🔧 อัปเดต addSalaryDayArray message เป็น: ${totalWorkDays} (นับจาก dayType)`);
 }
 
 // เพิ่มการตรวจสอบเพิ่มเติม:
 
-// เพิ่ม log สรุปจำนวนวันที่มี totalTime (แทน allTimes)
+// เพิ่ม log สรุปจำนวนวันที่มี dayType
 console.log(`\n📊 === สรุป addSalaryList สำหรับหน่วยงานพิเศษ 7 วัน ===`);
-let countDaysWithTotalTime = 0;
+let countDaysWithDayType = 0;
 
 responseConclude.data.recordConclude[c].concludeRecord.forEach((record, index) => {
-  if (record.totalTime && record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0) {
-    countDaysWithTotalTime++;
+  if (record.dayType && record.dayType.trim() !== '') {
+    countDaysWithDayType++;
   }
 });
 
-console.log(`📅 จำนวนวันที่มี totalTime > 0: ${countDaysWithTotalTime} วัน`);
+console.log(`📅 จำนวนวันที่มี dayType: ${countDaysWithDayType} วัน`);
 console.log(`💵 จำนวน addSalaryDayArray: ${addSalaryDayArray.length} รายการ`);
-console.log(`✅ ต้องตรงกัน: ${countDaysWithTotalTime === totalWorkDays ? 'ถูกต้อง' : 'ไม่ตรงกัน!'}`);
-
-// ตรวจสอบค่า message หลังจากอัปเดต
-if (isSpecialWorkplace7Days && addSalaryDayArray.length > 0) {
-  console.log(`\n📝 ตรวจสอบค่า message หลังอัปเดต:`);
-  addSalaryDayArray.forEach((item, index) => {
-    console.log(`   - ${item.name} (ID: ${item.id}): message = "${item.message}"`);
-  });
-}
-
-responseConclude.data.recordConclude[c].concludeRecord.forEach((record, index) => {
-  if (parseFloat(record.allTimes || 0) > 0) {
-    countDaysWithAllTimes++;
-  }
-});
-
-console.log(`📅 จำนวนวันที่มี totalTime > 0: ${countDaysWithTotalTime} วัน`);
-console.log(`💵 จำนวน addSalaryDayArray: ${addSalaryDayArray.length} รายการ`);
-console.log(`✅ ต้องตรงกัน: ${countDaysWithTotalTime === totalWorkDays ? 'ถูกต้อง' : 'ไม่ตรงกัน!'}`);
+console.log(`✅ ต้องตรงกัน: ${countDaysWithDayType === totalWorkDays ? 'ถูกต้อง' : 'ไม่ตรงกัน!'}`);
 
 // ตรวจสอบค่า message หลังจากอัปเดต
 if (isSpecialWorkplace7Days && addSalaryDayArray.length > 0) {
