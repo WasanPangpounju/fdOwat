@@ -2748,14 +2748,35 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
     })
   );
 
+  // นับจำนวนวันที่มี totalTime > 0 สำหรับ message ใน addSalary
+  const totalWorkingDays = updatedRecords.filter(record => 
+    record.totalTime && parseFloat(record.totalTime) > 0
+  ).length;
+  
+  console.log(`\n📊 === นับจำนวนวันทำงานจาก totalTime ===`);
+  console.log(`📅 จำนวนวันที่มี totalTime > 0: ${totalWorkingDays} วัน`);
+  
+  // อัปเดต message ใน addSalaryDaily ของทุก record
+  const finalUpdatedRecords = updatedRecords.map(record => {
+    if (record.addSalaryDaily && record.addSalaryDaily.length > 0) {
+      record.addSalaryDaily = record.addSalaryDaily.map(salary => ({
+        ...salary,
+        message: totalWorkingDays.toString() // ใช้จำนวนวันที่มี totalTime > 0
+      }));
+      console.log(`📝 อัปเดต message วันที่ ${record.date}: ${totalWorkingDays} วัน`);
+    }
+    return record;
+  });
+
   // Return an object containing both the updated records and cashcustomizeDayoff
   console.log(`\n💎 === ส่งคืนข้อมูล ===`);
-  console.log(`📋 อาร์เรย์ข้อมูลพนักงาน: ${updatedRecords.length} รายการ`);
+  console.log(`📋 อาร์เรย์ข้อมูลพนักงาน: ${finalUpdatedRecords.length} รายการ`);
   console.log(`💰 cashcustomizeDayoff: ${totalWorkerWage.toFixed(2)} บาท`);
   console.log(`🟢 วันหยุดพิเศษ: ${stopDaysList.length} วัน`);
+  console.log(`📊 จำนวนวันทำงานใน message: ${totalWorkingDays} วัน (จาก totalTime > 0)`);
   
   return {
-    updatedRecords,
+    updatedRecords: finalUpdatedRecords,
     cashcustomizeDayoff: totalWorkerWage,
     personalDayOff: stopDaysList // เปลี่ยนชื่อให้ชัดเจนขึ้น - ใช้เป็นวันหยุดส่วนบุคคล
   };
