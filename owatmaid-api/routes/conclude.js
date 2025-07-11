@@ -3011,6 +3011,26 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     // Query the collection
     const result = await timerecordEmployee.find(query);
     
+    // สร้างตัวแปร countAllowance เพื่อนับจำนวน totalTime ที่เท่ากับ "8.0"
+    let countAllowance = 0;
+    
+    // นับ totalTime = "8.0" จากข้อมูลที่ได้
+    console.log(`\n🔢 === นับจำนวน totalTime = "8.0" ===`);
+    result.forEach((doc, docIndex) => {
+      if (doc.employee_record && Array.isArray(doc.employee_record)) {
+        doc.employee_record.forEach((record, recordIndex) => {
+          if (record.totalTime === "8.0") {
+            countAllowance++;
+            console.log(`✅ พบ totalTime = "8.0" ใน doc ${docIndex + 1}, record ${recordIndex + 1}, วันที่: ${record.date || 'ไม่ระบุ'}`);
+          }
+        });
+      }
+    });
+    
+    console.log(`\n📊 === สรุปผลการนับ ===`);
+    console.log(`🔢 จำนวน totalTime = "8.0" ทั้งหมด: ${countAllowance} รายการ`);
+    console.log(`==============================\n`);
+    
     let updateNeeded = false;
     for (const doc of result) {
       // ข้ามเอกสารที่ status มีค่า (ไม่ว่าง)
@@ -3066,6 +3086,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     
     // แสดงข้อมูลที่จะส่งกลับเพื่อตรวจสอบ
     console.log(`\n📤 === ข้อมูลที่จะส่งกลับ ===`);
+    console.log(`🔢 countAllowance (totalTime = "8.0"): ${countAllowance} รายการ`);
     result.forEach((doc, index) => {
       console.log(`📄 Document ${index + 1}:`);
       console.log(`  - employeeId: ${doc.employeeId}`);
@@ -3079,7 +3100,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     });
     console.log(`=================================\n`);
 
-    await res.status(200).json({ result });
+    await res.status(200).json({ result, countAllowance });
 
   } catch (error) {
     console.error(error);
