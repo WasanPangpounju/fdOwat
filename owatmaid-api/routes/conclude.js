@@ -3011,24 +3011,29 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     // Query the collection
     const result = await timerecordEmployee.find(query);
     
-    // สร้างตัวแปร countAllowance เพื่อนับจำนวน totalTime ที่เท่ากับ "8.0"
+    // สร้างตัวแปร countAllowance เพื่อนับจำนวน totalTime ที่ไม่ใช่ค่าว่าง
     let countAllowance = 0;
     
-    // นับ totalTime = "8.0" จากข้อมูลที่ได้
-    console.log(`\n🔢 === นับจำนวน totalTime = "8.0" ===`);
+    // นับ totalTime ที่ไม่ใช่ค่าว่างจากข้อมูลที่ได้
+    console.log(`\n🔢 === นับจำนวน totalTime ที่ไม่ใช่ค่าว่าง ===`);
     result.forEach((doc, docIndex) => {
       if (doc.employee_record && Array.isArray(doc.employee_record)) {
         doc.employee_record.forEach((record, recordIndex) => {
-          if (record.totalTime === "8.0") {
+          // ตรวจสอบว่า totalTime ไม่ใช่ค่าว่าง (ไม่ใช่ null, undefined, "", "0", 0)
+          if (record.totalTime && 
+              record.totalTime !== "" && 
+              record.totalTime !== "0" && 
+              record.totalTime !== 0 && 
+              parseFloat(record.totalTime) > 0) {
             countAllowance++;
-            console.log(`✅ พบ totalTime = "8.0" ใน doc ${docIndex + 1}, record ${recordIndex + 1}, วันที่: ${record.date || 'ไม่ระบุ'}`);
+            console.log(`✅ พบ totalTime = "${record.totalTime}" ใน doc ${docIndex + 1}, record ${recordIndex + 1}, วันที่: ${record.date || 'ไม่ระบุ'}`);
           }
         });
       }
     });
     
     console.log(`\n📊 === สรุปผลการนับ ===`);
-    console.log(`🔢 จำนวน totalTime = "8.0" ทั้งหมด: ${countAllowance} รายการ`);
+    console.log(`🔢 จำนวน totalTime ที่มีค่า (ไม่ใช่ค่าว่าง) ทั้งหมด: ${countAllowance} รายการ`);
     console.log(`==============================\n`);
     
     let updateNeeded = false;
@@ -3086,7 +3091,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     
     // แสดงข้อมูลที่จะส่งกลับเพื่อตรวจสอบ
     console.log(`\n📤 === ข้อมูลที่จะส่งกลับ ===`);
-    console.log(`🔢 countAllowance (totalTime = "8.0"): ${countAllowance} รายการ`);
+    console.log(`🔢 countAllowance (totalTime ที่มีค่า): ${countAllowance} รายการ`);
     result.forEach((doc, index) => {
       console.log(`📄 Document ${index + 1}:`);
       console.log(`  - employeeId: ${doc.employeeId}`);
