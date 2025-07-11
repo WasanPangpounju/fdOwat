@@ -4876,6 +4876,23 @@ let timeCashWorkMul = {
   const salaryTmp = parseFloat(employeeProfile[0].salary || '0') || 0;
   const costtype = employeeProfile[0].costtype || '';
 
+  // 🎯 ดึงข้อมูล workplace และ workRate
+  let workRate = 0;
+  try {
+    const employee = await Employee.findOne({ employeeId: employeeId });
+    const wpId = employee?.workplace || '';
+    
+    if (wpId) {
+      const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${wpId}`);
+      workRate = parseFloat(workplaceResponse.data.workRate || 0);
+      console.log(`🏢 ดึงข้อมูล workplace ${wpId}: workRate = ${workRate}`);
+    } else {
+      console.log(`⚠️ ไม่พบ workplace สำหรับพนักงาน ${employeeId}`);
+    }
+  } catch (workplaceError) {
+    console.warn(`⚠️ ไม่สามารถดึงข้อมูล workplace ได้:`, workplaceError.message);
+  }
+
   let addSalary = employeeProfile?.[0]?.addSalary || [];
     let deductSalary = employeeProfile?.[0]?.deductSalary || [];
   let salary = 0;
@@ -5796,6 +5813,21 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
   cashcustomizeDayoff = (cashcustomizeDayoff || 0).toFixed(2);
   publicHolidayCash = (publicHolidayCash || 0).toFixed(2);
   cashSpecialDay = (cashSpecialDay || 0).toFixed(2);
+
+  // 🎯 คำนวณ sumCashWorkMul["1"] ใหม่จาก workRate * dayWorkCount
+  if (workRate > 0 && dayWorkCount > 0) {
+    const newSumCashWorkMul1 = workRate * dayWorkCount;
+    console.log(`\n🎯 === การคำนวณ sumCashWorkMul["1"] ใหม่ ===`);
+    console.log(`🎯 workRate: ${workRate} บาท`);
+    console.log(`🎯 dayWorkCount: ${dayWorkCount} วัน`);
+    console.log(`🎯 sumCashWorkMul["1"] เดิม: ${sumCashWorkMul["1"]}`);
+    console.log(`🎯 sumCashWorkMul["1"] ใหม่: ${newSumCashWorkMul1} (${workRate} × ${dayWorkCount})`);
+    
+    sumCashWorkMul["1"] = newSumCashWorkMul1;
+  } else {
+    console.log(`\n⚠️ ไม่สามารถคำนวณ sumCashWorkMul["1"] ใหม่ได้:`);
+    console.log(`   workRate: ${workRate}, dayWorkCount: ${dayWorkCount}`);
+  }
 
 
   return await {
