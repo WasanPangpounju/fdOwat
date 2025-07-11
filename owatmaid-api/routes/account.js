@@ -5464,49 +5464,49 @@ console.log(`🔍 ค่า publicHolidayCount ที่จะบันทึก
 
 console.log(`\n💰 คำนวณ publicHolidayCash สำหรับพนักงาน ${employeeId}`);
 
+  // สำหรับหน่วยงานพิเศษ ให้ดึงค่าแรงจาก API workplace และคำนวณ sumCashWorkMul["1"] ใหม่
+  try {
+    const workplaceId = employeeProfile[0].workplace;
+    console.log(`\n🔍 === ตรวจสอบหน่วยงานพิเศษ (workplaceId: ${workplaceId}) ===`);
+    
+    if (workplaceId === "10493") {
+      console.log(`🎯 พบหน่วยงานพิเศษ ${workplaceId} - ดึงค่าแรงจาก API`);
+      
+      const workplaceApiUrl = `http://10.10.110.7:3000/workplace/${workplaceId}`;
+      const workplaceResponse = await axios.get(workplaceApiUrl);
+      const workRate = parseFloat(workplaceResponse?.data?.workRate || 0);
+      
+      console.log(`💰 ค่าแรงจาก API (workRate): ${workRate} บาท`);
+      console.log(`📊 จำนวนวันทำงาน (dayWorkCount): ${dayWorkCount} วัน`);
+      
+      if (workRate > 0 && dayWorkCount > 0) {
+        // คำนวณ sumCashWorkMul["1"] ใหม่สำหรับหน่วยงานพิเศษ
+        const newSumCashWorkMul1 = workRate * dayWorkCount;
+        console.log(`🔄 คำนวณ sumCashWorkMul["1"] ใหม่: ${workRate} × ${dayWorkCount} = ${newSumCashWorkMul1} บาท`);
+        console.log(`📝 sumCashWorkMul["1"] เดิม: ${sumCashWorkMul["1"]} บาท`);
+        
+        // กำหนดค่าใหม่
+        sumCashWorkMul["1"] = newSumCashWorkMul1;
+        console.log(`✅ sumCashWorkMul["1"] ใหม่: ${sumCashWorkMul["1"]} บาท`);
+      } else {
+        console.log(`⚠️ ไม่สามารถคำนวณได้ workRate=${workRate}, dayWorkCount=${dayWorkCount}`);
+      }
+    }
+  } catch (error) {
+    console.error(`❌ เกิดข้อผิดพลาดในการดึงข้อมูล workplace: ${error.message}`);
+  }
+
   // ตรวจสอบว่า publicHolidayCount เป็น 0 หรือไม่
   if (publicHolidayCount === 0) {
     // ถ้าไม่มีวันหยุดนักขัตฤกษ์ที่พนักงานไม่มาทำงาน ก็ไม่ต้องจ่ายเงิน
     publicHolidayCash = 0;
     console.log(`💰 publicHolidayCount เป็น 0 จึงกำหนด publicHolidayCash = 0 บาท`);
   } else {
-    // สำหรับหน่วยงานพิเศษ ให้ดึงค่าแรงจาก API workplace และคำนวณ sumCashWorkMul["1"] ใหม่
-    try {
-      const workplaceId = employeeProfile[0].workplace;
-      console.log(`\n🔍 === ตรวจสอบหน่วยงานพิเศษ (workplaceId: ${workplaceId}) ===`);
-      
-      if (workplaceId === "10493") {
-        console.log(`🎯 พบหน่วยงานพิเศษ ${workplaceId} - ดึงค่าแรงจาก API`);
-        
-        const workplaceApiUrl = `http://10.10.110.7:3000/workplace/${workplaceId}`;
-        const workplaceResponse = await axios.get(workplaceApiUrl);
-        const workRate = parseFloat(workplaceResponse?.data?.workRate || 0);
-        
-        console.log(`💰 ค่าแรงจาก API (workRate): ${workRate} บาท`);
-        console.log(`📊 จำนวนวันทำงาน (dayWorkCount): ${dayWorkCount} วัน`);
-        
-        if (workRate > 0 && dayWorkCount > 0) {
-          // คำนวณ sumCashWorkMul["1"] ใหม่สำหรับหน่วยงานพิเศษ
-          const newSumCashWorkMul1 = workRate * dayWorkCount;
-          console.log(`🔄 คำนวณ sumCashWorkMul["1"] ใหม่: ${workRate} × ${dayWorkCount} = ${newSumCashWorkMul1} บาท`);
-          console.log(`📝 sumCashWorkMul["1"] เดิม: ${sumCashWorkMul["1"]} บาท`);
-          
-          // กำหนดค่าใหม่
-          sumCashWorkMul["1"] = newSumCashWorkMul1;
-          console.log(`✅ sumCashWorkMul["1"] ใหม่: ${sumCashWorkMul["1"]} บาท`);
-        } else {
-          console.log(`⚠️ ไม่สามารถคำนวณได้ workRate=${workRate}, dayWorkCount=${dayWorkCount}`);
-        }
-      }
-    } catch (error) {
-      console.error(`❌ เกิดข้อผิดพลาดในการดึงข้อมูล workplace: ${error.message}`);
-    }
-    
     // ตรวจสอบว่ามีข้อมูลที่จำเป็นสำหรับการคำนวณหรือไม่
     if (sumCashWorkMul["1"] && dayWorkCount > 0) {
       // คำนวณค่าแรงต่อวันจาก sumCashWorkMul["1"] / dayWorkCount
       const dailyRate = sumCashWorkMul["1"] / dayWorkCount;
-     const publicRate = dailyRate * 2; // คำนวณค่าแรงสำหรับวันหยุดนักขัตฤกษ์
+      const publicRate = dailyRate * 2; // คำนวณค่าแรงสำหรับวันหยุดนักขัตฤกษ์
       publicHolidayCash = publicRate * publicHolidayCount;
       
       console.log(`💰 ค่าแรงต่อวัน (sumCashWorkMul["1"] / dayWorkCount): ${dailyRate.toFixed(2)} บาท`);
