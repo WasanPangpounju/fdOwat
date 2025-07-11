@@ -5491,7 +5491,8 @@ console.log(`\n💰 คำนวณ publicHolidayCash สำหรับพน�
     if (sumCashWorkMul["1"] && dayWorkCount > 0) {
       // คำนวณค่าแรงต่อวันจาก sumCashWorkMul["1"] / dayWorkCount
       const dailyRate = sumCashWorkMul["1"] / dayWorkCount;
-      publicHolidayCash = dailyRate * publicHolidayCount;
+     const publicRate = dailyRate * 2; // คำนวณค่าแรงสำหรับวันหยุดนักขัตฤกษ์
+      publicHolidayCash = publicRate * publicHolidayCount;
       
       console.log(`💰 ค่าแรงต่อวัน (sumCashWorkMul["1"] / dayWorkCount): ${dailyRate.toFixed(2)} บาท`);
       console.log(`💰 จำนวนวันหยุดนักขัตฤกษ์ที่ไม่มาทำงาน: ${publicHolidayCount} วัน`);
