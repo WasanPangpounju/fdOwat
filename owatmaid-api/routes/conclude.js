@@ -1199,13 +1199,13 @@ for (let c = 0; c < concludeRecord.length; c++) {
   if (isSpecialWorkplace7Days) {
     // สำหรับหน่วยงานพิเศษ 7 วัน - ตรวจสอบว่ามี allTimes หรือไม่
     if (parseFloat(concludeRecord[c].allTimes || 0) > 0) {
-      // มี allTimes (มาทำงาน) ให้เพิ่มเงินพิเศษรายวันพร้อมปรับ message เป็น totalWorkDays
+      // มี allTimes (มาทำงาน) ให้เพิ่มเงินพิเศษรายวันพร้อมปรับ message เป็น countAllowance
       let adjustedAddSalaryDaily = addSalaryDaily.map(item => ({
         ...item,
-        message: totalWorkDays.toString()  // อัปเดต message เป็นจำนวนวันจริงที่มา
+        message: (countAllowance || totalWorkDays).toString()  // ใช้ countAllowance หรือ totalWorkDays
       }));
       await addSalaryList.push(adjustedAddSalaryDaily);
-      console.log(`✅ วันที่ ${concludeRecord[c].day} - allTimes: ${concludeRecord[c].allTimes} - เพิ่มเงินพิเศษรายวัน (${totalWorkDays} วัน)`);
+      console.log(`✅ วันที่ ${concludeRecord[c].day} - allTimes: ${concludeRecord[c].allTimes} - เพิ่มเงินพิเศษรายวัน (${countAllowance || totalWorkDays} วัน)`);
     } else {
       // ไม่มี allTimes (ไม่มาทำงาน) ไม่เพิ่มเงินพิเศษ
       await addSalaryList.push([]);
@@ -2186,10 +2186,21 @@ const getEmployeeProfile = async (employeeId) => {
 
 
 // ฟังก์ชันคำนวณสำหรับหน่วยงานพิเศษ 7 วัน
-const calculateCashValuesSpecial7Days = async (employeeId, employee_record, month, year) => {
+const calculateCashValuesSpecial7Days = async (employeeId, employee_record, month, year, countAllowance = null) => {
   console.log(`\n💼 === เริ่มคำนวณแบบหน่วยงานพิเศษ 7 วัน ===`);
   console.log(`👤 EmployeeId: ${employeeId}`);
   console.log(`📅 Month: ${month}, Year: ${year}`);
+  
+  // ใช้ countAllowance ที่ส่งมาจาก API แทน totalWorkDays
+  let totalWorkDays = 0;
+  if (countAllowance !== null && countAllowance !== undefined) {
+    totalWorkDays = countAllowance;
+    console.log(`🔢 ใช้ countAllowance ที่ส่งมา: ${countAllowance} วัน`);
+  } else {
+    // fallback เป็นการนับเดิม
+    totalWorkDays = employee_record.filter(record => parseFloat(record.totalTime || 0) > 0).length;
+    console.log(`🔢 ใช้การนับแบบเดิม: ${totalWorkDays} วัน`);
+  }
   
   const employeeProfile = await getEmployeeProfile(employeeId);
   const salaryTmp = parseFloat(employeeProfile[0].salary || '0') || 0;
@@ -2721,7 +2732,8 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
   console.log(`\n💎 === ส่งคืนข้อมูล ===`);
   console.log(`📋 อาร์เรย์ข้อมูลพนักงาน: ${updatedRecords.length} รายการ`);
   console.log(`💰 cashcustomizeDayoff: ${totalWorkerWage.toFixed(2)} บาท`);
-  console.log(`🟢 วันหยุดพิเศษ: ${stopDaysList.length} วัน`);
+  console.log(`� วันที่ใช้ในการคำนวณ message: ${countAllowance || totalWorkDays} วัน`);
+  console.log(`�🟢 วันหยุดพิเศษ: ${stopDaysList.length} วัน`);
   
   return {
     updatedRecords,
@@ -3056,7 +3068,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         
         if (isSpecialWorkplace) {
           console.log(`\n🔄 ใช้ฟังก์ชันคำนวณแบบหน่วยงานพิเศษ 7 วัน`);
-          const result = await calculateCashValuesSpecial7Days(employeeId, doc.employee_record, month, year);
+          const result = await calculateCashValuesSpecial7Days(employeeId, doc.employee_record, month, year, countAllowance);
           updatedRecords = result.updatedRecords;
           cashcustomizeDayoff = result.cashcustomizeDayoff;
           personalDayOff = result.personalDayOff || [];
