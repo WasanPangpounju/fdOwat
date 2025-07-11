@@ -4687,13 +4687,20 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         // LOG จุดนี้สำหรับ addSalaryList และ totalWorkDays
         if (Array.isArray(calculatedValues.addSalaryList)) {
           console.log('🟦 LOG: addSalaryList (searchtimerecordemployee)');
+          
+          // อัปเดต message สำหรับรายการที่มี roundOfSalary === "daily" ให้ใช้ countAllowance
           calculatedValues.addSalaryList.forEach((item, idx) => {
-            console.log(`   [${idx}] id=${item.id}, name=${item.name}, SpSalary=${item.SpSalary}, message=${item.message}`);
+            if (item.roundOfSalary === "daily" && calculatedValues.countAllowance > 0) {
+              const oldMessage = item.message;
+              item.message = calculatedValues.countAllowance;
+              console.log(`🔧 อัปเดต message สำหรับ id=${item.id} (roundOfSalary=daily) จาก ${oldMessage} เป็น ${calculatedValues.countAllowance}`);
+            }
+            console.log(`   [${idx}] id=${item.id}, name=${item.name}, SpSalary=${item.SpSalary}, message=${item.message}, roundOfSalary=${item.roundOfSalary || 'N/A'}`);
           });
+          
+          console.log(`📊 countAllowance ที่ใช้: ${calculatedValues.countAllowance}`);
         }
-        if (typeof calculatedValues.totalWorkDays !== 'undefined') {
-          console.log('🟦 LOG: totalWorkDays (searchtimerecordemployee) =', calculatedValues.totalWorkDays);
-        }
+       
 
         // คำนวณ totalAddSalary จาก addSalaryList
         const totalAddSalary = calculatedValues.addSalaryList.reduce((total, item) => {
@@ -5874,6 +5881,7 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
     sumOt1p5,
     sumOt3,
     sumOtPublicHoliday,
+    countAllowance, // เพิ่ม countAllowance เพื่อใช้ในการตั้งค่า message
   };
 };
 
