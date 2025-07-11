@@ -861,7 +861,6 @@ if(x1535 >0 ) {
 // ในฟังก์ชัน /calsalaryemp หลังจากสร้าง concludeRecord เสร็จแล้ว
 // เพิ่มการตรวจสอบ workOfWeek ก่อน
 let isSpecialWorkplace7Days = false;
-let countAllowance = 0; // เพิ่มตัวแปรเก็บค่า countAllowance
 
 try {
   const wpId1 = response?.data?.workplace || '';
@@ -4895,6 +4894,7 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
   let sumOt1p5 = 0; // เพิ่มตัวแปรใหม่สำหรับเก็บผลรวมของ totalOtTime ในวันทำงานปกติ
   let sumOt3 = 0; // เพิ่มตัวแปรใหม่สำหรับเก็บผลรวมของ totalOtTime ในวันทำงานปกติ
   let sumOtPublicHoliday = 0; 
+  let countAllowance = 0; // เพิ่มตัวแปรเก็บค่า countAllowance ไว้ใน scope หลักของฟังก์ชัน 
 
 
 
