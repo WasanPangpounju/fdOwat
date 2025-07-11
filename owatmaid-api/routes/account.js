@@ -4806,6 +4806,7 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
   let sumOt1p5 = 0; // เพิ่มตัวแปรใหม่สำหรับเก็บผลรวมของ totalOtTime ในวันทำงานปกติ
   let sumOt3 = 0; // เพิ่มตัวแปรใหม่สำหรับเก็บผลรวมของ totalOtTime ในวันทำงานปกติ
   let sumOtPublicHoliday = 0; 
+  let countAllowance = 0; // เพิ่มตัวแปรเก็บค่า countAllowance ไว้ใน scope หลักของฟังก์ชัน 
 
 
 
@@ -5347,6 +5348,22 @@ try {
     })
   );
 
+  // คำนวณ countAllowance จาก employee_record โดยนับทั้ง stop และ work ที่มี totalTime
+  console.log(`\n🔍 === คำนวณ countAllowance จาก employee_record (ทั้ง stop และ work) ===`);
+  console.log(`🔍 จำนวน records ทั้งหมด: ${employee_record.length}`);
+  
+  countAllowance = employee_record.filter(record => {
+    // ตรวจสอบว่ามี totalTime และไม่ใช่ค่าว่าง โดยไม่สนใจ dayType
+    const hasTotalTime = record.totalTime && record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0;
+    
+    // เพิ่ม log เพื่อตรวจสอบ
+    console.log(`   วันที่ ${record.date}: dayType="${record.dayType}", totalTime="${record.totalTime || 'ไม่มี'}" ${hasTotalTime ? '✅ นับ' : '❌ ไม่นับ'}`);
+    
+    return hasTotalTime;
+  }).length;
+  
+  console.log(`🔍 countAllowance ที่คำนวณได้ (ทั้ง stop และ work): ${countAllowance} วัน`);
+
   // คำนวณค่า cashcustomizeDayoff
   // ค่าแรงต่อวันคูณจำนวนวันที่ไม่มาทำงาน
   console.log(`\n💰 คำนวณ cashcustomizeDayoff สำหรับพนักงาน ${employeeId}`);
@@ -5744,7 +5761,11 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
     sumOt1p5,
     sumOt3,
     sumOtPublicHoliday,
+    countAllowance, // เพิ่ม countAllowance เพื่อใช้ในการตั้งค่า message
   };
+  
+  // Log ค่า countAllowance ก่อน return
+  console.log(`🔍 calculateCashValues return countAllowance: ${countAllowance}`);
 };
 
 
