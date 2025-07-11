@@ -5289,7 +5289,7 @@ try {
 
           } else {
 
-            if (record?.dayType === "stop") {
+            if (record?.dayType === "work") {
               console.log(`\n--- 🔁 กำลังประมวลผลวันที่: ${record.date}, ประเภท: ${record.dayType} ---`);
 
               dayWorkCount += 1;
