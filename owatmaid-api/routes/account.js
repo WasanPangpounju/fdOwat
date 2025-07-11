@@ -4732,23 +4732,46 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           stopDaysList: doc.stopDaysList || [],
         };
 
-        // 🎯 อัปเดต message และ SpSalary สำหรับ items ที่มี roundOfSalary: "daily" ให้เป็น countAllowance
+        // 🎯 อัปเดต message และ SpSalary สำหรับ items ที่มี roundOfSalary: "daily"
         if (updateData.addSalaryList && Array.isArray(updateData.addSalaryList)) {
-          console.log(`🎯 อัปเดต message และ SpSalary สำหรับ ${doc.employeeId} (countAllowance: ${calculatedValues.countAllowance})`);
+          // ตรวจสอบประเภทหน่วยงานก่อน
+          let workOfWeek = "5"; // default
+          let useCountAllowance = false;
+          
+          try {
+            const employee = await Employee.findOne({ employeeId: doc.employeeId });
+            const wpId = employee?.workplace || '';
+            
+            if (wpId) {
+              const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${wpId}`);
+              workOfWeek = workplaceResponse.data.workOfWeek || "5";
+              useCountAllowance = (workOfWeek === "7");
+              console.log(`🏢 หน่วยงาน ${wpId}: workOfWeek = ${workOfWeek}, ใช้ countAllowance = ${useCountAllowance}`);
+            }
+          } catch (workplaceError) {
+            console.warn(`⚠️ ไม่สามารถตรวจสอบประเภทหน่วยงานได้:`, workplaceError.message);
+          }
+
+          console.log(`🎯 อัปเดต message และ SpSalary สำหรับ ${doc.employeeId}`);
+          console.log(`   - หน่วยงาน: ${workOfWeek} วัน`);
+          console.log(`   - countAllowance: ${calculatedValues.countAllowance}`);
+          console.log(`   - dayWorkCount: ${calculatedValues.dayWorkCount}`);
+          
           updateData.addSalaryList.forEach((item, itemIndex) => {
             if (item.roundOfSalary === "daily") {
               const oldMessage = item.message;
               const oldSpSalary = item.SpSalary;
               
-              // อัปเดต message
-              item.message = calculatedValues.countAllowance;
+              // เลือกค่า message ตามประเภทหน่วยงาน
+              const newMessage = useCountAllowance ? calculatedValues.countAllowance : calculatedValues.dayWorkCount;
+              item.message = newMessage;
               
               // คำนวณ SpSalary ใหม่: (เงินเดิม / วันเดิม) * วันใหม่
               if (oldMessage && oldMessage > 0) {
                 const dailyRate = parseFloat(oldSpSalary) / parseFloat(oldMessage);
-                item.SpSalary = dailyRate * calculatedValues.countAllowance;
+                item.SpSalary = dailyRate * newMessage;
                 console.log(`🎯   Item[${itemIndex}] (${item.name}):`);
-                console.log(`       message: ${oldMessage} → ${item.message}`);
+                console.log(`       message: ${oldMessage} → ${item.message} (${useCountAllowance ? 'countAllowance' : 'dayWorkCount'})`);
                 console.log(`       SpSalary: ${oldSpSalary} → ${parseFloat(item.SpSalary).toFixed(2)} (rate: ${dailyRate.toFixed(2)}/วัน)`);
               } else {
                 console.log(`🎯   Item[${itemIndex}] (${item.name}): message ${oldMessage} → ${item.message} (ไม่สามารถคำนวณ SpSalary ได้)`);
@@ -4892,7 +4915,7 @@ let timeCashWorkMul = {
   } catch (workplaceError) {
     console.warn(`⚠️ ไม่สามารถดึงข้อมูล workplace ได้:`, workplaceError.message);
   }
-  
+
 
   let addSalary = employeeProfile?.[0]?.addSalary || [];
     let deductSalary = employeeProfile?.[0]?.deductSalary || [];
