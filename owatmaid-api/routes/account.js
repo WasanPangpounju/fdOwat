@@ -4738,6 +4738,43 @@ if (isSpecialWorkplace7Days) {
           if (calculatedValues.addSalaryList && calculatedValues.addSalaryList.length > 0) {
             console.log(`📋 จำนวนรายการ addSalaryList: ${calculatedValues.addSalaryList.length}`);
             console.log(`📋 ตัวอย่างรายการแรก: ${JSON.stringify(calculatedValues.addSalaryList[0].SpSalary, null, 2)}`);
+            
+            // 🔥 เพิ่มการตรวจสอบหน่วยงานพิเศษ 7 วัน และอัปเดต message
+            try {
+              const employee = await Employee.findOne({ employeeId: doc.employeeId });
+              const wpId = employee?.workplace || '';
+              
+              if (wpId) {
+                const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${wpId}`);
+                const workOfWeek = workplaceResponse.data.workOfWeek || "5";
+                
+                if (workOfWeek === "7") {
+                  console.log(`\n✅ หน่วยงานพิเศษ 7 วัน - เริ่มอัปเดต message ใน addSalaryList`);
+                  
+                  // นับจำนวนวันที่มี dayType (ไม่ว่า work หรือ stop)
+                  const totalWorkDays = doc.employee_record.filter(record => {
+                    return record.dayType && record.dayType.trim() !== '';
+                  }).length;
+                  
+                  console.log(`📊 จำนวนวันทำงานจริง (จาก dayType): ${totalWorkDays} วัน`);
+                  
+                  // อัปเดต message ในทุกรายการของ addSalaryList
+                  calculatedValues.addSalaryList = calculatedValues.addSalaryList.map(item => ({
+                    ...item,
+                    message: totalWorkDays.toString()
+                  }));
+                  
+                  console.log(`🔧 อัปเดต message ใน addSalaryList เป็น: ${totalWorkDays} (นับจาก dayType)`);
+                  console.log(`📝 ตัวอย่างรายการที่อัปเดตแล้ว:`, {
+                    id: calculatedValues.addSalaryList[0]?.id,
+                    name: calculatedValues.addSalaryList[0]?.name,
+                    message: calculatedValues.addSalaryList[0]?.message
+                  });
+                }
+              }
+            } catch (workplaceError) {
+              console.warn(`⚠️ ไม่สามารถตรวจสอบ workplace สำหรับการอัปเดต message ได้:`, workplaceError.message);
+            }
           } else {
             console.log(`⚠️ ไม่มีรายการ addSalaryList`);
           }
