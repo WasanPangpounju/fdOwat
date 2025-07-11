@@ -4749,7 +4749,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                 item.SpSalary = dailyRate * calculatedValues.countAllowance;
                 console.log(`🎯   Item[${itemIndex}] (${item.name}):`);
                 console.log(`       message: ${oldMessage} → ${item.message}`);
-                console.log(`       SpSalary: ${oldSpSalary} → ${item.SpSalary.toFixed(2)} (rate: ${dailyRate.toFixed(2)}/วัน)`);
+                console.log(`       SpSalary: ${oldSpSalary} → ${parseFloat(item.SpSalary).toFixed(2)} (rate: ${dailyRate.toFixed(2)}/วัน)`);
               } else {
                 console.log(`🎯   Item[${itemIndex}] (${item.name}): message ${oldMessage} → ${item.message} (ไม่สามารถคำนวณ SpSalary ได้)`);
               }
