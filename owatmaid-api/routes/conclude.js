@@ -1185,23 +1185,11 @@ try {
   console.error(`❌ ไม่สามารถตรวจสอบ workOfWeek ได้:`, error.message);
 }
 
-// นับจำนวนวันจริงที่มา (allTimes) สำหรับหน่วยงานพิเศษ 7 วัน
+// นับจำนวนวันจริงที่มา (totalTime) สำหรับหน่วยงานพิเศษ 7 วัน
 let totalWorkDays = 0;
 if (isSpecialWorkplace7Days) {
-  // นับวันที่มี allTimes > 0 (มีการลงเวลา)
-  totalWorkDays = concludeRecord.filter(record => {
-    // ตรวจสอบว่ามี allTimes และมากกว่า 0
-    return record.allTimes && parseFloat(record.allTimes) > 0;
-  }).length;
-  
-  console.log(`📊 หน่วยงานพิเศษ 7 วัน - จำนวนวันทำงานจริง (จาก allTimes): ${totalWorkDays} วัน`);
-  
-  // แสดงรายละเอียดการนับเพื่อตรวจสอบ
-  console.log(`📋 รายละเอียดการนับวัน:`);
-  concludeRecord.forEach((record, index) => {
-    const hasAllTimes = record.allTimes && parseFloat(record.allTimes) > 0;
-    console.log(`   วันที่ ${record.day}: allTimes = "${record.allTimes || 'ไม่มี'}" ${hasAllTimes ? '✅ นับ' : '❌ ไม่นับ'}`);
-  });
+  totalWorkDays = concludeRecord.filter(record => parseFloat(record.allTimes || 0) > 0).length;
+  console.log(`📊 หน่วยงานพิเศษ 7 วัน - จำนวนวันทำงานจริง: ${totalWorkDays} วัน`);
 }
 
 // แก้ไขส่วนการสร้าง addSalaryList
@@ -1211,13 +1199,13 @@ for (let c = 0; c < concludeRecord.length; c++) {
   if (isSpecialWorkplace7Days) {
     // สำหรับหน่วยงานพิเศษ 7 วัน - ตรวจสอบว่ามี allTimes หรือไม่
     if (parseFloat(concludeRecord[c].allTimes || 0) > 0) {
-      // มี allTimes (มาทำงาน) ให้เพิ่มเงินพิเศษรายวันพร้อมปรับ message เป็น totalWorkDays (จาก allTimes)
+      // มี allTimes (มาทำงาน) ให้เพิ่มเงินพิเศษรายวันพร้อมปรับ message เป็น totalWorkDays
       let adjustedAddSalaryDaily = addSalaryDaily.map(item => ({
         ...item,
-        message: totalWorkDays.toString()  // อัปเดต message เป็นจำนวนวันที่มี allTimes > 0
+        message: totalWorkDays.toString()  // อัปเดต message เป็นจำนวนวันจริงที่มา
       }));
       await addSalaryList.push(adjustedAddSalaryDaily);
-      console.log(`✅ วันที่ ${concludeRecord[c].day} - allTimes: ${concludeRecord[c].allTimes} - เพิ่มเงินพิเศษรายวัน (${totalWorkDays} วัน จาก allTimes)`);
+      console.log(`✅ วันที่ ${concludeRecord[c].day} - allTimes: ${concludeRecord[c].allTimes} - เพิ่มเงินพิเศษรายวัน (${totalWorkDays} วัน)`);
     } else {
       // ไม่มี allTimes (ไม่มาทำงาน) ไม่เพิ่มเงินพิเศษ
       await addSalaryList.push([]);
