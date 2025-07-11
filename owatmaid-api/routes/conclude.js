@@ -1173,6 +1173,8 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
 
 // เพิ่มการตรวจสอบ workOfWeek ก่อน
 let isSpecialWorkplace7Days = false;
+let countAllowance = 0; // เพิ่มตัวแปรเก็บค่า countAllowance
+
 try {
   const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${wpId1}`);
   const workOfWeek = workplaceResponse.data.workOfWeek || "5";
@@ -1180,6 +1182,21 @@ try {
   if (workOfWeek === "7") {
     isSpecialWorkplace7Days = true;
     console.log(`\n✅ หน่วยงานพิเศษ 7 วัน - จะคิดเงินเพิ่มรายวันทุกวันที่มี allTimes > 0`);
+    
+    // เรียก API searchtimerecordemployee เพื่อหาค่า countAllowance
+    try {
+      const searchTimeRecordData = {
+        employeeId: employeeId,
+        month: month,
+        year: year
+      };
+      const timeRecordResponse = await axios.post(`http://10.10.110.7:3000/conclude/searchtimerecordemployee`, searchTimeRecordData);
+      countAllowance = timeRecordResponse.data.countAllowance || 0;
+      console.log(`🔢 ได้ countAllowance จาก searchtimerecordemployee: ${countAllowance} วัน`);
+    } catch (error) {
+      console.error(`❌ ไม่สามารถดึง countAllowance ได้:`, error.message);
+      console.log(`⚠️ ใช้ค่า default countAllowance = 0`);
+    }
   }
 } catch (error) {
   console.error(`❌ ไม่สามารถตรวจสอบ workOfWeek ได้:`, error.message);
@@ -1202,10 +1219,10 @@ for (let c = 0; c < concludeRecord.length; c++) {
       // มี allTimes (มาทำงาน) ให้เพิ่มเงินพิเศษรายวันพร้อมปรับ message เป็น countAllowance
       let adjustedAddSalaryDaily = addSalaryDaily.map(item => ({
         ...item,
-        message: (countAllowance || totalWorkDays).toString()  // ใช้ countAllowance หรือ totalWorkDays
+        message: countAllowance > 0 ? countAllowance.toString() : totalWorkDays.toString()  // ใช้ countAllowance หากมีค่า
       }));
       await addSalaryList.push(adjustedAddSalaryDaily);
-      console.log(`✅ วันที่ ${concludeRecord[c].day} - allTimes: ${concludeRecord[c].allTimes} - เพิ่มเงินพิเศษรายวัน (${countAllowance || totalWorkDays} วัน)`);
+      console.log(`✅ วันที่ ${concludeRecord[c].day} - allTimes: ${concludeRecord[c].allTimes} - เพิ่มเงินพิเศษรายวัน (${countAllowance > 0 ? countAllowance : totalWorkDays} วัน)`);
     } else {
       // ไม่มี allTimes (ไม่มาทำงาน) ไม่เพิ่มเงินพิเศษ
       await addSalaryList.push([]);
