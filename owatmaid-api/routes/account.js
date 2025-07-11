@@ -926,11 +926,27 @@ if (isSpecialWorkplace7Days) {
 }
 
 if (isSpecialWorkplace7Days) {
-  addSalaryDayArray = addSalaryDayArray.map(item => ({
-    ...item,
-    message: totalWorkDays.toString()  // อัปเดต message เป็นจำนวนวันจริงที่มา
-  }));
-  console.log(`🔧 อัปเดต addSalaryDayArray message เป็น: ${totalWorkDays}`);
+  addSalaryDayArray = addSalaryDayArray.map(item => {
+    // เพิ่มการตรวจสอบ ID สำหรับเงินพิเศษ (1560)
+    if (item.id === "1560") {
+      console.log(`🔍 พบรายการ ID 1560 (${item.name}): กำลังอัปเดต message`);
+      console.log(`   - ค่าเดิม: "${item.message || 'ไม่มี'}"`);
+      // ใช้ countAllowance เป็นค่าหลัก หากมี
+      const newMessage = countAllowance > 0 ? countAllowance.toString() : totalWorkDays.toString();
+      console.log(`   - ค่าใหม่: "${newMessage}" (จาก countAllowance=${countAllowance}, totalWorkDays=${totalWorkDays})`);
+      return {
+        ...item,
+        message: newMessage
+      };
+    } else {
+      // สำหรับรายการอื่นๆ ยังคงใช้ totalWorkDays
+      return {
+        ...item,
+        message: totalWorkDays.toString()  // อัปเดต message เป็นจำนวนวันจริงที่มา
+      };
+    }
+  });
+  console.log(`🔧 อัปเดต addSalaryDayArray message เป็น: ${totalWorkDays} (ทั่วไป), ${countAllowance} (สำหรับ ID 1560 ถ้ามี)`);
 }
 
 // เพิ่มการตรวจสอบเพิ่มเติม:
@@ -938,6 +954,27 @@ if (isSpecialWorkplace7Days) {
 // เพิ่ม log สรุปจำนวนวันที่มี totalTime (แทน allTimes)
 console.log(`\n📊 === สรุป addSalaryList สำหรับหน่วยงานพิเศษ 7 วัน ===`);
 let countDaysWithTotalTime = 0;
+
+// เพิ่มการตรวจสอบพิเศษสำหรับ ID 1560
+if (isSpecialWorkplace7Days) {
+  const specialItem = addSalaryDayArray.find(item => item.id === "1560");
+  if (specialItem) {
+    console.log(`\n🔍 รายละเอียดพิเศษสำหรับ ID 1560 (${specialItem.name}):`);
+    console.log(`   - message: "${specialItem.message}"`);
+    console.log(`   - countAllowance: ${countAllowance}`);
+    console.log(`   - totalWorkDays: ${totalWorkDays}`);
+    
+    // ตรวจสอบว่าค่า message ถูกต้องหรือไม่
+    const expectedMessage = countAllowance > 0 ? countAllowance.toString() : totalWorkDays.toString();
+    if (specialItem.message !== expectedMessage) {
+      console.log(`   ⚠️ คำเตือน: ค่า message ไม่ตรงกับค่าที่คาดหวัง (${expectedMessage})`);
+    } else {
+      console.log(`   ✅ ค่า message ถูกต้องตามที่คาดหวัง`);
+    }
+  } else {
+    console.log(`\n❓ ไม่พบรายการ ID 1560 ในข้อมูล addSalaryDayArray`);
+  }
+}
 
 responseConclude.data.recordConclude[c].concludeRecord.forEach((record, index) => {
   if (record.totalTime && record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0) {

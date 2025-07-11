@@ -1226,6 +1226,13 @@ for (let c = 0; c < concludeRecord.length; c++) {
         ...item,
         message: countAllowance > 0 ? countAllowance.toString() : totalWorkDays.toString()  // ใช้ countAllowance หากมีค่า
       }));
+      
+      console.log(`🔍 วันที่ ${concludeRecord[c].day} Debug:`);
+      console.log(`  - countAllowance: ${countAllowance}`);
+      console.log(`  - totalWorkDays: ${totalWorkDays}`);
+      console.log(`  - Original addSalaryDaily[0].message: ${addSalaryDaily[0]?.message}`);
+      console.log(`  - Adjusted addSalaryDaily[0].message: ${adjustedAddSalaryDaily[0]?.message}`);
+      
       await addSalaryList.push(adjustedAddSalaryDaily);
       console.log(`✅ วันที่ ${concludeRecord[c].day} - allTimes: ${concludeRecord[c].allTimes} - เพิ่มเงินพิเศษรายวัน (${countAllowance > 0 ? countAllowance : totalWorkDays} วัน)`);
     } else {
