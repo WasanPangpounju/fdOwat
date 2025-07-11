@@ -4707,7 +4707,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           
           // อัปเดต message สำหรับรายการที่มี roundOfSalary === "daily" ให้ใช้ countAllowance
           calculatedValues.addSalaryList.forEach((item, idx) => {
-            if (item.roundOfSalary === "daily" && calculatedValues.countAllowance > 0) {
+            if (item.roundOfSalary === "daily") {
               const oldMessage = item.message;
               item.message = calculatedValues.countAllowance;
               console.log(`🔧 อัปเดต message สำหรับ id=${item.id} (roundOfSalary=daily) จาก ${oldMessage} เป็น ${calculatedValues.countAllowance}`);
