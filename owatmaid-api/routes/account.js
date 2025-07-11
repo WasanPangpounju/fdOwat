@@ -4752,6 +4752,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
             console.warn(`⚠️ ไม่สามารถตรวจสอบประเภทหน่วยงานได้:`, workplaceError.message);
           }
 
+          
           console.log(`🎯 อัปเดต message และ SpSalary สำหรับ ${doc.employeeId}`);
           console.log(`   - หน่วยงาน: ${workOfWeek} วัน`);
           console.log(`   - countAllowance: ${calculatedValues.countAllowance}`);
