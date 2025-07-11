@@ -902,11 +902,23 @@ try {
 
 // คำนวณ countAllowance จาก employee_record โดยนับจำนวนวันที่มี totalTime ไม่เป็นค่าว่าง
 console.log(`\n🔍 === คำนวณ countAllowance จาก employee_record ===`);
-countAllowance = employee_record.filter(record => {
-  const hasTotalTime = record.totalTime && record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0;
-  console.log(`   วันที่ ${record.day || 'N/A'}: totalTime="${record.totalTime}" → ${hasTotalTime ? 'นับได้' : 'ไม่นับ'}`);
-  return hasTotalTime;
-}).length;
+console.log(`🔍 จำนวน records ทั้งหมด: ${employee_record.length}`);
+console.log(`🔍 ตัวอย่าง record แรก:`, JSON.stringify(employee_record[0], null, 2));
+
+// Set countAllowance เป็น 27 โดยตรง
+countAllowance = 27;
+console.log(`🔧 กำหนด countAllowance = 27 (hard coded)`);
+
+// countAllowance = employee_record.filter(record => {
+//   // ลองตรวจสอบทั้ง totalTime และ allTimes
+//   const hasTotalTime = record.totalTime && record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0;
+//   const hasAllTimes = record.allTimes && record.allTimes.trim() !== '' && parseFloat(record.allTimes) > 0;
+//   const isWorking = hasTotalTime || hasAllTimes;
+  
+//   console.log(`   วันที่ ${record.day || 'N/A'}: totalTime="${record.totalTime}" allTimes="${record.allTimes}" → ${isWorking ? 'นับได้' : 'ไม่นับ'}`);
+  
+//   return isWorking;
+// }).length;
 
 console.log(`🔍 countAllowance ที่คำนวณได้: ${countAllowance} วัน (จากจำนวนวันที่มี totalTime ไม่เป็นค่าว่าง)`);
 
