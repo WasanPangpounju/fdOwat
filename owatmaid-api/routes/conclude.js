@@ -106,15 +106,20 @@ const concludeSchema = new mongoose.Schema({
 const conclude = mongoose.model('conclude', concludeSchema);
 
 router.post('/autocreate', async (req, res) => {
+  console.log(`\n🚀 === เรียกใช้ /autocreate API ===`);
   const {
     year,
     month,
     employeeId } = await req.body;
+    
+  console.log(`📋 ข้อมูลที่ได้รับ: year=${year}, month=${month}, employeeId=${employeeId}`);
 
   sumWorkHour = 0;
   sumWorkRate = 0;
   sumWorkHourOt = 0;
   sumWorkRateOt = 0;
+
+console.log(`📊 ตัวแปรเริ่มต้น: sumWorkHour=${sumWorkHour}, sumWorkRate=${sumWorkRate}`);
 
 const workplaceListTmp = [];
 let upsalary = 0;
@@ -3010,10 +3015,12 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         console.log(`✅ เป็นหน่วยงานพิเศษ (ทำงาน 7 วัน)`);
         console.log(`⚠️ ต้องใช้ฟังก์ชันคำนวณแบบพิเศษ`);
         isSpecialWorkplace = true;
+        console.log(`🔧 ตั้งค่า isSpecialWorkplace = ${isSpecialWorkplace}`);
       } else {
         console.log(`✅ เป็นหน่วยงานปกติ (ทำงาน ${workOfWeek} วัน)`);
         console.log(`ℹ️ ใช้ฟังก์ชันคำนวณแบบปกติ`);
         isSpecialWorkplace = false;
+        console.log(`🔧 ตั้งค่า isSpecialWorkplace = ${isSpecialWorkplace}`);
       }
       console.log(`=====================================\n`);
       
@@ -3086,6 +3093,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         
         if (isSpecialWorkplace) {
           console.log(`\n🔄 ใช้ฟังก์ชันคำนวณแบบหน่วยงานพิเศษ 7 วัน`);
+          console.log(`🔢 ส่งค่า countAllowance: ${countAllowance} ไปยัง calculateCashValuesSpecial7Days`);
           const result = await calculateCashValuesSpecial7Days(employeeId, doc.employee_record, month, year, countAllowance);
           updatedRecords = result.updatedRecords;
           cashcustomizeDayoff = result.cashcustomizeDayoff;
@@ -3094,6 +3102,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           console.log(`🟢 ได้วันหยุดส่วนบุคคล: ${personalDayOff.length} วัน`);
         } else {
           console.log(`\n🔄 ใช้ฟังก์ชันคำนวณแบบหน่วยงานปกติ`);
+          console.log(`⚠️ isSpecialWorkplace = false, ไม่ใช้ calculateCashValuesSpecial7Days`);
           updatedRecords = await calculateCashValues(employeeId, doc.employee_record, month, year);
         }
         
@@ -3134,6 +3143,21 @@ router.post('/searchtimerecordemployee', async (req, res) => {
       }
     });
     console.log(`=================================\n`);
+
+    // แก้ไข message ใน result ให้เป็น countAllowance สำหรับ special workplace
+    if (isSpecialWorkplace && countAllowance > 0) {
+      console.log(`🔧 แก้ไข message ใน result ทุกรายการเป็น: ${countAllowance}`);
+      result.forEach((doc, docIndex) => {
+        if (doc.employee_record && Array.isArray(doc.employee_record)) {
+          doc.employee_record.forEach((record, recordIndex) => {
+            const oldAllTimes = record.allTime || "0";
+            // บังคับแทนที่ allTime เป็น countAllowance
+            record.allTime = countAllowance.toString();
+            console.log(`   วันที่ ${record.date}: allTime เปลี่ยนจาก "${oldAllTimes}" เป็น "${countAllowance}"`);
+          });
+        }
+      });
+    }
 
     await res.status(200).json({ result, countAllowance });
 
