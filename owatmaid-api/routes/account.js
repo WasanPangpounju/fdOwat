@@ -4596,14 +4596,17 @@ router.post('/searchtimerecordemployee', async (req, res) => {
       }
 
       try {
-        // ดึงข้อมูล prefix จาก Employee model
+        // ดึงข้อมูล prefix และ employeeName จาก Employee model
         let employeePrefix = '';
+        let employeeName = '';
         try {
           const employee = await Employee.findOne({ employeeId: doc.employeeId });
           employeePrefix = employee?.prefix || '';
+          employeeName = `${employee?.name || ''} ${employee?.lastName || ''}`.trim();
           console.log(`🔍 Found prefix for ${doc.employeeId}: ${employeePrefix}`);
+          console.log(`🔍 Found employeeName for ${doc.employeeId}: ${employeeName}`);
         } catch (prefixError) {
-          console.warn(`⚠️ Could not fetch prefix for employee ${doc.employeeId}:`, prefixError.message);
+          console.warn(`⚠️ Could not fetch prefix and employeeName for employee ${doc.employeeId}:`, prefixError.message);
         }
 
         const calculatedValues = await calculateCashValues(
@@ -4697,6 +4700,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         
         const updateData = await {
           prefix: employeePrefix, // เพิ่ม prefix ใหม่
+          employeeName: employeeName, // เพิ่ม employeeName
           dayWorkCount: String(calculatedValues.dayWorkCount),
           dayOffCount: String(calculatedValues.dayOffCount),
           specialDayOff: String(calculatedValues.specialDayOff),
