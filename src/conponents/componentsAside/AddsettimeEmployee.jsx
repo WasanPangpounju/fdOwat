@@ -2204,7 +2204,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
   async function handleManageWorkplace(event) {
     event.preventDefault();
     //get data from input in useState to data
-if(wAllTime == 0) return;
+    // Removed condition: if(wAllTime == 0) return; - Now allows adding with 0 work hours
 
     const newRowData = await {
       tmpIndex    : tmpIndex || "",

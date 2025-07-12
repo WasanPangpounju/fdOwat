@@ -11001,7 +11001,7 @@ const getDateStyle = (day) => {
                      
                       </button>
                       <div className="pt-3">
-                          <div className="table " >
+                          <div className="table table-responsive" >
                           <table
                       className="excel-style-table  "
                       style={{
@@ -11132,39 +11132,50 @@ const getDateStyle = (day) => {
     const currentDay = parseInt(day);
     return personalDayDate === currentDay;
   }) || record?.stopDaysList?.some(stopDay => {
-    // ความเข้ากันได้ย้อนหลังสำหรับ stopDaysList
     const stopDayDate = parseInt(stopDay.date);
     const currentDay = parseInt(day);
     return stopDayDate === currentDay;
   });
   
-  // Debug log เพื่อตรวจสอบ (แสดงเฉพาะคนแรกและ 3 วันแรก)
-  if (idx === 0 && i < 3) {
-    console.log(`🔍 Debug วันที่ ${day}:`);
-    console.log(`   - record.personalDayOff:`, record?.personalDayOff);
-    console.log(`   - record.stopDaysList:`, record?.stopDaysList);
-    console.log(`   - isSpecialHoliday:`, isSpecialHoliday);
-    console.log(`   - isWork:`, isWork);
-  }
-  
   // กำหนดสีพื้นหลัง
   let backgroundColor = {};
   
   if (isSpecialHoliday) {
-    // backgroundColor = { backgroundColor: "rgb(159,205,99)" }; // สีเขียวอ่อนสำหรับวันหยุดส่วนบุคคล
     console.log(`🟢 วันที่ ${day} เป็นวันหยุดส่วนบุคคล - ระบายสีเขียว`);
   } else if (!isWork) {
-    backgroundColor = { backgroundColor: "#bfbdbf" }; // สีเทาสำหรับวันหยุดปกติ
+    backgroundColor = { backgroundColor: "#bfbdbf" };
   }
+  
+  // ตรวจสอบ workplaceId ของพนักงานคนนี้ทั้งหมด
+  const allWorkplaceIds = record?.employee_record?.map(item => item.workplaceId) || [];
+  const uniqueWorkplaceIds = [...new Set(allWorkplaceIds)]; // เอาค่าที่ซ้ำออก
+  const isSameWorkplace = uniqueWorkplaceIds.length === 1; // ถ้ามีแค่ workplaceId เดียว = เหมือนกันหมด
+  
+  // กำหนดค่าที่จะแสดง
+ let displayValue = '';
+
+if (isWork) {
+  if (isSameWorkplace) {
+    displayValue = '1';
+  } else {
+    displayValue = (
+      <>
+        1<br />
+        {found?.workplaceId || '1'}
+      </>
+    );
+  }
+}
+
   
   return (
     <td 
       key={i} 
       className="text-center align-middle" 
       style={backgroundColor}
-      title={isSpecialHoliday ? "วันหยุดส่วนบุคคล" : ""} // เพิ่ม tooltip เพื่อตรวจสอบ
+      title={isSpecialHoliday ? "วันหยุดส่วนบุคคล" : (found?.workplaceName || "")}
     >
-      {isWork ? '1' : ''}
+      {displayValue}
     </td>
   );
 })}
