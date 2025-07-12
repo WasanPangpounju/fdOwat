@@ -11001,7 +11001,7 @@ const getDateStyle = (day) => {
                      
                       </button>
                       <div className="pt-3">
-                          <div className="table table-responsive" >
+                          <div className="table " >
                           <table
                       className="excel-style-table  "
                       style={{

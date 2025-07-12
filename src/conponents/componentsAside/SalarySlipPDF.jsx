@@ -859,10 +859,11 @@ if (ot3Hours > 0 && ot3Cash > 0) {
       96,
       { align: "right" }
     );
+    const totalNet = incomeTotal - totalDeductions;
 
     // เงินรับสุทธิ (ใช้สูตรคำนวณใหม่)
     pdf.text(
-      `${netSalary1.toLocaleString('th-TH', {
+      `${totalNet.toLocaleString('th-TH', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
       })}`,
@@ -1126,6 +1127,8 @@ if (ot3Hours > 0 && ot3Cash > 0) {
 
 
       const socialSecurity2 = parseFloat(currentEmployee2.socialSecurity || 0);
+      console.log("Social Security for Employee 2:", socialSecurity2);
+      
       if (socialSecurity2 > 0) {
         textDedustArray2.push("หักสมทบประกันสังคม");
         valueDedustArray2.push(
