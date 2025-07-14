@@ -2606,10 +2606,16 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
         dayType = 'stop';
         
         // คำนวณค่าแรงแบบวันหยุด
+        // แก้ไขเวลา OT ก่อนทำงานให้คิดจากหน่วยนาที (วันหยุด)
+        const beforeTmpHour_stop = Math.floor(record.beforeTotalOtTime || 0);
+        const beforeTmpRawDecimal_stop = (record.beforeTotalOtTime || 0) - beforeTmpHour_stop;
+        const beforeTmpMinute_stop = Math.round(beforeTmpRawDecimal_stop * 100);
+        const beforeTotalDecimalHour_stop = beforeTmpHour_stop + (beforeTmpMinute_stop / 60);
+        
         cashBeforeOt = await (
           parseFloat(dataRate?.dayoffRateOT || '0') > 5
             ? parseFloat(dataRate?.dayoffRateOT || '0') || 0
-            : ((record.beforeTotalOtTime || 0) * ((parseFloat(dataRate?.dayoffRateOT || '0')) * salary || 0)) || 0
+            : ((beforeTotalDecimalHour_stop || 0) * ((parseFloat(dataRate?.dayoffRateOT || '0')) * salary || 0)) || 0
         );
 
         // คำนวณค่า OT แบบวันหยุด
@@ -2642,10 +2648,16 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
         dayType = 'work';
         
         // คำนวณค่าแรงแบบวันทำงานปกติ
+        // แก้ไขเวลา OT ก่อนทำงานให้คิดจากหน่วยนาที (หน่วยงานพิเศษ 7 วัน)
+        const beforeTmpHour_special7 = Math.floor(record.beforeTotalOtTime || 0);
+        const beforeTmpRawDecimal_special7 = (record.beforeTotalOtTime || 0) - beforeTmpHour_special7;
+        const beforeTmpMinute_special7 = Math.round(beforeTmpRawDecimal_special7 * 100);
+        const beforeTotalDecimalHour_special7 = beforeTmpHour_special7 + (beforeTmpMinute_special7 / 60);
+        
         cashBeforeOt = await (
           parseFloat(dataRate?.workRateOT || '1.5') > 5
             ? parseFloat(dataRate?.workRateOT || '1.5') || 0
-            : ((record.beforeTotalOtTime || 0) * ((parseFloat(dataRate?.workRateOT || '1.5')) * salary || 0)) || 0
+            : ((beforeTotalDecimalHour_special7 || 0) * ((parseFloat(dataRate?.workRateOT || '1.5')) * salary || 0)) || 0
         );
 
         // คำนวณค่า OT
@@ -2801,10 +2813,16 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
       
       if (dataRate?.dayType !== '') {
         if (dataRate?.dayType === 'stop') {
+          // แก้ไขเวลา OT ก่อนทำงานให้คิดจากหน่วยนาที (stop)
+          const beforeTmpHour_stop2 = Math.floor(record.beforeTotalOtTime || 0);
+          const beforeTmpRawDecimal_stop2 = (record.beforeTotalOtTime || 0) - beforeTmpHour_stop2;
+          const beforeTmpMinute_stop2 = Math.round(beforeTmpRawDecimal_stop2 * 100);
+          const beforeTotalDecimalHour_stop2 = beforeTmpHour_stop2 + (beforeTmpMinute_stop2 / 60);
+          
           cashBeforeOt = await (
             parseFloat(dataRate?.dayoffRateOT || '0') > 5
               ? parseFloat(dataRate?.dayoffRateOT || '0') || 0
-              : ((record.beforeTotalOtTime || 0) * ((parseFloat(dataRate?.dayoffRateOT || '0')) * salary || 0)) || 0
+              : ((beforeTotalDecimalHour_stop2 || 0) * ((parseFloat(dataRate?.dayoffRateOT || '0')) * salary || 0)) || 0
           );
 
           cashOt = await (
@@ -2820,10 +2838,16 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
           cashOtMul = dataRate?.dayoffRateOT || 0;
           addSalaryDaily = [];
         } else if(dataRate?.dayType === 'specialDayOff') {
+          // แก้ไขเวลา OT ก่อนทำงานให้คิดจากหน่วยนาที (วันหยุดพิเศษ)
+          const beforeTmpHour_special = Math.floor(record.beforeTotalOtTime || 0);
+          const beforeTmpRawDecimal_special = (record.beforeTotalOtTime || 0) - beforeTmpHour_special;
+          const beforeTmpMinute_special = Math.round(beforeTmpRawDecimal_special * 100);
+          const beforeTotalDecimalHour_special = beforeTmpHour_special + (beforeTmpMinute_special / 60);
+          
           cashBeforeOt = await (
             parseFloat(dataRate?.holidayOT || '0') > 5
               ? parseFloat(dataRate?.holidayOT || '0') || 0
-              : ((record.beforeTotalOtTime || 0) * ((parseFloat(dataRate?.holidayOT || '0')) * salary || 0)) || 0
+              : ((beforeTotalDecimalHour_special || 0) * ((parseFloat(dataRate?.holidayOT || '0')) * salary || 0)) || 0
           );
 
           cashOt = await (
@@ -2842,10 +2866,16 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
           addSalaryDaily = [];
         } else if(dataRate?.dayType === "work") {
           // เพิ่มเงื่อนไขสำหรับวันทำงานปกติ (work)
+          // แก้ไขเวลา OT ก่อนทำงานให้คิดจากหน่วยนาที (ใช้วิธีเดียวกันกับ cashOt)
+          const beforeTmpHour = Math.floor(record.beforeTotalOtTime || 0); // ได้ค่า ชม.
+          const beforeTmpRawDecimal = (record.beforeTotalOtTime || 0) - beforeTmpHour; // ได้ค่า0.นาที
+          const beforeTmpMinute = Math.round(beforeTmpRawDecimal * 100); // x นาที (เพราะ *100 จาก .นาที)
+          const beforeTotalDecimalHour = beforeTmpHour + (beforeTmpMinute / 60); // 1 + 30/60 = 1.5
+          
           cashBeforeOt = await (
             parseFloat(dataRate?.workRateOT || '0') > 5
               ? parseFloat(dataRate?.workRateOT || '0') || 0
-              : ((record.beforeTotalOtTime || 0) * ((parseFloat(dataRate?.workRateOT || '0')) * salary || 0)) || 0
+              : ((beforeTotalDecimalHour || 0) * ((parseFloat(dataRate?.workRateOT || '0')) * salary || 0)) || 0
           );
 
           // cashOt = await (
@@ -2929,9 +2959,30 @@ const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate , re
 
 // await console.log(JSON.stringify(dataRate ,null,2))
 
-let cashBeforeOt = await (record.beforeTotalOtTime || 0) * parseFloat(dataRate.workRateOT || '0');
+// แก้ไขเวลา OT ก่อนทำงานให้คิดจากหน่วยนาที
+const beforeTmpHour_final = Math.floor(record.beforeTotalOtTime || 0);
+const beforeTmpRawDecimal_final = (record.beforeTotalOtTime || 0) - beforeTmpHour_final;
+const beforeTmpMinute_final = Math.round(beforeTmpRawDecimal_final * 100);
+const beforeTotalDecimalHour_final = beforeTmpHour_final + (beforeTmpMinute_final / 60);
+
+let cashBeforeOt = await (
+  parseFloat(dataRate.workRateOT || '0') > 5
+    ? parseFloat(dataRate.workRateOT || '0') || 0
+    : ((beforeTotalDecimalHour_final || 0) * ((parseFloat(dataRate.workRateOT || '0')) * salary || 0)) || 0
+);
 let cashWork = await (record.totalTime || 0) * parseFloat(dataRate.workRate || '0');
-let cashOt = await (record.totalOtTime || 0) * parseFloat(dataRate.workRateOT || '0');
+
+// แก้ไขเวลา OT ให้คิดจากหน่วยนาที (ใช้วิธีเดียวกันกับส่วนอื่น)
+const tmpHour = Math.floor(record.totalOtTime || 0); // ได้ค่า ชม.
+const tmpRawDecimal = (record.totalOtTime || 0) - tmpHour; // ได้ค่า0.นาที
+const tmpMinute = Math.round(tmpRawDecimal * 100); // x นาที (เพราะ *100 จาก .นาที)
+const totalDecimalHour = tmpHour + (tmpMinute / 60); // 1 + 30/60 = 1.5
+
+let cashOt = await (
+  parseFloat(dataRate.workRateOT || '0') > 5
+    ? parseFloat(dataRate.workRateOT || '0') || 0
+    : ((totalDecimalHour || 0) * ((parseFloat(dataRate.workRateOT || '0')) * salary || 0)) || 0
+);
 
   return {
       ...record.toObject(), // Convert Mongoose document to plain object
