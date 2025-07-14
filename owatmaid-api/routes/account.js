@@ -4731,7 +4731,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           // })),
           addSalaryList: calculatedValues.addSalaryList,
            deductSalaryList: calculatedValues.deductSalaryList,
-          sumCashWorkMul: calculatedValues.sumCashWorkMul,
+          ปพsumCashWorkMul: calculatedValues.sumCashWorkMul,
           // เพิ่ม stopDaysList สำหรับหน่วยงาน 7 วัน
           stopDaysList: doc.stopDaysList || [],
         };
@@ -5337,7 +5337,9 @@ try {
             sumOtPublicHoliday += convertTimeToDecimal(record.totalTime); // เพิ่มผลรวมของ totalOtTime ในวันหยุดนักขัตฤกษ์
             sumCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
 
-          sumCashWorkMul[record?.cashOtMul] += parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0');
+          // ปิดการคำนวณ sumCashWorkMul ระบบเก่าสำหรับ publicHoliday 
+          // เพื่อใช้ระบบใหม่ที่คำนวณแยก OT ก่อนและหลังเวลาในส่วน work แทน
+          // sumCashWorkMul[record?.cashOtMul] += parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0');
 
           timeCashWorkMul[record?.cashWorkMul] += convertTimeToDecimal(record.totalTime);
           timeCashWorkMul[record?.cashOtMul] += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalOtTime);
@@ -5367,6 +5369,13 @@ if (record?.dayType === "work") {
   
   // ตรวจสอบว่ามี OT หลังเวลาหรือไม่
   const hasAfterOT = record.totalOtTime && record.totalOtTime.trim() !== '' && parseFloat(convertTimeToDecimal(record.totalOtTime)) > 0;
+  
+  // 🔍 DEBUG: แสดงข้อมูลสำคัญ
+  console.log(`🔍 DEBUG วันที่ ${record.date}:`);
+  console.log(`   - beforeTotalOtTime: "${record.beforeTotalOtTime}" → hasBeforeOT: ${hasBeforeOT}`);
+  console.log(`   - cashBeforeOt: "${record.cashBeforeOt}"`);
+  console.log(`   - totalOtTime: "${record.totalOtTime}" → hasAfterOT: ${hasAfterOT}`);
+  console.log(`   - cashOt: "${record.cashOt}"`);
   
   // คำนวณเงิน OT ก่อนเวลาใหม่ทุกครั้งเพื่อใช้สูตรมาตรฐาน
   if (hasBeforeOT) {
