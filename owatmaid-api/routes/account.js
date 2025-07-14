@@ -4596,55 +4596,17 @@ router.post('/searchtimerecordemployee', async (req, res) => {
       }
 
       try {
-        // 🔧 แปลงค่า .30 เป็น .50 ก่อนคำนวณ
-        let hasTimeChanges = false;
-        
-        doc.employee_record = doc.employee_record.map(record => {
-          let recordChanged = false;
-          
-          // แปลง beforeTotalOtTime
-          if (record.beforeTotalOtTime && record.beforeTotalOtTime.endsWith('.30')) {
-            const oldTime = record.beforeTotalOtTime;
-            record.beforeTotalOtTime = record.beforeTotalOtTime.replace('.30', '.50');
-            
-            // คำนวณเงินใหม่
-            const hours = parseInt(oldTime.split('.')[0]);
-            const decimalHours = hours + 0.5; // .50 = 0.5 ชั่วโมง
-            const otRate = 69.75;
-            record.cashBeforeOt = (decimalHours * otRate).toFixed(3);
-            
-            console.log(`🔄 แปลง beforeTotalOtTime: ${oldTime} => ${record.beforeTotalOtTime}, เงิน: ${record.cashBeforeOt}`);
-            recordChanged = true;
-            hasTimeChanges = true;
-          }
-          
-          // แปลง totalOtTime
-          if (record.totalOtTime && record.totalOtTime.endsWith('.30')) {
-            const oldTime = record.totalOtTime;
-            record.totalOtTime = record.totalOtTime.replace('.30', '.50');
-            
-            // คำนวณเงินใหม่
-            const hours = parseInt(oldTime.split('.')[0]);
-            const decimalHours = hours + 0.5;
-            const otRate = 69.75;
-            record.cashOt = (decimalHours * otRate).toFixed(3);
-            
-            console.log(`🔄 แปลง totalOtTime: ${oldTime} => ${record.totalOtTime}, เงิน: ${record.cashOt}`);
-            recordChanged = true;
-            hasTimeChanges = true;
-          }
-          
-          return record;
-        });
-
-        // 🔧 บันทึกการเปลี่ยนแปลงลง DB ก่อนคำนวณ
-        if (hasTimeChanges) {
-          console.log(`💾 บันทึกการเปลี่ยนแปลงเวลา OT สำหรับ ${doc.employeeId}`);
-          await timerecordEmployee.findByIdAndUpdate(
-            doc._id,
-            { employee_record: doc.employee_record },
-            { new: false } // ไม่ต้อง return document ใหม่
-          );
+        // ดึงข้อมูล prefix และ employeeName จาก Employee model
+        let employeePrefix = '';
+        let employeeName = '';
+        try {
+          const employee = await Employee.findOne({ employeeId: doc.employeeId });
+          employeePrefix = employee?.prefix || '';
+          employeeName = `${employee?.name || ''} ${employee?.lastName || ''}`.trim();
+          console.log(`🔍 Found prefix for ${doc.employeeId}: ${employeePrefix}`);
+          console.log(`🔍 Found employeeName for ${doc.employeeId}: ${employeeName}`);
+        } catch (prefixError) {
+          console.warn(`⚠️ Could not fetch prefix and employeeName for employee ${doc.employeeId}:`, prefixError.message);
         }
 
        const calculatedValues = await calculateCashValues(
