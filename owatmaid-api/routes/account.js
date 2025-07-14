@@ -5370,12 +5370,14 @@ if (record?.dayType === "work") {
   
   // ถ้า record ไม่มีข้อมูล cashBeforeOt แต่มี beforeTotalOtTime ให้คำนวณเงิน
   if (hasBeforeOT && (!record.cashBeforeOt || record.cashBeforeOt === "")) {
-    // คำนวณเงิน OT ก่อนเวลา (1.5 เท่า)
+    // คำนวณเงิน OT ก่อนเวลา ใช้สูตรเดียวกันกับ cashOt: (salary/8) * 1.5 * hours
     const beforeOtHours = convertTimeToDecimal(record.beforeTotalOtTime);
-    const otRate = 69.75; // อัตรา OT ต่อชั่วโมง
+    const otMultiplier = 1.5; // ตัวคูณ OT
+    const hourlyRate = salary / 8; // อัตราค่าแรงต่อชั่วโมง
+    const otRate = hourlyRate * otMultiplier; // อัตรา OT ต่อชั่วโมง
     record.cashBeforeOt = (beforeOtHours * otRate).toFixed(2);
     record.cashBeforeOtMul = "1.5";
-    console.log(`🔧 คำนวณ OT ก่อนเวลาสำหรับวันที่ ${record.date}: ${beforeOtHours} ชม. x ${otRate} = ${record.cashBeforeOt} บาท`);
+    console.log(`🔧 คำนวณ OT ก่อนเวลาสำหรับวันที่ ${record.date}: ${beforeOtHours} ชม. x ${otRate} (${hourlyRate}/ชม. x ${otMultiplier}) = ${record.cashBeforeOt} บาท`);
   }
   
   // นับวันทำงานเฉพาะ record ที่มีเวลาทำงานปกติ และยังไม่เคยนับวันนี้
