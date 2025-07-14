@@ -4700,8 +4700,6 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         }
         
         const updateData = await {
-          dayWorkCount: String(calculatedValues.dayWorkCount),
-          dayOffCount: String(calculatedValues.dayOffCount),
           prefix: employeePrefix, // เพิ่ม prefix ใหม่
           employeeName: employeeName, // เพิ่ม employeeName
           dayWorkCount: String(calculatedValues.dayWorkCount),
@@ -4787,14 +4785,20 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         // console.log(`🔍 BEFORE update (doc ${doc._id}):`, JSON.stringify(doc.addSalaryList, null, 2));
     
         // Update and get updated document
-         const updatedDoc = await timerecordEmployee.findByIdAndUpdate(
+        const updatedDoc = await timerecordEmployee.findByIdAndUpdate(
           doc._id,
           { $set: updateData },
           { new: true, upsert: true }
         );
-
+    
+        // ✅ Log AFTER update
+        // console.log(`🚀 AFTER update (doc ${doc._id}):`, JSON.stringify(updatedDoc.addSalaryList, null, 2));
+    
         await updatedRecords.push(updatedDoc);
-
+    
+        // console.log(`✅ Document ${doc._id} updated successfully`);
+    
+// console.log('updatedDoc ' + JSON.stringify(updatedDoc))
       } catch (error) {
         console.error("❌ Error updating document:", error);
       }
@@ -4808,22 +4812,18 @@ router.post('/searchtimerecordemployee', async (req, res) => {
   }
 });
 
-
 const convertTimeToDecimal = (timeString) => {
   if (!timeString || typeof timeString !== 'string') {
     return 0;
   }
   
-  // ไม่ต้องแปลง .30 เป็น .50 ที่นี่แล้ว เพราะแปลงในฐานข้อมูลแล้ว
-  // แต่ยังคงต้องจัดการ .50 ให้ถูกต้อง
-  if (timeString.endsWith('.50')) {
-    const hours = parseInt(timeString.split('.')[0]);
-    return hours + 0.5;
+  if (timeString.includes('.')) {
+    const [hours, minutes] = timeString.split('.').map(Number);
+    const decimalMinutes = (minutes || 0) / 60;
+    return (hours || 0) + decimalMinutes;
   }
   
-  // กรณีอื่นๆ
-  const [hours, minutes] = timeString.split('.').map(Number);
-  return (hours || 0) + ((minutes || 0) / 60);
+  return parseFloat(timeString) || 0;
 };
 
 
