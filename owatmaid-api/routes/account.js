@@ -4812,23 +4812,23 @@ router.post('/searchtimerecordemployee', async (req, res) => {
 });
 
 const convertTimeToDecimal = (timeString) => {
-  if (!timeString || typeof timeString !== 'string') {
+  if (!timeString || timeString === '') {
     return 0;
   }
   
-  // Fix: การแปลงค่าเวลาที่ลงท้ายด้วย ".50" เป็นทศนิยม ควรเป็น X.5 (ไม่ใช่ X.83)
-  // เช่น "1.50" คือ 1 ชั่วโมง 30 นาที (ไม่ใช่ 1 ชั่วโมง 50 นาที) ควรเป็น 1.5
-  // เช่น "2.50" คือ 2 ชั่วโมง 30 นาที (ไม่ใช่ 2 ชั่วโมง 50 นาที) ควรเป็น 2.5
-  
-  // ตรวจสอบว่าเป็นรูปแบบ "X.50" หรือไม่
-  if (timeString.endsWith('.50')) {
-    const hours = parseInt(timeString.split('.')[0]);
-    return hours + 0.5;
+  // แปลงเป็นตัวเลข
+  const timeValue = parseFloat(timeString);
+  if (isNaN(timeValue)) {
+    return 0;
   }
   
-  // กรณีอื่นๆ ใช้การแปลงแบบปกติ
-  const [hours, minutes] = timeString.split('.').map(Number);
-  return (hours || 0) + ((minutes || 0) / 60);
+  // ใช้วิธีเดียวกันกับ conclude.js เพื่อความสอดคล้อง
+  const tmpHour = Math.floor(timeValue); // ได้ค่า ชม.
+  const tmpRawDecimal = timeValue - tmpHour; // ได้ค่า0.นาที
+  const tmpMinute = Math.round(tmpRawDecimal * 100); // x นาที (เพราะ *100 จาก .นาที)
+  const totalDecimalHour = tmpHour + (tmpMinute / 60); // 1 + 30/60 = 1.5
+  
+  return totalDecimalHour;
 };
 
 
@@ -5423,10 +5423,13 @@ if (record?.dayType === "work") {
     if (!timeCashWorkMul[otMul]) {
       timeCashWorkMul[otMul] = 0;
     }
-    sumCashWorkMul[otMul] += beforeOtCash;
+    // แปลง beforeOtCash เป็น number ก่อนเพิ่มเข้า sumCashWorkMul
+    const beforeOtCashNum = parseFloat(beforeOtCash) || 0;
+    sumCashWorkMul[otMul] += beforeOtCashNum;
     timeCashWorkMul[otMul] += beforeOtTime;
     
     console.log(`   - OT ก่อนเวลาทำงาน: ${beforeOtTime} ชม. (${beforeOtCash} บาท) - Rate: ${otMul}`);
+    console.log(`   - เพิ่ม ${beforeOtCashNum} เข้า sumCashWorkMul["${otMul}"] = ${sumCashWorkMul[otMul]}`);
   }
   
   // OT หลังเวลาทำงาน
@@ -5446,10 +5449,13 @@ if (record?.dayType === "work") {
     if (!timeCashWorkMul[otMul]) {
       timeCashWorkMul[otMul] = 0;
     }
-    sumCashWorkMul[otMul] += afterOtCash;
+    // แปลง afterOtCash เป็น number ก่อนเพิ่มเข้า sumCashWorkMul
+    const afterOtCashNum = parseFloat(afterOtCash) || 0;
+    sumCashWorkMul[otMul] += afterOtCashNum;
     timeCashWorkMul[otMul] += afterOtTime;
     
     console.log(`   - OT หลังเวลาทำงาน: ${afterOtTime} ชม. (${afterOtCash} บาท) - Rate: ${otMul}`);
+    console.log(`   - เพิ่ม ${afterOtCashNum} เข้า sumCashWorkMul["${otMul}"] = ${sumCashWorkMul[otMul]}`);
   }
   
   // อัปเดตผลรวม OT
@@ -5662,14 +5668,18 @@ console.log(`\n💰 คำนวณ publicHolidayCash สำหรับพน�
   console.log(`💰 ค่า publicHolidayCash ที่จะบันทึก: ${publicHolidayCash.toFixed(2)} บาท`);
 
   console.log(`\n💰 คำนวณค่า sumCashWorkMul["1.5"] สำหรับพนักงาน ${employeeId}`);
-console.log(`💰 sumCashOt: ${sumCashOt} บาท`);
+console.log(`💰 sumCashOt (รวม OT ทั้งหมด): ${sumCashOt} บาท`);
 console.log(`💰 sumcashDayOffCount: ${sumcashDayOffCount} บาท`);
 console.log(`💰 sumCashWorkMul["1.5"] ที่คำนวณจากลูป: ${sumCashWorkMul["1.5"] || 0} บาท`);
+
+// ตรวจสอบรายละเอียดการคำนวณ
+console.log(`📊 รายละเอียด sumCashWorkMul:`, JSON.stringify(sumCashWorkMul, null, 2));
 
 // ไม่ต้องเขียนทับค่า sumCashWorkMul["1.5"] เพราะได้คำนวณไว้ในลูปแล้ว
 // sumCashWorkMul["1.5"] มีการรวม cashBeforeOt + cashOt ที่มีตัวคูณ 1.5 ถูกต้องแล้ว
 
 console.log(`💰 sumCashWorkMul["1.5"] สุดท้าย: ${(sumCashWorkMul["1.5"] || 0).toFixed(2)} บาท`);
+console.log(`✅ ควรรวม: cashBeforeOt (104.625) + sumCashOt (1547.58) = ${(104.625 + 1547.58).toFixed(2)} บาท`);
 
 
 
