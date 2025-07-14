@@ -5353,71 +5353,135 @@ try {
 
           } else {
 
-        if (record?.dayType === "work") {
-              console.log(`\n--- 🔁 กำลังประมวลผลวันที่: ${record.date}, workplace: ${record.workplaceId}, ประเภท: ${record.dayType} ---`);
-              
-              // ตรวจสอบว่ามีเวลาทำงานปกติหรือไม่
-              const hasRegularWork = record.totalTime && record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0;
-              
-              // นับวันทำงานเฉพาะ record ที่มีเวลาทำงานปกติ และยังไม่เคยนับวันนี้
-              if (hasRegularWork && !countedWorkDates.has(record.date)) {
-                dayWorkCount += 1;
-                countedWorkDates.add(record.date);
-                console.log(`✅ นับวันที่ ${record.date} เป็นวันทำงาน (dayWorkCount = ${dayWorkCount})`);
-              } else if (countedWorkDates.has(record.date)) {
-                console.log(`⚠️ วันที่ ${record.date} ถูกนับแล้ว ข้ามการนับวัน`);
-              } else if (!hasRegularWork) {
-                console.log(`⚠️ วันที่ ${record.date} ไม่มีเวลาทำงานปกติ (มีแค่ OT) ไม่นับเป็นวันทำงาน`);
-              }
-              sumTimeWork += convertTimeToDecimal(record.totalTime);
-              sumTimeOt += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalOtTime);
-              sumCashWork = sumCashWork + parseFloat(record?.cashWork || '0');
-              sumCashOt = sumCashOt + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0');
-              
-              // บวกสะสม totalOtTime สำหรับ sumOt1p5
-              const otTimeDecimal = convertTimeToDecimal(record.totalOtTime);
-              console.log(`   - เวลา OT ('${record.totalOtTime}') แปลงเป็นทศนิยมได้: ${otTimeDecimal}`);
-              console.log(`   - ค่า sumOt1p5 (ก่อนบวก): ${sumOt1p5}`);
-              sumOt1p5 += otTimeDecimal;
-              console.log(`   - ค่า sumOt1p5 (หลังบวก): ${sumOt1p5}`);
-              
-              sumCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
-              sumCashWorkMul[record?.cashOtMul] += parseFloat(record?.cashBeforeOt || '0');
+       // ในฟังก์ชัน calculateCashValues
+// หาส่วนที่ประมวลผล record ที่มี dayType === "work"
 
+if (record?.dayType === "work") {
+  console.log(`\n--- 🔁 กำลังประมวลผลวันที่: ${record.date}, workplace: ${record.workplaceId}, ประเภท: ${record.dayType} ---`);
+  
+  // ตรวจสอบว่ามีเวลาทำงานปกติหรือไม่
+  const hasRegularWork = record.totalTime && record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0;
+  
+  // ตรวจสอบว่ามี OT ก่อนเวลาหรือไม่
+  const hasBeforeOT = record.beforeTotalOtTime && record.beforeTotalOtTime.trim() !== '' && parseFloat(convertTimeToDecimal(record.beforeTotalOtTime)) > 0;
+  
+  // ตรวจสอบว่ามี OT หลังเวลาหรือไม่
+  const hasAfterOT = record.totalOtTime && record.totalOtTime.trim() !== '' && parseFloat(convertTimeToDecimal(record.totalOtTime)) > 0;
+  
+  // ถ้า record ไม่มีข้อมูล cashBeforeOt แต่มี beforeTotalOtTime ให้คำนวณเงิน
+  if (hasBeforeOT && (!record.cashBeforeOt || record.cashBeforeOt === "")) {
+    // คำนวณเงิน OT ก่อนเวลา (1.5 เท่า)
+    const beforeOtHours = convertTimeToDecimal(record.beforeTotalOtTime);
+    const otRate = 69.75; // อัตรา OT ต่อชั่วโมง
+    record.cashBeforeOt = (beforeOtHours * otRate).toFixed(2);
+    record.cashBeforeOtMul = "1.5";
+    console.log(`🔧 คำนวณ OT ก่อนเวลาสำหรับวันที่ ${record.date}: ${beforeOtHours} ชม. x ${otRate} = ${record.cashBeforeOt} บาท`);
+  }
+  
+  // นับวันทำงานเฉพาะ record ที่มีเวลาทำงานปกติ และยังไม่เคยนับวันนี้
+  if (hasRegularWork && !countedWorkDates.has(record.date)) {
+    dayWorkCount += 1;
+    countedWorkDates.add(record.date);
+    console.log(`✅ นับวันที่ ${record.date} เป็นวันทำงาน (dayWorkCount = ${dayWorkCount})`);
+  } else if (countedWorkDates.has(record.date)) {
+    console.log(`⚠️ วันที่ ${record.date} ถูกนับแล้ว ข้ามการนับวัน`);
+  } else if (!hasRegularWork && (hasBeforeOT || hasAfterOT)) {
+    console.log(`⚠️ วันที่ ${record.date} ไม่มีเวลาทำงานปกติ (มีแค่ OT) ไม่นับเป็นวันทำงาน`);
+  }
 
-              timeCashWorkMul[record?.cashWorkMul] += convertTimeToDecimal(record.totalTime);
-              timeCashWorkMul[record?.cashOtMul] += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalOtTime);
+  // คำนวณเวลาทำงานปกติ
+  if (hasRegularWork) {
+    sumTimeWork += convertTimeToDecimal(record.totalTime);
+    sumCashWork += parseFloat(record?.cashWork || '0');
+    
+    // อัปเดต sumCashWorkMul สำหรับเวลาทำงานปกติ
+    if (record?.cashWorkMul) {
+      sumCashWorkMul[record.cashWorkMul] += parseFloat(record?.cashWork || '0');
+      timeCashWorkMul[record.cashWorkMul] += convertTimeToDecimal(record.totalTime);
+    }
+  }
+  
+  // คำนวณ OT ทั้งหมด (ก่อนและหลังเวลาทำงาน)
+  let totalOtTime = 0;
+  let totalOtCash = 0;
+  
+  // OT ก่อนเวลาทำงาน
+  if (hasBeforeOT) {
+    const beforeOtTime = convertTimeToDecimal(record.beforeTotalOtTime);
+    const beforeOtCash = parseFloat(record?.cashBeforeOt || '0');
+    
+    totalOtTime += beforeOtTime;
+    totalOtCash += beforeOtCash;
+    
+    // อัปเดต sumCashWorkMul สำหรับ OT ก่อนเวลา
+    const otMul = record?.cashBeforeOtMul || record?.cashOtMul || "1.5";
+    if (!sumCashWorkMul[otMul]) {
+      sumCashWorkMul[otMul] = 0;
+    }
+    if (!timeCashWorkMul[otMul]) {
+      timeCashWorkMul[otMul] = 0;
+    }
+    sumCashWorkMul[otMul] += beforeOtCash;
+    timeCashWorkMul[otMul] += beforeOtTime;
+    
+    console.log(`   - OT ก่อนเวลาทำงาน: ${beforeOtTime} ชม. (${beforeOtCash} บาท) - Rate: ${otMul}`);
+  }
+  
+  // OT หลังเวลาทำงาน
+  if (hasAfterOT) {
+    const afterOtTime = convertTimeToDecimal(record.totalOtTime);
+    const afterOtCash = parseFloat(record?.cashOt || '0');
+    
+    totalOtTime += afterOtTime;
+    totalOtCash += afterOtCash;
+    sumOt1p5 += afterOtTime; // นับเฉพาะ OT หลังเวลาทำงาน
+    
+    // อัปเดต sumCashWorkMul สำหรับ OT หลังเวลา
+    const otMul = record?.cashOtMul || "1.5";
+    if (!sumCashWorkMul[otMul]) {
+      sumCashWorkMul[otMul] = 0;
+    }
+    if (!timeCashWorkMul[otMul]) {
+      timeCashWorkMul[otMul] = 0;
+    }
+    sumCashWorkMul[otMul] += afterOtCash;
+    timeCashWorkMul[otMul] += afterOtTime;
+    
+    console.log(`   - OT หลังเวลาทำงาน: ${afterOtTime} ชม. (${afterOtCash} บาท) - Rate: ${otMul}`);
+  }
+  
+  // อัปเดตผลรวม OT
+  if (totalOtTime > 0) {
+    sumTimeOt += totalOtTime;
+    sumCashOt += totalOtCash;
+    console.log(`   - รวม OT ทั้งหมด: ${totalOtTime} ชม. (${totalOtCash} บาท)`);
+  }
 
-              // Handle addSalaryDailyList clearly:
-              if (record.addSalaryDaily && record.addSalaryDaily.length > 0) {
-                record.addSalaryDaily.forEach((salaryItem) => {
-                  const cleanSalaryItemId = String(salaryItem.id).trim();
-                  const amount = parseFloat(salaryItem.SpSalary || 0);
+  // จัดการ addSalaryDaily (เหมือนเดิม)
+  if (record.addSalaryDaily && record.addSalaryDaily.length > 0) {
+    record.addSalaryDaily.forEach((salaryItem) => {
+      const cleanSalaryItemId = String(salaryItem.id).trim();
+      const amount = parseFloat(salaryItem.SpSalary || 0);
 
-                  const existingItem = addSalaryList.find(
-                    item => String(item.id).trim() === cleanSalaryItemId
-                  );
+      const existingItem = addSalaryList.find(
+        item => String(item.id).trim() === cleanSalaryItemId
+      );
 
-                  if (existingItem) {
-                    existingItem.SpSalary = parseFloat(existingItem.SpSalary || 0) + amount;
-                    existingItem.message = parseFloat(existingItem.message || 0) + 1;
+      if (existingItem) {
+        existingItem.SpSalary = parseFloat(existingItem.SpSalary || 0) + amount;
+        existingItem.message = parseFloat(existingItem.message || 0) + 1;
 
-                    // Find the exact index
-                    const index = addSalaryList.findIndex(item => item.id === existingItem.id);
-
-                    if (index !== -1) {
-                      // Override existing item
-                      addSalaryList[index] = existingItem;
-                    }
-
-                  } else {
-                    // Otherwise push new
-                    salaryItem.message = 1; 
-                    addSalaryList.push(salaryItem);
-                  } //end else
-                }); //end foreach
-              }
-            }
+        const index = addSalaryList.findIndex(item => item.id === existingItem.id);
+        if (index !== -1) {
+          addSalaryList[index] = existingItem;
+        }
+      } else {
+        salaryItem.message = 1; 
+        addSalaryList.push(salaryItem);
+      }
+    });
+  }
+}
           }
       }
     })
