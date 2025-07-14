@@ -726,16 +726,23 @@ if (ot3Hours > 0 && ot3Cash > 0) {
     // ภาษี
     const tax = parseFloat(currentEmployee.tax || 0);
     if (tax >= 0) {
-      textDedustArray.push("หักภาษีเงินได้");
+      textDedustArray.push("ภาษีเงินได้");
       valueDedustArray.push(
         tax.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+      );
+    }
+    const advance = parseFloat(currentEmployee.deductSalaryList[0].amount || 0);
+    if (advance >= 0) {
+      textDedustArray.push("คืนเงินเบิกล่วงหน้า");
+      valueDedustArray.push(
+        advance.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
       );
     }
 
     // ประกันสังคม
     const socialSecurity = parseFloat(currentEmployee.socialSecurity || 0);
     if (socialSecurity > 0) {
-      textDedustArray.push("หักสมทบประกันสังคม");
+      textDedustArray.push("สมทบประกันสังคม");
       valueDedustArray.push(
         socialSecurity.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
       );
@@ -849,7 +856,7 @@ if (ot3Hours > 0 && ot3Cash > 0) {
     );
 
     // รวมเงินหัก
-    const totalDeductions = tax + socialSecurity;
+    const totalDeductions = tax + socialSecurity + advance ;
     pdf.text(
       `${totalDeductions.toLocaleString('th-TH', {
         minimumFractionDigits: 2,
@@ -1730,7 +1737,7 @@ if (ot3Hours > 0 && ot3Cash > 0) {
           const tax = parseFloat(accountingRecord.tax);
 
           if (tax !== 0 && !isNaN(tax)) {
-            textDedustArray.push("หักภาษีเงินได้");
+            textDedustArray.push("ภาษีเงินได้");
             valueDedustArray.push(
               tax.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
             );
@@ -2390,7 +2397,7 @@ if (ot3Hours > 0 && ot3Cash > 0) {
           responseDataAll[i + 1].accountingRecord[0].tax != 0 &&
           responseDataAll[i + 1].accountingRecord[0].tax != null
         ) {
-          textDedustArray.push("หักภาษีเงินได้");
+          textDedustArray.push("ภาษีเงินได้");
           valueDedustArray.push(
             responseDataAll[i + 1].accountingRecord.tax
               .toFixed(2)

@@ -2553,7 +2553,8 @@ try {
                           <th style={cellStyle}>
                                                       {(() => {
   const total =
-    parseFloat(accountingResult?.[0]?.socialSecurity  || '0')
+    parseFloat(accountingResult?.[0]?.socialSecurity  || '0') +
+    parseFloat(accountingResult?.[0]?.tax || '0') +
     parseFloat(accountingResult?.[0]?.tax || '0') +
     parseFloat(totalDeductSalary || '0'); // เพิ่ม totalDeductSalary
     
@@ -2576,9 +2577,11 @@ try {
     parseFloat(totalAddSalary || '0'); // ใช้ totalAddSalary แทน
 
   const deductionTotal =
-    parseFloat(accountingResult?.[0]?.socialSecurity  || '0')
+    parseFloat(accountingResult?.[0]?.socialSecurity || '0') +
     parseFloat(accountingResult?.[0]?.tax || '0') +
+    parseFloat(accountingResult?.[0]?.total || '0') +
     parseFloat(totalDeductSalary || '0'); // เพิ่ม totalDeductSalary
+    
 
   const netTotal = incomeTotal - deductionTotal;
 

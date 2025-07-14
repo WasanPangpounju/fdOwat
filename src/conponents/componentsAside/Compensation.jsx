@@ -2063,7 +2063,7 @@ const handleSave_back = (index, subIndex, idx) => {
                           <th className="fw-normal">{matchedRecord.workplaceId}</th>
                           <th className="fw-normal">{matchedRecord.workplaceName}</th>
                           <th className="fw-normal">{matchedRecord.wGroup}</th>
-                          <th className="fw-normal">{shiftMapping[matchedRecord.shift]}</th>
+                          <th className="fw-normal">{shiftMapping[matchedRecord.shift]}หห</th>
 
                           {/* Editable Fields */}
                           {["beforeTotalOtTime", "cashBeforeOt", "totalTime", "cashWork", "totalOtTime", "cashOt"].map(
