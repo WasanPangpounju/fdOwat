@@ -2813,16 +2813,10 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
       
       if (dataRate?.dayType !== '') {
         if (dataRate?.dayType === 'stop') {
-          // แก้ไขเวลา OT ก่อนทำงานให้คิดจากหน่วยนาที (stop)
-          const beforeTmpHour_stop2 = Math.floor(record.beforeTotalOtTime || 0);
-          const beforeTmpRawDecimal_stop2 = (record.beforeTotalOtTime || 0) - beforeTmpHour_stop2;
-          const beforeTmpMinute_stop2 = Math.round(beforeTmpRawDecimal_stop2 * 100);
-          const beforeTotalDecimalHour_stop2 = beforeTmpHour_stop2 + (beforeTmpMinute_stop2 / 60);
-          
           cashBeforeOt = await (
             parseFloat(dataRate?.dayoffRateOT || '0') > 5
               ? parseFloat(dataRate?.dayoffRateOT || '0') || 0
-              : ((beforeTotalDecimalHour_stop2 || 0) * ((parseFloat(dataRate?.dayoffRateOT || '0')) * salary || 0)) || 0
+              : ((record.beforeTotalOtTime || 0) * ((parseFloat(dataRate?.dayoffRateOT || '0')) * salary || 0)) || 0
           );
 
           cashOt = await (
@@ -2959,16 +2953,10 @@ const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate , re
 
 // await console.log(JSON.stringify(dataRate ,null,2))
 
-// แก้ไขเวลา OT ก่อนทำงานให้คิดจากหน่วยนาที
-const beforeTmpHour_final = Math.floor(record.beforeTotalOtTime || 0);
-const beforeTmpRawDecimal_final = (record.beforeTotalOtTime || 0) - beforeTmpHour_final;
-const beforeTmpMinute_final = Math.round(beforeTmpRawDecimal_final * 100);
-const beforeTotalDecimalHour_final = beforeTmpHour_final + (beforeTmpMinute_final / 60);
-
 let cashBeforeOt = await (
   parseFloat(dataRate.workRateOT || '0') > 5
     ? parseFloat(dataRate.workRateOT || '0') || 0
-    : ((beforeTotalDecimalHour_final || 0) * ((parseFloat(dataRate.workRateOT || '0')) * salary || 0)) || 0
+    : ((record.beforeTotalOtTime || 0) * ((parseFloat(dataRate.workRateOT || '0')) * salary || 0)) || 0
 );
 let cashWork = await (record.totalTime || 0) * parseFloat(dataRate.workRate || '0');
 
