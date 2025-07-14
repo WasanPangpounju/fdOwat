@@ -5232,7 +5232,8 @@ try {
 
   // ตัวแปรเพื่อนับจำนวนวันที่พนักงานไม่มาทำงานในวันหยุดที่กำหนดเอง
   let daysNotComeToWork = 0;
-  
+
+  const countedWorkDates = new Set();
   await Promise.all(
     employee_record.map(async (record) => {
       //check workplace 10105
@@ -5352,10 +5353,22 @@ try {
 
           } else {
 
-            if (record?.dayType === "work") {
-              console.log(`\n--- 🔁 กำลังประมวลผลวันที่: ${record.date}, ประเภท: ${record.dayType} ---`);
-
-              dayWorkCount += 1;
+        if (record?.dayType === "work") {
+              console.log(`\n--- 🔁 กำลังประมวลผลวันที่: ${record.date}, workplace: ${record.workplaceId}, ประเภท: ${record.dayType} ---`);
+              
+              // ตรวจสอบว่ามีเวลาทำงานปกติหรือไม่
+              const hasRegularWork = record.totalTime && record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0;
+              
+              // นับวันทำงานเฉพาะ record ที่มีเวลาทำงานปกติ และยังไม่เคยนับวันนี้
+              if (hasRegularWork && !countedWorkDates.has(record.date)) {
+                dayWorkCount += 1;
+                countedWorkDates.add(record.date);
+                console.log(`✅ นับวันที่ ${record.date} เป็นวันทำงาน (dayWorkCount = ${dayWorkCount})`);
+              } else if (countedWorkDates.has(record.date)) {
+                console.log(`⚠️ วันที่ ${record.date} ถูกนับแล้ว ข้ามการนับวัน`);
+              } else if (!hasRegularWork) {
+                console.log(`⚠️ วันที่ ${record.date} ไม่มีเวลาทำงานปกติ (มีแค่ OT) ไม่นับเป็นวันทำงาน`);
+              }
               sumTimeWork += convertTimeToDecimal(record.totalTime);
               sumTimeOt += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalOtTime);
               sumCashWork = sumCashWork + parseFloat(record?.cashWork || '0');
@@ -5409,6 +5422,13 @@ try {
       }
     })
   );
+
+console.log(`\n📊 === สรุปการนับวันทำงาน ===`);
+console.log(`📅 วันที่ถูกนับ: ${Array.from(countedWorkDates).sort().join(', ')}`);
+console.log(`📊 จำนวนวันทำงานทั้งหมด: ${dayWorkCount} วัน`);
+console.log(`💰 เงินค่าแรงรวม: ${sumCashWork} บาท`);
+console.log(`💰 เงิน OT รวม: ${sumCashOt} บาท`);
+console.log(`💰 รวมทั้งหมด: ${sumCashWork + sumCashOt} บาท`);
 
   // คำนวณ countAllowance จาก employee_record โดยนับทั้ง stop และ work ที่มี totalTime
   console.log(`\n🔍 === คำนวณ countAllowance จาก employee_record (ทั้ง stop และ work) ===`);
