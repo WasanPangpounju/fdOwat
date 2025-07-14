@@ -4609,13 +4609,12 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           console.warn(`⚠️ Could not fetch prefix and employeeName for employee ${doc.employeeId}:`, prefixError.message);
         }
 
-       const calculatedValues = await calculateCashValues(
+        const calculatedValues = await calculateCashValues(
           doc.employeeId,
           doc.employee_record,
           doc.month,
           doc.year
         );
-        
 
         // Log ค่าที่ได้จาก calculateCashValues
         console.log(`\n🎯 === ค่าที่ได้รับจาก calculateCashValues ===`);
@@ -4817,13 +4816,19 @@ const convertTimeToDecimal = (timeString) => {
     return 0;
   }
   
-  if (timeString.includes('.')) {
-    const [hours, minutes] = timeString.split('.').map(Number);
-    const decimalMinutes = (minutes || 0) / 60;
-    return (hours || 0) + decimalMinutes;
+  // Fix: การแปลงค่าเวลาที่ลงท้ายด้วย ".50" เป็นทศนิยม ควรเป็น X.5 (ไม่ใช่ X.83)
+  // เช่น "1.50" คือ 1 ชั่วโมง 30 นาที (ไม่ใช่ 1 ชั่วโมง 50 นาที) ควรเป็น 1.5
+  // เช่น "2.50" คือ 2 ชั่วโมง 30 นาที (ไม่ใช่ 2 ชั่วโมง 50 นาที) ควรเป็น 2.5
+  
+  // ตรวจสอบว่าเป็นรูปแบบ "X.50" หรือไม่
+  if (timeString.endsWith('.50')) {
+    const hours = parseInt(timeString.split('.')[0]);
+    return hours + 0.5;
   }
   
-  return parseFloat(timeString) || 0;
+  // กรณีอื่นๆ ใช้การแปลงแบบปกติ
+  const [hours, minutes] = timeString.split('.').map(Number);
+  return (hours || 0) + ((minutes || 0) / 60);
 };
 
 
