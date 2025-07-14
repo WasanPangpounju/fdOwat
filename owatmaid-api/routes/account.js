@@ -5368,8 +5368,8 @@ if (record?.dayType === "work") {
   // ตรวจสอบว่ามี OT หลังเวลาหรือไม่
   const hasAfterOT = record.totalOtTime && record.totalOtTime.trim() !== '' && parseFloat(convertTimeToDecimal(record.totalOtTime)) > 0;
   
-  // ถ้า record ไม่มีข้อมูล cashBeforeOt แต่มี beforeTotalOtTime ให้คำนวณเงิน
-  if (hasBeforeOT && (!record.cashBeforeOt || record.cashBeforeOt === "")) {
+  // คำนวณเงิน OT ก่อนเวลาใหม่ทุกครั้งเพื่อใช้สูตรมาตรฐาน
+  if (hasBeforeOT) {
     // คำนวณเงิน OT ก่อนเวลา ใช้สูตรเดียวกันกับ cashOt: (salary/8) * 1.5 * hours
     const beforeOtHours = convertTimeToDecimal(record.beforeTotalOtTime);
     const otMultiplier = 1.5; // ตัวคูณ OT
