@@ -5664,15 +5664,12 @@ console.log(`\n💰 คำนวณ publicHolidayCash สำหรับพน�
   console.log(`\n💰 คำนวณค่า sumCashWorkMul["1.5"] สำหรับพนักงาน ${employeeId}`);
 console.log(`💰 sumCashOt: ${sumCashOt} บาท`);
 console.log(`💰 sumcashDayOffCount: ${sumcashDayOffCount} บาท`);
+console.log(`💰 sumCashWorkMul["1.5"] ที่คำนวณจากลูป: ${sumCashWorkMul["1.5"] || 0} บาท`);
 
-// ถ้า sumCashOt มากกว่า sumcashDayOffCount ให้คำนวณผลต่าง แต่ถ้าน้อยกว่าให้เป็น 0
-if (sumCashOt >= sumcashDayOffCount) {
-  sumCashWorkMul["1.5"] = sumCashOt - sumcashDayOffCount;
-} else {
-  sumCashWorkMul["1.5"] = 0;
-}
+// ไม่ต้องเขียนทับค่า sumCashWorkMul["1.5"] เพราะได้คำนวณไว้ในลูปแล้ว
+// sumCashWorkMul["1.5"] มีการรวม cashBeforeOt + cashOt ที่มีตัวคูณ 1.5 ถูกต้องแล้ว
 
-console.log(`💰 sumCashWorkMul["1.5"] ที่คำนวณได้: ${sumCashWorkMul["1.5"].toFixed(2)} บาท`);
+console.log(`💰 sumCashWorkMul["1.5"] สุดท้าย: ${(sumCashWorkMul["1.5"] || 0).toFixed(2)} บาท`);
 
 
 
