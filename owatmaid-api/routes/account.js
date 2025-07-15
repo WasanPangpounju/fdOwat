@@ -4876,6 +4876,7 @@ let timeCashWorkMul = {
 
   // 🎯 ดึงข้อมูล workplace และ workRate
   let workRate = 0;
+  let dayoffRateOT = 0; // เพิ่มตัวแปรสำหรับเก็บ dayoffRateOT
   try {
     const employee = await Employee.findOne({ employeeId: employeeId });
     const wpId = employee?.workplace || '';
@@ -4883,7 +4884,8 @@ let timeCashWorkMul = {
     if (wpId) {
       const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${wpId}`);
       workRate = parseFloat(workplaceResponse.data.workRate || 0);
-      console.log(`🏢 ดึงข้อมูล workplace ${wpId}: workRate = ${workRate}`);
+      dayoffRateOT = parseFloat(workplaceResponse.data.dayoffRateOT || 1.5); // ดึงค่า dayoffRateOT
+      console.log(`🏢 ดึงข้อมูล workplace ${wpId}: workRate = ${workRate}, dayoffRateOT = ${dayoffRateOT}`);
     } else {
       console.log(`⚠️ ไม่พบ workplace สำหรับพนักงาน ${employeeId}`);
     }
@@ -5327,7 +5329,17 @@ try {
 
             sumTimeOt += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalTime) + convertTimeToDecimal(record.totalOtTime);
             sumCashOt = parseFloat(sumCashOt || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0')
-            sumOt3 += convertTimeToDecimal(record.totalOtTime);
+            
+            // เช็คจาก dayoffRateOT เพื่อแยกการคำนวณ OT
+            if (dayoffRateOT === 1.5) {
+              sumOt1p5 += convertTimeToDecimal(record.totalOtTime);
+            } else if (dayoffRateOT === 3) {
+              sumOt3 += convertTimeToDecimal(record.totalOtTime);
+            } else {
+              // ถ้าไม่ใช่ 1.5 หรือ 3 ให้ใส่ใน sumOt1p5 เป็นค่าเริ่มต้น
+              sumOt1p5 += convertTimeToDecimal(record.totalOtTime);
+            }
+            
             sumOtPublicHoliday += convertTimeToDecimal(record.totalTime); // เพิ่มผลรวมของ totalOtTime ในวันหยุดนักขัตฤกษ์
             sumCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
 
