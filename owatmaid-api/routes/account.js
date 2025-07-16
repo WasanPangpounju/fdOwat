@@ -4885,7 +4885,12 @@ let timeCashWorkMul = {
       const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${wpId}`);
       workRate = parseFloat(workplaceResponse.data.workRate || 0);
       dayoffRateOT = parseFloat(workplaceResponse.data.dayoffRateOT || 1.5); // ดึงค่า dayoffRateOT
-      console.log(`🏢 ดึงข้อมูล workplace ${wpId}: workRate = ${workRate}, dayoffRateOT = ${dayoffRateOT}`);
+      
+      console.log(`🏢 ดึงข้อมูล workplace ${wpId}:`);
+      console.log(`   workRate = ${workRate}`);
+      console.log(`   dayoffRateOT (string) = "${workplaceResponse.data.dayoffRateOT}"`);
+      console.log(`   dayoffRateOT (parsed) = ${dayoffRateOT}`);
+      console.log(`   dayoffRateOT type = ${typeof dayoffRateOT}`);
     } else {
       console.log(`⚠️ ไม่พบ workplace สำหรับพนักงาน ${employeeId}`);
     }
