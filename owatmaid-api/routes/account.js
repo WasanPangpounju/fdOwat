@@ -5934,6 +5934,15 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
   publicHolidayCash = (publicHolidayCash || 0).toFixed(2);
   cashSpecialDay = (cashSpecialDay || 0).toFixed(2);
 
+  // เพิ่ม log สรุปผลลัพธ์
+  console.log(`\n🎯 === สรุปผลการคำนวณ OT ===`);
+  console.log(`🎯 sumOt1p5: ${sumOt1p5} ชั่วโมง`);
+  console.log(`🎯 sumOt3: ${sumOt3} ชั่วโมง`);
+  console.log(`🎯 sumCashWorkMul["1.5"]: ${sumCashWorkMul["1.5"]} บาท`);
+  console.log(`🎯 sumCashWorkMul["3"]: ${sumCashWorkMul["3"]} บาท`);
+  console.log(`🎯 dayoffRateOT ที่ใช้: ${dayoffRateOT}`);
+  console.log(`🎯 ===================================\n`);
+
   // 🎯 คำนวณ sumCashWorkMul["1"] ใหม่จาก workRate * dayWorkCount
   if (workRate > 0 && dayWorkCount > 0) {
     const newSumCashWorkMul1 = workRate * dayWorkCount;
