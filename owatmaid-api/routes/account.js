@@ -5338,8 +5338,9 @@ try {
             // เช็คจาก dayoffRateOT เพื่อแยกการคำนวณ OT
             const otTime = convertTimeToDecimal(record.totalOtTime);
             console.log(`🔥 OT Calculation - dayoffRateOT: ${dayoffRateOT}, totalOtTime: ${record.totalOtTime}, converted: ${otTime}`);
+            console.log(`🔥 dayoffRateOT type: ${typeof dayoffRateOT}, value: ${dayoffRateOT}`);
             
-            if (dayoffRateOT === 1.5) {
+            if (dayoffRateOT == 1.5) { // เปลี่ยนจาก === เป็น ==
               sumOt1p5 += otTime;
               console.log(`✅ Added ${otTime} to sumOt1p5 (rate 1.5), new total: ${sumOt1p5}`);
               // คำนวณเงิน OT ตาม dayoffRateOT
@@ -5347,7 +5348,7 @@ try {
               sumCashWorkMul["1.5"] += otCash;
               timeCashWorkMul["1.5"] += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalOtTime);
               console.log(`💰 Added ${otCash} to sumCashWorkMul["1.5"], new total: ${sumCashWorkMul["1.5"]}`);
-            } else if (dayoffRateOT === 3) {
+            } else if (dayoffRateOT == 3) { // เปลี่ยนจาก === เป็น ==
               sumOt3 += otTime;
               console.log(`✅ Added ${otTime} to sumOt3 (rate 3), new total: ${sumOt3}`);
               // คำนวณเงิน OT ตาม dayoffRateOT
@@ -5363,7 +5364,7 @@ try {
               let otMul = record?.cashOtMul;
               
               // 🔥 เช็คว่าถ้า dayoffRateOT = 1.5 และ otMul = "3" ให้เปลี่ยนเป็น "1.5"
-              if (dayoffRateOT === 1.5 && otMul === "3") {
+              if (dayoffRateOT == 1.5 && otMul === "3") { // เปลี่ยนจาก === เป็น ==
                 otMul = "1.5";
                 console.log(`🔄 เปลี่ยน OT rate จาก 3 เป็น 1.5 เนื่องจาก dayoffRateOT = 1.5`);
               }
