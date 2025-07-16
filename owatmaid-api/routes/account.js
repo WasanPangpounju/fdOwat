@@ -4885,9 +4885,13 @@ let timeCashWorkMul = {
   const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${wpId}`);
   workRate = parseFloat(workplaceResponse.data.workRate || 0);
   
-  // เพิ่มการดึงค่า holidayOT
+  // เพิ่มการดึงค่า holidayOT และ workOfHour
   holidayOTRate = parseFloat(workplaceResponse.data.holidayOT || 3);
-  console.log(`🏢 ดึงข้อมูล workplace ${wpId}: workRate = ${workRate}, holidayOT = ${holidayOTRate}`);
+  const workOfHour = parseFloat(workplaceResponse.data.workOfHour || 8);
+  console.log(`🏢 ดึงข้อมูล workplace ${wpId}: workRate = ${workRate}, holidayOT = ${holidayOTRate}, workOfHour = ${workOfHour}`);
+  
+  // เก็บค่า workOfHour ไว้ใช้ในการคำนวณ
+  global.workOfHour = workOfHour;
 } else {
       console.log(`⚠️ ไม่พบ workplace สำหรับพนักงาน ${employeeId}`);
     }
@@ -5346,9 +5350,9 @@ try {
 
             
   if (holidayOTRate === 1.5) {
-    // ถ้า holidayOT เป็น 1.5
-    if (!sumCashWorkMul["1.5"]) sumCashWorkMul["1.5"] = 0;
-    sumCashWorkMul["1.5"] += parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0');
+    // ✅ ไม่ต้องเพิ่มเงินโดยตรง เพราะจะใช้สูตรคำนวณหลังจากประมวลผลเร็กคอร์ดเสร็จแล้ว
+    // sumCashWorkMul["1.5"] จะถูกคำนวณด้วยสูตร: (workRate / (workOfHour - 1) * holidayOT) * sumOt1p5
+    console.log(`🔄 skip การเพิ่มเงินโดยตรงใน sumCashWorkMul["1.5"] - จะใช้สูตรคำนวณแทน`);
   } else {
     // ถ้า holidayOT เป็น 3 หรือค่าอื่นๆ
     const otMul = record?.cashOtMul || "3";
@@ -5368,10 +5372,11 @@ try {
 
 
 
-          sumCashWorkMul[record?.cashOtMul] += parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0');
+          // ✅ ปิดการเพิ่มเงิน OT ซ้ำ - การคำนวณจะทำด้วยสูตรแทน
+          // sumCashWorkMul[record?.cashOtMul] += parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0');
 
           timeCashWorkMul[record?.cashWorkMul] += convertTimeToDecimal(record.totalTime);
-          timeCashWorkMul[record?.cashOtMul] += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalOtTime);
+          // timeCashWorkMul[record?.cashOtMul] += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalOtTime);
 
         } else
           if (record?.dayType === 'specialDayOff') {
@@ -5951,6 +5956,37 @@ console.log(`💰 sumCashWorkMul["3"]: ${sumCashWorkMul["3"] || 0} บาท`);
   } else {
     console.log(`\n⚠️ ไม่สามารถคำนวณ sumCashWorkMul["1"] ใหม่ได้:`);
     console.log(`   workRate: ${workRate}, dayWorkCount: ${dayWorkCount}`);
+  }
+
+  // 🚀 คำนวณ sumCashWorkMul["1.5"] ใหม่ด้วยสูตร: (workRate / (workOfHour - 1) * holidayOT) * sumOt1p5
+  if (holidayOTRate === 1.5 && global.workOfHour && workRate > 0 && parseFloat(sumOt1p5) > 0) {
+    const workOfHour = global.workOfHour;
+    const formulaResult = (workRate / (workOfHour - 1) * holidayOTRate) * parseFloat(sumOt1p5);
+    
+    console.log(`\n🚀 === การคำนวณ sumCashWorkMul["1.5"] ด้วยสูตรใหม่ ===`);
+    console.log(`🚀 สูตร: (workRate / (workOfHour - 1) * holidayOT) * sumOt1p5`);
+    console.log(`🚀 workRate: ${workRate} บาท`);
+    console.log(`🚀 workOfHour: ${workOfHour} ชั่วโมง`);
+    console.log(`🚀 holidayOT: ${holidayOTRate}`);
+    console.log(`🚀 sumOt1p5: ${sumOt1p5} ชั่วโมง`);
+    console.log(`🚀 การคำนวณ: (${workRate} / (${workOfHour} - 1) * ${holidayOTRate}) * ${sumOt1p5}`);
+    console.log(`🚀 = (${workRate} / ${workOfHour - 1} * ${holidayOTRate}) * ${sumOt1p5}`);
+    console.log(`🚀 = ${workRate / (workOfHour - 1) * holidayOTRate} * ${sumOt1p5}`);
+    console.log(`🚀 sumCashWorkMul["1.5"] เดิม: ${sumCashWorkMul["1.5"] || 0} บาท`);
+    console.log(`🚀 sumCashWorkMul["1.5"] ใหม่: ${formulaResult.toFixed(2)} บาท`);
+    
+    sumCashWorkMul["1.5"] = formulaResult;
+  } else {
+    console.log(`\n⚠️ ไม่สามารถคำนวณ sumCashWorkMul["1.5"] ด้วยสูตรได้:`);
+    console.log(`   holidayOTRate: ${holidayOTRate}`);
+    console.log(`   workOfHour: ${global.workOfHour || 'undefined'}`);
+    console.log(`   workRate: ${workRate}`);
+    console.log(`   sumOt1p5: ${sumOt1p5}`);
+    
+    // ถ้าไม่สามารถใช้สูตรได้ ให้ใช้ค่าเดิมหรือ 0
+    if (!sumCashWorkMul["1.5"]) {
+      sumCashWorkMul["1.5"] = 0;
+    }
   }
 
 
