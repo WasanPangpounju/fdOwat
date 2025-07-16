@@ -5331,13 +5331,19 @@ try {
             sumCashOt = parseFloat(sumCashOt || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0')
             
             // เช็คจาก dayoffRateOT เพื่อแยกการคำนวณ OT
+            const otTime = convertTimeToDecimal(record.totalOtTime);
+            console.log(`🔥 OT Calculation - dayoffRateOT: ${dayoffRateOT}, totalOtTime: ${record.totalOtTime}, converted: ${otTime}`);
+            
             if (dayoffRateOT === 1.5) {
-              sumOt1p5 += convertTimeToDecimal(record.totalOtTime);
+              sumOt1p5 += otTime;
+              console.log(`✅ Added ${otTime} to sumOt1p5 (rate 1.5), new total: ${sumOt1p5}`);
             } else if (dayoffRateOT === 3) {
-              sumOt3 += convertTimeToDecimal(record.totalOtTime);
+              sumOt3 += otTime;
+              console.log(`✅ Added ${otTime} to sumOt3 (rate 3), new total: ${sumOt3}`);
             } else {
               // ถ้าไม่ใช่ 1.5 หรือ 3 ให้ใส่ใน sumOt1p5 เป็นค่าเริ่มต้น
-              sumOt1p5 += convertTimeToDecimal(record.totalOtTime);
+              sumOt1p5 += otTime;
+              console.log(`⚠️ Unknown rate ${dayoffRateOT}, added ${otTime} to sumOt1p5 (default), new total: ${sumOt1p5}`);
             }
             
             sumOtPublicHoliday += convertTimeToDecimal(record.totalTime); // เพิ่มผลรวมของ totalOtTime ในวันหยุดนักขัตฤกษ์
