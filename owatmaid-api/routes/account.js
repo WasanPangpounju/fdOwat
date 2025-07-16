@@ -4648,7 +4648,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           const wpId = employee?.workplace || '';
           
           if (wpId) {
-            const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${wpId}`);
+            const workplaceResponse = await axios.get(`${sURL}/workplace/${wpId}`);
             const workOfWeek = workplaceResponse.data.workOfWeek || "5";
             
             if (workOfWeek === "7") {
@@ -4679,7 +4679,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           const wpId = employee?.workplace || '';
           
           if (wpId) {
-            const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${wpId}`);
+            const workplaceResponse = await axios.get(`${sURL}/workplace/${wpId}`);
             const workOfWeek = workplaceResponse.data.workOfWeek || "5";
             
             if (workOfWeek === "7") {
@@ -4882,7 +4882,7 @@ let timeCashWorkMul = {
     const wpId = employee?.workplace || '';
     
     if (wpId) {
-      const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${wpId}`);
+      const workplaceResponse = await axios.get(`${sURL}/workplace/${wpId}`);
       workRate = parseFloat(workplaceResponse.data.workRate || 0);
       dayoffRateOT = parseFloat(workplaceResponse.data.dayoffRateOT || 1.5); // ดึงค่า dayoffRateOT
       
@@ -5342,38 +5342,38 @@ try {
             if (dayoffRateOT === 1.5) {
               sumOt1p5 += otTime;
               console.log(`✅ Added ${otTime} to sumOt1p5 (rate 1.5), new total: ${sumOt1p5}`);
-              // คำนวณเงิน OT ตาม dayoffRateOT - เฉพาะเงิน OT เท่านั้น
+              // คำนวณเงิน OT ตาม dayoffRateOT
               const otCash = parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0');
               sumCashWorkMul["1.5"] += otCash;
               timeCashWorkMul["1.5"] += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalOtTime);
-              console.log(`💰 Added OT cash ${otCash} to sumCashWorkMul["1.5"], new total: ${sumCashWorkMul["1.5"]}`);
+              console.log(`💰 Added ${otCash} to sumCashWorkMul["1.5"], new total: ${sumCashWorkMul["1.5"]}`);
             } else if (dayoffRateOT === 3) {
               sumOt3 += otTime;
               console.log(`✅ Added ${otTime} to sumOt3 (rate 3), new total: ${sumOt3}`);
-              // คำนวณเงิน OT ตาม dayoffRateOT - เฉพาะเงิน OT เท่านั้น
+              // คำนวณเงิน OT ตาม dayoffRateOT
               const otCash = parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0');
               sumCashWorkMul["3"] += otCash;
               timeCashWorkMul["3"] += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalOtTime);
-              console.log(`💰 Added OT cash ${otCash} to sumCashWorkMul["3"], new total: ${sumCashWorkMul["3"]}`);
+              console.log(`💰 Added ${otCash} to sumCashWorkMul["3"], new total: ${sumCashWorkMul["3"]}`);
             } else {
               // ถ้าไม่ใช่ 1.5 หรือ 3 ให้ใส่ใน sumOt1p5 เป็นค่าเริ่มต้น
               sumOt1p5 += otTime;
               console.log(`⚠️ Unknown rate ${dayoffRateOT}, added ${otTime} to sumOt1p5 (default), new total: ${sumOt1p5}`);
-              // ใช้ record.cashOtMul เป็นค่าเริ่มต้น - เฉพาะเงิน OT เท่านั้น
-              const otCash = parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0');
-              sumCashWorkMul[record?.cashOtMul] += otCash;
-              timeCashWorkMul[record?.cashOtMul] += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalOtTime);
-              console.log(`💰 Added OT cash ${otCash} to sumCashWorkMul[${record?.cashOtMul}], multiplier based on record.cashOtMul`);
+              // ใช้ record.cashOtMul เป็นค่าเริ่มต้น
+              let otMul = record?.cashOtMul;
+              
+              // 🔥 เช็คว่าถ้า dayoffRateOT = 1.5 และ otMul = "3" ให้เปลี่ยนเป็น "1.5"
+              if (dayoffRateOT === 1.5 && otMul === "3") {
+                otMul = "1.5";
+                console.log(`🔄 เปลี่ยน OT rate จาก 3 เป็น 1.5 เนื่องจาก dayoffRateOT = 1.5`);
+              }
+              
+              sumCashWorkMul[otMul] += parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0');
+              timeCashWorkMul[otMul] += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalOtTime);
             }
             
             sumOtPublicHoliday += convertTimeToDecimal(record.totalTime); // เพิ่มผลรวมของ totalOtTime ในวันหยุดนักขัตฤกษ์
             sumCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
-            
-            // สรุปผลหลังประมวลผลวันหยุด
-            console.log(`🔄 สรุปหลังประมวลผลวันหยุด ${recordDate}:`);
-            console.log(`   - เงิน work: ${record?.cashWork} บาท -> ใส่ใน sumCashWorkMul["${record?.cashWorkMul}"]`);
-            console.log(`   - ชั่วโมง work: ${record.totalTime} -> ใส่ใน timeCashWorkMul["${record?.cashWorkMul}"]`);
-            console.log(`   - dayoffRateOT: ${dayoffRateOT}, OT Time: ${record.totalOtTime}, OT Cash: ${(parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0'))}`);
 
           // ลบส่วนเดิมออกเพราะย้ายไปอยู่ในเงื่อนไขด้านบนแล้ว
           // sumCashWorkMul[record?.cashOtMul] += parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0');
@@ -5387,8 +5387,14 @@ try {
             sumTimeOt += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalTime) + convertTimeToDecimal(record.totalOtTime);
             sumCashOt = parseFloat(sumCashOt || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0')
 
+            // 🔥 เช็คว่าถ้า dayoffRateOT = 1.5 และ cashOtMul = "3" ให้เปลี่ยนเป็น "1.5"
+            let otMul = record?.cashOtMul;
+            if (dayoffRateOT === 1.5 && otMul === "3") {
+              otMul = "1.5";
+              console.log(`🔄 เปลี่ยน OT rate จาก 3 เป็น 1.5 เนื่องจาก dayoffRateOT = 1.5 (specialDayOff)`);
+            }
 
-            timeCashWorkMul[record?.cashOtMul] += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalOtTime);
+            timeCashWorkMul[otMul] += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalOtTime);
 
           } else {
 
@@ -5453,7 +5459,14 @@ if (record?.dayType === "work") {
     totalOtCash += beforeOtCash;
     
     // อัปเดต sumCashWorkMul สำหรับ OT ก่อนเวลา
-    const otMul = record?.cashBeforeOtMul || record?.cashOtMul || "1.5";
+    let otMul = record?.cashBeforeOtMul || record?.cashOtMul || "1.5";
+    
+    // 🔥 เช็คว่าถ้า dayoffRateOT = 1.5 และ otMul = "3" ให้เปลี่ยนเป็น "1.5"
+    if (dayoffRateOT === 1.5 && otMul === "3") {
+      otMul = "1.5";
+      console.log(`🔄 เปลี่ยน OT rate จาก 3 เป็น 1.5 เนื่องจาก dayoffRateOT = 1.5`);
+    }
+    
     if (!sumCashWorkMul[otMul]) {
       sumCashWorkMul[otMul] = 0;
     }
@@ -5476,7 +5489,14 @@ if (record?.dayType === "work") {
     sumOt1p5 += afterOtTime; // นับเฉพาะ OT หลังเวลาทำงาน
     
     // อัปเดต sumCashWorkMul สำหรับ OT หลังเวลา
-    const otMul = record?.cashOtMul || "1.5";
+    let otMul = record?.cashOtMul || "1.5";
+    
+    // 🔥 เช็คว่าถ้า dayoffRateOT = 1.5 และ otMul = "3" ให้เปลี่ยนเป็น "1.5"
+    if (dayoffRateOT === 1.5 && otMul === "3") {
+      otMul = "1.5";
+      console.log(`🔄 เปลี่ยน OT rate จาก 3 เป็น 1.5 เนื่องจาก dayoffRateOT = 1.5`);
+    }
+    
     if (!sumCashWorkMul[otMul]) {
       sumCashWorkMul[otMul] = 0;
     }
@@ -5949,12 +5969,6 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
   console.log(`🎯 sumCashWorkMul["1.5"]: ${sumCashWorkMul["1.5"]} บาท`);
   console.log(`🎯 sumCashWorkMul["3"]: ${sumCashWorkMul["3"]} บาท`);
   console.log(`🎯 dayoffRateOT ที่ใช้: ${dayoffRateOT}`);
-  
-  console.log(`\n🎯 === สรุปผลการคำนวณ sumCashWorkMul ทั้งหมด ===`);
-  console.log(`🎯 sumCashWorkMul["1"]: ${sumCashWorkMul["1"]} บาท (เงินเดือนปกติ)`);
-  console.log(`🎯 sumCashWorkMul["1.5"]: ${sumCashWorkMul["1.5"]} บาท (OT ปกติ + OT วันหยุดถ้า dayoffRateOT=1.5)`);
-  console.log(`🎯 sumCashWorkMul["2"]: ${sumCashWorkMul["2"]} บาท (เงินทำงานวันหยุด)`);
-  console.log(`🎯 sumCashWorkMul["3"]: ${sumCashWorkMul["3"]} บาท (OT วันหยุดถ้า dayoffRateOT=3)`);
   console.log(`🎯 ===================================\n`);
 
   // 🎯 คำนวณ sumCashWorkMul["1"] ใหม่จาก workRate * dayWorkCount
