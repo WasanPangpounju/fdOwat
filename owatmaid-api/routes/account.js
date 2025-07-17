@@ -4845,6 +4845,7 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
   let sumOt3 = 0; // เพิ่มตัวแปรใหม่สำหรับเก็บผลรวมของ totalOtTime ในวันทำงานปกติ
   let sumOtPublicHoliday = 0; 
   let countAllowance = 0; // เพิ่มตัวแปรเก็บค่า countAllowance ไว้ใน scope หลักของฟังก์ชัน 
+  let holidayOT = "3";
 
 
 
@@ -5911,6 +5912,77 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
     console.log(`\n⚠️ ไม่สามารถคำนวณ sumCashWorkMul["1"] ใหม่ได้:`);
     console.log(`   workRate: ${workRate}, dayWorkCount: ${dayWorkCount}`);
   }
+  try {
+    const employee = await Employee.findOne({ employeeId: employeeId });
+    const wpId = employee?.workplace || '';
+    
+    if (wpId) {
+      const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${wpId}`);
+      holidayOT = workplaceResponse.data.holidayOT || "3";
+      
+      console.log(`\n🔍 === ตรวจสอบค่า holidayOT ===`);
+      console.log(`🏢 Workplace ID: ${wpId}`);
+      console.log(`📊 holidayOT: ${holidayOT}`);
+      
+      // ตรวจสอบเงื่อนไข holidayOT
+      if (holidayOT === "1.5") {
+        console.log(`\n🔄 === ปรับค่าตาม holidayOT = 1.5 ===`);
+        
+        // 1. เอาค่า sumOt3 ไปเพิ่มใน sumOt1p5
+        const oldSumOt1p5 = parseFloat(sumOt1p5) || 0;
+        const oldSumOt3 = parseFloat(sumOt3) || 0;
+        sumOt1p5 = (oldSumOt1p5 + oldSumOt3).toFixed(2);
+        
+        console.log(`📊 sumOt1p5 เดิม: ${oldSumOt1p5}`);
+        console.log(`📊 sumOt3: ${oldSumOt3}`);
+        console.log(`📊 sumOt1p5 ใหม่: ${sumOt1p5} (${oldSumOt1p5} + ${oldSumOt3})`);
+        
+        // 2. เอาเงินจาก sumCashWorkMul["3"] ไปใส่ sumCashWorkMul["1.5"]
+        const cashFrom3 = parseFloat(sumCashWorkMul["3"]) || 0;
+        const oldCash1p5 = parseFloat(sumCashWorkMul["1.5"]) || 0;
+        
+        sumCashWorkMul["1.5"] = oldCash1p5 + cashFrom3;
+        sumCashWorkMul["3"] = 0;
+        
+        console.log(`\n💰 === ปรับค่า sumCashWorkMul ===`);
+        console.log(`💰 sumCashWorkMul["3"] เดิม: ${cashFrom3} บาท`);
+        console.log(`💰 sumCashWorkMul["1.5"] เดิม: ${oldCash1p5} บาท`);
+        console.log(`💰 sumCashWorkMul["1.5"] ใหม่: ${sumCashWorkMul["1.5"]} บาท`);
+        console.log(`💰 sumCashWorkMul["3"] ใหม่: ${sumCashWorkMul["3"]} บาท`);
+        
+        // 3. ปรับค่า timeCashWorkMul เช่นเดียวกัน
+        const timeFrom3 = parseFloat(timeCashWorkMul["3"]) || 0;
+        const oldTime1p5 = parseFloat(timeCashWorkMul["1.5"]) || 0;
+        
+        timeCashWorkMul["1.5"] = oldTime1p5 + timeFrom3;
+        timeCashWorkMul["3"] = 0;
+        
+        console.log(`\n⏱️ === ปรับค่า timeCashWorkMul ===`);
+        console.log(`⏱️ timeCashWorkMul["3"] เดิม: ${timeFrom3} ชั่วโมง`);
+        console.log(`⏱️ timeCashWorkMul["1.5"] เดิม: ${oldTime1p5} ชั่วโมง`);
+        console.log(`⏱️ timeCashWorkMul["1.5"] ใหม่: ${timeCashWorkMul["1.5"]} ชั่วโมง`);
+        console.log(`⏱️ timeCashWorkMul["3"] ใหม่: ${timeCashWorkMul["3"]} ชั่วโมง`);
+        
+      } else if (holidayOT === "3") {
+        console.log(`✅ holidayOT = 3 - ใช้ค่าปกติ ไม่ต้องปรับ`);
+      } else {
+        console.log(`⚠️ holidayOT = ${holidayOT} - ค่าที่ไม่รู้จัก ใช้ค่าปกติ`);
+      }
+      
+    } else {
+      console.log(`⚠️ ไม่พบ workplace สำหรับพนักงาน ${employeeId}`);
+    }
+  } catch (error) {
+    console.error(`❌ Error checking holidayOT:`, error.message);
+    console.log(`⚠️ ใช้ค่า default holidayOT = 3`);
+  }
+
+  // แสดงค่าสุดท้ายก่อน return
+  console.log(`\n📊 === ค่าสุดท้ายหลังปรับตาม holidayOT ===`);
+  console.log(`📊 sumOt1p5: ${sumOt1p5}`);
+  console.log(`📊 sumOt3: ${sumOt3}`);
+  console.log(`💰 sumCashWorkMul:`, JSON.stringify(sumCashWorkMul, null, 2));
+  console.log(`⏱️ timeCashWorkMul:`, JSON.stringify(timeCashWorkMul, null, 2));
 
 
   return await {
