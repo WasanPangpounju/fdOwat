@@ -69,6 +69,9 @@ const workplaceSchema = new mongoose.Schema({
   workOfHour: {
       type: String
   },
+  countEmployee: {
+      type: String
+  },
   workOfOT: {
       type: String
   },
