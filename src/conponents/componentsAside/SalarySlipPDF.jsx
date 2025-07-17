@@ -238,7 +238,7 @@ function SalarySlipPDF({ employeeList, workplaceList }) {
 
  // แก้ไข useEffect เดิมที่เรียก /accounting/calsalarylist
 useEffect(() => {
-  const fetchData = () => {
+  const fetchData = async () => {
     const dataTest = {
       year: year.toString(),
       month: month.toString().padStart(2, '0'),
@@ -251,29 +251,80 @@ useEffect(() => {
     console.log("👤 Search employee ID:", searchEmployeeId);
 
     // เปลี่ยนเป็น POST http://10.10.110.7:3000/accounting/searchtimerecordemployee
-    axios
-      .post("http://10.10.110.7:3000/accounting/searchtimerecordemployee", dataTest)
-      .then((response) => {
-        console.log("✅ API Response received:", response.data);
-        console.log("📊 Total records from API:", response.data?.result?.length || 0);
-        if (selectedOption == "option1") {
-          const responseData = response.data.result; // แก้ไข: เข้าถึง result array
-          console.log("🔄 Processing Option 1 (Workplace filter)");
+    try {
+      const response = await axios.post("http://10.10.110.7:3000/accounting/searchtimerecordemployee", dataTest);
+      
+      console.log("✅ API Response received:", response.data);
+      console.log("📊 Total records from API:", response.data?.result?.length || 0);
+      
+      if (selectedOption == "option1") {
+        const responseData = response.data.result; // แก้ไข: เข้าถึง result array
+        console.log("🔄 Processing Option 1 (Workplace filter)");
 
-          // Filter data based on searchWorkplaceId if provided
-          const filteredData = searchWorkplaceId
-            ? responseData.filter((item) => {
-                // กรองตาม workplaceId จาก employee_record
-                return item.employee_record && item.employee_record.some(
-                  (record) => record.workplaceId === searchWorkplaceId
-                );
-              })
-            : responseData;
+        // Filter data based on searchWorkplaceId if provided
+        const filteredData = searchWorkplaceId
+          ? responseData.filter((item) => {
+              // กรองตาม workplaceId จาก employee_record
+              return item.employee_record && item.employee_record.some(
+                (record) => record.workplaceId === searchWorkplaceId
+              );
+            })
+          : responseData;
 
           console.log("🏢 After workplace filter:", filteredData.length, "records");
 
-          // Sort filteredData by workplaceId in ascending order
-          filteredData.sort((a, b) => {
+          // เพิ่ม log เพื่อดูโครงสร้างข้อมูล
+          if (filteredData.length > 0) {
+            console.log("📋 Sample data structure:", filteredData[0]);
+            console.log("👤 Employee data keys:", Object.keys(filteredData[0]));
+            if (filteredData[0].employee_record) {
+              console.log("🏢 Employee record structure:", filteredData[0].employee_record[0]);
+            }
+          }
+
+          // กรองออกพนักงานที่มีหน่วยงานต้นสังกัดเป็น "10105" 
+          const filteredExclude10105 = await Promise.all(
+            filteredData.map(async (item) => {
+              try {
+                // เรียก API เพื่อเช็คหน่วยงานต้นสังกัดของพนักงาน
+                const response = await axios.post("http://10.10.110.7:3000/employee/search", {
+                  employeeId: item.employeeId
+                });
+                
+                if (response.data && response.data.employees && response.data.employees.length > 0) {
+                  const employee = response.data.employees[0];
+                  
+                  // เพิ่ม logging เพื่อดู structure ของ employee data
+                  console.log(`🔍 Employee API Response for ${item.employeeId}:`, employee);
+                  console.log(`🔑 Available keys:`, Object.keys(employee));
+                  
+                  const originalWorkplace = employee.workplace; // หน่วยงานต้นสังกัด
+                  
+                  console.log(`👤 Employee ${item.employeeId} (${item.employeeName}):`, {
+                    originalWorkplace: originalWorkplace,
+                    currentWork: item.employee_record?.[0]?.workplaceId,
+                    fullEmployeeData: employee
+                  });
+                  
+                  // ถ้าหน่วยงานต้นสังกัดเป็น 10105 ให้กรองออก
+                  if (originalWorkplace === "10105") {
+                    console.log(`🚫 Filtering out employee ${item.employeeId} - original workplace is 10105`);
+                    return null; // กรองออก
+                  }
+                }
+                return item; // เก็บไว้
+              } catch (error) {
+                console.error(`❌ Error checking employee ${item.employeeId}:`, error);
+                return item; // ถ้า error ให้เก็บไว้
+              }
+            })
+          ).then(results => results.filter(item => item !== null)); // กรองออก null values
+
+          console.log("🚫 After excluding workplace 10105:", filteredExclude10105.length, "records");
+          console.log("📋 Records excluded from 10105:", filteredData.length - filteredExclude10105.length);
+
+          // Sort filteredExclude10105 by workplaceId in ascending order
+          filteredExclude10105.sort((a, b) => {
             const workplaceA = a.employee_record[0]?.workplaceId || "";
             const workplaceB = b.employee_record[0]?.workplaceId || "";
             
@@ -290,7 +341,7 @@ useEffect(() => {
           });
 
           // Filter by year and month
-          const dateFilteredData = filteredData.filter(
+          const dateFilteredData = filteredExclude10105.filter(
             (item) => item.year === year.toString() && item.month === month.toString().padStart(2, '0')
           );
 
@@ -310,8 +361,8 @@ useEffect(() => {
 
           // Sort filteredData by workplaceId in ascending order
           filteredData.sort((a, b) => {
-            const workplaceA = a.employee_record[0]?.workplaceId || "";
-            const workplaceB = b.employee_record[0]?.workplaceId || "";
+            const workplaceA = a.employee_record?.[0]?.workplaceId || "";
+            const workplaceB = b.employee_record?.[0]?.workplaceId || "";
             
             const workplaceNumA = Number(workplaceA);
             const workplaceNumB = Number(workplaceB);
@@ -334,15 +385,14 @@ useEffect(() => {
           console.log("📋 Final filtered data:", dateFilteredData);
           setResponseDataAll(dateFilteredData);
         }
-      })
-      .catch((error) => {
+      } catch (error) {
         console.error("❌ API Error:", error);
         console.error("❌ Error message:", error.message);
         if (error.response) {
           console.error("❌ Response status:", error.response.status);
           console.error("❌ Response data:", error.response.data);
         }
-      });
+      }
   };
 
   // Call fetchData when year, month, or searchWorkplaceId changes
@@ -821,8 +871,14 @@ if (ot3Hours > 0 && ot3Cash > 0) {
         tax.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
       );
     }
-    const advance = parseFloat(currentEmployee.deductSalaryList[0].amount || 0);
-    if (advance >= 0) {
+    
+    // คืนเงินเบิกล่วงหน้า - เพิ่มการตรวจสอบ safety
+    const advance = parseFloat(
+      currentEmployee.deductSalaryList && 
+      currentEmployee.deductSalaryList[0] && 
+      currentEmployee.deductSalaryList[0].amount || 0
+    );
+    if (advance > 0) {
       textDedustArray.push("คืนเงินเบิกล่วงหน้า");
       valueDedustArray.push(
         advance.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
@@ -863,7 +919,7 @@ if (ot3Hours > 0 && ot3Cash > 0) {
     pdf.rect(162 + 9, 28, 25, 15);
     pdf.text(`วันที่จ่าย`, 179, 35);
     pdf.text(`Payroll Date`, 176, 38);
-    pdf.text(`${paymentDate || "N/A"}`, 176, 50);
+    pdf.text(`${paymentDate || "N/A"}`, 176, 49);
 
     pdf.rect(162 + 9, 77, 25, 25);
     pdf.rect(162 + 9, 77, 25, 15);
@@ -1371,32 +1427,32 @@ if (ot3Hours > 0 && ot3Cash > 0) {
 
       // เรียงarray
       const countSpecialDayListWork =
-        responseDataAll[i].specialDayListWork.length;
+        responseDataAll[i].specialDayListWork?.length || 0;
       // const countcal = responseDataAll[i].accountingRecord[0].countDay - countSpecialDayListWork;
       // const countcal = responseDataAll[i].accountingRecord[0].countDayWork
-      const countcal = responseDataAll[i].accountingRecord[0].countDayWork;
+      const countcal = responseDataAll[i].accountingRecord?.[0]?.countDayWork || 0;
 
       // 2.0
       const formattedAmountHoliday2_0 = Number(
-        countSpecialDayListWork * responseDataAll[i].specialDayRate ?? 0
+        countSpecialDayListWork * (responseDataAll[i].specialDayRate ?? 0)
       );
 
       // รถโทรตำแหน่ง
       const formattedAddTel = Number(
-        responseDataAll[i].accountingRecord[0].tel || 0
+        responseDataAll[i].accountingRecord?.[0]?.tel || 0
       );
       const formattedAddAmountPosition = Number(
-        responseDataAll[i].accountingRecord[0].amountPosition || 0
+        responseDataAll[i].accountingRecord?.[0]?.amountPosition || 0
       );
       const formattedAddTravel = Number(
-        responseDataAll[i].accountingRecord[0].travel || 0
+        responseDataAll[i].accountingRecord?.[0]?.travel || 0
       );
 
       // The IDs you want to exclude
       const excludedIds = ["1350", "1230", "1410", "1535", "1520"];
 
       // Assuming responseDataAll[i].addSalary is an array of salary objects
-      const addSalaryFiltered = responseDataAll[i].addSalary
+      const addSalaryFiltered = (responseDataAll[i].addSalary || [])
         .filter((salary) => !excludedIds.includes(salary.id)) // Filter out the objects with excluded IDs
         .map((salary) => ({
           name: salary.name,
@@ -1420,7 +1476,7 @@ if (ot3Hours > 0 && ot3Cash > 0) {
       ];
 
       // Assuming responseDataAll[i].addSalary is an array of salary objects
-      const addSalaryPayCompensationFiltered = responseDataAll[i].addSalary
+      const addSalaryPayCompensationFiltered = (responseDataAll[i].addSalary || [])
         .filter((salary) => excludedIdsPayCompensation.includes(salary.id)) // Filter out the objects with excluded IDs
         .map((salary) => ({
           name: salary.name,
@@ -1431,12 +1487,12 @@ if (ot3Hours > 0 && ot3Cash > 0) {
         formattedAddTel + formattedAddAmountPosition + formattedAddTravel;
 
       // เบี้ยขยัน
-      const formattedAmountHardWorking = responseDataAll[i].addSalary.filter(
+      const formattedAmountHardWorking = (responseDataAll[i].addSalary || []).filter(
         (item) => item.id === "1410"
       );
 
       // ค่าเดินทาง(ไม่คิดประกัน)
-      const formattedAddSalaryTavel = responseDataAll[i].addSalary.filter(
+      const formattedAddSalaryTavel = (responseDataAll[i].addSalary || []).filter(
         (item) => item.id === "1535"
       );
       // Calculate the sum of SpSalary values in the filtered array
@@ -1453,15 +1509,15 @@ if (ot3Hours > 0 && ot3Cash > 0) {
       );
 
       // นักขัติ
-      const countSpecialDayWork = responseDataAll[i].countSpecialDay;
+      const countSpecialDayWork = responseDataAll[i].countSpecialDay || 0;
       const formattedAmountHoliday = Number(
-        responseDataAll[i].countSpecialDay *
-        responseDataAll[i].specialDayRate ?? 0
+        (responseDataAll[i].countSpecialDay || 0) *
+        (responseDataAll[i].specialDayRate ?? 0)
       );
 
       //เงินพิเศษ
       const formattedSumAddSalaryAfterTax = Number(
-        responseDataAll[i].accountingRecord[0].sumAddSalaryAfterTax ?? 0
+        responseDataAll[i].accountingRecord?.[0]?.sumAddSalaryAfterTax ?? 0
       ).toLocaleString("en-US", {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
@@ -1549,8 +1605,8 @@ if (ot3Hours > 0 && ot3Cash > 0) {
       const valueArray = [];
 
       if (
-        responseDataAll[i].accountingRecord[0].amountDay != 0 &&
-        responseDataAll[i].accountingRecord[0].amountDay != null
+        responseDataAll[i].accountingRecord?.[0]?.amountDay != 0 &&
+        responseDataAll[i].accountingRecord?.[0]?.amountDay != null
       ) {
 
         const accountingRecord = responseDataAll[i].specialDayRate;
@@ -1570,8 +1626,8 @@ if (ot3Hours > 0 && ot3Cash > 0) {
         console.log("1");
       }
       if (
-        responseDataAll[i].accountingRecord.amountDay != 0 &&
-        responseDataAll[i].accountingRecord[0].amountDay != null
+        responseDataAll[i].accountingRecord?.[0]?.amountDay != 0 &&
+        responseDataAll[i].accountingRecord?.[0]?.amountDay != null
       ) {
         const accountingRecord = responseDataAll[i].accountingRecord?.[0];
 
@@ -1606,8 +1662,8 @@ if (ot3Hours > 0 && ot3Cash > 0) {
       }
       // if (responseDataAll[i].accountingRecord[0].amountOt != 0 && responseDataAll[i].accountingRecord[0].amountOt != null) {
       if (
-        responseDataAll[i].accountingRecord[0].amountOneFive != 0 &&
-        responseDataAll[i].accountingRecord[0].amountOneFive != null
+        responseDataAll[i].accountingRecord?.[0]?.amountOneFive != 0 &&
+        responseDataAll[i].accountingRecord?.[0]?.amountOneFive != null
       ) {
 
         const accountingRecord = responseDataAll[i].accountingRecord?.[0];
@@ -1632,8 +1688,8 @@ if (ot3Hours > 0 && ot3Cash > 0) {
         console.log("4");
       }
       if (
-        responseDataAll[i].accountingRecord[0].amountTwo != 0 &&
-        responseDataAll[i].accountingRecord[0].amountTwo != null
+        responseDataAll[i].accountingRecord?.[0]?.amountTwo != 0 &&
+        responseDataAll[i].accountingRecord?.[0]?.amountTwo != null
       ) {
 
         const accountingRecord = responseDataAll[i].accountingRecord?.[0];
@@ -1658,8 +1714,8 @@ if (ot3Hours > 0 && ot3Cash > 0) {
       }
       // if (0 != 0 && null != null) {
       if (
-        responseDataAll[i].accountingRecord[0].amountThree != 0 &&
-        responseDataAll[i].accountingRecord[0].amountThree != null
+        responseDataAll[i].accountingRecord?.[0]?.amountThree != 0 &&
+        responseDataAll[i].accountingRecord?.[0]?.amountThree != null
       ) {
 
         const accountingRecord = responseDataAll[i].accountingRecord?.[0];
