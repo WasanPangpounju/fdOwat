@@ -32,7 +32,8 @@ function SalarySlipPDF({ employeeList, workplaceList }) {
   const [responseDataAll, setResponseDataAll] = useState([]);
   const [cashWorkData, setCashWorkData] = useState([]);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
-
+  const [basicSettings, setBasicSettings] = useState([]);
+  const [paymentDate, setPaymentDate] = useState("");
 
   const [month, setMonth] = useState("01");
   const currentYear = new Date().getFullYear(); // 2024
@@ -93,6 +94,90 @@ function SalarySlipPDF({ employeeList, workplaceList }) {
     }
   };
 
+  // ฟังก์ชันสำหรับดึงข้อมูลการตั้งค่าพื้นฐานจาก API
+  const getBasicSettings = async () => {
+    console.log("🚀 START: getBasicSettings called");
+    
+    try {
+      console.log("🌐 Sending request to basic settings API...");
+      
+      const response = await axios.get("http://10.10.110.7:3000/basicsetting");
+      
+      console.log("✅ Basic Settings API Response received:");
+      console.log("📊 Response status:", response.status);
+      console.log("📋 Response data:", response.data);
+      
+      if (response.data && Array.isArray(response.data)) {
+        setBasicSettings(response.data);
+        console.log("✅ Basic settings data stored successfully");
+        
+        // หาข้อมูลที่มี paymentPeriod และ status = "active"
+        const activeSettingWithPayment = response.data.find(setting => 
+          setting.status === "active" && 
+          setting.paymentPeriod && 
+          setting.paymentPeriod.length > 0
+        );
+        
+        if (activeSettingWithPayment) {
+          console.log("🎯 Found active setting with payment period:", activeSettingWithPayment);
+          
+          // แปลงเดือนเป็นชื่อเดือนใน paymentPeriod
+          const monthNames = {
+            "01": "jan", "02": "feb", "03": "mar", "04": "apr",
+            "05": "may", "06": "jun", "07": "jul", "08": "aug", 
+            "09": "sep", "10": "oct", "11": "nov", "12": "dec"
+          };
+          
+          const monthKey = monthNames[month];
+          const paymentPeriod = activeSettingWithPayment.paymentPeriod[0];
+          
+          if (paymentPeriod && paymentPeriod[monthKey]) {
+            const date = paymentPeriod[monthKey];
+            const formattedDate = formatDateToThai(date);
+            setPaymentDate(formattedDate);
+            console.log(`💰 Payment date for month ${month}: ${date} -> ${formattedDate}`);
+          } else {
+            console.log(`❌ No payment date found for month ${month}`);
+            setPaymentDate("");
+          }
+        } else {
+          console.log("❌ No active setting with payment period found");
+          setPaymentDate("");
+        }
+      } else {
+        console.log("❌ Invalid response data format");
+        setBasicSettings([]);
+        setPaymentDate("");
+      }
+    } catch (error) {
+      console.error("💥 Error fetching basic settings:", error);
+      console.error("💥 Error details:", {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      });
+      setBasicSettings([]);
+      setPaymentDate("");
+    }
+  };
+
+  // ฟังก์ชันสำหรับแปลงวันที่เป็นรูปแบบไทย
+  const formatDateToThai = (dateString) => {
+    if (!dateString) return "";
+    
+    try {
+      const date = new Date(dateString);
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const year = date.getFullYear();
+      
+      return `${day}/${month}/${year}`;
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return dateString; // Return original string if formatting fails
+    }
+  };
+
   const handleSelectChange = (e) => {
     const value = e.target.value;
     setSelectedOption(value);
@@ -145,6 +230,11 @@ function SalarySlipPDF({ employeeList, workplaceList }) {
         console.error("Error fetching data:", error);
       });
   }, []);
+
+  // useEffect สำหรับดึงข้อมูลการตั้งค่าพื้นฐาน
+  useEffect(() => {
+    getBasicSettings();
+  }, [month]); // เรียกใหม่เมื่อเดือนเปลี่ยน
 
  // แก้ไข useEffect เดิมที่เรียก /accounting/calsalarylist
 useEffect(() => {
@@ -773,6 +863,7 @@ if (ot3Hours > 0 && ot3Cash > 0) {
     pdf.rect(162 + 9, 28, 25, 15);
     pdf.text(`วันที่จ่าย`, 179, 35);
     pdf.text(`Payroll Date`, 176, 38);
+    pdf.text(`${paymentDate || "N/A"}`, 176, 50);
 
     pdf.rect(162 + 9, 77, 25, 25);
     pdf.rect(162 + 9, 77, 25, 15);

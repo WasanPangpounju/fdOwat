@@ -18,42 +18,57 @@ function BasicSetting() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
   
-  // Fetch all BasicSettings
-  const fetchSettings = async () => {
+const fetchSettings = async () => {
     try {
       await setLoading(true);
-      const response = await axios.get(endpoint  + '/basicsetting'); // Update with your API endpoint
+      const response = await axios.get(endpoint  + '/basicsetting');
       if(response.status === 200 ) {
-        // const data = response.data[0]; // Assuming the data structure has the required object in the first index
-        const allData = response.data; // Fetch all data
+        const allData = response.data;
         let data = null;
   
-        // 1. If latest data is the last item
         if (Array.isArray(allData) && allData.length > 0) {
             data = allData[allData.length - 1];
         }
   
         setSettings(data);
 
-                    // Update individual states
-                    setMaxSalary(data?.social?.[0]?.maxSalary || '');
-                    setMaxSocial(data?.social?.[0]?.maxSocial || '');
-                    setSocialPercent(data?.social?.[0]?.socialPercent || '');
-                    setComSocial(data?.social?.[0]?.comSocial || '');
-                    setComSocialPercent(data?.social?.[0]?.comSocialPercent || '');
-        
-                    setSalaryStandard(data?.salary?.[0]?.salaryStandard || '');
-        
-                    setSickLeave(data?.leave?.[0]?.sickLeave || '');
-                    setPersonalLeave(data?.leave?.[0]?.personalLeave || '');
-                    setVacationLeave(data?.leave?.[0]?.vacationLeave || '');
+        // Update individual states
+        setMaxSalary(data?.social?.[0]?.maxSalary || '');
+        setMaxSocial(data?.social?.[0]?.maxSocial || '');
+        setSocialPercent(data?.social?.[0]?.socialPercent || '');
+        setComSocial(data?.social?.[0]?.comSocial || '');
+        setComSocialPercent(data?.social?.[0]?.comSocialPercent || '');
+
+        setSalaryStandard(data?.salary?.[0]?.salaryStandard || '');
+
+        setSickLeave(data?.leave?.[0]?.sickLeave || '');
+        setPersonalLeave(data?.leave?.[0]?.personalLeave || '');
+        setVacationLeave(data?.leave?.[0]?.vacationLeave || '');
+
+        // เพิ่มการโหลดข้อมูล payment period
+        if (data?.paymentPeriod?.[0]) {
+            setPaymentPeriod({
+                jan: data.paymentPeriod[0].jan || '',
+                feb: data.paymentPeriod[0].feb || '',
+                mar: data.paymentPeriod[0].mar || '',
+                apr: data.paymentPeriod[0].apr || '',
+                may: data.paymentPeriod[0].may || '',
+                jun: data.paymentPeriod[0].jun || '',
+                jul: data.paymentPeriod[0].jul || '',
+                aug: data.paymentPeriod[0].aug || '',
+                sep: data.paymentPeriod[0].sep || '',
+                oct: data.paymentPeriod[0].oct || '',
+                nov: data.paymentPeriod[0].nov || '',
+                dec: data.paymentPeriod[0].dec || '',
+            });
+        }
       }
       await setLoading(false);
     } catch (err) {
         await setError(err.message);
         await setLoading(false);
     }
-  };
+};
 
     const [maxSalary , setMaxSalary] = useState('');
     const [maxSocial, setMaxSocial] = useState('');
@@ -96,6 +111,29 @@ const localHospitalList = [
     { value: 'KamphaengPhet', label: 'กำแพงเพชร' },
     { value: 'Ayutthaya', label: 'อยุธยา' },
 ];
+
+const handlePaymentPeriodChange = (month, value) => {
+    setPaymentPeriod(prev => ({
+        ...prev,
+        [month]: value
+    }));
+};
+
+
+const [paymentPeriod, setPaymentPeriod] = useState({
+    jan: '',
+    feb: '',
+    mar: '',
+    apr: '',
+    may: '',
+    jun: '',
+    jul: '',
+    aug: '',
+    sep: '',
+    oct: '',
+    nov: '',
+    dec: ''
+});
 
 //รายชื่อโรงพยาบาล
 const hospital = {
@@ -195,45 +233,43 @@ setTmpLocalHospitalList(hospital [event.target.value]);
       };
 
     async function handleManageSetting(event) {
-        event.preventDefault();
-    
-        const settingData = {
-            social: [{
+    event.preventDefault();
+
+    const settingData = {
+        social: [{
             maxSalary,
             maxSocial,
             socialPercent,
             comSocial,
             comSocialPercent,
         }],
-            salary: [{
+        salary: [{
             salaryStandard 
         }],
-            leave: [{
+        leave: [{
             sickLeave,
             personalLeave,
             vacationLeave,
         }],
-                // Add metadata or additional fields as needed
-                year: new Date().getFullYear().toString(),
-                month: new Date().toLocaleString('default', { month: 'long' }),
-                createDate: new Date().toISOString(),
-                createBy: 'Admin', // Replace with dynamic user info if available
-                status: 'active',
-        };
+        paymentPeriod: [paymentPeriod], // เปลี่ยนเป็น array ตาม schema
+        year: new Date().getFullYear().toString(),
+        month: new Date().toLocaleString('default', { month: 'long' }),
+        createDate: new Date().toISOString(),
+        createBy: 'Admin',
+        status: 'active',
+    };
 
-        try {
-            const response = await axios.post(endpoint + '/basicsetting', settingData);
-            if (response.status === 201) {
-                alert('Data saved successfully!');
-                // Optionally fetch updated settings to display
-                fetchSettings();
-            }
-        } catch (error) {
-            console.error('Error saving data:', error);
-            alert('Failed to save data. Please try again.');
+    try {
+        const response = await axios.post(endpoint + '/basicsetting', settingData);
+        if (response.status === 201) {
+            alert('Data saved successfully!');
+            fetchSettings();
         }
-
+    } catch (error) {
+        console.error('Error saving data:', error);
+        alert('Failed to save data. Please try again.');
     }
+}
 
     
     //view 
@@ -334,7 +370,252 @@ setTmpLocalHospitalList(hospital [event.target.value]);
                                                 </section>
                                                 {/* <!--Frame--> */}
                                             </div>
-                                        </div>
+                                       
+                                  
+                                            <h2 className="title">ตั้งค่ารอบการจ่ายเงินในการออกสลิปเงินเดือนในแต่ละเดือน</h2>
+<div className="form-group  d-flex align-items-center justify-content-center">
+    <div className="col-md-12 ">
+        <section className="Frame d-flex row justify-content-center align-items-center  ">
+            <div className="row ">
+                {/* แถวที่ 1 */}
+                <div className="col-md-6 mb-3 px-5">
+                    <div className="d-flex align-items-center">
+                        <label className="col-form-label me-3" style={{minWidth: '100px', fontWeight: '500'}}>
+                            มกราคม
+                        </label>
+                        <input 
+                            className="form-control" 
+                            type="date" 
+                            value={paymentPeriod.jan}
+                            onChange={(e) => handlePaymentPeriodChange('jan', e.target.value)}
+                            style={{maxWidth: '200px'}}
+                        />
+                    </div>
+                </div>
+                <div className="col-md-6 mb-3">
+                    <div className="d-flex align-items-center">
+                        <label className="col-form-label me-3" style={{minWidth: '100px', fontWeight: '500'}}>
+                            กุมภาพันธ์
+                        </label>
+                        <input 
+                            className="form-control" 
+                            type="date" 
+                            value={paymentPeriod.feb}
+                            onChange={(e) => handlePaymentPeriodChange('feb', e.target.value)}
+                            style={{maxWidth: '200px'}}
+                        />
+                    </div>
+                </div>
+
+                {/* แถวที่ 2 */}
+                <div className="col-md-6 mb-3 pt-3 px-5">
+                    <div className="d-flex align-items-center">
+                        <label className="col-form-label me-3" style={{minWidth: '100px', fontWeight: '500'}}>
+                            มีนาคม
+                        </label>
+                        <input 
+                            className="form-control" 
+                            type="date" 
+                            value={paymentPeriod.mar}
+                            onChange={(e) => handlePaymentPeriodChange('mar', e.target.value)}
+                            style={{maxWidth: '200px'}}
+                        />
+                    </div>
+                </div>
+                <div className="col-md-6 mb-3 pt-3">
+                    <div className="d-flex align-items-center">
+                        <label className="col-form-label me-3" style={{minWidth: '100px', fontWeight: '500'}}>
+                            เมษายน
+                        </label>
+                        <input 
+                            className="form-control" 
+                            type="date" 
+                            value={paymentPeriod.apr}
+                            onChange={(e) => handlePaymentPeriodChange('apr', e.target.value)}
+                            style={{maxWidth: '200px'}}
+                        />
+                    </div>
+                </div>
+
+                {/* แถวที่ 3 */}
+                <div className="col-md-6 mb-3 pt-3 px-5">
+                    <div className="d-flex align-items-center">
+                        <label className="col-form-label me-3" style={{minWidth: '100px', fontWeight: '500'}}>
+                            พฤษภาคม
+                        </label>
+                        <input 
+                            className="form-control" 
+                            type="date" 
+                            value={paymentPeriod.may}
+                            onChange={(e) => handlePaymentPeriodChange('may', e.target.value)}
+                            style={{maxWidth: '200px'}}
+                        />
+                    </div>
+                </div>
+                <div className="col-md-6 mb-3 pt-3">
+                    <div className="d-flex align-items-center">
+                        <label className="col-form-label me-3" style={{minWidth: '100px', fontWeight: '500'}}>
+                            มิถุนายน
+                        </label>
+                        <input 
+                            className="form-control" 
+                            type="date" 
+                            value={paymentPeriod.jun}
+                            onChange={(e) => handlePaymentPeriodChange('jun', e.target.value)}
+                            style={{maxWidth: '200px'}}
+                        />
+                    </div>
+                </div>
+
+                {/* แถวที่ 4 */}
+                <div className="col-md-6 mb-3 pt-3 px-5">
+                    <div className="d-flex align-items-center">
+                        <label className="col-form-label me-3" style={{minWidth: '100px', fontWeight: '500'}}>
+                            กรกฎาคม
+                        </label>
+                        <input 
+                            className="form-control" 
+                            type="date" 
+                            value={paymentPeriod.jul}
+                            onChange={(e) => handlePaymentPeriodChange('jul', e.target.value)}
+                            style={{maxWidth: '200px'}}
+                        />
+                    </div>
+                </div>
+                <div className="col-md-6 mb-3 pt-3 ">
+                    <div className="d-flex align-items-center">
+                        <label className="col-form-label me-3" style={{minWidth: '100px', fontWeight: '500'}}>
+                            สิงหาคม
+                        </label>
+                        <input 
+                            className="form-control" 
+                            type="date" 
+                            value={paymentPeriod.aug}
+                            onChange={(e) => handlePaymentPeriodChange('aug', e.target.value)}
+                            style={{maxWidth: '200px'}}
+                        />
+                    </div>
+                </div>
+
+                {/* แถวที่ 5 */}
+                <div className="col-md-6 mb-3 pt-3 px-5">
+                    <div className="d-flex align-items-center">
+                        <label className="col-form-label me-3" style={{minWidth: '100px', fontWeight: '500'}}>
+                            กันยายน
+                        </label>
+                        <input 
+                            className="form-control" 
+                            type="date" 
+                            value={paymentPeriod.sep}
+                            onChange={(e) => handlePaymentPeriodChange('sep', e.target.value)}
+                            style={{maxWidth: '200px'}}
+                        />
+                    </div>
+                </div>
+                <div className="col-md-6 mb-3 pt-3">
+                    <div className="d-flex align-items-center">
+                        <label className="col-form-label me-3" style={{minWidth: '100px', fontWeight: '500'}}>
+                            ตุลาคม
+                        </label>
+                        <input 
+                            className="form-control" 
+                            type="date" 
+                            value={paymentPeriod.oct}
+                            onChange={(e) => handlePaymentPeriodChange('oct', e.target.value)}
+                            style={{maxWidth: '200px'}}
+                        />
+                    </div>
+                </div>
+
+                {/* แถวที่ 6 */}
+                <div className="col-md-6 mb-3 pt-3 px-5">
+                    <div className="d-flex align-items-center">
+                        <label className="col-form-label me-3" style={{minWidth: '100px', fontWeight: '500'}}>
+                            พฤศจิกายน
+                        </label>
+                        <input 
+                            className="form-control" 
+                            type="date"     
+                            value={paymentPeriod.nov}
+                            onChange={(e) => handlePaymentPeriodChange('nov', e.target.value)}
+                            style={{maxWidth: '200px'}}
+                        />
+                    </div>
+                </div>
+                <div className="col-md-6 mb-3 pt-3">
+                    <div className="d-flex align-items-center">
+                        <label className="col-form-label me-3" style={{minWidth: '100px', fontWeight: '500'}}>
+                            ธันวาคม
+                        </label>
+                        <input 
+                            className="form-control" 
+                            type="date" 
+                            value={paymentPeriod.dec}
+                            onChange={(e) => handlePaymentPeriodChange('dec', e.target.value)}
+                            style={{maxWidth: '200px'}}
+                        />
+                    </div>
+                </div>
+            </div>
+
+            {/* ปุ่มตั้งค่าวันที่เหมือนกันทั้งหมด */}
+            <div className="row mt-3">
+    <div className="col-md-12">
+        <div className="d-flex align-items-center justify-content-center">
+            <label className="col-form-label me-3">
+                ตั้งค่าวันที่เดียวกันทั้งหมด:
+            </label>
+            <input 
+                className="form-control me-3" 
+                type="date" 
+                id="allMonthsDate"
+                style={{maxWidth: '200px'}}
+            />
+            <button 
+                type="button" 
+                className="btn btn-primary"
+                onClick={() => {
+                    const selectedDate = document.getElementById('allMonthsDate').value;
+                    if (selectedDate) {
+                        // แยกวันและปีจากวันที่ที่เลือก
+                        const dateObj = new Date(selectedDate);
+                        const day = dateObj.getDate().toString().padStart(2, '0');
+                        const year = dateObj.getFullYear();
+                        
+                        // สร้างวันที่ใหม่สำหรับแต่ละเดือน
+                        setPaymentPeriod({
+                            jan: `${year}-01-${day}`,  // มกราคม
+                            feb: `${year}-02-${day}`,  // กุมภาพันธ์
+                            mar: `${year}-03-${day}`,  // มีนาคม
+                            apr: `${year}-04-${day}`,  // เมษายน
+                            may: `${year}-05-${day}`,  // พฤษภาคม
+                            jun: `${year}-06-${day}`,  // มิถุนายน
+                            jul: `${year}-07-${day}`,  // กรกฎาคม
+                            aug: `${year}-08-${day}`,  // สิงหาคม
+                            sep: `${year}-09-${day}`,  // กันยายน
+                            oct: `${year}-10-${day}`,  // ตุลาคม
+                            nov: `${year}-11-${day}`,  // พฤศจิกายน
+                            dec: `${year}-12-${day}`,  // ธันวาคม
+                        });
+                        
+                        // แสดงข้อความยืนยัน
+                        alert(`ตั้งค่าวันที่ ${day} สำหรับทุกเดือนเรียบร้อยแล้ว`);
+                    } else {
+                        alert('กรุณาเลือกวันที่ก่อน');
+                    }
+                }}
+            >
+                ใช้วันที่นี้ทั้งหมด
+            </button>
+        </div>
+    </div>
+</div>
+        </section>
+    </div>
+</div>
+
+                                    
+                                         </div>
 
                                         <h2 class="title">รหัสสถานรักษาพยาบาลที่รองรับพนักงาน</h2>
                                         <div class="form-group row">

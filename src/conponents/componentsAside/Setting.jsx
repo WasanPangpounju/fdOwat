@@ -772,7 +772,7 @@ const handleRemovePublicHoliday = async (holidayToRemove) => {
       }
     } catch (error) {
       console.error("เกิดข้อผิดพลาดในการอัปเดตวันหยุดนักขัตฤกษ์:", error);
-      alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่");
+
     }
   };
 
@@ -1673,7 +1673,7 @@ if (newWorkplace) {
       }
     } else {
       // Network error หรือ error อื่นๆ
-      alert("เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง");
+    
     }
     
     // แสดงข้อมูลที่ส่งไปให้ API เพื่อช่วยในการ debug
@@ -1828,6 +1828,19 @@ if (newWorkplace) {
     const updatedEmployees_specialwork = [...workTimeDay_specialwork.employees_specialwork];
     updatedEmployees_specialwork[index][name] = value;
     setWorkTimeDay_specialwork((prev) => ({ ...prev, employees_specialwork: updatedEmployees_specialwork }));
+  };
+   // ฟังก์ชั่นแก้ไขข้อมูลใน workTimeDayPersonList
+  const handleEditTimePersonList = (index) => {
+    // ดึงข้อมูลที่ต้องการแก้ไขจาก list
+    const itemToEdit = workTimeDayPersonList[index];
+    // นำข้อมูลไปใส่ใน state หลักเพื่อให้ฟอร์มกรอกข้อมูลแสดงข้อมูลเดิม
+    setWorkTimeDayPerson({ ...itemToEdit });
+    // ลบรายการเดิมออกจาก list เพื่อรอการบันทึกใหม่
+    setWorkTimeDayPersonList(function(prevList) {
+      const updatedList = [...prevList];
+      updatedList.splice(index, 1);
+      return updatedList;
+    });
   };
 
   // Add a new employee row
@@ -3766,11 +3779,19 @@ if (newWorkplace) {
                                     onClick={() =>
                                       handleRemoveTimePersonList(index)
                                     }
-                                    style={{ width: "3rem" }}
-                                    className="btn btn-danger ml-auto"
+                               
+                                    className="btn btn-danger mb-2"
                                   >
                                     ลบ
                                   </button>
+                                  <button
+                                    className="btn btn-warning"
+                                    type="button"
+                                    onClick={() => handleEditTimePersonList(index)}
+                                  >
+                                    แก้ไข
+                                  </button>
+ 
                                 </td>
                               </>
                             )}

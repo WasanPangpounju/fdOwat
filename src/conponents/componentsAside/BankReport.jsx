@@ -229,9 +229,67 @@ useEffect(() => {
         console.log("พบข้อมูลพนักงานในเดือน", month, "ปี", year, "จำนวน", filteredData.length, "คน");
         setTimeRecordData(filteredData);
         
-        // ถ้ายังไม่มีการเลือกธนาคาร ให้แสดงข้อมูลทั้งหมด
-        if (!selectedBank) {
-          console.log("ไม่มีการเลือกธนาคาร จะแสดงข้อมูลทั้งหมด");
+        // ถ้าเลือก "เลือกธนาคาร" (Null) ให้แสดงข้อมูลทุกธนาคาร
+        if (selectedBank === "Null" || !selectedBank) {
+          console.log("แสดงข้อมูลทุกธนาคาร หรือยังไม่มีการเลือกธนาคาร");
+          
+          // เรียกใช้ API employee/search เพื่อดึงข้อมูลพนักงานทั้งหมด
+          const employeeResponse = await axios.post(endpoint + "/employee/search", {});
+          
+          if (employeeResponse.data && employeeResponse.data.employees) {
+            console.log("พบข้อมูลพนักงานทั้งหมด:", employeeResponse.data.employees.length, "คน");
+            
+            // กรองเฉพาะพนักงานที่มีธนาคาร (มี salarybank)
+            const employeesWithBank = employeeResponse.data.employees.filter(employee => {
+              const empSalaryBank = employee.salarybank ? employee.salarybank.trim() : "";
+              return empSalaryBank !== "";
+            });
+            
+            console.log("พนักงานที่มีข้อมูลธนาคาร:", employeesWithBank.length, "คน");
+            
+            // กรองข้อมูล timerecord ตามพนักงานที่มีธนาคาร
+            const employeeIds = employeesWithBank.map(emp => emp.employeeId);
+            
+            const filteredByDateAndBank = filteredData.filter(record => {
+              return employeeIds.includes(record.employeeId);
+            });
+            
+            setFilteredByBankAndDate(filteredByDateAndBank);
+            
+            console.log("พนักงานทุกธนาคารที่มีข้อมูลในเดือน/ปีที่เลือก:", filteredByDateAndBank.length, "คน");
+            
+            // เรียกใช้ฟังก์ชันดึงข้อมูลละเอียดของพนักงาน
+            const fetchEmployeeDetails = async () => {
+              try {
+                const completeEmployeeData = [];
+                
+                for (const record of filteredByDateAndBank) {
+                  const response = await axios.get(`${endpoint}/employee/${record.employeeId}`);
+                  
+                  if (response.data) {
+                    completeEmployeeData.push({
+                      ...record,
+                      employeeDetails: response.data
+                    });
+                  }
+                }
+                
+                setCompleteEmployeeData(completeEmployeeData);
+                console.log("ข้อมูลพนักงานทุกธนาคารที่สมบูรณ์:", completeEmployeeData.length, "คน");
+                setIsLoading(false);
+
+              } catch (error) {
+                console.error("เกิดข้อผิดพลาดในการดึงข้อมูลละเอียดของพนักงาน:", error);
+                setIsLoading(false);
+              }
+            };
+
+            if (filteredByDateAndBank.length > 0) {
+              fetchEmployeeDetails();
+            } else {
+              setIsLoading(false);
+            }
+          }
         } else {
           console.log("มีการเลือกธนาคาร:", selectedBank);
           
@@ -315,6 +373,8 @@ const fetchEmployeeDetails = async () => {
 // เรียกใช้ฟังก์ชันหลังจากได้ filteredByBankAndDate
 if (filteredByBankAndDate.length > 0) {
   fetchEmployeeDetails();
+} else {
+  setIsLoading(false);
 }
 
 // แสดงข้อมูล filteredByBankAndDate ในรูปแบบ Array
@@ -395,72 +455,125 @@ const handleChange = async (event) => {
   console.log("ผู้ใช้เลือกธนาคาร:", selectedValue);
 
   try {
-    // สร้างข้อมูลสำหรับส่งไปยัง API employee/search
-    const searchData = {
-      salarybank: selectedValue
-    };
+    // ถ้าเลือก "เลือกธนาคาร" (Null) ให้แสดงข้อมูลทุกธนาคาร
+    if (selectedValue === "Null") {
+      console.log("แสดงข้อมูลทุกธนาคาร");
+      
+      // เรียกใช้ API เพื่อดึงข้อมูลพนักงานทั้งหมด
+      const response = await axios.post(endpoint + "/employee/search", {});
+      
+      if (response.data && response.data.employees) {
+        console.log("พบข้อมูลพนักงานทั้งหมด:", response.data.employees.length, "คน");
+        
+        // กรองเฉพาะพนักงานที่มีธนาคาร (มี salarybank)
+        const employeesWithBank = response.data.employees.filter(employee => {
+          const empSalaryBank = employee.salarybank ? employee.salarybank.trim() : "";
+          return empSalaryBank !== "";
+        });
+        
+        console.log("พนักงานที่มีข้อมูลธนาคาร:", employeesWithBank.length, "คน");
+        
+        // รวมข้อมูลพนักงานกับข้อมูลจาก timerecord API
+        const mergedEmployeeData = employeesWithBank.map((employee) => {
+          // หาข้อมูลบัญชีที่ตรงกัน
+          const accounting = dataAccounting.find(
+            (record) => record.employeeId === employee.employeeId
+          );
+          
+          // หาข้อมูลจาก timerecord โดยใช้ชื่อหรือ ID พนักงาน
+          const timeRecord = timeRecordData.find(
+            (record) => 
+              record.employeeId === employee.employeeId || 
+              record.name === employee.name || 
+              (record.name && employee.name && 
+              record.name.trim().toLowerCase() === employee.name.trim().toLowerCase())
+          );
+          
+          return { 
+            ...employee, 
+            accountingRecord: accounting ? accounting.accountingRecord : [],
+            timeRecordData: timeRecord || null 
+          };
+        });
 
-    console.log("กำลังค้นหาพนักงานที่มีธนาคาร:", selectedValue);
-    
-    // เรียกใช้ API employee/search เพื่อค้นหาพนักงานที่มีธนาคารตรงกับที่เลือก
-    const response = await axios.post(endpoint + "/employee/search", searchData);
-    
-    if (response.data && response.data.employees) {
-      // ตรวจสอบโครงสร้างข้อมูลที่ได้จาก API
-      console.log("ตัวอย่างข้อมูลพนักงานแรก:", response.data.employees[0]);
-      
-      // กรองพนักงานที่มีธนาคารตรงกับที่เลือก - ปรับปรุงให้ตรวจสอบค่า undefined
-      const filteredEmployees = response.data.employees.filter(employee => {
-        // ตรวจสอบว่า salarybank มีค่าหรือไม่
-        const empSalaryBank = employee.salarybank ? employee.salarybank.trim() : "";
+        // กรองเฉพาะพนักงานที่มีข้อมูล timeRecord
+        const employeesWithTimeRecord = mergedEmployeeData.filter(employee => employee.timeRecordData !== null);
+        console.log("พนักงานที่มีข้อมูล timeRecord:", employeesWithTimeRecord.length, "คน");
         
-        // เพิ่ม log เพื่อตรวจสอบค่า salarybank ของพนักงานแต่ละคน
-        console.log(`พนักงาน ${employee.name} (${employee.employeeId}) มีค่า salarybank:`, 
-          employee.salarybank === undefined ? "undefined" : empSalaryBank);
-        console.log(`เปรียบเทียบกับ selectedBank (${selectedValue}):`, empSalaryBank === selectedValue);
-        
-        return empSalaryBank === selectedValue;
-      });
-      
-      console.log("พบพนักงานที่มีธนาคาร", selectedValue, "จำนวน", filteredEmployees.length, "คน");
-      
-      // รวมข้อมูลพนักงานกับข้อมูลจาก timerecord API
-      const mergedEmployeeData = filteredEmployees.map((employee) => {
-        // หาข้อมูลบัญชีที่ตรงกัน
-        const accounting = dataAccounting.find(
-          (record) => record.employeeId === employee.employeeId
-        );
-        
-        // หาข้อมูลจาก timerecord โดยใช้ชื่อหรือ ID พนักงาน
-        const timeRecord = timeRecordData.find(
-          (record) => 
-            record.employeeId === employee.employeeId || 
-            record.name === employee.name || 
-            (record.name && employee.name && 
-            record.name.trim().toLowerCase() === employee.name.trim().toLowerCase())
-        );
-        
-        // หากไม่พบข้อมูล timeRecord ให้ log แสดง
-        if (!timeRecord) {
-          console.log(`ไม่พบข้อมูล timeRecord สำหรับพนักงาน: ${employee.name} (${employee.employeeId})`);
-        }
-        
-        return { 
-          ...employee, 
-          accountingRecord: accounting ? accounting.accountingRecord : [],
-          timeRecordData: timeRecord || null 
-        };
-      });
-
-      // กรองเฉพาะพนักงานที่มีข้อมูล timeRecord
-      const employeesWithTimeRecord = mergedEmployeeData.filter(employee => employee.timeRecordData !== null);
-      console.log("พนักงานที่มีข้อมูล timeRecord:", employeesWithTimeRecord.length, "คน");
-      
-      setResponseDataAll(mergedEmployeeData);
-      console.log("รวมข้อมูลพนักงานธนาคาร", selectedValue, "เรียบร้อยแล้ว:", mergedEmployeeData.length, "คน");
+        setResponseDataAll(mergedEmployeeData);
+        console.log("รวมข้อมูลพนักงานทุกธนาคาร เรียบร้อยแล้ว:", mergedEmployeeData.length, "คน");
+      } else {
+        setResponseDataAll([]);
+        console.log("ไม่พบข้อมูลพนักงาน");
+      }
     } else {
-      setResponseDataAll([]);
-      console.log("ไม่พบพนักงานที่มีธนาคาร", selectedValue);
+      // กรณีเลือกธนาคารเฉพาะ
+      const searchData = {
+        salarybank: selectedValue
+      };
+
+      console.log("กำลังค้นหาพนักงานที่มีธนาคาร:", selectedValue);
+      
+      // เรียกใช้ API employee/search เพื่อค้นหาพนักงานที่มีธนาคารตรงกับที่เลือก
+      const response = await axios.post(endpoint + "/employee/search", searchData);
+      
+      if (response.data && response.data.employees) {
+        // ตรวจสอบโครงสร้างข้อมูลที่ได้จาก API
+        console.log("ตัวอย่างข้อมูลพนักงานแรก:", response.data.employees[0]);
+        
+        // กรองพนักงานที่มีธนาคารตรงกับที่เลือก - ปรับปรุงให้ตรวจสอบค่า undefined
+        const filteredEmployees = response.data.employees.filter(employee => {
+          // ตรวจสอบว่า salarybank มีค่าหรือไม่
+          const empSalaryBank = employee.salarybank ? employee.salarybank.trim() : "";
+          
+          // เพิ่ม log เพื่อตรวจสอบค่า salarybank ของพนักงานแต่ละคน
+          console.log(`พนักงาน ${employee.name} (${employee.employeeId}) มีค่า salarybank:`, 
+            employee.salarybank === undefined ? "undefined" : empSalaryBank);
+          console.log(`เปรียบเทียบกับ selectedBank (${selectedValue}):`, empSalaryBank === selectedValue);
+          
+          return empSalaryBank === selectedValue;
+        });
+        
+        console.log("พบพนักงานที่มีธนาคาร", selectedValue, "จำนวน", filteredEmployees.length, "คน");
+        
+        // รวมข้อมูลพนักงานกับข้อมูลจาก timerecord API
+        const mergedEmployeeData = filteredEmployees.map((employee) => {
+          // หาข้อมูลบัญชีที่ตรงกัน
+          const accounting = dataAccounting.find(
+            (record) => record.employeeId === employee.employeeId
+          );
+          
+          // หาข้อมูลจาก timerecord โดยใช้ชื่อหรือ ID พนักงาน
+          const timeRecord = timeRecordData.find(
+            (record) => 
+              record.employeeId === employee.employeeId || 
+              record.name === employee.name || 
+              (record.name && employee.name && 
+              record.name.trim().toLowerCase() === employee.name.trim().toLowerCase())
+          );
+          
+          // หากไม่พบข้อมูล timeRecord ให้ log แสดง
+          if (!timeRecord) {
+            console.log(`ไม่พบข้อมูล timeRecord สำหรับพนักงาน: ${employee.name} (${employee.employeeId})`);
+          }
+          
+          return { 
+            ...employee, 
+            accountingRecord: accounting ? accounting.accountingRecord : [],
+            timeRecordData: timeRecord || null 
+          };
+        });
+
+        // กรองเฉพาะพนักงานที่มีข้อมูล timeRecord
+        const employeesWithTimeRecord = mergedEmployeeData.filter(employee => employee.timeRecordData !== null);
+        console.log("พนักงานที่มีข้อมูล timeRecord:", employeesWithTimeRecord.length, "คน");
+        
+        setResponseDataAll(mergedEmployeeData);
+        console.log("รวมข้อมูลพนักงานธนาคาร", selectedValue, "เรียบร้อยแล้ว:", mergedEmployeeData.length, "คน");
+      } else {
+        setResponseDataAll([]);
+        console.log("ไม่พบพนักงานที่มีธนาคาร", selectedValue);
+      }
     }
   } catch (error) {
     console.error("เกิดข้อผิดพลาดในการดึงข้อมูล:", error);
@@ -534,8 +647,8 @@ const handleChange = async (event) => {
 const handleDownloadPDF = async () => {
   try {
     // ตรวจสอบเงื่อนไขที่จำเป็นก่อนสร้าง PDF
-    if (!selectedBank || !month || !year) {
-      alert("กรุณาเลือกธนาคาร เดือน และปีให้ครบถ้วน");
+    if (!month || !year) {
+      alert("กรุณาเลือกเดือน และปีให้ครบถ้วน");
       return;
     }
     
@@ -557,7 +670,8 @@ const handleDownloadPDF = async () => {
     link.href = url;
     
     // กำหนดชื่อไฟล์ PDF
-    const filename = `รายงานธนาคาร_${selectedBank.replace(/[\/\\:*?"<>|]/g, '_') || 'ทั้งหมด'}_${month}_${year}.pdf`;
+    const bankName = selectedBank === "Null" || !selectedBank ? "ทุกธนาคาร" : selectedBank.replace(/[\/\\:*?"<>|]/g, '_');
+    const filename = `รายงานธนาคาร_${bankName}_${month}_${year}.pdf`;
     link.download = filename;
     
     // กระตุ้นการดาวน์โหลด
@@ -581,8 +695,8 @@ const handleDownloadPDF = async () => {
 const handlePreviewPDF = async () => {
   try {
     // ตรวจสอบเงื่อนไขที่จำเป็นก่อนสร้าง PDF
-    if (!selectedBank || !month || !year) {
-      alert("กรุณาเลือกธนาคาร เดือน และปีให้ครบถ้วน");
+    if (!month || !year) {
+      alert("กรุณาเลือกเดือน และปีให้ครบถ้วน");
       return;
     }
     
@@ -631,9 +745,200 @@ const handleMonthChange = (e) => {
 const BankReportPDF = () => {
   console.log("ข้อมูลพนักงานที่สมบูรณ์:", completeEmployeeData.length);
 
-  // แก้ไขการคำนวณยอดรวม - ปัดเศษแต่ละรายการก่อนรวม
+  // ถ้าไม่มีข้อมูลหลังการกรอง แสดงหน้า PDF ว่างพร้อมข้อความแจ้ง
+  if (completeEmployeeData.length === 0) {
+    const bankDisplayName = selectedBank === "Null" || !selectedBank ? "ทุกธนาคาร" : selectedBank;
+    return (
+      <Document>
+        <Page size="A4" style={{padding: 30, fontFamily: 'THSarabunNew'}}>
+          <View style={{marginBottom: 20}}>
+            <Text style={{fontSize: 16, fontWeight: 'bold', fontFamily: 'THSarabunNew-Bold'}}>บริษัท โอวาท โปร แอนด์ ควิก จำกัด</Text>
+            <Text style={{fontSize: 14 ,fontWeight: 'bold'}}>รายงานโอนเงินเข้าธนาคาร {bankDisplayName}</Text>
+            <Text style={{fontSize: 12}}>สำหรับงวดวันที่ {startFormattedDate321} ถึง {endFormattedDate321}</Text>
+            <Text style={{fontSize: 14, marginTop: 30, textAlign: 'center'}}>
+              ไม่พบข้อมูลพนักงานที่มีธนาคาร {bankDisplayName} ในเดือน {month} ปี {year}
+            </Text>
+          </View>
+        </Page>
+      </Document>
+    );
+  }
+
+  // ถ้าเลือก "เลือกธนาคาร" ให้จัดกลุ่มข้อมูลตามธนาคาร
+  if (selectedBank === "Null" || !selectedBank) {
+    // จัดกลุ่มข้อมูลตามธนาคาร
+    const groupedByBank = {};
+    
+    completeEmployeeData.forEach(item => {
+      const bankName = item.employeeDetails?.salarybank || 'ไม่ระบุธนาคาร';
+      if (!groupedByBank[bankName]) {
+        groupedByBank[bankName] = [];
+      }
+      groupedByBank[bankName].push(item);
+    });
+
+    // สร้าง PDF แยกตามธนาคาร
+    return (
+      <Document>
+        {Object.entries(groupedByBank).map(([bankName, bankEmployees]) => {
+          // คำนวณยอดรวมของธนาคารนี้
+          const bankTotalAmount = bankEmployees.reduce((sum, item) => {
+            const incomeTotal = 
+              Number(item.sumCashWork || '0') + 
+              Number(item.sumCashOt || '0') +
+              Number(item.cashSpecialDay || '0') + 
+              Number(item.publicHolidayCash || '0') + 
+              Number(
+                item.addSalaryList?.reduce(
+                  (total, addItem) => total + Number(addItem.SpSalary || '0'),
+                  0
+                ) || '0'
+              );
+
+            const deductionTotal =
+              Number(item.socialSecurity || '0') +
+              Number(item.tax || '0') +
+              Number(
+                item.deductSalaryList?.reduce(
+                  (total, deductItem) => total + Number(deductItem.amount || '0'),
+                  0
+                ) || '0'
+              );
+
+            const netTotal = Math.round((incomeTotal - deductionTotal) * 100) / 100;
+            return Math.round((sum + (isNaN(netTotal) ? 0 : netTotal)) * 100) / 100;
+          }, 0);
+
+          // คำนวณจำนวนหน้าสำหรับธนาคารนี้
+          const itemsPerPage = 35;
+          const totalPages = Math.ceil(bankEmployees.length / itemsPerPage);
+          const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+
+          return pages.map((pageNum) => {
+            const startIndex = (pageNum - 1) * itemsPerPage;
+            const endIndex = Math.min(startIndex + itemsPerPage, bankEmployees.length);
+            const pageItems = bankEmployees.slice(startIndex, endIndex);
+            const isLastPage = pageNum === totalPages;
+
+            return (
+              <Page key={`${bankName}-${pageNum}`} size="A4" style={{padding: 30, fontFamily: 'THSarabunNew'}}>
+                <View style={{marginBottom: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end'}}>
+                  <View>
+                    <Text style={{fontSize: 16,fontStyle:'italic', fontFamily: 'THSarabunNew' }}>บริษัท โอวาท โปร แอนด์ ควิก จำกัด</Text>
+                    <Text style={{fontSize: 14,  fontWeight: 'bold', fontFamily: 'THSarabunNew' }}>รายงานโอนเงินเข้า {bankName}</Text>
+                    <Text style={{fontSize: 10}}>สำหรับงวดวันที่ {startFormattedDate321} ถึง {endFormattedDate321}</Text>
+                  </View>
+                  <Text style={{fontSize: 10}}>หน้าที่ {pageNum}/{totalPages}</Text>
+                </View>
+                
+                <View>
+                  <View style={{flexDirection: 'row', fontWeight:'bold', borderBottomWidth: 1, borderTopWidth: 1.5, fontSize: 12, padding: 5}}>
+                    <Text style={{width: '10%'}}>ลำดับ</Text>
+                    <Text style={{width: '18%'}}>เลขที่บัญชี</Text>
+                    <Text style={{width: '20%'}}>รหัสพนักงาน</Text>
+                    <Text style={{width: '45%'}}>ชื่อ-นามสกุล</Text>
+                    <Text style={{width: '7%', textAlign: 'right'}}>ยอดเงิน</Text>
+                  </View>
+                  
+                  {pageItems.map((item, index) => {
+                    const employeeDetails = item.employeeDetails;
+                    const employeeName = employeeDetails?.name || 'N/A';
+                    const employeeLastName = employeeDetails?.lastName || 'N/A';
+                    
+                    const bankAccount = 
+                      employeeDetails?.banknumber || 
+                      employeeDetails?.bankaccount || 
+                      employeeDetails?.bankNumber || 
+                      employeeDetails?.bankAccount || 
+                      (employeeDetails?.branchBank && 
+                        employeeDetails.branchBank.match(/\d{3}-\d{1}-\d{5}-\d{1}/)?.[0]) || 
+                      'N/A';
+                    
+                    const actualIndex = startIndex + index;
+                    
+                    return (
+                      <View key={index} style={{flexDirection: 'row', fontSize: 12, borderBottomColor: '#000', padding: 1}}>
+                        <Text style={{width: '10%', paddingLeft: '10px'}}>{actualIndex + 1}</Text>
+                        <Text style={{width: '18%', paddingLeft: '3px'}}>{bankAccount}</Text>
+                        <Text style={{width: '20%', paddingLeft: '3px'}}>{item.employeeId || 'N/A'}</Text>
+                        <Text style={{width: '45%'}}>
+                          {employeeName} {employeeLastName} 
+                        </Text>
+                        <Text style={{width: '7%', textAlign: 'right', paddingRight: '5px'}}>
+                          {item.employeeDetails ? 
+                            (() => {
+                              const incomeTotal = 
+                                Number(item.sumCashWork || '0') + 
+                                Number(item.sumCashOt || '0') +
+                                Number(item.cashSpecialDay || '0') + 
+                                Number(item.publicHolidayCash || '0') +
+                                Number(
+                                  item.addSalaryList?.reduce(
+                                    (total, addItem) => total + Number(addItem.SpSalary || '0'),
+                                    0
+                                  ) || '0'
+                                );
+
+                              const deductionTotal =
+                                Number(item.socialSecurity || '0') +
+                                Number(item.tax || '0') +
+                                Number(
+                                  item.deductSalaryList?.reduce(
+                                    (total, deductItem) => total + Number(deductItem.amount || '0'),
+                                    0
+                                  ) || '0'
+                                );
+
+                              const netTotal = Math.round((incomeTotal - deductionTotal) * 100) / 100;
+
+                              return isNaN(netTotal)
+                                ? '0.00'
+                                : netTotal.toLocaleString('th-TH', {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2
+                                  });
+                            })() 
+                            : (item.sumCashWork 
+                                ? Number(item.sumCashWork).toLocaleString('th-TH', {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2
+                                  })
+                                : '0.00')}
+                        </Text>
+                      </View>
+                    );
+                  })}
+                  
+                  {/* แสดงยอดรวมเฉพาะหน้าสุดท้ายของแต่ละธนาคาร */}
+                  {isLastPage && (
+                    <View style={{flexDirection: 'row', fontSize: 12, borderTopWidth: 1, borderTopColor: '#000', padding: 1, marginTop: 5}}>
+                      <Text style={{width: '10%'}}></Text>
+                      <Text style={{width: '13%', fontWeight: 'bold'}}>รวมพนักงาน</Text>
+                      <Text style={{width: '20%', fontWeight: 'bold'}}>{bankEmployees.length} คน</Text>
+                      <Text style={{width: '50%', fontWeight: 'bold'}}></Text>
+                      <Text style={{width: '7%', fontWeight: 'bold', textAlign: 'right', paddingRight: '5px'}}>
+                        {bankTotalAmount.toLocaleString('th-TH', {
+                          minimumFractionDigits: 2, 
+                          maximumFractionDigits: 2
+                        })}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+                
+                <View style={{position: 'absolute',borderTop:'1', bottom: 30, left: 30, right: 30}}>
+                  <Text style={{fontSize: 10 }}>พิมพ์วันที่ {formattedDate321}                                   รายงานโดย {present}                         แฟ้มรายงาน {presentfilm}</Text>
+                </View>
+              </Page>
+            );
+          });
+        })}
+      </Document>
+    );
+  }
+
+  // กรณีเลือกธนาคารเฉพาะ (โค้ดเดิม)
   const totalCashAmount = completeEmployeeData.reduce((sum, item) => {
-    // คำนวณรายได้รวม
     const incomeTotal = 
       Number(item.sumCashWork || '0') + 
       Number(item.sumCashOt || '0') +
@@ -646,7 +951,6 @@ const BankReportPDF = () => {
         ) || '0'
       );
 
-    // คำนวณรายการหัก
     const deductionTotal =
       Number(item.socialSecurity || '0') +
       Number(item.tax || '0') +
@@ -657,60 +961,29 @@ const BankReportPDF = () => {
         ) || '0'
       );
 
-    // เงินสุทธิ - ปัดเศษแต่ละรายการให้เป็น 2 ตำแหน่งทศนิยม
     const netTotal = Math.round((incomeTotal - deductionTotal) * 100) / 100;
-
-    // รวมยอดที่ปัดเศษแล้ว
     return Math.round((sum + (isNaN(netTotal) ? 0 : netTotal)) * 100) / 100;
   }, 0);
 
-
- 
-
-  // ถ้าไม่มีข้อมูลหลังการกรอง แสดงหน้า PDF ว่างพร้อมข้อความแจ้ง
-  if (completeEmployeeData.length === 0) {
-    return (
-      <Document>
-        <Page size="A4" style={{padding: 30, fontFamily: 'THSarabunNew'}}>
-          <View style={{marginBottom: 20}}>
-            <Text style={{fontSize: 16, fontWeight: 'bold', fontFamily: 'THSarabunNew-Bold'}}>บริษัท โอวาท โปร แอนด์ ควิก จำกัด</Text>
-            <Text style={{fontSize: 14 ,fontWeight: 'bold'}}>รายงานโอนเงินเข้าธนาคาร {selectedBank}</Text>
-            <Text style={{fontSize: 12}}>สำหรับงวดวันที่ {startFormattedDate321} ถึง {endFormattedDate321}</Text>
-            <Text style={{fontSize: 14, marginTop: 30, textAlign: 'center'}}>
-              ไม่พบข้อมูลพนักงานที่มีธนาคาร {selectedBank} ในเดือน {month} ปี {year}
-            </Text>
-          </View>
-        </Page>
-      </Document>
-    );
-  }
-
-  // คำนวณจำนวนหน้าทั้งหมด (35 รายการต่อหน้า)
   const itemsPerPage = 35;
   const totalPages = Math.ceil(completeEmployeeData.length / itemsPerPage);
-  
-  // สร้าง array ของหน้าต่างๆ
   const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
 
   return (
     <Document>
       {pages.map((pageNum) => {
-        // คำนวณว่าหน้านี้จะแสดงข้อมูลรายการที่เท่าไหร่
         const startIndex = (pageNum - 1) * itemsPerPage;
         const endIndex = Math.min(startIndex + itemsPerPage, completeEmployeeData.length);
-        
-        // สร้าง array ของข้อมูลที่จะแสดงในหน้านี้
         const pageItems = completeEmployeeData.slice(startIndex, endIndex);
-        
-        // หน้าสุดท้ายหรือไม่
         const isLastPage = pageNum === totalPages;
+        const bankDisplayName = selectedBank === "Null" || !selectedBank ? "ทุกธนาคาร" : selectedBank;
         
         return (
           <Page key={pageNum} size="A4" style={{padding: 30, fontFamily: 'THSarabunNew'}}>
             <View style={{marginBottom: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end'}}>
               <View>
                 <Text style={{fontSize: 16,fontStyle:'italic', fontFamily: 'THSarabunNew' }}>บริษัท โอวาท โปร แอนด์ ควิก จำกัด</Text>
-                <Text style={{fontSize: 14,  fontWeight: 'bold', fontFamily: 'THSarabunNew' }}>รายงานโอนเงินเข้า {selectedBank}</Text>
+                <Text style={{fontSize: 14,  fontWeight: 'bold', fontFamily: 'THSarabunNew' }}>รายงานโอนเงินเข้า {bankDisplayName}</Text>
                 <Text style={{fontSize: 10}}>สำหรับงวดวันที่ {startFormattedDate321} ถึง {endFormattedDate321}</Text>
               </View>
               <Text style={{fontSize: 10}}>หน้าที่ {pageNum}/{totalPages}</Text>
@@ -726,14 +999,11 @@ const BankReportPDF = () => {
               </View>
               
               {pageItems.map((item, index) => {
-                // ดึงข้อมูลละเอียดจาก employeeDetails
                 const employeeDetails = item.employeeDetails;
-                
                 const employeeprefix = employeeDetails?.prefix || 'N/A';
                 const employeeName = employeeDetails?.name || 'N/A';
                 const employeeLastName = employeeDetails?.lastName || 'N/A';
                 
-                // ดึงเลขบัญชีจากข้อมูลละเอียด
                 const bankAccount = 
                   employeeDetails?.banknumber || 
                   employeeDetails?.bankaccount || 
@@ -743,7 +1013,6 @@ const BankReportPDF = () => {
                     employeeDetails.branchBank.match(/\d{3}-\d{1}-\d{5}-\d{1}/)?.[0]) || 
                   'N/A';
                 
-                // ลำดับจริงในข้อมูลทั้งหมด
                 const actualIndex = startIndex + index;
                 
                 return (
@@ -757,7 +1026,6 @@ const BankReportPDF = () => {
                    <Text style={{width: '7%', textAlign: 'right', paddingRight: '5px'}}>
   {item.employeeDetails ? 
     (() => {
-      // คำนวณด้วย Number
       const incomeTotal = 
         Number(item.sumCashWork || '0') + 
         Number(item.sumCashOt || '0') +
@@ -780,7 +1048,6 @@ const BankReportPDF = () => {
           ) || '0'
         );
 
-      // ปัดเศษให้เป็น 2 ตำแหน่งทศนิยม เหมือนกับที่แสดงผล
       const netTotal = Math.round((incomeTotal - deductionTotal) * 100) / 100;
 
       return isNaN(netTotal)

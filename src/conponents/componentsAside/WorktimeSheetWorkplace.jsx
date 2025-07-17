@@ -7580,9 +7580,32 @@ const getDateStyle = (day) => {
           
           // Attendance data for each day
           dayNumbers.forEach(day => {
-            const found = record?.employee_record?.find(itemx => itemx.date === day);
+            // หา record ทั้งหมดของวันนี้
+            const allRecordsForDay = record?.employee_record?.filter(itemx => itemx.date === day) || [];
+            
+            // หา record ที่มี totalTime ก่อน ถ้าไม่มีก็เอา record แรก
+            const found = allRecordsForDay.find(itemx => itemx.totalTime && itemx.totalTime.trim() !== '') || allRecordsForDay[0];
+            
             const isWork = found?.dayType === "work";
-            empRow1.push(isWork ? '1' : '');
+            
+            // ตรวจสอบ workplaceId ของพนักงานคนนี้ทั้งหมด (เฉพาะ record ที่มี totalTime)
+            const recordsWithTotalTime = record?.employee_record?.filter(item => item.totalTime && item.totalTime.trim() !== '') || [];
+            const allWorkplaceIds = recordsWithTotalTime.map(item => item.workplaceId) || [];
+            const uniqueWorkplaceIds = [...new Set(allWorkplaceIds)]; // เอาค่าที่ซ้ำออก
+            const isSameWorkplace = uniqueWorkplaceIds.length <= 1; // ถ้ามีแค่ workplaceId เดียวหรือไม่มีเลย = เหมือนกันหมด
+            
+            // กำหนดค่าที่จะแสดง
+            let displayValue = '';
+            if (isWork) {
+              if (isSameWorkplace) {
+                displayValue = '1';
+              } else {
+                // แสดง workplaceId ของ record ที่มี totalTime (สำหรับ Excel ไม่ใช้ HTML)
+                displayValue = `1\n${found?.workplaceId || '1'}`;
+              }
+            }
+            
+            empRow1.push(displayValue);
           });
           
           // Summary columns
@@ -11123,7 +11146,12 @@ const getDateStyle = (day) => {
                                     
 
 {dayNumbers.map((day, i) => {
-  const found = record?.employee_record?.find(itemx => itemx.date === day);
+  // หา record ทั้งหมดของวันนี้
+  const allRecordsForDay = record?.employee_record?.filter(itemx => itemx.date === day) || [];
+  
+  // หา record ที่มี totalTime ก่อน ถ้าไม่มีก็เอา record แรก
+  const found = allRecordsForDay.find(itemx => itemx.totalTime && itemx.totalTime.trim() !== '') || allRecordsForDay[0];
+  
   const isWork = found?.dayType === "work";
   
   // ตรวจสอบว่าวันนี้เป็นวันหยุดพิเศษหรือไม่
@@ -11146,26 +11174,28 @@ const getDateStyle = (day) => {
     backgroundColor = { backgroundColor: "#bfbdbf" };
   }
   
-  // ตรวจสอบ workplaceId ของพนักงานคนนี้ทั้งหมด
-  const allWorkplaceIds = record?.employee_record?.map(item => item.workplaceId) || [];
+  // ตรวจสอบ workplaceId ของพนักงานคนนี้ทั้งหมด (เฉพาะ record ที่มี totalTime)
+  const recordsWithTotalTime = record?.employee_record?.filter(item => item.totalTime && item.totalTime.trim() !== '') || [];
+  const allWorkplaceIds = recordsWithTotalTime.map(item => item.workplaceId) || [];
   const uniqueWorkplaceIds = [...new Set(allWorkplaceIds)]; // เอาค่าที่ซ้ำออก
-  const isSameWorkplace = uniqueWorkplaceIds.length === 1; // ถ้ามีแค่ workplaceId เดียว = เหมือนกันหมด
+  const isSameWorkplace = uniqueWorkplaceIds.length <= 1; // ถ้ามีแค่ workplaceId เดียวหรือไม่มีเลย = เหมือนกันหมด
   
   // กำหนดค่าที่จะแสดง
- let displayValue = '';
+  let displayValue = '';
 
-if (isWork) {
-  if (isSameWorkplace) {
-    displayValue = '1';
-  } else {
-    displayValue = (
-      <>
-        1<br />
-        {found?.workplaceId || '1'}
-      </>
-    );
+  if (isWork) {
+    if (isSameWorkplace) {
+      displayValue = '1';
+    } else {
+      // แสดง workplaceId ของ record ที่มี totalTime
+      displayValue = (
+        <>
+          1<br />
+          {found?.workplaceId || '1'}
+        </>
+      );
+    }
   }
-}
 
   
   return (
