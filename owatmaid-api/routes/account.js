@@ -5366,10 +5366,8 @@ try {
           sumTimeOt += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalTime) + convertTimeToDecimal(record.totalOtTime);
           sumCashOt = parseFloat(sumCashOt || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0')
           
-          // เพิ่ม sumCashWork สำหรับวันที่ dayType = stop
+          // เพิ่ม sumCashWork และ sumTimeWork สำหรับวันที่ dayType = stop
           sumCashWork += parseFloat(record?.cashWork || '0');
-          
-          // เพิ่ม sumTimeWork สำหรับวันที่ dayType = stop
           sumTimeWork += convertTimeToDecimal(record.totalTime);
           
           // คำนวณ OT time โดยใช้ค่าที่ปรับแล้ว
@@ -5404,8 +5402,10 @@ try {
           
           console.log(`📊 วันที่ ${record.date} (dayType=stop): cashWork=${record.cashWork}, cashWorkMul=${record.cashWorkMul}, cashOt=${record.cashOt}, cashOtMul=${record.cashOtMul}`);
           console.log(`   - sumCashWork เพิ่มขึ้นเป็น: ${sumCashWork}`);
+          console.log(`   - sumTimeWork เพิ่มขึ้นเป็น: ${sumTimeWork}`);
           console.log(`   - sumCashWorkMul["${record.cashWorkMul}"] เพิ่มขึ้นเป็น: ${sumCashWorkMul[record.cashWorkMul]}`);
           console.log(`   - sumCashWorkMul["${record.cashOtMul}"] เพิ่มขึ้นเป็น: ${sumCashWorkMul[record.cashOtMul]}`);
+          console.log(`   - cashOt (${record.cashOt}) ถูกเพิ่มเข้าไปใน sumCashWorkMul["${record.cashOtMul}"] แล้ว`);
 
         } else
           if (record?.dayType === 'specialDayOff') {
