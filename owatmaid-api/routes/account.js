@@ -4440,59 +4440,72 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
 
       const processedRecord = record.toObject();
       
-      // คำนวณ sumOt1p5 ใหม่แบบ real-time
-      let recalculatedSumOt1p5 = 0;
-      let workDays = 0;
-      
-      if (processedRecord.employee_record && Array.isArray(processedRecord.employee_record)) {
-        // วนลูปตรวจสอบแต่ละวัน
-        processedRecord.employee_record.forEach(rec => {
-          // แปลงค่า totalOtTime ให้เป็นทศนิยม
-          if (rec.totalOtTime) {
-            // Fix: การแปลงค่าเวลาที่ลงท้ายด้วย ".50" เป็นทศนิยม ควรเป็น X.5 (ไม่ใช่ X.83)
-            let decimalOt = 0;
-            
-            // ตรวจสอบว่าเป็นรูปแบบ "X.50" หรือไม่
-            if (typeof rec.totalOtTime === 'string' && rec.totalOtTime.endsWith('.50')) {
-              const hours = parseInt(rec.totalOtTime.split('.')[0]);
-              decimalOt = hours + 0.5;
-              rec.totalOtTime = decimalOt.toFixed(2);
-            } else {
-              // กรณีอื่นๆ ใช้การแปลงแบบปกติ
-              const [hours, minutes] = String(rec.totalOtTime).split('.').map(Number);
-              decimalOt = (hours || 0) + ((minutes || 0) / 60);
-              rec.totalOtTime = decimalOt.toFixed(2);
-            }
-          }
-          
-          // นับจำนวนวันทำงานและคำนวณ sumOt1p5 จากวันทำงานปกติเท่านั้น
-          if (rec.dayType === "work") {
-            workDays++;
-            
+      // คำนวณค่าเงินใหม่โดยใช้ฟังก์ชัน calculateCashValues
+      try {
+        const calculatedValues = await calculateCashValues(
+          record.employeeId,
+          record.employee_record,
+          record.month,
+          record.year
+        );
+        
+        // อัปเดตค่าที่คำนวณใหม่
+        processedRecord.sumCashWorkMul = calculatedValues.sumCashWorkMul;
+        processedRecord.sumOt1p5 = calculatedValues.sumOt1p5;
+        processedRecord.sumOt3 = calculatedValues.sumOt3;
+        processedRecord.sumCashOt = calculatedValues.sumCashOt;
+        processedRecord.sumCashWork = calculatedValues.sumCashWork;
+        processedRecord.dayWorkCount = calculatedValues.dayWorkCount;
+        processedRecord.dayOffCount = calculatedValues.dayOffCount;
+        
+        console.log(`🔄 คำนวณค่าเงินใหม่สำหรับพนักงาน ${record.employeeId}:`);
+        console.log(`   - sumCashWorkMul["1.5"]: ${calculatedValues.sumCashWorkMul["1.5"]} บาท`);
+        console.log(`   - sumOt1p5: ${calculatedValues.sumOt1p5} ชั่วโมง`);
+        console.log(`   - dayWorkCount: ${calculatedValues.dayWorkCount} วัน`);
+        console.log(`   - dayOffCount: ${calculatedValues.dayOffCount} วัน`);
+        
+      } catch (error) {
+        console.error(`❌ Error calculating cash values for ${record.employeeId}:`, error);
+        
+        // Fallback: คำนวณ sumOt1p5 แบบเดิม
+        let recalculatedSumOt1p5 = 0;
+        let workDays = 0;
+        
+        if (processedRecord.employee_record && Array.isArray(processedRecord.employee_record)) {
+          processedRecord.employee_record.forEach(rec => {
             if (rec.totalOtTime) {
-              // Fix: การแปลงค่าเวลาที่ลงท้ายด้วย ".50" เป็นทศนิยม ควรเป็น X.5 (ไม่ใช่ X.83)
               let decimalOt = 0;
-              
-              // ตรวจสอบว่าเป็นรูปแบบ "X.50" หรือไม่
               if (typeof rec.totalOtTime === 'string' && rec.totalOtTime.endsWith('.50')) {
                 const hours = parseInt(rec.totalOtTime.split('.')[0]);
                 decimalOt = hours + 0.5;
+                rec.totalOtTime = decimalOt.toFixed(2);
               } else {
-                // กรณีอื่นๆ ใช้การแปลงแบบปกติ
                 const [hours, minutes] = String(rec.totalOtTime).split('.').map(Number);
                 decimalOt = (hours || 0) + ((minutes || 0) / 60);
+                rec.totalOtTime = decimalOt.toFixed(2);
               }
-              
-              console.log(`   - วันที่ ${rec.date}: OT = ${rec.totalOtTime} ชั่วโมง (${decimalOt} ในรูปทศนิยม)`);
-              recalculatedSumOt1p5 += decimalOt;
             }
-          }
-        });
+            
+            if (rec.dayType === "work") {
+              workDays++;
+              if (rec.totalOtTime) {
+                let decimalOt = 0;
+                if (typeof rec.totalOtTime === 'string' && rec.totalOtTime.endsWith('.50')) {
+                  const hours = parseInt(rec.totalOtTime.split('.')[0]);
+                  decimalOt = hours + 0.5;
+                } else {
+                  const [hours, minutes] = String(rec.totalOtTime).split('.').map(Number);
+                  decimalOt = (hours || 0) + ((minutes || 0) / 60);
+                }
+                recalculatedSumOt1p5 += decimalOt;
+              }
+            }
+          });
+        }
+        
+        processedRecord.sumOt1p5 = recalculatedSumOt1p5.toFixed(2);
+        console.log(`🔄 Fallback: คำนวณ sumOt1p5 ใหม่สำหรับพนักงาน ${record.employeeId}: ${processedRecord.sumOt1p5} ชั่วโมง`);
       }
-      
-      // อัปเดตค่า sumOt1p5 ที่คำนวณใหม่
-      processedRecord.sumOt1p5 = recalculatedSumOt1p5.toFixed(2);
-      console.log(`🔄 คำนวณ sumOt1p5 ใหม่สำหรับพนักงาน ${record.employeeId}: จำนวนวันทำงาน ${workDays} วัน, รวม OT ${processedRecord.sumOt1p5} ชั่วโมง`);
 
       // Debug: ตรวจสอบข้อมูล personalDayOff และ cashcustomizeDayoff
       console.log(`📊 Debug ข้อมูล employee ${record.employeeId}:`);
@@ -5717,16 +5730,24 @@ console.log(`\n💰 คำนวณ publicHolidayCash สำหรับพน�
   // แสดงสรุปค่า publicHolidayCash ที่คำนวณได้
   console.log(`💰 ค่า publicHolidayCash ที่จะบันทึก: ${publicHolidayCash.toFixed(2)} บาท`);
 
-  console.log(`\n💰 คำนวณค่า sumCashWorkMul["1.5"] สำหรับพนักงาน ${employeeId}`);
-console.log(`💰 sumCashOt: ${sumCashOt} บาท`);
-console.log(`💰 sumcashDayOffCount: ${sumcashDayOffCount} บาท`);
+  // ❌ ลบส่วนที่เขียนทับค่า sumCashWorkMul["1.5"] ออกเพื่อให้ใช้ค่าที่คำนวณจาก Loop แทน
+  // console.log(`\n💰 คำนวณค่า sumCashWorkMul["1.5"] สำหรับพนักงาน ${employeeId}`);
+  // console.log(`💰 sumCashOt: ${sumCashOt} บาท`);
+  // console.log(`💰 sumcashDayOffCount: ${sumcashDayOffCount} บาท`);
+  // if (sumCashOt >= sumcashDayOffCount) {
+  //   sumCashWorkMul["1.5"] = sumCashOt - sumcashDayOffCount;
+  // } else {
+  //   sumCashWorkMul["1.5"] = 0;
+  // }
+  // console.log(`💰 sumCashWorkMul["1.5"] ที่คำนวณได้: ${sumCashWorkMul["1.5"].toFixed(2)} บาท`);
 
-// ถ้า sumCashOt มากกว่า sumcashDayOffCount ให้คำนวณผลต่าง แต่ถ้าน้อยกว่าให้เป็น 0
+  console.log(`\n💰 === ค่า sumCashWorkMul ที่คำนวณได้จากการวนลูป ===`);
+  console.log(`💰 sumCashWorkMul["1"]: ${sumCashWorkMul["1"]} บาท`);
+  console.log(`💰 sumCashWorkMul["1.5"]: ${sumCashWorkMul["1.5"]} บาท`);
+  console.log(`💰 sumCashWorkMul["2"]: ${sumCashWorkMul["2"]} บาท`);
+  console.log(`💰 sumCashWorkMul["3"]: ${sumCashWorkMul["3"]} บาท`);
 
-
-
-
-// สรุปผลการตรวจสอบวันหยุดที่กำหนดเอง
+  // สรุปผลการตรวจสอบวันหยุดที่กำหนดเอง
 const totalCustomDayoff = weekendData?.weekendAndDayOff?.length || 0;
 const daysWorkedOnCustomDayoff = employee_record.filter(record => {
   try {
