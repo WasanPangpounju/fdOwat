@@ -5343,34 +5343,60 @@ try {
         if (record?.dayType === 'stop') {
           console.log(record?.dayType);
           dayOffCount += 1;
+          
+          // เก็บค่าเดิมก่อนที่จะเปลี่ยนแปลง
+          const originalCashOtMul = record.cashOtMul;
+          const originalCashWorkMul = record.cashWorkMul;
+          
           if (holidayOT === "1.5") {
-    if (record.cashOtMul === "3") {
-      console.log(`🔄 ปรับ cashOtMul จาก "3" เป็น "1.5" สำหรับวันที่ ${record.date} (dayType=stop)`);
-      record.cashOtMul = "1.5";
-    }
-    if (record.cashWorkMul === "3") {
-      console.log(`🔄 ปรับ cashWorkMul จาก "3" เป็น "1.5" สำหรับวันที่ ${record.date} (dayType=stop)`);
-      record.cashWorkMul = "1.5";
-    }
-  }
+            if (record.cashOtMul === "3") {
+              console.log(`🔄 ปรับ cashOtMul จาก "3" เป็น "1.5" สำหรับวันที่ ${record.date} (dayType=stop)`);
+              console.log(`   - cashOt ที่จะถูกโอนไปยัง multiplier 1.5: ${record.cashOt} บาท`);
+              record.cashOtMul = "1.5";
+            }
+            if (record.cashWorkMul === "3") {
+              console.log(`🔄 ปรับ cashWorkMul จาก "3" เป็น "1.5" สำหรับวันที่ ${record.date} (dayType=stop)`);
+              console.log(`   - cashWork ที่จะถูกโอนไปยัง multiplier 1.5: ${record.cashWork} บาท`);
+              record.cashWorkMul = "1.5";
+            }
+          }
+          
           sumcashDayOffCount = parseFloat(sumcashDayOffCount || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0')
 
-            sumTimeOt += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalTime) + convertTimeToDecimal(record.totalOtTime);
-            sumCashOt = parseFloat(sumCashOt || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0')
-            if (holidayOT === "1.5") {
-                sumOt1p5 += convertTimeToDecimal(record.totalOtTime);
-                console.log(`➕ เพิ่ม OT ใน sumOt1p5: ${convertTimeToDecimal(record.totalOtTime)} ชม. (วันที่ ${record.date})`);
-              } else {
-                sumOt3 += convertTimeToDecimal(record.totalOtTime);
-                console.log(`➕ เพิ่ม OT ใน sumOt3: ${convertTimeToDecimal(record.totalOtTime)} ชม. (วันที่ ${record.date})`);
-              }
-            sumOtPublicHoliday += convertTimeToDecimal(record.totalTime); // เพิ่มผลรวมของ totalOtTime ในวันหยุดนักขัตฤกษ์
-            sumCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
+          sumTimeOt += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalTime) + convertTimeToDecimal(record.totalOtTime);
+          sumCashOt = parseFloat(sumCashOt || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0')
+          
+          // คำนวณ OT time โดยใช้ค่าที่ปรับแล้ว
+          if (holidayOT === "1.5") {
+            sumOt1p5 += convertTimeToDecimal(record.totalOtTime);
+            console.log(`➕ เพิ่ม OT ใน sumOt1p5: ${convertTimeToDecimal(record.totalOtTime)} ชม. (วันที่ ${record.date})`);
+          } else {
+            sumOt3 += convertTimeToDecimal(record.totalOtTime);
+            console.log(`➕ เพิ่ม OT ใน sumOt3: ${convertTimeToDecimal(record.totalOtTime)} ชม. (วันที่ ${record.date})`);
+          }
+          
+          sumOtPublicHoliday += convertTimeToDecimal(record.totalTime); // เพิ่มผลรวมของ totalOtTime ในวันหยุดนักขัตฤกษ์
+          
+          // คำนวณ sumCashWorkMul และ timeCashWorkMul โดยใช้ค่าที่ปรับแล้ว
+          if (record?.cashWorkMul && sumCashWorkMul[record.cashWorkMul] !== undefined) {
+            const cashWorkAmount = parseFloat(record?.cashWork || '0');
+            sumCashWorkMul[record.cashWorkMul] += cashWorkAmount;
+            console.log(`   - เพิ่ม cashWork ${cashWorkAmount} ไปยัง sumCashWorkMul[${record.cashWorkMul}] (รวม: ${sumCashWorkMul[record.cashWorkMul]})`);
+          }
+          if (record?.cashOtMul && sumCashWorkMul[record.cashOtMul] !== undefined) {
+            const cashOtAmount = parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0');
+            sumCashWorkMul[record.cashOtMul] += cashOtAmount;
+            console.log(`   - เพิ่ม cashOt ${cashOtAmount} ไปยัง sumCashWorkMul[${record.cashOtMul}] (รวม: ${sumCashWorkMul[record.cashOtMul]})`);
+          }
 
-          sumCashWorkMul[record?.cashOtMul] += parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0');
-
-          timeCashWorkMul[record?.cashWorkMul] += convertTimeToDecimal(record.totalTime);
-          timeCashWorkMul[record?.cashOtMul] += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalOtTime);
+          if (record?.cashWorkMul && timeCashWorkMul[record.cashWorkMul] !== undefined) {
+            timeCashWorkMul[record.cashWorkMul] += convertTimeToDecimal(record.totalTime);
+          }
+          if (record?.cashOtMul && timeCashWorkMul[record.cashOtMul] !== undefined) {
+            timeCashWorkMul[record.cashOtMul] += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalOtTime);
+          }
+          
+          console.log(`📊 วันที่ ${record.date} (dayType=stop): cashWork=${record.cashWork}, cashWorkMul=${record.cashWorkMul}, cashOt=${record.cashOt}, cashOtMul=${record.cashOtMul}`);
 
         } else
           if (record?.dayType === 'specialDayOff') {
@@ -5425,8 +5451,10 @@ if (record?.dayType === "work") {
     sumCashWork += parseFloat(record?.cashWork || '0');
     
     // อัปเดต sumCashWorkMul สำหรับเวลาทำงานปกติ
-    if (record?.cashWorkMul) {
+    if (record?.cashWorkMul && sumCashWorkMul[record.cashWorkMul] !== undefined) {
       sumCashWorkMul[record.cashWorkMul] += parseFloat(record?.cashWork || '0');
+    }
+    if (record?.cashWorkMul && timeCashWorkMul[record.cashWorkMul] !== undefined) {
       timeCashWorkMul[record.cashWorkMul] += convertTimeToDecimal(record.totalTime);
     }
   }
