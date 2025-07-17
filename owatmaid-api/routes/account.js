@@ -5940,6 +5940,7 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
     countAllowance, // เพิ่ม countAllowance เพื่อใช้ในการตั้งค่า message
   };
   
+  
   // Log ค่า countAllowance ก่อน return
   console.log(`\n🔍 === ค่าที่จะ return จาก calculateCashValues ===`);
   console.log(`🔍 countAllowance: ${countAllowance}`);
