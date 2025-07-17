@@ -304,44 +304,60 @@ router.post('/searchemp', async (req, res) => {
     const { employeeId,
       employeeName,
       month,
-      timerecordId} = req.body;
+      year,
+      timerecordId,
+      workplaceId,
+      'employee_workplaceRecord.workplaceId': workplaceIdInRecord} = req.body;
 
     // Construct the search query based on the provided parameters
     const query = {};
 
-    if (employeeId !== '') {
-      query.employeeId= employeeId;
+    if (employeeId && employeeId !== '') {
+      query.employeeId = employeeId;
     }
 
-
-    if (employeeName !== '') {
+    if (employeeName && employeeName !== '') {
       query.employeeName = { $regex: new RegExp(employeeName, 'i') };
     }
 
-    if (month !== '') {
-      //query.month = new Date(date);
-      query.month = { $regex: new RegExp(month , 'i') };
+    if (month && month !== '') {
+      query.month = { $regex: new RegExp(month, 'i') };
     }
 
-    if (timerecordId !== '') {
-      //query.month = new Date(date);
-      query.timerecordId = { $regex: new RegExp(timerecordId , 'i') };
+    if (year && year !== '') {
+      // Add year filter - assuming timerecordId contains year info or we need to filter by year in employee_workplaceRecord
+      query.timerecordId = { $regex: new RegExp(year, 'i') };
     }
 
-    // console.log('Constructed Query:');
-    // console.log(query);
+    if (timerecordId && timerecordId !== '') {
+      query.timerecordId = { $regex: new RegExp(timerecordId, 'i') };
+    }
 
-    if (employeeId == '' && employeeName == '' && month == '' && timerecordId == '') {
-      res.status(200).json({});
+    // Support for workplaceId in employee_workplaceRecord
+    if (workplaceIdInRecord && workplaceIdInRecord !== '') {
+      query['employee_workplaceRecord.workplaceId'] = workplaceIdInRecord;
+    }
+
+    // Direct workplaceId parameter
+    if (workplaceId && workplaceId !== '') {
+      query['employee_workplaceRecord.workplaceId'] = workplaceId;
+    }
+
+    console.log('Constructed Query:');
+    console.log(query);
+
+    // If no search parameters provided, return empty result
+    if (Object.keys(query).length === 0) {
+      return res.status(200).json({ recordworkplace: [] });
     }
 
     // Query the workplace collection for matching documents
-    const recordworkplace  = await workplaceTimerecordEmp.find(query);
+    const recordworkplace = await workplaceTimerecordEmp.find(query);
 
-    // await console.log('Search Results:');
-    // await console.log(recordworkplace  );
-    let textSearch = 'workplace';
-    await res.status(200).json({ recordworkplace  });
+    console.log('Search Results:');
+    console.log(recordworkplace);
+    
+    res.status(200).json({ recordworkplace });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Internal server error' });
