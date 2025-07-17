@@ -4875,6 +4875,25 @@ let timeCashWorkMul = {
   const salaryTmp = parseFloat(employeeProfile[0].salary || '0') || 0;
   const costtype = employeeProfile[0].costtype || '';
 
+
+  try {
+    const employee = await Employee.findOne({ employeeId: employeeId });
+    const wpId = employee?.workplace || '';
+    
+    if (wpId) {
+      const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${wpId}`);
+      holidayOT = workplaceResponse.data.holidayOT || "3";
+      
+      console.log(`\n🔍 === ตรวจสอบค่า holidayOT ===`);
+      console.log(`🏢 Workplace ID: ${wpId}`);
+      console.log(`📊 holidayOT: ${holidayOT}`);
+      console.log(`🔍 จะปรับ cashOtMul ของ dayType="stop" เป็น: ${holidayOT === "1.5" ? "1.5" : "3"}`);
+    }
+  } catch (error) {
+    console.error(`❌ Error checking holidayOT:`, error.message);
+    console.log(`⚠️ ใช้ค่า default holidayOT = 3`);
+  }
+
   // 🎯 ดึงข้อมูล workplace และ workRate
   let workRate = 0;
   try {
@@ -5324,11 +5343,27 @@ try {
         if (record?.dayType === 'stop') {
           console.log(record?.dayType);
           dayOffCount += 1;
+          if (holidayOT === "1.5") {
+    if (record.cashOtMul === "3") {
+      console.log(`🔄 ปรับ cashOtMul จาก "3" เป็น "1.5" สำหรับวันที่ ${record.date} (dayType=stop)`);
+      record.cashOtMul = "1.5";
+    }
+    if (record.cashWorkMul === "3") {
+      console.log(`🔄 ปรับ cashWorkMul จาก "3" เป็น "1.5" สำหรับวันที่ ${record.date} (dayType=stop)`);
+      record.cashWorkMul = "1.5";
+    }
+  }
           sumcashDayOffCount = parseFloat(sumcashDayOffCount || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0')
 
             sumTimeOt += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalTime) + convertTimeToDecimal(record.totalOtTime);
             sumCashOt = parseFloat(sumCashOt || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0')
-            sumOt3 += convertTimeToDecimal(record.totalOtTime);
+            if (holidayOT === "1.5") {
+                sumOt1p5 += convertTimeToDecimal(record.totalOtTime);
+                console.log(`➕ เพิ่ม OT ใน sumOt1p5: ${convertTimeToDecimal(record.totalOtTime)} ชม. (วันที่ ${record.date})`);
+              } else {
+                sumOt3 += convertTimeToDecimal(record.totalOtTime);
+                console.log(`➕ เพิ่ม OT ใน sumOt3: ${convertTimeToDecimal(record.totalOtTime)} ชม. (วันที่ ${record.date})`);
+              }
             sumOtPublicHoliday += convertTimeToDecimal(record.totalTime); // เพิ่มผลรวมของ totalOtTime ในวันหยุดนักขัตฤกษ์
             sumCashWorkMul[record?.cashWorkMul] += parseFloat(record?.cashWork || '0');
 
