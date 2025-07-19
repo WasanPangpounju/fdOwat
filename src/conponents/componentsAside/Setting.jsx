@@ -772,7 +772,7 @@ const handleRemovePublicHoliday = async (holidayToRemove) => {
       }
     } catch (error) {
       console.error("เกิดข้อผิดพลาดในการอัปเดตวันหยุดนักขัตฤกษ์:", error);
-
+      
     }
   };
 
@@ -1444,6 +1444,7 @@ setWorkRateChange(workplace.workRateChange)
       addWorkRate: addWorkRate,
       workRateOT: workRateOT,
       workTotalPeople: workTotalPeople,
+      countEmployee: showEmployeeListResult.length.toString(),
       dayoffRate: dayoffRate,
       dayoffRateOT: dayoffRateOT,
       dayoffRateHour: dayoffRateHour,

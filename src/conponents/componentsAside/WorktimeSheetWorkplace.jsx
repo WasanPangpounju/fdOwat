@@ -107,6 +107,7 @@ function WorktimeSheetWorkplace({ employeeList }) {
   };
   const [dataset, setDataset] = useState([]);
   const [workplaceIdEMP, setWorkplaceIdEMP] = useState(""); //รหัสหน่วยงาน
+  const [workplaceData, setWorkplaceData] = useState(null); // เพิ่ม state สำหรับข้อมูล workplace
 
   const [workplaceList, setWorkplaceList] = useState([]);
   const [workplaceDataList, setWorkplaceDataList] = useState([]);
@@ -320,6 +321,25 @@ const fetchWeekendData = async (year, month, workplaceId) => {
     }
 
     return thaiMonths[monthNumber - 1];
+  };
+
+  // Helper function to format time values (convert 1.30 to 1.50 format)
+  const formatTimeValue = (value) => {
+    if (!value) return '';
+    
+    const numValue = parseFloat(value);
+    if (isNaN(numValue)) return value;
+    
+    // Split into integer and decimal parts
+    const integerPart = Math.floor(numValue);
+    const decimalPart = numValue - integerPart;
+    
+    // Convert decimal part (0.30 becomes 0.50, 0.15 becomes 0.25, etc.)
+    // This assumes the decimal represents minutes (30 minutes = 0.50 hours)
+    const formattedDecimal = decimalPart > 0 ? Math.round(decimalPart * 100 / 60 * 100) / 100 : 0;
+    
+    const result = integerPart + formattedDecimal;
+    return result.toFixed(2);
   };
   const thaiToEnglishDayMap = {
     จันทร์: ["Mon"],
@@ -672,7 +692,7 @@ useEffect(() => {
     const fetchData = async () => {
       try {
         setWorkplaceAddsalary([])
-        const response = await axios.get(`${endpoint}/workplace/${searchWorkplaceId}`);
+        const response = await axios.get(`http://10.10.110.7:3000/workplace/${searchWorkplaceId}`);
         await setWorkplaceAddsalary(response.data.addSalary)
         // await alert(response.data.addSalary.length);
          if (year && month && searchWorkplaceId) {
@@ -772,7 +792,7 @@ if(sortedData.length > 0) {
     }
 
     try {
-      const response = await axios.post(endpoint + "/accounting/searchtimerecordbyworkplace", dataSearch);
+      const response = await axios.post(endpoint + "/accounting/searchtimerecordemployee", dataSearch);
       const groupedResult = response.data.groupedResult;
       // รวมข้อมูลทั้งหมดจากทุก workplace ให้กลายเป็น array เดียว
       const allRecords = Object.values(groupedResult).flat();
@@ -7648,12 +7668,15 @@ const getDateStyle = (day) => {
           
           empRow2.push(record.socialSecurity ? parseFloat(record.socialSecurity).toFixed(2) : '', '');
           
-          // Row 3: OT 1.5 data
+          // Row 3: OT 1.5 data - using same condition as sumOvertimePerDay
           const empRow3 = ['', `${record.employeeId} โอที 1.5`];
           dayNumbers.forEach(day => {
             const found = record?.employee_record?.find(itemx => itemx.date === day);
-            if (found?.cashOtMul?.trim() && found?.dayType !== "stop") {
-              empRow3.push([found.beforeTotalOtTime, found.totalOtTime].filter(Boolean).join(','));
+            if (found?.cashOtMul?.trim() && found?.cashOtMul === "1.5") {
+              empRow3.push([
+                found.beforeTotalOtTime ? formatTimeValue(found.beforeTotalOtTime) : '',
+                found.totalOtTime ? formatTimeValue(found.totalOtTime) : ''
+              ].filter(Boolean).join(','));
             } else {
               empRow3.push('');
             }
@@ -7679,8 +7702,11 @@ const getDateStyle = (day) => {
           const empRow5 = ['', 'โอที3'];
           dayNumbers.forEach(day => {
             const found = record?.employee_record?.find(itemx => itemx.date === day);
-            if (found?.dayType === "stop" && found?.cashOtMul?.trim()) {
-              empRow5.push([found.beforeTotalOtTime, found.totalOtTime].filter(Boolean).join(','));
+            if (found?.cashOtMul === "3" && found?.cashOtMul?.trim()) {
+              empRow5.push([
+                found.beforeTotalOtTime ? formatTimeValue(found.beforeTotalOtTime) : '',
+                found.totalOtTime ? formatTimeValue(found.totalOtTime) : ''
+              ].filter(Boolean).join(','));
             } else {
               empRow5.push('');
             }
@@ -7830,7 +7856,11 @@ const getDateStyle = (day) => {
       });
       absentEmpRow.push(absentEmployeesPerDay.reduce((total, count) => total + (count || 0), 0));
       absentEmpRow.push('', '');
-      absentEmpRow.push(totalOtPublicHoliday, totalOtWithOvertime1_5, totalOtWithOvertime3);
+      absentEmpRow.push(
+        formatTimeValue(totalOtPublicHoliday), 
+        formatTimeValue(totalOtWithOvertime1_5), 
+        formatTimeValue(totalOtWithOvertime3)
+      );
       
       // Mark special styling for empty days (gray background) and holiday work columns
       absentEmpRow.specialStyles = {
@@ -7887,9 +7917,9 @@ const getDateStyle = (day) => {
       const ot15Row = ['โอที 1.5 เท่า', ''];
       dayNumbers.forEach((day, i) => {
         const overtimeSum = overtimeSumPerDay[i] || 0;
-        ot15Row.push(overtimeSum === 0 ? '' : overtimeSum);
+        ot15Row.push(overtimeSum === 0 ? '' : formatTimeValue(overtimeSum));
       });
-      ot15Row.push(overtimeSumPerDay.reduce((total, sum) => total + (sum || 0), 0));
+      ot15Row.push(formatTimeValue(overtimeSumPerDay.reduce((total, sum) => total + (sum || 0), 0)));
       for (let i = 0; i < 5 + (workplaceAddsalary?.length || 0) + 2; i++) {
         ot15Row.push('');
       }
@@ -7913,9 +7943,9 @@ const getDateStyle = (day) => {
       const ot2Row = ['โอที 2 เท่า', ''];
       dayNumbers.forEach((day, i) => {
         const overtime2Sum = overtime2SumPerDay[i] || 0;
-        ot2Row.push(overtime2Sum === 0 ? '' : overtime2Sum);
+        ot2Row.push(overtime2Sum === 0 ? '' : formatTimeValue(overtime2Sum));
       });
-      ot2Row.push(overtime2SumPerDay.reduce((total, sum) => total + (sum || 0), 0));
+      ot2Row.push(formatTimeValue(overtime2SumPerDay.reduce((total, sum) => total + (sum || 0), 0)));
       for (let i = 0; i < 5 + (workplaceAddsalary?.length || 0) + 2; i++) {
         ot2Row.push('');
       }
@@ -7937,9 +7967,9 @@ const getDateStyle = (day) => {
       const ot3Row = ['โอที 3 เท่า', ''];
       dayNumbers.forEach((day, i) => {
         const overtime3Sum = overtime3SumPerDay[i] || 0;
-        ot3Row.push(overtime3Sum === 0 ? '' : overtime3Sum);
+        ot3Row.push(overtime3Sum === 0 ? '' : formatTimeValue(overtime3Sum));
       });
-      ot3Row.push(overtime3SumPerDay.reduce((total, sum) => total + (sum || 0), 0));
+      ot3Row.push(formatTimeValue(overtime3SumPerDay.reduce((total, sum) => total + (sum || 0), 0)));
       for (let i = 0; i < 5 + (workplaceAddsalary?.length || 0) + 2; i++) {
         ot3Row.push('');
       }
@@ -10593,7 +10623,7 @@ const getDateStyle = (day) => {
       data.forEach(record => {
         dayNumbers.forEach((day, dayIndex) => {
           const found = record?.employee_record?.find(itemx => itemx.date === day);
-          if (found?.cashOtMul?.trim() && found?.dayType !== "stop") {
+          if (found?.cashOtMul?.trim() && found?.cashOtMul === "1.5") {
             const beforeTime = parseFloat(found.beforeTotalOtTime) || 0;
             const totalTime = parseFloat(found.totalOtTime) || 0;
             sums[dayIndex] += beforeTime + totalTime;
@@ -10624,7 +10654,7 @@ const getDateStyle = (day) => {
     return sums;
   };
 
-  // เพิ่ม function สำหรับรวมชั่วโมงโอที 3 เท่าในแต่ละวัน (dayType === "stop" && cashOtMul)
+  // เพิ่ม function สำหรับรวมชั่วโมงโอที 3 เท่าในแต่ละวัน (cashOtMul === "3")
   const sumOvertime3PerDay = () => {
     const sums = Array(dayNumbers.length).fill(0);
     
@@ -10632,7 +10662,7 @@ const getDateStyle = (day) => {
       data.forEach(record => {
         dayNumbers.forEach((day, dayIndex) => {
           const found = record?.employee_record?.find(itemx => itemx.date === day);
-          if (found?.dayType === "stop" && found?.cashOtMul?.trim()) {
+          if (found?.cashOtMul ==="3" && found?.cashOtMul?.trim()) {
             const beforeTime = parseFloat(found.beforeTotalOtTime) || 0;
             const totalTime = parseFloat(found.totalOtTime) || 0;
             sums[dayIndex] += beforeTime + totalTime;
@@ -11233,10 +11263,18 @@ const getDateStyle = (day) => {
                       {record.sumOtPublicHoliday || ''}
                     </td>
 
-                    <td className="text-center text-red align-middle p-1">
-                      {/* จำนวนวันทำงานปกติ */}
-                    {record.sumOt1p5 || ''} 
-                    </td>
+                   <td className="text-center text-red align-middle p-1">
+    {(() => {
+      const originalValue = record.sumOt1p5;
+      console.log('=== DEBUG OT 1.5 ===');
+      console.log('employeeId:', record.employeeId);
+      console.log('originalValue:', originalValue);
+      console.log('type:', typeof originalValue);
+      console.log('full record:', record);
+      console.log('==================');
+      return originalValue || '';
+    })()}
+</td>
                     
 
                     <td className="text-center align-middle text-red p-1">
@@ -11251,9 +11289,10 @@ const getDateStyle = (day) => {
                     {workplaceAddsalary.map((item, i) => {
                         const found = record.addSalaryList.find(itemx => itemx.id === item.codeSpSalary);
                         const value = found?.message;
+                const displayValue = value && !isNaN(value) ? parseFloat(value) : "";
                         return (
-                          <td key={i} className="text-center text-red p-1 align-middle">
-                            {value ? parseFloat(value) : ""}
+                           <td key={i} className="text-center text-red p-1 align-middle">
+                            {displayValue}
                           </td>
                         );
                       })}
@@ -11278,7 +11317,7 @@ const getDateStyle = (day) => {
 
                     <td  className="text-center align-middle">
                     {/* เงินวันทำงาน */}
-                      {record.sumCashWorkMul[1] || ''}
+                      {record.sumCashWork|| ''}
                       </td>
 
                     <td  className="text-center align-middle" style={{backgroundColor:"#fcdfca"}}>
@@ -11342,16 +11381,20 @@ const getDateStyle = (day) => {
                     
 
                 {dayNumbers.map((day, i) => {
-                  const found = record?.employee_record?.find(itemx => itemx.date === day);
-                  const isWork = found?.dayType === "work"
-                  return (
-                    <td key={i} className="text-center align-middle" style={!isWork ? { backgroundColor: "#bfbdbf" } : {}}>
-                      {found?.cashOtMul?.trim() && found?.dayType !== "stop"
-                        ? [found.beforeTotalOtTime, found.totalOtTime].filter(Boolean).join(',')
-                        : ''}
-                    </td>
-                  );
-                })}
+                    const found = record?.employee_record?.find(itemx => itemx.date === day);
+                    const hasData = found && found.date; // ตรวจสอบว่ามีข้อมูลหรือไม่
+                    
+                    return (
+                      <td key={i} className="text-center align-middle" style={!hasData ? { backgroundColor: "#bfbdbf" } : {}}>
+                        {found?.cashOtMul?.trim() && found?.cashOtMul === "1.5" && found.totalOtTime
+                          ? [
+                              found.beforeTotalOtTime ? formatTimeValue(found.beforeTotalOtTime) : '',
+                              found.totalOtTime ? formatTimeValue(found.totalOtTime) : ''
+                            ].filter(Boolean).join(',')
+                          : ''}
+                      </td>
+                    );
+                  })}
                 <td></td>
                 <td style={{backgroundColor:"#fcdfca"}}></td>
                 <td></td>
@@ -11377,7 +11420,7 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
       className="text-red align-middle text-center"
       style={found?.dayType === "stop" && found.totalTime ? {backgroundColor: "yellow"} : {}}
     >
-      {found?.dayType === "stop" ? found.totalTime : ''}
+      {found?.dayType === "stop" && found.totalTime ? formatTimeValue(found.totalTime) : ''}
     </td>
   );
 })}       
@@ -11411,9 +11454,12 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
     
     // Check if this is a "stop" day with overtime values
     return (
-      <td key={i} className="text-center align-middle" style={{backgroundColor: found?.dayType === "stop" && found.totalOtTime ? "#fae0f1" : ""}}>
-        {found?.dayType === "stop" && found?.cashOtMul?.trim()
-          ? [found.beforeTotalOtTime, found.totalOtTime].filter(Boolean).join(',')
+      <td key={i} className="text-center align-middle" style={{backgroundColor: found?.dayType === "stop" && found.cashOtMul === "3" &&  found.totalOtTime ? "#fae0f1" : ""}}>
+        {found?.dayType === "stop" && found?.cashOtMul?.trim() && found.cashOtMul === "3"
+          ? [
+              found.beforeTotalOtTime ? formatTimeValue(found.beforeTotalOtTime) : '',
+              found.totalOtTime ? formatTimeValue(found.totalOtTime) : ''
+            ].filter(Boolean).join(',')
           : ''}
       </td>
     );
@@ -11478,6 +11524,15 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
                       
                     </tr>
 
+
+                    {/* <tr style={{borderTop: "2px solid #000" }}> 
+                      <td className="text-bold p-1 align-middle" style={{ backgroundColor:"#fff7c2"}} colSpan={2}>
+                        พนักงานตามสัญญา ({workplaceData?.countEmployee || 0} คน)
+                      </td>
+
+                
+                    </tr> */}
+
                     <tr>
                       
                     </tr>
@@ -11507,13 +11562,13 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
                       <td></td>
                       <td></td>
                       <td id="sumofPublicHoliday" className="text-center text-bold align-middle" style={{ backgroundColor: "#fff7c2", color: "#1654a6" }}>
-                          {totalOtPublicHoliday}
+                          {formatTimeValue(totalOtPublicHoliday)}
                       </td>
                       <td id="sumofPublicHoliday" className="text-center text-bold align-middle" style={{ backgroundColor: "#fff7c2", color: "#1654a6" }}>
-                          {totalOtWithOvertime1_5}
+                          {formatTimeValue(totalOtWithOvertime1_5)}
                       </td>
                       <td id="sumofPublicHoliday" className="text-center text-bold align-middle" style={{ backgroundColor: "#fff7c2", color: "#1654a6" }}>
-                          {totalOtWithOvertime3}
+                          {formatTimeValue(totalOtWithOvertime3)}
                       </td>
 
                       {/* เติมช่องสำหรับสวัสดิการ */}
@@ -11538,12 +11593,12 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
                               className={`text-center text-bold align-middle`}
                               style={isZero ? { backgroundColor: "#bfbdbf" , color: "" } : { color: "green" }}
                             >
-                              {isZero ? "" : overtimeSum}
+                              {isZero ? "" : formatTimeValue(overtimeSum)}
                             </td>
                           );
                         })}
                          <td className="text-center text-bold align-middle" style={{ backgroundColor: "#fff7c2", color: "#000" }}>
-                            {overtimeSumPerDay.reduce((total, sum) => total + (sum || 0), 0)}
+                            {formatTimeValue(overtimeSumPerDay.reduce((total, sum) => total + (sum || 0), 0))}
                         </td>                        {/* เติมช่องสำหรับค่าล่วงเวลาและสวัสดิการ */}
                         <td className="text-center"></td>
                         <td className="text-center"></td>
@@ -11568,12 +11623,12 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
                               className={`text-center text-bold align-middle`}
                               style={isZero ? { backgroundColor: "#bfbdbf" , color: "" } : { color: "green"  , backgroundColor: "yellow" }}
                             >
-                              {isZero ? "" : overtime2Sum}
+                              {isZero ? "" : formatTimeValue(overtime2Sum)}
                             </td>
                           );
                         })}
                         <td className="text-center text-bold align-middle" style={{ backgroundColor: "#fff7c2", color: "#000" }}>
-                            {overtime2SumPerDay.reduce((total, sum) => total + (sum || 0), 0)}
+                            {formatTimeValue(overtime2SumPerDay.reduce((total, sum) => total + (sum || 0), 0))}
                         </td>
                         {/* เติมช่องสำหรับค่าล่วงเวลาและสวัสดิการ */}
                         <td className="text-center"></td>
@@ -11599,12 +11654,12 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
                               className={`text-center text-bold align-middle`}
                               style={isZero ? { backgroundColor: "#bfbdbf" , color: "" } : { color: "green" , backgroundColor: "#fae0f1" }}
                             >
-                              {isZero ? "" : overtime3Sum}
+                              {isZero ? "" : formatTimeValue(overtime3Sum)}
                             </td>
                           );
                         })}
                         <td className="text-center text-bold align-middle" style={{ backgroundColor: "#fff7c2", color: "#000" }}>
-                            {overtime3SumPerDay.reduce((total, sum) => total + (sum || 0), 0)}
+                            {formatTimeValue(overtime3SumPerDay.reduce((total, sum) => total + (sum || 0), 0))}
                         </td>
                         {/* เติมช่องสำหรับค่าล่วงเวลาและสวัสดิการ */}
                         <td className="text-center"></td>
