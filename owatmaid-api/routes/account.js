@@ -5849,7 +5849,6 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
   
   if (salaryMonth !== 0) {
     console.log(`💰 ✅ พนักงานเงินเดือน (salaryMonth = ${salaryMonth} ≠ 0)`);
-    dayWorkCount = 30;
     sumCashWork = salaryMonth;
     
     console.log(`\n💰 STEP 3: คำนวณรายได้รวมสำหรับประกันสังคม`);
