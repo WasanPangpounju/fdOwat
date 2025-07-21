@@ -2354,7 +2354,7 @@ try {
                               minimumFractionDigits: 2,
                               maximumFractionDigits: 2
                             })}
-                          </th>
+                          </th> 
                           {/* <td style={cellStyle}>{isNaN(Number(bank)) ? 0.00 : Number(bank).toFixed(2)}</td> */}
                           {/* <td style={cellStyle}>
                             <input

@@ -7608,20 +7608,19 @@ const getDateStyle = (day) => {
             
             const isWork = found?.dayType === "work";
             
-            // ตรวจสอบ workplaceId ของพนักงานคนนี้ทั้งหมด (เฉพาะ record ที่มี totalTime)
-            const recordsWithTotalTime = record?.employee_record?.filter(item => item.totalTime && item.totalTime.trim() !== '') || [];
-            const allWorkplaceIds = recordsWithTotalTime.map(item => item.workplaceId) || [];
-            const uniqueWorkplaceIds = [...new Set(allWorkplaceIds)]; // เอาค่าที่ซ้ำออก
-            const isSameWorkplace = uniqueWorkplaceIds.length <= 1; // ถ้ามีแค่ workplaceId เดียวหรือไม่มีเลย = เหมือนกันหมด
-            
-            // กำหนดค่าที่จะแสดง
+            // กำหนดค่าที่จะแสดง (ใช้ logic เดียวกันกับตาราง)
             let displayValue = '';
             if (isWork) {
-              if (isSameWorkplace) {
+              // เปรียบเทียบ workplaceId ของ record กับ searchWorkplaceId ที่เลือก
+              const recordWorkplaceId = found?.workplaceId;
+              const isMatchSearchWorkplace = recordWorkplaceId === searchWorkplaceId;
+              
+              if (isMatchSearchWorkplace) {
+                // ถ้าตรงกับ searchWorkplaceId ให้แสดงแค่ 1
                 displayValue = '1';
               } else {
-                // แสดง workplaceId ของ record ที่มี totalTime (สำหรับ Excel ไม่ใช้ HTML)
-                displayValue = `1\n${found?.workplaceId || '1'}`;
+                // ถ้าไม่ตรงกับ searchWorkplaceId ให้แสดง 1 และ workplaceId (สำหรับ Excel ใช้ newline)
+                displayValue = `1\n${recordWorkplaceId || ''}`;
               }
             }
             
@@ -7847,6 +7846,40 @@ const getDateStyle = (day) => {
           };
         }
       });
+
+      // Contract employees per day (รวมพนักงานตามสัญญา/วัน)
+      const contractEmpRow = ['รวมพนักงานตามสัญญา/วัน', ''];
+      dayNumbers.forEach((day, i) => {
+        const count = contractEmployeeCount || 0;
+        contractEmpRow.push(count === 0 ? '' : count);
+      });
+      // รวมพนักงานตามสัญญาทั้งหมด = จำนวนพนักงานตามสัญญา × จำนวนวันที่มีการทำงาน
+      const workingDaysCount = dayNumbers.filter(day => {
+        const dayIndex = dayNumbers.indexOf(day);
+        return (employeeCountPerDay[dayIndex] || 0) > 0;
+      }).length;
+      contractEmpRow.push(contractEmployeeCount ? contractEmployeeCount * workingDaysCount : 0);
+      for (let i = 0; i < 5 + (workplaceAddsalary?.length || 0) + 2; i++) {
+        contractEmpRow.push('');
+      }
+      
+      // Mark special styling for contract employees row
+      contractEmpRow.specialStyles = {};
+      dayNumbers.forEach((day, i) => {
+        const count = contractEmployeeCount || 0;
+        if (count === 0) {
+          contractEmpRow.specialStyles[i + 2] = { // +2 เพราะ column A,B เป็น "รวมพนักงานตามสัญญา/วัน" และ ""
+            backgroundColor: 'FFD3D3D3', // สีเทา
+            fontColor: 'FF000000',      // ตัวอักษรสีดำ
+            fontWeight: 'bold'
+          };
+        } else {
+          contractEmpRow.specialStyles[i + 2] = {
+            fontColor: 'FF0000FF',      // ตัวอักษรสีน้ำเงิน
+            fontWeight: 'bold'
+          };
+        }
+      });
       
       // Absent employees per day
       const absentEmpRow = ['พนักงานขาดงาน', ''];
@@ -7991,6 +8024,7 @@ const getDateStyle = (day) => {
       console.log('📋 Adding summary rows to worksheet...');
       const summaryStartRow = currentRowIndex;
       worksheet.addRow(totalEmpRow);
+      worksheet.addRow(contractEmpRow); // เพิ่มแถวพนักงานตามสัญญา
       const absentRowRef = worksheet.addRow(absentEmpRow);
       worksheet.addRow(ot15Row);
       worksheet.addRow(ot2Row);
@@ -8020,17 +8054,44 @@ const getDateStyle = (day) => {
             console.log(`Applied gray style to total employee cell (${rowNumber}, ${colNumber})`);
           } catch (error) {
             console.warn(`Failed to apply special style to total employee cell index ${cellIndex}:`, error.message);
+          }        });
+      }
+
+      // Apply special styling to specific cells in contract employee row
+      if (contractEmpRow.specialStyles) {
+        console.log('🎨 Applying special styles to contract employee row...');
+        Object.entries(contractEmpRow.specialStyles).forEach(([cellIndex, style]) => {
+          try {
+            const colNumber = parseInt(cellIndex) + 1; // Convert to 1-based column number
+            const rowNumber = summaryStartRow + 1; // contractEmpRow is second summary row (0-based, so +1)
+            const cell = worksheet.getCell(rowNumber, colNumber);
+            
+            cell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: style.backgroundColor }
+            };
+            
+            cell.font = {
+              bold: style.fontWeight === 'bold',
+              size: 9,
+              color: { argb: style.fontColor }
+            };
+            
+            console.log(`Applied style to contract employee cell (${rowNumber}, ${colNumber})`);
+          } catch (error) {
+            console.warn(`Failed to apply special style to contract employee cell index ${cellIndex}:`, error.message);
           }
         });
       }
-      
+
       // Apply special styling to specific cells in absent employee row
       if (absentEmpRow.specialStyles) {
         console.log('🎨 Applying special styles to absent employee row...');
         Object.entries(absentEmpRow.specialStyles).forEach(([cellIndex, style]) => {
           try {
             const colNumber = parseInt(cellIndex) + 1; // Convert to 1-based column number
-            const rowNumber = summaryStartRow + 1; // absentEmpRow is second summary row (0-based, so +1)
+            const rowNumber = summaryStartRow + 2; // absentEmpRow is now third summary row (0-based, so +2)
             const cell = worksheet.getCell(rowNumber, colNumber);
             
             // Apply background color if exists
@@ -8087,7 +8148,7 @@ const getDateStyle = (day) => {
         Object.entries(ot15Row.specialStyles).forEach(([cellIndex, style]) => {
           try {
             const colNumber = parseInt(cellIndex) + 1; // Convert to 1-based column number
-            const rowNumber = summaryStartRow + 2; // ot15Row is third summary row (0-based, so +2)
+            const rowNumber = summaryStartRow + 3; // ot15Row is now fourth summary row (0-based, so +3)
             const cell = worksheet.getCell(rowNumber, colNumber);
             
             cell.fill = {
@@ -8115,7 +8176,7 @@ const getDateStyle = (day) => {
         Object.entries(ot2Row.specialStyles).forEach(([cellIndex, style]) => {
           try {
             const colNumber = parseInt(cellIndex) + 1; // Convert to 1-based column number
-            const rowNumber = summaryStartRow + 3; // ot2Row is fourth summary row (0-based, so +3)
+            const rowNumber = summaryStartRow + 4; // ot2Row is now fifth summary row (0-based, so +4)
             const cell = worksheet.getCell(rowNumber, colNumber);
             
             cell.fill = {
@@ -8143,7 +8204,7 @@ const getDateStyle = (day) => {
         Object.entries(ot3Row.specialStyles).forEach(([cellIndex, style]) => {
           try {
             const colNumber = parseInt(cellIndex) + 1; // Convert to 1-based column number
-            const rowNumber = summaryStartRow + 4; // ot3Row is fifth summary row (0-based, so +4)
+            const rowNumber = summaryStartRow + 5; // ot3Row is now sixth summary row (0-based, so +5)
             const cell = worksheet.getCell(rowNumber, colNumber);
             
             cell.fill = {
@@ -8167,7 +8228,7 @@ const getDateStyle = (day) => {
       
       // Merge cells A and B for each summary row and apply colors
       console.log('🔗 Merging summary row cells A and B with colors...');
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < 6; i++) { // เพิ่มจาก 5 เป็น 6 แถว (เพิ่มแถว contract employees)
         const rowNum = summaryStartRow + i;
         safeMergeCell(`A${rowNum}:B${rowNum}`);
         
@@ -10737,6 +10798,45 @@ const getDateStyle = (day) => {
     return absentCounts;
   };
 
+  // ฟังก์ชันสำหรับเรียก API ข้อมูล workplace และคำนวณจำนวนพนักงานตามสัญญา
+  const [contractEmployeeCount, setContractEmployeeCount] = useState(0);
+
+  const fetchWorkplaceContractData = async () => {
+    if (!searchWorkplaceId) return;
+    
+    try {
+      const response = await fetch(`${endpoint}/workplace/${searchWorkplaceId}`);
+      const workplaceInfo = await response.json();
+      
+      console.log('Workplace data:', workplaceInfo);
+      
+      // คำนวณจำนวนพนักงานตามสัญญาจาก workTimeDayPerson
+      let totalContractEmployees = 0;
+      
+      if (workplaceInfo.workTimeDayPerson && workplaceInfo.workTimeDayPerson.length > 0) {
+        workplaceInfo.workTimeDayPerson.forEach(daySchedule => {
+          if (daySchedule.allTimesPerson && daySchedule.allTimesPerson.length > 0) {
+            daySchedule.allTimesPerson.forEach(position => {
+              totalContractEmployees += parseInt(position.countPerson) || 0;
+            });
+          }
+        });
+      }
+      
+      console.log('Total contract employees:', totalContractEmployees);
+      setContractEmployeeCount(totalContractEmployees);
+      
+    } catch (error) {
+      console.error('Error fetching workplace data:', error);
+      setContractEmployeeCount(0);
+    }
+  };
+
+  // เรียกใช้ฟังก์ชันเมื่อ searchWorkplaceId เปลี่ยน
+  useEffect(() => {
+    fetchWorkplaceContractData();
+  }, [searchWorkplaceId]);
+
   const employeeCountPerDay = countEmployeesPerDay();
   const overtimeSumPerDay = sumOvertimePerDay();
   const overtime2SumPerDay = sumOvertime2PerDay();
@@ -11049,7 +11149,7 @@ const getDateStyle = (day) => {
                         onClick={generateExcel}
                         style={{ marginLeft: "1rem", width: "10rem", backgroundColor: "", color: "white" }}
                         class="btn b_save bg-success p-2"
-                      >
+                      > 
                         <i class="fas fa-file-excel m-1"></i>ดาวน์โหลด Excel
                      
                       </button>
@@ -11214,14 +11314,19 @@ const getDateStyle = (day) => {
   let displayValue = '';
 
   if (isWork) {
-    if (isSameWorkplace) {
+    // เปรียบเทียบ workplaceId ของ record กับ searchWorkplaceId ที่เลือก
+    const recordWorkplaceId = found?.workplaceId;
+    const isMatchSearchWorkplace = recordWorkplaceId === searchWorkplaceId;
+    
+    if (isMatchSearchWorkplace) {
+      // ถ้าตรงกับ searchWorkplaceId ให้แสดงแค่ 1
       displayValue = '1';
     } else {
-      // แสดง workplaceId ของ record ที่มี totalTime
+      // ถ้าไม่ตรงกับ searchWorkplaceId ให้แสดง 1 และ workplaceId
       displayValue = (
         <>
           1<br />
-          {found?.workplaceId || '1'}
+        
         </>
       );
     }
@@ -11524,6 +11629,9 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
                       
                     </tr>
 
+                    {/* แถวรวมพนักงานตามสัญญา/วัน */}
+                   
+
 
                     {/* <tr style={{borderTop: "2px solid #000" }}> 
                       <td className="text-bold p-1 align-middle" style={{ backgroundColor:"#fff7c2"}} colSpan={2}>
@@ -11673,7 +11781,8 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
                         <td className="text-center"></td>
                  
                     </tr>
-                    
+                 
+
 
                               </tbody>
                             </table>

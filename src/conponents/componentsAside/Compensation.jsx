@@ -1676,15 +1676,42 @@ function Compensation() {
     };
 
     try {
+      // ดึงข้อมูลพนักงานเพื่อเช็ค salary
+      const employeeSearchData = {
+        employeeId: searchEmployeeId
+      };
+      
+      const employeeResponse = await axios.post(
+        endpoint + "/employee/search",
+        employeeSearchData
+      );
+      
+      let employeeSalary = 0;
+      let isMonthlyEmployee = false;
+      
+      if (employeeResponse.data?.employees?.length > 0) {
+        const employee = employeeResponse.data.employees[0];
+        employeeSalary = parseFloat(employee.salary) || 0;
+        isMonthlyEmployee = employeeSalary > 1680;
+      }
+
       const response = await axios.post(
         endpoint + "/conclude/searchtimerecordemployee",
         data
       );
 
       if (response.data?.result?.length > 0) {
-                // alert(response.data?.result?.length )
-
-        await setConcludeResultx(response.data.result);
+        // เพิ่มข้อมูล salary ลงใน employee_record ของแต่ละ record
+        const updatedResult = response.data.result.map(record => ({
+          ...record,
+          employee_record: record.employee_record.map(empRecord => ({
+            ...empRecord,
+            salary: employeeSalary,
+            isMonthlyEmployee: isMonthlyEmployee
+          }))
+        }));
+        
+        await setConcludeResultx(updatedResult);
         await setUpdate(response.data?.result[0]?._id)
         // alert(JSON.stringify(response.data?.result[0]?.employee_record[0].addSalaryDaily, null, 2));
       } else {
@@ -1712,9 +1739,36 @@ function Compensation() {
         acc.beforeTotalOtTime += parseFloat(record.beforeTotalOtTime) || 0;
         acc.totalOtTime += parseFloat(record.totalOtTime) || 0;
         acc.cashBeforeOt += parseFloat(record.cashBeforeOt) || 0;
-        acc.cashWork += parseFloat(record.cashWork) || 0;
-        acc.cashOt += parseFloat(record.cashOt) || 0;
-        return acc;
+        
+        // เช็คว่าเป็นพนักงานเงินเดือนหรือไม่จากข้อมูล salary ที่ดึงมา
+        const isMonthlyEmployee = record.isMonthlyEmployee;
+        const employeeSalary = parseFloat(record.salary) || 0;
+        
+        if (isMonthlyEmployee && employeeSalary > 1680) {
+          // สำหรับพนักงานเงินเดือน ใช้ salary/30
+          acc.cashWork += employeeSalary / 30 || 0;
+          
+          // คำนวณ cashOt สำหรับพนักงานเงินเดือน
+          const dayPerHour = employeeSalary / 30 / 8;
+          const totalOtTime = parseFloat(record.totalOtTime) || 0;
+          
+          // ตรวจสอบประเภทวันหยุดหรือการทำงานล่วงเวลา
+          let otRate = 1.5; // ค่าเริ่มต้น 1.5 เท่า
+          
+          if (record.isPublicHoliday) {
+            otRate = 2; // วันหยุดนักขัตฤกษ์ 2 เท่า
+          } else if (record.isSpecialHoliday) {
+            otRate = 3; // วันหยุดพิเศษ 3 เท่า
+          }
+          
+          const dayPerHourOt = dayPerHour * otRate;
+          acc.cashOt += dayPerHourOt * totalOtTime || 0;
+        } else {
+          // สำหรับพนักงานรายวัน ใช้ cashWork และ cashOt ปกติ
+          acc.cashWork += parseFloat(record.cashWork) || 0;
+          acc.cashOt += parseFloat(record.cashOt) || 0;
+        }
+        return acc; 
       }, {
         totalTime: 0,
         beforeTotalOtTime: 0,
@@ -2063,29 +2117,63 @@ const handleSave_back = (index, subIndex, idx) => {
                           <th className="fw-normal">{matchedRecord.workplaceId}</th>
                           <th className="fw-normal">{matchedRecord.workplaceName}</th>
                           <th className="fw-normal">{matchedRecord.wGroup}</th>
-                          <th className="fw-normal">{shiftMapping[matchedRecord.shift]}หห</th>
+                          <th className="fw-normal">{shiftMapping[matchedRecord.shift]}</th>
 
                           {/* Editable Fields */}
                           {["beforeTotalOtTime", "cashBeforeOt", "totalTime", "cashWork", "totalOtTime", "cashOt"].map(
-                            (field) => (
-                              <th className="fw-normal" key={field}>
-                                {isEditing ? (
-                                  <input
-                                    type="text "
-                                    className="form-control " 
-                                    style={{ width: "6rem", margin: "0 auto" }} 
-          
-                                    value={
-                                      editedData[`${index}-${subIndex}-${idx}_${field}_table`] ??
-                                      matchedRecord[field]
-                                    }
-                                    onChange={(e) => handleInputChange(e, field, index, subIndex, idx)}
-                                  />
-                                ) : (
-                                  matchedRecord[field]
-                                )}
-                              </th>
-                            )
+                            (field) => {
+                              // เช็คว่าเป็นพนักงานเงินเดือนหรือไม่จากข้อมูล salary ที่ดึงมา
+                              const isMonthlyEmployee = matchedRecord.isMonthlyEmployee;
+                              const employeeSalary = parseFloat(matchedRecord.salary) || 0;
+                              
+                              // คำนวณค่าสำหรับพนักงานเงินเดือน
+                              let displayValue = matchedRecord[field];
+                              
+                              if (isMonthlyEmployee && employeeSalary > 1680) {
+                                if (field === 'cashWork') {
+                                  // สำหรับพนักงานเงินเดือน แสดง salary/30
+                                  displayValue = (employeeSalary / 30).toFixed(2);
+                                } else if (field === 'cashOt') {
+                                  // คำนวณ cashOt สำหรับพนักงานเงินเดือน
+                                  const dayPerHour = employeeSalary / 30 / 8;
+                                  const totalOtTime = parseFloat(matchedRecord.totalOtTime) || 0;
+                                  
+                                  // ตรวจสอบประเภทวันหยุดหรือการทำงานล่วงเวลา
+                                  // ถ้าเป็นวันหยุดพิเศษใช้อัตรา 2 หรือ 3 เท่า
+                                  let otRate = 1.5; // ค่าเริ่มต้น 1.5 เท่า
+                                  
+                                  // ตรวจสอบประเภทวันทำงาน (สามารถปรับเพิ่มเติมตามความต้องการ)
+                                  if (matchedRecord.isPublicHoliday) {
+                                    otRate = 2; // วันหยุดนักขัตฤกษ์ 2 เท่า
+                                  } else if (matchedRecord.isSpecialHoliday) {
+                                    otRate = 3; // วันหยุดพิเศษ 3 เท่า
+                                  }
+                                  
+                                  const dayPerHourOt = dayPerHour * otRate;
+                                  displayValue = (dayPerHourOt * totalOtTime).toFixed(2);
+                                }
+                              }
+                              
+                              return (
+                                <th className="fw-normal" key={field}>
+                                  {isEditing ? (
+                                    <input
+                                      type="text "
+                                      className="form-control " 
+                                      style={{ width: "6rem", margin: "0 auto" }} 
+            
+                                      value={
+                                        editedData[`${index}-${subIndex}-${idx}_${field}_table`] ??
+                                        displayValue
+                                      }
+                                      onChange={(e) => handleInputChange(e, field, index, subIndex, idx)}
+                                    />
+                                  ) : (
+                                    displayValue
+                                  )}
+                                </th>
+                              );
+                            }
                           )}
 
                           {/* เงินเพิ่ม (Show sum or detailed list) */}
