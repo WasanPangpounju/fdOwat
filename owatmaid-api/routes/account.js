@@ -5717,26 +5717,49 @@ console.log(`🔍 ค่า publicHolidayCount ที่จะบันทึก
 
 console.log(`\n💰 คำนวณ publicHolidayCash สำหรับพนักงาน ${employeeId}`);
 
-  // ตรวจสอบว่า publicHolidayCount เป็น 0 หรือไม่
-  if (publicHolidayCount === 0) {
-    // ถ้าไม่มีวันหยุดนักขัตฤกษ์ที่พนักงานไม่มาทำงาน ก็ไม่ต้องจ่ายเงิน
-    publicHolidayCash = 0;
-    console.log(`💰 publicHolidayCount เป็น 0 จึงกำหนด publicHolidayCash = 0 บาท`);
-  } else {
-    // ตรวจสอบว่ามีข้อมูลที่จำเป็นสำหรับการคำนวณหรือไม่
-    if (sumCashWorkMul["1"] && dayWorkCount > 0) {
-      // คำนวณค่าแรงต่อวันจาก sumCashWorkMul["1"] / dayWorkCount
-      const dailyRate = sumCashWorkMul["1"] / dayWorkCount;
-      publicHolidayCash = dailyRate * publicHolidayCount;
+  // ตรวจสอบว่าเป็นพนักงานเงินเดือนหรือไม่
+  if (salaryMonth !== 0) {
+    // สำหรับพนักงานเงินเดือน: ได้เงินเฉพาะวันหยุดนักขัตฤกษ์ที่มาทำงาน
+    console.log(`💰 ✅ พนักงานเงินเดือน - คำนวณ publicHolidayCash`);
+    
+    if (daysWorkedOnPublicHolidays > 0) {
+      const dailyRateFromSalary = salaryMonth / 30; // เงินเดือนต่อวัน
+      publicHolidayCash = dailyRateFromSalary * daysWorkedOnPublicHolidays;
+      publicHolidayCount = daysWorkedOnPublicHolidays; // นับเฉพาะวันที่มาทำงาน
       
-      console.log(`💰 ค่าแรงต่อวัน (sumCashWorkMul["1"] / dayWorkCount): ${dailyRate.toFixed(2)} บาท`);
-      console.log(`💰 จำนวนวันหยุดนักขัตฤกษ์ที่ไม่มาทำงาน: ${publicHolidayCount} วัน`);
+      console.log(`💰 เงินเดือนต่อวัน (${salaryMonth} / 30): ${dailyRateFromSalary.toFixed(2)} บาท`);
+      console.log(`💰 จำนวนวันหยุดนักขัตฤกษ์ที่มาทำงาน: ${daysWorkedOnPublicHolidays} วัน`);
       console.log(`💰 เงินสำหรับวันหยุดนักขัตฤกษ์ (publicHolidayCash): ${publicHolidayCash.toFixed(2)} บาท`);
     } else {
-      // กรณีไม่มีข้อมูล sumCashWorkMul["1"] หรือ dayWorkCount เป็น 0
       publicHolidayCash = 0;
-      console.log(`⚠️ ไม่สามารถคำนวณ publicHolidayCash ได้ (sumCashWorkMul["1"]=${sumCashWorkMul["1"] || 0}, dayWorkCount=${dayWorkCount})`);
-      console.log(`💰 กำหนด publicHolidayCash = 0 บาท`);
+      publicHolidayCount = 0;
+      console.log(`💰 ไม่มาทำงานในวันหยุดนักขัตฤกษ์ - ไม่ได้เงิน (publicHolidayCash = 0 บาท)`);
+    }
+  } else {
+    // สำหรับพนักงานรายวัน: ใช้ logic เดิม
+    console.log(`💰 ✅ พนักงานรายวัน - คำนวณ publicHolidayCash`);
+    
+    // ตรวจสอบว่า publicHolidayCount เป็น 0 หรือไม่
+    if (publicHolidayCount === 0) {
+      // ถ้าไม่มีวันหยุดนักขัตฤกษ์ที่พนักงานไม่มาทำงาน ก็ไม่ต้องจ่ายเงิน
+      publicHolidayCash = 0;
+      console.log(`💰 publicHolidayCount เป็น 0 จึงกำหนด publicHolidayCash = 0 บาท`);
+    } else {
+      // ตรวจสอบว่ามีข้อมูลที่จำเป็นสำหรับการคำนวณหรือไม่
+      if (sumCashWorkMul["1"] && dayWorkCount > 0) {
+        // คำนวณค่าแรงต่อวันจาก sumCashWorkMul["1"] / dayWorkCount
+        const dailyRate = sumCashWorkMul["1"] / dayWorkCount;
+        publicHolidayCash = dailyRate * publicHolidayCount;
+        
+        console.log(`💰 ค่าแรงต่อวัน (sumCashWorkMul["1"] / dayWorkCount): ${dailyRate.toFixed(2)} บาท`);
+        console.log(`💰 จำนวนวันหยุดนักขัตฤกษ์ที่ไม่มาทำงาน: ${publicHolidayCount} วัน`);
+        console.log(`💰 เงินสำหรับวันหยุดนักขัตฤกษ์ (publicHolidayCash): ${publicHolidayCash.toFixed(2)} บาท`);
+      } else {
+        // กรณีไม่มีข้อมูล sumCashWorkMul["1"] หรือ dayWorkCount เป็น 0
+        publicHolidayCash = 0;
+        console.log(`⚠️ ไม่สามารถคำนวณ publicHolidayCash ได้ (sumCashWorkMul["1"]=${sumCashWorkMul["1"] || 0}, dayWorkCount=${dayWorkCount})`);
+        console.log(`💰 กำหนด publicHolidayCash = 0 บาท`);
+      }
     }
   }
 
