@@ -5377,7 +5377,7 @@ try {
           sumcashDayOffCount = parseFloat(sumcashDayOffCount || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0')
 
           sumTimeOt += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalTime) + convertTimeToDecimal(record.totalOtTime);
-          sumCashOt = parseFloat(sumCashOt || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0')
+          // sumCashOt = parseFloat(sumCashOt || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0') // ลบการคำนวณแบบเก่า
           
           // คำนวณ OT time โดยใช้ค่าที่ปรับแล้ว
           if (holidayOT === "1.5") {
@@ -5415,7 +5415,7 @@ try {
           if (record?.dayType === 'specialDayOff') {
             specialDayOff += 1;
             sumTimeOt += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalTime) + convertTimeToDecimal(record.totalOtTime);
-            sumCashOt = parseFloat(sumCashOt || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0')
+            // sumCashOt = parseFloat(sumCashOt || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0') // ลบการคำนวณแบบเก่า
 
 
             timeCashWorkMul[record?.cashOtMul] += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalOtTime);
@@ -5521,10 +5521,10 @@ if (record?.dayType === "work") {
     console.log(`   - OT หลังเวลาทำงาน: ${afterOtTime} ชม. (${afterOtCash} บาท) - Rate: ${otMul}`);
   }
   
-  // อัปเดตผลรวม OT
+  // อัปเดตผลรวม OT - คอมเมนต์เพราะจะคำนวณจาก sumCashWorkMul แทน
   if (totalOtTime > 0) {
     sumTimeOt += totalOtTime;
-    sumCashOt += totalOtCash;
+    // sumCashOt += totalOtCash; // ลบการคำนวณแบบเก่า
     console.log(`   - รวม OT ทั้งหมด: ${totalOtTime} ชม. (${totalOtCash} บาท)`);
   }
 
@@ -5557,6 +5557,19 @@ if (record?.dayType === "work") {
       }
     })
   );
+
+console.log(`\n📊 === คำนวณ sumCashOt จาก sumCashWorkMul ===`);
+console.log(`🔍 sumCashWorkMul ทั้งหมด:`, sumCashWorkMul);
+
+// เปลี่ยน logic ใหม่: sumCashOt = sumCashWorkMul["1.5"] + ["2"] + ["3"]
+sumCashOt = (parseFloat(sumCashWorkMul["1.5"]) || 0) + 
+            (parseFloat(sumCashWorkMul["2"]) || 0) + 
+            (parseFloat(sumCashWorkMul["3"]) || 0);
+
+console.log(`💰 sumCashWorkMul["1.5"]: ${sumCashWorkMul["1.5"] || 0} บาท`);
+console.log(`💰 sumCashWorkMul["2"]: ${sumCashWorkMul["2"] || 0} บาท`);
+console.log(`💰 sumCashWorkMul["3"]: ${sumCashWorkMul["3"] || 0} บาท`);
+console.log(`💰 sumCashOt (รวมใหม่): ${sumCashOt} บาท`);
 
 console.log(`\n📊 === สรุปการนับวันทำงาน ===`);
 console.log(`📅 วันที่ถูกนับ: ${Array.from(countedWorkDates).sort().join(', ')}`);
