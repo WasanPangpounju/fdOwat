@@ -6084,6 +6084,18 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
   console.log(`💰 sumCashWorkMul:`, JSON.stringify(sumCashWorkMul, null, 2));
   console.log(`⏱️ timeCashWorkMul:`, JSON.stringify(timeCashWorkMul, null, 2));
 
+  // 🎯 คำนวณ sumCashOt ใหม่จาก sumCashWorkMul ก่อน return
+  console.log(`\n🎯 === คำนวณ sumCashOt ใหม่ก่อน return ===`);
+  console.log(`🎯 sumCashOt เดิม: ${sumCashOt}`);
+  
+  sumCashOt = (parseFloat(sumCashWorkMul["1.5"]) || 0) + 
+              (parseFloat(sumCashWorkMul["2"]) || 0) + 
+              (parseFloat(sumCashWorkMul["3"]) || 0);
+  
+  console.log(`🎯 sumCashWorkMul["1.5"]: ${sumCashWorkMul["1.5"] || 0}`);
+  console.log(`🎯 sumCashWorkMul["2"]: ${sumCashWorkMul["2"] || 0}`);
+  console.log(`🎯 sumCashWorkMul["3"]: ${sumCashWorkMul["3"] || 0}`);
+  console.log(`🎯 sumCashOt ใหม่: ${sumCashOt}`);
 
   return await {
     dayWorkCount,
