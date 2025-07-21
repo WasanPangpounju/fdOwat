@@ -5850,6 +5850,9 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
   if (salaryMonth !== 0) {
     console.log(`💰 ✅ พนักงานเงินเดือน (salaryMonth = ${salaryMonth} ≠ 0)`);
     sumCashWork = salaryMonth;
+    const dayPerHour = sumCashWork / 30 / 8; // คำนวณค่าแรงต่อชั่วโมงจากเงินเดือน
+    sumCashWorkMul["1.5"] = dayPerHour
+    console.log(`💰 - คำนวณค่าแรงต่อชั่วโมงจากเงินเดือน: ${dayPerHour} บาท/ชม.`);
     
     console.log(`\n💰 STEP 3: คำนวณรายได้รวมสำหรับประกันสังคม`);
     const totalIncome = parseFloat(salaryMonth || 0) + 
