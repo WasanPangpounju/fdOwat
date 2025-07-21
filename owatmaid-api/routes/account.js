@@ -5851,7 +5851,8 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
     console.log(`💰 ✅ พนักงานเงินเดือน (salaryMonth = ${salaryMonth} ≠ 0)`);
     sumCashWork = salaryMonth;
     const dayPerHour = sumCashWork / 30 / 8; // คำนวณค่าแรงต่อชั่วโมงจากเงินเดือน
-    sumCashWorkMul["1.5"] = dayPerHour * sumOt1p5
+    const dayPerHour1p5 = dayPerHour * 1.5; // คำนวณค่าแรง OT 1.5 เท่า
+    sumCashWorkMul["1.5"] = dayPerHour1p5 * sumOt1p5
 
 
     console.log(`💰 - คำนวณค่าแรงต่อชั่วโมงจากเงินเดือน: ${dayPerHour} บาท/ชม.`);
