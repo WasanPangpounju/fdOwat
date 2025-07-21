@@ -5846,12 +5846,14 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
   console.log(`💰 - อัตราการหักประกันสังคม (socialSecurityP): ${socialSecurityP * 100}%`);
 
   console.log(`\n💰 STEP 2: ตัดสินใจประเภทพนักงาน`);
-  
+  //พนักงานเงินเดือน
   if (salaryMonth !== 0) {
     console.log(`💰 ✅ พนักงานเงินเดือน (salaryMonth = ${salaryMonth} ≠ 0)`);
     sumCashWork = salaryMonth;
     const dayPerHour = sumCashWork / 30 / 8; // คำนวณค่าแรงต่อชั่วโมงจากเงินเดือน
-    sumCashWorkMul["1.5"] = dayPerHour
+    sumCashWorkMul["1.5"] = dayPerHour * sumOt1p5
+
+
     console.log(`💰 - คำนวณค่าแรงต่อชั่วโมงจากเงินเดือน: ${dayPerHour} บาท/ชม.`);
     
     console.log(`\n💰 STEP 3: คำนวณรายได้รวมสำหรับประกันสังคม`);
