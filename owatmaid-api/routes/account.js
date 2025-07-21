@@ -5833,7 +5833,7 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
 
   // แสดงข้อมูลที่จะใช้ในการคำนวณประกันสังคม
   console.log(`\n💰 === การคำนวณประกันสังคม (socialSecurity) ===`);
-  console.log(`💰 STEP 1: ข้อมูลพื้นฐาน`);
+  console.log(`💰 STEP 1: ข้อมูลพื้นฐานของพนักงาน`);
   console.log(`💰 - employeeId: ${employeeId}`);
   console.log(`💰 - costtype: ${costtype}`);
   console.log(`💰 - salaryMonth: ${salaryMonth} บาท`);
