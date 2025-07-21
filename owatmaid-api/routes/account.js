@@ -5850,9 +5850,13 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
   if (salaryMonth !== 0) {
     console.log(`💰 ✅ พนักงานเงินเดือน (salaryMonth = ${salaryMonth} ≠ 0)`);
     sumCashWork = salaryMonth;
-    const dayPerHour = sumCashWork / 30 / 8; // คำนวณค่าแรงต่อชั่วโมงจากเงินเดือน
-    const dayPerHour1p5 = dayPerHour * 1.5; // คำนวณค่าแรง OT 1.5 เท่า
+    const dayPerHour = sumCashWork / 30 / 8; 
+    const dayPerHour1p5 = dayPerHour * 1.5; 
+    const dayPerHour2 = dayPerHour * 2;
+    const dayPerHour3 = dayPerHour * 3; 
     sumCashWorkMul["1.5"] = (dayPerHour1p5 * sumOt1p5).toFixed(2)
+    sumCashWorkMul["2"] = (dayPerHour2 * sumOtPublicHoliday).toFixed(2)
+    sumCashWorkMul["3"] = (dayPerHour3 * sumOt3).toFixed(2)
     
 
 
