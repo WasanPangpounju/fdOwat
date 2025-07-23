@@ -695,29 +695,61 @@ const generatePDF = async () => {
     pdf.text(`เลขที่บัญชี ${banknumber}`, 168, head);
 
     // สวัสดิการหลัก
-    const namesWithSpecificIds = addSalaryList
-      .filter((item) => ["1230", "1350", "1241"].includes(item.id))
-      .map((item) => {
-        if (item.id === "1350") {
-          return "โทรศัพท์";
-        }
-        return item.name;
-      });
+   const namesWithSpecificIds = addSalaryList
+  .filter((item) => ["1230", "1350", "1535"].includes(item.id))
+  .map((item) => {
+    if (item.id === "1350") {
+      return "โทรศัพท์";
+    } else if (item.id === "1535") {
+      return "ค่าเดินทาง";
+    } else {
+      return item.name;
+    }
+  });
 
-    const specificIds = ["1230", "1350", "1241"];
-    const result = addSalaryList
-      .filter((item) => specificIds.includes(item.id))
-      .reduce(
-        (acc, item) => {
-          acc.names.push(item.id === "1350" ? "โทรศัพท์" : item.name);
-          acc.sumSpSalary += Number(item.SpSalary) || 0;
-          return acc;
-        },
-        { names: [], sumSpSalary: 0 }
-      );
+  const nameWithExtraCash = addSalaryList 
+   .filter((item) => ["1560", "1563"].includes(item.id))
+  .map((item) => {
+    if (item.id === "1560") {
+      return "เงินเพิ่มพิเศษ";
+    } else if (item.id === "1563") {
+      return "เงินพิเศษวันหยุด";
+    } else {
+      return item.name;
+    }
+  });
+
+
+
+   const specificIds = ["1230", "1350", "1535"];
+const result = addSalaryList
+  .filter((item) => specificIds.includes(item.id))
+  .reduce(
+    (acc, item) => {
+      acc.names.push(item.id === "1350" ? "โทรศัพท์" : (item.id === "1535" ? "ค่าเดินทาง" : item.name));
+      acc.sumSpSalary += Number(item.SpSalary) || 0;
+      return acc;
+    },
+    { names: [], sumSpSalary: 0 }
+  );
+
+  const extraCashIds = ["1560", "1563"];
+const resultExtraCash = addSalaryList
+  .filter((item) => extraCashIds.includes(item.id))
+  .reduce(
+    (acc, item) => {
+      acc.names.push(item.id === "1560" ? "เงินเพิ่มพิเศษ" : (item.id === "1563" ? "เงินพิเศษวันหยุด" : item.name));
+      acc.sumSpSalary += Number(item.SpSalary) || 0;
+      return acc;
+    },
+    { names: [], sumSpSalary: 0 }
+  );
+
 
     const concatenatedNames =
       namesWithSpecificIds.length > 0 ? namesWithSpecificIds.join("/") : "";
+      const concatenatedNamesExtraCash =
+      nameWithExtraCash.length > 0 ? nameWithExtraCash.join("/") : "";
 
     // Draw tables and frames
     pdf.rect(7, 28, 155, 74); //ตารางหลัก
@@ -801,14 +833,15 @@ if (ot3Hours > 0 && ot3Cash > 0) {
       );
     }
 
-    // ค่าเดินทาง(ไม่คิดประกัน)
-    if (sumAddSalaryTavel > 0) {
-      textArray.push("ค่าเดินทาง");
-      countArray.push("");
-      valueArray.push(
-        sumAddSalaryTavel.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-      );
-    }
+    if (resultExtraCash.sumSpSalary > 0) {
+  textArray.push(concatenatedNamesExtraCash);
+  countArray.push("");
+  valueArray.push(
+    resultExtraCash.sumSpSalary.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+  );
+}
+
+  
 
     // เบี้ยขยัน
     if (sumAmountHardWorking > 0) {

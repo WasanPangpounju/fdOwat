@@ -11326,7 +11326,7 @@ const getDateStyle = (day) => {
       displayValue = (
         <>
           1<br />
-        
+          {recordWorkplaceId || ''}
         </>
       );
     }
@@ -11491,7 +11491,7 @@ const getDateStyle = (day) => {
                     
                     return (
                       <td key={i} className="text-center align-middle" style={!hasData ? { backgroundColor: "#bfbdbf" } : {}}>
-                        {found?.cashOtMul?.trim() && found?.cashOtMul === "1.5" && found.totalOtTime
+                        {found?.cashOtMul?.trim() && found?.cashOtMul === "1.5"
                           ? [
                               found.beforeTotalOtTime ? formatTimeValue(found.beforeTotalOtTime) : '',
                               found.totalOtTime ? formatTimeValue(found.totalOtTime) : ''
@@ -11630,7 +11630,7 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
                     </tr>
 
                     {/* แถวรวมพนักงานตามสัญญา/วัน */}
-                   
+                    
 
 
                     {/* <tr style={{borderTop: "2px solid #000" }}> 
