@@ -12,7 +12,7 @@ import "../editwindowcss.css";
 import EmployeeWorkDay from "./componentsetting/EmployeeWorkDay";
 import { useLocation } from "react-router-dom";
 
-function SettingComplex({ workplaceList, employeeList }) {
+function SettingComplex ({ workplaceList, employeeList }) {
   // Use useLocation hook to access query parameters from URL
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
@@ -772,7 +772,7 @@ const handleRemovePublicHoliday = async (holidayToRemove) => {
       }
     } catch (error) {
       console.error("เกิดข้อผิดพลาดในการอัปเดตวันหยุดนักขัตฤกษ์:", error);
-      
+      alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่");
     }
   };
 
@@ -1127,19 +1127,17 @@ const handleRemovePublicHoliday = async (holidayToRemove) => {
   //set data to form
   function handleClickResult(workplace) {
     setNewWorkplace(false);
-// alert(JSON.stringify(workplace,null,2))
 
     set_id(workplace._id);
     setWorkplaceId(workplace.workplaceId);
 
-    // const filteredEmployees = employeeList.filter(
-    //   (employee) => employee.workplace === searchWorkplaceId
-    // );
-    // console.log("searchWorkplaceId", searchWorkplaceId);
-    // setEmployeeListResult(filteredEmployees);
-    alert(workplace.workplaceName)
+    const filteredEmployees = employeeList.filter(
+      (employee) => employee.workplace === searchWorkplaceId
+    );
+    console.log("searchWorkplaceId", searchWorkplaceId);
+    setEmployeeListResult(filteredEmployees);
 
-    // setShowEmployeeListResult(filteredEmployees);
+    setShowEmployeeListResult(filteredEmployees);
     setWorkplaceName(workplace.workplaceName);
     setWorkplaceArea(workplace.workplaceArea);
     setWorkOfWeek(workplace.workOfWeek);
@@ -1446,7 +1444,6 @@ setWorkRateChange(workplace.workRateChange)
       addWorkRate: addWorkRate,
       workRateOT: workRateOT,
       workTotalPeople: workTotalPeople,
-      countEmployee: showEmployeeListResult.length.toString(),
       dayoffRate: dayoffRate,
       dayoffRateOT: dayoffRateOT,
       dayoffRateHour: dayoffRateHour,
@@ -1676,7 +1673,7 @@ if (newWorkplace) {
       }
     } else {
       // Network error หรือ error อื่นๆ
-    
+      alert("เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง");
     }
     
     // แสดงข้อมูลที่ส่งไปให้ API เพื่อช่วยในการ debug
@@ -1832,19 +1829,6 @@ if (newWorkplace) {
     updatedEmployees_specialwork[index][name] = value;
     setWorkTimeDay_specialwork((prev) => ({ ...prev, employees_specialwork: updatedEmployees_specialwork }));
   };
-   // ฟังก์ชั่นแก้ไขข้อมูลใน workTimeDayPersonList
-  const handleEditTimePersonList = (index) => {
-    // ดึงข้อมูลที่ต้องการแก้ไขจาก list
-    const itemToEdit = workTimeDayPersonList[index];
-    // นำข้อมูลไปใส่ใน state หลักเพื่อให้ฟอร์มกรอกข้อมูลแสดงข้อมูลเดิม
-    setWorkTimeDayPerson({ ...itemToEdit });
-    // ลบรายการเดิมออกจาก list เพื่อรอการบันทึกใหม่
-    setWorkTimeDayPersonList(function(prevList) {
-      const updatedList = [...prevList];
-      updatedList.splice(index, 1);
-      return updatedList;
-    });
-  };
 
   // Add a new employee row
   const handleAddTimePerson_specialwork = () => {
@@ -1891,6 +1875,19 @@ if (newWorkplace) {
     setWorkTimeDayList_specialwork((prev) => prev.filter((_, i) => i !== index));
   };
 
+  //เพิ่มโค้ดจาก setting
+    const [workplaceComplexId, setWorkplaceComplexId] = useState(""); //รหัสกลุ่มงานย่อย
+  const [workplaceComplexName, setWorkplaceComplexName] = useState(""); //ชื่อกลุ่มงานย่อย
+  const [workplacesComplex, setWorkplacesComplex] = useState([]);
+  const [standardWorkplace, setStandardWorkplace] = useState({});
+  const [checkSetStandard, setCheckSetStandard] = useState("");
+
+  const handleSelectChange = async (e) => {
+    // setSelectedDay(e.target.value);
+    // setWorkplaceComplexName(`Complex Name ${e.target.value}`);
+    await setWorkplaceComplexId(e.target.value);
+  };
+
   return (
     <div class="hold-transition sidebar-mini" className="editlaout">
       <div class="wrapper">
@@ -1909,7 +1906,7 @@ if (newWorkplace) {
             <div class="container-fluid">
               <div class="row mb-2">
                 <h1 class="m-0">
-                  <i class="far fa-arrow-alt-circle-right"></i> ตั้งค่าหน่วยงาน
+                  <i class="far fa-arrow-alt-circle-right"></i> ตั้งค่าหน่วยงานพิเศษ
                 </h1>
               </div>
             </div>
@@ -2065,6 +2062,44 @@ if (newWorkplace) {
                           />
                         </div>
                       </div>
+
+                                            <div class="col-md-3">
+                        <div class="form-group">
+                          <label role="selectGroup">เลือกกลุ่มงาน</label>
+                          <select
+                            name="selectGroup"
+                            className="form-control"
+                            value={workplaceComplexId}
+                            onChange={handleSelectChange}
+                          >
+                            <option value="">เลือกกลุ่มงาน</option>
+                            <option value="1"> 1</option>
+                            <option value="2"> 2</option>
+                            <option value="3"> 3</option>
+                            <option value="4"> 4</option>
+                            <option value="5"> 5</option>
+                            <option value="6"> 6</option>
+                            <option value="7"> 7</option>
+                            <option value="8"> 8</option>
+                            <option value="9"> 9</option>
+                            <option value="10"> 10</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="col-md-3">
+                        <label role="workplaceName">ชื่อกลุ่มงาน</label>
+                        <input
+                          type="text"
+                          value={workplaceComplexName}
+                          class="form-control"
+                          placeholder="ชื่อกลุ่มงาน"
+                          onChange={(e) =>
+                            setWorkplaceComplexName(e.target.value)
+                          }
+                        />
+                      </div>
+
                     </div>
                     <div class="row">
                       <div class="col-md-6">
@@ -3782,19 +3817,11 @@ if (newWorkplace) {
                                     onClick={() =>
                                       handleRemoveTimePersonList(index)
                                     }
-                               
-                                    className="btn btn-danger mb-2"
+                                    style={{ width: "3rem" }}
+                                    className="btn btn-danger ml-auto"
                                   >
                                     ลบ
                                   </button>
-                                  <button
-                                    className="btn btn-warning"
-                                    type="button"
-                                    onClick={() => handleEditTimePersonList(index)}
-                                  >
-                                    แก้ไข
-                                  </button>
- 
                                 </td>
                               </>
                             )}
