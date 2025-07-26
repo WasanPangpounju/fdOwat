@@ -4387,7 +4387,31 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
 
       const empWorkplaceId = employee.workplace;
 
-      if (workplaceId && empWorkplaceId !== workplaceId) continue;
+      // ตรวจสอบว่าพนักงานทำงานในหน่วยงานที่ต้องการหรือไม่
+      let shouldInclude = false;
+
+      if (!workplaceId) {
+        // ถ้าไม่ระบุ workplaceId ให้แสดงทั้งหมด
+        shouldInclude = true;
+      } else {
+        // เช็คว่าพนักงานสังกัดหน่วยงานที่ต้องการ
+        if (empWorkplaceId === workplaceId) {
+          shouldInclude = true;
+        } else {
+          // เช็คว่าพนักงานจากหน่วยงานอื่นมาทำงานที่หน่วยงานนี้หรือไม่
+          if (record.employee_record && Array.isArray(record.employee_record)) {
+            const worksAtTargetWorkplace = record.employee_record.some(rec => 
+              rec.workplaceId === workplaceId
+            );
+            if (worksAtTargetWorkplace) {
+              shouldInclude = true;
+              console.log(`🔄 พบพนักงานข้ามหน่วยงาน: ${record.employeeId} (สังกัด ${empWorkplaceId}) มาทำงานที่ ${workplaceId}`);
+            }
+          }
+        }
+      }
+
+      if (!shouldInclude) continue;
 
             // 🔥 เพิ่มเช็ค dayWorkCount หรือ dayOffCount และดึง personalDayOff
             if (!record.dayWorkCount || !record.dayOffCount || !record.personalDayOff) {
@@ -4436,6 +4460,17 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
 
            if (!groupedResult[empWorkplaceId]) {
         groupedResult[empWorkplaceId] = [];
+      }
+
+      // กำหนด workplace สำหรับการจัดกลุ่ม
+      let targetWorkplaceForGrouping = empWorkplaceId;
+      
+      // ถ้าเป็นพนักงานข้ามหน่วยงาน ให้จัดกลุ่มตาม workplaceId ที่ทำงานจริง
+      if (workplaceId && empWorkplaceId !== workplaceId) {
+        targetWorkplaceForGrouping = workplaceId;
+        if (!groupedResult[workplaceId]) {
+          groupedResult[workplaceId] = [];
+        }
       }
 
       const processedRecord = record.toObject();
@@ -4515,10 +4550,13 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
       console.log(`  - status จาก DB:`, record.status);
       console.log(`  - month: ${record.month}, year: ${record.year}`);
 
-      groupedResult[empWorkplaceId].push({
+      groupedResult[targetWorkplaceForGrouping].push({
         ...processedRecord,
         employeeName: employee.name + ' ' + (employee.lastName || ''),
         workplaceName: employee.workplaceName || '', // if available
+        // เพิ่มข้อมูลเพื่อระบุว่าเป็นพนักงานข้ามหน่วยงาน
+        originalWorkplace: empWorkplaceId,
+        isCrossWorkplace: empWorkplaceId !== targetWorkplaceForGrouping,
         // เพิ่ม personalDayOff และ stopDaysList เพื่อให้แน่ใจว่าถูกส่งไปยัง frontend
         personalDayOff: record.personalDayOff || [],
         stopDaysList: record.stopDaysList || record.personalDayOff || [], // ความเข้ากันได้ย้อนหลัง
@@ -4526,7 +4564,9 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
       });
       
       // Debug log เพื่อตรวจสอบข้อมูลที่ส่งกลับ
-      console.log(`📤 ส่งข้อมูลกลับสำหรับ ${record.employeeId}:`);
+      const crossWorkplaceInfo = empWorkplaceId !== targetWorkplaceForGrouping ? 
+        ` (ข้ามหน่วยงานจาก ${empWorkplaceId} มาทำงานที่ ${targetWorkplaceForGrouping})` : '';
+      console.log(`📤 ส่งข้อมูลกลับสำหรับ ${record.employeeId}${crossWorkplaceInfo}:`);
       console.log(`  - personalDayOff: ${record.personalDayOff ? `${record.personalDayOff.length} วัน` : 'ไม่มี'}`);
       console.log(`  - stopDaysList: ${record.stopDaysList ? `${record.stopDaysList.length} วัน` : 'ไม่มี'}`);
       console.log(`  - cashcustomizeDayoff: ${record.cashcustomizeDayoff || 'ไม่มี'} บาท`);
