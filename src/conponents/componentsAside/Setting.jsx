@@ -1946,10 +1946,7 @@ if (newWorkplace) {
                             }
                             onInput={(e) => {
                               // Remove any non-digit characters
-                              e.target.value = e.target.value.replace(
-                                /\D/g,
-                                ""
-                              );
+                            
                             }}
                           />
                           <datalist id="workplaceIds">

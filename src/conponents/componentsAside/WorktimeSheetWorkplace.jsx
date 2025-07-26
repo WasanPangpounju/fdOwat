@@ -7615,12 +7615,24 @@ const getDateStyle = (day) => {
               const recordWorkplaceId = found?.workplaceId;
               const isMatchSearchWorkplace = recordWorkplaceId === searchWorkplaceId;
               
-              if (isMatchSearchWorkplace) {
-                // ถ้าตรงกับ searchWorkplaceId ให้แสดงแค่ 1
-                displayValue = '1';
+              // ตรวจสอบว่าพนักงานคนนี้เป็นพนักงานข้ามหน่วยงานหรือไม่
+              const isCrossWorkplaceEmployee = record?.isCrossWorkplace || false;
+              
+              if (isCrossWorkplaceEmployee) {
+                // ถ้าเป็นพนักงานข้ามหน่วยงาน ให้แสดง "1" เฉพาะวันที่มาทำงานที่หน่วยงานที่เลือกเท่านั้น
+                if (isMatchSearchWorkplace) {
+                  displayValue = '1';
+                }
+                // ถ้าไม่ตรงกับ searchWorkplaceId = ไม่แสดงอะไร (วันที่ไม่ได้มาทำงานที่หน่วยงานนี้)
               } else {
-                // ถ้าไม่ตรงกับ searchWorkplaceId ให้แสดง 1 และ workplaceId (สำหรับ Excel ใช้ newline)
-                displayValue = `1\n${recordWorkplaceId || ''}`;
+                // พนักงานปกติที่สังกัดหน่วยงานนี้
+                if (isMatchSearchWorkplace) {
+                  // ถ้าตรงกับ searchWorkplaceId ให้แสดงแค่ 1
+                  displayValue = '1';
+                } else {
+                  // ถ้าไม่ตรงกับ searchWorkplaceId ให้แสดง 1 และ workplaceId (สำหรับ Excel ใช้ newline)
+                  displayValue = `1\n${recordWorkplaceId || ''}`;
+                }
               }
             }
             
@@ -7671,7 +7683,24 @@ const getDateStyle = (day) => {
           const empRow3 = ['', `${record.employeeId} โอที 1.5`];
           dayNumbers.forEach(day => {
             const found = record?.employee_record?.find(itemx => itemx.date === day);
-            if (found?.cashOtMul?.trim() && found?.cashOtMul === "1.5") {
+            const hasData = found && found.date; // ตรวจสอบว่ามีข้อมูลหรือไม่
+            
+            // ตรวจสอบว่าเป็นพนักงานข้ามหน่วยงานหรือไม่
+            const isCrossWorkplaceEmployee = record?.isCrossWorkplace || false;
+            const recordWorkplaceId = found?.workplaceId;
+            const isMatchSearchWorkplace = recordWorkplaceId === searchWorkplaceId;
+            
+            // กำหนดเงื่อนไขการแสดงผล
+            let shouldShowData = false;
+            if (isCrossWorkplaceEmployee) {
+              // พนักงานข้ามหน่วยงาน: แสดงเฉพาะวันที่มาทำงานที่หน่วยงานที่เลือก
+              shouldShowData = hasData && isMatchSearchWorkplace;
+            } else {
+              // พนักงานปกติ: แสดงทุกวันที่มีข้อมูล
+              shouldShowData = hasData;
+            }
+            
+            if (shouldShowData && found?.cashOtMul?.trim() && found?.cashOtMul === "1.5") {
               empRow3.push([
                 found.beforeTotalOtTime ? formatTimeValue(found.beforeTotalOtTime) : '',
                 found.totalOtTime ? formatTimeValue(found.totalOtTime) : ''
@@ -7690,7 +7719,23 @@ const getDateStyle = (day) => {
           const empRow4 = ['', 'โอที 2'];
           dayNumbers.forEach(day => {
             const found = record?.employee_record?.find(itemx => itemx.date === day);
-            empRow4.push(found?.dayType === "stop" ? found.totalTime : '');
+            
+            // ตรวจสอบว่าเป็นพนักงานข้ามหน่วยงานหรือไม่
+            const isCrossWorkplaceEmployee = record?.isCrossWorkplace || false;
+            const recordWorkplaceId = found?.workplaceId;
+            const isMatchSearchWorkplace = recordWorkplaceId === searchWorkplaceId;
+            
+            // กำหนดเงื่อนไขการแสดงผล
+            let shouldShowData = false;
+            if (isCrossWorkplaceEmployee) {
+              // พนักงานข้ามหน่วยงาน: แสดงเฉพาะวันที่มาทำงานที่หน่วยงานที่เลือก และต้องเป็น dayType "stop" และมี totalTime
+              shouldShowData = found && isMatchSearchWorkplace && found?.dayType === "stop" && found.totalTime;
+            } else {
+              // พนักงานปกติ: แสดงทุกวันที่มีข้อมูล dayType "stop" และมี totalTime
+              shouldShowData = found?.dayType === "stop" && found.totalTime;
+            }
+            
+            empRow4.push(shouldShowData ? formatTimeValue(found.totalTime) : '');
           });
           
           for (let i = 0; i < 5 + (workplaceAddsalary?.length || 0) + 2; i++) {
@@ -7701,7 +7746,23 @@ const getDateStyle = (day) => {
           const empRow5 = ['', 'โอที3'];
           dayNumbers.forEach(day => {
             const found = record?.employee_record?.find(itemx => itemx.date === day);
-            if (found?.cashOtMul === "3" && found?.cashOtMul?.trim()) {
+            
+            // ตรวจสอบว่าเป็นพนักงานข้ามหน่วยงานหรือไม่
+            const isCrossWorkplaceEmployee = record?.isCrossWorkplace || false;
+            const recordWorkplaceId = found?.workplaceId;
+            const isMatchSearchWorkplace = recordWorkplaceId === searchWorkplaceId;
+            
+            // กำหนดเงื่อนไขการแสดงผล
+            let shouldShowData = false;
+            if (isCrossWorkplaceEmployee) {
+              // พนักงานข้ามหน่วยงาน: แสดงเฉพาะวันที่มาทำงานที่หน่วยงานที่เลือก
+              shouldShowData = found && isMatchSearchWorkplace && found?.dayType === "stop" && found?.cashOtMul?.trim() && found.cashOtMul === "3";
+            } else {
+              // พนักงานปกติ: แสดงทุกวันที่มีข้อมูล
+              shouldShowData = found?.dayType === "stop" && found?.cashOtMul?.trim() && found.cashOtMul === "3";
+            }
+            
+            if (shouldShowData) {
               empRow5.push([
                 found.beforeTotalOtTime ? formatTimeValue(found.beforeTotalOtTime) : '',
                 found.totalOtTime ? formatTimeValue(found.totalOtTime) : ''
@@ -10911,7 +10972,7 @@ const getDateStyle = (day) => {
                                 onChange={handleStaffIdChange}
                                 onInput={(e) => {
                                   // Remove any non-digit characters
-                                  e.target.value = e.target.value.replace(/\D/g, "");
+                              
                                 }}
                                 list="WorkplaceIdList"
                               />
@@ -11318,17 +11379,29 @@ const getDateStyle = (day) => {
     const recordWorkplaceId = found?.workplaceId;
     const isMatchSearchWorkplace = recordWorkplaceId === searchWorkplaceId;
     
-    if (isMatchSearchWorkplace) {
-      // ถ้าตรงกับ searchWorkplaceId ให้แสดงแค่ 1
-      displayValue = '1';
+    // ตรวจสอบว่าพนักงานคนนี้เป็นพนักงานข้ามหน่วยงานหรือไม่
+    const isCrossWorkplaceEmployee = record?.isCrossWorkplace || false;
+    
+    if (isCrossWorkplaceEmployee) {
+      // ถ้าเป็นพนักงานข้ามหน่วยงาน ให้แสดง "1" เฉพาะวันที่มาทำงานที่หน่วยงานที่เลือกเท่านั้น
+      if (isMatchSearchWorkplace) {
+        displayValue = '1';
+      }
+      // ถ้าไม่ตรงกับ searchWorkplaceId = ไม่แสดงอะไร (วันที่ไม่ได้มาทำงานที่หน่วยงานนี้)
     } else {
-      // ถ้าไม่ตรงกับ searchWorkplaceId ให้แสดง 1 และ workplaceId
-      displayValue = (
-        <>
-          1<br />
-          {recordWorkplaceId || ''}
-        </>
-      );
+      // พนักงานปกติที่สังกัดหน่วยงานนี้
+      if (isMatchSearchWorkplace) {
+        // ถ้าตรงกับ searchWorkplaceId ให้แสดงแค่ 1
+        displayValue = '1';
+      } else {
+        // ถ้าไม่ตรงกับ searchWorkplaceId ให้แสดง 1 และ workplaceId (กรณีไปทำงานหน่วยงานอื่น)
+        displayValue = (
+          <>
+            1<br />
+            {recordWorkplaceId || ''}
+          </>
+        );
+      }
     }
   }
 
@@ -11489,9 +11562,24 @@ const getDateStyle = (day) => {
                     const found = record?.employee_record?.find(itemx => itemx.date === day);
                     const hasData = found && found.date; // ตรวจสอบว่ามีข้อมูลหรือไม่
                     
+                    // ตรวจสอบว่าเป็นพนักงานข้ามหน่วยงานหรือไม่
+                    const isCrossWorkplaceEmployee = record?.isCrossWorkplace || false;
+                    const recordWorkplaceId = found?.workplaceId;
+                    const isMatchSearchWorkplace = recordWorkplaceId === searchWorkplaceId;
+                    
+                    // กำหนดเงื่อนไขการแสดงผล
+                    let shouldShowData = false;
+                    if (isCrossWorkplaceEmployee) {
+                      // พนักงานข้ามหน่วยงาน: แสดงเฉพาะวันที่มาทำงานที่หน่วยงานที่เลือก
+                      shouldShowData = hasData && isMatchSearchWorkplace;
+                    } else {
+                      // พนักงานปกติ: แสดงทุกวันที่มีข้อมูล
+                      shouldShowData = hasData;
+                    }
+                    
                     return (
-                      <td key={i} className="text-center align-middle" style={!hasData ? { backgroundColor: "#bfbdbf" } : {}}>
-                        {found?.cashOtMul?.trim() && found?.cashOtMul === "1.5"
+                      <td key={i} className="text-center align-middle" style={!shouldShowData ? { backgroundColor: "#bfbdbf" } : {}}>
+                        {shouldShowData && found?.cashOtMul?.trim() && found?.cashOtMul === "1.5"
                           ? [
                               found.beforeTotalOtTime ? formatTimeValue(found.beforeTotalOtTime) : '',
                               found.totalOtTime ? formatTimeValue(found.totalOtTime) : ''
@@ -11519,13 +11607,29 @@ const getDateStyle = (day) => {
                     <td className="text-right"><span >โอที 2</span></td>
                     {dayNumbers.map((day, i) => {
 const found = record?.employee_record?.find(itemx => itemx.date === day);
+
+  // ตรวจสอบว่าเป็นพนักงานข้ามหน่วยงานหรือไม่
+  const isCrossWorkplaceEmployee = record?.isCrossWorkplace || false;
+  const recordWorkplaceId = found?.workplaceId;
+  const isMatchSearchWorkplace = recordWorkplaceId === searchWorkplaceId;
+  
+  // กำหนดเงื่อนไขการแสดงผล
+  let shouldShowData = false;
+  if (isCrossWorkplaceEmployee) {
+    // พนักงานข้ามหน่วยงาน: แสดงเฉพาะวันที่มาทำงานที่หน่วยงานที่เลือก และต้องเป็น dayType "stop" และมี totalTime
+    shouldShowData = found && isMatchSearchWorkplace && found?.dayType === "stop" && found.totalTime;
+  } else {
+    // พนักงานปกติ: แสดงทุกวันที่มีข้อมูล dayType "stop" และมี totalTime
+    shouldShowData = found?.dayType === "stop" && found.totalTime;
+  }
+
   return (
     <td 
       key={i} 
       className="text-red align-middle text-center"
-      style={found?.dayType === "stop" && found.totalTime ? {backgroundColor: "yellow"} : {}}
+      style={shouldShowData ? {backgroundColor: "yellow"} : {}}
     >
-      {found?.dayType === "stop" && found.totalTime ? formatTimeValue(found.totalTime) : ''}
+      {shouldShowData ? formatTimeValue(found.totalTime) : ''}
     </td>
   );
 })}       
@@ -11557,10 +11661,25 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
     // Find the record for this specific day
     const found = record?.employee_record?.find(itemx => itemx.date === day);
     
+    // ตรวจสอบว่าเป็นพนักงานข้ามหน่วยงานหรือไม่
+    const isCrossWorkplaceEmployee = record?.isCrossWorkplace || false;
+    const recordWorkplaceId = found?.workplaceId;
+    const isMatchSearchWorkplace = recordWorkplaceId === searchWorkplaceId;
+    
+    // กำหนดเงื่อนไขการแสดงผล
+    let shouldShowData = false;
+    if (isCrossWorkplaceEmployee) {
+      // พนักงานข้ามหน่วยงาน: แสดงเฉพาะวันที่มาทำงานที่หน่วยงานที่เลือก
+      shouldShowData = found && isMatchSearchWorkplace && found?.dayType === "stop" && found?.cashOtMul?.trim() && found.cashOtMul === "3";
+    } else {
+      // พนักงานปกติ: แสดงทุกวันที่มีข้อมูล
+      shouldShowData = found?.dayType === "stop" && found?.cashOtMul?.trim() && found.cashOtMul === "3";
+    }
+    
     // Check if this is a "stop" day with overtime values
     return (
-      <td key={i} className="text-center align-middle" style={{backgroundColor: found?.dayType === "stop" && found.cashOtMul === "3" &&  found.totalOtTime ? "#fae0f1" : ""}}>
-        {found?.dayType === "stop" && found?.cashOtMul?.trim() && found.cashOtMul === "3"
+      <td key={i} className="text-center align-middle" style={{backgroundColor: shouldShowData ? "#fae0f1" : ""}}>
+        {shouldShowData
           ? [
               found.beforeTotalOtTime ? formatTimeValue(found.beforeTotalOtTime) : '',
               found.totalOtTime ? formatTimeValue(found.totalOtTime) : ''

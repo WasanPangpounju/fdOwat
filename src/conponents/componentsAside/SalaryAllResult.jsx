@@ -980,7 +980,7 @@ const generatePDF01 = async () => {
       // กำหนดหัวตาราง
       const headers = [
         "รหัส", "ชื่อ - สกุล", "วัน", "เงินเดือน", "ค่าล่วงเวลา", 
-        "ค่ารถ/โทร/\nตน.", "สวัสดิการ\n(ไม่คิด ปกส.)", "เบี้ยขยัน", "นักขัติ", 
+        "สวัสดิการพิเศษ/\nตน.", "สวัสดิการ\n(ไม่คิด ปกส.)", "เบี้ยขยัน", "นักขัติ", 
         "บวกอื่นๆ\n(คิด ปกส)", "หักอื่นๆ\n(คิด ปกส)", "บวกอื่นๆ\n(ไม่คิด ปกส)", 
         "หักอื่นๆ\n(ไม่คิด ปกส)", "หักภาษี", "หัก ปกส", "บวกอื่นๆ", "หักอื่นๆ", 
         "เบิกล่วงหน้า", "สุทธิ"
@@ -1146,7 +1146,7 @@ const generatePDF01 = async () => {
       // วาดหัวตาราง     // กำหนดชื่อหน่วยงานและรหัสหน่วยงาน
       const headers = [
         "รหัส", "ชื่อ - สกุล", "วัน", "เงินเดือน", "ค่าล่วงเวลา", 
-        "ค่ารถ/โทร/\nตน.", "สวัสดิการ\n(ไม่คิด ปกส.)", "เบี้ยขยัน", "นักขัติ", 
+        "สวัสดิการ/\nพิเศษ", "สวัสดิการ\n(ไม่คิด ปกส.)", "เบี้ยขยัน", "นักขัติ", 
         "บวกอื่นๆ\n(คิด ปกส)", "หักอื่นๆ\n(คิด ปกส)", "บวกอื่นๆ\n(ไม่คิด ปกส)", 
         "หักอื่นๆ\n(ไม่คิด ปกส)", "หักภาษี", "หัก ปกส", "บวกอื่นๆ", "หักอื่นๆ", 
         "เบิกล่วงหน้า", "สุทธิ"
@@ -1527,7 +1527,7 @@ const createWorkplaceTable = (doc, wpId, wpName, employees, startY) => {
     // แปลงข้อมูลตัวเลขให้เป็นตัวเลขทั้งหมด (ลบ comma และแปลงเป็น float)
     const salary = parseFloat(emp.sumCashWork.replace(/,/g, '') || 0);
     const ot = parseFloat(emp.sumCashOt.replace(/,/g, '') || 0);
-    const transportation = parseFloat(emp.transportAllowance?.replace(/,/g, '') || 0);
+    const transportation = parseFloat(emp.transportAllsowance?.replace(/,/g, '') || 0);
     const welfare = parseFloat(emp.welfare?.replace(/,/g, '') || 0);
     const diligence = parseFloat(emp.diligenceAllowance?.replace(/,/g, '') || 0);
     const holiday = parseFloat(emp.publicHolidayCash?.replace(/,/g, '') || 0);
@@ -1554,7 +1554,7 @@ const createWorkplaceTable = (doc, wpId, wpName, employees, startY) => {
       id: emp.employeeId || "-",
       name: `${emp.firstName || ""} ${emp.lastName || ""}`,
       days: emp.dayWorkCount || '0',
-      salary: emp.sumCashWork || '0',
+      salary: emp.sumCashOt || '0',
       ot: emp.sumCashOt || '0',
       transportation: emp.transportAllowance || '0',
       welfare: emp.welfare || '0',
@@ -2966,7 +2966,7 @@ const createWorkplaceTable = (doc, wpId, wpName, employees, startY) => {
             currentY += 5;
 
             pdf.text(
-              `พิมพ์วันที่ ${formattedWorkDateDD}/${formattedWorkDateMM}/${parseInt(formattedWorkDateYYYY, 10) + 543
+              `พิมพ์วัหกด่ฟหรสร่นที่ ${formattedWorkDateDD}/${formattedWorkDateMM}/${parseInt(formattedWorkDateYYYY, 10) + 543
               }`,
               10,
               200
