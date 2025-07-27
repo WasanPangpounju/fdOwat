@@ -1868,11 +1868,16 @@ function groupByWorkplaceId(records) {
 
 // ✅ ฟังก์ชันคำนวณ dayoffWorkplace จาก workTimeDay
 function calculateWorkplaceDayOff(workplace, year, month) {
+    console.log('🔧 calculateWorkplaceDayOff called with:', { workplaceId: workplace.workplaceId, year, month });
+    
     const workplaceDayOffList = [];
     
     if (!workplace.workTimeDay) {
+        console.log('⚠️ No workTimeDay found in workplace');
         return workplaceDayOffList;
     }
+
+    console.log('📋 workTimeDay:', workplace.workTimeDay);
 
     // Helper function สำหรับแปลงชื่อวันเป็นตัวเลข
     function getDayNumber(dayName) {
@@ -1886,10 +1891,12 @@ function calculateWorkplaceDayOff(workplace, year, month) {
     // สร้างรายการวันหยุดของหน่วยงาน
     const dayOffList = [];
     workplace.workTimeDay.forEach(item => {
+        console.log('🔍 Processing workTimeDay item:', item);
         if (item.workOrStop === 'stop') {
             try {
                 let startDay = getDayNumber(item.startDay);
                 let endDay = getDayNumber(item.endDay);
+                console.log(`📅 Day off from ${item.startDay}(${startDay}) to ${item.endDay}(${endDay})`);
 
                 if (startDay <= endDay) {
                     for (let i = startDay; i <= endDay; i++) {
@@ -1910,34 +1917,46 @@ function calculateWorkplaceDayOff(workplace, year, month) {
         }
     });
 
+    console.log('📋 Final dayOffList (day numbers):', dayOffList);
+
+    console.log('📋 Final dayOffList (day numbers):', dayOffList);
+
     // คำนวณช่วงวันที่ (21 เดือนก่อน ถึง 20 เดือนปัจจุบัน)
     const monthInteger = parseInt(month, 10);
     let previousMonth = monthInteger === 1 ? 12 : monthInteger - 1;
     let yearForPrevMonth = monthInteger === 1 ? year - 1 : year;
 
+    console.log(`📅 Processing date range: ${yearForPrevMonth}-${previousMonth.toString().padStart(2, '0')}-21 to ${year}-${monthInteger.toString().padStart(2, '0')}-20`);
+
     // วันที่ 21-31 ของเดือนก่อน
     const previousMonthString = previousMonth.toString().padStart(2, '0');
     const endM1 = new Date(yearForPrevMonth, previousMonth, 0).getDate();
     
+    console.log(`🔍 Processing previous month: ${yearForPrevMonth}-${previousMonthString}, days 21-${endM1}`);
     for (let m1 = 21; m1 <= endM1; m1++) {
         let dateString = `${yearForPrevMonth}-${previousMonthString}-${m1.toString().padStart(2, '0')}`;
         let dayNumber = new Date(dateString).getDay();
+        console.log(`📅 Checking ${dateString}, dayNumber: ${dayNumber}, is dayOff: ${dayOffList.includes(dayNumber)}`);
         if (dayOffList.includes(dayNumber)) {
             workplaceDayOffList.push(dateString);
+            console.log(`✅ Added to dayOff: ${dateString}`);
         }
     }
 
     // วันที่ 1-20 ของเดือนปัจจุบัน
     const currentMonthString = monthInteger.toString().padStart(2, '0');
+    console.log(`🔍 Processing current month: ${year}-${currentMonthString}, days 1-20`);
     for (let m2 = 1; m2 <= 20; m2++) {
         let dateString = `${year}-${currentMonthString}-${m2.toString().padStart(2, '0')}`;
         let dayNumber = new Date(dateString).getDay();
+        console.log(`📅 Checking ${dateString}, dayNumber: ${dayNumber}, is dayOff: ${dayOffList.includes(dayNumber)}`);
         if (dayOffList.includes(dayNumber)) {
             workplaceDayOffList.push(dateString);
+            console.log(`✅ Added to dayOff: ${dateString}`);
         }
     }
 
-    console.log('Calculated dayoffWorkplace:', workplaceDayOffList);
+    console.log('🎯 Final calculated dayoffWorkplace:', workplaceDayOffList);
     return workplaceDayOffList;
 }
 
