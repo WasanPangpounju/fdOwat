@@ -1427,6 +1427,8 @@ router.get('/getWeekendDates', async (req, res) => {
     const daysOff = workplace.daysOff || [];
     // วันหยุดนักขัตฤกษ์ (publicHoliday)
     const publicHoliday = workplace.publicHoliday || [];
+    // ✅ วันหยุดจาก workTimeDay (dayoffWorkplace)
+    const dayoffWorkplace = workplace.dayoffWorkplace || [];
 
     // daysOff: แปลงเป็น yyyy-mm-dd string เฉพาะที่อยู่ในช่วงเวลา (local date)
     const year = Number(yyyy);
@@ -1530,8 +1532,14 @@ router.get('/getWeekendDates', async (req, res) => {
     console.log('   🏢 daysOff (weekendAndDayOff):', weekendAndDayOff);
     console.log('   🎉 publicHoliday (dayOffOnly):', dayOffOnly);
     console.log('   📅 weekendOnly:', weekendOnly);
+    console.log('   🗓️ dayoffWorkplace:', dayoffWorkplace);
 
-    res.json({ weekendOnly, dayOffOnly, weekendAndDayOff });
+    res.json({ 
+      weekendOnly, 
+      dayOffOnly, 
+      weekendAndDayOff,
+      dayoffWorkplace 
+    });
   } catch (error) {
     console.error('❌ Error in /getWeekendDates:', error);
     res.status(500).json({ error: 'Internal Server Error', detail: error.message });
