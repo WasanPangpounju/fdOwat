@@ -187,6 +187,10 @@ const workplaceSchema = new mongoose.Schema({
       date: Date,
       note: String
   }],
+  
+  dayoffWorkplace: [{
+      type: String
+  }],
 
   workplaceAddress: {
       type: String

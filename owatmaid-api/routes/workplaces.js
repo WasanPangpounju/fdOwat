@@ -282,6 +282,7 @@ router.post('/create', async (req, res) => {
         workRateDayoffRate,
         daysOff,
         daysOffMap,
+        dayoffWorkplace,
         workplaceAddress,
         reason,
         employeeIdList,
@@ -366,6 +367,7 @@ router.post('/create', async (req, res) => {
         workRateDayoffRate,
         daysOff,
                 daysOffMap,
+        dayoffWorkplace,
         workplaceAddress,
         reason,
         employeeIdList,
@@ -573,6 +575,15 @@ const specialDaylist = [];
             //set value for return API
 data.workplaceDayOffList = workplaceDayOffList || [];
 data.specialDaylist = specialDaylist || [];
+
+// ✅ Update dayoffWorkplace in database
+if (workplaceDayOffList.length > 0) {
+    await Workplace.findByIdAndUpdate(
+        workplace._id,
+        { dayoffWorkplace: workplaceDayOffList },
+        { new: true }
+    );
+}
 
 data.workRate = workplace.workRate || 0;
 data.addWorkRate = workplace.addWorkRate || 0;
