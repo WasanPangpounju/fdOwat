@@ -1427,77 +1427,8 @@ router.get('/getWeekendDates', async (req, res) => {
     const daysOff = workplace.daysOff || [];
     // วันหยุดนักขัตฤกษ์ (publicHoliday)
     const publicHoliday = workplace.publicHoliday || [];
-    
-    // ✅ คำนวณ dayoffWorkplace จาก workTimeDay แทนการใช้ข้อมูลเก่าในฐานข้อมูล
-    let dayoffWorkplace = [];
-    if (workplace.workTimeDay && workplace.workTimeDay.length > 0) {
-      // Helper function สำหรับแปลงชื่อวันเป็นตัวเลข
-      function getDayNumber(dayName) {
-        const days = {
-          'sunday': 0, 'monday': 1, 'tuesday': 2, 'wednesday': 3, 
-          'thursday': 4, 'friday': 5, 'saturday': 6
-        };
-        return days[dayName.toLowerCase()] !== undefined ? days[dayName.toLowerCase()] : parseInt(dayName);
-      }
-
-      // สร้างรายการวันหยุดของหน่วยงาน
-      const dayOffList = [];
-      workplace.workTimeDay.forEach(item => {
-        if (item.workOrStop === 'stop') {
-          try {
-            let startDay = getDayNumber(item.startDay);
-            let endDay = getDayNumber(item.endDay);
-
-            if (startDay <= endDay) {
-              for (let i = startDay; i <= endDay; i++) {
-                dayOffList.push(i);
-              }
-            } else {
-              // กรณีครอบคลุมวันอาทิตย์ (เช่น เสาร์-จันทร์)
-              for (let j = startDay; j <= 6; j++) {
-                dayOffList.push(j);
-              }
-              for (let k = 0; k <= endDay; k++) {
-                dayOffList.push(k);
-              }
-            }
-          } catch (error) {
-            console.error('Error processing workTimeDay:', error.message);
-          }
-        }
-      });
-
-      // คำนวณช่วงวันที่ (21 เดือนก่อน ถึง 20 เดือนปัจจุบัน)
-      const monthInteger = parseInt(mm, 10);
-      let previousMonth = monthInteger === 1 ? 12 : monthInteger - 1;
-      let yearForPrevMonth = monthInteger === 1 ? parseInt(yyyy) - 1 : parseInt(yyyy);
-
-      // วันที่ 21-31 ของเดือนก่อน
-      const previousMonthString = previousMonth.toString().padStart(2, '0');
-      const endM1 = new Date(yearForPrevMonth, previousMonth, 0).getDate();
-      
-      for (let m1 = 21; m1 <= endM1; m1++) {
-        let dateString = `${yearForPrevMonth}-${previousMonthString}-${m1.toString().padStart(2, '0')}`;
-        let dayNumber = new Date(dateString).getDay();
-        if (dayOffList.includes(dayNumber)) {
-          dayoffWorkplace.push(dateString);
-        }
-      }
-
-      // วันที่ 1-20 ของเดือนปัจจุบัน
-      const currentMonthString = monthInteger.toString().padStart(2, '0');
-      for (let m2 = 1; m2 <= 20; m2++) {
-        let dateString = `${yyyy}-${currentMonthString}-${m2.toString().padStart(2, '0')}`;
-        let dayNumber = new Date(dateString).getDay();
-        if (dayOffList.includes(dayNumber)) {
-          dayoffWorkplace.push(dateString);
-        }
-      }
-
-      console.log('🔧 Calculated dayoffWorkplace from workTimeDay:', dayoffWorkplace);
-    } else {
-      console.log('⚠️ No workTimeDay found, using empty dayoffWorkplace');
-    }
+    // ✅ วันหยุดจาก workTimeDay (dayoffWorkplace)
+    const dayoffWorkplace = workplace.dayoffWorkplace || [];
 
     // daysOff: แปลงเป็น yyyy-mm-dd string เฉพาะที่อยู่ในช่วงเวลา (local date)
     const year = Number(yyyy);
