@@ -406,6 +406,8 @@ const employeeSchema = new mongoose.Schema({
         StaffType: String,
         nameType: String,
         message: String,
+        effectiveMonth: String, // เดือนที่มีผล (01-12)
+        effectiveYear: String,  // ปีที่มีผล (2024, 2025, ...)
       },
     ],
     deductSalary: [
@@ -417,6 +419,8 @@ const employeeSchema = new mongoose.Schema({
         installment: String,
         nameType: String,
         message: String,
+        effectiveMonth: String, // เดือนที่มีผล (01-12)
+        effectiveYear: String,  // ปีที่มีผล (2024, 2025, ...)
       },
     ],
   

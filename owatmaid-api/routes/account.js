@@ -4965,8 +4965,42 @@ let timeCashWorkMul = {
   }
   
 
-  let addSalary = employeeProfile?.[0]?.addSalary || [];
-    let deductSalary = employeeProfile?.[0]?.deductSalary || [];
+  // Filter addSalary และ deductSalary ตามเดือน/ปีที่ระบุ
+  console.log(`🎯 กำลัง filter addSalary และ deductSalary สำหรับเดือน ${month}/${year}`);
+  
+  let addSalary = employeeProfile?.[0]?.addSalary?.filter(item => {
+    // ถ้าไม่มี effectiveMonth/effectiveYear แสดงว่าเป็นข้อมูลเก่า ให้แสดงทุกเดือน
+    if (!item.effectiveMonth || !item.effectiveYear) {
+      console.log(`⚠️ addSalary item "${item.name}" ไม่มีข้อมูลเดือน/ปี - แสดงทุกเดือน`);
+      return true;
+    }
+    
+    // เปรียบเทียบเดือน/ปี (แปลงเป็น string และเทียบ)
+    const itemMonth = String(item.effectiveMonth).padStart(2, '0');
+    const requestMonth = String(month).padStart(2, '0');
+    const matches = itemMonth === requestMonth && String(item.effectiveYear) === String(year);
+    
+    console.log(`🔍 addSalary "${item.name}": ${item.effectiveMonth}/${item.effectiveYear} ${matches ? '✅ ตรง' : '❌ ไม่ตรง'} กับ ${month}/${year}`);
+    return matches;
+  }) || [];
+  
+  let deductSalary = employeeProfile?.[0]?.deductSalary?.filter(item => {
+    // ถ้าไม่มี effectiveMonth/effectiveYear แสดงว่าเป็นข้อมูลเก่า ให้แสดงทุกเดือน
+    if (!item.effectiveMonth || !item.effectiveYear) {
+      console.log(`⚠️ deductSalary item "${item.name}" ไม่มีข้อมูลเดือน/ปี - แสดงทุกเดือน`);
+      return true;
+    }
+    
+    // เปรียบเทียบเดือน/ปี (แปลงเป็น string และเทียบ)
+    const itemMonth = String(item.effectiveMonth).padStart(2, '0');
+    const requestMonth = String(month).padStart(2, '0');
+    const matches = itemMonth === requestMonth && String(item.effectiveYear) === String(year);
+    
+    console.log(`🔍 deductSalary "${item.name}": ${item.effectiveMonth}/${item.effectiveYear} ${matches ? '✅ ตรง' : '❌ ไม่ตรง'} กับ ${month}/${year}`);
+    return matches;
+  }) || [];
+  
+  console.log(`📊 ผลการ filter: addSalary ${addSalary.length} รายการ, deductSalary ${deductSalary.length} รายการ`);
   let salary = 0;
   let salaryMonth = 0;
   let dailyWage = 0; // ค่าแรงต่อวัน สำหรับคำนวณ cashcustomizeDayoff
