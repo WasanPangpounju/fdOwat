@@ -580,11 +580,37 @@ holidayRate = await parseFloat(response.data.salary || '0') + upsalary || parseF
 let addSalaryList = [];
 let deductSalaryList = [];
 
+// 🔥 ตรวจสอบว่ามีข้อมูลรายเดือนหรือไม่
+let monthlyAddSalary = [];
+let monthlyDeductSalary = [];
 
-    for (let k = 0; k < (response?.data?.addSalary?.length || 0); k++) {
+try {
+  const monthlyRecord = await accounting.findOne({ 
+    employeeId, 
+    month, 
+    year 
+  });
+  
+  if (monthlyRecord) {
+    monthlyAddSalary = monthlyRecord.addSalary || [];
+    monthlyDeductSalary = monthlyRecord.deductSalary || [];
+    console.log(`🎯 พบข้อมูลรายเดือน ${month}/${year}:`, {
+      addSalary: monthlyAddSalary.length,
+      deductSalary: monthlyDeductSalary.length
+    });
+  }
+} catch (error) {
+  console.error('Error fetching monthly data:', error);
+}
+
+// ใช้ข้อมูลรายเดือนถ้ามี ถ้าไม่มีใช้ข้อมูลพื้นฐานจาก Employee
+const salaryDataToUse = monthlyAddSalary.length > 0 ? monthlyAddSalary : (response?.data?.addSalary || []);
+
+
+    for (let k = 0; k < salaryDataToUse.length; k++) {
       //check addSalary with tax and cal social
-        const promise1 = await checkCalTax(response.data.addSalary[k].id || '0');
-        const promise = await checkCalSocial(response.data.addSalary[k].id || '0');
+        const promise1 = await checkCalTax(salaryDataToUse[k].id || '0');
+        const promise = await checkCalSocial(salaryDataToUse[k].id || '0');
         
         await promises.push(promise);
         await promises1.push(promise1);
@@ -628,12 +654,15 @@ if(promise) {
 // console.log(response.data.addSalary[k].roundOfSalary );
     }
 
-    for (let l = 0; l < (response?.data?.deductSalary?.length || 0); l++) {
-      const promisesDeduct1 = await checkCalTax(response.data.deductSalary[l].id || '0');
-      const promisesDeduct2 = await checkCalSocial(response.data.deductSalary[l].id || '0');
+// ใช้ข้อมูล deductSalary รายเดือนถ้ามี ถ้าไม่มีใช้ข้อมูลพื้นฐานจาก Employee
+const deductDataToUse = monthlyDeductSalary.length > 0 ? monthlyDeductSalary : (response?.data?.deductSalary || []);
+
+    for (let l = 0; l < deductDataToUse.length; l++) {
+      const promisesDeduct1 = await checkCalTax(deductDataToUse[l].id || '0');
+      const promisesDeduct2 = await checkCalSocial(deductDataToUse[l].id || '0');
 
       await promisesDeduct.push(promisesDeduct1 );
-await deductSalaryList.push(response.data.deductSalary[l] );
+await deductSalaryList.push(deductDataToUse[l] );
 
         //check tax 
           if(promisesDeduct1 ) {
@@ -642,11 +671,11 @@ await deductSalaryList.push(response.data.deductSalary[l] );
             //check cal social
   if(promisesDeduct2 ) {
   //data cal social
-  sumDeductBeforeTaxWithSocial = sumDeductBeforeTaxWithSocial + parseFloat(response.data.deductSalary[l].amount || 0);
+  sumDeductBeforeTaxWithSocial = sumDeductBeforeTaxWithSocial + parseFloat(deductDataToUse[l].amount || 0);
 
   } else {
   //data non social
-  sumDeductBeforeTax = sumDeductBeforeTax + parseFloat(response.data.deductSalary[l].amount || 0);
+  sumDeductBeforeTax = sumDeductBeforeTax + parseFloat(deductDataToUse[l].amount || 0);
 
   }
   
