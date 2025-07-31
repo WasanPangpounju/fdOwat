@@ -483,22 +483,8 @@ let deductSalaryList = [];
 
     for (let k = 0; k < (response?.data?.addSalary?.length || 0); k++) {
       //check addSalary with tax and cal social
-        
-      // กรองเฉพาะสวัสดิการของเดือน/ปีที่ต้องการ
-      const itemMonth = parseInt(response.data.addSalary[k].benefitMonth);
-      const itemYear = parseInt(response.data.addSalary[k].benefitYear);
-      const targetMonth = parseInt(month);
-      const targetYear = parseInt(year) - 543; // แปลงจากปี พ.ศ. เป็น ค.ศ.
-      
-      // ข้ามรายการที่ไม่ตรงกับเดือน/ปีที่ต้องการ
-      if (response.data.addSalary[k].benefitMonth && 
-          response.data.addSalary[k].benefitYear &&
-          (itemMonth !== targetMonth || itemYear !== targetYear)) {
-        continue;
-      }
-        
-      const promise1 = await checkCalTax(response.data.addSalary[k].id || '0');
-      const promise = await checkCalSocial(response.data.addSalary[k].id || '0');
+        const promise1 = await checkCalTax(response.data.addSalary[k].id || '0');
+        const promise = await checkCalSocial(response.data.addSalary[k].id || '0');
         
         await promises.push(promise);
         await promises1.push(promise1);
@@ -1786,22 +1772,8 @@ const response = '';
     
         for (let k = 0; k < response.data.addSalary.length; k++) {
           //check addSalary with tax and cal social
-          
-          // กรองเฉพาะสวัสดิการของเดือน/ปีที่ต้องการ
-          const itemMonth = parseInt(response.data.addSalary[k].benefitMonth);
-          const itemYear = parseInt(response.data.addSalary[k].benefitYear);
-          const targetMonth = parseInt(month);
-          const targetYear = parseInt(year) - 543; // แปลงจากปี พ.ศ. เป็น ค.ศ.
-          
-          // ข้ามรายการที่ไม่ตรงกับเดือน/ปีที่ต้องการ
-          if (response.data.addSalary[k].benefitMonth && 
-              response.data.addSalary[k].benefitYear &&
-              (itemMonth !== targetMonth || itemYear !== targetYear)) {
-            continue;
-          }
-          
-          const promise1 = await checkCalTax(response.data.addSalary[k].id || '0');
-          const promise = await checkCalSocial(response.data.addSalary[k].id || '0');
+            const promise1 = await checkCalTax(response.data.addSalary[k].id || '0');
+            const promise = await checkCalSocial(response.data.addSalary[k].id || '0');
             
             await promises.push(promise);
             await promises1.push(promise1);
@@ -3760,22 +3732,8 @@ let deductSalaryList = [];
     for (let k = 0; k < response.data.addSalary.length; k++) {
 
       //check addSalary with tax and cal social
-      
-      // กรองเฉพาะสวัสดิการของเดือน/ปีที่ต้องการ
-      const itemMonth = parseInt(response.data.addSalary[k].benefitMonth);
-      const itemYear = parseInt(response.data.addSalary[k].benefitYear);
-      const targetMonth = parseInt(month);
-      const targetYear = parseInt(year) - 543; // แปลงจากปี พ.ศ. เป็น ค.ศ.
-      
-      // ข้ามรายการที่ไม่ตรงกับเดือน/ปีที่ต้องการ
-      if (response.data.addSalary[k].benefitMonth && 
-          response.data.addSalary[k].benefitYear &&
-          (itemMonth !== targetMonth || itemYear !== targetYear)) {
-        continue;
-      }
-      
-      const promise1 = await checkCalTax(response.data.addSalary[k].id || '0');
-      const promise = await checkCalSocial(response.data.addSalary[k].id || '0');
+        const promise1 = await checkCalTax(response.data.addSalary[k].id || '0');
+        const promise = await checkCalSocial(response.data.addSalary[k].id || '0');
         
         await promises.push(promise);
         await promises1.push(promise1);
@@ -5007,8 +4965,30 @@ let timeCashWorkMul = {
   }
   
 
-  let addSalary = employeeProfile?.[0]?.addSalary || [];
-    let deductSalary = employeeProfile?.[0]?.deductSalary || [];
+  // ดึงข้อมูล addSalary และกรองตาม effectiveMonth และ effectiveYear
+  let allAddSalary = employeeProfile?.[0]?.addSalary || [];
+  let addSalary = allAddSalary.filter(salary => {
+    // ถ้าไม่มี effectiveMonth หรือ effectiveYear ให้ถือว่าเป็นเดือน 1 และปีปัจจุบัน
+    const salaryMonth = salary.effectiveMonth || '01';
+    const salaryYear = salary.effectiveYear || year;
+    
+    // แปลง month ที่ส่งมาให้เป็นรูปแบบเดียวกัน (เช่น "3" -> "03")
+    const requestMonth = month.toString().padStart(2, '0');
+    const requestYear = year.toString();
+    
+    console.log(`🔍 ตรวจสอบ addSalary: ${salary.name}, effectiveMonth: ${salaryMonth}, effectiveYear: ${salaryYear}, ต้องการ month: ${requestMonth}, year: ${requestYear}`);
+    
+    return salaryMonth === requestMonth && salaryYear === requestYear;
+  });
+  
+  console.log(`📊 === สรุปการกรอง addSalary ===`);
+  console.log(`📊 addSalary ทั้งหมด: ${allAddSalary.length} รายการ`);
+  console.log(`📊 addSalary หลังกรอง (เดือน ${month.toString().padStart(2, '0')} ปี ${year}): ${addSalary.length} รายการ`);
+  if (addSalary.length > 0) {
+    console.log(`📊 รายการที่ผ่านการกรอง:`, addSalary.map(s => `${s.name} (${s.effectiveMonth || '01'}/${s.effectiveYear || year})`).join(', '));
+  }
+  
+  let deductSalary = employeeProfile?.[0]?.deductSalary || [];
   let salary = 0;
   let salaryMonth = 0;
   let dailyWage = 0; // ค่าแรงต่อวัน สำหรับคำนวณ cashcustomizeDayoff

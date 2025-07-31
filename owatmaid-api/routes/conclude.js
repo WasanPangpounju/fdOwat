@@ -142,15 +142,7 @@ let upSalary_month  = '';
     // if(dataEmp.employees.length !== 0){
     if (dataEmp && dataEmp.employees && Array.isArray(dataEmp.employees) && dataEmp.employees.length !== 0) {
       await dataEmp.employees[0].addSalary.forEach(item => {
-        // กรองเฉพาะสวัสดิการของเดือน/ปีที่ต้องการ
-        const itemMonth = parseInt(item.benefitMonth);
-        const itemYear = parseInt(item.benefitYear);
-        const targetMonth = parseInt(month);
-        const targetYear = parseInt(year) - 543; // แปลงจากปี พ.ศ. เป็น ค.ศ.
-        
-        if (item.roundOfSalary == 'daily' && 
-            itemMonth === targetMonth && 
-            itemYear === targetYear) {
+        if (item.roundOfSalary == 'daily') {
           addSalaryDaily.push(item);
         }
       });
