@@ -129,7 +129,10 @@ router.post('/monthlyAddSalary/get', async (req, res) => {
     } else {
       res.json({
         success: true,
-        data: null
+        data: {
+          addSalaryList: [],
+          deductSalaryList: []
+        }
       });
     }
 
