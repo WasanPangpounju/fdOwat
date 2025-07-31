@@ -5904,14 +5904,21 @@ console.log(`🔍 ค่า customizeDayoff ที่จะบันทึก: $
 console.log(`💰 เงินสำหรับวันหยุดที่กำหนดเอง (cashcustomizeDayoff): ${cashcustomizeDayoff.toFixed(2)} บาท`);
 
   if (addSalary && addSalary.length > 0) {
+    // เพิ่มรายการทั้งหมดจาก addSalary ที่ผ่านการกรองแล้ว
+    addSalaryList = await addSalaryList.concat(addSalary);
+    
+    // กรองเฉพาะรายการ monthly สำหรับการคำนวณพิเศษ (ถ้าต้องการ)
     monthlySalaries = await addSalary.filter(salary => salary.roundOfSalary === 'monthly');
+    
+    console.log(`\n🔍 === เพิ่มรายการ addSalary เข้า addSalaryList ===`);
+    console.log(`🔍 จำนวนรายการจาก addSalary: ${addSalary.length}`);
+    console.log(`🔍 จำนวนรายการ monthly: ${monthlySalaries.length}`);
+    console.log(`🔍 addSalaryList ขนาดรวม: ${addSalaryList.length}`);
   }
      if (deductSalary&& deductSalary.length > 0) {
 //เพิ่มเงินหักลงในรายการเงินหัก
       deductSalaryList = deductSalary;
   }
-
-  addSalaryList = await addSalaryList.concat(monthlySalaries);
 
   console.log(`\n🔍 === การตรวจสอบเงินพิเศษที่คิดประกันสังคม ===`);
   console.log(`🔍 จำนวนรายการเงินพิเศษทั้งหมด: ${addSalaryList.length} รายการ`);
