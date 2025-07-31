@@ -1,4 +1,3 @@
-
 const sURL = 'http://localhost:3000';
 
 //require timerecordEmployee 
@@ -51,105 +50,6 @@ const acount = await accounting.find();
     res.status(500).send(e);
   }
   
-});
-// API สำหรับบันทึก/อัปเดตสวัสดิการรายเดือน
-router.post('/monthlyAddSalary/save', async (req, res) => {
-  try {
-    const { employeeId, month, year, addSalaryList, deductSalaryList } = req.body;
-
-    console.log('Saving monthly salary data:', { employeeId, month, year, addSalaryList, deductSalaryList });
-
-    if (!employeeId || !month || !year) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'กรุณาระบุ employeeId, month และ year' 
-      });
-    }
-
-    // หา accounting record ที่มีอยู่
-    let accountingRecord = await accounting.findOne({ 
-      employeeId, 
-      month, 
-      year 
-    });
-
-    if (accountingRecord) {
-      // ถ้ามีอยู่แล้ว อัปเดต addSalary และ deductSalary
-      accountingRecord.addSalary = addSalaryList || [];
-      accountingRecord.deductSalary = deductSalaryList || [];
-      await accountingRecord.save();
-    } else {
-      // ถ้าไม่มี สร้างใหม่เฉพาะส่วนที่จำเป็น
-      accountingRecord = new accounting({
-        employeeId,
-        month,
-        year,
-        createDate: new Date().toLocaleDateString('en-GB'),
-        addSalary: addSalaryList || [],
-        deductSalary: deductSalaryList || [],
-        accountingRecord: [],
-        status: 'monthly_salary_only'
-      });
-      await accountingRecord.save();
-    }
-
-    res.json({
-      success: true,
-      message: 'บันทึกสวัสดิการรายเดือนสำเร็จ',
-      data: accountingRecord
-    });
-
-  } catch (error) {
-    console.error('Error saving monthly salary:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'เกิดข้อผิดพลาดในการบันทึกข้อมูล',
-      error: error.message 
-    });
-  }
-});
-
-// API สำหรับดึงสวัสดิการรายเดือน
-router.post('/monthlyAddSalary/get', async (req, res) => {
-  try {
-    const { employeeId, month, year } = req.body;
-
-    console.log('Getting monthly salary data for:', { employeeId, month, year });
-
-    const accountingRecord = await accounting.findOne({ 
-      employeeId, 
-      month, 
-      year 
-    });
-
-    console.log('Found record:', accountingRecord);
-
-    if (accountingRecord) {
-      res.json({
-        success: true,
-        data: {
-          addSalaryList: accountingRecord.addSalary || [],
-          deductSalaryList: accountingRecord.deductSalary || []
-        }
-      });
-    } else {
-      res.json({
-        success: true,
-        data: {
-          addSalaryList: [],
-          deductSalaryList: []
-        }
-      });
-    }
-
-  } catch (error) {
-    console.error('Error getting monthly salary:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'เกิดข้อผิดพลาดในการดึงข้อมูล',
-      error: error.message 
-    });
-  }
 });
 
 router.get('/listdelete', async (req, res) => {
@@ -580,37 +480,25 @@ holidayRate = await parseFloat(response.data.salary || '0') + upsalary || parseF
 let addSalaryList = [];
 let deductSalaryList = [];
 
-// 🔥 ตรวจสอบว่ามีข้อมูลรายเดือนหรือไม่
-let monthlyAddSalary = [];
-let monthlyDeductSalary = [];
 
-try {
-  const monthlyRecord = await accounting.findOne({ 
-    employeeId, 
-    month, 
-    year 
-  });
-  
-  if (monthlyRecord) {
-    monthlyAddSalary = monthlyRecord.addSalary || [];
-    monthlyDeductSalary = monthlyRecord.deductSalary || [];
-    console.log(`🎯 พบข้อมูลรายเดือน ${month}/${year}:`, {
-      addSalary: monthlyAddSalary.length,
-      deductSalary: monthlyDeductSalary.length
-    });
-  }
-} catch (error) {
-  console.error('Error fetching monthly data:', error);
-}
-
-// ใช้ข้อมูลรายเดือนถ้ามี ถ้าไม่มีใช้ข้อมูลพื้นฐานจาก Employee
-const salaryDataToUse = monthlyAddSalary.length > 0 ? monthlyAddSalary : (response?.data?.addSalary || []);
-
-
-    for (let k = 0; k < salaryDataToUse.length; k++) {
+    for (let k = 0; k < (response?.data?.addSalary?.length || 0); k++) {
       //check addSalary with tax and cal social
-        const promise1 = await checkCalTax(salaryDataToUse[k].id || '0');
-        const promise = await checkCalSocial(salaryDataToUse[k].id || '0');
+        
+      // กรองเฉพาะสวัสดิการของเดือน/ปีที่ต้องการ
+      const itemMonth = parseInt(response.data.addSalary[k].benefitMonth);
+      const itemYear = parseInt(response.data.addSalary[k].benefitYear);
+      const targetMonth = parseInt(month);
+      const targetYear = parseInt(year) - 543; // แปลงจากปี พ.ศ. เป็น ค.ศ.
+      
+      // ข้ามรายการที่ไม่ตรงกับเดือน/ปีที่ต้องการ
+      if (response.data.addSalary[k].benefitMonth && 
+          response.data.addSalary[k].benefitYear &&
+          (itemMonth !== targetMonth || itemYear !== targetYear)) {
+        continue;
+      }
+        
+      const promise1 = await checkCalTax(response.data.addSalary[k].id || '0');
+      const promise = await checkCalSocial(response.data.addSalary[k].id || '0');
         
         await promises.push(promise);
         await promises1.push(promise1);
@@ -654,15 +542,12 @@ if(promise) {
 // console.log(response.data.addSalary[k].roundOfSalary );
     }
 
-// ใช้ข้อมูล deductSalary รายเดือนถ้ามี ถ้าไม่มีใช้ข้อมูลพื้นฐานจาก Employee
-const deductDataToUse = monthlyDeductSalary.length > 0 ? monthlyDeductSalary : (response?.data?.deductSalary || []);
-
-    for (let l = 0; l < deductDataToUse.length; l++) {
-      const promisesDeduct1 = await checkCalTax(deductDataToUse[l].id || '0');
-      const promisesDeduct2 = await checkCalSocial(deductDataToUse[l].id || '0');
+    for (let l = 0; l < (response?.data?.deductSalary?.length || 0); l++) {
+      const promisesDeduct1 = await checkCalTax(response.data.deductSalary[l].id || '0');
+      const promisesDeduct2 = await checkCalSocial(response.data.deductSalary[l].id || '0');
 
       await promisesDeduct.push(promisesDeduct1 );
-await deductSalaryList.push(deductDataToUse[l] );
+await deductSalaryList.push(response.data.deductSalary[l] );
 
         //check tax 
           if(promisesDeduct1 ) {
@@ -671,11 +556,11 @@ await deductSalaryList.push(deductDataToUse[l] );
             //check cal social
   if(promisesDeduct2 ) {
   //data cal social
-  sumDeductBeforeTaxWithSocial = sumDeductBeforeTaxWithSocial + parseFloat(deductDataToUse[l].amount || 0);
+  sumDeductBeforeTaxWithSocial = sumDeductBeforeTaxWithSocial + parseFloat(response.data.deductSalary[l].amount || 0);
 
   } else {
   //data non social
-  sumDeductBeforeTax = sumDeductBeforeTax + parseFloat(deductDataToUse[l].amount || 0);
+  sumDeductBeforeTax = sumDeductBeforeTax + parseFloat(response.data.deductSalary[l].amount || 0);
 
   }
   
@@ -1662,20 +1547,16 @@ const response = '';
     if(responseConclude.data.recordConclude[c].employeeId === '') {
       const response = null;
     } else {
-      const response = await axios.get(sURL + '/employee/' + employeeId);
+      const response = await axios.get(sURL + '/employee/' + responseConclude.data.recordConclude[c].employeeId);
     }
-    
 
     // const response = await axios.get(sURL + '/employee/' + responseConclude.data.recordConclude[c].employeeId);
     if (response) {
-      
         data.workplace = await response.data.workplace || '';
         data.accountingRecord.tax = await response.data.tax ||0;
     tax = await response.data.tax ||0; 
     salary = await response.data.salary || 0;
-          let monthlyAddSalary = [];
-          let monthlyDeductSalary = [];
-
+    
     // await console.log(response.data);
     
     //ss
@@ -1905,8 +1786,22 @@ const response = '';
     
         for (let k = 0; k < response.data.addSalary.length; k++) {
           //check addSalary with tax and cal social
-            const promise1 = await checkCalTax(response.data.addSalary[k].id || '0');
-            const promise = await checkCalSocial(response.data.addSalary[k].id || '0');
+          
+          // กรองเฉพาะสวัสดิการของเดือน/ปีที่ต้องการ
+          const itemMonth = parseInt(response.data.addSalary[k].benefitMonth);
+          const itemYear = parseInt(response.data.addSalary[k].benefitYear);
+          const targetMonth = parseInt(month);
+          const targetYear = parseInt(year) - 543; // แปลงจากปี พ.ศ. เป็น ค.ศ.
+          
+          // ข้ามรายการที่ไม่ตรงกับเดือน/ปีที่ต้องการ
+          if (response.data.addSalary[k].benefitMonth && 
+              response.data.addSalary[k].benefitYear &&
+              (itemMonth !== targetMonth || itemYear !== targetYear)) {
+            continue;
+          }
+          
+          const promise1 = await checkCalTax(response.data.addSalary[k].id || '0');
+          const promise = await checkCalSocial(response.data.addSalary[k].id || '0');
             
             await promises.push(promise);
             await promises1.push(promise1);
@@ -3865,8 +3760,22 @@ let deductSalaryList = [];
     for (let k = 0; k < response.data.addSalary.length; k++) {
 
       //check addSalary with tax and cal social
-        const promise1 = await checkCalTax(response.data.addSalary[k].id || '0');
-        const promise = await checkCalSocial(response.data.addSalary[k].id || '0');
+      
+      // กรองเฉพาะสวัสดิการของเดือน/ปีที่ต้องการ
+      const itemMonth = parseInt(response.data.addSalary[k].benefitMonth);
+      const itemYear = parseInt(response.data.addSalary[k].benefitYear);
+      const targetMonth = parseInt(month);
+      const targetYear = parseInt(year) - 543; // แปลงจากปี พ.ศ. เป็น ค.ศ.
+      
+      // ข้ามรายการที่ไม่ตรงกับเดือน/ปีที่ต้องการ
+      if (response.data.addSalary[k].benefitMonth && 
+          response.data.addSalary[k].benefitYear &&
+          (itemMonth !== targetMonth || itemYear !== targetYear)) {
+        continue;
+      }
+      
+      const promise1 = await checkCalTax(response.data.addSalary[k].id || '0');
+      const promise = await checkCalSocial(response.data.addSalary[k].id || '0');
         
         await promises.push(promise);
         await promises1.push(promise1);
@@ -5098,36 +5007,8 @@ let timeCashWorkMul = {
   }
   
 
- // ดึงสวัสดิการพื้นฐานจาก Employee
-let baseAddSalary = employeeProfile?.[0]?.addSalary || [];
-let baseDeductSalary = employeeProfile?.[0]?.deductSalary || [];
-
-// ดึงสวัสดิการรายเดือน
-let monthlyAddSalary = [];
-let monthlyDeductSalary = [];
-
-try {
-  const monthlyData = await MonthlyAddSalary.findOne({ 
-    employeeId, 
-    month, 
-    year 
-  });
-  
-  if (monthlyData) {
-    monthlyAddSalary = monthlyData.addSalaryList || [];
-    monthlyDeductSalary = monthlyData.deductSalaryList || [];
-    console.log(`📋 พบสวัสดิการรายเดือนสำหรับ ${month}/${year}: เงินเพิ่ม ${monthlyAddSalary.length} รายการ, เงินหัก ${monthlyDeductSalary.length} รายการ`);
-  } else {
-    console.log(`📋 ไม่พบสวัสดิการรายเดือนสำหรับ ${month}/${year} - ใช้ข้อมูลพื้นฐาน`);
-  }
-} catch (error) {
-  console.error('Error fetching monthly salary data:', error);
-}
-
-// ใช้สวัสดิการรายเดือนถ้ามี ถ้าไม่มีใช้พื้นฐาน
-let addSalary = monthlyAddSalary.length > 0 ? monthlyAddSalary : baseAddSalary;
-let deductSalary = monthlyDeductSalary.length > 0 ? monthlyDeductSalary : baseDeductSalary;
-
+  let addSalary = employeeProfile?.[0]?.addSalary || [];
+    let deductSalary = employeeProfile?.[0]?.deductSalary || [];
   let salary = 0;
   let salaryMonth = 0;
   let dailyWage = 0; // ค่าแรงต่อวัน สำหรับคำนวณ cashcustomizeDayoff

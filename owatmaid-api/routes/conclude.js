@@ -142,7 +142,15 @@ let upSalary_month  = '';
     // if(dataEmp.employees.length !== 0){
     if (dataEmp && dataEmp.employees && Array.isArray(dataEmp.employees) && dataEmp.employees.length !== 0) {
       await dataEmp.employees[0].addSalary.forEach(item => {
-        if (item.roundOfSalary == 'daily') {
+        // กรองเฉพาะสวัสดิการของเดือน/ปีที่ต้องการ
+        const itemMonth = parseInt(item.benefitMonth);
+        const itemYear = parseInt(item.benefitYear);
+        const targetMonth = parseInt(month);
+        const targetYear = parseInt(year) - 543; // แปลงจากปี พ.ศ. เป็น ค.ศ.
+        
+        if (item.roundOfSalary == 'daily' && 
+            itemMonth === targetMonth && 
+            itemYear === targetYear) {
           addSalaryDaily.push(item);
         }
       });
@@ -1427,8 +1435,6 @@ router.get('/getWeekendDates', async (req, res) => {
     const daysOff = workplace.daysOff || [];
     // วันหยุดนักขัตฤกษ์ (publicHoliday)
     const publicHoliday = workplace.publicHoliday || [];
-    // ✅ วันหยุดจาก workTimeDay (dayoffWorkplace)
-    const dayoffWorkplace = workplace.dayoffWorkplace || [];
 
     // daysOff: แปลงเป็น yyyy-mm-dd string เฉพาะที่อยู่ในช่วงเวลา (local date)
     const year = Number(yyyy);
@@ -1532,14 +1538,8 @@ router.get('/getWeekendDates', async (req, res) => {
     console.log('   🏢 daysOff (weekendAndDayOff):', weekendAndDayOff);
     console.log('   🎉 publicHoliday (dayOffOnly):', dayOffOnly);
     console.log('   📅 weekendOnly:', weekendOnly);
-    console.log('   🗓️ dayoffWorkplace:', dayoffWorkplace);
 
-    res.json({ 
-      weekendOnly, 
-      dayOffOnly, 
-      weekendAndDayOff,
-      dayoffWorkplace 
-    });
+    res.json({ weekendOnly, dayOffOnly, weekendAndDayOff });
   } catch (error) {
     console.error('❌ Error in /getWeekendDates:', error);
     res.status(500).json({ error: 'Internal Server Error', detail: error.message });
