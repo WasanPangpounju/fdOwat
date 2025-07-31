@@ -4,6 +4,8 @@ import axios from "axios";
 import React, { useEffect, useState } from "react";
 import { jsPDF } from "jspdf";
 
+import * as XLSX from 'xlsx';
+
 import "jspdf-autotable";
 
 import DatePicker from "react-datepicker";
@@ -11,6 +13,187 @@ import "react-datepicker/dist/react-datepicker.css";
 
 import moment from "moment";
 import "moment/locale/th"; // Import the Thai locale data
+
+// เพิ่ม CSS สำหรับ Modal
+const modalStyles = `
+  .modal.show {
+    z-index: 1050;
+    animation: fadeIn 0.3s ease-in-out;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  .modal-backdrop {
+    z-index: 1040;
+  }
+  
+  .edit-modal .modal-content {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    width: 95vw !important;
+    max-width: 1400px !important;
+  }
+  
+  .edit-modal .modal-dialog {
+    max-width: 95vw !important;
+    width: 95vw !important;
+    margin: 1rem auto;
+  }
+  
+  .edit-modal .modal-header {
+    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+    border-radius: 15px 15px 0 0;
+    padding: 20px 25px;
+    border: none;
+  }
+  
+  .edit-modal .modal-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+  
+  .edit-modal .modal-body {
+    padding: 25px;
+    background-color: #f8f9fa;
+  }
+  
+  .edit-modal .card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    overflow: hidden;
+  }
+  
+  .edit-modal .card-header {
+    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+    color: white;
+    padding: 15px 20px;
+    border: none;
+  }
+  
+  .edit-modal .form-group label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 8px;
+    font-size: 14px;
+  }
+  
+  .edit-modal .form-control {
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    padding: 12px 15px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+  }
+  
+  .edit-modal .form-control:focus {
+    border-color: #17a2b8;
+    box-shadow: 0 0 0 0.2rem rgba(23, 162, 184, 0.25);
+  }
+  
+  .edit-modal .alert-info {
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+    border-left: 4px solid #17a2b8;
+    padding: 15px 20px;
+  }
+  
+  .edit-modal .table {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  
+  .edit-modal .table th {
+    background: linear-gradient(135deg, #495057 0%, #343a40 100%);
+    color: white;
+    font-weight: 600;
+    padding: 15px;
+    border: none;
+  }
+  
+  .edit-modal .table td {
+    padding: 12px 15px;
+    vertical-align: middle;
+    border-color: #e9ecef;
+  }
+  
+  .edit-modal .table-responsive {
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  
+  .edit-modal .section-header {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    padding: 15px 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    border-left: 4px solid;
+  }
+  
+  .edit-modal .section-header.income {
+    border-left-color: #28a745;
+  }
+  
+  .edit-modal .section-header.deduction {
+    border-left-color: #dc3545;
+  }
+  
+  .edit-modal .section-header.special {
+    border-left-color: #ffc107;
+  }
+  
+  .edit-modal .btn {
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+  }
+  
+  .edit-modal .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+  
+  .edit-modal .modal-footer {
+    background-color: #ffffff;
+    border-top: 1px solid #e9ecef;
+    padding: 20px 25px;
+    border-radius: 0 0 15px 15px;
+  }
+  
+  .btn-close-white {
+    filter: invert(1) grayscale(100%) brightness(200%);
+  }
+  
+  .employee-navigation {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+  }
+  
+  .net-salary-display {
+    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+    border: 2px solid #28a745;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+  }
+`;
+
+// เพิ่ม styles เข้าไปใน head ถ้ายังไม่มี
+if (typeof document !== 'undefined' && !document.getElementById('salary-slip-styles')) {
+  const style = document.createElement('style');
+  style.id = 'salary-slip-styles';
+  style.textContent = modalStyles;
+  document.head.appendChild(style);
+}
 
 function SalarySlipPDF({ employeeList, workplaceList }) {
   // ...existing state variables...
@@ -20,6 +203,8 @@ function SalarySlipPDF({ employeeList, workplaceList }) {
   const [searchWorkplaceId, setSearchWorkplaceId] = useState("");
   const [workplaceListAll, setWorkplaceListAll] = useState([]);
   const [employeeListAll, setEmployeeListAll] = useState([]);
+
+const [isGeneratingExcel, setIsGeneratingExcel] = useState(false);
 
   const [staffId, setStaffId] = useState(""); //รหัสหน่วยงาน
   const [staffName, setStaffName] = useState(""); //รหัสหน่วยงาน
@@ -46,6 +231,612 @@ function SalarySlipPDF({ employeeList, workplaceList }) {
   ).reverse();
 
   const [selectedOption, setSelectedOption] = useState("option1");
+
+  // เพิ่ม state สำหรับ Modal แก้ไขข้อมูล
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingEmployeeIndex, setEditingEmployeeIndex] = useState(0);
+  const [editableData, setEditableData] = useState([]);
+
+  // ฟังก์ชันสำหรับเปิด Modal แก้ไขข้อมูล
+  const openEditModal = () => {
+    if (!responseDataAll || responseDataAll.length === 0) {
+      alert("กรุณารอให้ข้อมูลโหลดเสร็จก่อน หรือเลือกเงื่อนไขการค้นหา");
+      return;
+    }
+    
+    // สร้างสำเนาข้อมูลสำหรับแก้ไข
+    const editableEmployees = responseDataAll.map(employee => ({
+      ...employee,
+      // เก็บข้อมูลที่อาจต้องแก้ไข
+      editableFields: {
+        employeeId: employee.employeeId,
+        employeeName: employee.employeeName,
+        prefix: employee.prefix,
+        sumCashWork: employee.sumCashWork || 0,
+        sumCashOt: employee.sumCashOt || 0,
+        publicHolidayCash: employee.publicHolidayCash || 0,
+        publicHolidayCount: employee.publicHolidayCount || 0,
+        sumOt1p5: employee.sumOt1p5 || 0,
+        sumOtPublicHoliday: employee.sumOtPublicHoliday || 0,
+        sumOt3: employee.sumOt3 || 0,
+        tax: employee.tax || 0,
+        socialSecurity: employee.socialSecurity || 0,
+        advance: employee.deductSalaryList?.[0]?.amount || 0,
+        // สำหรับ addSalaryList
+        addSalaryList: employee.addSalaryList?.map(item => ({
+          ...item,
+          SpSalary: item.SpSalary || 0
+        })) || []
+      }
+    }));
+    
+    setEditableData(editableEmployees);
+    setEditingEmployeeIndex(0);
+    setShowEditModal(true);
+  };
+
+  // ฟังก์ชันสำหรับปิด Modal
+  const closeEditModal = () => {
+    setShowEditModal(false);
+    setEditableData([]);
+    setEditingEmployeeIndex(0);
+  };
+
+  // ฟังก์ชันสำหรับอัพเดทข้อมูลในฟอร์ม
+  const updateEditableField = (field, value) => {
+    const updatedData = [...editableData];
+    
+    // Handle nested object for sumCashWorkMul
+    if (field.startsWith('sumCashWorkMul.')) {
+      const key = field.replace('sumCashWorkMul.', '');
+      if (!updatedData[editingEmployeeIndex].editableFields.sumCashWorkMul) {
+        updatedData[editingEmployeeIndex].editableFields.sumCashWorkMul = {};
+      }
+      updatedData[editingEmployeeIndex].editableFields.sumCashWorkMul[key] = value;
+    } else {
+      updatedData[editingEmployeeIndex].editableFields[field] = value;
+    }
+    
+    setEditableData(updatedData);
+  };
+
+  // ฟังก์ชันสำหรับอัพเดทข้อมูล addSalaryList
+  const updateAddSalaryField = (index, field, value) => {
+    const updatedData = [...editableData];
+    if (!updatedData[editingEmployeeIndex].editableFields.addSalaryList[index]) {
+      return;
+    }
+    updatedData[editingEmployeeIndex].editableFields.addSalaryList[index][field] = value;
+    setEditableData(updatedData);
+  };
+
+  // ฟังก์ชันสำหรับไปพนักงานคนต่อไป
+  const nextEmployee = () => {
+    if (editingEmployeeIndex < editableData.length - 1) {
+      setEditingEmployeeIndex(editingEmployeeIndex + 1);
+    }
+  };
+
+  // ฟังก์ชันสำหรับไปพนักงานคนก่อน
+  const prevEmployee = () => {
+    if (editingEmployeeIndex > 0) {
+      setEditingEmployeeIndex(editingEmployeeIndex - 1);
+    }
+  };
+
+  // ฟังก์ชันสำหรับสร้าง PDF ด้วยข้อมูลที่แก้ไขแล้ว
+  const generatePDFWithEditedData = async () => {
+    console.log("🚀 Starting generatePDFWithEditedData - จะเรียก generatePDF() แทน");
+    
+    try {
+      setIsGeneratingPDF(true);
+      
+      // เรียกใช้ฟังก์ชัน generatePDF เดิมเลย
+      await generatePDF();
+      
+      console.log("✅ PDF generation completed successfully using original generatePDF function!");
+      
+    } catch (error) {
+      console.error("❌ Error in generatePDFWithEditedData:", error);
+      alert("เกิดข้อผิดพลาดในการสร้าง PDF: " + error.message);
+    } finally {
+      setIsGeneratingPDF(false);
+      closeEditModal();
+    }
+  };
+  // ฟังก์ชันสร้าง PDF ที่รับข้อมูลเป็น parameter (คัดลอกจาก generatePDF เป๊ะๆ)
+  const generatePDFWithData = async (dataToUse) => {
+    try {
+      console.log("🎯 START: generatePDFWithData function called");
+      console.log("📊 DataToUse length:", dataToUse?.length);
+      console.log("📊 DataToUse data:", dataToUse);
+   
+      // Create a new instance of jsPDF
+      const pdf = new jsPDF();
+
+      const fontPath = "/assets/fonts/THSarabunNew.ttf";
+      pdf.addFileToVFS(fontPath);
+      pdf.addFont(fontPath, "THSarabunNew", "normal");
+
+      // Add bold font
+      const boldFontPath = "/assets/fonts/THSarabunNew Bold.ttf";
+      pdf.addFileToVFS(boldFontPath);
+      pdf.addFont(boldFontPath, "THSarabunNew Bold", "normal");
+
+      // Override the default stylestable for jspdf-autotable
+      const stylestable = {
+        font: "THSarabunNew",
+        fontStyle: "normal",
+        fontSize: 10,
+      };
+      const tableOptions = {
+        styles: stylestable,
+        startY: 25,
+      };
+
+      // Set the initial position for text and frame
+      let x = 20;
+
+      pdf.setFont("THSarabunNew Bold");
+
+      // ฟังก์ชันคำนวณเงินรับสุทธิ
+      const calculateNetSalary = (employee) => {
+        const incomeTotal = 
+          parseFloat(employee?.sumCashWork || '0') + 
+          parseFloat(employee?.sumCashOt || '0') +
+          parseFloat(employee?.cashSpecialDay || '0') + 
+          parseFloat(
+            employee?.addSalaryList?.reduce(
+              (total, item) => total + parseFloat(item.SpSalary || '0'),
+              0
+            ) || '0'
+          );
+
+        const deductionTotal =
+          parseFloat(employee?.socialSecurity || '0') +
+          parseFloat(employee?.tax || '0');
+
+        const netTotal = incomeTotal - deductionTotal;
+
+        return isNaN(netTotal) ? 0 : netTotal;
+      };
+
+      // Loop through the names and ages arrays to add content to the PDF
+      for (let i = 0; i < dataToUse.length; i += 2) {
+        console.log(`🔄 Processing employee loop iteration ${i}/${dataToUse.length}`);
+        
+        // Add a page for each pair of names
+        if (i > 0) {
+          pdf.addPage();
+        }
+
+        // ใช้ข้อมูลจาก employee_record แทน accountingRecord
+        const currentEmployee = dataToUse[i];
+      console.log(`� Processing employee ${i}:`, currentEmployee?.employeeId, currentEmployee?.name);
+
+      // ใช้ข้อมูลที่แก้ไขแล้วจาก accountingRecord
+      const accountingRecord = currentEmployee.accountingRecord?.[0] || {};
+      const addSalaryList = currentEmployee.addSalaryList || currentEmployee.addSalary || [];
+
+      console.log(`💰 Using modified accountingRecord for employee ${i}:`, accountingRecord);
+      console.log(`💰 Using modified addSalaryList for employee ${i}:`, addSalaryList);
+
+      let head2 = 30;
+
+      pdf.setFontSize(16);
+      pdf.text(`ใบจ่ายเงินเดือน`, 73, 12);
+      pdf.text(`บริษัท โอวาท โปร แอนด์ ควิก จำกัด`, 55, 18);
+      pdf.setFontSize(12);
+
+      pdf.text(`รหัส`, 7, head2);
+      pdf.text(`ชื่อ-สกุล`, 40, head2);
+      pdf.text(`หน่วยงาน`, 80, head2);
+      pdf.text(`${currentEmployee.workplace}`, 93, head2);
+
+      const workplace = workplaceList.find(
+        (item) => item.workplaceId === currentEmployee.workplace
+      );
+      const workplaceName = workplace ? workplace.workplaceName : "Unknown";
+      pdf.text(`${workplaceName}`, 103, head2);
+
+      const banknumber = await getEmployeeBankNumber(currentEmployee.employeeId);
+      pdf.text(`เลขที่บัญชี ${banknumber}`, 155, head2);
+
+      // วาดตาราง
+      pdf.rect(7, head2 + 3, 155, 74);
+      pdf.rect(7, head2 + 3, 155, 12);
+      pdf.rect(7, head2 + 3, 155, 63);
+      pdf.rect(7, head2 + 3, 44, 63);
+      pdf.text(`รายได้`, 24, head2 + 9);
+      pdf.text(`Earnings`, 22, head2 + 12);
+
+      pdf.rect(7, head2 + 3, 62, 63);
+      pdf.text(`จำนวน`, 56, head2 + 9);
+      pdf.text(`Number`, 55, head2 + 12);
+
+      pdf.rect(69, head2 + 3, 24, 74);
+      pdf.text(`จำนวนเงิน`, 74, head2 + 9);
+      pdf.text(`Amount`, 75, head2 + 12);
+
+      pdf.rect(69, head2 + 3, 69, 74);
+      pdf.text(`รายการหัก / รายการคืน`, 102, head2 + 9);
+
+      pdf.text(`รวมเงินได้`, 28, head2 + 71);
+      pdf.text(`Total Earning`, 23, head2 + 75);
+
+      pdf.text(`รายการหัก / รายการคืน`, 100, head2 + 71);
+      pdf.text(`Total Deduction`, 105, head2 + 75);
+
+      pdf.text(`จำนวนเงิน`, 144, head2 + 9);
+      pdf.text(`Amount`, 145, head2 + 12);
+
+      // ตารางวันที่จ่าย
+      pdf.rect(162 + 9, head2 + 3, 25, 25);
+      pdf.rect(162 + 9, head2 + 3, 25, 15);
+      pdf.text(`วันที่จ่าย`, 180, head2 + 9);
+      pdf.text(`Payroll Date`, 177, head2 + 12);
+
+      // ตารางเงินรับสุทธิ
+      pdf.rect(162 + 9, head2 + 52, 25, 25);
+      pdf.rect(162 + 9, head2 + 52, 25, 15);
+      pdf.text(`เงินรับสุทธิ`, 178, head2 + 59);
+      pdf.text(`Net To Pay`, 177, head2 + 62);
+
+      // ตารางล่าง
+      pdf.rect(7, head2 + 79, 155, 13);
+      pdf.rect(7, head2 + 79, 155, 6.5);
+
+      let x1 = 31;
+      for (let j = 0; j < 5; j++) {
+        pdf.rect(x1, head2 + 79, 31, 13);
+        x1 += 31;
+      }
+
+      pdf.text(`เงินได้สะสมต่อปี`, 9, head2 + 83);
+      pdf.text(`ภาษีสะสมต่อปี`, 40, head2 + 83);
+      pdf.text(`เงินสะสมกองทุนต่อปี`, 71, head2 + 83);
+      pdf.text(`เงินประกันสะสมต่อปี`, 102, head2 + 83);
+      pdf.text(`ค่าลดหย่อนอื่นๆ`, 133, head2 + 83);
+
+      pdf.rect(112, head2 + 94, 50, 12);
+      pdf.text(`ลงชื่อพนักงาน`, 125, head2 + 105);
+
+      pdf.text(`${currentEmployee.employeeId}`, 13, head2);
+      pdf.text(`${currentEmployee.name} ${currentEmployee.lastName}`, 50, head2);
+
+      // แสดงรายการรายได้โดยใช้ข้อมูลที่แก้ไขแล้ว
+      const textArray = [];
+      const countArray = [];
+      const valueArray = [];
+
+      // เงินเดือนพื้นฐาน - ใช้ข้อมูลที่แก้ไขแล้ว
+      const workDays = currentEmployee.employee_record?.filter(record => record.dayType === "work").length || 0;
+      const totalCashWork = parseFloat(accountingRecord.amountDay || accountingRecord.sumCashWork || 0);
+      
+      if (totalCashWork > 0) {
+        textArray.push("เงินเดือน");
+        countArray.push(workDays.toString());
+        valueArray.push(totalCashWork.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","));
+      }
+
+      // วันหยุดนักขัตฤกษ์ - ใช้ข้อมูลที่แก้ไขแล้ว
+      const pubDayCount = parseFloat(accountingRecord.publicHolidayCount || currentEmployee.publicHolidayCount || 0);
+      const pubDayCash = parseFloat(accountingRecord.publicHolidayCash || accountingRecord.amountSpecialDay || 0);
+
+      if (pubDayCount > 0 && pubDayCash > 0) {
+        textArray.push("วันหยุดนักขัตฤกษ์");
+        countArray.push(pubDayCount.toString());
+        valueArray.push(pubDayCash.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","));
+      }
+
+      // ค่าล่วงเวลา 1.5 เท่า - ใช้ข้อมูลที่แก้ไขแล้ว
+      const ot15Hours = parseFloat(accountingRecord.sumOt1p5 || currentEmployee.sumOt1p5 || 0);
+      const ot15Cash = parseFloat(currentEmployee.sumCashWorkMul?.["1.5"] || 0);
+
+      if (ot15Hours > 0 && ot15Cash > 0) {
+        textArray.push("ค่าล่วงเวลา 1.5 เท่า");
+        countArray.push(ot15Hours.toFixed(2));
+        valueArray.push(ot15Cash.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","));
+      }
+
+      // ค่าล่วงเวลา 2 เท่า (วันหยุด) - ใช้ข้อมูลที่แก้ไขแล้ว
+      const ot2Hours = parseFloat(accountingRecord.sumOtPublicHoliday || currentEmployee.sumOtPublicHoliday || 0);
+      const ot2Cash = parseFloat(currentEmployee.sumCashWorkMul?.["2"] || 0);
+
+      if (ot2Hours > 0 && ot2Cash > 0) {
+        textArray.push("ค่าล่วงเวลา 2 เท่า");
+        countArray.push(ot2Hours.toFixed(2));
+        valueArray.push(ot2Cash.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","));
+      }
+
+      // ค่าล่วงเวลา 3 เท่า - ใช้ข้อมูลที่แก้ไขแล้ว
+      const ot3Hours = parseFloat(accountingRecord.sumOt3 || currentEmployee.sumOt3 || 0);
+      const ot3Cash = parseFloat(currentEmployee.sumCashWorkMul?.["3"] || 0);
+
+      if (ot3Hours > 0 && ot3Cash > 0) {
+        textArray.push("ค่าล่วงเวลา 3 เท่า");
+        countArray.push(ot3Hours.toFixed(2));
+        valueArray.push(ot3Cash.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","));
+      }
+
+      // รายการเงินพิเศษที่แก้ไขแล้ว
+      addSalaryList.forEach(item => {
+        if (parseFloat(item.SpSalary || item.sumAddSalary || 0) > 0) {
+          textArray.push(item.name);
+          countArray.push("");
+          valueArray.push(parseFloat(item.SpSalary || item.sumAddSalary || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","));
+        }
+      });
+
+      // กรองรายการตาม ID เหมือนในฟังก์ชันเดิม
+      const excludedIds = ["1350", "1230", "1410", "1535", "1520"];
+      const addSalaryFiltered = addSalaryList
+        .filter((salary) => !excludedIds.includes(salary.id))
+        .map((salary) => ({
+          name: salary.name,
+          SpSalary: Number(salary.SpSalary) || 0,
+        }));
+
+      // เบี้ยขยัน
+      const hardWorkingItems = addSalaryList.filter((item) => item.id === "1410");
+      const sumAmountHardWorking = hardWorkingItems.reduce((sum, item) => sum + parseFloat(item.SpSalary || 0), 0);
+      
+      if (sumAmountHardWorking > 0) {
+        textArray.push("เบี้ยขยัน");
+        countArray.push("");
+        valueArray.push(sumAmountHardWorking.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","));
+      }
+
+      // ค่าเดินทาง
+      const travelItems = addSalaryList.filter((item) => item.id === "1230");
+      const sumAddSalaryTavel = travelItems.reduce((sum, item) => sum + parseFloat(item.SpSalary || 0), 0);
+      
+      if (sumAddSalaryTavel > 0) {
+        textArray.push("ค่าเดินทาง(ไม่คิดประกัน)");
+        countArray.push("");
+        valueArray.push(sumAddSalaryTavel.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","));
+      }
+
+      // ค่าอาหาร
+      const foodItems = addSalaryList.filter((item) => item.id === "1350");
+      const sumAddSalaryFood = foodItems.reduce((sum, item) => sum + parseFloat(item.SpSalary || 0), 0);
+      
+      if (sumAddSalaryFood > 0) {
+        textArray.push("ค่าอาหาร");
+        countArray.push("");
+        valueArray.push(sumAddSalaryFood.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","));
+      }
+
+      // จ่ายชดเชยวันลา
+      const excludedIdsPayCompensation = [
+        "1231", "1233", "1422", "1423", "1428", "1434", 
+        "1435", "1429", "1427", "1234", "1426", "1425",
+      ];
+      const addSalaryPayCompensationFiltered = addSalaryList
+        .filter((salary) => excludedIdsPayCompensation.includes(salary.id));
+      
+      const totalSpSalaryCompensation = addSalaryPayCompensationFiltered.reduce(
+        (sum, salary) => sum + parseFloat(salary.SpSalary || 0), 0
+      );
+
+      if (totalSpSalaryCompensation > 0) {
+        textArray.push("จ่ายชดเชยวันลา");
+        countArray.push("");
+        valueArray.push(totalSpSalaryCompensation.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","));
+      }
+
+      // แสดงรายการรายได้
+      let y = 44;
+      textArray.forEach((text, index) => {
+        pdf.text(text, 10, y);
+        pdf.text(countArray[index] || "", 56, y, { align: "right" });
+        pdf.text(valueArray[index], 92, y, { align: "right" });
+        y += 6;
+      });
+
+      // รายการหัก - ใช้ข้อมูลที่แก้ไขแล้ว
+      const textDedustArray = [];
+      const valueDedustArray = [];
+
+      // ภาษีเงินได้ - ใช้ข้อมูลที่แก้ไขแล้ว
+      const tax = parseFloat(accountingRecord.tax || currentEmployee.tax || 0);
+      if (tax > 0) {
+        textDedustArray.push("ภาษีเงินได้");
+        valueDedustArray.push(tax.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","));
+      }
+
+      // ประกันสังคม - ใช้ข้อมูลที่แก้ไขแล้ว
+      const socialSecurity = parseFloat(accountingRecord.socialSecurity || currentEmployee.socialSecurity || 0);
+      if (socialSecurity > 0) {
+        textDedustArray.push("ประกันสังคม");
+        valueDedustArray.push(socialSecurity.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","));
+      }
+
+      // คืนเงินเบิกล่วงหน้า - ใช้ข้อมูลที่แก้ไขแล้ว
+      const advance = parseFloat(accountingRecord.advance || 
+        (currentEmployee.deductSalaryList && 
+         currentEmployee.deductSalaryList[0] && 
+         currentEmployee.deductSalaryList[0].amount) || 0);
+      
+      if (advance > 0) {
+        textDedustArray.push("คืนเงินเบิกล่วงหน้า");
+        valueDedustArray.push(advance.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","));
+      }
+
+      // แสดงรายการหัก
+      let deductionY = 44;
+      textDedustArray.forEach((text, index) => {
+        pdf.text(text, 100, deductionY);
+        pdf.text(valueDedustArray[index], 160, deductionY, { align: "right" });
+        deductionY += 6;
+      });
+
+      // คำนวณและแสดงยอดรวม - ใช้ข้อมูลที่แก้ไขแล้ว
+      const totalIncome = valueArray.reduce((sum, val) => {
+        const numVal = parseFloat(val.replace(/,/g, ''));
+        return sum + (isNaN(numVal) ? 0 : numVal);
+      }, 0);
+      
+      const totalDeduction = valueDedustArray.reduce((sum, val) => {
+        const numVal = parseFloat(val.replace(/,/g, ''));
+        return sum + (isNaN(numVal) ? 0 : numVal);
+      }, 0);
+      
+      const netSalary = totalIncome - totalDeduction;
+
+      pdf.text(totalIncome.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","), 92, head2 + 71, { align: "right" });
+      pdf.text(totalDeduction.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","), 160, head2 + 71, { align: "right" });
+      pdf.text(netSalary.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","), 188, head2 + 72, { align: "right" });
+
+      console.log(`💰 Employee ${i} - Total Income: ${totalIncome}, Total Deduction: ${totalDeduction}, Net: ${netSalary}`);
+
+      // ถ้ามีพนักงานคนที่สอง ทำเหมือนกัน
+      if (i + 1 < dataToUse.length) {
+        const nextEmployee = dataToUse[i + 1];
+        console.log(`📝 Processing second employee ${i + 1}:`, nextEmployee);
+        
+        // ประมวลผลรายการเงินเดือนสำหรับพนักงานคนที่สอง
+        const textArray2 = [];
+        const valueArray2 = [];
+        let totalIncome2 = 0;
+        let totalDeduction2 = 0;
+
+        // วันลาพักร้อนสำหรับพนักงานคนที่สอง
+        const holidayDays2 = nextEmployee.holidaydays || 0;
+        const holidayPay2 = nextEmployee.holiday_pay || 0;
+        if (holidayDays2 > 0 && holidayPay2 > 0) {
+          textArray2.push(`วันลาพักร้อน ${holidayDays2} วัน`);
+          valueArray2.push(holidayPay2);
+          totalIncome2 += holidayPay2;
+        }
+
+        // OT 1.5 เท่าสำหรับพนักงานคนที่สอง
+        const ot15Hours2 = nextEmployee.ot_1_5_hours || 0;
+        const ot15Rate2 = nextEmployee.ot_1_5_bath || 0;
+        if (ot15Hours2 > 0 && ot15Rate2 > 0) {
+          textArray2.push(`OT 1.5 เท่า ${ot15Hours2} ชม.`);
+          valueArray2.push(ot15Rate2);
+          totalIncome2 += ot15Rate2;
+        }
+
+        // OT 2 เท่าสำหรับพนักงานคนที่สอง
+        const ot2Hours2 = nextEmployee.ot_2_hours || 0;
+        const ot2Rate2 = nextEmployee.ot_2_bath || 0;
+        if (ot2Hours2 > 0 && ot2Rate2 > 0) {
+          textArray2.push(`OT 2 เท่า ${ot2Hours2} ชม.`);
+          valueArray2.push(ot2Rate2);
+          totalIncome2 += ot2Rate2;
+        }
+
+        // OT 3 เท่าสำหรับพนักงานคนที่สอง
+        const ot3Hours2 = nextEmployee.ot_3_hours || 0;
+        const ot3Rate2 = nextEmployee.ot_3_bath || 0;
+        if (ot3Hours2 > 0 && ot3Rate2 > 0) {
+          textArray2.push(`OT 3 เท่า ${ot3Hours2} ชม.`);
+          valueArray2.push(ot3Rate2);
+          totalIncome2 += ot3Rate2;
+        }
+
+        // เงินเดือนและค่าตอบแทนอื่นๆ สำหรับพนักงานคนที่สอง
+        // เพิ่มเงินเดือนพื้นฐาน
+        const baseSalary2 = nextEmployee.total_salary_calculation || 0;
+        if (baseSalary2 > 0) {
+          textArray2.push('เงินเดือน');
+          valueArray2.push(baseSalary2);
+          totalIncome2 += baseSalary2;
+        }
+
+        // เพิ่มรายการเงินเพิ่มพิเศษอื่นๆ จาก addSalaryList ถ้ามี
+        if (nextEmployee.addSalaryList && Array.isArray(nextEmployee.addSalaryList)) {
+          nextEmployee.addSalaryList.forEach(addSalaryItem => {
+            const amount = parseFloat(addSalaryItem.SpSalary || 0);
+            if (amount > 0) {
+              textArray2.push(addSalaryItem.name || 'รายการพิเศษ');
+              valueArray2.push(amount);
+              totalIncome2 += amount;
+            }
+          });
+        }
+
+        // รายการหักเงินสำหรับพนักงานคนที่สอง
+        const deductionItems2 = [];
+        const socialSecurity2 = nextEmployee.total_salary_socialsecurity || 0;
+        const tax2 = nextEmployee.total_salary_tex || 0;
+        const providentFund2 = nextEmployee.total_salary_pvfund || 0;
+
+        if (socialSecurity2 > 0) {
+          deductionItems2.push(['เงินประกันสังคม', socialSecurity2]);
+          totalDeduction2 += socialSecurity2;
+        }
+        if (tax2 > 0) {
+          deductionItems2.push(['ภาษีเงินได้ บุคคลธรรมดา', tax2]);
+          totalDeduction2 += tax2;
+        }
+        if (providentFund2 > 0) {
+          deductionItems2.push(['เงินสำรองเลี้ยงชีพ', providentFund2]);
+          totalDeduction2 += providentFund2;
+        }
+
+        // คำนวณเงินสุทธิสำหรับพนักงานคนที่สอง
+        const netSalary2 = totalIncome2 - totalDeduction2;
+
+        // ข้อมูลพนักงานคนที่สอง
+        const empName2 = nextEmployee.name || 'ไม่ระบุ';
+        const empId2 = nextEmployee.employeeid || 'ไม่ระบุ';
+        const position2 = nextEmployee.position_name || 'ไม่ระบุ';
+        const workPlace2 = nextEmployee.workplace_name || 'ไม่ระบุ';
+        const workdays2 = nextEmployee.workdays || 0;
+
+        // แสดงข้อมูลพนักงานคนที่สอง
+        pdf.text(`ชื่อ : ${empName2}`, 110, head2 + 14);
+        pdf.text(`รหัสพนักงาน : ${empId2}`, 110, head2 + 19);
+        pdf.text(`ตำแหน่ง : ${position2}`, 110, head2 + 24);
+        pdf.text(`สถานที่ปฏิบัติงาน : ${workPlace2}`, 110, head2 + 29);
+        pdf.text(`วันทำงาน : ${workdays2} วัน`, 110, head2 + 34);
+
+        // แสดงรายการรายได้สำหรับพนักงานคนที่สอง
+        let yPos2 = head2 + 45;
+        textArray2.forEach((text, index) => {
+          if (yPos2 <= head2 + 65) {
+            pdf.text(text, 110, yPos2);
+            pdf.text(valueArray2[index].toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","), 188, yPos2, { align: "right" });
+            yPos2 += 4;
+          }
+        });
+
+        // แสดงรายการหักเงินสำหรับพนักงานคนที่สอง
+        deductionItems2.forEach(([text, value]) => {
+          if (yPos2 <= head2 + 65) {
+            pdf.text(text, 125, yPos2);
+            pdf.text(value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","), 188, yPos2, { align: "right" });
+            yPos2 += 4;
+          }
+        });
+
+        // สรุปยอดสำหรับพนักงานคนที่สอง
+        pdf.text(totalIncome2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","), 188, head2 + 71, { align: "right" });
+        pdf.text(totalDeduction2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","), 188, head2 + 71, { align: "right" });
+        pdf.text(netSalary2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","), 188, head2 + 72, { align: "right" });
+
+        console.log(`💰 Employee ${i + 1} - Total Income: ${totalIncome2}, Total Deduction: ${totalDeduction2}, Net: ${netSalary2}`);
+
+        i++; // ข้ามพนักงานคนที่สองเพราะประมวลผลแล้ว
+      }
+    }
+
+    // บันทึกและแสดง PDF
+    const fileName = `salary_slip_${new Date().toISOString().slice(0, 10)}.pdf`;
+    pdf.save(fileName);
+    
+      // บันทึกและแสดง PDF
+      window.open(pdf.output("bloburl"), "_blank");
+      console.log("✅ PDF generation completed successfully with edited data!");
+      
+    } catch (error) {
+      console.error("❌ Error in generatePDFWithData:", error);
+      alert("เกิดข้อผิดพลาดในการสร้าง PDF: " + error.message);
+    }
+  };
 
   // ฟังก์ชันสำหรับดึงข้อมูลพนักงานจาก API
   const getEmployeeBankNumber = async (employeeId) => {
@@ -505,11 +1296,60 @@ const generatePDF = async () => {
   try {
     setIsGeneratingPDF(true); // ADD - เริ่ม loading
     console.log("🎯 START: generatePDF function called");
-  console.log("📊 ResponseDataAll length:", responseDataAll?.length);
-  console.log("📊 ResponseDataAll data:", responseDataAll);
+    console.log("📊 ResponseDataAll length:", responseDataAll?.length);
+    console.log("📊 ResponseDataAll data:", responseDataAll);
+    console.log("✏️ EditableData:", editableData);
+    console.log("🔄 Has edited data:", editableData && editableData.length > 0);
    
+    // ฟังก์ชันสำหรับดึงข้อมูลที่แก้ไขแล้ว หรือข้อมูลเดิม
+    const getEmployeeData = (originalEmployee, index) => {
+      // ตรวจสอบว่ามีข้อมูลที่แก้ไขหรือไม่
+      if (editableData && editableData.length > index && editableData[index]?.editableFields) {
+        const editedFields = editableData[index].editableFields;
+        console.log(`🔄 Using edited data for employee ${index}:`, editedFields);
+        
+        // ใช้ข้อมูลที่แก้ไขแล้ว
+        return {
+          ...originalEmployee,
+          // แทนค่าที่แก้ไขใน employee_record
+          employee_record: originalEmployee.employee_record?.map(record => ({
+            ...record,
+            cashWork: editedFields.sumCashWork / (originalEmployee.employee_record?.filter(r => r.dayType === "work").length || 1),
+            cashOt: editedFields.sumCashOt / (originalEmployee.employee_record?.length || 1),
+          })) || [],
+          // แทนค่าใน accountingRecord
+          sumCashWork: editedFields.sumCashWork || originalEmployee.sumCashWork || 0,
+          sumCashOt: editedFields.sumCashOt || originalEmployee.sumCashOt || 0,
+          cashSpecialDay: editedFields.publicHolidayCash || originalEmployee.cashSpecialDay || 0,
+          tax: editedFields.tax || originalEmployee.tax || 0,
+          socialSecurity: editedFields.socialSecurity || originalEmployee.socialSecurity || 0,
+          advance: editedFields.advance || originalEmployee.advance || 0,
+          // คำนวณเงิน OT แยกตามประเภทจากข้อมูลที่แก้ไข
+          sumOt1p5: editedFields.sumOt1p5 || originalEmployee.sumOt1p5 || 0,
+          sumOtPublicHoliday: editedFields.sumOtPublicHoliday || originalEmployee.sumOtPublicHoliday || 0,
+          sumOt3: editedFields.sumOt3 || originalEmployee.sumOt3 || 0,
+          // สร้าง sumCashWorkMul ใหม่จากข้อมูลที่แก้ไข
+          sumCashWorkMul: {
+            "1": editedFields.sumCashWork || originalEmployee.sumCashWorkMul?.["1"] || 0,
+            "1.5": editedFields.sumCashWorkMul?.["1.5"] || 
+                   (editedFields.sumOt1p5 || originalEmployee.sumOt1p5 || 0) * 
+                   (originalEmployee.salaryPerHour || originalEmployee.dailyWage / 8 || 200) * 1.5,
+            "2": editedFields.sumCashWorkMul?.["2"] || 
+                 (editedFields.sumOtPublicHoliday || originalEmployee.sumOtPublicHoliday || 0) * 
+                 (originalEmployee.salaryPerHour || originalEmployee.dailyWage / 8 || 200) * 2,
+            "3": editedFields.sumCashWorkMul?.["3"] || 
+                 (editedFields.sumOt3 || originalEmployee.sumOt3 || 0) * 
+                 (originalEmployee.salaryPerHour || originalEmployee.dailyWage / 8 || 200) * 3
+          },
+          // แทนค่าใน addSalaryList
+          addSalaryList: editedFields.addSalaryList || originalEmployee.addSalaryList || []
+        };
+      } else {
+        console.log(`📋 Using original data for employee ${index}`);
+        return originalEmployee;
+      }
+    };
 
-  
   // Create a new instance of jsPDF
   const pdf = new jsPDF();
 
@@ -569,28 +1409,31 @@ const generatePDF = async () => {
       pdf.addPage();
     }
 
-    // ใช้ข้อมูลจาก employee_record แทน accountingRecord
-    const currentEmployee = responseDataAll[i];
+    // ใช้ข้อมูลที่แก้ไขแล้วสำหรับพนักงานคนแรก
+    const originalEmployee = responseDataAll[i];
+    const currentEmployee = getEmployeeData(originalEmployee, i);
     console.log(`👤 Processing employee ${i}:`, currentEmployee?.employeeId, currentEmployee?.employeeName);
+    console.log(`📝 Using data for employee ${i}:`, currentEmployee);
+    
     const employeeRecords = currentEmployee.employee_record || [];
     const addSalaryList = currentEmployee.addSalaryList || [];
 
     // คำนวณเงินรับสุทธิสำหรับพนักงานคนแรก
     const netSalary1 = calculateNetSalary(currentEmployee);
 
-    // คำนวณจำนวนวันทำงาน
-    const workDays = employeeRecords.filter(record => record.dayType === "work").length;
+    // คำนวณจำนวนวันทำงาน (ใช้ข้อมูลที่แก้ไขแล้ว)
+    const workDays = editableData && editableData.length > i && editableData[i]?.editableFields?.workDays ||
+                     employeeRecords.filter(record => record.dayType === "work").length;
 
-    // รวมเงินจาก cashWork
-    const totalCashWork = employeeRecords.reduce((sum, record) => {
+      // รวมเงินจาก cashWork (ใช้ข้อมูลที่แก้ไขแล้ว)
+    const totalCashWork = currentEmployee.sumCashWork || employeeRecords.reduce((sum, record) => {
       return sum + parseFloat(record.cashWork || 0);
     }, 0);
 
-    // รวมเงิน OT
-    const totalCashOt = employeeRecords.reduce((sum, record) => {
+    // รวมเงิน OT (ใช้ข้อมูลที่แก้ไขแล้ว)
+    const totalCashOt = currentEmployee.sumCashOt || employeeRecords.reduce((sum, record) => {
       return sum + parseFloat(record.cashOt || 0);
     }, 0);
-
     // กรองเงินพิเศษตาม ID
     const excludedIds = ["1350", "1230", "1410", "1535", "1520",];
     const addSalaryFiltered = addSalaryList
@@ -763,13 +1606,11 @@ const resultExtraCash = addSalaryList
     const countArray = [];
     const valueArray = [];
 
-    // เงินเดือนพื้นฐาน
+    // เงินเดือนพื้นฐาน (ใช้ข้อมูลที่แก้ไขแล้ว)
     if (totalCashWork > 0) {
       textArray.push("เงินเดือน");
       countArray.push(workDays.toString());
-      valueArray.push(
-      currentEmployee.sumCashWorkMul["1"].toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-      );
+      valueArray.push(totalCashWork);
     }
   const pubDayCount = parseFloat(currentEmployee.publicHolidayCount || 0);
   const pubDayCash = parseFloat(currentEmployee.publicHolidayCash || 0);
@@ -784,22 +1625,18 @@ const resultExtraCash = addSalaryList
 
 
 const ot15Hours = parseFloat(currentEmployee.sumOt1p5 || 0);
-  
-
-
-const ot15Cash = parseFloat(currentEmployee.sumCashOt || 0);
+const ot15Cash = parseFloat(currentEmployee.sumCashWorkMul?.["1.5"] || 0);
 
 if (ot15Hours > 0 && ot15Cash > 0) {
   textArray.push("ค่าล่วงเวลา 1.5 เท่า");
   countArray.push(ot15Hours.toFixed(2));
   valueArray.push(
-    currentEmployee.sumCashWorkMul["1.5"].toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+    ot15Cash.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
   );
 }
 
 
 const ot2Hours = parseFloat(currentEmployee.sumOtPublicHoliday || 0);
-
 const ot2Cash = parseFloat(currentEmployee.sumCashWorkMul?.["2"] || 0);
 
 if (ot2Hours > 0 && ot2Cash > 0) {
@@ -812,7 +1649,6 @@ if (ot2Hours > 0 && ot2Cash > 0) {
 
 // ค่าล่วงเวลา 3 เท่า
 const ot3Hours = parseFloat(currentEmployee.sumOt3 || 0);
-
 const ot3Cash = parseFloat(currentEmployee.sumCashWorkMul?.["3"] || 0);
 
 if (ot3Hours > 0 && ot3Cash > 0) {
@@ -890,41 +1726,33 @@ if (ot3Hours > 0 && ot3Cash > 0) {
       );
     }
 
-    // รายการหัก
+    // รายการหัก (ใช้ข้อมูลที่แก้ไขแล้ว)
     const textDedustArray = [];
     const valueDedustArray = [];
 
-
-
-    // ภาษี
+    // ภาษี (ใช้ข้อมูลที่แก้ไขแล้ว)
     const tax = parseFloat(currentEmployee.tax || 0);
-    if (tax >= 0) {
-      textDedustArray.push("ภาษีเงินได้");
-      valueDedustArray.push(
-        tax.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-      );
-    }
-    
-    // คืนเงินเบิกล่วงหน้า - เพิ่มการตรวจสอบ safety
-    const advance = parseFloat(
-      currentEmployee.deductSalaryList && 
-      currentEmployee.deductSalaryList[0] && 
-      currentEmployee.deductSalaryList[0].amount || 0
-    );
-    if (advance > 0) {
-      textDedustArray.push("คืนเงินเบิกล่วงหน้า");
-      valueDedustArray.push(
-        advance.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-      );
+    if (tax > 0) {
+      textDedustArray.push("ภาษีเงินได้ บุคคลธรรมดา");
+      valueDedustArray.push(tax);
     }
 
-    // ประกันสังคม
+    // ประกันสังคม (ใช้ข้อมูลที่แก้ไขแล้ว)
     const socialSecurity = parseFloat(currentEmployee.socialSecurity || 0);
     if (socialSecurity > 0) {
-      textDedustArray.push("สมทบประกันสังคม");
-      valueDedustArray.push(
-        socialSecurity.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-      );
+      textDedustArray.push("เงินประกันสังคม");
+      valueDedustArray.push(socialSecurity);
+    }
+    
+    // คืนเงินเบิกล่วงหน้า (ใช้ข้อมูลที่แก้ไขแล้ว)
+    const advance = parseFloat(currentEmployee.advance || 
+      (currentEmployee.deductSalaryList && 
+       currentEmployee.deductSalaryList[0] && 
+       currentEmployee.deductSalaryList[0].amount) || 0);
+    
+    if (advance > 0) {
+      textDedustArray.push("คืนเงินเบิกล่วงหน้า");
+      valueDedustArray.push(advance);
     }
 
     // Draw table headers and content
@@ -1008,8 +1836,13 @@ if (ot3Hours > 0 && ot3Cash > 0) {
     });
 
     let y5 = 44;
-    valueDedustArray.forEach((text) => {
-      pdf.text(`${text}`, 160, y5, { align: "right" });
+    valueDedustArray.forEach((value) => {
+      pdf.text(
+        `${value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`,
+        160, 
+        y5, 
+        { align: "right" }
+      );
       y5 += 4.1;
     });
 
@@ -1061,23 +1894,34 @@ if (ot3Hours > 0 && ot3Cash > 0) {
 
     // สำหรับพนักงานคนที่ 2 (ถ้ามี)
     if (i + 1 < responseDataAll.length) {
-      const currentEmployee2 = responseDataAll[i + 1];
+      // ใช้ข้อมูลที่แก้ไขแล้วสำหรับพนักงานคนที่สอง
+      const originalEmployee2 = responseDataAll[i + 1];
+      const currentEmployee2 = getEmployeeData(originalEmployee2, i + 1);
+      console.log(`👤 Processing second employee ${i + 1}:`, currentEmployee2?.employeeId, currentEmployee2?.employeeName);
+      console.log(`📝 Using data for second employee ${i + 1}:`, currentEmployee2);
+      
       const employeeRecords2 = currentEmployee2.employee_record || [];
       const addSalaryList2 = currentEmployee2.addSalaryList || [];
 
       // คำนวณเงินรับสุทธิสำหรับพนักงานคนที่ 2
       const netSalary2 = calculateNetSalary(currentEmployee2);
 
-      // คำนวณข้อมูลสำหรับพนักงานคนที่ 2
-      const workDays2 = employeeRecords2.filter(record => record.dayType === "work").length;
-      const totalCashWork2 = parseFloat(currentEmployee.sumCashWorkMul["1"] || 0);
+      // คำนวณข้อมูลสำหรับพนักงานคนที่ 2 (ใช้ข้อมูลที่แก้ไขแล้ว)
+      const workDays2 = editableData && editableData.length > (i + 1) && editableData[i + 1]?.editableFields?.workDays ||
+                        employeeRecords2.filter(record => record.dayType === "work").length;
+      
+      // รวมเงินจาก cashWork (ใช้ข้อมูลที่แก้ไขแล้ว)
+      const totalCashWork2 = currentEmployee2.sumCashWork || employeeRecords2.reduce((sum, record) => {
+        return sum + parseFloat(record.cashWork || 0);
+      }, 0);
+
+      // รวมเงิน OT (ใช้ข้อมูลที่แก้ไขแล้ว)
+      const totalCashOt2 = currentEmployee2.sumCashOt || employeeRecords2.reduce((sum, record) => {
+        return sum + parseFloat(record.cashOt || 0);
+      }, 0);
 
 
       const totalCashOt1p5 = parseFloat(currentEmployee2.sumCashWorkMul["1.5"] || 0);
-      const totalCashOt2 = parseFloat(currentEmployee2.sumCashWorkMul["2"] || 0);
-      const totalCashOt3 = parseFloat(currentEmployee2.sumCashWorkMul["3"] || 0);
-
-
       // สวัสดิการหลักสำหรับพนักงานคนที่ 2
       const result2 = addSalaryList2
         .filter((item) => ["1230", "1350", "1241"].includes(item.id))
@@ -1299,28 +2143,35 @@ if (ot3Hours > 0 && ot3Cash > 0) {
 
       
 
-      // รายการหักสำหรับพนักงานคนที่ 2
+      // รายการหักสำหรับพนักงานคนที่ 2 (ใช้ข้อมูลที่แก้ไขแล้ว)
       const textDedustArray2 = [];
       const valueDedustArray2 = [];
 
+      // ภาษี (ใช้ข้อมูลที่แก้ไขแล้ว)
       const tax2 = parseFloat(currentEmployee2.tax || 0);
-      if (tax2 >= 0) {
-        textDedustArray2.push("หักภาษีเงินได้");
-        valueDedustArray2.push(
-          tax2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-        );
+      if (tax2 > 0) {
+        textDedustArray2.push("ภาษีเงินได้ บุคคลธรรมดา");
+        valueDedustArray2.push(tax2);
       }
- 
 
-
+      // ประกันสังคม (ใช้ข้อมูลที่แก้ไขแล้ว)
       const socialSecurity2 = parseFloat(currentEmployee2.socialSecurity || 0);
       console.log("Social Security for Employee 2:", socialSecurity2);
       
       if (socialSecurity2 > 0) {
-        textDedustArray2.push("หักสมทบประกันสังคม");
-        valueDedustArray2.push(
-          socialSecurity2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-        );
+        textDedustArray2.push("เงินประกันสังคม");
+        valueDedustArray2.push(socialSecurity2);
+      }
+
+      // คืนเงินเบิกล่วงหน้า (ใช้ข้อมูลที่แก้ไขแล้ว)
+      const advance2 = parseFloat(currentEmployee2.advance || 
+        (currentEmployee2.deductSalaryList && 
+         currentEmployee2.deductSalaryList[0] && 
+         currentEmployee2.deductSalaryList[0].amount) || 0);
+      
+      if (advance2 > 0) {
+        textDedustArray2.push("คืนเงินเบิกล่วงหน้า");
+        valueDedustArray2.push(advance2);
       }
 
       // แสดงรายการสำหรับพนักงานคนที่ 2
@@ -1349,8 +2200,13 @@ if (ot3Hours > 0 && ot3Cash > 0) {
       });
 
       let y2_5 = 174;
-      valueDedustArray2.forEach((text) => {
-        pdf.text(`${text}`, 160, y2_5, { align: "right" });
+      valueDedustArray2.forEach((value) => {
+        pdf.text(
+          `${value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`,
+          160, 
+          y2_5, 
+          { align: "right" }
+        );
         y2_5 += 4.1;
       });
 
@@ -1413,6 +2269,520 @@ if (ot3Hours > 0 && ot3Cash > 0) {
     alert("เกิดข้อผิดพลาดในการสร้าง PDF"); // ADD - user notification
   } finally {
     setIsGeneratingPDF(false); // ADD - จบ loading
+  }
+};
+
+
+
+
+
+
+
+
+const generateExcel = async () => {
+  // ตรวจสอบข้อมูล
+  if (!responseDataAll || responseDataAll.length === 0) {
+    alert("กรุณารอให้ข้อมูลโหลดเสร็จก่อน หรือเลือกเงื่อนไขการค้นหา");
+    return;
+  }
+  
+  try {
+    console.log("🎯 START: generateExcel function called");
+    console.log("📊 ResponseDataAll length:", responseDataAll?.length);
+    
+    // สร้าง workbook ใหม่
+    const wb = XLSX.utils.book_new();
+    
+    // ฟังก์ชันคำนวณเงินรับสุทธิ
+    const calculateNetSalary = (employee) => {
+      const incomeTotal = 
+        parseFloat(employee?.sumCashWork || '0') + 
+        parseFloat(employee?.sumCashOt || '0') +
+        parseFloat(employee?.publicHolidayCash || '0') + 
+        parseFloat(
+          employee?.addSalaryList?.reduce(
+            (total, item) => total + parseFloat(item.SpSalary || '0'),
+            0
+          ) || '0'
+        );
+
+      const deductionTotal =
+        parseFloat(employee?.socialSecurity || '0') +
+        parseFloat(employee?.tax || '0') +
+        parseFloat(
+          employee?.deductSalaryList?.[0]?.amount || '0'
+        );
+
+      const netTotal = incomeTotal - deductionTotal;
+      return isNaN(netTotal) ? 0 : netTotal;
+    };
+
+    // ฟังก์ชันจัดรูปแบบตัวเลข
+    const formatNumber = (num) => {
+      return parseFloat(num || 0).toFixed(2);
+    };
+
+    // วนลูปสร้าง sheet สำหรับแต่ละพนักงาน
+    for (let i = 0; i < responseDataAll.length; i++) {
+      const currentEmployee = responseDataAll[i];
+      console.log(`👤 Processing employee ${i}:`, currentEmployee?.employeeId, currentEmployee?.employeeName);
+      
+      const employeeRecords = currentEmployee.employee_record || [];
+      const addSalaryList = currentEmployee.addSalaryList || [];
+      
+      // คำนวณข้อมูลต่างๆ (ใช้ข้อมูลที่แก้ไขแล้ว)
+      const workDays = editableData && editableData.length > i && editableData[i]?.editableFields?.workDays ||
+                       employeeRecords.filter(record => record.dayType === "work").length;
+      const currentWorkplaceId = employeeRecords[0]?.workplaceId;
+      const workplace = workplaceList.find(item => item.workplaceId === currentWorkplaceId);
+      const workplaceName = workplace ? workplace.workplaceName : "Unknown";
+      
+      // ดึงเลขบัญชี
+      const banknumber = await getEmployeeBankNumber(currentEmployee.employeeId);
+      
+      // กรองรายการเงินพิเศษ
+      const excludedIds = ["1350", "1230", "1410", "1535", "1520"];
+      const addSalaryFiltered = addSalaryList
+        .filter((salary) => !excludedIds.includes(salary.id));
+      
+      // จ่ายชดเชย
+      const excludedIdsPayCompensation = [
+        "1231", "1233", "1422", "1423", "1428", "1434", 
+        "1435", "1429", "1427", "1234", "1426", "1425",
+      ];
+      
+      const addSalaryPayCompensationFiltered = addSalaryList
+        .filter((salary) => excludedIdsPayCompensation.includes(salary.id));
+      
+      // คำนวณรายการต่างๆ
+      const sumAmountHardWorking = addSalaryList
+        .filter(item => item.id === "1410")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      const sumAddSalaryTavel = addSalaryList
+        .filter(item => item.id === "1535")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      const sumAddSalaryFood = addSalaryList
+        .filter(item => item.id === "1330")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      const sumAddSpecialCash = addSalaryList
+        .filter(item => item.id === "1560")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      // สวัสดิการหลัก
+      const specificIds = ["1230", "1350", "1535"];
+      const result = addSalaryList
+        .filter((item) => specificIds.includes(item.id))
+        .reduce(
+          (acc, item) => {
+            acc.names.push(item.id === "1350" ? "โทรศัพท์" : (item.id === "1535" ? "ค่าเดินทาง" : item.name));
+            acc.sumSpSalary += Number(item.SpSalary) || 0;
+            return acc;
+          },
+          { names: [], sumSpSalary: 0 }
+        );
+      
+      const concatenatedNames = result.names.length > 0 ? result.names.join("/") : "";
+      
+      // เงินพิเศษ
+      const extraCashIds = ["1560", "1563"];
+      const resultExtraCash = addSalaryList
+        .filter((item) => extraCashIds.includes(item.id))
+        .reduce(
+          (acc, item) => {
+            acc.names.push(item.id === "1560" ? "เงินเพิ่มพิเศษ" : (item.id === "1563" ? "เงินพิเศษวันหยุด" : item.name));
+            acc.sumSpSalary += Number(item.SpSalary) || 0;
+            return acc;
+          },
+          { names: [], sumSpSalary: 0 }
+        );
+      
+      const concatenatedNamesExtraCash = resultExtraCash.names.length > 0 ? resultExtraCash.names.join("/") : "";
+      
+      // จ่ายชดเชยวันลา
+      const totalSpSalaryCompensation = addSalaryPayCompensationFiltered.reduce(
+        (sum, salary) => sum + parseFloat(salary.SpSalary || 0),
+        0
+      );
+      
+      // รายการหัก
+      const tax = parseFloat(currentEmployee.tax || 0);
+      const socialSecurity = parseFloat(currentEmployee.socialSecurity || 0);
+      const advance = parseFloat(currentEmployee.deductSalaryList?.[0]?.amount || 0);
+      
+      // คำนวณยอดรวม
+      const incomeTotal = 
+        parseFloat(currentEmployee?.sumCashWork || '0') + 
+        parseFloat(currentEmployee?.sumCashOt || '0') +
+        parseFloat(currentEmployee?.publicHolidayCash || '0') + 
+        parseFloat(
+          currentEmployee?.addSalaryList?.reduce(
+            (total, item) => total + parseFloat(item.SpSalary || '0'),
+            0
+          ) || '0'
+        );
+      
+      const totalDeductions = tax + socialSecurity + advance;
+      const netSalary = incomeTotal - totalDeductions;
+      
+      // สร้างข้อมูลสำหรับ Excel ตามรูปแบบใบจ่ายเงินเดือน
+      const data = [];
+      
+      // Header 
+      data.push(['ใบจ่ายเงินเดือน']);
+      data.push(['บริษัท โอวาท โปร แอนด์ ควิก จำกัด']);
+      data.push([]);
+      
+      // บรรทัดแรก: รหัส + พนักงาน + วันที่จ่าย  
+      data.push(['รหัส', currentEmployee.employeeId, 'พนักงาน', `${currentEmployee.employeeId} ชาลีบัญชี`, 'เลขที่บัญชี', banknumber]);
+      data.push([]);
+      
+      // Header ตาราง - ใช้รูปแบบตามรูปที่ให้มา
+      data.push(['รายได้', 'จำนวน', 'จำนวนเงิน', 'รายการหัก / รายการคืน', 'จำนวนเงิน', 'วันที่จ่าย']);
+      data.push(['Earnings', 'Number', 'Amount', '', 'Amount', 'Payroll Date']);
+      
+      // รายการรายได้ - จัดเรียงตามรูปแบบในภาพ
+      const incomeRows = [];
+      
+      // เงินเดือน
+      if (currentEmployee.sumCashWorkMul?.["1"] > 0) {
+        incomeRows.push(['เงินเดือน', workDays, formatNumber(currentEmployee.sumCashWorkMul["1"]), '', '', paymentDate || '30/05/2025']);
+      }
+      
+      // วันหยุดนักขัตฤกษ์
+      const pubDayCount = parseFloat(currentEmployee.publicHolidayCount || 0);
+      if (pubDayCount > 0) {
+        incomeRows.push(['วันหยุดนักขัตฤกษ์ฤกษ์', '1', formatNumber(currentEmployee.publicHolidayCash), 'ภาษีเงินได้', '0.00', '']);
+      }
+      
+      // ค่าล่วงเวลา 1.5 เท่า
+      const ot15Hours = parseFloat(currentEmployee.sumOt1p5 || 0);
+      if (ot15Hours > 0 && currentEmployee.sumCashWorkMul?.["1.5"] > 0) {
+        incomeRows.push(['ค่าล่วงเวลา 1.5 เท่า', ot15Hours.toFixed(2), formatNumber(currentEmployee.sumCashWorkMul["1.5"]), 'สมทบประกันสังคม', formatNumber(socialSecurity), '']);
+      }
+      
+      // ค่าล่วงเวลา 2 เท่า
+      const ot2Hours = parseFloat(currentEmployee.sumOtPublicHoliday || 0);
+      if (ot2Hours > 0 && currentEmployee.sumCashWorkMul?.["2"] > 0) {
+        incomeRows.push(['ค่าล่วงเวลา 2 เท่า', ot2Hours.toFixed(2), formatNumber(currentEmployee.sumCashWorkMul["2"]), '', '', '']);
+      }
+      
+      // ค่าล่วงเวลา 3 เท่า
+      const ot3Hours = parseFloat(currentEmployee.sumOt3 || 0);
+      if (ot3Hours > 0 && currentEmployee.sumCashWorkMul?.["3"] > 0) {
+        incomeRows.push(['ค่าล่วงเวลา 3 เท่า', ot3Hours.toFixed(2), formatNumber(currentEmployee.sumCashWorkMul["3"]), '', '', '']);
+      }
+      
+      // คาคิงทาง
+      if (result.sumSpSalary > 0) {
+        incomeRows.push(['คาคิงทาง', '', formatNumber(result.sumSpSalary), '', '', '']);
+      }
+      
+      // เบี้ยขยัน
+      if (sumAmountHardWorking > 0) {
+        incomeRows.push(['เบี้ยขยัน', '', formatNumber(sumAmountHardWorking), '', '', '']);
+      }
+      
+      // ค่าอาหาร
+      if (sumAddSalaryFood > 0) {
+        incomeRows.push(['ค่าอาหาร', '', formatNumber(sumAddSalaryFood), '', '', '']);
+      }
+      // เพิ่มรายการรายได้เพิ่มเติม
+      
+      // ค่าเงินพิเศษ
+      if (sumAddSpecialCash > 0) {
+        incomeRows.push(['ค่าเงินพิเศษ', '', formatNumber(sumAddSpecialCash), '', '', '']);
+      }
+      
+      // จ่ายชดเชยวันลา
+      if (totalSpSalaryCompensation > 0) {
+        incomeRows.push(['จ่ายชดเชยวันลา', '', formatNumber(totalSpSalaryCompensation), '', '', '']);
+      }
+      
+      // ใส่รายการรายได้ลงในตาราง
+      incomeRows.forEach(row => {
+        data.push(row);
+      });
+      
+      // แถวรวม
+      data.push(['', '', '', '', '', '']);
+      data.push(['รวมเงินได้', '', formatNumber(incomeTotal), 'รายการหัก / รายการคืน', formatNumber(totalDeductions), 'เงินรับสุทธิ']);
+      data.push(['Total Earning', '', '', 'Total Deduction', '', 'Net To Pay']);
+      data.push(['', '', '', '', '', formatNumber(netSalary)]);
+      
+      data.push([]);
+      
+      // ตารางข้อมูลสะสม (ตามรูปภาพ)
+      data.push(['เงินได้สะสมต่อปี', 'ภาษีสะสมต่อปี', 'เงินสะสมกองทุนต่อปี', 'เงินประกันสะสมต่อปี', 'ค่าลดหย่อนอื่นๆ']);
+      data.push(['', '', '', '', '']);
+      data.push([]);
+      data.push(['', '', '', '', 'ลงชื่อพนักงาน']);
+      
+      // สร้าง worksheet
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      
+      // ได้ range ของ worksheet ก่อน
+      const range = XLSX.utils.decode_range(ws['!ref']);
+      
+      // กำหนด style สำหรับ borders และรูปแบบตาราง (ย้ายมาไว้ด้านบน)
+      const borderStyle = {
+        top: { style: "thin" },
+        bottom: { style: "thin" },
+        left: { style: "thin" },
+        right: { style: "thin" }
+      };
+      
+      // ตั้งค่าความกว้างคอลัมน์สำหรับ A4 แนวตั้ง
+      const colWidths = [
+        { wch: 22 }, // รายได้
+        { wch: 10 }, // จำนวน
+        { wch: 13 }, // จำนวนเงิน
+        { wch: 22 }, // รายการหัก
+        { wch: 13 }, // จำนวนเงิน  
+        { wch: 13 }  // วันที่จ่าย/เงินรับสุทธิ
+      ];
+      ws['!cols'] = colWidths;
+      
+      // ตั้งค่า Page Setup สำหรับ A4 แนวตั้ง
+      ws['!pageSetup'] = {
+        paperSize: 9, // A4
+        orientation: 'portrait', // แนวตั้ง
+        scale: 100,
+        fitToWidth: 1,
+        fitToHeight: 0, // ให้ปรับความสูงอัตโนมัติ
+        verticalDpi: 300,
+        horizontalDpi: 300
+      };
+      
+      // ตั้งค่า margins สำหรับ A4
+      ws['!margins'] = {
+        left: 0.7,
+        right: 0.7,
+        top: 0.75,
+        bottom: 0.75,
+        header: 0.3,
+        footer: 0.3
+      };
+      
+      // ตั้งค่าการพิมพ์
+      ws['!printOptions'] = {
+        headings: false,
+        gridLines: true,
+        gridLinesSet: true,
+        horizontalCentered: true,
+        verticalCentered: false
+      };
+      
+      // Style สำหรับ header หลัก
+      const mainHeaderStyle = {
+        alignment: { horizontal: 'center', vertical: 'center' },
+        font: { bold: true, size: 14 } // ลดขนาดตัวอักษรสำหรับ A4
+      };
+      
+      // Style สำหรับ header ตาราง
+      const tableHeaderStyle = {
+        alignment: { horizontal: 'center', vertical: 'center' },
+        font: { bold: true, size: 11 }, // ปรับขนาดตัวอักษร
+        border: borderStyle,
+        fill: { fgColor: { rgb: "F0F0F0" } }
+      };
+      
+      // Style สำหรับตัวเลข (ชิดขวา)
+      const numberStyle = {
+        alignment: { horizontal: 'right', vertical: 'center' },
+        font: { size: 10 }, // ปรับขนาดตัวอักษร
+        border: borderStyle
+      };
+      
+      // Style สำหรับข้อความทั่วไป
+      const textStyle = {
+        alignment: { horizontal: 'left', vertical: 'center' },
+        font: { size: 10 }, // ปรับขนาดตัวอักษร
+        border: borderStyle
+      };
+      
+      // Style สำหรับข้อความกลาง
+      const centerTextStyle = {
+        alignment: { horizontal: 'center', vertical: 'center' },
+        font: { size: 10 }, // ปรับขนาดตัวอักษร
+        border: borderStyle
+      };
+      
+      // Style สำหรับแถวรวม
+      const totalRowStyle = {
+        alignment: { horizontal: 'right', vertical: 'center' },
+        font: { bold: true, size: 10 }, // ปรับขนาดตัวอักษร
+        border: borderStyle,
+        fill: { fgColor: { rgb: "E0E0E0" } }
+      };
+      
+      // ตั้งค่าความสูงของแถวให้เหมาะสมกับ A4
+      const rowHeights = [];
+      for (let i = 0; i <= range.e.r; i++) {
+        if (i === 0 || i === 1) {
+          rowHeights[i] = { hpt: 20 }; // Header หลัก
+        } else if (i === 5 || i === 6) {
+          rowHeights[i] = { hpt: 18 }; // Header ตาราง
+        } else {
+          rowHeights[i] = { hpt: 16 }; // แถวปกติ
+        }
+      }
+      ws['!rows'] = rowHeights;
+      
+      // ใส่ style ให้กับ cells
+      
+      for (let row = range.s.r; row <= range.e.r; row++) {
+        for (let col = range.s.c; col <= range.e.c; col++) {
+          const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+          
+          if (!ws[cellAddress]) {
+            ws[cellAddress] = { v: '', t: 's' };
+          }
+          
+          // กำหนด base style ที่มี border สำหรับทุก cell
+          let cellStyle = {
+            border: borderStyle,
+            alignment: { vertical: 'center' }
+          };
+          
+          // Header บริษัท (2 แถวแรก)
+          if (row === 0 || row === 1) {
+            cellStyle = {
+              ...cellStyle,
+              alignment: { horizontal: 'center', vertical: 'center' },
+              font: { bold: true, size: 14 }
+            };
+          }
+          // ข้อมูลพนักงาน (แถวที่ 3)
+          else if (row === 3) {
+            cellStyle = {
+              ...cellStyle,
+              alignment: { horizontal: 'left', vertical: 'center' },
+              font: { bold: true, size: 10 }
+            };
+          }
+          // Header ตาราง (แถวที่ 5 และ 6)
+          else if (row === 5 || row === 6) {
+            cellStyle = {
+              ...cellStyle,
+              alignment: { horizontal: 'center', vertical: 'center' },
+              font: { bold: true, size: 11 },
+              fill: { fgColor: { rgb: "F0F0F0" } }
+            };
+          }
+          // ข้อมูลในตาราง
+          else if (row >= 7 && row < range.e.r - 7) {
+            // คอลัมน์ตัวเลข (จำนวน และ จำนวนเงิน)
+            if (col === 1) {
+              cellStyle = {
+                ...cellStyle,
+                alignment: { horizontal: 'center', vertical: 'center' },
+                font: { size: 10 }
+              };
+            } else if (col === 2 || col === 4 || col === 5) {
+              cellStyle = {
+                ...cellStyle,
+                alignment: { horizontal: 'right', vertical: 'center' },
+                font: { size: 10 }
+              };
+            } else {
+              cellStyle = {
+                ...cellStyle,
+                alignment: { horizontal: 'left', vertical: 'center' },
+                font: { size: 10 }
+              };
+            }
+          }
+          // แถวรวม
+          else if (row === range.e.r - 6 || row === range.e.r - 5 || row === range.e.r - 4) {
+            if (col === 2 || col === 4 || col === 5) {
+              cellStyle = {
+                ...cellStyle,
+                alignment: { horizontal: 'right', vertical: 'center' },
+                font: { bold: true, size: 10 },
+                fill: { fgColor: { rgb: "E0E0E0" } }
+              };
+            } else {
+              cellStyle = {
+                ...cellStyle,
+                alignment: { horizontal: 'left', vertical: 'center' },
+                font: { bold: true, size: 10 },
+                fill: { fgColor: { rgb: "E0E0E0" } }
+              };
+            }
+          }
+          // ตารางข้อมูลสะสม
+          else if (row === range.e.r - 3 || row === range.e.r - 2) {
+            cellStyle = {
+              ...cellStyle,
+              alignment: { horizontal: 'left', vertical: 'center' },
+              font: { bold: true, size: 10 }
+            };
+          }
+          // แถวลงชื่อ
+          else if (row === range.e.r) {
+            cellStyle = {
+              ...cellStyle,
+              alignment: { horizontal: 'left', vertical: 'center' },
+              font: { size: 10 }
+            };
+          }
+          // แถวอื่นๆ ให้ใส่ style พื้นฐาน
+          else {
+            cellStyle = {
+              ...cellStyle,
+              alignment: { horizontal: 'left', vertical: 'center' },
+              font: { size: 10 }
+            };
+          }
+          
+          // ใส่ style ให้ cell
+          ws[cellAddress].s = cellStyle;
+        }
+      }
+      
+      // Merge cells สำหรับ header
+      ws['!merges'] = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } }, // ใบจ่ายเงินเดือน
+        { s: { r: 1, c: 0 }, e: { r: 1, c: 5 } }, // บริษัท โอวาท โปร แอนด์ ควิก จำกัด
+        { s: { r: range.e.r - 6, c: 4 }, e: { r: range.e.r - 6, c: 5 } }, // รายการหัก/เงินรับสุทธิ
+        { s: { r: range.e.r, c: 4 }, e: { r: range.e.r, c: 5 } } // ลงชื่อพนักงาน
+      ];
+      
+      // เพิ่ม worksheet เข้า workbook
+      XLSX.utils.book_append_sheet(wb, ws, `${currentEmployee.employeeId}-${currentEmployee.employeeName}`);
+    }
+    
+    // สร้างไฟล์ Excel
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
+    
+    // แปลงเป็น blob
+    function s2ab(s) {
+      const buf = new ArrayBuffer(s.length);
+      const view = new Uint8Array(buf);
+      for (let i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xFF;
+      return buf;
+    }
+    
+    const blob = new Blob([s2ab(wbout)], { type: 'application/octet-stream' });
+    
+    // ดาวน์โหลดไฟล์
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Payslip_${new Date().toISOString().split('T')[0]}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    
+    console.log("✅ Excel file generated successfully");
+    
+  } catch (error) {
+    console.error("❌ Error generating Excel:", error);
+    alert("เกิดข้อผิดพลาดในการสร้าง Excel");
   }
 };
 
@@ -3101,7 +4471,17 @@ if (ot3Hours > 0 && ot3Cash > 0) {
                   </div>
                 </div>
                 <div class="row">
-                  <div class="col-md-3">
+                      <div class="col-md-3">
+                    <button 
+                      onClick={openEditModal}
+                      class="btn btn-info me-2"
+                      disabled={!responseDataAll || responseDataAll.length === 0}
+                    >
+                      <i className="fas fa-edit me-1"></i>
+                      แก้ไขก่อนพิมพ์
+                    </button>
+                    </div>
+                    <div class="col-md-3">
                     <button 
                       onClick={() => {
                         console.log("🖱️ Generate PDF button clicked!");
@@ -3143,6 +4523,591 @@ if (ot3Hours > 0 && ot3Cash > 0) {
           </section>
         </div>
       </div>
+
+      {/* Modal สำหรับแก้ไขข้อมูลก่อนพิมพ์ */}
+      {showEditModal && editableData.length > 0 && (
+        <div className="modal fade show edit-modal" style={{ 
+          display: 'block', 
+          backgroundColor: 'rgba(0,0,0,0.6)',
+          overflowY: 'auto',
+          paddingTop: '20px',
+          paddingBottom: '20px'
+        }}>
+          <div className="modal-dialog" style={{ 
+            maxWidth: '95vw', 
+            width: '95vw',
+            margin: '0 auto',
+            position: 'relative',
+            top: '0'
+          }}>
+            <div className="modal-content" style={{
+              maxHeight: '90vh',
+              display: 'flex',
+              flexDirection: 'column'
+            }}>
+              <div className="modal-header">
+                <h5 className="modal-title">
+                  <i className="fas fa-edit me-2"></i>
+                  แก้ไขข้อมูลก่อนพิมพ์สลิป
+                </h5>
+                <button type="button" className="btn-close btn-close-white" onClick={closeEditModal}></button>
+              </div>
+              
+              <div className="modal-body" style={{
+                flex: '1',
+                overflowY: 'auto',
+                padding: '20px'
+              }}>
+                {/* Employee Navigation */}
+                <div className="employee-navigation">
+                  <div className="d-flex justify-content-between align-items-center">
+                    <div>
+                      <h6 className="mb-1">
+                        <i className="fas fa-user me-2"></i>
+                        {editableData[editingEmployeeIndex]?.editableFields?.employeeId} - {editableData[editingEmployeeIndex]?.editableFields?.prefix} {editableData[editingEmployeeIndex]?.editableFields?.employeeName}
+                      </h6>
+                      <small className="text-muted">พนักงานคนที่ {editingEmployeeIndex + 1} จาก {editableData.length} คน</small>
+                    </div>
+                    <div>
+                      <button 
+                        type="button" 
+                        className="btn btn-outline-secondary btn-sm me-2"
+                        onClick={prevEmployee}
+                        disabled={editingEmployeeIndex === 0}
+                      >
+                        <i className="fas fa-chevron-left"></i>
+                      </button>
+                      
+                      <button 
+                        type="button" 
+                        className="btn btn-outline-secondary btn-sm"
+                        onClick={nextEmployee}
+                        disabled={editingEmployeeIndex === editableData.length - 1}
+                      >
+                        <i className="fas fa-chevron-right"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="row">
+                  <div className="col-md-12">
+                    <div className="card">
+                      <div className="card-body">
+                        <div className="row">
+                          {/* ข้อมูลรายได้ */}
+                          <div className="col-lg-4 col-md-6 col-sm-12">
+                            <div className="section-header income">
+                              <h6 className="text-success mb-0">
+                                <i className="fas fa-plus-circle me-2"></i>ข้อมูลรายได้
+                              </h6>
+                            </div>
+                            
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-calendar-check me-1"></i>จำนวนวันทำงาน</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const val = editableData[editingEmployeeIndex]?.editableFields?.workDays ?? 
+                                             responseDataAll[editingEmployeeIndex]?.employee_record?.filter(record => record.dayType === "work").length;
+                                  return val || val === 0 ? val : '';
+                                })()}
+                                onChange={(e) => updateEditableField('workDays', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)}
+                                step="1"
+                              />
+                            </div>
+                            
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-money-bill-wave me-1"></i>เงินเดือนพื้นฐาน</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const val = editableData[editingEmployeeIndex]?.editableFields?.sumCashWork ?? 
+                                             responseDataAll[editingEmployeeIndex]?.sumCashWork;
+                                  return val || val === 0 ? val : '';
+                                })()}
+                                onChange={(e) => updateEditableField('sumCashWork', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-stopwatch me-1"></i>ชั่วโมง OT 1.5 เท่า</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const val = editableData[editingEmployeeIndex]?.editableFields?.sumOt1p5 ?? 
+                                             responseDataAll[editingEmployeeIndex]?.sumOt1p5;
+                                  return val || val === 0 ? val : '';
+                                })()}
+                                onChange={(e) => updateEditableField('sumOt1p5', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-money-bill me-1"></i>เงิน OT 1.5 เท่า</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const val = editableData[editingEmployeeIndex]?.editableFields?.sumCashWorkMul?.["1.5"] ?? 
+                                             responseDataAll[editingEmployeeIndex]?.sumCashWorkMul?.["1.5"];
+                                  return val || val === 0 ? val : '';
+                                })()}
+                                onChange={(e) => updateEditableField('sumCashWorkMul.1.5', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-calendar-alt me-1"></i>ชั่วโมง OT วันหยุด (2 เท่า)</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const val = editableData[editingEmployeeIndex]?.editableFields?.sumOtPublicHoliday ?? 
+                                             responseDataAll[editingEmployeeIndex]?.sumOtPublicHoliday;
+                                  return val || val === 0 ? val : '';
+                                })()}
+                                onChange={(e) => updateEditableField('sumOtPublicHoliday', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-money-bill me-1"></i>เงิน OT 2 เท่า</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const val = editableData[editingEmployeeIndex]?.editableFields?.sumCashWorkMul?.["2"] ?? 
+                                             responseDataAll[editingEmployeeIndex]?.sumCashWorkMul?.["2"];
+                                  return val || val === 0 ? val : '';
+                                })()}
+                                onChange={(e) => updateEditableField('sumCashWorkMul.2', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-business-time me-1"></i>ชั่วโมง OT 3 เท่า</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const val = editableData[editingEmployeeIndex]?.editableFields?.sumOt3 ?? 
+                                             responseDataAll[editingEmployeeIndex]?.sumOt3;
+                                  return val || val === 0 ? val : '';
+                                })()}
+                                onChange={(e) => updateEditableField('sumOt3', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-money-bill me-1"></i>เงิน OT 3 เท่า</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const val = editableData[editingEmployeeIndex]?.editableFields?.sumCashWorkMul?.["3"] ?? 
+                                             responseDataAll[editingEmployeeIndex]?.sumCashWorkMul?.["3"];
+                                  return val || val === 0 ? val : '';
+                                })()}
+                                onChange={(e) => updateEditableField('sumCashWorkMul.3', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-gift me-1"></i>เงินวันหยุดนักขัตฤกษ์</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const val = editableData[editingEmployeeIndex]?.editableFields?.publicHolidayCash ?? 
+                                             responseDataAll[editingEmployeeIndex]?.publicHolidayCash;
+                                  return val || val === 0 ? val : '';
+                                })()}
+                                onChange={(e) => updateEditableField('publicHolidayCash', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-calendar-check me-1"></i>จำนวนวันหยุดนักขัตฤกษ์</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const val = editableData[editingEmployeeIndex]?.editableFields?.publicHolidayCount ?? 
+                                             responseDataAll[editingEmployeeIndex]?.publicHolidayCount;
+                                  return val || val === 0 ? val : '';
+                                })()}
+                                onChange={(e) => updateEditableField('publicHolidayCount', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)}
+                                step="1"
+                              />
+                            </div>
+                          </div>
+
+                          {/* รายการหัก */}
+                          <div className="col-lg-4 col-md-6 col-sm-12">
+                            <div className="section-header deduction">
+                              <h6 className="text-danger mb-0">
+                                <i className="fas fa-minus-circle me-2"></i>รายการหัก
+                              </h6>
+                            </div>
+                            
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-receipt me-1"></i>ภาษีเงินได้</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const val = editableData[editingEmployeeIndex]?.editableFields?.tax ?? 
+                                             responseDataAll[editingEmployeeIndex]?.tax;
+                                  return val || val === 0 ? val : '';
+                                })()}
+                                onChange={(e) => updateEditableField('tax', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-shield-alt me-1"></i>สมทบประกันสังคม</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const val = editableData[editingEmployeeIndex]?.editableFields?.socialSecurity ?? 
+                                             responseDataAll[editingEmployeeIndex]?.socialSecurity;
+                                  return val || val === 0 ? val : '';
+                                })()}
+                                onChange={(e) => updateEditableField('socialSecurity', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-hand-holding-usd me-1"></i>คืนเงินเบิกล่วงหน้า</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const val = editableData[editingEmployeeIndex]?.editableFields?.advance ?? 
+                                             responseDataAll[editingEmployeeIndex]?.advance;
+                                  return val || val === 0 ? val : '';
+                                })()}
+                                onChange={(e) => updateEditableField('advance', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)}
+                                step="0.01"
+                              />
+                            </div>
+                          </div>
+
+                          {/* เงินรับสุทธิ */}
+                          <div className="col-lg-4 col-md-12 col-sm-12">
+                            <div className="section-header">
+                              <h6 className="text-info mb-0">
+                                <i className="fas fa-calculator me-2"></i>สรุปผล
+                              </h6>
+                            </div>
+
+                            <div className="net-salary-display">
+                              <h6 className="text-success mb-2">
+                                <i className="fas fa-coins me-2"></i>เงินรับสุทธิ
+                              </h6>
+                              <h4 className="text-success mb-0 fw-bold">
+                                {(() => {
+                                  const currentEmp = editableData[editingEmployeeIndex]?.editableFields;
+                                  const income = 
+                                    parseFloat(currentEmp?.sumCashWork || 0) + 
+                                    parseFloat(currentEmp?.sumCashOt || 0) +
+                                    parseFloat(currentEmp?.publicHolidayCash || 0) + 
+                                    parseFloat(
+                                      currentEmp?.addSalaryList?.reduce(
+                                        (total, item) => total + parseFloat(item.SpSalary || 0),
+                                        0
+                                      ) || 0
+                                    );
+                                  const deduction = 
+                                    parseFloat(currentEmp?.tax || 0) +
+                                    parseFloat(currentEmp?.socialSecurity || 0) +
+                                    parseFloat(currentEmp?.advance || 0);
+                                  const net = income - deduction;
+                                  return net.toLocaleString('th-TH', {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2
+                                  });
+                                })()}
+                                <small> บาท</small>
+                              </h4>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* รายการเงินพิเศษ */}
+                        <div className="row mt-4">
+                          <div className="col-md-12">
+                            <div className="section-header special">
+                              <h6 className="text-warning mb-0">
+                                <i className="fas fa-star me-2"></i>รายการเงินพิเศษ/สวัสดิการ
+                              </h6>
+                            </div>
+                            <div className="table-responsive">
+                              <table className="table table-sm">
+                                <thead>
+                                  <tr>
+                                    <th><i className="fas fa-list me-1"></i>รายการ</th>
+                                    <th><i className="fas fa-dollar-sign me-1"></i>จำนวนเงิน</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {(() => {
+                                    const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                    
+                                    // กลุ่มหลัก: ค่าเดินทาง/ค่าตำแหน่ง/โทรศัพท์
+                                    const mainGroup = currentList.filter(item => ["1230", "1350", "1535"].includes(item.id));
+                                    const mainGroupTotal = mainGroup.reduce((sum, item) => sum + parseFloat(item.SpSalary || 0), 0);
+                                    const mainGroupNames = mainGroup.map(item => {
+                                      if (item.id === "1350") return "โทรศัพท์";
+                                      if (item.id === "1535") return "ค่าเดินทาง";
+                                      return item.name;
+                                    }).join("/");
+
+                                    // กลุ่มเงินพิเศษ: เงินเพิ่มพิเศษ/เงินพิเศษวันหยุด
+                                    const extraGroup = currentList.filter(item => ["1560", "1563"].includes(item.id));
+                                    const extraGroupTotal = extraGroup.reduce((sum, item) => sum + parseFloat(item.SpSalary || 0), 0);
+                                    const extraGroupNames = extraGroup.map(item => {
+                                      if (item.id === "1560") return "เงินเพิ่มพิเศษ";
+                                      if (item.id === "1563") return "เงินพิเศษวันหยุด";
+                                      return item.name;
+                                    }).join("/");
+
+                                    // รายการอื่นๆ ที่ไม่อยู่ในกลุ่มข้างต้น
+                                    const otherItems = currentList.filter(item => 
+                                      !["1230", "1350", "1535", "1560", "1563"].includes(item.id)
+                                    );
+
+                                    return (
+                                      <>
+                                        {/* กลุ่มหลัก */}
+                                        {mainGroup.length > 0 && (
+                                          <tr>
+                                            <td className="fw-medium">{mainGroupNames || "ค่าเดินทาง/ค่าตำแหน่ง/โทรศัพท์"}</td>
+                                            <td>
+                                              <input
+                                                type="number"
+                                                className="form-control form-control-sm"
+                                                value={mainGroupTotal}
+                                                onChange={(e) => {
+                                                  const newTotal = parseFloat(e.target.value) || 0;
+                                                  const perItem = newTotal / mainGroup.length;
+                                                  mainGroup.forEach((item, idx) => {
+                                                    const actualIndex = currentList.findIndex(i => i.id === item.id);
+                                                    updateAddSalaryField(actualIndex, 'SpSalary', perItem);
+                                                  });
+                                                }}
+                                                step="0.01"
+                                              />
+                                            </td>
+                                          </tr>
+                                        )}
+
+                                        {/* กลุ่มเงินพิเศษ */}
+                                        {extraGroup.length > 0 && (
+                                          <tr>
+                                            <td className="fw-medium">{extraGroupNames || "เงินพิเศษ"}</td>
+                                            <td>
+                                              <input
+                                                type="number"
+                                                className="form-control form-control-sm"
+                                                value={extraGroupTotal}
+                                                onChange={(e) => {
+                                                  const newTotal = parseFloat(e.target.value) || 0;
+                                                  const perItem = newTotal / extraGroup.length;
+                                                  extraGroup.forEach((item, idx) => {
+                                                    const actualIndex = currentList.findIndex(i => i.id === item.id);
+                                                    updateAddSalaryField(actualIndex, 'SpSalary', perItem);
+                                                  });
+                                                }}
+                                                step="0.01"
+                                              />
+                                            </td>
+                                          </tr>
+                                        )}
+
+                                        {/* รายการอื่นๆ แยกรายการ */}
+                                        {otherItems.map((item, index) => {
+                                          const actualIndex = currentList.findIndex(i => i.id === item.id);
+                                          return (
+                                            <tr key={item.id || index}>
+                                              <td className="fw-medium">{item.name}</td>
+                                              <td>
+                                                <input
+                                                  type="number"
+                                                  className="form-control form-control-sm"
+                                                  value={item.SpSalary || 0}
+                                                  onChange={(e) => updateAddSalaryField(actualIndex, 'SpSalary', parseFloat(e.target.value) || 0)}
+                                                  step="0.01"
+                                                />
+                                              </td>
+                                            </tr>
+                                          );
+                                        })}
+                                      </>
+                                    );
+                                  })()}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="modal-footer" style={{
+                flexShrink: 0,
+                borderTop: '1px solid #dee2e6',
+                padding: '15px 20px'
+              }}>
+                <div className="d-flex justify-content-between w-100">
+                  <div>
+                    <span className="text-muted">
+                      <i className="fas fa-info-circle me-1"></i>
+                      กำลังแก้ไขพนักงานคนที่ {editingEmployeeIndex + 1} จาก {editableData.length} คน
+                    </span>
+                  </div>
+                  
+                  <div>
+                    <button type="button" className="btn btn-secondary me-2" onClick={closeEditModal}>
+                      <i className="fas fa-times me-1"></i>ยกเลิก
+                    </button>
+                    <button type="button" className="btn btn-success" onClick={generatePDFWithEditedData}>
+                      <i className="fas fa-print me-1"></i>
+                      สร้าง PDF ด้วยข้อมูลที่แก้ไข
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Styles */}
+      <style jsx>{`
+        .edit-modal {
+          z-index: 1050;
+        }
+        
+        .modal-dialog {
+          display: flex;
+          align-items: center;
+          min-height: calc(100vh - 40px);
+        }
+        
+        .modal-content {
+          border-radius: 10px;
+          box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        
+        .modal-header {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          border-radius: 10px 10px 0 0;
+          padding: 20px;
+        }
+        
+        .employee-navigation {
+          background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+          border-radius: 10px;
+          padding: 15px;
+          margin-bottom: 20px;
+          color: white;
+        }
+        
+        .section-header {
+          background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+          color: white;
+          padding: 10px 15px;
+          border-radius: 8px;
+          margin-bottom: 15px;
+        }
+        
+        .section-header.income {
+          background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+        
+        .section-header.deduction {
+          background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+        
+        .section-header.special {
+          background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+          color: #333;
+        }
+        
+        .form-control {
+          border: 2px solid #e9ecef;
+          border-radius: 8px;
+          transition: all 0.3s ease;
+        }
+        
+        .form-control:focus {
+          border-color: #667eea;
+          box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        
+        .net-salary-display {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          padding: 20px;
+          border-radius: 10px;
+          text-align: center;
+        }
+        
+        .btn {
+          border-radius: 8px;
+          padding: 8px 16px;
+          transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .table {
+          border-radius: 8px;
+          overflow: hidden;
+        }
+        
+        .table thead th {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          border: none;
+        }
+        
+        @media (max-width: 768px) {
+          .modal-dialog {
+            margin: 10px;
+            width: calc(100% - 20px);
+            max-width: none;
+          }
+          
+          .modal-content {
+            max-height: calc(100vh - 20px);
+          }
+        }
+      `}</style>
+
     {/* </body> */}
     </div>
   );

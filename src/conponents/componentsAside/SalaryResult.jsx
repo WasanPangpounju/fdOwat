@@ -2225,10 +2225,32 @@ try {
                             })}
                           </th>
                           <th style={cellStyle}>
-                          {parseFloat(accountingResult?.[0]?.sumCashOt || '0').toLocaleString('th-TH', {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2
-                          })}
+                            <span onClick={togglePopup}
+                            style={{ color: color, cursor: "pointer" }}>
+                            {parseFloat(accountingResult?.[0]?.sumCashOt || 0).toFixed(2)}
+                            </span>
+
+                          { showPopup && (
+                            <div className="popup">
+                              <h4>รายการเงินล่วงเวลา</h4>
+                              <ul style={{ listStyleType: "none", padding: 0, margin: 0 }}>
+                                {accountingResult?.[0]?.sumCashWorkMul &&
+                                  Object.entries(accountingResult[0].sumCashWorkMul)
+                                    .filter(([rate, amount]) => rate !== "1" && amount > 0)
+                                    .sort(([a], [b]) => parseFloat(a) - parseFloat(b))
+                                    .map(([rate, amount], index) => (
+                                      <li key={index} style={{ marginBottom: "10px" }}>
+                                        อัตรา {rate} เท่า - จำนวน: {Number(amount).toLocaleString('th-TH', {
+                                          minimumFractionDigits: 2,
+                                          maximumFractionDigits: 2
+                                        })} บาท
+                                      </li>
+                                    ))}
+                              </ul>
+                              <button className="btn btn-danger" onClick={togglePopup}>Close</button>
+                            </div>
+                          )}
+
                           </th>
 
                           <th style={cellStyle}>

@@ -61,6 +61,27 @@ const [timeRecordData, setTimeRecordData] = useState([]);
   const [dataAccounting, setDataAccounting] = useState(""); //รหัสหน่วยงาน
   const [workplacrId, setWorkplacrId] = useState(""); //รหัสหน่วยงาน
   const [workplacrName, setWorkplacrName] = useState(""); //รหัสหน่วยงาน
+  
+  // State สำหรับ checkbox ภ.ง.ด
+  const [isPhangD3Checked, setIsPhangD3Checked] = useState(false);
+  const [isPhangD1Checked, setIsPhangD1Checked] = useState(false);
+  
+  // ฟังก์ชันจัดการการเปลี่ยนแปลง checkbox
+  const handlePhangD3Change = (e) => {
+    setIsPhangD3Checked(e.target.checked);
+    // ทำการกรองข้อมูลใหม่
+    if (selectedBank) {
+      handleChange({ target: { value: selectedBank } });
+    }
+  };
+  
+  const handlePhangD1Change = (e) => {
+    setIsPhangD1Checked(e.target.checked);
+    // ทำการกรองข้อมูลใหม่
+    if (selectedBank) {
+      handleChange({ target: { value: selectedBank } });
+    }
+  };
   console.log('filteredEmployeeList', filteredEmployeeList);
 
   const extractBankNames = (list) => {
@@ -240,10 +261,27 @@ useEffect(() => {
             console.log("พบข้อมูลพนักงานทั้งหมด:", employeeResponse.data.employees.length, "คน");
             
             // กรองเฉพาะพนักงานที่มีธนาคาร (มี salarybank)
-            const employeesWithBank = employeeResponse.data.employees.filter(employee => {
+            let employeesWithBank = employeeResponse.data.employees.filter(employee => {
               const empSalaryBank = employee.salarybank ? employee.salarybank.trim() : "";
               return empSalaryBank !== "";
             });
+            
+            // เพิ่มเงื่อนไขการกรองตาม costtype
+            if (isPhangD3Checked || isPhangD1Checked) {
+              employeesWithBank = employeesWithBank.filter(employee => {
+                if (isPhangD3Checked && isPhangD1Checked) {
+                  // ถ้าเลือกทั้งสอง ให้แสดงทั้ง ภ.ง.ด.3 และ ภ.ง.ด.1
+                  return employee.costtype === "ภ.ง.ด.3" || employee.costtype === "ภ.ง.ด.1";
+                } else if (isPhangD3Checked) {
+                  // ถ้าเลือกเฉพาะ ภ.ง.ด.3
+                  return employee.costtype === "ภ.ง.ด.3";
+                } else if (isPhangD1Checked) {
+                  // ถ้าเลือกเฉพาะ ภ.ง.ด.1
+                  return employee.costtype === "ภ.ง.ด.1";
+                }
+                return true;
+              });
+            }
             
             console.log("พนักงานที่มีข้อมูลธนาคาร:", employeesWithBank.length, "คน");
             
@@ -314,11 +352,28 @@ useEffect(() => {
             });
             
             // กรองพนักงานที่มีธนาคารตรงกับที่เลือก
-            const filteredByBank = employeeResponse.data.employees.filter(employee => {
+            let filteredByBank = employeeResponse.data.employees.filter(employee => {
               const empSalaryBank = employee.salarybank ? employee.salarybank.trim() : "";
               const selectedBankTrimmed = selectedBank ? selectedBank.trim() : "";
               return empSalaryBank === selectedBankTrimmed;
             });
+            
+            // เพิ่มเงื่อนไขการกรองตาม costtype
+            if (isPhangD3Checked || isPhangD1Checked) {
+              filteredByBank = filteredByBank.filter(employee => {
+                if (isPhangD3Checked && isPhangD1Checked) {
+                  // ถ้าเลือกทั้งสอง ให้แสดงทั้ง ภ.ง.ด.3 และ ภ.ง.ด.1
+                  return employee.costtype === "ภ.ง.ด.3" || employee.costtype === "ภ.ง.ด.1";
+                } else if (isPhangD3Checked) {
+                  // ถ้าเลือกเฉพาะ ภ.ง.ด.3
+                  return employee.costtype === "ภ.ง.ด.3";
+                } else if (isPhangD1Checked) {
+                  // ถ้าเลือกเฉพาะ ภ.ง.ด.1
+                  return employee.costtype === "ภ.ง.ด.1";
+                }
+                return true;
+              });
+            }
             
             console.log(`พบพนักงานที่ใช้ธนาคาร "${selectedBank}" จำนวน ${filteredByBank.length} คน จากทั้งหมด ${employeeResponse.data.employees.length} คน`);
             
@@ -442,7 +497,7 @@ console.table(simplifiedData); // แสดงในรูปแบบตาร�
   };
 
   fetchTimeRecordData();
-}, [year, month, selectedBank, dataAccounting]);
+}, [year, month, selectedBank, dataAccounting, isPhangD3Checked, isPhangD1Checked]);
 // แก้ไขฟังก์ชัน handleChange เพื่อกรองข้อมูลเมื่อมีการเลือกธนาคาร
 // แก้ไขฟังก์ชัน handleChange เพื่อกรองข้อมูลตามธนาคารที่เลือก
 const handleChange = async (event) => {
@@ -466,15 +521,32 @@ const handleChange = async (event) => {
         console.log("พบข้อมูลพนักงานทั้งหมด:", response.data.employees.length, "คน");
         
         // กรองเฉพาะพนักงานที่มีธนาคาร (มี salarybank)
-        const employeesWithBank = response.data.employees.filter(employee => {
+        let filteredEmployees = response.data.employees.filter(employee => {
           const empSalaryBank = employee.salarybank ? employee.salarybank.trim() : "";
           return empSalaryBank !== "";
         });
         
-        console.log("พนักงานที่มีข้อมูลธนาคาร:", employeesWithBank.length, "คน");
+        // เพิ่มเงื่อนไขการกรองตาม costtype
+        if (isPhangD3Checked || isPhangD1Checked) {
+          filteredEmployees = filteredEmployees.filter(employee => {
+            if (isPhangD3Checked && isPhangD1Checked) {
+              // ถ้าเลือกทั้งสอง ให้แสดงทั้ง ภ.ง.ด.3 และ ภ.ง.ด.1
+              return employee.costtype === "ภ.ง.ด.3" || employee.costtype === "ภ.ง.ด.1";
+            } else if (isPhangD3Checked) {
+              // ถ้าเลือกเฉพาะ ภ.ง.ด.3
+              return employee.costtype === "ภ.ง.ด.3";
+            } else if (isPhangD1Checked) {
+              // ถ้าเลือกเฉพาะ ภ.ง.ด.1
+              return employee.costtype === "ภ.ง.ด.1";
+            }
+            return true;
+          });
+        }
+        
+        console.log("พนักงานที่มีข้อมูลธนาคาร:", filteredEmployees.length, "คน");
         
         // รวมข้อมูลพนักงานกับข้อมูลจาก timerecord API
-        const mergedEmployeeData = employeesWithBank.map((employee) => {
+        const mergedEmployeeData = filteredEmployees.map((employee) => {
           // หาข้อมูลบัญชีที่ตรงกัน
           const accounting = dataAccounting.find(
             (record) => record.employeeId === employee.employeeId
@@ -522,7 +594,7 @@ const handleChange = async (event) => {
         console.log("ตัวอย่างข้อมูลพนักงานแรก:", response.data.employees[0]);
         
         // กรองพนักงานที่มีธนาคารตรงกับที่เลือก - ปรับปรุงให้ตรวจสอบค่า undefined
-        const filteredEmployees = response.data.employees.filter(employee => {
+        let filteredEmployees = response.data.employees.filter(employee => {
           // ตรวจสอบว่า salarybank มีค่าหรือไม่
           const empSalaryBank = employee.salarybank ? employee.salarybank.trim() : "";
           
@@ -533,6 +605,23 @@ const handleChange = async (event) => {
           
           return empSalaryBank === selectedValue;
         });
+        
+        // เพิ่มเงื่อนไขการกรองตาม costtype
+        if (isPhangD3Checked || isPhangD1Checked) {
+          filteredEmployees = filteredEmployees.filter(employee => {
+            if (isPhangD3Checked && isPhangD1Checked) {
+              // ถ้าเลือกทั้งสอง ให้แสดงทั้ง ภ.ง.ด.3 และ ภ.ง.ด.1
+              return employee.costtype === "ภ.ง.ด.3" || employee.costtype === "ภ.ง.ด.1";
+            } else if (isPhangD3Checked) {
+              // ถ้าเลือกเฉพาะ ภ.ง.ด.3
+              return employee.costtype === "ภ.ง.ด.3";
+            } else if (isPhangD1Checked) {
+              // ถ้าเลือกเฉพาะ ภ.ง.ด.1
+              return employee.costtype === "ภ.ง.ด.1";
+            }
+            return true;
+          });
+        }
         
         console.log("พบพนักงานที่มีธนาคาร", selectedValue, "จำนวน", filteredEmployees.length, "คน");
         
@@ -1193,6 +1282,109 @@ const BankReportPDF = () => {
                                     </option>
                     </select>
                     </div>
+                    
+                    <div className="col-md-4">
+                      <label>ประเภทภาษี</label>
+                      <div className="form-group">
+                        <style jsx>{`
+                          .custom-checkbox {
+                            position: relative;
+                            display: inline-flex;
+                            align-items: center;
+                            margin-right: 20px;
+                            margin-bottom: 8px;
+                            cursor: pointer;
+                            font-size: 14px;
+                            user-select: none;
+                          }
+                          
+                          .custom-checkbox input {
+                            position: absolute;
+                            opacity: 0;
+                            cursor: pointer;
+                            height: 0;
+                            width: 0;
+                          }
+                          
+                          .custom-checkbox .checkmark {
+                            position: relative;
+                            height: 20px;
+                            width: 20px;
+                            background-color: #fff;
+                            border: 2px solid gray;
+                            border-radius: 4px;
+                            margin-right: 8px;
+                            transition: all 0.3s ease;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                          }
+                          
+                          .custom-checkbox:hover .checkmark {
+                            background-color: #f8f9fa;
+                            box-shadow: 0 2px 4px rgba(0,123,255,0.2);
+                          }
+                          
+                          .custom-checkbox input:checked ~ .checkmark {
+                            background-color: #007bff;
+                            border-color: #007bff;
+                          }
+                          
+                          .custom-checkbox .checkmark:after {
+                            content: "";
+                            position: absolute;
+                            display: none;
+                            left: 6px;
+                            top: 2px;
+                            width: 6px;
+                            height: 10px;
+                            border: solid white;
+                            border-width: 0 2px 2px 0;
+                            transform: rotate(45deg);
+                          }
+                          
+                          .custom-checkbox input:checked ~ .checkmark:after {
+                            display: block;
+                          }
+                          
+                          .custom-checkbox:active .checkmark {
+                            transform: scale(0.95);
+                          }
+                          
+                          .checkbox-label {
+                            font-weight: 500;
+                            color: #495057;
+                            transition: color 0.3s ease;
+                          }
+                          
+                          .custom-checkbox:hover .checkbox-label {
+                            color: #007bff;
+                          }
+                        `}</style>
+                        
+                        <label className="custom-checkbox">
+                          <input
+                            type="checkbox"
+                            id="phangD3"
+                            checked={isPhangD3Checked}
+                            onChange={handlePhangD3Change}
+                          />
+                          <span className="checkmark"></span>
+                          <span className="checkbox-label">ภ.ง.ด.3</span>
+                        </label>
+                        
+                        <label className="custom-checkbox">
+                          <input
+                            type="checkbox"
+                            id="phangD1"
+                            checked={isPhangD1Checked}
+                            onChange={handlePhangD1Change}
+                          />
+                          <span className="checkmark"></span>
+                          <span className="checkbox-label">ภ.ง.ด.1</span>
+                        </label>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -1360,6 +1552,8 @@ const BankReportPDF = () => {
                   <button className="btn b_save">
                     ออกรายงานธนาคาร(ออดิท)
                   </button>
+
+
                 </div>
                 
               </div>

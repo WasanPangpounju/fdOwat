@@ -2232,6 +2232,11 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
 
     await addRow(newRowData);
 
+    // Scroll to bottom when date is 20 or greater
+    if (parseInt(wDate) >= 20) {
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }
+
     await setTmpIndex(tmpIndex + 1);
     // await setWId('');
     // await setWName('');
@@ -2365,6 +2370,8 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
       // setEmployeesResult(response.data.employees);
       if (response) {
         alert("บันทึกสำเร็จ");
+        // Scroll to top of the page
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         // window.location.reload();
         handleCheckTimerecord();
 
@@ -2396,6 +2403,8 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
       // setEmployeesResult(response.data.employees);
       if (response?.status === 201) {
         alert("บันทึกสำเร็จ");
+        // Scroll to top of the page
+        window.scrollTo({ top: 0, behavior: 'smooth' });
 // handleCheckTimerecord();
         setUpdateButton(true);
         // alert(response.data.recordworkplace[0].employee_workplaceRecord[1].workplaceId);
