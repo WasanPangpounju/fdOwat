@@ -57,6 +57,8 @@ router.post('/monthlyAddSalary/save', async (req, res) => {
   try {
     const { employeeId, month, year, addSalaryList, deductSalaryList } = req.body;
 
+    console.log('Saving monthly salary data:', { employeeId, month, year, addSalaryList, deductSalaryList });
+
     if (!employeeId || !month || !year) {
       return res.status(400).json({ 
         success: false, 
@@ -112,11 +114,15 @@ router.post('/monthlyAddSalary/get', async (req, res) => {
   try {
     const { employeeId, month, year } = req.body;
 
+    console.log('Getting monthly salary data for:', { employeeId, month, year });
+
     const accountingRecord = await accounting.findOne({ 
       employeeId, 
       month, 
       year 
     });
+
+    console.log('Found record:', accountingRecord);
 
     if (accountingRecord) {
       res.json({
