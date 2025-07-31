@@ -4608,9 +4608,23 @@ const getEmployeeProfile = async (employeeId) => {
         // Query the employee collection for matching documents
         const employees = await Employee.find(query);
 
-        if(employees ) {
+        if(employees && employees.length > 0) {
+          // Debug: แสดงข้อมูล addSalary ที่ดึงจากฐานข้อมูล
+          console.log(`\n🔍 === ข้อมูล Employee Profile สำหรับ ${employeeId} ===`);
+          console.log(`🔍 จำนวน employees ที่พบ: ${employees.length}`);
+          if (employees[0].addSalary) {
+            console.log(`🔍 จำนวน addSalary ทั้งหมด: ${employees[0].addSalary.length} รายการ`);
+            employees[0].addSalary.forEach((salary, index) => {
+              console.log(`🔍 addSalary[${index}]: ${salary.name}, effectiveMonth: ${salary.effectiveMonth || 'ไม่มี'}, effectiveYear: ${salary.effectiveYear || 'ไม่มี'}`);
+            });
+          } else {
+            console.log(`🔍 ไม่พบข้อมูล addSalary`);
+          }
+          console.log(`🔍 ========================================`);
+          
           return employees ;
         } else {
+          console.log(`⚠️ ไม่พบข้อมูลพนักงาน ${employeeId}`);
           return null;
         }
 
