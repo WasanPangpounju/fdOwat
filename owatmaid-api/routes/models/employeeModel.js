@@ -419,8 +419,10 @@ const employeeSchema = new mongoose.Schema({
         installment: String,
         nameType: String,
         message: String,
-        effectiveMonth: String, // เดือนที่มีผล (01-12)
-        effectiveYear: String,  // ปีที่มีผล (2024, 2025, ...)
+       
+            effectiveMonth: { type: String, default: '01' }, // เพิ่มฟิลด์นี้
+
+    effectiveYear: { type: String, default: () => new Date().getFullYear().toString() } // เพิ่มฟิลด์นี้
       },
     ],
     

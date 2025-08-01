@@ -4683,6 +4683,8 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           doc.year
         );
 
+        
+
         // Log ค่าที่ได้จาก calculateCashValues
         console.log(`\n🎯 === ค่าที่ได้รับจาก calculateCashValues ===`);
         console.log(`🎯 calculatedValues.countAllowance: ${calculatedValues.countAllowance}`);
@@ -4994,6 +4996,28 @@ let timeCashWorkMul = {
     
     return salaryMonth === requestMonth && salaryYear === requestYear;
   });
+  let allDeductSalary = employeeProfile?.[0]?.deductSalary || [];
+  let deductSalary = allDeductSalary.filter(salary => {
+    // ถ้าไม่มี effectiveMonth หรือ effectiveYear ให้ถือว่าเป็นเดือน 1 และปีปัจจุบัน
+    const salaryMonth = salary.effectiveMonth || '01';
+    const salaryYear = salary.effectiveYear || year;
+    
+    // แปลง month ที่ส่งมาให้เป็นรูปแบบเดียวกัน (เช่น "3" -> "03")
+    const requestMonth = month.toString().padStart(2, '0');
+    const requestYear = year.toString();
+    
+    console.log(`🔍 ตรวจสอบ deductSalary: ${salary.name}, effectiveMonth: ${salaryMonth}, effectiveYear: ${salaryYear}, ต้องการ month: ${requestMonth}, year: ${requestYear}`);
+    
+    return salaryMonth === requestMonth && salaryYear === requestYear;
+  });
+  
+  console.log(`📊 === สรุปการกรอง deductSalary ===`);
+  console.log(`📊 deductSalary ทั้งหมด: ${allDeductSalary.length} รายการ`);
+  console.log(`📊 deductSalary หลังกรอง (เดือน ${month.toString().padStart(2, '0')} ปี ${year}): ${deductSalary.length} รายการ`);
+  if (deductSalary.length > 0) {
+    console.log(`📊 รายการที่ผ่านการกรอง:`, deductSalary.map(s => `${s.name} (${s.effectiveMonth || '01'}/${s.effectiveYear || year})`).join(', '));
+  }
+  
   
   console.log(`📊 === สรุปการกรอง addSalary ===`);
   console.log(`📊 addSalary ทั้งหมด: ${allAddSalary.length} รายการ`);
@@ -5001,8 +5025,12 @@ let timeCashWorkMul = {
   if (addSalary.length > 0) {
     console.log(`📊 รายการที่ผ่านการกรอง:`, addSalary.map(s => `${s.name} (${s.effectiveMonth || '01'}/${s.effectiveYear || year})`).join(', '));
   }
+    if (deductSalary && deductSalary.length > 0) {
+    // เพิ่มเงินหักลงในรายการเงินหักเฉพาะที่ผ่านการกรองแล้ว
+    deductSalaryList = deductSalary;
+  }
   
-  let deductSalary = employeeProfile?.[0]?.deductSalary || [];
+
   let salary = 0;
   let salaryMonth = 0;
   let dailyWage = 0; // ค่าแรงต่อวัน สำหรับคำนวณ cashcustomizeDayoff
