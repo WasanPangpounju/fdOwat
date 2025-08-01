@@ -1812,6 +1812,64 @@ router.put('/update/:concludeRecordId', async (req, res) => {
   }
 });
 
+// API endpoint to get employee benefit history across all time records
+router.post('/getemployeealltimerecord', async (req, res) => {
+  try {
+    const { employeeId } = req.body;
+    
+    if (!employeeId) {
+      return res.status(400).json({ error: 'employeeId is required' });
+    }
+    
+    // Query the conclude collection for all records of this employee
+    const records = await conclude.find({ employeeId });
+    
+    if (!records || records.length === 0) {
+      return res.status(404).json({ 
+        message: 'No records found for this employee',
+        result: [] 
+      });
+    }
+    
+    // Return the formatted data that matches the frontend expectations
+    res.status(200).json({ 
+      message: 'Employee benefit history retrieved successfully', 
+      result: records.map(record => ({
+        month: record.month,
+        year: record.year,
+        concludeDate: record.concludeDate,
+        // Include addSalary if it exists
+        addSalaryList: record.addSalary && record.addSalary.length > 0 ? 
+          record.addSalary.flat().filter(Boolean).map(salary => {
+            // Handle different possible structures of salary items
+            if (Array.isArray(salary)) {
+              return salary.map(item => ({
+                id: item.id || item.codeSpSalary || '',
+                name: item.name || '',
+                SpSalary: item.SpSalary || '0',
+                message: item.message || '1'
+              }));
+            } else {
+              return {
+                id: salary.id || salary.codeSpSalary || '',
+                name: salary.name || '',
+                SpSalary: salary.SpSalary || '0',
+                message: salary.message || '1'
+              };
+            }
+          }).flat() : []
+      }))
+    });
+    
+  } catch (error) {
+    console.error('Error fetching employee benefit history:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      message: error.message 
+    });
+  }
+});
+
 
 router.post('/delete-records', async (req, res) => {
   const dataConclude = req.body;
