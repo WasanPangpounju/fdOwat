@@ -6269,9 +6269,42 @@ router.post('/addDeductSalary', async (req, res) => {
     });
 
     if (!timeRecord) {
-      return res.status(404).json({ 
-        success: false, 
-        message: `ไม่พบข้อมูลการทำงานสำหรับพนักงาน ${employeeId} ในเดือน ${month}/${year}` 
+      // If no timerecord exists, create a new one with basic structure
+      console.log('📝 Creating new timerecord for employee:', employeeId);
+      
+      const newTimeRecord = new timerecordEmployee({
+        employeeId: employeeId,
+        month: month,
+        year: year,
+        employee_record: [],
+        deductSalaryList: [{
+          id: deductSalaryItem.id,
+          name: deductSalaryItem.name,
+          amount: deductSalaryItem.amount,
+          payType: deductSalaryItem.payType || 'installment',
+          installment: deductSalaryItem.installment || '1',
+          nameType: deductSalaryItem.nameType || '',
+          message: deductSalaryItem.message || '',
+          effectiveMonth: deductSalaryItem.effectiveMonth,
+          effectiveYear: deductSalaryItem.effectiveYear,
+          source: deductSalaryItem.source || 'manual'
+        }],
+        addSalaryList: [],
+        personalDayOff: [],
+        stopDaysList: []
+      });
+
+      await newTimeRecord.save();
+      
+      return res.status(200).json({ 
+        success: true, 
+        message: 'สร้างข้อมูลการทำงานและเพิ่มรายการหักเงินสำเร็จ',
+        data: {
+          employeeId: newTimeRecord.employeeId,
+          month: newTimeRecord.month,
+          year: newTimeRecord.year,
+          deductSalaryListCount: newTimeRecord.deductSalaryList.length
+        }
       });
     }
 
