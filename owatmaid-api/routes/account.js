@@ -4657,66 +4657,8 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     const updatedRecords = [];
 
     for (const doc of records) {
-      // Check if employee_record is empty and log the issue
       if (!doc || !Array.isArray(doc.employee_record) || doc.employee_record.length === 0) {
-        console.warn(`⚠️ Document ${doc._id} has empty employee_record array. This might be caused by salary deduction processing.`);
-        console.warn(`⚠️ Employee ${doc.employeeId} for ${doc.month}/${doc.year} - employee_record length: ${doc.employee_record?.length || 0}`);
-        
-        // Instead of skipping, return a basic record with zero values and a note about the issue
-        // This allows the frontend to display something instead of empty results
-        try {
-          const employee = await Employee.findOne({ employeeId: doc.employeeId });
-          const employeePrefix = employee?.prefix || '';
-          const employeeName = `${employee?.name || ''} ${employee?.lastName || ''}`.trim();
-          
-          const basicRecord = {
-            _id: doc._id,
-            employeeId: doc.employeeId,
-            month: doc.month,
-            year: doc.year,
-            prefix: employeePrefix,
-            employeeName: employeeName,
-            dayWorkCount: "0",
-            dayOffCount: "0", 
-            specialDayOff: "0",
-            customizeDayoff: "0",
-            cashcustomizeDayoff: "0",
-            publicHolidayCount: "0",
-            publicHolidayCash: "0",
-            sumTimeWork: "0",
-            sumTimeOt: "0",
-            sumCashWork: "0",
-            sumCashOt: "0",
-            sumcashDayOffCount: "0",
-            totalAddSalary: "0",
-            totalDeductSalary: "0",
-            socialSecurity: "0",
-            tax: "0",
-            cashSpecialDay: "0",
-            sumOt1p5: "0",
-            sumOt3: "0",
-            sumOtPublicHoliday: "0",
-            addSalaryList: [],
-            deductSalaryList: [],
-            sumCashWorkMul: { "1": 0, "1.5": 0, "2": 0, "3": 0 },
-            stopDaysList: [],
-            warning: "employee_record_is_empty",
-            warningMessage: "ข้อมูลการลงเวลาทำงานของพนักงานคนนี้หายไป อาจเกิดจากการประมวลผลเงินหัก กรุณาตรวจสอบข้อมูลในระบบลงเวลา"
-          };
-          
-          updatedRecords.push(basicRecord);
-        } catch (employeeError) {
-          console.error("Error fetching employee info for empty record:", employeeError);
-          // If we can't even get employee info, just add a minimal record
-          updatedRecords.push({
-            _id: doc._id,
-            employeeId: doc.employeeId,
-            month: doc.month,
-            year: doc.year,
-            warning: "employee_record_is_empty",
-            warningMessage: "ข้อมูลการลงเวลาทำงานของพนักงานคนนี้หายไป อาจเกิดจากการประมวลผลเงินหัก กรุณาตรวจสอบข้อมูลในระบบลงเวลา"
-          });
-        }
+        console.warn(`Skipping invalid or empty document: ${doc._id}`);
         continue;
       }
 
@@ -4740,8 +4682,6 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           doc.month,
           doc.year
         );
-
-        
 
         // Log ค่าที่ได้จาก calculateCashValues
         console.log(`\n🎯 === ค่าที่ได้รับจาก calculateCashValues ===`);
@@ -5054,28 +4994,6 @@ let timeCashWorkMul = {
     
     return salaryMonth === requestMonth && salaryYear === requestYear;
   });
-  let allDeductSalary = employeeProfile?.[0]?.deductSalary || [];
-  let deductSalary = allDeductSalary.filter(salary => {
-    // ถ้าไม่มี effectiveMonth หรือ effectiveYear ให้ถือว่าเป็นเดือน 1 และปีปัจจุบัน
-    const salaryMonth = salary.effectiveMonth || '01';
-    const salaryYear = salary.effectiveYear || year;
-    
-    // แปลง month ที่ส่งมาให้เป็นรูปแบบเดียวกัน (เช่น "3" -> "03")
-    const requestMonth = month.toString().padStart(2, '0');
-    const requestYear = year.toString();
-    
-    console.log(`🔍 ตรวจสอบ deductSalary: ${salary.name}, effectiveMonth: ${salaryMonth}, effectiveYear: ${salaryYear}, ต้องการ month: ${requestMonth}, year: ${requestYear}`);
-    
-    return salaryMonth === requestMonth && salaryYear === requestYear;
-  });
-  
-  console.log(`📊 === สรุปการกรอง deductSalary ===`);
-  console.log(`📊 deductSalary ทั้งหมด: ${allDeductSalary.length} รายการ`);
-  console.log(`📊 deductSalary หลังกรอง (เดือน ${month.toString().padStart(2, '0')} ปี ${year}): ${deductSalary.length} รายการ`);
-  if (deductSalary.length > 0) {
-    console.log(`📊 รายการที่ผ่านการกรอง:`, deductSalary.map(s => `${s.name} (${s.effectiveMonth || '01'}/${s.effectiveYear || year})`).join(', '));
-  }
-  
   
   console.log(`📊 === สรุปการกรอง addSalary ===`);
   console.log(`📊 addSalary ทั้งหมด: ${allAddSalary.length} รายการ`);
@@ -5083,12 +5001,8 @@ let timeCashWorkMul = {
   if (addSalary.length > 0) {
     console.log(`📊 รายการที่ผ่านการกรอง:`, addSalary.map(s => `${s.name} (${s.effectiveMonth || '01'}/${s.effectiveYear || year})`).join(', '));
   }
-    if (deductSalary && deductSalary.length > 0) {
-    // เพิ่มเงินหักลงในรายการเงินหักเฉพาะที่ผ่านการกรองแล้ว
-    deductSalaryList = deductSalary;
-  }
   
-
+  let deductSalary = employeeProfile?.[0]?.deductSalary || [];
   let salary = 0;
   let salaryMonth = 0;
   let dailyWage = 0; // ค่าแรงต่อวัน สำหรับคำนวณ cashcustomizeDayoff
