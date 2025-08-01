@@ -4608,23 +4608,9 @@ const getEmployeeProfile = async (employeeId) => {
         // Query the employee collection for matching documents
         const employees = await Employee.find(query);
 
-        if(employees && employees.length > 0) {
-          // Debug: แสดงข้อมูล addSalary ที่ดึงจากฐานข้อมูล
-          console.log(`\n🔍 === ข้อมูล Employee Profile สำหรับ ${employeeId} ===`);
-          console.log(`🔍 จำนวน employees ที่พบ: ${employees.length}`);
-          if (employees[0].addSalary) {
-            console.log(`🔍 จำนวน addSalary ทั้งหมด: ${employees[0].addSalary.length} รายการ`);
-            employees[0].addSalary.forEach((salary, index) => {
-              console.log(`🔍 addSalary[${index}]: ${salary.name}, effectiveMonth: ${salary.effectiveMonth || 'ไม่มี'}, effectiveYear: ${salary.effectiveYear || 'ไม่มี'}`);
-            });
-          } else {
-            console.log(`🔍 ไม่พบข้อมูล addSalary`);
-          }
-          console.log(`🔍 ========================================`);
-          
+        if(employees ) {
           return employees ;
         } else {
-          console.log(`⚠️ ไม่พบข้อมูลพนักงาน ${employeeId}`);
           return null;
         }
 
@@ -4979,30 +4965,8 @@ let timeCashWorkMul = {
   }
   
 
-  // ดึงข้อมูล addSalary และกรองตาม effectiveMonth และ effectiveYear
-  let allAddSalary = employeeProfile?.[0]?.addSalary || [];
-  let addSalary = allAddSalary.filter(salary => {
-    // ถ้าไม่มี effectiveMonth หรือ effectiveYear ให้ถือว่าเป็นเดือน 1 และปีปัจจุบัน
-    const salaryMonth = salary.effectiveMonth || '01';
-    const salaryYear = salary.effectiveYear || year;
-    
-    // แปลง month ที่ส่งมาให้เป็นรูปแบบเดียวกัน (เช่น "3" -> "03")
-    const requestMonth = month.toString().padStart(2, '0');
-    const requestYear = year.toString();
-    
-    console.log(`🔍 ตรวจสอบ addSalary: ${salary.name}, effectiveMonth: ${salaryMonth}, effectiveYear: ${salaryYear}, ต้องการ month: ${requestMonth}, year: ${requestYear}`);
-    
-    return salaryMonth === requestMonth && salaryYear === requestYear;
-  });
-  
-  console.log(`📊 === สรุปการกรอง addSalary ===`);
-  console.log(`📊 addSalary ทั้งหมด: ${allAddSalary.length} รายการ`);
-  console.log(`📊 addSalary หลังกรอง (เดือน ${month.toString().padStart(2, '0')} ปี ${year}): ${addSalary.length} รายการ`);
-  if (addSalary.length > 0) {
-    console.log(`📊 รายการที่ผ่านการกรอง:`, addSalary.map(s => `${s.name} (${s.effectiveMonth || '01'}/${s.effectiveYear || year})`).join(', '));
-  }
-  
-  let deductSalary = employeeProfile?.[0]?.deductSalary || [];
+  let addSalary = employeeProfile?.[0]?.addSalary || [];
+    let deductSalary = employeeProfile?.[0]?.deductSalary || [];
   let salary = 0;
   let salaryMonth = 0;
   let dailyWage = 0; // ค่าแรงต่อวัน สำหรับคำนวณ cashcustomizeDayoff
@@ -5904,45 +5868,14 @@ console.log(`🔍 ค่า customizeDayoff ที่จะบันทึก: $
 console.log(`💰 เงินสำหรับวันหยุดที่กำหนดเอง (cashcustomizeDayoff): ${cashcustomizeDayoff.toFixed(2)} บาท`);
 
   if (addSalary && addSalary.length > 0) {
-    // เพิ่มรายการทั้งหมดจาก addSalary ที่ผ่านการกรองแล้ว
-    addSalaryList = await addSalaryList.concat(addSalary);
-    
-    // กรองเฉพาะรายการ monthly สำหรับการคำนวณพิเศษ (ถ้าต้องการ)
     monthlySalaries = await addSalary.filter(salary => salary.roundOfSalary === 'monthly');
-    
-    console.log(`\n🔍 === เพิ่มรายการ addSalary เข้า addSalaryList ===`);
-    console.log(`🔍 จำนวนรายการจาก addSalary: ${addSalary.length}`);
-    console.log(`🔍 จำนวนรายการ monthly: ${monthlySalaries.length}`);
-    console.log(`🔍 addSalaryList ขนาดรวม: ${addSalaryList.length}`);
   }
-  
-  // ดึงข้อมูล deductSalary และกรองตาม effectiveMonth และ effectiveYear
-  let allDeductSalary = employeeProfile?.[0]?.deductSalary || [];
-  let filteredDeductSalary = allDeductSalary.filter(deduction => {
-    // ถ้าไม่มี effectiveMonth หรือ effectiveYear ให้ถือว่าเป็นเดือน 1 และปีปัจจุบัน
-    const deductionMonth = deduction.effectiveMonth || '01';
-    const deductionYear = deduction.effectiveYear || year;
-    
-    // แปลง month ที่ส่งมาให้เป็นรูปแบบเดียวกัน (เช่น "3" -> "03")
-    const requestMonth = month.toString().padStart(2, '0');
-    const requestYear = year.toString();
-    
-    console.log(`🔍 ตรวจสอบ deductSalary: ${deduction.name}, effectiveMonth: ${deductionMonth}, effectiveYear: ${deductionYear}, ต้องการ month: ${requestMonth}, year: ${requestYear}`);
-    
-    return deductionMonth === requestMonth && deductionYear === requestYear;
-  });
-  
-  console.log(`📊 === สรุปการกรอง deductSalary ===`);
-  console.log(`📊 deductSalary ทั้งหมด: ${allDeductSalary.length} รายการ`);
-  console.log(`📊 deductSalary หลังกรอง (เดือน ${month.toString().padStart(2, '0')} ปี ${year}): ${filteredDeductSalary.length} รายการ`);
-  if (filteredDeductSalary.length > 0) {
-    console.log(`📊 รายการที่ผ่านการกรอง:`, filteredDeductSalary.map(d => `${d.name} (${d.effectiveMonth || '01'}/${d.effectiveYear || year})`).join(', '));
+     if (deductSalary&& deductSalary.length > 0) {
+//เพิ่มเงินหักลงในรายการเงินหัก
+      deductSalaryList = deductSalary;
   }
-  
-  if (filteredDeductSalary && filteredDeductSalary.length > 0) {
-    // เพิ่มเงินหักลงในรายการเงินหัก (เฉพาะที่ผ่านการกรองแล้ว)
-    deductSalaryList = filteredDeductSalary;
-  }
+
+  addSalaryList = await addSalaryList.concat(monthlySalaries);
 
   console.log(`\n🔍 === การตรวจสอบเงินพิเศษที่คิดประกันสังคม ===`);
   console.log(`🔍 จำนวนรายการเงินพิเศษทั้งหมด: ${addSalaryList.length} รายการ`);
