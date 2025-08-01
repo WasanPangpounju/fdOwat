@@ -917,4 +917,44 @@ router.delete("/delete_id/:_id", async (req, res) => {
   }
 });
 
+// Update employee by employeeId (for loan contracts and other updates)
+router.post("/updateemployees", async (req, res) => {
+  try {
+    const { employeeId, loanContracts, ...otherFields } = req.body;
+    
+    if (!employeeId) {
+      return res.status(400).json({ error: "employeeId is required" });
+    }
+
+    // Prepare update object
+    const updateFields = { ...otherFields };
+    
+    // If loanContracts is provided, add it to update fields
+    if (loanContracts) {
+      updateFields.loanContracts = loanContracts;
+    }
+
+    // Find employee by employeeId and update
+    const updatedEmployee = await Employee.findOneAndUpdate(
+      { employeeId: employeeId },
+      updateFields,
+      { new: true, upsert: false }
+    );
+
+    if (!updatedEmployee) {
+      return res.status(404).json({ error: "Employee not found" });
+    }
+
+    res.json({ 
+      success: true, 
+      message: "Employee updated successfully", 
+      employee: updatedEmployee 
+    });
+    
+  } catch (error) {
+    console.error('Error updating employee:', error);
+    res.status(500).json({ error: "Internal server error", details: error.message });
+  }
+});
+
 module.exports = router;

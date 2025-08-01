@@ -423,6 +423,32 @@ const employeeSchema = new mongoose.Schema({
         effectiveYear: String,  // ปีที่มีผล (2024, 2025, ...)
       },
     ],
+    
+    // Loan contracts management
+    loanContracts: [
+      {
+        contractCode: String,      // รหัสสัญญา
+        itemCode: String,          // รหัสรายการ (2124, 2200, etc.)
+        itemDescription: String,   // คำอธิบายรายการ (หักเงินกู้, etc.)
+        totalAmount: Number,       // จำนวนเงินกู้ทั้งหมด
+        installments: Number,      // จำนวนงวดที่ต้องชำระ
+        startMonth: String,        // เดือนที่เริ่มต้น (01-12)
+        startYear: String,         // ปีที่เริ่มต้น (2024, 2025, ...)
+        installmentDetails: [{     // รายละเอียดการชำระแต่ละงวด
+          month: String,           // เดือนที่ชำระ
+          year: String,            // ปีที่ชำระ
+          amount: Number,          // จำนวนเงินที่ชำระ
+          paymentDate: String      // วันที่ชำระ
+        }],
+        createdDate: String,       // วันที่สร้างสัญญา
+        updatedDate: String,       // วันที่แก้ไขล่าสุด
+        status: {                  // สถานะสัญญา
+          type: String,
+          enum: ['active', 'completed', 'cancelled'],
+          default: 'active'
+        }
+      }
+    ],
   
     selectAddSalary: [],
     sumAddSalary: String,
