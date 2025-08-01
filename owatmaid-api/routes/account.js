@@ -4650,8 +4650,6 @@ router.post('/searchtimerecordemployee', async (req, res) => {
 
     const records = await timerecordEmployee.find(query);
 
-    console.log(`🔍 DEBUG: Found ${records.length} records for query:`, query);
-
     if (!records.length) {
       return res.status(200).json({ result: [], message: 'No records found' });
     }
@@ -4659,27 +4657,66 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     const updatedRecords = [];
 
     for (const doc of records) {
-      console.log(`🔍 DEBUG: Processing document ${doc._id}`);
-      console.log(`🔍 DEBUG: employeeId: ${doc.employeeId}`);
-      console.log(`🔍 DEBUG: month: ${doc.month}`);
-      console.log(`🔍 DEBUG: year: ${doc.year}`);
-      console.log(`🔍 DEBUG: employee_record exists: ${!!doc.employee_record}`);
-      console.log(`🔍 DEBUG: employee_record is array: ${Array.isArray(doc.employee_record)}`);
-      console.log(`🔍 DEBUG: employee_record length: ${doc.employee_record?.length || 0}`);
-      
+      // Check if employee_record is empty and log the issue
       if (!doc || !Array.isArray(doc.employee_record) || doc.employee_record.length === 0) {
-        console.warn(`❌ Skipping invalid or empty document: ${doc._id} - employee_record is empty or invalid`);
-        // Instead of continuing, let's return a debug object to help identify the issue
-        updatedRecords.push({
-          _id: doc._id,
-          employeeId: doc.employeeId,
-          month: doc.month,
-          year: doc.year,
-          debug_status: 'employee_record_empty',
-          employee_record_length: doc.employee_record?.length || 0,
-          employee_record_type: typeof doc.employee_record,
-          has_employee_record: !!doc.employee_record
-        });
+        console.warn(`⚠️ Document ${doc._id} has empty employee_record array. This might be caused by salary deduction processing.`);
+        console.warn(`⚠️ Employee ${doc.employeeId} for ${doc.month}/${doc.year} - employee_record length: ${doc.employee_record?.length || 0}`);
+        
+        // Instead of skipping, return a basic record with zero values and a note about the issue
+        // This allows the frontend to display something instead of empty results
+        try {
+          const employee = await Employee.findOne({ employeeId: doc.employeeId });
+          const employeePrefix = employee?.prefix || '';
+          const employeeName = `${employee?.name || ''} ${employee?.lastName || ''}`.trim();
+          
+          const basicRecord = {
+            _id: doc._id,
+            employeeId: doc.employeeId,
+            month: doc.month,
+            year: doc.year,
+            prefix: employeePrefix,
+            employeeName: employeeName,
+            dayWorkCount: "0",
+            dayOffCount: "0", 
+            specialDayOff: "0",
+            customizeDayoff: "0",
+            cashcustomizeDayoff: "0",
+            publicHolidayCount: "0",
+            publicHolidayCash: "0",
+            sumTimeWork: "0",
+            sumTimeOt: "0",
+            sumCashWork: "0",
+            sumCashOt: "0",
+            sumcashDayOffCount: "0",
+            totalAddSalary: "0",
+            totalDeductSalary: "0",
+            socialSecurity: "0",
+            tax: "0",
+            cashSpecialDay: "0",
+            sumOt1p5: "0",
+            sumOt3: "0",
+            sumOtPublicHoliday: "0",
+            addSalaryList: [],
+            deductSalaryList: [],
+            sumCashWorkMul: { "1": 0, "1.5": 0, "2": 0, "3": 0 },
+            stopDaysList: [],
+            warning: "employee_record_is_empty",
+            warningMessage: "ข้อมูลการลงเวลาทำงานของพนักงานคนนี้หายไป อาจเกิดจากการประมวลผลเงินหัก กรุณาตรวจสอบข้อมูลในระบบลงเวลา"
+          };
+          
+          updatedRecords.push(basicRecord);
+        } catch (employeeError) {
+          console.error("Error fetching employee info for empty record:", employeeError);
+          // If we can't even get employee info, just add a minimal record
+          updatedRecords.push({
+            _id: doc._id,
+            employeeId: doc.employeeId,
+            month: doc.month,
+            year: doc.year,
+            warning: "employee_record_is_empty",
+            warningMessage: "ข้อมูลการลงเวลาทำงานของพนักงานคนนี้หายไป อาจเกิดจากการประมวลผลเงินหัก กรุณาตรวจสอบข้อมูลในระบบลงเวลา"
+          });
+        }
         continue;
       }
 
