@@ -5915,9 +5915,33 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
     console.log(`🔍 จำนวนรายการ monthly: ${monthlySalaries.length}`);
     console.log(`🔍 addSalaryList ขนาดรวม: ${addSalaryList.length}`);
   }
-     if (deductSalary&& deductSalary.length > 0) {
-//เพิ่มเงินหักลงในรายการเงินหัก
-      deductSalaryList = deductSalary;
+  
+  // ดึงข้อมูล deductSalary และกรองตาม effectiveMonth และ effectiveYear
+  let allDeductSalary = employeeProfile?.[0]?.deductSalary || [];
+  let filteredDeductSalary = allDeductSalary.filter(deduction => {
+    // ถ้าไม่มี effectiveMonth หรือ effectiveYear ให้ถือว่าเป็นเดือน 1 และปีปัจจุบัน
+    const deductionMonth = deduction.effectiveMonth || '01';
+    const deductionYear = deduction.effectiveYear || year;
+    
+    // แปลง month ที่ส่งมาให้เป็นรูปแบบเดียวกัน (เช่น "3" -> "03")
+    const requestMonth = month.toString().padStart(2, '0');
+    const requestYear = year.toString();
+    
+    console.log(`🔍 ตรวจสอบ deductSalary: ${deduction.name}, effectiveMonth: ${deductionMonth}, effectiveYear: ${deductionYear}, ต้องการ month: ${requestMonth}, year: ${requestYear}`);
+    
+    return deductionMonth === requestMonth && deductionYear === requestYear;
+  });
+  
+  console.log(`📊 === สรุปการกรอง deductSalary ===`);
+  console.log(`📊 deductSalary ทั้งหมด: ${allDeductSalary.length} รายการ`);
+  console.log(`📊 deductSalary หลังกรอง (เดือน ${month.toString().padStart(2, '0')} ปี ${year}): ${filteredDeductSalary.length} รายการ`);
+  if (filteredDeductSalary.length > 0) {
+    console.log(`📊 รายการที่ผ่านการกรอง:`, filteredDeductSalary.map(d => `${d.name} (${d.effectiveMonth || '01'}/${d.effectiveYear || year})`).join(', '));
+  }
+  
+  if (filteredDeductSalary && filteredDeductSalary.length > 0) {
+    // เพิ่มเงินหักลงในรายการเงินหัก (เฉพาะที่ผ่านการกรองแล้ว)
+    deductSalaryList = filteredDeductSalary;
   }
 
   console.log(`\n🔍 === การตรวจสอบเงินพิเศษที่คิดประกันสังคม ===`);
