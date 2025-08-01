@@ -39,7 +39,7 @@ function SettingComplex({ workplaceList, employeeList }) {
   };
 
   const [file, setFile] = useState(null);
-  const [preview, setPreview] = useState(null);
+ const [preview, setPreview] = useState(null);
 
   // State for selected values
   const [selectedDay, setSelectedDay] = useState("");
@@ -459,6 +459,7 @@ function SettingComplex({ workplaceList, employeeList }) {
       }
     });
   }, [listEmployeeDay, listSpecialWorktime]);
+
 
   const handleSearchAndDelete = (searchDay, searchPosition) => {
     const updatedList = listEmployeeDay.filter(
@@ -1128,6 +1129,15 @@ const handleRemovePublicHoliday = async (holidayToRemove) => {
   function handleClickResult(workplace) {
     setNewWorkplace(false);
 // alert(JSON.stringify(workplace,null,2))
+alert(JSON.stringify(workplace.workplaceGroup[1].workplaceComplexData.workTimeDay) )
+    if (checkSetStandard == "seted") {
+      setWorkplacesComplex(standardWorkplace.workplaceGroup);
+      setStandardWorkplace(standardWorkplace);
+    } else {
+      setWorkplacesComplex(workplace.workplaceGroup);
+      setStandardWorkplace(workplace);
+    }
+    setCheckSetStandard("");
 
     set_id(workplace._id);
     setWorkplaceId(workplace.workplaceId);
@@ -1137,7 +1147,13 @@ const handleRemovePublicHoliday = async (holidayToRemove) => {
     // );
     // console.log("searchWorkplaceId", searchWorkplaceId);
     // setEmployeeListResult(filteredEmployees);
-    alert(workplace.workplaceName)
+    // alert(workplace.workplaceName)
+
+    alert(workplace.workplaceGroup.length)
+    // ถ้ามีหน่วยงานย่อยในหน่วยงานหลัก
+    if(workplace.workplaceGroup.length > 0 ) {
+
+    }
 
     // setShowEmployeeListResult(filteredEmployees);
     setWorkplaceName(workplace.workplaceName);
@@ -1891,6 +1907,62 @@ if (newWorkplace) {
     setWorkTimeDayList_specialwork((prev) => prev.filter((_, i) => i !== index));
   };
 
+
+    //เพิ่มโค้ดจาก setting
+    const [workplaceComplexId, setWorkplaceComplexId] = useState(""); //รหัสกลุ่มงานย่อย
+  const [workplaceComplexName, setWorkplaceComplexName] = useState(""); //ชื่อกลุ่มงานย่อย
+  const [workplacesComplex, setWorkplacesComplex] = useState([]);
+  const [standardWorkplace, setStandardWorkplace] = useState({});
+  const [checkSetStandard, setCheckSetStandard] = useState("");
+
+  const handleSelectChange = async (e) => {
+    // setSelectedDay(e.target.value);
+    // setWorkplaceComplexName(`Complex Name ${e.target.value}`);
+    await setWorkplaceComplexId(e.target.value);
+  };
+
+
+    useEffect(() => {
+    setWorkplaceComplexName("");
+
+    const setGroupData = async () => {
+      if (workplaceComplexId === "") {
+        //no selection group
+        // alert('No selection group');
+        await setCheckSetStandard("seted");
+        await handleClickResult(standardWorkplace);
+      } else {
+        if (workplacesComplex.length == 0) {
+          //No data set to workplace group
+          alert("No data set to workplace group " + workplacesComplex.length);
+          await setCheckSetStandard("seted");
+          await handleClickResult(standardWorkplace);
+        } else {
+          //set data to workplace group
+          let dataSelect = workplacesComplex.find(
+            (item) => item.workplaceComplexId === workplaceComplexId
+          );
+          if (dataSelect) {
+            await setWorkplaceComplexName(
+              dataSelect.workplaceComplexName || ""
+            );
+            await setCheckSetStandard("seted");
+            await setFormDataGroup(dataSelect.workplaceComplexData);
+          } else {
+            await setFormDataGroup(standardWorkplace);
+          }
+          // await setWorkplaceComplexName(standardWorkplace.workplaceGroup[c].workplaceComplexName || '');
+          // await setCheckSetStandard('seted');
+          // await setFormDataGroup (        standardWorkplace.workplaceGroup[c].workplaceComplexData);
+        }
+      }
+    };
+
+    setGroupData();
+    // alert(workplaceComplexId);
+  }, [workplaceComplexId]);
+
+  
   return (
     <div class="hold-transition sidebar-mini" className="editlaout">
       <div class="wrapper">
@@ -2065,7 +2137,46 @@ if (newWorkplace) {
                           />
                         </div>
                       </div>
+
+                                                                  <div class="col-md-3">
+                        <div class="form-group">
+                          <label role="selectGroup">เลือกกลุ่มงาน</label>
+                          <select
+                            name="selectGroup"
+                            className="form-control"
+                            value={workplaceComplexId}
+                            onChange={handleSelectChange}
+                          >
+                            <option value="">เลือกกลุ่มงาน</option>
+                            <option value="1"> 1</option>
+                            <option value="2"> 2</option>
+                            <option value="3"> 3</option>
+                            <option value="4"> 4</option>
+                            <option value="5"> 5</option>
+                            <option value="6"> 6</option>
+                            <option value="7"> 7</option>
+                            <option value="8"> 8</option>
+                            <option value="9"> 9</option>
+                            <option value="10"> 10</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="col-md-3">
+                        <label role="workplaceName">ชื่อกลุ่มงาน</label>
+                        <input
+                          type="text"
+                          value={workplaceComplexName}
+                          class="form-control"
+                          placeholder="ชื่อกลุ่มงาน"
+                          onChange={(e) =>
+                            setWorkplaceComplexName(e.target.value)
+                          }
+                        />
+                      </div>
+
                     </div>
+
                     <div class="row">
                       <div class="col-md-6">
                         <div class="form-group">
