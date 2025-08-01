@@ -406,8 +406,6 @@ const employeeSchema = new mongoose.Schema({
         StaffType: String,
         nameType: String,
         message: String,
-    effectiveMonth: { type: String, default: '01' }, // ตรวจสอบว่ามีฟิลด์นี้แล้ว
-    effectiveYear: { type: String, default: () => new Date().getFullYear().toString() } // ตรวจสอบว่ามีฟิลด์นี้แล้ว
       },
     ],
     deductSalary: [
@@ -419,40 +417,7 @@ const employeeSchema = new mongoose.Schema({
         installment: String,
         nameType: String,
         message: String,
-       
-            effectiveMonth: { type: String, default: '01' }, // เพิ่มฟิลด์นี้
-
-    effectiveYear: { type: String, default: () => new Date().getFullYear().toString() } // เพิ่มฟิลด์นี้
       },
-    ],
-    
-    // Loan contracts management
-    loanContracts: [
-      {
-        contractCode: String,      // รหัสสัญญา
-        itemCode: String,          // รหัสรายการ (2124, 2200, etc.)
-        itemDescription: String,   // คำอธิบายรายการ (หักเงินกู้, etc.)
-        totalAmount: Number,       // จำนวนเงินกู้ทั้งหมด
-        installments: Number,      // จำนวนงวดที่ต้องชำระ
-        startMonth: String,        // เดือนที่เริ่มต้น (01-12)
-        startYear: String,         // ปีที่เริ่มต้น (2024, 2025, ...)
-        installmentDetails: [      // รายละเอียดการชำระแต่ละงวด
-          {
-            month: String,         // เดือนที่ชำระ
-            year: String,          // ปีที่ชำระ
-            amount: Number,        // จำนวนเงินที่ชำระ
-            paymentDate: String,   // วันที่ชำระ
-            installmentNumber: Number // หมายเลขงวด
-          }
-        ],
-        createdDate: String,       // วันที่สร้างสัญญา
-        updatedDate: String,       // วันที่แก้ไขล่าสุด
-        status: {                  // สถานะสัญญา
-          type: String,
-          enum: ['active', 'completed', 'cancelled'],
-          default: 'active'
-        }
-      }
     ],
   
     selectAddSalary: [],
