@@ -434,12 +434,15 @@ const employeeSchema = new mongoose.Schema({
         installments: Number,      // จำนวนงวดที่ต้องชำระ
         startMonth: String,        // เดือนที่เริ่มต้น (01-12)
         startYear: String,         // ปีที่เริ่มต้น (2024, 2025, ...)
-        installmentDetails: [{     // รายละเอียดการชำระแต่ละงวด
-          month: String,           // เดือนที่ชำระ
-          year: String,            // ปีที่ชำระ
-          amount: Number,          // จำนวนเงินที่ชำระ
-          paymentDate: String      // วันที่ชำระ
-        }],
+        installmentDetails: [      // รายละเอียดการชำระแต่ละงวด
+          {
+            month: String,         // เดือนที่ชำระ
+            year: String,          // ปีที่ชำระ
+            amount: Number,        // จำนวนเงินที่ชำระ
+            paymentDate: String,   // วันที่ชำระ
+            installmentNumber: Number // หมายเลขงวด
+          }
+        ],
         createdDate: String,       // วันที่สร้างสัญญา
         updatedDate: String,       // วันที่แก้ไขล่าสุด
         status: {                  // สถานะสัญญา

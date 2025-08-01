@@ -6242,5 +6242,97 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
   console.log(`🔍 =============================`);
 };
 
+// Add installment payment to deductSalaryList
+router.post('/addDeductSalary', async (req, res) => {
+  try {
+    const { employeeId, month, year, deductSalaryItem } = req.body;
+
+    if (!employeeId || !month || !year || !deductSalaryItem) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'employeeId, month, year และ deductSalaryItem จำเป็นต้องมี' 
+      });
+    }
+
+    console.log('🔍 Adding deduct salary item:', {
+      employeeId,
+      month,
+      year,
+      deductSalaryItem
+    });
+
+    // Find the timerecord for this employee, month, and year
+    const timeRecord = await timerecordEmployee.findOne({
+      employeeId: employeeId,
+      month: month,
+      year: year
+    });
+
+    if (!timeRecord) {
+      return res.status(404).json({ 
+        success: false, 
+        message: `ไม่พบข้อมูลการทำงานสำหรับพนักงาน ${employeeId} ในเดือน ${month}/${year}` 
+      });
+    }
+
+    // Initialize deductSalaryList if it doesn't exist
+    if (!timeRecord.deductSalaryList) {
+      timeRecord.deductSalaryList = [];
+    }
+
+    // Check if this item already exists (to prevent duplicates)
+    const existingItem = timeRecord.deductSalaryList.find(item => 
+      item.id === deductSalaryItem.id && 
+      item.effectiveMonth === deductSalaryItem.effectiveMonth &&
+      item.effectiveYear === deductSalaryItem.effectiveYear
+    );
+
+    if (existingItem) {
+      return res.status(409).json({ 
+        success: false, 
+        message: `รายการหักเงินรหัส ${deductSalaryItem.id} สำหรับเดือน ${deductSalaryItem.effectiveMonth}/${deductSalaryItem.effectiveYear} มีอยู่แล้ว` 
+      });
+    }
+
+    // Add the new deduct salary item
+    timeRecord.deductSalaryList.push({
+      id: deductSalaryItem.id,
+      name: deductSalaryItem.name,
+      amount: deductSalaryItem.amount,
+      payType: deductSalaryItem.payType || 'installment',
+      installment: deductSalaryItem.installment || '1',
+      nameType: deductSalaryItem.nameType || '',
+      message: deductSalaryItem.message || '',
+      effectiveMonth: deductSalaryItem.effectiveMonth,
+      effectiveYear: deductSalaryItem.effectiveYear,
+      source: deductSalaryItem.source || 'manual'
+    });
+
+    // Save the updated record
+    await timeRecord.save();
+
+    console.log('✅ Successfully added deduct salary item to timerecord');
+
+    return res.status(200).json({ 
+      success: true, 
+      message: 'เพิ่มรายการหักเงินสำเร็จ',
+      data: {
+        employeeId: timeRecord.employeeId,
+        month: timeRecord.month,
+        year: timeRecord.year,
+        deductSalaryListCount: timeRecord.deductSalaryList.length
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Error adding deduct salary:', error);
+    return res.status(500).json({ 
+      success: false, 
+      message: 'เกิดข้อผิดพลาดในการเพิ่มรายการหักเงิน',
+      error: error.message 
+    });
+  }
+});
+
 
 module.exports = router;
