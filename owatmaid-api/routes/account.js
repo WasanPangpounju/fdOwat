@@ -4650,6 +4650,8 @@ router.post('/searchtimerecordemployee', async (req, res) => {
 
     const records = await timerecordEmployee.find(query);
 
+    console.log(`🔍 DEBUG: Found ${records.length} records for query:`, query);
+
     if (!records.length) {
       return res.status(200).json({ result: [], message: 'No records found' });
     }
@@ -4657,8 +4659,27 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     const updatedRecords = [];
 
     for (const doc of records) {
+      console.log(`🔍 DEBUG: Processing document ${doc._id}`);
+      console.log(`🔍 DEBUG: employeeId: ${doc.employeeId}`);
+      console.log(`🔍 DEBUG: month: ${doc.month}`);
+      console.log(`🔍 DEBUG: year: ${doc.year}`);
+      console.log(`🔍 DEBUG: employee_record exists: ${!!doc.employee_record}`);
+      console.log(`🔍 DEBUG: employee_record is array: ${Array.isArray(doc.employee_record)}`);
+      console.log(`🔍 DEBUG: employee_record length: ${doc.employee_record?.length || 0}`);
+      
       if (!doc || !Array.isArray(doc.employee_record) || doc.employee_record.length === 0) {
-        console.warn(`Skipping invalid or empty document: ${doc._id}`);
+        console.warn(`❌ Skipping invalid or empty document: ${doc._id} - employee_record is empty or invalid`);
+        // Instead of continuing, let's return a debug object to help identify the issue
+        updatedRecords.push({
+          _id: doc._id,
+          employeeId: doc.employeeId,
+          month: doc.month,
+          year: doc.year,
+          debug_status: 'employee_record_empty',
+          employee_record_length: doc.employee_record?.length || 0,
+          employee_record_type: typeof doc.employee_record,
+          has_employee_record: !!doc.employee_record
+        });
         continue;
       }
 
