@@ -537,7 +537,7 @@ function AddEditSalaryEmployee() {
     };
 
     return (
-        <body class="hold-transition sidebar-mini" className='editlaout'>
+        <div class="hold-transition sidebar-mini" className='editlaout'>
             <div class="wrapper">
                 <div class="content-wrapper">
                     {/* <!-- Content Header (Page header) --> */}
@@ -1222,7 +1222,7 @@ function AddEditSalaryEmployee() {
 
             </div>
             {/* {JSON.stringify(rowDataList2, null, 2)} */}
-        </body>
+        </div>
 
     )
 }
