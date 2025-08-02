@@ -1178,29 +1178,52 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
   try {
     const { 
       month,
-     year} = req.body;
+      year,
+      workplaceId
+    } = req.body;
 
-    // Construct the search query based on the provided parameters
-    const query = {};
+    // ใช้ aggregation pipeline สำหรับการค้นหาที่ซับซ้อน
+    const pipeline = [];
 
-
+    // Match stage
+    const matchConditions = {};
     if (month !== '') {
-      //query.month = new Date(date);
-      query.month = { $regex: new RegExp(month , 'i') };
+      matchConditions.month = { $regex: new RegExp(month, 'i') };
+    }
+    if (year !== '') {
+      matchConditions.year = { $regex: new RegExp(year, 'i') };
+    }
+    
+    pipeline.push({ $match: matchConditions });
+
+    // ถ้ามี workplaceId ให้กรองเฉพาะ employee_record ที่ตรงกับ workplaceId
+    if (workplaceId !== '') {
+      pipeline.push({
+        $addFields: {
+          employee_record: {
+            $filter: {
+              input: "$employee_record",
+              cond: { $eq: ["$$this.workplaceId", workplaceId] }
+            }
+          }
+        }
+      });
+      
+      // กรองออกเฉพาะ documents ที่มี employee_record หลังจาก filter แล้ว
+      pipeline.push({
+        $match: {
+          "employee_record": { $ne: [] }
+        }
+      });
     }
 
-    if (year!== '') {
-      query.year = { $regex: new RegExp(year , 'i') };
+    if (month == '' && year == '' && workplaceId == '') {
+      return res.status(200).json({ result: [] });
     }
 
-    if ( month == '' && year== '') {
-      res.status(200).json({});
-    }
+    const result = await timerecordEmployee.aggregate(pipeline);
 
-    // Query the workplace collection for matching documents
-    const result = await timerecordEmployee.find(query);
-
-    await res.status(200).json({ result});
+    res.status(200).json({ result });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Internal server error' });
