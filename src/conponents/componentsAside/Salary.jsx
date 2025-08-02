@@ -1738,15 +1738,38 @@ function Salary() {
                                           type="text"
                                           name="SpSalary"
                                           className="form-control"
-                                          value={data.SpSalary}
-                                          onChange={(e) =>
+                                          value={data.SpSalary || ''}
+                                          onChange={(e) => {
+                                            // Allow only numbers
+                                            const numericValue = e.target.value.replace(/[^0-9]/g, '');
+                                            
+                                            // Create a shallow copy of the data object
+                                            const updatedData = { ...data };
+                                            // Update the SpSalary in the copy
+                                            updatedData.SpSalary = numericValue;
+                                            
+                                            // Create a shallow copy of the addSalaryWorkplace array
+                                            const updatedSalaryWorkplace = [...addSalaryWorkplace];
+                                            // Update the object at the specified index
+                                            updatedSalaryWorkplace[index] = updatedData;
+                                            
+                                            // Update the state with the new array
+                                            setAddSalaryWorkplace(updatedSalaryWorkplace);
+                                            
+                                            // Also call the original handler for any other processing
+                                            const newEvent = {
+                                              ...e,
+                                              target: {
+                                                ...e.target,
+                                                value: numericValue
+                                              }
+                                            };
                                             handleChangeSpSalary(
-                                              e,
+                                              newEvent,
                                               index,
                                               "SpSalary"
-                                            )
-                                          }
-                                          readOnly
+                                            );
+                                          }}
                                         />
                                       </div>
                                       <div className="col-md-3">
