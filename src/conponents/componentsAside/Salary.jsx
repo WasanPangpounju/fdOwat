@@ -415,12 +415,17 @@ function Salary() {
       ["workplace"]: event.target.value,
     }));
     // alert(event.target.value);
-
+    
+    // Extract base ID without parentheses for comparison
+    const inputValue = event.target.value;
+    const baseId = inputValue.split('(')[0]; // Extract the part before any parentheses
+    
     const filtered = workplaceSelection.filter(
       (wp) =>
-        event.target.value === "" ||
-        wp.workplaceId === event.target.value ||
-        wp.workplaceName === event.target.value
+        inputValue === "" ||
+        wp.workplaceId === inputValue ||
+        wp.workplaceId === baseId ||
+        wp.workplaceName === inputValue
     );
     // alert(JSON.stringify(filtered , null, 2) );
     // alert(filtered[0].workplaceArea );
