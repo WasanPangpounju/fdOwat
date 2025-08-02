@@ -5350,20 +5350,20 @@ const generateExcel = async () => {
                     </button>
                     </div>
                     <div class="col-md-3">
-                      <button onClick={generateExcel} class="btn b_save">
+                      {/* <button onClick={generateExcel} class="btn b_save">
                         {selectedOption === "option1"
                           ? "ออกสลิปออดิท (XLSX)"
                           : selectedOption === "option2"
                             ? "ออกสลิปออดิท (XLSX)"
                             : ""}
-                      </button>
-                      <button onClick={generateExcelWithExcelJS} class="btn b_save" style={{backgroundColor: "#3b82f6", marginLeft: "10px"}}>
+                      </button> */}
+                      {/* <button onClick={generateExcelWithExcelJS} class="btn b_save" style={{backgroundColor: "#3b82f6", marginLeft: "10px"}}>
                         {selectedOption === "option1"
                           ? "ออกสลิปออดิท (ExcelJS)"
                           : selectedOption === "option2"
                             ? "ออกสลิปออดิท (ExcelJS)"
                             : ""}
-                      </button> 
+                      </button>  */}
                     </div>
                   </div>
 
