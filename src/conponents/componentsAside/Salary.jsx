@@ -452,7 +452,7 @@ function Salary() {
             nameType: item.nameType || "",
           })),
         };
-
+//เปิดการวงเล็บ
         setFormData(initialFormData);
       }
     } else {
