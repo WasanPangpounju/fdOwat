@@ -1740,13 +1740,21 @@ function Salary() {
                                           className="form-control"
                                           value={data.SpSalary || ''}
                                           onChange={(e) => {
-                                            // Allow only numbers
-                                            const numericValue = e.target.value.replace(/[^0-9]/g, '');
+                                            // Allow numbers and decimal point
+                                            const numericValue = e.target.value.replace(/[^0-9.]/g, '');
+                                            
+                                            // Make sure there's only one decimal point
+                                            let validValue = numericValue;
+                                            if ((numericValue.match(/\./g) || []).length > 1) {
+                                              // If there are multiple dots, keep only the first one
+                                              const parts = numericValue.split('.');
+                                              validValue = parts[0] + '.' + parts.slice(1).join('');
+                                            }
                                             
                                             // Create a shallow copy of the data object
                                             const updatedData = { ...data };
                                             // Update the SpSalary in the copy
-                                            updatedData.SpSalary = numericValue;
+                                            updatedData.SpSalary = validValue;
                                             
                                             // Create a shallow copy of the addSalaryWorkplace array
                                             const updatedSalaryWorkplace = [...addSalaryWorkplace];
@@ -1761,7 +1769,7 @@ function Salary() {
                                               ...e,
                                               target: {
                                                 ...e.target,
-                                                value: numericValue
+                                                value: validValue
                                               }
                                             };
                                             handleChangeSpSalary(
