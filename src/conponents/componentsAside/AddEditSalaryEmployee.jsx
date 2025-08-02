@@ -20,11 +20,6 @@ function AddEditSalaryEmployee() {
     const [searchEmployeeId, setSearchEmployeeId] = useState('');
     const [searchEmployeeName, setSearchEmployeeName] = useState('');
     const [month, setMonth] = useState('');
-    
-    // State สำหรับเลือกเดือนและปี
-    const [selectedMonth, setSelectedMonth] = useState('');
-    const [selectedYear, setSelectedYear] = useState('');
-    const [isPeriodSelected, setIsPeriodSelected] = useState(false);
 
 
     const [searchAddSalaryList, setSearchAddSalaryList] = useState([]);
@@ -85,31 +80,31 @@ function AddEditSalaryEmployee() {
     const [workplaceList, setWorkplaceList] = useState([]);
     const [currentDate, setCurrentDate] = useState('');
 
-    useEffect(() => {
-        // Fetch data from the API when the component mounts
-        fetch(endpoint + '/workplace/list')
-            .then(response => response.json())
-            .then(data => {
-                // Update the state with the fetched data
-                setWorkplaceList(data);
-                // alert(data[0].workplaceName);
-            })
-            .catch(error => {
-                console.error('Error fetching data:', error);
-            });
+    // useEffect(() => {
+    //     // Fetch data from the API when the component mounts
+    //     fetch(endpoint + '/workplace/list')
+    //         .then(response => response.json())
+    //         .then(data => {
+    //             // Update the state with the fetched data
+    //             setWorkplaceList(data);
+    //             // alert(data[0].workplaceName);
+    //         })
+    //         .catch(error => {
+    //             console.error('Error fetching data:', error);
+    //         });
 
-        const currentDate = new Date();
-        const day = currentDate.getDate();
-        const month = currentDate.getMonth() + 1; // Months are zero-based
-        const year = currentDate.getFullYear();
+    //     const currentDate = new Date();
+    //     const day = currentDate.getDate();
+    //     const month = currentDate.getMonth() + 1; // Months are zero-based
+    //     const year = currentDate.getFullYear();
 
-        // Formatting the date to dd/mm/yyyy format
-        const formattedDate = `${day < 10 ? '0' : ''}${day}/${month < 10 ? '0' : ''}${month}/${year}`;
+    //     // Formatting the date to dd/mm/yyyy format
+    //     const formattedDate = `${day < 10 ? '0' : ''}${day}/${month < 10 ? '0' : ''}${month}/${year}`;
 
-        setCurrentDate(formattedDate);
-    }, []); // The empty array [] ensures that the effect runs only once after the initial render
+    //     setCurrentDate(formattedDate);
+    // }, []); // The empty array [] ensures that the effect runs only once after the initial render
 
-    console.log(workplaceList);
+    // console.log(workplaceList);
 
 
 
@@ -178,54 +173,6 @@ function AddEditSalaryEmployee() {
             setAddSalaryName(foundObject.name); // Set only the name property
         }
     }, [addSalaryId, searchAddSalaryList]);
-
-    // ฟังก์ชันสำหรับโหลดข้อมูลเงินเพิ่มรายเดือน
-    const loadMonthlyAddSalary = async () => {
-        if (!employeeId || !selectedMonth || !selectedYear) {
-            return;
-        }
-
-        console.log('Loading data for:', { employeeId, selectedMonth, selectedYear });
-
-        try {
-            const response = await axios.post(endpoint + '/accounting/monthlyAddSalary/get', {
-                employeeId: employeeId,
-                month: selectedMonth,
-                year: selectedYear
-            });
-
-            console.log('API Response:', response.data);
-
-            if (response.data && response.data.success) {
-                // แยกข้อมูล addSalary และ deductSalary จาก API
-                const apiAddSalary = response.data.data.addSalaryList || [];
-                const apiDeductSalary = response.data.data.deductSalaryList || [];
-                
-                console.log('Setting data:', { apiAddSalary, apiDeductSalary });
-                console.log('API AddSalary length:', apiAddSalary.length);
-                console.log('API DeductSalary length:', apiDeductSalary.length);
-                
-                setSearchAddSalaryList(apiAddSalary);
-                setSearchDeductSalaryList(apiDeductSalary);
-            } else {
-                // ถ้าไม่มีข้อมูลสำหรับเดือน/ปีนี้ ให้เคลียร์ข้อมูล
-                console.log('No data found, clearing lists');
-                setSearchAddSalaryList([]);
-                setSearchDeductSalaryList([]);
-            }
-        } catch (error) {
-            console.error('Error loading monthly salary data:', error);
-            setSearchAddSalaryList([]);
-            setSearchDeductSalaryList([]);
-        }
-    };
-    
-    useEffect(() => {
-        console.log('useEffect triggered:', { isPeriodSelected, selectedMonth, selectedYear, employeeId });
-        if (isPeriodSelected && selectedMonth && selectedYear && employeeId) {
-            loadMonthlyAddSalary();
-        }
-    }, [selectedMonth, selectedYear, isPeriodSelected, employeeId]);
 
     useEffect(() => {
         const findObjectById = (id) => {
@@ -350,45 +297,6 @@ function AddEditSalaryEmployee() {
             // window.location.reload();
         }
     }
-
- // ฟังก์ชันสำหรับยืนยันการเลือกเดือนและปี
-async function handleSelectPeriod() {
-    if (!selectedMonth || !selectedYear) {
-        alert('กรุณาเลือกเดือนและปี');
-        return;
-    }
-    
-    // เคลียร์ข้อมูลเก่าก่อน
-    setSearchAddSalaryList([]);
-    setSearchDeductSalaryList([]);
-    setRowDataList2([initialRowData2]);
-    setRowDataList([initialRowData]);
-    
-    setIsPeriodSelected(true);
-    
-    // โหลดสวัสดิการรายเดือน
-    await loadMonthlyAddSalary();
-    
-    const monthNames = {
-        '01': 'มกราคม',
-        '02': 'กุมภาพันธ์',
-        '03': 'มีนาคม',
-        '04': 'เมษายน',
-        '05': 'พฤษภาคม',
-        '06': 'มิถุนายน',
-        '07': 'กรกฎาคม',
-        '08': 'สิงหาคม',
-        '09': 'กันยายน',
-        '10': 'ตุลาคม',
-        '11': 'พฤศจิกายน',
-        '12': 'ธันวาคม'
-    };
-    
-    const selectedMonthName = monthNames[selectedMonth];
-    const buddhistYear = parseInt(selectedYear) + 543;
-    
-    alert(`เลือกเดือน ${selectedMonthName} ปี ${buddhistYear} เรียบร้อยแล้ว`);
-}
 
 
 
@@ -562,56 +470,56 @@ async function handleSelectPeriod() {
         // Update the state with the new data
         setRowDataList(newDataList);
     };
-    
 
 
     async function handleCreateAddSalary(event) {
-    event.preventDefault();
-    
-    // ตรวจสอบว่าเลือกเดือนแล้ว
-    if (!isPeriodSelected || !selectedMonth || !selectedYear) {
-        alert('กรุณาเลือกเดือนและปีก่อนบันทึก');
-        return;
-    }
-    
-    try {
-        // กรองข้อมูลที่มีข้อมูลจริงเท่านั้น
-        const filteredAddSalary = rowDataList2.filter(item => item.name && item.name.trim() !== '');
-        const filteredDeductSalary = rowDataList.filter(item => item.name && item.name.trim() !== '');
+        event.preventDefault();
+        // alert(dataResult._id);
+        // alert(dataResult.addSalary);
+        // alert(rowDataList2);
+        dataResult.addSalary = await rowDataList2;
+        dataResult.deductSalary = await rowDataList;
 
-        // บันทึกสวัสดิการรายเดือน
-        const monthlyData = {
-            employeeId: employeeId,
-            month: selectedMonth,
-            year: selectedYear,
-            addSalaryList: filteredAddSalary,
-            deductSalaryList: filteredDeductSalary
-        };
-        
-        console.log('Saving data:', monthlyData);
-        
-        const monthlyResponse = await axios.post(
-            endpoint + '/accounting/monthlyAddSalary/save', 
-            monthlyData
-        );
-        
-        console.log('Save response:', monthlyResponse.data);
-        
-        if (monthlyResponse.data.success) {
-            alert(`บันทึกสวัสดิการสำหรับเดือน ${selectedMonth}/${selectedYear} สำเร็จ`);
-            
-            // รีเฟรชข้อมูลหลังบันทึก
-            await loadMonthlyAddSalary();
-            
-            // เคลียร์ข้อมูลใน form หลังบันทึกสำเร็จ
-            setRowDataList2([initialRowData2]);
-            setRowDataList([initialRowData]);
+        try {
+            const response = await axios.put(endpoint + '/employee/update/' + dataResult._id, dataResult);
+            // setEmployeesResult(response.data.employees);
+            if (response) {
+                alert("บันทึกสำเร็จ");
+                // localStorage.setItem('selectedEmployees' , JSON.stringify(response.data.employees));
+
+                // window.location.reload();
+
+            }
+        } catch (error) {
+            alert('กรุณาตรวจสอบข้อมูลในช่องกรอกข้อมูล');
+            alert(error);
+            // window.location.reload();
         }
-    } catch (error) {
-        alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
-        console.error(error);
+
+        // //get data from input in useState to data 
+        // const data = {
+        //     employeeId: employeeId,
+        //     employeeName: name,
+        //     onUpdate: currentDate || '',
+        //     addSalary: rowDataList2,
+        //     minusSalary: rowDataList,
+        // };
+
+
+        // try {
+        // const response = await axios.post(endpoint + '/addsalary/create', data);
+        // setEmployeesResult(response.data.employees);
+        // if (response) {
+        // alert("บันทึกสำเร็จ");
+        // window.location.reload();
+
+        // }
+        // } catch (error) {
+        // alert('กรุณาตรวจสอบข้อมูลในช่องกรอกข้อมูล');
+        // window.location.reload();
+        // }
+
     }
-}
     console.log("rowDataList2", rowDataList2);
 
     console.log("rowDataList", rowDataList);
@@ -700,72 +608,10 @@ async function handleSelectPeriod() {
                                                                         ))}
                                                                     </ul>
                                                                 </div>
-                                                                <div class="row">
-                                                                    <h6>โปรดเลือกเดือน</h6>
-                                                                    <div className="row">
-                                                                        <div className="col-md-6">
-                                                                            <div className="form-group">
-                                                                                <label>เดือน</label>
-                                                                                <select 
-                                                                                    className="form-control" 
-                                                                                    name="selectedMonth"
-                                                                                    value={selectedMonth || ''}
-                                                                                    onChange={(e) => setSelectedMonth(e.target.value)}
-                                                                                >
-                                                                                    <option value="">เลือกเดือน</option>
-                                                                                    <option value="01">มกราคม</option>
-                                                                                    <option value="02">กุมภาพันธ์</option>
-                                                                                    <option value="03">มีนาคม</option>
-                                                                                    <option value="04">เมษายน</option>
-                                                                                    <option value="05">พฤษภาคม</option>
-                                                                                    <option value="06">มิถุนายน</option>
-                                                                                    <option value="07">กรกฎาคม</option>
-                                                                                    <option value="08">สิงหาคม</option>
-                                                                                    <option value="09">กันยายน</option>
-                                                                                    <option value="10">ตุลาคม</option>
-                                                                                    <option value="11">พฤศจิกายน</option>
-                                                                                    <option value="12">ธันวาคม</option>
-                                                                                </select>
-                                                                            </div>
-                                                                        </div>
-                                                                        <div className="col-md-6">
-                                                                            <div className="form-group">
-                                                                                <label>ปี</label>
-                                                                                <select 
-                                                                                    className="form-control" 
-                                                                                    name="selectedYear"
-                                                                                    value={selectedYear || ''}
-                                                                                    onChange={(e) => setSelectedYear(e.target.value)}
-                                                                                >
-                                                                                    <option value="">เลือกปี</option>
-                                                                                    <option value="2024">2567 (2024)</option>
-                                                                                    <option value="2025">2568 (2025)</option>
-                                                                                    <option value="2026">2569 (2026)</option>
-                                                                                    <option value="2027">2570 (2027)</option>
-                                                                                </select>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div className="row">
-                                                                        <div className="col-md-12">
-                                                                            <div className="d-flex justify-content-center">
-                                                                                <button 
-                                                                                    type="button"
-                                                                                    className="btn btn-success"
-                                                                                    onClick={handleSelectPeriod}
-                                                                                    disabled={!selectedMonth || !selectedYear}
-                                                                                >
-                                                                                    <i className="fas fa-check"></i> &nbsp; ยืนยันการเลือกเดือน
-                                                                                </button>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </div>
-                                                                        
                                             </section>
                                             {/* <!--Frame--> */}
                                         </div>
@@ -802,16 +648,6 @@ async function handleSelectPeriod() {
 
                                             </div>
                                         </div>
-                                        <di class="row">
-                                            <h3>การผ่อนชำระ</h3>
-                                            <section className="Frame">
-                                               <div>
-                                                    <div className='d-flex justify-content-end'>
-                                                        <button className='btn btn-primary'>เพิ่มรายการเงินกู้</button>
-                                                    </div>
-                                               </div>
-                                            </section>
-                                        </di>
                                         <div class="row">
                                             <div class="col-md-12">
                                                 <h3>เงินเพิ่ม</h3>
@@ -1070,50 +906,12 @@ async function handleSelectPeriod() {
                                                         <div class="row">
                                                             <div class="col-md-12">
 
-                                                                {/* แสดงรายการจาก API (เดือน/ปีที่เลือก) */}
-                                                                {isPeriodSelected && searchAddSalaryList.map((item, index) => (
-                                                                    <div key={`api-add-${index}`}>
-                                                                        <div class="row" style={{ marginBottom: '1rem', borderBottom: '2px solid #dc3545', backgroundColor: '#fff5f5' }}>
-                                                                            <div class="col-md-1" style={bordertable}> {item.id}</div>
-                                                                            <div class="col-md-2" style={bordertable}> 
-                                                                                {item.name} 
-                                                                                <span style={{color: '#dc3545', fontSize: '12px'}}> (มีอยู่แล้ว)</span>
-                                                                            </div>
-                                                                            <div class="col-md-1" style={bordertable}> {item.SpSalary} </div>
-
-                                                                            {item.roundOfSalary == "daily" && (
-                                                                                <div class="col-md-2" style={bordertable}>รายวัน</div>
-                                                                            )}
-                                                                            {item.roundOfSalary == "monthly" && (
-                                                                                <div class="col-md-2" style={bordertable}>รายเดือน</div>
-                                                                            )}
-
-                                                                            {item.StaffType == "header" && (
-                                                                                <div class="col-md-2" style={bordertable}>หัวหน้างาน</div>
-                                                                            )}
-
-                                                                            {item.StaffType == "all" && (
-                                                                                <div class="col-md-2" style={bordertable}>พนักงาน</div>
-                                                                            )}
-
-                                                                            <div class="col-md-2" style={bordertable}> {item.message} </div>
-                                                                            <div class="col-md-1" style={bordertable}>
-                                                                                <span style={{color: '#dc3545', fontSize: '12px'}}>จาก API</span>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                ))}
-
-                                                                {/* แสดงรายการที่เพิ่มใหม่ */}
                                                                 {rowDataList2.map((item, index) => (
                                                                     item.name && (
-                                                                        <div key={`new-add-${index}`}>
+                                                                        <div key={index}>
                                                                             <div class="row" style={{ marginBottom: '1rem', borderBottom: '2px solid #000' }}>
                                                                                 <div class="col-md-1" style={bordertable}> {item.id}</div>
-                                                                                <div class="col-md-2" style={bordertable}> 
-                                                                                    {item.name}
-                                                                                    {isPeriodSelected && <span style={{color: '#28a745', fontSize: '12px'}}> (ใหม่)</span>}
-                                                                                </div>
+                                                                                <div class="col-md-2" style={bordertable}> {item.name} </div>
                                                                                 <div class="col-md-1" style={bordertable}> {item.SpSalary} </div>
 
                                                                                 {item.roundOfSalary == "daily" && (
@@ -1174,12 +972,16 @@ async function handleSelectPeriod() {
                                                                 <label role="">การหักเงิน</label>
                                                             </div>
                                                         </div>
-                                                        <div class="col-md-2">
+                                                        {/* <div class="col-md-2">
                                                             <div class="form-group">
                                                                 <label role="">จำนวนงวด</label>
                                                             </div>
+                                                        </div> */}
+                                                        <div class="col-md-3">
+                                                            <div class="form-group">
+                                                                <label role="message">หมายเหตุ</label>
+                                                            </div>
                                                         </div>
-                                                        
                                                     </div>
 
                                                     <div class="row">
@@ -1232,7 +1034,7 @@ async function handleSelectPeriod() {
                                                                 <option value="installment">ผ่อนจ่าย</option>
                                                             </select>
                                                         </div>
-                                                        <div className="col-md-2">
+                                                        {/* <div className="col-md-2">
 
                                                             {payType == "installment" ? (
                                                                 <select
@@ -1259,7 +1061,7 @@ async function handleSelectPeriod() {
                                                                 </select>
                                                             )}
 
-                                                        </div>
+                                                        </div> */}
 
                                                         <div class="col-md-2">
                                                             <input type="text" class="form-control" id="minusStaffType" placeholder="หมายเหตุ" value={minusStaffType} onChange={(e) => setMinusStaffType(e.target.value)} />
@@ -1323,11 +1125,11 @@ async function handleSelectPeriod() {
                                                                             <label role="">การหักเงิน</label>
                                                                         </div>
                                                                     </div>
-                                                                    <div class="col-md-2">
+                                                                    {/* <div class="col-md-2">
                                                                         <div class="form-group">
                                                                             <label role="">จำนวนงวด</label>
                                                                         </div>
-                                                                    </div>
+                                                                    </div> */}
                                                                     <div class="col-md-3">
                                                                         <div class="form-group">
                                                                             <label role="message">หมายเหตุ</label>
@@ -1340,47 +1142,19 @@ async function handleSelectPeriod() {
                                                         <div class="row">
                                                             <div class="col-md-12">
 
-                                                                {/* แสดงรายการจาก API (เดือน/ปีที่เลือก) */}
-                                                                {isPeriodSelected && searchDeductSalaryList.map((item, index) => (
-                                                                    <div key={`api-deduct-${index}`}>
-                                                                        <div class="row" style={{ marginBottom: '1rem', borderBottom: '2px solid #dc3545', backgroundColor: '#fff5f5' }}>
-                                                                            <div class="col-md-1" style={bordertable}> {item.id}</div>
-                                                                            <div class="col-md-2" style={bordertable}> 
-                                                                                {item.name} 
-                                                                                <span style={{color: '#dc3545', fontSize: '12px'}}> (มีอยู่แล้ว)</span>
-                                                                            </div>
-                                                                            <div class="col-md-2" style={bordertable}> {item.amount} </div>
-                                                                            {item.payType == "immedate" && (
-                                                                                <div class="col-md-2" style={bordertable}>จ่ายทั้งหมด</div>
-                                                                            )}
-                                                                            {item.payType == "installment" && (
-                                                                                <div class="col-md-2" style={bordertable}>ผ่อนจ่าย</div>
-                                                                            )}
-                                                                            <div class="col-md-2" style={bordertable}> {item.installment} งวด</div>
-                                                                            <div class="col-md-2" style={bordertable}> {item.message} </div>
-                                                                            <div class="col-md-1" style={bordertable}>
-                                                                                <span style={{color: '#dc3545', fontSize: '12px'}}>จาก API</span>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                ))}
 
-                                                                {/* แสดงรายการที่เพิ่มใหม่ */}
                                                                 {rowDataList.map((item, index) => (
                                                                     item.name && (
-                                                                        <div key={`new-deduct-${index}`}>
+                                                                        <div key={index}>
                                                                             <div class="row" style={{ marginBottom: '1rem', borderBottom: '2px solid #000' }}>
-                                                                                <div class="col-md-1" style={bordertable}> {item.id}</div>
-                                                                                <div class="col-md-2" style={bordertable}> 
-                                                                                    {item.name}
-                                                                                    {isPeriodSelected && <span style={{color: '#28a745', fontSize: '12px'}}> (ใหม่)</span>}
-                                                                                </div>
+                                                                                {/* <div class="col-md-1" style={bordertable}> {item.id}</div>
+                                                                                <div class="col-md-2" style={bordertable}> {item.name} </div>
                                                                                 <div class="col-md-2" style={bordertable}> {item.SpSalary} </div>
 
                                                                                 <div class="col-md-2" style={bordertable}> {item.SpSalary} </div>
                                                                                 <div class="col-md-2" style={bordertable}> {item.SpSalary} </div>
 
-                                                                                <div class="col-md-2" style={bordertable}> {item.message} </div>
+                                                                                <div class="col-md-2" style={bordertable}> {item.message} </div> */}
 
                                                                                 <div class="col-md-1" style={bordertable}> {item.id}</div>
                                                                                 <div class="col-md-2" style={bordertable}> {item.name} </div>
@@ -1448,7 +1222,7 @@ async function handleSelectPeriod() {
 
             </div>
             {/* {JSON.stringify(rowDataList2, null, 2)} */}
-        </body> 
+        </body>
 
     )
 }

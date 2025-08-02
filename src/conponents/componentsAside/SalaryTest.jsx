@@ -319,6 +319,31 @@ function Salary() {
   const [addSalary, setAddSalary] = useState([]);
   const [addSalaryWorkplace, setAddSalaryWorkplace] = useState([]);
   const [addSalaryWorkplace1, setAddSalaryWorkplace1] = useState([]);
+  const [selectedMonth, setSelectedMonth] = useState("");
+  const [selectedYear, setSelectedYear] = useState("");
+  const [benefitHistory, setBenefitHistory] = useState([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  
+  // เพิ่มรายการเดือน
+  const monthOptions = [
+    { value: "01", label: "มกราคม" },
+    { value: "02", label: "กุมภาพันธ์" },
+    { value: "03", label: "มีนาคม" },
+    { value: "04", label: "เมษายน" },
+    { value: "05", label: "พฤษภาคม" },
+    { value: "06", label: "มิถุนายน" },
+    { value: "07", label: "กรกฎาคม" },
+    { value: "08", label: "สิงหาคม" },
+    { value: "09", label: "กันยายน" },
+    { value: "10", label: "ตุลาคม" },
+    { value: "11", label: "พฤศจิกายน" },
+    { value: "12", label: "ธันวาคม" },
+  ];
+
+  // เพิ่มรายการปี
+  const yearOptions = Array.from({ length: 5 }, (_, i) => 
+    (new Date().getFullYear() + 543 - 2 + i).toString()
+  );
 
   // const handleAddToSalary = async (data) => {
   //   data.id = (await data.codeSpSalary) || "";
@@ -326,25 +351,117 @@ function Salary() {
   //   // setAddSalaryWorkplace(prev => prev.filter(item => item.id !== data.id));
   // };
 
+  // ฟังก์ชันสำหรับดึงประวัติการเพิ่มสวัสดิการ
+  const fetchBenefitHistory = async (employeeId) => {
+    if (!employeeId) {
+      alert("กรุณาเลือกพนักงานก่อน");
+      return;
+    }
+    
+    setIsLoadingHistory(true);
+    try {
+      // ส่ง API request เพื่อดึงประวัติการเพิ่มสวัสดิการ
+      const response = await axios.post(endpoint + "/conclude/getemployeealltimerecord", { 
+        employeeId: employeeId 
+      });
+      
+      console.log("ข้อมูลประวัติสวัสดิการ:", response.data);
+      
+      // รวมข้อมูลสวัสดิการจากทุกเดือน
+      const allBenefits = [];
+      
+      if (response.data?.result && response.data.result.length > 0) {
+        response.data.result.forEach(record => {
+          if (record.addSalaryList && record.addSalaryList.length > 0) {
+            record.addSalaryList.forEach(benefit => {
+              allBenefits.push({
+                month: record.month,
+                year: record.year,
+                name: benefit.name,
+                SpSalary: benefit.SpSalary,
+                id: benefit.id,
+                message: benefit.message
+              });
+            });
+          }
+        });
+      }
+      
+      setBenefitHistory(allBenefits);
+      
+      // ตรวจสอบและอัปเดต UI สำหรับสวัสดิการที่เพิ่มไปแล้ว
+      // จะทำให้ปุ่ม "ให้สวัสดิการ" เปลี่ยนเป็นปุ่ม "เพิ่มไปแล้ว" โดยอัตโนมัติ
+      setAddSalaryWorkplace(prevWorkplaces => {
+        return prevWorkplaces.map(workplace => {
+          return {
+            ...workplace,
+            // UI จะอัปเดตอัตโนมัติเนื่องจากเราใช้ isBenefitInHistory ในการเรนเดอร์ปุ่ม
+          };
+        });
+      });
+      
+    } catch (error) {
+      console.error("เกิดข้อผิดพลาดในการดึงประวัติสวัสดิการ:", error);
+      alert("ไม่สามารถดึงข้อมูลประวัติสวัสดิการได้");
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
   const handleAddToSalary = async (data) => {
-    // Check if `codeSpSalary` already exists in the array
-    const isDuplicate = addSalary.some(
+    // ตรวจสอบว่าได้เลือกเดือนและปีหรือไม่
+    if (!selectedMonth || !selectedYear) {
+      alert("กรุณาเลือกเดือนและปีก่อนเพิ่มสวัสดิการ");
+      return;
+    }
+    
+    // Check if `codeSpSalary` already exists in the current list
+    const isDuplicateInAddSalary = addSalary.some(
       (item) => item.codeSpSalary === data.codeSpSalary
     );
 
-    if (isDuplicate) {
+    if (isDuplicateInAddSalary) {
       alert("ให้สวัสดิการแล้ว");
       return; // Exit the function without adding to the array
     }
 
-    // Add the new item to the array
-    const newData = { ...data, id: data.codeSpSalary || "" };
+    // Check if the benefit already exists in the benefit history for the selected month/year
+    const isDuplicateInHistory = benefitHistory.some(
+      (item) => 
+        item.id === data.codeSpSalary && 
+        item.month === selectedMonth && 
+        item.year === selectedYear
+    );
+
+    if (isDuplicateInHistory) {
+      alert("สวัสดิการนี้ได้ถูกให้ไปแล้วสำหรับเดือน/ปีนี้");
+      return;
+    }
+
+    // Add the new item to the array with month and year
+    const newData = { 
+      ...data, 
+      id: data.codeSpSalary || "",
+      month: selectedMonth,
+      year: selectedYear,
+      message: "1" // Default message count
+    };
     setAddSalary((prev) => [...prev, newData]);
   };
 
 
   const handleRemoveFromSalary = (item) => {
     setAddSalary((prev) => prev.filter((i) => i !== item));
+  };
+  
+  // Function to check if a benefit is already in history for the selected month/year
+  const isBenefitInHistory = (codeSpSalary) => {
+    return benefitHistory.some(
+      (item) => 
+        item.id === codeSpSalary && 
+        item.month === selectedMonth && 
+        item.year === selectedYear
+    );
   };
 
   const handleAddSalary = async (data) => {
@@ -633,27 +750,171 @@ function Salary() {
   }
 
   async function updateEmployee(_id) {
-    // alert('hi');
-    // Make the API call to update the resource by ID
+    // ตรวจสอบว่ามีรายการเงินเพิ่มหรือไม่
+    if (addSalary.length === 0) {
+      alert("กรุณาเพิ่มรายการสวัสดิการก่อนบันทึก");
+      return;
+    }
+    
+    // ตรวจสอบว่าเลือก employeeId แล้วหรือไม่
+    if (!employeeData.employeeId) {
+      alert("กรุณาเลือกพนักงานก่อนบันทึก");
+      return;
+    }
+    
+    // ตรวจสอบว่าได้เลือกเดือนและปีหรือไม่
+    if (!selectedMonth || !selectedYear) {
+      alert("กรุณาเลือกเดือนและปีก่อนบันทึก");
+      return;
+    }
+    
     try {
-      // alert(JSON.stringify(addSalary))
-      employeeData.addSalary = await addSalary;
-      const response = await axios.put(
-        endpoint + "/employee/update/" + employeeData._id,
-        employeeData
-      );
-      // setEmployeesResult(response.data.employees);
-      if (response) {
-        alert("บันทึกสำเร็จ");
-        // localStorage.setItem('selectedEmployees' , JSON.stringify(response.data.employees));
-        updateEmployeeLocal(response.data);
-
-        // window.location.reload();
+      // สร้าง payload สำหรับส่งไป API
+      // ตรวจสอบว่าเดือนเป็นรูปแบบ 2 หลักหรือไม่ (01-12)
+      const formattedMonth = selectedMonth.length === 1 ? `0${selectedMonth}` : selectedMonth;
+      
+      // แปลงปี พ.ศ. เป็น ค.ศ.
+      const christianYear = String(parseInt(selectedYear) - 543);
+      
+      const payload = {
+        employeeId: employeeData.employeeId,
+        month: formattedMonth,
+        year: christianYear
+      };
+      
+      // ดึงข้อมูลเดิมก่อน
+      console.log("กำลังส่งข้อมูลไป API:", payload);
+      const response = await axios.post(endpoint + "/conclude/searchtimerecordemployee", payload);
+      console.log("ได้รับข้อมูลจาก API:", response.data);
+      
+      // ตรวจสอบว่ามีข้อมูลหรือไม่
+      if (response.data?.result && response.data.result.length > 0) {
+        // อัพเดทข้อมูลเดิม
+        const recordData = response.data.result[0];
+        
+        // เพิ่มหรืออัพเดทรายการเงินเพิ่ม
+        let updatedAddSalaryList = [...(recordData.addSalaryList || [])];
+        
+        // เพิ่มรายการใหม่เข้าไป
+        addSalary.forEach(item => {
+          // ตรวจสอบว่ามีรายการนี้อยู่แล้วหรือไม่
+          const existingIndex = updatedAddSalaryList.findIndex(
+            existing => existing.id === item.id
+          );
+          
+          if (existingIndex >= 0) {
+            // อัพเดทรายการที่มีอยู่
+            updatedAddSalaryList[existingIndex] = {
+              ...item,
+              message: item.message || "1"
+            };
+          } else {
+            // เพิ่มรายการใหม่
+            updatedAddSalaryList.push({
+              ...item,
+              message: item.message || "1"
+            });
+          }
+        });
+        
+        // สร้าง payload สำหรับอัพเดท
+        const updatePayload = {
+          _id: recordData._id,
+          updates: {
+            addSalaryList: updatedAddSalaryList
+          }
+        };
+        
+        // ส่งข้อมูลไปอัพเดท
+        const updateResponse = await axios.post(
+          endpoint + "/accounting/updatetimerecord",
+          updatePayload
+        );
+        
+        if (updateResponse.data?.updatedRecord) {
+          alert("บันทึกข้อมูลสำเร็จ 🎉");
+          // เคลียร์รายการหลังจากบันทึก
+          setAddSalary([]);
+        } else {
+          alert("ไม่สามารถอัปเดตข้อมูลได้");
+        }
+      } else {
+        // ลองค้นหาในรูปแบบอื่นของเดือน (ถ้าส่ง "01" ลองค้นหา "1" หรือถ้าส่ง "1" ลองค้นหา "01")
+        const altMonth = payload.month.startsWith("0") ? payload.month.substring(1) : `0${payload.month}`;
+        const altPayload = { ...payload, month: altMonth };
+        
+        console.log("ลองค้นหาด้วยรูปแบบเดือนทางเลือก:", altPayload);
+        
+        try {
+          const altResponse = await axios.post(endpoint + "/conclude/searchtimerecordemployee", altPayload);
+          console.log("ผลลัพธ์จากการค้นหาทางเลือก:", altResponse.data);
+          
+          if (altResponse.data?.result && altResponse.data.result.length > 0) {
+            // พบข้อมูลในรูปแบบทางเลือก
+            const recordData = altResponse.data.result[0];
+            
+            // เพิ่มหรืออัพเดทรายการเงินเพิ่ม
+            let updatedAddSalaryList = [...(recordData.addSalaryList || [])];
+            
+            // เพิ่มรายการใหม่เข้าไป
+            addSalary.forEach(item => {
+              // ตรวจสอบว่ามีรายการนี้อยู่แล้วหรือไม่
+              const existingIndex = updatedAddSalaryList.findIndex(
+                existing => existing.id === item.id
+              );
+              
+              if (existingIndex >= 0) {
+                // อัพเดทรายการที่มีอยู่
+                updatedAddSalaryList[existingIndex] = {
+                  ...item,
+                  message: item.message || "1"
+                };
+              } else {
+                // เพิ่มรายการใหม่
+                updatedAddSalaryList.push({
+                  ...item,
+                  message: item.message || "1"
+                });
+              }
+            });
+            
+            // สร้าง payload สำหรับอัพเดท
+            const updatePayload = {
+              _id: recordData._id,
+              updates: {
+                addSalaryList: updatedAddSalaryList
+              }
+            };
+            
+            // ส่งข้อมูลไปอัพเดท
+            const updateResponse = await axios.post(
+              endpoint + "/accounting/updatetimerecord",
+              updatePayload
+            );
+            
+            if (updateResponse.data?.updatedRecord) {
+              alert("บันทึกข้อมูลสำเร็จ 🎉");
+              // เคลียร์รายการหลังจากบันทึก
+              setAddSalary([]);
+              
+              // Refresh benefit history after saving
+              if (employeeData?.employeeId) {
+                fetchBenefitHistory(employeeData.employeeId);
+              }
+            } else {
+              alert("ไม่สามารถอัปเดตข้อมูลได้");
+            }
+            return;
+          }
+        } catch (error) {
+          console.error("เกิดข้อผิดพลาดในการค้นหาทางเลือก:", error);
+        }
+        
+        alert("ไม่พบข้อมูลการทำงานของพนักงานในเดือนและปีที่เลือก กรุณาตรวจสอบข้อมูล");
       }
     } catch (error) {
-      alert("กรุณาตรวจสอบข้อมูลในช่องกรอกข้อมูล");
-      alert(error);
-      // window.location.reload();
+      console.error("เกิดข้อผิดพลาดขณะอัปเดตข้อมูล:", error);
+      alert("เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง");
     }
   }
 
@@ -700,6 +961,12 @@ function Salary() {
         wp.workplaceId === empSelect.workplace ||
         wp.workplaceName === empSelect.workplace
     );
+    
+    // Automatically fetch benefit history when employee is selected
+    if (empSelect.employeeId) {
+      fetchBenefitHistory(empSelect.employeeId);
+    }
+    
     if (filtered !== "") {
       if (employeeData.workplace == "") {
         setWorkplacearea("");
@@ -927,13 +1194,13 @@ function Salary() {
                       <div class="col-md-12">
                         <section class="Frame">
                           <div class="col-md-12">
-                            <div class="row">
-                              <div class="col-md-4">
-                                <div class="form-group">
+                            <div className="row">
+                              <div className="col-md-4">
+                                <div className="form-group">
                                   <label role="employeeId">รหัสพนักงาน</label>
                                   <input
                                     type="text"
-                                    class="form-control"
+                                    className="form-control"
                                     id="employeeId"
                                     placeholder="รหัสพนักงาน"
                                     value={employeeData.employeeId || ""}
@@ -945,12 +1212,12 @@ function Salary() {
                                   />
                                 </div>
                               </div>
-                              <div class="col-md-4">
-                                <div class="form-group">
+                              <div className="col-md-4">
+                                <div className="form-group">
                                   <label role="position">ตำแหน่ง</label>
                                   <input
                                     type="text"
-                                    class="form-control"
+                                    className="form-control"
                                     id="position"
                                     placeholder="ตำแหน่ง"
                                     value={employeeData.position || ""}
@@ -958,12 +1225,12 @@ function Salary() {
                                   />
                                 </div>
                               </div>
-                              <div class="col-md-4">
-                                <div class="form-group">
+                              <div className="col-md-4">
+                                <div className="form-group">
                                   <label role="department">แผนก</label>
                                   <input
                                     type="text"
-                                    class="form-control"
+                                    className="form-control"
                                     id="department"
                                     placeholder="แผนก"
                                     value={employeeData.department || ""}
@@ -972,7 +1239,7 @@ function Salary() {
                                 </div>
                               </div>
                             </div>
-                            <div class="row">
+                            <div className="row">
                               <div class="col-md-4">
                                 <div class="form-group">
                                   <label role="workplace">หน่วยงาน</label>
@@ -1030,11 +1297,11 @@ function Salary() {
                                   </label>
                                   <input
                                     type="text"
-                                    class="form-control"
+                                    className="form-control"
                                     id="workplacearea"
                                     placeholder="สถานที่ปฏิบัติงาน"
                                     value={workplacearea}
-                                    readonly
+                                    readOnly
                                   />
                                 </div>
                               </div>
@@ -1780,7 +2047,7 @@ function Salary() {
                                               "StaffType"
                                             )
                                           }
-                                          readonly
+                                          readOnly
                                           disabled
                                         >
                                           <option value="">
@@ -1890,19 +2157,78 @@ function Salary() {
                                           />
                                         </div>
                                       )}
-                                      <div key={index} className="col-md-1">
-                                        <div>
-                                          <button
-                                            onClick={() => handleAddToSalary(data)}
-                                            className="btn btn-primary"
-                                            style={{
-                                              width: "8rem",
-                                              position: "absolute",
-                                              bottom: "0",
+                                      <div className="row mt-3">
+                                        <div className="col-md-4">
+                                          <label>เดือน</label>
+                                          <select
+                                            className="form-control"
+                                            value={selectedMonth}
+                                            onChange={(e) => {
+                                              setSelectedMonth(e.target.value);
+                                              // Auto-refresh benefit history when month changes (if employee and year are selected)
+                                              if (employeeData?.employeeId && selectedYear) {
+                                                fetchBenefitHistory(employeeData.employeeId);
+                                              }
                                             }}
                                           >
-                                            ให้สวัสดิการ
-                                          </button>
+                                            <option value="">เลือกเดือน</option>
+                                            {monthOptions.map((month, idx) => (
+                                              <option key={idx} value={month.value}>
+                                                {month.label}
+                                              </option>
+                                            ))}
+                                          </select>
+                                        </div>
+                                        <div className="col-md-4">
+                                          <label>ปี</label>
+                                          <select
+                                            className="form-control"
+                                            value={selectedYear}
+                                            onChange={(e) => {
+                                              setSelectedYear(e.target.value);
+                                              // Auto-refresh benefit history when year changes (if employee and month are selected)
+                                              if (employeeData?.employeeId && selectedMonth) {
+                                                fetchBenefitHistory(employeeData.employeeId);
+                                              }
+                                            }}
+                                          >
+                                            <option value="">เลือกปี</option>
+                                            {yearOptions.map((year, idx) => (
+                                              <option key={idx} value={year}>
+                                                {year}
+                                              </option>
+                                            ))}
+                                          </select>
+                                        </div>
+                                      </div>
+                                      <div key={index} className="col-md-1 mt-3">
+                                        <div>
+                                          {(!selectedMonth || !selectedYear || !isBenefitInHistory(data.codeSpSalary)) ? (
+                                            <button
+                                              onClick={() => handleAddToSalary(data)}
+                                              className="btn btn-primary"
+                                              style={{
+                                                width: "8rem",
+                                                position: "absolute",
+                                                bottom: "0",
+                                              }}
+                                            >
+                                              ให้สวัสดิการ
+                                            </button>
+                                          ) : (
+                                            <button
+                                              disabled
+                                              className="btn btn-secondary"
+                                              style={{
+                                                width: "8rem",
+                                                position: "absolute",
+                                                bottom: "0",
+                                              }}
+                                              title="สวัสดิการนี้ถูกให้ไปแล้วสำหรับเดือน/ปีนี้"
+                                            >
+                                              เพิ่มไปแล้ว
+                                            </button>
+                                          )}
                                         </div>
                                       </div>
                                     </div>
@@ -1918,122 +2244,94 @@ function Salary() {
 
                           }
                           </section>
-                          <section class="Frame">
-                            <h4>เงินเพิ่มที่ได้รับ</h4>
-                            <div className="row">
-                              <div className="col-md-2">
-                                <label role="salaryadd6">ชื่อรายการ</label>
-                              </div>
-                              <div className="col-md-2">
-                                <label role="salaryadd6">จำนวนเงิน</label>
+                          <section className="Frame">
+                            <h4>ประวัติการเพิ่มสวัสดิการ</h4>
+                            <div className="row mb-3">
+                              <div className="col-md-12">
+                                <button 
+                                  className="btn btn-info" 
+                                  type="button" 
+                                  onClick={() => fetchBenefitHistory(employeeData?.employeeId)}
+                                >
+                                  ดูประวัติสวัสดิการที่เคยเพิ่ม
+                                </button>
                               </div>
                             </div>
-                            {addSalary &&
-                              addSalary.map(
-                                (data, index) =>
+                            {benefitHistory.length > 0 && (
+                              <div className="table-responsive mb-3">
+                                <table className="table table-bordered table-striped">
+                                  <thead>
+                                    <tr>
+                                      <th>เดือน</th>
+                                      <th>ปี</th>
+                                      <th>รายการ</th>
+                                      <th>จำนวนเงิน</th>
+                                      <th>จำนวนครั้ง</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {benefitHistory.map((item, index) => (
+                                      <tr key={index}>
+                                        <td>
+                                          {monthOptions.find(m => m.value === item.month)?.label || item.month}
+                                        </td>
+                                        <td>{item.year}</td>
+                                        <td>{item.name}</td>
+                                        <td>{item.SpSalary}</td>
+                                        <td>{item.message}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
+                          </section>
+                          <section className="Frame">
+                            <h4>เงินเพิ่มที่ได้รับ</h4>
+                            <div className="container-fluid">
+                              {addSalary && addSalary.length > 0 ? (
+                                addSalary.map((data, index) => (
                                   data.name !== "" && (
-                                    <div className="row" key={index}>
-                                      <div className="col-md-2">
-                                        {/* <label role="salaryadd6">ชื่อรายการ</label> */}
-                                        <input
-                                          type="text"
-                                          name="name"
-                                          className="form-control"
-                                          value={data.name}
-                                          onChange={(e) =>
-                                            handleChangeSpSalary(e, index, "name")
-                                          }
-                                          readOnly
-                                        />
-                                      </div>
-
-                                      <div className="col-md-2">
-                                        {/* <label role="salaryadd6">จำนวนเงิน</label> */}
-                                        <input
-                                          type="text"
-                                          name="SpSalary"
-                                          className="form-control"
-                                          value={data.SpSalary}
-                                          onChange={(e) =>
-                                            handleChangeSpSalary(
-                                              e,
-                                              index,
-                                              "SpSalary"
-                                            )
-                                          }
-                                          readOnly
-                                        />
-                                      </div>
-                                      {/* <div className="col-md-2">
-                                                            <label role="salaryadd6">ได้เป็นราย</label>
-                                                            <select
-                                                                name="roundOfSalary"
-                                                                className="form-control"
-                                                                value={data.roundOfSalary}
-                                                                onChange={(e) => handleChangeSpSalary(e, index, 'roundOfSalary')}
-
-                                                            >
-                                                                <option value="daily">รายวัน</option>
-                                                                <option value="monthly">รายเดือน</option>
-                                                            </select>
-                                                        </div> */}
-                                      {/* <div className="col-md-2">
-                                                            <label role="salaryadd6">ประเภทพนักงาน</label>
-                                                            <select
-                                                                name="StaffType"
-                                                                className="form-control"
-                                                                value={data.StaffType}
-                                                                onChange={(e) => handleChangeSpSalary(e, index, 'StaffType')}
-                                                                readonly
-                                                            >
-                                                                <option value="">เลือกตำแหน่งที่จะมอบให้</option>
-                                                                <option value="all">ทั้งหมด</option>
-                                                                <option value="header">หัวหน้างาน</option>
-                                                                <option value="custom">กำหนดเอง</option>
-                                                            </select>
-                                                        </div> */}
-
-                                      {data.StaffType === "custom" && (
-                                        <div className="col-md-2">
-                                          {/* <label>ตำแหน่ง</label> */}
-                                          <input
-                                            type="text"
-                                            name="additionalInput"
-                                            className="form-control"
-                                            value={data.nameType}
-                                            onChange={(e) =>
-                                              handleChangeSpSalary(
-                                                e,
-                                                index,
-                                                "nameType"
-                                              )
-                                            }
-                                            readOnly
-                                          />
-                                        </div>
-                                      )}
-                                      <br />
-                                      <br />
-                                      <div key={index} className="col-md-1">
-                                        <div>
-                                          <button
-                                            onClick={() =>
-                                              handleRemoveFromSalary(data)
-                                            }
-                                            className="btn btn-danger"
-                                            style={{
-                                              width: "5rem",
-                                              position: "absolute",
-                                              bottom: "0",
-                                            }}
-                                          >
-                                            นำออก
-                                          </button>
+                                    <div className="row mb-3" key={index} style={{ border: "1px solid #f0f0f0", padding: "15px", borderRadius: "5px", margin: "0 5px" }}>
+                                      <div className="col-md-12">
+                                        <h5>เงินเพิ่มที่ได้รับ</h5>
+                                        <div className="row">
+                                          <div className="col-md-3">
+                                            <label>ชื่อรายการ</label>
+                                            <input
+                                              type="text"
+                                              className="form-control"
+                                              value={data.name}
+                                              readOnly
+                                            />
+                                          </div>
+                                          <div className="col-md-3">
+                                            <label>จำนวนเงิน</label>
+                                            <input
+                                              type="text"
+                                              className="form-control"
+                                              value={data.SpSalary}
+                                              readOnly
+                                            />
+                                          </div>
+                                          <div className="col-md-3 d-flex align-items-end">
+                                            <button
+                                              onClick={() => handleRemoveFromSalary(data)}
+                                              className="btn btn-danger"
+                                              style={{ width: "120px" }}
+                                            >
+                                              นำออก
+                                            </button>
+                                          </div>
                                         </div>
                                       </div>
                                     </div>
                                   )
+                                ))
+                              ) : (
+                                <p className="text-center">ยังไม่มีเงินเพิ่ม</p>
                               )}
+                            </div>
                           </section>
                           {/* < button type='button' onClick={handleAddInput} class="btn btn-primary" >เพิ่ม</button> */}
                           {/* <pre>{JSON.stringify(formData, null, 2)}</pre> */}
