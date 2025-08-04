@@ -1179,11 +1179,8 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
     const { 
       month,
       year,
-      workplaceId,
-      employeeId
+      workplaceId
     } = req.body;
-
-    console.log('Search parameters:', { month, year, workplaceId, employeeId });
 
     // ใช้ aggregation pipeline สำหรับการค้นหาที่ซับซ้อน
     const pipeline = [];
@@ -1191,29 +1188,16 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
     // Match stage
     const matchConditions = {};
     if (month !== '') {
-      console.log('Month value:', month, 'Type:', typeof month);
       matchConditions.month = { $regex: new RegExp(month, 'i') };
-      console.log('Month regex pattern:', matchConditions.month);
     }
     if (year !== '') {
-      console.log('Year value:', year, 'Type:', typeof year);
       matchConditions.year = { $regex: new RegExp(year, 'i') };
-      console.log('Year regex pattern:', matchConditions.year);
     }
-    
-    // เพิ่มการค้นหาด้วย employeeId ที่ระดับ document
-    if (employeeId !== '') {
-      console.log('EmployeeId value:', employeeId);
-      matchConditions.employeeId = employeeId;
-    }
-    
-    console.log('Final match conditions:', JSON.stringify(matchConditions, null, 2));
     
     pipeline.push({ $match: matchConditions });
 
     // ถ้ามี workplaceId ให้กรองเฉพาะ employee_record ที่ตรงกับ workplaceId
-    // แต่ถ้าไม่มี workplaceId ให้ข้าม step นี้
-    if (workplaceId && workplaceId !== '') {
+    if (workplaceId !== '') {
       pipeline.push({
         $addFields: {
           employee_record: {
@@ -1233,23 +1217,15 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
       });
     }
 
-    // ถ้าไม่มีพารามิเตอร์ใดๆ ให้ส่งผลลัพธ์ว่าง
-    if (month == '' && year == '' && workplaceId == '' && employeeId == '') {
+    if (month == '' && year == '' && workplaceId == '') {
       return res.status(200).json({ result: [] });
     }
 
-    console.log('Pipeline:', JSON.stringify(pipeline, null, 2));
-
     const result = await timerecordEmployee.aggregate(pipeline);
-
-    console.log('Query result count:', result.length);
-    if (result.length > 0) {
-      console.log('First result sample:', JSON.stringify(result[0], null, 2));
-    }
 
     res.status(200).json({ result });
   } catch (error) {
-    console.error('Search error:', error);
+    console.error(error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
