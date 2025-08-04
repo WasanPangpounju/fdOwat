@@ -1223,11 +1223,16 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
       });
     }
 
+    // ถ้าไม่มีพารามิเตอร์ใดๆ ให้ส่งผลลัพธ์ว่าง
     if (month == '' && year == '' && workplaceId == '' && employeeId == '') {
       return res.status(200).json({ result: [] });
     }
 
+    console.log('Pipeline:', JSON.stringify(pipeline, null, 2));
+
     const result = await timerecordEmployee.aggregate(pipeline);
+
+    console.log('Query result count:', result.length);
 
     res.status(200).json({ result });
   } catch (error) {
