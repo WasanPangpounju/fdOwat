@@ -1179,7 +1179,8 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
     const { 
       month,
       year,
-      workplaceId
+      workplaceId,
+      employeeId
     } = req.body;
 
     // ใช้ aggregation pipeline สำหรับการค้นหาที่ซับซ้อน
@@ -1192,6 +1193,11 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
     }
     if (year !== '') {
       matchConditions.year = { $regex: new RegExp(year, 'i') };
+    }
+    
+    // เพิ่มการค้นหาด้วย employeeId
+    if (employeeId !== '') {
+      matchConditions['employee_record.employeeId'] = employeeId;
     }
     
     pipeline.push({ $match: matchConditions });
@@ -1217,7 +1223,28 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
       });
     }
 
-    if (month == '' && year == '' && workplaceId == '') {
+    // ถ้ามี employeeId ให้กรองเฉพาะ employee_record ที่ตรงกับ employeeId (หลังจากกรอง workplaceId แล้ว)
+    if (employeeId !== '') {
+      pipeline.push({
+        $addFields: {
+          employee_record: {
+            $filter: {
+              input: "$employee_record",
+              cond: { $eq: ["$$this.employeeId", employeeId] }
+            }
+          }
+        }
+      });
+      
+      // กรองออกเฉพาะ documents ที่มี employee_record หลังจาก filter แล้ว
+      pipeline.push({
+        $match: {
+          "employee_record": { $ne: [] }
+        }
+      });
+    }
+
+    if (month == '' && year == '' && workplaceId == '' && employeeId == '') {
       return res.status(200).json({ result: [] });
     }
 
