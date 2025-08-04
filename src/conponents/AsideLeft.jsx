@@ -171,6 +171,10 @@ function AsideLeft() {
                       <li className="nav-item bg-success">
                         <Link to="/bankReport" className="nav-link"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px", marginLeft: '1rem' }}></i> ออกรายงานธนาคาร</Link>
                       </li>
+
+                      <li className="nav-item bg-success">
+                        <Link to="/bankReportExecutiveCommittee" className="nav-link"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px", marginLeft: '1rem' }}></i> ออกรายงานธนาคารผู้บริหาร</Link>
+                      </li>
                     </>
                   </ul>
                 )}

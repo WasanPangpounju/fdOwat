@@ -9,9 +9,11 @@ import { useLocation } from "react-router-dom";
 import LoginForm from "./conponents/Login";
 
 import BankReport from "./conponents/componentsAside/BankReport";
+import BankReportExecutiveCommittee from "./conponents/componentsAside/BankReportExecutiveCommittee";
 
 import AsideLeft from "./conponents/AsideLeft";
 import Footer from "./conponents/Footer";
+import AdminRoute from "./conponents/AdminRoute";
 
 import Top from "./conponents/Top";
 
@@ -281,6 +283,14 @@ useEffect(() => {
               <Route
                 path="/bankReport"
                 element={<BankReport employeeList={employeeList} workplaceList={workplaceList}/>}
+              />
+              <Route
+                path="/bankReportExecutiveCommittee"
+                element={
+                  <AdminRoute 
+                    element={<BankReportExecutiveCommittee employeeList={employeeList} workplaceList={workplaceList}/>}
+                  />
+                }
               />
                <Route
                 path="/replaceReport"

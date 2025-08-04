@@ -1845,12 +1845,7 @@ if (ot3Hours > 0 && ot3Cash > 0) {
       valueArray.push(sumAddSalaryFood); // เก็บเป็น number
     }
 
-    if (sumAddSpecialCash > 0) {
-      textArray.push("ค่าเงินพิเศษ");
-      countArray.push("");
-      valueArray.push(sumAddSpecialCash); // เก็บเป็น number
-    }
-
+ 
     // จ่ายชดเชยวันลา
     const totalSpSalaryCompensation = addSalaryPayCompensationFiltered.reduce(
       (sum, salary) => sum + salary.SpSalary,
