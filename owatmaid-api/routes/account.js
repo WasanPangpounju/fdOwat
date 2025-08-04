@@ -5454,7 +5454,7 @@ try {
         } else
           if (record?.dayType === 'specialDayOff') {
             specialDayOff += 1;
-            sumTimeOt += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.toœtalTime) + convertTimeToDecimal(record.totalOtTime);
+            sumTimeOt += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalTime) + convertTimeToDecimal(record.totalOtTime);
             // sumCashOt = parseFloat(sumCashOt || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0') // ลบการคำนวณแบบเก่า
 
 
@@ -5519,28 +5519,13 @@ if (record?.dayType === "work") {
   // OT ก่อนเวลาทำงาน
   if (hasBeforeOT) {
     const beforeOtTime = convertTimeToDecimal(record.beforeTotalOtTime);
-    const otMul = record?.cashBeforeOtMul || record?.cashOtMul || "1.5";
-    
-    // คำนวณ OT cash ใหม่จากอัตราพื้นฐาน
-    let beforeOtCash = 0;
-    if (hasRegularWork && parseFloat(record?.cashWork || '0') > 0 && parseFloat(record?.totalTime || '0') > 0) {
-      // คำนวณอัตราต่อชั่วโมงจาก cashWork/totalTime
-      const hourlyRate = parseFloat(record.cashWork) / parseFloat(record.totalTime);
-      beforeOtCash = hourlyRate * parseFloat(otMul) * beforeOtTime;
-      console.log(`   - คำนวณ OT ก่อนเวลาใหม่: ${hourlyRate.toFixed(2)} × ${otMul} × ${beforeOtTime} = ${beforeOtCash.toFixed(2)} บาท`);
-      
-      // อัปเดตค่า cashBeforeOt ใน record
-      record.cashBeforeOt = beforeOtCash.toFixed(2);
-    } else {
-      // ใช้ค่าเดิมถ้าคำนวณไม่ได้
-      beforeOtCash = parseFloat(record?.cashBeforeOt || '0');
-      console.log(`   - ใช้ค่า cashBeforeOt เดิม: ${beforeOtCash} บาท`);
-    }
+    const beforeOtCash = parseFloat(record?.cashBeforeOt || '0');
     
     totalOtTime += beforeOtTime;
     totalOtCash += beforeOtCash;
     
     // อัปเดต sumCashWorkMul สำหรับ OT ก่อนเวลา
+    const otMul = record?.cashBeforeOtMul || record?.cashOtMul || "1.5";
     if (!sumCashWorkMul[otMul]) {
       sumCashWorkMul[otMul] = 0;
     }
@@ -5550,35 +5535,20 @@ if (record?.dayType === "work") {
     sumCashWorkMul[otMul] += beforeOtCash;
     timeCashWorkMul[otMul] += beforeOtTime;
     
-    console.log(`   - OT ก่อนเวลาทำงาน: ${beforeOtTime} ชม. (${beforeOtCash.toFixed(2)} บาท) - Rate: ${otMul}`);
+    console.log(`   - OT ก่อนเวลาทำงาน: ${beforeOtTime} ชม. (${beforeOtCash} บาท) - Rate: ${otMul}`);
   }
   
   // OT หลังเวลาทำงาน
   if (hasAfterOT) {
-    const afterOtTime = convertTimeToDecimal(record.totalOtTime);
-    const otMul = record?.cashOtMul || "1.5";
-    
-    // คำนวณ OT cash ใหม่จากอัตราพื้นฐาน
-    let afterOtCash = 0;
-    if (hasRegularWork && parseFloat(record?.cashWork || '0') > 0 && parseFloat(record?.totalTime || '0') > 0) {
-      // คำนวณอัตราต่อชั่วโมงจาก cashWork/totalTime
-      const hourlyRate = parseFloat(record.cashWork) / parseFloat(record.totalTime);
-      afterOtCash = hourlyRate * parseFloat(otMul) * afterOtTime;
-      console.log(`   - คำนวณ OT ใหม่: ${hourlyRate.toFixed(2)} × ${otMul} × ${afterOtTime} = ${afterOtCash.toFixed(2)} บาท`);
-      
-      // อัปเดตค่า cashOt ใน record
-      record.cashOt = afterOtCash.toFixed(2);
-    } else {
-      // ใช้ค่าเดิมถ้าคำนวณไม่ได้
-      afterOtCash = parseFloat(record?.cashOt || '0');
-      console.log(`   - ใช้ค่า cashOt เดิม: ${afterOtCash} บาท`);
-    }
+    const afterOtTime = convertTimeToDecimal(record.totalOtTime || '0') + convertTimeToDecimal(record.beforeTotalOtTime || '0'); ;
+    const afterOtCash = parseFloat(record?.cashOt || '0');
     
     totalOtTime += afterOtTime;
     totalOtCash += afterOtCash;
     sumOt1p5 += afterOtTime; // นับเฉพาะ OT หลังเวลาทำงาน
     
     // อัปเดต sumCashWorkMul สำหรับ OT หลังเวลา
+    const otMul = record?.cashOtMul || "1.5";
     if (!sumCashWorkMul[otMul]) {
       sumCashWorkMul[otMul] = 0;
     }
@@ -5588,7 +5558,7 @@ if (record?.dayType === "work") {
     sumCashWorkMul[otMul] += afterOtCash;
     timeCashWorkMul[otMul] += afterOtTime;
     
-    console.log(`   - OT หลังเวลาทำงาน: ${afterOtTime} ชม. (${afterOtCash.toFixed(2)} บาท) - Rate: ${otMul}`);
+    console.log(`   - OT หลังเวลาทำงาน: ${afterOtTime} ชม. (${afterOtCash} บาท) - Rate: ${otMul}`);
   }
   
   // อัปเดตผลรวม OT - คอมเมนต์เพราะจะคำนวณจาก sumCashWorkMul แทน
