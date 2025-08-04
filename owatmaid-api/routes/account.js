@@ -5927,9 +5927,10 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
     console.log(`💰 ✅ พนักงานเงินเดือน (salaryMonth = ${salaryMonth} ≠ 0)`);
     sumCashWork = salaryMonth;
     const dayPerHour = sumCashWork / 30 / 8; 
-    const dayPerHour1p5 = dayPerHour * 1.5; 
-    const dayPerHour2 = dayPerHour * 2;
-    const dayPerHour3 = dayPerHour * 3; 
+    const dayPerHourByWorkplace = workRate / 8; 
+    const dayPerHour1p5 = dayPerHourByWorkplace * 1.5; 
+    const dayPerHour2 = dayPerHourByWorkplace * 2;
+    const dayPerHour3 = dayPerHourByWorkplace * 3; 
     sumCashWorkMul["1.5"] = (dayPerHour1p5 * sumOt1p5).toFixed(2)
     sumCashWorkMul["2"] = (dayPerHour2 * sumOtPublicHoliday).toFixed(2)
     sumCashWorkMul["3"] = (dayPerHour3 * sumOt3).toFixed(2)
