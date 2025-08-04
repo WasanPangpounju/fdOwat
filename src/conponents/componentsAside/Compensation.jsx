@@ -1676,7 +1676,7 @@ function Compensation() {
     };
 
     try {
-      // ดึงข้อมูลพนักงานเพื่อเช็ค salary
+      // ดึงข้อมูลพนักงานเพื่อเช็ค salary และ workplace
       const employeeSearchData = {
         employeeId: searchEmployeeId
       };
@@ -1688,11 +1688,26 @@ function Compensation() {
       
       let employeeSalary = 0;
       let isMonthlyEmployee = false;
+      let workplaceWorkRate = 0;
       
       if (employeeResponse.data?.employees?.length > 0) {
         const employee = employeeResponse.data.employees[0];
         employeeSalary = parseFloat(employee.salary) || 0;
         isMonthlyEmployee = employeeSalary > 1680;
+        
+        // ดึงข้อมูล workplace เพื่อเอา workRate
+        if (employee.workplace) {
+          try {
+            const workplaceResponse = await axios.get(
+              endpoint + "/workplace/" + employee.workplace
+            );
+            workplaceWorkRate = parseFloat(workplaceResponse.data.workRate) || 0;
+            console.log("workRate from workplace:", workplaceWorkRate);
+          } catch (workplaceError) {
+            console.error("Error fetching workplace data:", workplaceError);
+            workplaceWorkRate = employeeSalary || 0; // fallback to employee salary
+          }
+        }
       }
 
       const response = await axios.post(
@@ -1701,13 +1716,14 @@ function Compensation() {
       );
 
       if (response.data?.result?.length > 0) {
-        // เพิ่มข้อมูล salary ลงใน employee_record ของแต่ละ record
+        // เพิ่มข้อมูล salary และ workRate ลงใน employee_record ของแต่ละ record
         const updatedResult = response.data.result.map(record => ({
           ...record,
           employee_record: record.employee_record.map(empRecord => ({
             ...empRecord,
             salary: employeeSalary,
-            isMonthlyEmployee: isMonthlyEmployee
+            isMonthlyEmployee: isMonthlyEmployee,
+            workRate: workplaceWorkRate // เพิ่ม workRate จาก workplace
           }))
         }));
         
@@ -1749,7 +1765,9 @@ function Compensation() {
           acc.cashWork += employeeSalary / 30 || 0;
           
           // คำนวณ cashOt สำหรับพนักงานเงินเดือน
-          const dayPerHour = employeeSalary / 30 / 8;
+          // ใช้ workRate จาก workplace ที่ดึงมา
+          const workRate = record.workRate || employeeSalary;
+          const dayPerHour = workRate  / 8;
           const totalOtTime = parseFloat(record.totalOtTime) || 0;
           
           // ตรวจสอบประเภทวันหยุดหรือการทำงานล่วงเวลา
@@ -2004,7 +2022,7 @@ const handleSave_back = (index, subIndex, idx) => {
                       </div>
                     </div>
                     <div class="d-flex justify-content-center">
-                      <button class="btn b_save" onClick={handleSearch()}>
+                      <button class="btn b_save" type="submit">
                         <i class="nav-icon fas fa-search"></i> &nbsp; ค้นหา
                       </button>
                     </div>
@@ -2129,13 +2147,25 @@ const handleSave_back = (index, subIndex, idx) => {
                               // คำนวณค่าสำหรับพนักงานเงินเดือน
                               let displayValue = matchedRecord[field];
                               
+                              // Format time fields to 2 decimal places
+                              if (field === 'beforeTotalOtTime' || field === 'totalTime' || field === 'totalOtTime') {
+                                displayValue = parseFloat(displayValue || 0).toFixed(2);
+                              }
+                              
+                              // Format cash fields to 2 decimal places
+                              if (field === 'cashBeforeOt' || field === 'cashWork' || field === 'cashOt') {
+                                displayValue = parseFloat(displayValue || 0).toFixed(2);
+                              }
+                              
                               if (isMonthlyEmployee && employeeSalary > 1680) {
                                 if (field === 'cashWork') {
                                   // สำหรับพนักงานเงินเดือน แสดง salary/30
                                   displayValue = (employeeSalary / 30).toFixed(2);
                                 } else if (field === 'cashOt') {
                                   // คำนวณ cashOt สำหรับพนักงานเงินเดือน
-                                  const dayPerHour = employeeSalary / 30 / 8;
+                                  // ใช้ workRate จาก workplace ที่ดึงมา
+                                  const workRate = matchedRecord.workRate || employeeSalary;
+                                  const dayPerHour = workRate  / 8;
                                   const totalOtTime = parseFloat(matchedRecord.totalOtTime) || 0;
                                   
                                   // ตรวจสอบประเภทวันหยุดหรือการทำงานล่วงเวลา

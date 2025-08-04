@@ -186,6 +186,125 @@ const modalStyles = `
     padding: 20px;
     text-align: center;
   }
+
+  /* Loading Overlay Styles */
+  .loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    backdrop-filter: blur(5px);
+  }
+
+  .loading-content {
+    background: white;
+    padding: 40px;
+    border-radius: 20px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    max-width: 400px;
+    width: 90%;
+  }
+
+  .loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #17a2b8;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  .loading-text {
+    color: #495057;
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+
+  .loading-subtext {
+    color: #6c757d;
+    font-size: 14px;
+  }
+
+  .loading-dots::after {
+    content: '';
+    animation: dots 1.5s steps(4, end) infinite;
+  }
+
+  @keyframes dots {
+    0%, 20% { content: '.'; }
+    40% { content: '..'; }
+    60% { content: '...'; }
+    80%, 100% { content: ''; }
+  }
+
+  /* Data Loading Card Styles */
+  .data-loading-card {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: 2px dashed #dee2e6;
+    border-radius: 15px;
+    padding: 60px 20px;
+    text-align: center;
+    margin: 20px 0;
+  }
+
+  .data-loading-icon {
+    width: 60px;
+    height: 60px;
+    border: 4px solid #e9ecef;
+    border-top: 4px solid #17a2b8;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+  }
+
+  .data-loading-title {
+    color: #495057;
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+
+  .data-loading-subtitle {
+    color: #6c757d;
+    font-size: 16px;
+    margin-bottom: 15px;
+  }
+
+  .data-loading-progress {
+    background: #e9ecef;
+    border-radius: 10px;
+    height: 6px;
+    overflow: hidden;
+    margin: 20px auto;
+    max-width: 300px;
+  }
+
+  .data-loading-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #17a2b8, #138496);
+    border-radius: 10px;
+    animation: progress 2s ease-in-out infinite;
+  }
+
+  @keyframes progress {
+    0% { width: 0%; }
+    50% { width: 70%; }
+    100% { width: 100%; }
+  }
 `;
 
 // เพิ่ม styles เข้าไปใน head ถ้ายังไม่มี
@@ -218,6 +337,7 @@ const [isGeneratingExcel, setIsGeneratingExcel] = useState(false);
   const [responseDataAll, setResponseDataAll] = useState([]);
   const [cashWorkData, setCashWorkData] = useState([]);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(false); // เพิ่ม loading state สำหรับข้อมูล
   const [basicSettings, setBasicSettings] = useState([]);
   const [paymentDate, setPaymentDate] = useState("");
 
@@ -240,8 +360,13 @@ const [isGeneratingExcel, setIsGeneratingExcel] = useState(false);
 
   // ฟังก์ชันสำหรับเปิด Modal แก้ไขข้อมูล
   const openEditModal = () => {
+    if (isLoadingData) {
+      alert("กรุณารอให้ข้อมูลโหลดเสร็จก่อน");
+      return;
+    }
+    
     if (!responseDataAll || responseDataAll.length === 0) {
-      alert("กรุณารอให้ข้อมูลโหลดเสร็จก่อน หรือเลือกเงื่อนไขการค้นหา");
+      alert("ไม่พบข้อมูลพนักงาน กรุณาเลือกเงื่อนไขการค้นหาและรอให้ข้อมูลโหลดเสร็จ");
       return;
     }
     
@@ -560,14 +685,14 @@ const [isGeneratingExcel, setIsGeneratingExcel] = useState(false);
         valueArray.push(ot3Cash.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","));
       }
 
-      // รายการเงินพิเศษที่แก้ไขแล้ว
-      addSalaryList.forEach(item => {
-        if (parseFloat(item.SpSalary || item.sumAddSalary || 0) > 0) {
-          textArray.push(item.name);
-          countArray.push("");
-          valueArray.push(parseFloat(item.SpSalary || item.sumAddSalary || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","));
-        }
-      });
+      // รายการเงินพิเศษที่แก้ไขแล้ว - ลบออกเพื่อไม่ให้เพิ่มซ้ำ
+      // addSalaryList.forEach(item => {
+      //   if (parseFloat(item.SpSalary || item.sumAddSalary || 0) > 0) {
+      //     textArray.push(item.name);
+      //     countArray.push("");
+      //     valueArray.push(parseFloat(item.SpSalary || item.sumAddSalary || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","));
+      //   }
+      // });
 
       // กรองรายการตาม ID เหมือนในฟังก์ชันเดิม
       const excludedIds = ["1350", "1230", "1410", "1535", "1520"];
@@ -611,7 +736,7 @@ const [isGeneratingExcel, setIsGeneratingExcel] = useState(false);
       // จ่ายชดเชยวันลา
       const excludedIdsPayCompensation = [
         "1231", "1233", "1422", "1423", "1428", "1434", 
-        "1435", "1429", "1427", "1234", "1426", "1425",
+        "1435", "1429", "1427", "1234", "1426", "1425", "1442",
       ];
       const addSalaryPayCompensationFiltered = addSalaryList
         .filter((salary) => excludedIdsPayCompensation.includes(salary.id));
@@ -625,6 +750,19 @@ const [isGeneratingExcel, setIsGeneratingExcel] = useState(false);
         countArray.push("");
         valueArray.push(totalSpSalaryCompensation.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","));
       }
+
+      // เพิ่มรายการเงินพิเศษอื่นๆ ที่ไม่ได้ถูกระบุใน specific categories
+      const specificIds = ["1350", "1230", "1410", "1535", "1520", "1231", "1233", "1422", "1423", "1428", "1434", "1435", "1429", "1427", "1234", "1426", "1425", "1442"];
+      const otherSalaryItems = addSalaryList.filter((item) => !specificIds.includes(item.id));
+      
+      otherSalaryItems.forEach(item => {
+        const amount = parseFloat(item.SpSalary || item.sumAddSalary || 0);
+        if (amount > 0) {
+          textArray.push(item.name);
+          countArray.push("");
+          valueArray.push(amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","));
+        }
+      });
 
       // แสดงรายการรายได้
       let y = 44;
@@ -974,6 +1112,8 @@ const [isGeneratingExcel, setIsGeneratingExcel] = useState(false);
     const value = e.target.value;
     setSelectedOption(value);
 
+    // ไม่ clear ข้อมูลอัตโนมัติ รอให้กดปุ่มค้นหาแทน
+
     // Set setStaffId based on the selected option
     if (value === "option1") {
       setStaffId("");
@@ -981,14 +1121,10 @@ const [isGeneratingExcel, setIsGeneratingExcel] = useState(false);
       setStaffName("");
       setStaffFullName("");
       setSearchEmployeeName("");
-
-      setResponseDataAll("");
     } else if (value === "option2") {
       // Set setStaffId to another value if needed
       setWorkplacrId("");
       setWorkplacrName("");
-
-      setResponseDataAll("");
     }
   };
 
@@ -1028,22 +1164,31 @@ const [isGeneratingExcel, setIsGeneratingExcel] = useState(false);
     getBasicSettings();
   }, [month]); // เรียกใหม่เมื่อเดือนเปลี่ยน
 
- // แก้ไข useEffect เดิมที่เรียก /accounting/calsalarylist
-useEffect(() => {
-  const fetchData = async () => {
-    const dataTest = {
-      year: year.toString(),
-      month: month.toString().padStart(2, '0'),
-    };
+ // แก้ไข useEffect ให้ไม่ auto-fetch ข้อมูล
+// useEffect(() => {
+//   const fetchData = async () => {
+//     // ย้ายโค้ดไปใน handleSearchData function แทน
+//   };
+//   fetchData();
+// }, [year, month, searchWorkplaceId, searchEmployeeId]);
 
-    console.log("🚀 Sending POST request to API:", "http://10.10.110.7:3000/accounting/searchtimerecordemployee");
-    console.log("📅 Request data:", dataTest);
-    console.log("🔍 Selected option:", selectedOption);
-    console.log("🏢 Search workplace ID:", searchWorkplaceId);
-    console.log("👤 Search employee ID:", searchEmployeeId);
+// ฟังก์ชันสำหรับค้นหาข้อมูลเมื่อกดปุ่ม
+const handleSearchData = async () => {
+  setIsLoadingData(true); // เริ่ม loading
+  
+  const dataTest = {
+    year: year.toString(),
+    month: month.toString().padStart(2, '0'),
+  };
 
-    // เปลี่ยนเป็น POST http://10.10.110.7:3000/accounting/searchtimerecordemployee
-    try {
+  console.log("🚀 Sending POST request to API:", "http://10.10.110.7:3000/accounting/searchtimerecordemployee");
+  console.log("📅 Request data:", dataTest);
+  console.log("🔍 Selected option:", selectedOption);
+  console.log("🏢 Search workplace ID:", searchWorkplaceId);
+  console.log("👤 Search employee ID:", searchEmployeeId);
+
+  // เปลี่ยนเป็น POST http://10.10.110.7:3000/accounting/searchtimerecordemployee
+  try {
       const response = await axios.post("http://10.10.110.7:3000/accounting/searchtimerecordemployee", dataTest);
       
       console.log("✅ API Response received:", response.data);
@@ -1177,24 +1322,26 @@ useEffect(() => {
           console.log("📋 Final filtered data:", dateFilteredData);
           setResponseDataAll(dateFilteredData);
         }
-      } catch (error) {
-        console.error("❌ API Error:", error);
-        console.error("❌ Error message:", error.message);
-        if (error.response) {
-          console.error("❌ Response status:", error.response.status);
-          console.error("❌ Response data:", error.response.data);
-        }
-      }
-  };
-
-  // Call fetchData when year, month, or searchWorkplaceId changes
-  fetchData();
-}, [year, month, searchWorkplaceId, searchEmployeeId]);
+  } catch (error) {
+    console.error("❌ API Error:", error);
+    console.error("❌ Error message:", error.message);
+    if (error.response) {
+      console.error("❌ Response status:", error.response.status);
+      console.error("❌ Response data:", error.response.data);
+    }
+    setResponseDataAll([]); // Clear data on error
+  } finally {
+    setIsLoadingData(false); // จบ loading
+  }
+};
 
   const handleStaffIdChange = (e) => {
     const selectWorkPlaceId = e.target.value;
     setWorkplacrId(selectWorkPlaceId);
     setSearchWorkplaceId(selectWorkPlaceId);
+    
+    // ไม่ clear ข้อมูลอัตโนมัติ รอให้กดปุ่มค้นหาแทน
+    
     // Find the corresponding employee and set the staffName
     const selectedWorkplace = workplaceListAll.find(
       (workplace) => workplace.workplaceId == selectWorkPlaceId
@@ -1235,6 +1382,9 @@ useEffect(() => {
     const selectedStaffId = e.target.value;
     setStaffId(selectedStaffId);
     setSearchEmployeeId(selectedStaffId);
+    
+    // ไม่ clear ข้อมูลอัตโนมัติ รอให้กดปุ่มค้นหาแทน
+    
     // Find the corresponding employee and set the staffName
     const selectedEmployee = employeeList.find(
       (employee) => employee.employeeId === selectedStaffId
@@ -1288,9 +1438,15 @@ const generatePDF = async () => {
   // ADD - ป้องกันการกดซ้ำ
   if (isGeneratingPDF) return;
   
+  // ADD - ตรวจสอบสถานะ loading
+  if (isLoadingData) {
+    alert("กรุณารอให้ข้อมูลโหลดเสร็จก่อน");
+    return;
+  }
+  
   // ADD - ตรวจสอบข้อมูล
   if (!responseDataAll || responseDataAll.length === 0) {
-    alert("กรุณารอให้ข้อมูลโหลดเสร็จก่อน หรือเลือกเงื่อนไขการค้นหา");
+    alert("ไม่พบข้อมูลเงินเดือน กรุณาเลือกเงื่อนไขการค้นหาและรอให้ข้อมูลโหลดเสร็จ");
     return;
   }
   
@@ -1436,7 +1592,7 @@ const generatePDF = async () => {
       return sum + parseFloat(record.cashOt || 0);
     }, 0);
     // กรองเงินพิเศษตาม ID
-    const excludedIds = ["1350", "1230", "1410", "1535", "1520",];
+    const excludedIds = ["1350", "1230", "1410", "1535", "1520","1560", "1563", "1330", "1232", "1235", "1236", "1237", "1238", "1239", "1240", "1241", "1242", "1243", "1244", "1245", "1246", "1247", "1248", "1249"];
     const addSalaryFiltered = addSalaryList
       .filter((salary) => !excludedIds.includes(salary.id))
       .map((salary) => ({
@@ -1447,7 +1603,7 @@ const generatePDF = async () => {
     // จ่างชดเชย
     const excludedIdsPayCompensation = [
       "1231", "1233", "1422", "1423", "1428", "1434", 
-      "1435", "1429", "1427", "1234", "1426", "1425",
+      "1435", "1429", "1427", "1234", "1426", "1425", "1442",
     ];
 
     const addSalaryPayCompensationFiltered = addSalaryList
@@ -1511,11 +1667,11 @@ const generatePDF = async () => {
 
     pdf.text(`รหัส`, 7, head);
     pdf.text(`ชื่อ-สกุล`, 30, head);
-    pdf.text(`หน่วยงาน`, 80, head);
+    pdf.text(`หน่วยงาน`, 75, head);
 
     // ใช้ workplaceId จาก employee_record
     const currentWorkplaceId = employeeRecords[0]?.workplaceId;
-    pdf.text(`${currentWorkplaceId || ""}`, 93, head);
+    pdf.text(`${currentWorkplaceId || ""}`, 89, head);
 
     const workplace = workplaceList.find(
       (item) => item.workplaceId === currentWorkplaceId
@@ -1611,7 +1767,7 @@ const resultExtraCash = addSalaryList
     if (totalCashWork > 0) {
       textArray.push("เงินเดือน");
       countArray.push(workDays.toString());
-      valueArray.push(totalCashWork);
+      valueArray.push(totalCashWork); // เก็บเป็น number เหมือน generatePDFAudit
     }
   const pubDayCount = parseFloat(currentEmployee.publicHolidayCount || 0);
   const pubDayCash = parseFloat(currentEmployee.publicHolidayCash || 0);
@@ -1619,9 +1775,7 @@ const resultExtraCash = addSalaryList
      if (pubDayCount > 0) {
       textArray.push("วันหยุดนักขัตฤกษ์");
       countArray.push(pubDayCount.toString());
-      valueArray.push(
-      currentEmployee.publicHolidayCash
-      );
+      valueArray.push(currentEmployee.publicHolidayCash); // เก็บเป็น number
     }
 
 
@@ -1631,9 +1785,7 @@ const ot15Cash = parseFloat(currentEmployee.sumCashWorkMul?.["1.5"] || 0);
 if (ot15Hours > 0 && ot15Cash > 0) {
   textArray.push("ค่าล่วงเวลา 1.5 เท่า");
   countArray.push(ot15Hours.toFixed(2));
-  valueArray.push(
-    ot15Cash.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-  );
+  valueArray.push(ot15Cash); // เก็บเป็น number
 }
 
 
@@ -1643,9 +1795,7 @@ const ot2Cash = parseFloat(currentEmployee.sumCashWorkMul?.["2"] || 0);
 if (ot2Hours > 0 && ot2Cash > 0) {
   textArray.push("ค่าล่วงเวลา 2 เท่า");
   countArray.push(ot2Hours.toFixed(2));
-  valueArray.push(
-    ot2Cash.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-  );
+  valueArray.push(ot2Cash); // เก็บเป็น number
 }
 
 // ค่าล่วงเวลา 3 เท่า
@@ -1655,9 +1805,7 @@ const ot3Cash = parseFloat(currentEmployee.sumCashWorkMul?.["3"] || 0);
 if (ot3Hours > 0 && ot3Cash > 0) {
   textArray.push("ค่าล่วงเวลา 3 เท่า");
   countArray.push(ot3Hours.toFixed(2));
-  valueArray.push(
-    ot3Cash.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-  );
+  valueArray.push(ot3Cash); // เก็บเป็น number
 }
 
 
@@ -1665,17 +1813,13 @@ if (ot3Hours > 0 && ot3Cash > 0) {
     if (result.sumSpSalary > 0) {
       textArray.push(concatenatedNames);
       countArray.push("");
-      valueArray.push(
-        result.sumSpSalary.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-      );
+      valueArray.push(result.sumSpSalary); // เก็บเป็น number
     }
 
     if (resultExtraCash.sumSpSalary > 0) {
   textArray.push(concatenatedNamesExtraCash);
   countArray.push("");
-  valueArray.push(
-    resultExtraCash.sumSpSalary.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-  );
+  valueArray.push(resultExtraCash.sumSpSalary); // เก็บเป็น number
 }
 
   
@@ -1684,9 +1828,7 @@ if (ot3Hours > 0 && ot3Cash > 0) {
     if (sumAmountHardWorking > 0) {
       textArray.push("เบี้ยขยัน");
       countArray.push("");
-      valueArray.push(
-        sumAmountHardWorking.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-      );
+      valueArray.push(sumAmountHardWorking); // เก็บเป็น number
     }
 
 
@@ -1700,17 +1842,13 @@ if (ot3Hours > 0 && ot3Cash > 0) {
     if (sumAddSalaryFood > 0) {
       textArray.push("ค่าอาหาร");
       countArray.push("");
-      valueArray.push(
-        sumAddSalaryFood.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-      );
+      valueArray.push(sumAddSalaryFood); // เก็บเป็น number
     }
 
     if (sumAddSpecialCash > 0) {
       textArray.push("ค่าเงินพิเศษ");
       countArray.push("");
-      valueArray.push(
-        sumAddSpecialCash.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-      );
+      valueArray.push(sumAddSpecialCash); // เก็บเป็น number
     }
 
     // จ่ายชดเชยวันลา
@@ -1722,9 +1860,7 @@ if (ot3Hours > 0 && ot3Cash > 0) {
     if (totalSpSalaryCompensation > 0) {
       textArray.push("จ่ายชดเชยวันลา");
       countArray.push("");
-      valueArray.push(
-        totalSpSalaryCompensation.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-      );
+      valueArray.push(totalSpSalaryCompensation); // เก็บเป็น number
     }
 
     // รายการหัก (ใช้ข้อมูลที่แก้ไขแล้ว)
@@ -1824,8 +1960,11 @@ if (ot3Hours > 0 && ot3Cash > 0) {
     });
 
     let y3 = 44;
-    valueArray.forEach((text) => {
-      pdf.text(`${text}`, 92, y3, { align: "right" });
+    valueArray.forEach((value) => {
+      const formattedValue = typeof value === 'number' ? 
+        value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",") : 
+        value;
+      pdf.text(`${formattedValue}`, 92, y3, { align: "right" });
       y3 += 4.1;
     });
 
@@ -1847,17 +1986,11 @@ if (ot3Hours > 0 && ot3Cash > 0) {
       y5 += 4.1;
     });
 
-    // รวมรายได้ทั้งหมด
-    const incomeTotal = 
-      parseFloat(currentEmployee?.sumCashWork || '0') + 
-      parseFloat(currentEmployee?.sumCashOt || '0') +
-      parseFloat(currentEmployee?.publicHolidayCash || '0') + 
-      parseFloat(
-        currentEmployee?.addSalaryList?.reduce(
-          (total, item) => total + parseFloat(item.SpSalary || '0'),
-          0
-        ) || '0'
-      );
+    // รวมรายได้ทั้งหมด - ใช้ valueArray เหมือน generatePDFAudit
+    const incomeTotal = valueArray.reduce((sum, val) => {
+      const numVal = parseFloat(typeof val === 'string' ? val.replace(/,/g, '') : val);
+      return sum + (isNaN(numVal) ? 0 : numVal);
+    }, 0);
 
     pdf.text(
       `${incomeTotal.toLocaleString('th-TH', {
@@ -1869,8 +2002,11 @@ if (ot3Hours > 0 && ot3Cash > 0) {
       { align: "right" }
     );
 
-    // รวมเงินหัก
-    const totalDeductions = tax + socialSecurity + advance ;
+    // รวมเงินหัก - ใช้ valueDedustArray เหมือน generatePDFAudit
+    const totalDeductions = valueDedustArray.reduce((sum, val) => {
+      const numVal = parseFloat(typeof val === 'number' ? val : (typeof val === 'string' ? val.replace(/,/g, '') : val));
+      return sum + (isNaN(numVal) ? 0 : numVal);
+    }, 0);
     pdf.text(
       `${totalDeductions.toLocaleString('th-TH', {
         minimumFractionDigits: 2,
@@ -1969,8 +2105,8 @@ if (ot3Hours > 0 && ot3Cash > 0) {
       const currentWorkplaceId2 = employeeRecords2[0]?.workplaceId;
       pdf.text(`รหัส`, 7, head2);
       pdf.text(`ชื่อ-สกุล`, 30, head2);
-      pdf.text(`หน่วยงาน`, 80, head2);
-      pdf.text(`${currentWorkplaceId2 || ""}`, 93, head2);
+      pdf.text(`หน่วยงาน`, 75, head2);
+      pdf.text(`${currentWorkplaceId2 || ""}`, 89, head2);
 
       const workplace2 = workplaceList.find(
         (item) => item.workplaceId === currentWorkplaceId2
@@ -2350,7 +2486,7 @@ const generateExcel = async () => {
       // จ่ายชดเชย
       const excludedIdsPayCompensation = [
         "1231", "1233", "1422", "1423", "1428", "1434", 
-        "1435", "1429", "1427", "1234", "1426", "1425",
+        "1435", "1429", "1427", "1234", "1426", "1425", "1442",
       ];
       
       const addSalaryPayCompensationFiltered = addSalaryList
@@ -3142,7 +3278,7 @@ const generateExcel = async () => {
         // จ่ายชดเชย
         const excludedIdsPayCompensation = [
           "1231", "1233", "1422", "1423", "1428", "1434", 
-          "1435", "1429", "1427", "1234", "1426", "1425",
+          "1435", "1429", "1427", "1234", "1426", "1425", "1442",
         ];
         
         const addSalaryPayCompensationFiltered = addSalaryList
@@ -3720,6 +3856,7 @@ const generateExcel = async () => {
         "1234",
         "1426",
         "1425",
+        "1442",
       ];
 
       // Assuming responseDataAll[i].addSalary is an array of salary objects
@@ -3789,8 +3926,8 @@ const generateExcel = async () => {
 
       pdf.text(`รหัส`, 7, head);
       pdf.text(`ชื่อ-สกุล`, 40, head);
-      pdf.text(`หน่วยงาน`, 80, head);
-      pdf.text(`${responseDataAll[i].workplace}`, 93, head);
+      pdf.text(`หน่วยงาน`, 75, head);
+      pdf.text(`${responseDataAll[i].workplace}`, 89, head);
 
       const workplace = workplaceList.find(
         (item) => item.workplaceId === responseDataAll[i].workplace
@@ -4278,25 +4415,13 @@ const generateExcel = async () => {
           minimumFractionDigits: 2,
           maximumFractionDigits: 2,
         });
-      // setWsTotalSum((Number(wsAmountDay || 0 ) + Number(wsAmountOt || 0) + Number(wsTax || 0 ) + Number(wsAmountSpecialDay || 0) + Number(sumAddSalaryList || 0)).toFixed(2) || 0);
-
-      const amountDay =
-        parseFloat(responseDataAll[i].accountingRecord[0].amountDay) || 0;
-      const amountOt =
-        parseFloat(responseDataAll[i].accountingRecord[0].amountOt) || 0;
-      const sumAddSalary =
-        parseFloat(responseDataAll[i].accountingRecord[0].sumAddSalary) || 0;
-      const amountSpecialDay =
-        parseFloat(responseDataAll[i].addSalary.amountSpecialDay) || 0;
-      const specialDayRate = parseFloat(responseDataAll[i].specialDayRate) || 0;
-
-      // const sumAddSalaryList = parseFloat(responseDataAll[i].addSalary.sumAddSalaryList) || 0;sumAddSalary
-
-      // const sumSalary = amountDay + amountOt + sumAddSalary + specialDayRate;
-      const total =
-        parseFloat(responseDataAll[i].accountingRecord[0].total) || 0;
-
-      const sumSalary = total;
+      
+      // คำนวณรวมเงินได้จาก valueArray แทนการใช้ total จาก accountingRecord
+      const sumSalary = valueArray.reduce((sum, val) => {
+        const numVal = parseFloat(val.replace(/,/g, ''));
+        return sum + (isNaN(numVal) ? 0 : numVal);
+      }, 0);
+      
       pdf.text(
         `${sumSalary.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`,
         92,
@@ -4305,16 +4430,10 @@ const generateExcel = async () => {
       );
 
       //รวมเงินหัก
-
-      const tax = parseFloat(responseDataAll[i].accountingRecord[0].tax) || 0;
-      const socialSecurity =
-        parseFloat(responseDataAll[i].accountingRecord[0].socialSecurity) || 0;
-      // const advancePayment2 = parseFloat(advancePayment) || 0;
-
-      // const sumAddSalary = parseFloat(responseDataAll[i].addSalary[0].sumAddSalary) || 0;
-
-      // const sumDeductSalary = advancePayment2 + tax + socialSecurity;
-      const sumDeductSalary = tax + socialSecurity;
+      const sumDeductSalary = valueDedustArray.reduce((sum, val) => {
+        const numVal = parseFloat(val.replace(/,/g, ''));
+        return sum + (isNaN(numVal) ? 0 : numVal);
+      }, 0);
 
       pdf.text(
         `${sumDeductSalary.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`,
@@ -4446,6 +4565,7 @@ const generateExcel = async () => {
           "1234",
           "1426",
           "1425",
+          "1442",
         ];
 
         // Assuming responseDataAll[i].addSalary is an array of salary objects
@@ -4827,8 +4947,8 @@ const generateExcel = async () => {
 
         pdf.text(`รหัส`, 7, head2);
         pdf.text(`ชื่อ-สกุล`, 40, head2);
-        pdf.text(`หน่วยงาน`, 80, head2);
-        pdf.text(`${responseDataAll[i + 1].workplace}`, 93, head2);
+        pdf.text(`หน่วยงาน`, 75, head2);
+        pdf.text(`${responseDataAll[i + 1].workplace}`, 89, head2);
 
         const workplace = workplaceList.find(
           (item) => item.workplaceId === responseDataAll[i + 1].workplace
@@ -5046,12 +5166,20 @@ const generateExcel = async () => {
   };
   
   return (
-    // <body class="hold-transition sidebar-mini" className="editlaout">
-    //   <div class="wrapper">
-    //     <div class="content-wrapper">
     <div className="hold-transition sidebar-mini editlaout">
     <div className="wrapper">
       <div className="content-wrapper">
+
+        {/* Loading Overlay */}
+        {isLoadingData && (
+          <div className="loading-overlay">
+            <div className="loading-content">
+              <div className="loading-spinner"></div>
+              <div className="loading-text">กำลังโหลดข้อมูล<span className="loading-dots"></span></div>
+              <div className="loading-subtext">กรุณารอสักครู่</div>
+            </div>
+          </div>
+        )}
 
           {/* <!-- Content Header (Page header) --> */}
           <ol class="breadcrumb">
@@ -5141,6 +5269,26 @@ const generateExcel = async () => {
                             ))}
                           </datalist>
                         </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                          <button
+                            type="button"
+                            className="btn btn-primary"
+                            onClick={handleSearchData}
+                            disabled={isLoadingData || !workplacrId}
+                          >
+                            {isLoadingData ? (
+                              <>
+                                <i className="fas fa-spinner fa-spin me-1"></i>
+                                กำลังค้นหา...
+                              </>
+                            ) : (
+                              <>
+                                <i className="fas fa-search me-1"></i>
+                                ค้นหาข้อมูล
+                              </>
+                            )}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -5192,6 +5340,27 @@ const generateExcel = async () => {
                               />
                             ))}
                           </datalist>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                          <button
+                            type="button"
+                            className={`btn btn-primary ${isLoadingData ? 'btn-loading' : ''}`}
+                            onClick={handleSearchData}
+                            disabled={isLoadingData || (!staffId.trim() && !staffFullName.trim())}
+                            style={{ height: '38px' }}
+                          >
+                            {isLoadingData ? (
+                              <>
+                                <i className="fas fa-spinner fa-spin me-2"></i>
+                                ค้นหา...
+                              </>
+                            ) : (
+                              <>
+                                <i className="fas fa-search me-2"></i>
+                                ค้นหาข้อมูล
+                              </>
+                            )}
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -5314,6 +5483,48 @@ const generateExcel = async () => {
                     </div>
                   </div>
                 </div>
+
+                {/* Data Loading State */}
+                {isLoadingData && (
+                  <div className="data-loading-card">
+                    <div className="data-loading-icon"></div>
+                    <div className="data-loading-title">กำลังโหลดข้อมูลเงินเดือน</div>
+                    <div className="data-loading-subtitle">กรุณารอสักครู่...</div>
+                    <div className="data-loading-progress">
+                      <div className="data-loading-progress-bar"></div>
+                    </div>
+                    <small className="text-muted">
+                      <i className="fas fa-info-circle me-1"></i>
+                      กำลังประมวลผลข้อมูลจากฐานข้อมูล
+                    </small>
+                  </div>
+                )}
+
+                {/* Data Status Display */}
+                {!isLoadingData && (
+                  <div className="row mb-3">
+                    <div className="col-md-12">
+                      {responseDataAll && responseDataAll.length > 0 ? (
+                        <div className="alert alert-success">
+                          <i className="fas fa-check-circle me-2"></i>
+                          พบข้อมูลเงินเดือน <strong>{responseDataAll.length}</strong> รายการ
+                          {selectedOption === "option1" && workplacrName && (
+                            <span> สำหรับหน่วยงาน <strong>{workplacrName}</strong></span>
+                          )}
+                          {selectedOption === "option2" && staffFullName && (
+                            <span> สำหรับพนักงาน <strong>{staffFullName}</strong></span>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="alert alert-warning">
+                          <i className="fas fa-exclamation-triangle me-2"></i>
+                          ไม่พบข้อมูลเงินเดือน กรุณาเลือกเงื่อนไขการค้นหา
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 <div class="row">
                       {/* <div class="col-md-0">
                     <button 
@@ -5333,19 +5544,27 @@ const generateExcel = async () => {
                         generatePDF();
                       }} 
                       class="btn b_save"
-                      disabled={isGeneratingPDF || !responseDataAll || responseDataAll.length === 0}
+                      disabled={isGeneratingPDF || isLoadingData || !responseDataAll || responseDataAll.length === 0}
                     >
                       {isGeneratingPDF ? (
                         <>
                           <i className="fas fa-spinner fa-spin me-1"></i>
                           กำลังสร้างสลิป...
                         </>
+                      ) : isLoadingData ? (
+                        <>
+                          <i className="fas fa-clock me-1"></i>
+                          รอข้อมูล...
+                        </>
                       ) : (
-                        selectedOption === "option1"
-                          ? "ออกสลิป"
-                          : selectedOption === "option2"
+                        <>
+                          <i className="fas fa-file-pdf me-1"></i>
+                          {selectedOption === "option1"
                             ? "ออกสลิป"
-                            : ""
+                            : selectedOption === "option2"
+                              ? "ออกสลิป"
+                              : ""}
+                        </>
                       )}
                     </button>
                     </div>

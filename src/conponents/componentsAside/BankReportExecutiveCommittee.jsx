@@ -1,3 +1,4 @@
+
 import endpoint from "../../config";
 import axios from "axios";
 import { useEffect, useState, Suspense, lazy,useMemo } from "react";
@@ -28,7 +29,7 @@ Font.register({
   ]
 });
 
-function BankReport({ employeeList, workplaceList }) {
+function bankReportExecutiveCommittee({ employeeList, workplaceList }) {
 
   const filteredEmployeeList = useMemo(() => {
     if (!employeeList || !Array.isArray(employeeList)) {
@@ -66,6 +67,10 @@ const [timeRecordData, setTimeRecordData] = useState([]);
   const [isPhangD3Checked, setIsPhangD3Checked] = useState(false);
   const [isPhangD1Checked, setIsPhangD1Checked] = useState(false);
   
+  // State สำหรับ checkbox ผู้บริหาร
+  const [isExecutiveCommittee1001Checked, setIsExecutiveCommittee1001Checked] = useState(false);
+  const [isExecutiveCommittee1001_1Checked, setIsExecutiveCommittee1001_1Checked] = useState(false);
+  
   // ฟังก์ชันจัดการการเปลี่ยนแปลง checkbox
   const handlePhangD3Change = (e) => {
     setIsPhangD3Checked(e.target.checked);
@@ -77,6 +82,23 @@ const [timeRecordData, setTimeRecordData] = useState([]);
   
   const handlePhangD1Change = (e) => {
     setIsPhangD1Checked(e.target.checked);
+    // ทำการกรองข้อมูลใหม่
+    if (selectedBank) {
+      handleChange({ target: { value: selectedBank } });
+    }
+  };
+
+  // ฟังก์ชันจัดการ checkbox ผู้บริหาร
+  const handleExecutiveCommittee1001Change = (e) => {
+    setIsExecutiveCommittee1001Checked(e.target.checked);
+    // ทำการกรองข้อมูลใหม่
+    if (selectedBank) {
+      handleChange({ target: { value: selectedBank } });
+    }
+  };
+
+  const handleExecutiveCommittee1001_1Change = (e) => {
+    setIsExecutiveCommittee1001_1Checked(e.target.checked);
     // ทำการกรองข้อมูลใหม่
     if (selectedBank) {
       handleChange({ target: { value: selectedBank } });
@@ -226,6 +248,9 @@ useEffect(() => {
       return;
     }
     
+    // เริ่มแสดงสถานะกำลังโหลด
+    setIsLoading(true);
+    
     try {
       // แสดง log เพื่อตรวจสอบการส่งค่า
       console.log("กำลังดึงข้อมูล timerecord สำหรับปี", year, "เดือน", month);
@@ -266,20 +291,38 @@ useEffect(() => {
               return empSalaryBank !== "";
             });
             
-            // เพิ่มเงื่อนไขการกรองตาม costtype
-            if (isPhangD3Checked || isPhangD1Checked) {
+            // เพิ่มเงื่อนไขการกรองตาม costtype และ workplace
+            if (isPhangD3Checked || isPhangD1Checked || isExecutiveCommittee1001Checked || isExecutiveCommittee1001_1Checked) {
               employeesWithBank = employeesWithBank.filter(employee => {
-                if (isPhangD3Checked && isPhangD1Checked) {
-                  // ถ้าเลือกทั้งสอง ให้แสดงทั้ง ภ.ง.ด.3 และ ภ.ง.ด.1
-                  return employee.costtype === "ภ.ง.ด.3" || employee.costtype === "ภ.ง.ด.1";
-                } else if (isPhangD3Checked) {
-                  // ถ้าเลือกเฉพาะ ภ.ง.ด.3
-                  return employee.costtype === "ภ.ง.ด.3";
-                } else if (isPhangD1Checked) {
-                  // ถ้าเลือกเฉพาะ ภ.ง.ด.1
-                  return employee.costtype === "ภ.ง.ด.1";
+                let shouldInclude = true;
+                
+                // กรองตาม costtype (ภ.ง.ด)
+                if (isPhangD3Checked || isPhangD1Checked) {
+                  if (isPhangD3Checked && isPhangD1Checked) {
+                    // ถ้าเลือกทั้งสอง ให้แสดงทั้ง ภ.ง.ด.3 และ ภ.ง.ด.1
+                    shouldInclude = shouldInclude && (employee.costtype === "ภ.ง.ด.3" || employee.costtype === "ภ.ง.ด.1");
+                  } else if (isPhangD3Checked) {
+                    // ถ้าเลือกเฉพาะ ภ.ง.ด.3
+                    shouldInclude = shouldInclude && (employee.costtype === "ภ.ง.ด.3");
+                  } else if (isPhangD1Checked) {
+                    // ถ้าเลือกเฉพาะ ภ.ง.ด.1
+                    shouldInclude = shouldInclude && (employee.costtype === "ภ.ง.ด.1");
+                  }
                 }
-                return true;
+                
+                // กรองตาม workplace (ผู้บริหาร)
+                if (isExecutiveCommittee1001Checked || isExecutiveCommittee1001_1Checked) {
+                  let workplaceMatch = false;
+                  if (isExecutiveCommittee1001Checked && employee.workplace === "1001") {
+                    workplaceMatch = true;
+                  }
+                  if (isExecutiveCommittee1001_1Checked && employee.workplace === "1001(1)") {
+                    workplaceMatch = true;
+                  }
+                  shouldInclude = shouldInclude && workplaceMatch;
+                }
+                
+                return shouldInclude;
               });
             }
             
@@ -288,9 +331,43 @@ useEffect(() => {
             // กรองข้อมูล timerecord ตามพนักงานที่มีธนาคาร
             const employeeIds = employeesWithBank.map(emp => emp.employeeId);
             
-            const filteredByDateAndBank = filteredData.filter(record => {
+            let filteredByDateAndBank = filteredData.filter(record => {
               return employeeIds.includes(record.employeeId);
             });
+            
+            // เพิ่มการกรองตาม workplace สำหรับผู้บริหาร
+            if (isExecutiveCommittee1001Checked || isExecutiveCommittee1001_1Checked) {
+              console.log("กำลังกรองตาม workplace สำหรับผู้บริหาร...");
+              console.log("ข้อมูลก่อนกรอง workplace:", filteredByDateAndBank.length, "คน");
+              
+              filteredByDateAndBank = filteredByDateAndBank.filter(record => {
+                const employee = employeesWithBank.find(emp => emp.employeeId === record.employeeId);
+                if (!employee) {
+                  console.log(`ไม่พบข้อมูลพนักงาน employeeId: ${record.employeeId}`);
+                  return false;
+                }
+                
+                console.log(`พนักงาน ${employee.name} (${employee.employeeId}) มี workplace: ${employee.workplace}`);
+                
+                let workplaceMatch = false;
+                if (isExecutiveCommittee1001Checked && employee.workplace === "1001") {
+                  workplaceMatch = true;
+                  console.log(`✓ ตรงกับเงื่อนไข ผู้บริหาร1001`);
+                }
+                if (isExecutiveCommittee1001_1Checked && employee.workplace === "1001(1)") {
+                  workplaceMatch = true;
+                  console.log(`✓ ตรงกับเงื่อนไข ผู้บริหาร1001(1)`);
+                }
+                
+                if (!workplaceMatch) {
+                  console.log(`✗ ไม่ตรงเงื่อนไข workplace`);
+                }
+                
+                return workplaceMatch;
+              });
+              
+              console.log("ข้อมูลหลังกรอง workplace:", filteredByDateAndBank.length, "คน");
+            }
             
             setFilteredByBankAndDate(filteredByDateAndBank);
             
@@ -358,20 +435,38 @@ useEffect(() => {
               return empSalaryBank === selectedBankTrimmed;
             });
             
-            // เพิ่มเงื่อนไขการกรองตาม costtype
-            if (isPhangD3Checked || isPhangD1Checked) {
+            // เพิ่มเงื่อนไขการกรองตาม costtype และ workplaceId
+            if (isPhangD3Checked || isPhangD1Checked || isExecutiveCommittee1001Checked || isExecutiveCommittee1001_1Checked) {
               filteredByBank = filteredByBank.filter(employee => {
-                if (isPhangD3Checked && isPhangD1Checked) {
-                  // ถ้าเลือกทั้งสอง ให้แสดงทั้ง ภ.ง.ด.3 และ ภ.ง.ด.1
-                  return employee.costtype === "ภ.ง.ด.3" || employee.costtype === "ภ.ง.ด.1";
-                } else if (isPhangD3Checked) {
-                  // ถ้าเลือกเฉพาะ ภ.ง.ด.3
-                  return employee.costtype === "ภ.ง.ด.3";
-                } else if (isPhangD1Checked) {
-                  // ถ้าเลือกเฉพาะ ภ.ง.ด.1
-                  return employee.costtype === "ภ.ง.ด.1";
+                let shouldInclude = true;
+                
+                // กรองตาม costtype (ภ.ง.ด)
+                if (isPhangD3Checked || isPhangD1Checked) {
+                  if (isPhangD3Checked && isPhangD1Checked) {
+                    // ถ้าเลือกทั้งสอง ให้แสดงทั้ง ภ.ง.ด.3 และ ภ.ง.ด.1
+                    shouldInclude = shouldInclude && (employee.costtype === "ภ.ง.ด.3" || employee.costtype === "ภ.ง.ด.1");
+                  } else if (isPhangD3Checked) {
+                    // ถ้าเลือกเฉพาะ ภ.ง.ด.3
+                    shouldInclude = shouldInclude && (employee.costtype === "ภ.ง.ด.3");
+                  } else if (isPhangD1Checked) {
+                    // ถ้าเลือกเฉพาะ ภ.ง.ด.1
+                    shouldInclude = shouldInclude && (employee.costtype === "ภ.ง.ด.1");
+                  }
                 }
-                return true;
+                
+                // กรองตาม workplace (ผู้บริหาร)
+                if (isExecutiveCommittee1001Checked || isExecutiveCommittee1001_1Checked) {
+                  let workplaceMatch = false;
+                  if (isExecutiveCommittee1001Checked && employee.workplace === "1001") {
+                    workplaceMatch = true;
+                  }
+                  if (isExecutiveCommittee1001_1Checked && employee.workplace === "1001(1)") {
+                    workplaceMatch = true;
+                  }
+                  shouldInclude = shouldInclude && workplaceMatch;
+                }
+                
+                return shouldInclude;
               });
             }
             
@@ -386,11 +481,46 @@ useEffect(() => {
               
               // กรองข้อมูล timerecord เฉพาะพนักงานที่มีธนาคารตรงกับที่เลือก
               // กรองข้อมูล timerecord เฉพาะพนักงานที่มีธนาคารตรงกับที่เลือก
-const filteredByBankAndDate = filteredData.filter(record => {
-  // ตรวจสอบว่า employeeId ของ record อยู่ในรายการ employeeIds หรือไม่
-  return employeeIds.includes(record.employeeId);
-});
-  setFilteredByBankAndDate(filteredByBankAndDate);
+            let filteredByBankAndDate = filteredData.filter(record => {
+              // ตรวจสอบว่า employeeId ของ record อยู่ในรายการ employeeIds หรือไม่
+              return employeeIds.includes(record.employeeId);
+            });
+            
+            // เพิ่มการกรองตาม workplace สำหรับผู้บริหาร
+            if (isExecutiveCommittee1001Checked || isExecutiveCommittee1001_1Checked) {
+              console.log("กำลังกรองตาม workplace สำหรับผู้บริหาร (ธนาคารเฉพาะ)...");
+              console.log("ข้อมูลก่อนกรอง workplace:", filteredByBankAndDate.length, "คน");
+              
+              filteredByBankAndDate = filteredByBankAndDate.filter(record => {
+                const employee = filteredByBank.find(emp => emp.employeeId === record.employeeId);
+                if (!employee) {
+                  console.log(`ไม่พบข้อมูลพนักงาน employeeId: ${record.employeeId}`);
+                  return false;
+                }
+                
+                console.log(`พนักงาน ${employee.name} (${employee.employeeId}) มี workplace: ${employee.workplace}`);
+                
+                let workplaceMatch = false;
+                if (isExecutiveCommittee1001Checked && employee.workplace === "1001") {
+                  workplaceMatch = true;
+                  console.log(`✓ ตรงกับเงื่อนไข ผู้บริหาร1001`);
+                }
+                if (isExecutiveCommittee1001_1Checked && employee.workplace === "1001(1)") {
+                  workplaceMatch = true;
+                  console.log(`✓ ตรงกับเงื่อนไข ผู้บริหาร1001(1)`);
+                }
+                
+                if (!workplaceMatch) {
+                  console.log(`✗ ไม่ตรงเงื่อนไข workplace`);
+                }
+                
+                return workplaceMatch;
+              });
+              
+              console.log("ข้อมูลหลังกรอง workplace:", filteredByBankAndDate.length, "คน");
+            }
+            
+            setFilteredByBankAndDate(filteredByBankAndDate);
 
   // เพิ่มฟังก์ชันนี้ใน useEffect หลังจากได้ filteredByBankAndDate
 const fetchEmployeeDetails = async () => {
@@ -493,11 +623,12 @@ console.table(simplifiedData); // แสดงในรูปแบบตาร�
       }
     } catch (error) {
       console.error("เกิดข้อผิดพลาดในการดึงข้อมูล timerecord:", error);
+      setIsLoading(false); // หยุดการโหลดเมื่อเกิดข้อผิดพลาด
     }
   };
 
   fetchTimeRecordData();
-}, [year, month, selectedBank, dataAccounting, isPhangD3Checked, isPhangD1Checked]);
+}, [year, month, selectedBank, dataAccounting, isPhangD3Checked, isPhangD1Checked, isExecutiveCommittee1001Checked, isExecutiveCommittee1001_1Checked]);
 // แก้ไขฟังก์ชัน handleChange เพื่อกรองข้อมูลเมื่อมีการเลือกธนาคาร
 // แก้ไขฟังก์ชัน handleChange เพื่อกรองข้อมูลตามธนาคารที่เลือก
 const handleChange = async (event) => {
@@ -526,20 +657,38 @@ const handleChange = async (event) => {
           return empSalaryBank !== "";
         });
         
-        // เพิ่มเงื่อนไขการกรองตาม costtype
-        if (isPhangD3Checked || isPhangD1Checked) {
+        // เพิ่มเงื่อนไขการกรองตาม costtype และ workplaceId
+        if (isPhangD3Checked || isPhangD1Checked || isExecutiveCommittee1001Checked || isExecutiveCommittee1001_1Checked) {
           filteredEmployees = filteredEmployees.filter(employee => {
-            if (isPhangD3Checked && isPhangD1Checked) {
-              // ถ้าเลือกทั้งสอง ให้แสดงทั้ง ภ.ง.ด.3 และ ภ.ง.ด.1
-              return employee.costtype === "ภ.ง.ด.3" || employee.costtype === "ภ.ง.ด.1";
-            } else if (isPhangD3Checked) {
-              // ถ้าเลือกเฉพาะ ภ.ง.ด.3
-              return employee.costtype === "ภ.ง.ด.3";
-            } else if (isPhangD1Checked) {
-              // ถ้าเลือกเฉพาะ ภ.ง.ด.1
-              return employee.costtype === "ภ.ง.ด.1";
+            let shouldInclude = true;
+            
+            // กรองตาม costtype (ภ.ง.ด)
+            if (isPhangD3Checked || isPhangD1Checked) {
+              if (isPhangD3Checked && isPhangD1Checked) {
+                // ถ้าเลือกทั้งสอง ให้แสดงทั้ง ภ.ง.ด.3 และ ภ.ง.ด.1
+                shouldInclude = shouldInclude && (employee.costtype === "ภ.ง.ด.3" || employee.costtype === "ภ.ง.ด.1");
+              } else if (isPhangD3Checked) {
+                // ถ้าเลือกเฉพาะ ภ.ง.ด.3
+                shouldInclude = shouldInclude && (employee.costtype === "ภ.ง.ด.3");
+              } else if (isPhangD1Checked) {
+                // ถ้าเลือกเฉพาะ ภ.ง.ด.1
+                shouldInclude = shouldInclude && (employee.costtype === "ภ.ง.ด.1");
+              }
             }
-            return true;
+            
+            // กรองตาม workplaceId (ผู้บริหาร)
+            if (isExecutiveCommittee1001Checked || isExecutiveCommittee1001_1Checked) {
+              let workplaceMatch = false;
+              if (isExecutiveCommittee1001Checked && employee.workplaceId === "1001") {
+                workplaceMatch = true;
+              }
+              if (isExecutiveCommittee1001_1Checked && employee.workplaceId === "1001(1)") {
+                workplaceMatch = true;
+              }
+              shouldInclude = shouldInclude && workplaceMatch;
+            }
+            
+            return shouldInclude;
           });
         }
         
@@ -611,20 +760,38 @@ const handleChange = async (event) => {
           return empSalaryBank === selectedValue;
         });
         
-        // เพิ่มเงื่อนไขการกรองตาม costtype
-        if (isPhangD3Checked || isPhangD1Checked) {
+        // เพิ่มเงื่อนไขการกรองตาม costtype และ workplace (handleChange - all banks)
+        if (isPhangD3Checked || isPhangD1Checked || isExecutiveCommittee1001Checked || isExecutiveCommittee1001_1Checked) {
           filteredEmployees = filteredEmployees.filter(employee => {
-            if (isPhangD3Checked && isPhangD1Checked) {
-              // ถ้าเลือกทั้งสอง ให้แสดงทั้ง ภ.ง.ด.3 และ ภ.ง.ด.1
-              return employee.costtype === "ภ.ง.ด.3" || employee.costtype === "ภ.ง.ด.1";
-            } else if (isPhangD3Checked) {
-              // ถ้าเลือกเฉพาะ ภ.ง.ด.3
-              return employee.costtype === "ภ.ง.ด.3";
-            } else if (isPhangD1Checked) {
-              // ถ้าเลือกเฉพาะ ภ.ง.ด.1
-              return employee.costtype === "ภ.ง.ด.1";
+            let shouldInclude = true;
+            
+            // กรองตาม costtype (ภ.ง.ด)
+            if (isPhangD3Checked || isPhangD1Checked) {
+              if (isPhangD3Checked && isPhangD1Checked) {
+                // ถ้าเลือกทั้งสอง ให้แสดงทั้ง ภ.ง.ด.3 และ ภ.ง.ด.1
+                shouldInclude = shouldInclude && (employee.costtype === "ภ.ง.ด.3" || employee.costtype === "ภ.ง.ด.1");
+              } else if (isPhangD3Checked) {
+                // ถ้าเลือกเฉพาะ ภ.ง.ด.3
+                shouldInclude = shouldInclude && (employee.costtype === "ภ.ง.ด.3");
+              } else if (isPhangD1Checked) {
+                // ถ้าเลือกเฉพาะ ภ.ง.ด.1
+                shouldInclude = shouldInclude && (employee.costtype === "ภ.ง.ด.1");
+              }
             }
-            return true;
+            
+            // กรองตาม workplace (ผู้บริหาร)
+            if (isExecutiveCommittee1001Checked || isExecutiveCommittee1001_1Checked) {
+              let workplaceMatch = false;
+              if (isExecutiveCommittee1001Checked && employee.workplace === "1001") {
+                workplaceMatch = true;
+              }
+              if (isExecutiveCommittee1001_1Checked && employee.workplace === "1001(1)") {
+                workplaceMatch = true;
+              }
+              shouldInclude = shouldInclude && workplaceMatch;
+            }
+            
+            return shouldInclude;
           });
         }
         
@@ -1196,6 +1363,46 @@ const BankReportPDF = () => {
   <div className="hold-transition sidebar-mini editlaout">
     <div className="wrapper">
       <div className="content-wrapper">
+        {/* Loading Overlay */}
+        {isLoading && (
+          <div 
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              zIndex: 9999,
+              flexDirection: 'column'
+            }}
+          >
+            <div 
+              style={{
+                width: '60px',
+                height: '60px',
+                border: '6px solid #f3f3f3',
+                borderTop: '6px solid #007bff',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite',
+                marginBottom: '20px'
+              }}
+            ></div>
+            <p style={{ color: 'white', fontSize: '18px', fontWeight: 'bold' }}>
+              กำลังโหลดข้อมูล...
+            </p>
+            <style jsx>{`
+              @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
+            `}</style>
+          </div>
+        )}
+        
         {/* <!-- Content Header (Page header) --> */}
         <ol className="breadcrumb">
           <li className="breadcrumb-item">
@@ -1390,6 +1597,30 @@ const BankReportPDF = () => {
                           <span className="checkmark"></span>
                           <span className="checkbox-label">ภ.ง.ด.1</span>
                         </label>
+                        <br />
+                        <br />
+                        <div>
+                            <label className="custom-checkbox">
+                          <input
+                            type="checkbox"
+                            id="executiveCommittee1001"
+                            checked={isExecutiveCommittee1001Checked}
+                            onChange={handleExecutiveCommittee1001Change}
+                          />
+                          <span className="checkmark"></span>
+                          <span className="checkbox-label">ผู้บริหาร1001</span>
+                        </label>
+                         <label className="custom-checkbox">
+                          <input
+                            type="checkbox"
+                            id="executiveCommittee1001(1)"
+                            checked={isExecutiveCommittee1001_1Checked}
+                            onChange={handleExecutiveCommittee1001_1Change}
+                          />
+                          <span className="checkmark"></span>
+                          <span className="checkbox-label">ผู้บริหาร1001(1)</span>
+                        </label>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1551,13 +1782,60 @@ const BankReportPDF = () => {
         onClick={handlePreviewPDF}
         className="btn b_save "
         disabled={isLoading}
+        style={{
+          opacity: isLoading ? 0.6 : 1,
+          cursor: isLoading ? 'not-allowed' : 'pointer'
+        }}
       >
-        {isLoading ? "กำลังสร้างไฟล์..." : "ออกรายงานธนาคาร"}
+        {isLoading ? (
+          <>
+            <span 
+              style={{
+                display: 'inline-block',
+                width: '16px',
+                height: '16px',
+                border: '2px solid #ffffff',
+                borderTop: '2px solid transparent',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite',
+                marginRight: '8px'
+              }}
+            ></span>
+            กำลังสร้างไฟล์...
+          </>
+        ) : (
+          "ออกรายงานธนาคาร"
+        )}
       </button>
                 </div>
                 <div className="col-md-3">
-                  <button className="btn b_save">
-                    ออกรายงานธนาคาร(ออดิท)
+                  <button 
+                    className="btn b_save"
+                    disabled={isLoading}
+                    style={{
+                      opacity: isLoading ? 0.6 : 1,
+                      cursor: isLoading ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    {isLoading ? (
+                      <>
+                        <span 
+                          style={{
+                            display: 'inline-block',
+                            width: '16px',
+                            height: '16px',
+                            border: '2px solid #ffffff',
+                            borderTop: '2px solid transparent',
+                            borderRadius: '50%',
+                            animation: 'spin 1s linear infinite',
+                            marginRight: '8px'
+                          }}
+                        ></span>
+                        กำลังประมวลผล...
+                      </>
+                    ) : (
+                      "ออกรายงานธนาคาร(ออดิท)"
+                    )}
                   </button>
 
 
@@ -1565,6 +1843,99 @@ const BankReportPDF = () => {
                 
               </div>
               <br />
+              
+              <div className="row">
+                <div className="col-md-12">
+                  {/* แสดงสถานะการโหลดแบบ inline */}
+                  {isLoading && (
+                    <div 
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '20px',
+                        backgroundColor: '#f8f9fa',
+                        border: '1px solid #dee2e6',
+                        borderRadius: '5px',
+                        marginBottom: '20px'
+                      }}
+                    >
+                      <div 
+                        style={{
+                          width: '30px',
+                          height: '30px',
+                          border: '3px solid #f3f3f3',
+                          borderTop: '3px solid #007bff',
+                          borderRadius: '50%',
+                          animation: 'spin 1s linear infinite',
+                          marginRight: '15px'
+                        }}
+                      ></div>
+                      <div>
+                        <strong>กำลังประมวลผลข้อมูล...</strong>
+                        <br />
+                        <small className="text-muted">
+                          กรุณารอสักครู่ ระบบกำลังดึงข้อมูลพนักงานและประมวลผลรายงาน
+                        </small>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* แสดงสถิติข้อมูลเมื่อโหลดเสร็จ */}
+                  {!isLoading && completeEmployeeData && completeEmployeeData.length > 0 && (
+                    <div 
+                      style={{
+                        padding: '15px',
+                        backgroundColor: '#d4edda', 
+                        border: '1px solid #c3e6cb',
+                        borderRadius: '5px',
+                        marginBottom: '20px',
+                        color: '#155724'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <span style={{ marginRight: '10px', fontSize: '18px' }}>✅</span>
+                        <div>
+                          <strong>ข้อมูลพร้อมใช้งาน</strong>
+                          <br />
+                          <small>
+                            พบข้อมูลพนักงาน {completeEmployeeData.length} คน 
+                            {selectedBank && selectedBank !== "Null" ? ` ธนาคาร: ${selectedBank}` : " (ทุกธนาคาร)"}
+                            {" "}สำหรับเดือน {month} ปี {year}
+                          </small>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* แสดงข้อความเมื่อไม่มีข้อมูล */}
+                  {!isLoading && (!completeEmployeeData || completeEmployeeData.length === 0) && (month && year) && (
+                    <div 
+                      style={{
+                        padding: '15px',
+                        backgroundColor: '#fff3cd',
+                        border: '1px solid #ffeaa7',
+                        borderRadius: '5px',
+                        marginBottom: '20px',
+                        color: '#856404'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <span style={{ marginRight: '10px', fontSize: '18px' }}>⚠️</span>
+                        <div>
+                          <strong>ไม่พบข้อมูล</strong>
+                          <br />
+                          <small>
+                            ไม่พบข้อมูลพนักงานที่ตรงตามเงื่อนไขที่เลือก 
+                            {selectedBank && selectedBank !== "Null" ? ` ธนาคาร: ${selectedBank}` : ""}
+                            {" "}สำหรับเดือน {month} ปี {year}
+                          </small>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
               
               
               {/* เพิ่มส่วนแสดงตัวอย่าง PDF */}
@@ -1595,4 +1966,4 @@ const BankReportPDF = () => {
 );
 }
 
-export default BankReport;
+export default bankReportExecutiveCommittee;

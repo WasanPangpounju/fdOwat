@@ -1,15 +1,7 @@
 import endpoint from '../../config';
-
 import axios from 'axios';
 import React, { useEffect, useState } from 'react';
-
-import DatePicker from 'react-datepicker';
-import 'react-datepicker/dist/react-datepicker.css';
-
-import EmployeesSelected from './EmployeesSelected';
 import '../editwindowcss.css';
-
-import Calendar from 'react-calendar';
 
 
 function SystemUser() {
@@ -28,54 +20,91 @@ function SystemUser() {
     function onEmployeeSelect(empSelect) {
         alert(empSelect.dateOfBirth);
         setEmployeeselection(empSelect);
-        setEmployeeId(empSelect.employeeId);
-        setPosition(empSelect.position);
-        setDepartment(empSelect.department);
-        setWorkplace(empSelect.workplace);
-        setJobtype(empSelect.jobtype);
-        setStartjob(new Date(empSelect.startjob));
-        setExceptjob(new Date(empSelect.exceptjob));
-        setPrefix(empSelect.prefix);
-        setName(empSelect.name);
-        setLastName(empSelect.lastName);
-        setNickName(empSelect.nickName);
-        setGender(empSelect.gender);
-
-        setDateOfBirth(new Date(empSelect.dateOfBirth));
-        setAge(empSelect.age);
-        setIdCard(empSelect.idCard);
-        setEthnicity(empSelect.ethnicity);
-        setReligion(empSelect.religion);
-        setMaritalStatus(empSelect.maritalStatus);
-        setMilitaryStatus(empSelect.militaryStatus);
-        setAddress(empSelect.address);
-        setCurrentAddress(empSelect.currentAddress);
-        setPhoneNumber(empSelect.phoneNumber);
-        setEmergencyContactNumber(empSelect.emergencyContactNumber);
-        setIdLine(empSelect.idLine);
-        setVaccination(empSelect.vaccination);
-        setTreatmentRights(empSelect.treatmentRights);
-
+        // Note: Employee selection is not used in user creation
+        // This function seems to be inherited from another component
     }
 
     async function handleRegister(event) {
         event.preventDefault();
 
+        // Validate required fields
+        if (!name.trim()) {
+            alert('กรุณากรอกชื่อ');
+            return;
+        }
+        if (!email.trim()) {
+            alert('กรุณากรอก Email');
+            return;
+        }
+        if (!username.trim()) {
+            alert('กรุณากรอก Username');
+            return;
+        }
+        if (!password.trim()) {
+            alert('กรุณากรอก Password');
+            return;
+        }
+        if (!role) {
+            alert('กรุณาเลือก Role');
+            return;
+        }
+
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            alert('รูปแบบ Email ไม่ถูกต้อง');
+            return;
+        }
+
         const data = {
-            name: name,
-            email: email,
-            username: username,
+            name: name.trim(),
+            email: email.trim().toLowerCase(),
+            username: username.trim(),
             password: password,
             role: role,
         };
 
+        console.log('Sending data:', data); // Debug log
 
         //check create or update Employee
         if (newEmp) {
             try {
                 const response = await axios.post(endpoint + '/users/create', data);
+                console.log('Success:', response.data);
+                alert('เพิ่มผู้ใช้งานสำเร็จ');
+                
+                // Reset form
+                setName('');
+                setEmail('');
+                setUsername('');
+                setPassword('');
+                setRole('');
+                
+                // Refresh users list by fetching again
+                const usersResponse = await fetch(endpoint + '/users/list');
+                if (usersResponse.ok) {
+                    const usersData = await usersResponse.json();
+                    setUsers(usersData);
+                }
+                
             } catch (error) {
-                alert('กรุณาตรวจสอบข้อมูลในช่องกรอกข้อมูล');
+                console.error('Error creating user:', error);
+                if (error.response && error.response.data && error.response.data.error) {
+                    const errorMessage = error.response.data.error;
+                    if (errorMessage.includes('duplicate key error') || errorMessage.includes('E11000')) {
+                        if (errorMessage.includes('email')) {
+                            alert('Email นี้มีอยู่ในระบบแล้ว กรุณาใช้ Email อื่น');
+                        } else if (errorMessage.includes('username')) {
+                            alert('Username นี้มีอยู่ในระบบแล้ว กรุณาใช้ Username อื่น');
+                        } else {
+                            alert('ข้อมูลซ้ำในระบบ กรุณาตรวจสอบ Email และ Username');
+                        }
+                    } else {
+                        alert('เกิดข้อผิดพลาด: ' + errorMessage);
+                    }
+                } else {
+                    alert('กรุณาตรวจสอบข้อมูลในช่องกรอกข้อมูล หรือตรวจสอบการเชื่อมต่อเซิร์ฟเวอร์');
+                }
             }
 
         } else {
@@ -88,28 +117,6 @@ function SystemUser() {
 
     const handleWorkplace = (event) => {
         setRole(event.target.value);
-    };
-    const handleJobtype = (event) => {
-        setJobtype(event.target.value);
-    };
-    const handlePrefix = (event) => {
-        setPrefix(event.target.value);
-    };
-    const handleGender = (event) => {
-        setGender(event.target.value);
-    };
-    const handleMilitaryStatus = (event) => {
-        setMilitaryStatus(event.target.value);
-    };
-
-    const handleStartDateChange = (date) => {
-        setStartjob(date);
-    };
-    const handleExceptDateChange = (date) => {
-        setExceptjob(date);
-    };
-    const handleDateOfBirth = (date) => {
-        setDateOfBirth(date);
     };
 
     //check create employee or update employee by click select employee
@@ -232,34 +239,35 @@ function SystemUser() {
                                         <div class="row">
                                             <div class="col-md-6">
                                                 <div class="form-group">
-                                                    <label role="fname">ชื่อ</label>
-                                                    <input type="text" class="form-control" id="fname" placeholder="ชื่อ" value={name} onChange={(e) => setName(e.target.value)} />
+                                                    <label role="fname">ชื่อ <span style={{color: 'red'}}>*</span></label>
+                                                    <input type="text" class="form-control" id="fname" placeholder="ชื่อ" value={name} onChange={(e) => setName(e.target.value)} required />
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="form-group">
-                                                    <label role="Email">E-mail</label>
-                                                    <input type="text" class="form-control" id="Email" placeholder="E-mail" value={email} onChange={(e) => setEmail(e.target.value)} />
+                                                    <label role="Email">E-mail <span style={{color: 'red'}}>*</span></label>
+                                                    <input type="email" class="form-control" id="Email" placeholder="E-mail" value={email} onChange={(e) => setEmail(e.target.value)} required />
                                                 </div>
                                             </div>
                                         </div>
                                         <div class="row">
                                             <div class="col-md-4">
                                                 <div class="form-group">
-                                                    <label role="User">User</label>
-                                                    <input type="text" class="form-control" id="User" placeholder="User" value={username} onChange={(e) => setUsername(e.target.value)} />
+                                                    <label role="User">User <span style={{color: 'red'}}>*</span></label>
+                                                    <input type="text" class="form-control" id="User" placeholder="User" value={username} onChange={(e) => setUsername(e.target.value)} required />
                                                 </div>
                                             </div>
                                             <div class="col-md-4">
                                                 <div class="form-group">
-                                                    <label role="Passwork">Password</label>
-                                                    <input type="text" class="form-control" id="Passwork" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                                                    <label role="Passwork">Password <span style={{color: 'red'}}>*</span></label>
+                                                    <input type="password" class="form-control" id="Passwork" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
                                                 </div>
                                             </div>
                                             <div class="col-md-4">
                                                 <div class="form-group">
-                                                    <label role="role">Role</label>
-                                                    <select id="role" name="role" class="form-control" value={role} onChange={handleWorkplace}>
+                                                    <label role="role">Role <span style={{color: 'red'}}>*</span></label>
+                                                    <select id="role" name="role" class="form-control" value={role} onChange={handleWorkplace} required>
+                                                        <option value="">เลือก Role</option>
                                                         <option value="admin">แอดมิน</option>
                                                         <option value="employee">พนักงาน</option>
                                                         <option value="manager">ผู้จัดการ</option>

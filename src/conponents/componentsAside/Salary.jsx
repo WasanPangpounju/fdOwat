@@ -407,43 +407,87 @@ function Salary() {
   //     }));
 
   // };
-
-  const handleWorkplace = async (event) => {
-    await setWorkplace(event.target.value);
-    await setEmployeeData((prevData) => ({
-      ...prevData,
-      ["workplace"]: event.target.value,
-    }));
-    // alert(event.target.value);
+const handleWorkplace = async (event) => {
+  console.log('=== handleWorkplace started ===');
+  console.log('Event:', event);
+  console.log('Event target value:', event.target.value);
+  
+  await setWorkplace(event.target.value);
+  await setEmployeeData((prevData) => ({
+    ...prevData,
+    ["workplace"]: event.target.value,
+  }));
+  
+  const inputValue = event.target.value;
+  console.log('Input value:', inputValue);
+  console.log('Workplace selection data:', workplaceSelection);
+  
+  // Try exact match first
+  let filtered = workplaceSelection.filter(
+    (wp) =>
+      inputValue === "" ||
+      wp.workplaceId === inputValue ||
+      wp.workplaceName === inputValue
+  );
+  
+  console.log('Exact match filtered:', filtered);
+  
+  // If no exact match found and input contains parentheses or has content
+  if (filtered.length === 0 && inputValue !== "") {
+    // Extract base ID (everything before the first parenthesis)
+    const baseId = inputValue.includes('(') ? inputValue.split('(')[0].trim() : inputValue;
+    console.log('Base ID:', baseId);
     
-    // Extract base ID without parentheses for comparison
-    const inputValue = event.target.value;
-    const baseId = inputValue.split('(')[0]; // Extract the part before any parentheses
-    
-    const filtered = workplaceSelection.filter(
+    filtered = workplaceSelection.filter(
       (wp) =>
-        inputValue === "" ||
-        wp.workplaceId === inputValue ||
         wp.workplaceId === baseId ||
-        wp.workplaceName === inputValue
+        wp.workplaceName === baseId ||
+        wp.workplaceId.startsWith(baseId) ||
+        wp.workplaceName.includes(baseId)
     );
-    // alert(JSON.stringify(filtered , null, 2) );
-    // alert(filtered[0].workplaceArea );
-    if (filtered !== "") {
-      if (employeeData.workplace == "") {
-        setWorkplacearea("");
-      } else {
-        setWorkplacearea(filtered[0].workplaceArea);
-        //set add Salary from workplace
-        setAddSalaryWorkplace(filtered[0].addSalary);
+    
+    console.log('Base ID filtered:', filtered);
+  }
+  
+  // Additional fallback: try partial matching without parentheses
+  if (filtered.length === 0 && inputValue !== "") {
+    const cleanInput = inputValue.replace(/[()]/g, '').trim();
+    console.log('Clean input:', cleanInput);
+    
+    filtered = workplaceSelection.filter(
+      (wp) =>
+        wp.workplaceId.includes(cleanInput) ||
+        wp.workplaceName.includes(cleanInput)
+    );
+    
+    console.log('Clean input filtered:', filtered);
+  }
+  
+  console.log('Final filtered result:', filtered);
+  
+  if (filtered.length > 0) {
+    console.log('Found workplace:', filtered[0]);
+    console.log('AddSalary data:', filtered[0].addSalary);
+    
+    if (employeeData.workplace === "") {
+      setWorkplacearea("");
+    } else {
+      setWorkplacearea(filtered[0].workplaceArea || "");
+      
+      // Check if addSalary exists and is array
+      const addSalaryData = filtered[0].addSalary || [];
+      console.log('Setting addSalaryWorkplace:', addSalaryData);
+      
+      setAddSalaryWorkplace(addSalaryData);
 
-        setEmployeeData((prevData) => ({
-          ...prevData,
-          ["addSalary"]: [],
-        }));
+      setEmployeeData((prevData) => ({
+        ...prevData,
+        ["addSalary"]: [],
+      }));
 
+      if (addSalaryData.length > 0) {
         const initialFormData = {
-          addSalary: filtered[0].addSalary.map((item) => ({
+          addSalary: addSalaryData.map((item) => ({
             id: item.codeSpSalary || "",
             name: item.name || "",
             SpSalary: item.SpSalary || "",
@@ -452,16 +496,22 @@ function Salary() {
             nameType: item.nameType || "",
           })),
         };
-//เปิดการวงเล็บ
+        console.log('Setting formData:', initialFormData);
         setFormData(initialFormData);
+      } else {
+        console.log('No addSalary data found');
+        setFormData({ addSalary: [] });
       }
-    } else {
-      setWorkplacearea("");
     }
-
-    // setWorkplacearea(filtered[0].workplaceArea );
-  };
-
+  } else {
+    console.log('No workplace found, clearing data');
+    setWorkplacearea("");
+    setAddSalaryWorkplace([]);
+    setFormData({ addSalary: [] });
+  }
+  
+  console.log('=== handleWorkplace finished ===');
+};
 
   const handleWorktable = (event) => {
     setWorktable(event.target.value);
@@ -952,6 +1002,23 @@ function Salary() {
                               </div>
                               <div class="col-md-4">
                                 <div class="form-group">
+                                  <label role="employeeName">ชื่อพนักงาน</label>
+                                  <input
+                                    type="text"
+                                    class="form-control"
+                                    id="employeeName"
+                                    placeholder="ชื่อพนักงาน"
+                                    value={`${employeeData.name || ""} ${employeeData.lastName || ""}`}
+                                    onChange={(e) => handleChange(e, "employeeName")}
+                                    onInput={(e) => {
+                                        // Remove any non-digit characters
+                                        e.target.value = e.target.value.replace(/\D/g, "");
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                              <div class="col-md-4">
+                                <div class="form-group">
                                   <label role="position">ตำแหน่ง</label>
                                   <input
                                     type="text"
@@ -963,7 +1030,7 @@ function Salary() {
                                   />
                                 </div>
                               </div>
-                              <div class="col-md-4">
+                              {/* <div class="col-md-4">
                                 <div class="form-group">
                                   <label role="department">แผนก</label>
                                   <input
@@ -975,7 +1042,7 @@ function Salary() {
                                     onChange={(e) => handleChange(e, "department")}
                                   />
                                 </div>
-                              </div>
+                              </div> */}
                             </div>
                             <div class="row">
                               <div class="col-md-4">
@@ -1694,9 +1761,11 @@ function Salary() {
                             </div>
                             {/* </div> */}
                             {addSalaryWorkplace
-                            .map((data, index) => (
-                              (data.StaffType === 'all' || data.StaffType === employeeData?.position) && (
-
+                              .map((data, index) => (
+                                (data.StaffType === 'all' || 
+                                data.StaffType === employeeData?.position || 
+                                data.StaffType === '' || 
+                                !data.StaffType) && (
                               <div className="row" key={index}>
                                 <div className="row">
                                   <div className="col-md-6">
