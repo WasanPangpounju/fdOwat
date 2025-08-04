@@ -1179,7 +1179,8 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
     const { 
       month,
       year,
-      workplaceId
+      workplaceId,
+      employeeId
     } = req.body;
 
     // ใช้ aggregation pipeline สำหรับการค้นหาที่ซับซ้อน
