@@ -419,6 +419,138 @@ const employeeSchema = new mongoose.Schema({
         message: String,
       },
     ],
+
+    // ระบบเงินกู้
+    loanRecords: [
+      {
+        loanId: {
+          type: String,
+          default: function() {
+            return 'LOAN' + Date.now();
+          }
+        },
+        contractCode: {
+          type: String,
+          required: true
+        },
+        loanDate: {
+          type: Date,
+          default: Date.now
+        },
+        loanAmount: {
+          type: Number,
+          required: true
+        },
+        loanPeriod: {
+          type: Number,
+          required: true
+        },
+        interestRate: {
+          type: Number,
+          default: 0
+        },
+        deductSalaryId: {
+          type: String,
+          required: true
+        },
+        deductSalaryName: {
+          type: String,
+          required: true
+        },
+        status: {
+          type: String,
+          enum: ['active', 'completed', 'cancelled'],
+          default: 'active'
+        },
+        createdBy: {
+          type: String,
+          default: 'system'
+        },
+        createdDate: {
+          type: Date,
+          default: Date.now
+        },
+        updatedDate: {
+          type: Date,
+          default: Date.now
+        },
+        note: {
+          type: String,
+          default: ''
+        },
+        
+        // รายการผ่อนชำระ
+        monthlyPayments: [
+          {
+            installmentId: {
+              type: Number,
+              required: true
+            },
+            monthYear: {
+              type: String,
+              required: true
+            },
+            monthName: {
+              type: String,
+              required: true
+            },
+            dueDate: {
+              type: Date,
+              required: true
+            },
+            amount: {
+              type: Number,
+              required: true
+            },
+            status: {
+              type: String,
+              enum: ['pending', 'paid', 'overdue'],
+              default: 'pending'
+            },
+            paidDate: {
+              type: Date,
+              default: null
+            },
+            paidAmount: {
+              type: Number,
+              default: 0
+            },
+            note: {
+              type: String,
+              default: ''
+            }
+          }
+        ],
+        
+        // สรุปยอด
+        summary: {
+          totalAmount: {
+            type: Number,
+            default: 0
+          },
+          totalPaid: {
+            type: Number,
+            default: 0
+          },
+          totalRemaining: {
+            type: Number,
+            default: 0
+          },
+          completedInstallments: {
+            type: Number,
+            default: 0
+          },
+          remainingInstallments: {
+            type: Number,
+            default: 0
+          },
+          progressPercent: {
+            type: Number,
+            default: 0
+          }
+        }
+      }
+    ],
   
     selectAddSalary: [],
     sumAddSalary: String,
