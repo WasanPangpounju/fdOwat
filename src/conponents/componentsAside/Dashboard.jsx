@@ -1,11 +1,94 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import axios from 'axios';
+import Swal from 'sweetalert2';
 import '../editwindowcss.css'; // CSS รวมของโปรเจกต์
 
 function Dashboard() {
   useEffect(() => {
     document.title = 'แดชบอร์ด';
   }, []);
+
+  // ฟังก์ชันปิดงวด - เคลียร์ addSalary และ deductSalary
+  const closePeriod = async () => {
+    try {
+      // ยืนยันการกระทำด้วย SweetAlert2
+      const result = await Swal.fire({
+        title: 'ยืนยันการปิดงวด',
+        text: 'คุณต้องการปิดงวด ใช่หรือไม่?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'ใช่, ปิดงวด!',
+        cancelButtonText: 'ยกเลิก'
+      });
+
+      if (result.isConfirmed) {
+        // แสดง loading
+        Swal.fire({
+          title: 'กำลังปิดงวด...',
+          text: 'กรุณารอสักครู่',
+          allowOutsideClick: false,
+          allowEscapeKey: false,
+          showConfirmButton: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
+        });
+
+        // เรียก API เพื่อค้นหาข้อมูลพนักงาน ID 660075
+        const response = await axios.post('http://10.10.110.7:3000/employee/search', {
+          employeeId: "660075"
+        });
+
+        if (response.data && response.data.employees && response.data.employees.length > 0) {
+          const employee = response.data.employees[0];
+          
+          // อัปเดตข้อมูลโดยเคลียร์ addSalary และ deductSalary
+          const updateData = {
+            ...employee,
+            addSalary: [],
+            deductSalary: []
+          };
+
+          // เรียก API เพื่ออัปเดตข้อมูล
+          await axios.put(`http://10.10.110.7:3000/employee/update/${employee._id}`, updateData);
+          
+          // แสดงข้อความสำเร็จ
+          await Swal.fire({
+            title: 'ปิดงวดสำเร็จ!',
+            text: 'เรียบร้อยแล้ว',
+            icon: 'success',
+            confirmButtonColor: '#28a745',
+            confirmButtonText: 'ตกลง'
+          });
+          
+          window.location.reload();
+        } else {
+          // แสดงข้อความไม่พบข้อมูล
+          await Swal.fire({
+            title: 'ไม่พบข้อมูล!',
+            text: 'ไม่พบข้อมูลพนักงาน ID 660075',
+            icon: 'error',
+            confirmButtonColor: '#dc3545',
+            confirmButtonText: 'ตกลง'
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error closing period:', error);
+      
+      // แสดงข้อความผิดพลาด
+      await Swal.fire({
+        title: 'เกิดข้อผิดพลาด!',
+        text: 'เกิดข้อผิดพลาดในการปิดงวด กรุณาลองใหม่อีกครั้ง',
+        icon: 'error',
+        confirmButtonColor: '#dc3545',
+        confirmButtonText: 'ตกลง'
+      });
+    }
+  };
 
   return (
     <div className="hold-transition sidebar-mini editlaout">
@@ -38,6 +121,11 @@ function Dashboard() {
                 {dashboardItems.map((item, idx) => (
                   <DashboardButton key={idx} {...item} />
                 ))}
+                <div className='d-flex justify-content-center align-items-center col-12'>
+                  <button 
+                    onClick={closePeriod}
+                    className="btn btn-danger">ปิดงวด</button>
+                </div>
               </div>
             </div>
           </section>
@@ -57,8 +145,9 @@ const dashboardItems = [
   { to: "#", icon: "fas fa-paste", text: "ระบบออกเอกสาร", color: "#41cac0" },
   { to: "#", icon: "fas fa-file-alt", text: "รายงานผู้บริหาร", color: "#8175c7" },
   { to: "/search", icon: "fas fa-network-wired", text: "จัดการพนักงาน", color: "#ffc107" },
-  { to: "#", icon: "fas fa-cog", text: "การตั้งค่า", color: "#aebece" }
+  { to: "#", icon: "fas fa-cog", text: "การตั้งค่า", color: "#aebece" },
 ];
+
 
 // Component ปุ่มแต่ละอัน
 function DashboardButton({ to, icon, text, color }) {

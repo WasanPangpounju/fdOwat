@@ -630,7 +630,7 @@ console.log(`Final plusOther for employee ${record.employeeId}: ${plusOther}`);
     sumCashWork: formatNumber(record.sumCashWork || 0),
     wageRevise: formatNumber(wageRevise), // ใช้ค่าที่คำนวณจาก wageRevise
     leaveInLieu: formatNumber(leaveInLieu), // ใช้ค่าที่คำนวณจาก leaveInLieu
-    sumCashOt: addFormattedNumbers(formatNumber(record.sumCashOt || 0), otplusOther), // ใช้ค่าที่คำนวณจาก sumCashOt และ otplusOther
+    sumCashOt: addFormattedNumbers(formatNumber(record.sumCashOt || 0), otplusOther),
     transportAllowance: formatNumber(transportAllowance), // ใช้ค่าที่คำนวณจาก ID "1230"
 
     positionAndTransportationWithSocial: formatNumber(positionAndTransportationWithSocial),
@@ -764,7 +764,18 @@ const fetchAllWorkplaceData = useCallback(async () => {
         }
       });
 
-
+      let positionAndTransportationWithSocial = 0;
+      addSalaryList.forEach(item => {
+        if (item.id === "1230") { // เปลี่ยนจาก "1535" และ "1330" เป็น "1230"
+          const spSalary = parseFloat(item.SpSalary || 0);
+          const days = parseFloat(record.dayWorkCount || 0);
+          if (item.roundOfSalary === "daily") {
+            positionAndTransportationWithSocial += spSalary * days;
+          } else if (item.roundOfSalary === "monthly") {
+            positionAndTransportationWithSocial += spSalary;
+          }
+        }
+      });
        let diligenceAllowance = 0;
        const diligenceAllowanceIds = ["1410","1412"];
       // คำนวณเบี้ยขยัน (ID 1410)
@@ -1653,8 +1664,8 @@ const employeeData = displayEmployees.map((emp) => {
       // วาดเส้นคั่นก่อน
       doc.setLineWidth(0.3);
       const lastColIndex = colPositions.length - 1;
-      const endOfTable = colPositions[1] 
-      doc.line(colPositions[19], currentY +0.5, endOfTable, currentY +0.5);
+      const endOfTable = colPositions[17] 
+      doc.line(colPositions[2], currentY +0.5, endOfTable, currentY +0.5);
       currentY += 1; // เว้นระยะ
       
       // วาดแถวสรุปผลรวม (ไม่มีเส้นตาราง)
@@ -3749,8 +3760,8 @@ const createWorkplaceTable = (doc, wpId, wpName, employees, startY) => {
             const formattedTax = Number(
               sumCashWork
             ).toLocaleString("en-US", {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 0,
             });
             pdf.text(
               `${formattedTax}`,
