@@ -1179,7 +1179,8 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
     const { 
       month,
       year,
-      workplaceId
+      workplaceId,
+      employeeId
     } = req.body;
 
     // ใช้ aggregation pipeline สำหรับการค้นหาที่ซับซ้อน
@@ -1193,11 +1194,15 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
     if (year !== '') {
       matchConditions.year = { $regex: new RegExp(year, 'i') };
     }
+     if (employeeId && employeeId !== '') {
+      matchConditions.employeeId = employeeId;
+    }
+    
     
     pipeline.push({ $match: matchConditions });
 
     // ถ้ามี workplaceId ให้กรองเฉพาะ employee_record ที่ตรงกับ workplaceId
-    if (workplaceId !== '') {
+    if (workplaceId && workplaceId !== '') {
       pipeline.push({
         $addFields: {
           employee_record: {
