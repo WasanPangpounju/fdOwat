@@ -4720,7 +4720,26 @@ router.post('/searchtimerecordemployee', async (req, res) => {
 
         // 🎯 ลบข้อมูล welfare เดิมออกก่อนเพิ่มใหม่ เพื่อป้องกันการซ้ำ และ sync กับ DB
         const originalLength = record.addSalaryList ? record.addSalaryList.length : 0;
-        record.addSalaryList = record.addSalaryList.filter(item => !item.welfareType);
+        
+        // สร้าง Set ของ welfare IDs ที่มีอยู่จริงใน welfare database
+        const validWelfareIds = new Set();
+        addSalaryFromWelfare.forEach(item => {
+          if (item.id) validWelfareIds.add(item.id);
+        });
+        
+        // กรองเอาเฉพาะข้อมูลที่ไม่ใช่ welfare หรือเป็น welfare ที่ยังมีอยู่ใน DB
+        record.addSalaryList = record.addSalaryList.filter(item => {
+          // ถ้าไม่มี welfareType หรือ welfareType เป็น falsy และไม่อยู่ใน validWelfareIds = เก็บไว้
+          const isWelfareItem = item.welfareType || validWelfareIds.has(item.id);
+          const shouldKeep = !isWelfareItem;
+          
+          if (isWelfareItem) {
+            console.log(`🗑️ [ACCOUNTING] ลบ welfare item: id=${item.id}, name=${item.name}, welfareType=${item.welfareType || 'undefined'}`);
+          }
+          
+          return shouldKeep;
+        });
+        
         console.log(`🧹 [ACCOUNTING] ลบข้อมูล welfare เดิมทั้งหมดออก: ${originalLength} → ${record.addSalaryList.length} items`);
         
         // เพิ่ม welfare data ที่ไม่ซ้ำแล้ว (เฉพาะที่มีอยู่จริงใน welfare database)
