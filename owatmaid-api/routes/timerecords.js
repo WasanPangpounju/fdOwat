@@ -1251,6 +1251,13 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
         // Debug: Log the welfare results
         console.log('📊 Welfare Records found:', welfareRecords.length, 'records for employee:', timeRecord.employeeId);
         
+        // Debug: Check what welfare data exists for this employee (without month/year filter)
+        const allWelfareForEmployee = await welfare.find({ employeeId: timeRecord.employeeId });
+        console.log('🔎 All welfare records for employee:', timeRecord.employeeId, 'count:', allWelfareForEmployee.length);
+        if (allWelfareForEmployee.length > 0) {
+          console.log('📋 Sample welfare record structure:', JSON.stringify(allWelfareForEmployee[0], null, 2));
+        }
+        
         // รวม addSalaryList จากข้อมูล welfare ทั้งหมด
         let addSalaryFromWelfare = [];
         welfareRecords.forEach(welfareRecord => {
