@@ -4711,8 +4711,24 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         record.addSalaryList = record.addSalaryList.filter(item => !item.welfareType);
         console.log(`🧹 [ACCOUNTING] ลบข้อมูล welfare เดิมแล้ว เหลือ: ${record.addSalaryList.length} items`);
         
-        // เพิ่ม welfare data ใหม่
-        record.addSalaryList = [...record.addSalaryList, ...addSalaryFromWelfare];
+        // 🎯 กรองข้อมูล welfare ที่ซ้ำกันก่อนเพิ่มเข้าไป (เก็บเฉพาะอันแรกของแต่ละ id)
+        const uniqueWelfareItems = [];
+        const seenIds = new Set();
+        
+        addSalaryFromWelfare.forEach(welfareItem => {
+          if (!seenIds.has(welfareItem.id)) {
+            seenIds.add(welfareItem.id);
+            uniqueWelfareItems.push(welfareItem);
+            console.log(`✅ [ACCOUNTING] เก็บ welfare item: id=${welfareItem.id}, name=${welfareItem.name}`);
+          } else {
+            console.log(`🚫 [ACCOUNTING] ข้าม welfare item ซ้ำ: id=${welfareItem.id}, name=${welfareItem.name}`);
+          }
+        });
+        
+        console.log(`🔍 [ACCOUNTING] welfare items ก่อนกรอง: ${addSalaryFromWelfare.length}, หลังกรอง: ${uniqueWelfareItems.length}`);
+        
+        // เพิ่ม welfare data ที่ไม่ซ้ำแล้ว
+        record.addSalaryList = [...record.addSalaryList, ...uniqueWelfareItems];
         
         console.log(`   - รวมแล้ว: ${record.addSalaryList.length} items`);
         
