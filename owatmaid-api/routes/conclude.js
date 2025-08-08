@@ -3144,6 +3144,8 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         
         // รวม addSalaryList จากข้อมูล welfare ทั้งหมด
         let addSalaryFromWelfare = [];
+        const tempWelfareIds = new Set(); // เพิ่ม Set เพื่อติดตาม ID ที่เคยเพิ่มแล้ว
+        
         welfareRecords.forEach(welfareRecord => {
           if (welfareRecord.record && Array.isArray(welfareRecord.record)) {
             welfareRecord.record.forEach(record => {
@@ -3157,22 +3159,32 @@ router.post('/searchtimerecordemployee', async (req, res) => {
               }
               
               if (shouldInclude) {
-                // แปลงข้อมูล welfare เป็นรูปแบบ addSalaryList
-                addSalaryFromWelfare.push({
-                  id: record.id || record.welfareType || "",
-                  name: record.name || record.welfareTypeEn || "",
-                  SpSalary: record.SpSalary || "0",
-                  roundOfSalary: record.roundOfSalary || "monthly",
-                  StaffType: record.StaffType || "all",
-                  nameType: record.nameType || "",
-                  message: record.comment || record.message || "",
-                  welfareType: record.welfareType || "",
-                  startDay: record.startDay || "",
-                  endDay: record.endDay || "",
-                  // เพิ่มข้อมูลเดือนและปีจาก welfare record
-                  welfareMonth: welfareRecord.month || "",
-                  welfareYear: welfareRecord.year || ""
-                });
+                const welfareId = record.id || record.welfareType || "";
+                
+                // ตรวจสอบว่า ID นี้เคยถูกเพิ่มแล้วหรือยัง
+                if (!tempWelfareIds.has(welfareId)) {
+                  tempWelfareIds.add(welfareId);
+                  
+                  // แปลงข้อมูล welfare เป็นรูปแบบ addSalaryList
+                  addSalaryFromWelfare.push({
+                    id: welfareId,
+                    name: record.name || record.welfareTypeEn || "",
+                    SpSalary: record.SpSalary || "0",
+                    roundOfSalary: record.roundOfSalary || "monthly",
+                    StaffType: record.StaffType || "all",
+                    nameType: record.nameType || "",
+                    message: record.comment || record.message || "",
+                    welfareType: record.welfareType || "",
+                    startDay: record.startDay || "",
+                    endDay: record.endDay || "",
+                    // เพิ่มข้อมูลเดือนและปีจาก welfare record
+                    welfareMonth: welfareRecord.month || "",
+                    welfareYear: welfareRecord.year || ""
+                  });
+                  console.log(`✅ [CONCLUDE] เพิ่ม welfare item: ${record.name} (${record.SpSalary})`);
+                } else {
+                  console.log(`🚫 [CONCLUDE] ข้าม welfare item ซ้ำ: id=${welfareId}, name=${record.name}`);
+                }
               }
             });
           }
@@ -3182,7 +3194,29 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         if (!timeRecord.addSalaryList) {
           timeRecord.addSalaryList = [];
         }
+        
+        // 🎯 ลบข้อมูล welfare เดิมออกก่อนเพิ่มใหม่ เพื่อป้องกันการซ้ำ
+        timeRecord.addSalaryList = timeRecord.addSalaryList.filter(item => !item.welfareType);
+        console.log(`🧹 [CONCLUDE] ลบข้อมูล welfare เดิมแล้ว เหลือ: ${timeRecord.addSalaryList.length} items`);
+        
+        // เพิ่ม welfare data ที่ไม่ซ้ำแล้ว
         timeRecord.addSalaryList = [...timeRecord.addSalaryList, ...addSalaryFromWelfare];
+        
+        // 🎯 กรองข้อมูลซ้ำขั้นสุดท้าย เผื่อมี ID ซ้ำระหว่าง addSalaryList เดิมกับ welfare data
+        const finalUniqueItems = [];
+        const finalSeenIds = new Set();
+        
+        timeRecord.addSalaryList.forEach(item => {
+          const itemId = item.id || "";
+          if (!finalSeenIds.has(itemId)) {
+            finalSeenIds.add(itemId);
+            finalUniqueItems.push(item);
+          } else {
+            console.log(`🚫 [CONCLUDE] ข้าม item ซ้ำขั้นสุดท้าย: id=${itemId}, name=${item.name}`);
+          }
+        });
+        
+        timeRecord.addSalaryList = finalUniqueItems;
         
       } catch (welfareError) {
         console.error('Error fetching welfare data for employee:', timeRecord.employeeId, welfareError);
