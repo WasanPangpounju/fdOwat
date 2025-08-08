@@ -4640,6 +4640,70 @@ router.post('/searchtimerecordemployee', async (req, res) => {
       return res.status(200).json({ result: [], message: 'No records found' });
     }
 
+    // เพิ่มข้อมูล welfare/leave ลงใน addSalaryList ก่อนการประมวลผล
+    for (let record of records) {
+      try {
+        // ค้นหาข้อมูล welfare ของพนักงาน
+        const welfareQuery = { employeeId: record.employeeId };
+        
+        // ถ้ามีการระบุ year ให้กรองตามปี
+        if (year && year !== '') {
+          welfareQuery.year = year;
+        }
+        
+        const welfareRecords = await welfare.find(welfareQuery);
+        
+        // รวม addSalaryList จากข้อมูล welfare ทั้งหมด
+        let addSalaryFromWelfare = [];
+        welfareRecords.forEach(welfareRecord => {
+          if (welfareRecord.record && Array.isArray(welfareRecord.record)) {
+            welfareRecord.record.forEach(welfareItem => {
+              // กรองเฉพาะ records ที่อยู่ในเดือนที่ค้นหา
+              let shouldInclude = true;
+              
+              if (month && month !== '' && welfareItem.startDay) {
+                const recordStartDate = new Date(welfareItem.startDay);
+                const recordMonth = String(recordStartDate.getMonth() + 1).padStart(2, '0');
+                shouldInclude = recordMonth === month;
+              }
+              
+              if (shouldInclude) {
+                // แปลงข้อมูล welfare เป็นรูปแบบ addSalaryList
+                addSalaryFromWelfare.push({
+                  id: welfareItem.id || welfareItem.welfareType || "",
+                  name: welfareItem.name || welfareItem.welfareTypeEn || "",
+                  SpSalary: welfareItem.SpSalary || "0",
+                  roundOfSalary: welfareItem.roundOfSalary || "monthly",
+                  StaffType: welfareItem.StaffType || "all",
+                  nameType: welfareItem.nameType || "",
+                  message: welfareItem.comment || welfareItem.message || "",
+                  welfareType: welfareItem.welfareType || "",
+                  startDay: welfareItem.startDay || "",
+                  endDay: welfareItem.endDay || "",
+                  // เพิ่มข้อมูลเดือนและปีจาก welfare record
+                  welfareMonth: welfareRecord.month || "",
+                  welfareYear: welfareRecord.year || ""
+                });
+              }
+            });
+          }
+        });
+
+        // รวม addSalaryList เดิมกับข้อมูลจาก welfare
+        if (!record.addSalaryList) {
+          record.addSalaryList = [];
+        }
+        record.addSalaryList = [...record.addSalaryList, ...addSalaryFromWelfare];
+        
+      } catch (welfareError) {
+        console.error('Error fetching welfare data for employee:', record.employeeId, welfareError);
+        // ถ้ามีข้อผิดพลาดในการดึงข้อมูล welfare ก็ให้ใช้ addSalaryList เดิม
+        if (!record.addSalaryList) {
+          record.addSalaryList = [];
+        }
+      }
+    }
+
     const updatedRecords = [];
 
     for (const doc of records) {
