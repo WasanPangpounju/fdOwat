@@ -4728,73 +4728,6 @@ router.post('/searchtimerecordemployee', async (req, res) => {
       }
 
       try {
-        // =========== เพิ่ม welfare data ลงใน doc ก่อนส่งไปคำนวณ ===========
-        console.log(`🎯 [ACCOUNTING] เตรียมเพิ่ม welfare data สำหรับพนักงาน: ${doc.employeeId}`);
-        
-        try {
-          // ค้นหาข้อมูล welfare ของพนักงาน
-          const welfareQuery = { employeeId: doc.employeeId };
-          
-          // ถ้ามีการระบุ year ให้กรองตามปี
-          if (year && year !== '') {
-            welfareQuery.year = year;
-          }
-          
-          const welfareRecords = await welfare.find(welfareQuery);
-          console.log(`🎯 [ACCOUNTING] พบข้อมูล welfare: ${welfareRecords.length} records สำหรับพนักงาน ${doc.employeeId}`);
-          
-          // รวม addSalaryList จากข้อมูล welfare ทั้งหมด
-          let addSalaryFromWelfare = [];
-          welfareRecords.forEach(welfareRecord => {
-            if (welfareRecord.record && Array.isArray(welfareRecord.record)) {
-              welfareRecord.record.forEach(welfareItem => {
-                // กรองเฉพาะ records ที่อยู่ในเดือนที่ค้นหา
-                let shouldInclude = true;
-                
-                if (month && month !== '' && welfareItem.startDay) {
-                  const recordStartDate = new Date(welfareItem.startDay);
-                  const recordMonth = String(recordStartDate.getMonth() + 1).padStart(2, '0');
-                  shouldInclude = recordMonth === month;
-                }
-                
-                if (shouldInclude) {
-                  // แปลงข้อมูล welfare เป็นรูปแบบ addSalaryList
-                  addSalaryFromWelfare.push({
-                    id: welfareItem.id || welfareItem.welfareType || "",
-                    name: welfareItem.name || welfareItem.welfareTypeEn || "",
-                    SpSalary: welfareItem.SpSalary || "0",
-                    roundOfSalary: welfareItem.roundOfSalary || "monthly",
-                    StaffType: welfareItem.StaffType || "all",
-                    nameType: welfareItem.nameType || "",
-                    message: welfareItem.comment || welfareItem.message || "",
-                    welfareType: welfareItem.welfareType || "",
-                    startDay: welfareItem.startDay || "",
-                    endDay: welfareItem.endDay || "",
-                    // เพิ่มข้อมูลเดือนและปีจาก welfare record
-                    welfareMonth: welfareRecord.month || "",
-                    welfareYear: welfareRecord.year || ""
-                  });
-                  console.log(`✅ [ACCOUNTING] เพิ่ม welfare item สำหรับ calculateCashValues: ${welfareItem.name} (${welfareItem.SpSalary})`);
-                }
-              });
-            }
-          });
-
-          // รวม addSalaryList เดิมกับข้อมูลจาก welfare ก่อนส่งไปคำนวณ
-          if (!doc.addSalaryList) {
-            doc.addSalaryList = [];
-          }
-          const originalLength = doc.addSalaryList.length;
-          doc.addSalaryList = [...doc.addSalaryList, ...addSalaryFromWelfare];
-          
-          console.log(`🎯 [ACCOUNTING] addSalaryList สำหรับ ${doc.employeeId}: ${originalLength} + ${addSalaryFromWelfare.length} = ${doc.addSalaryList.length} items`);
-          
-        } catch (welfareError) {
-          console.error('❌ [ACCOUNTING] Error adding welfare to doc:', doc.employeeId, welfareError);
-        }
-        
-        // =========== คำนวณค่าเงินเดือน (ตอนนี้ addSalaryList มี welfare แล้ว) ===========
-        
         // ดึงข้อมูล prefix และ employeeName จาก Employee model
         let employeePrefix = '';
         let employeeName = '';
@@ -4812,7 +4745,8 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           doc.employeeId,
           doc.employee_record,
           doc.month,
-          doc.year
+          doc.year,
+          doc.addSalaryList // ส่ง addSalaryList ที่มี welfare data แล้วจากการประมวลผลข้างต้น
         );
 
         // Log ค่าที่ได้จาก calculateCashValues
@@ -5026,7 +4960,7 @@ const convertTimeToDecimal = (timeString) => {
 
 
 
-const calculateCashValues = async (employeeId, employee_record, month, year) => {
+const calculateCashValues = async (employeeId, employee_record, month, year, welfareAddSalaryList = null) => {
   // ดึงข้อมูลการตั้งค่าพื้นฐานของระบบ
   const settingResult = await axios.get(sURL + '/basicsetting/');
   let socialSecurity = 0;
@@ -5112,7 +5046,21 @@ let timeCashWorkMul = {
   
 
   let addSalary = employeeProfile?.[0]?.addSalary || [];
-    let deductSalary = employeeProfile?.[0]?.deductSalary || [];
+  
+  // 🎯 ถ้ามี welfare data ส่งมา ให้ใช้แทน addSalary เดิม
+  if (welfareAddSalaryList && Array.isArray(welfareAddSalaryList) && welfareAddSalaryList.length > 0) {
+    addSalary = welfareAddSalaryList;
+    console.log(`🎯 [calculateCashValues] ใช้ welfare addSalaryList: ${addSalary.length} items`);
+    
+    // แสดงรายละเอียด welfare items ที่จะใช้ในการคำนวณ
+    addSalary.forEach((item, idx) => {
+      console.log(`🎯   [${idx}] ${item.name}: ${item.SpSalary} (${item.roundOfSalary})`);
+    });
+  } else {
+    console.log(`🎯 [calculateCashValues] ใช้ addSalary เดิม: ${addSalary.length} items`);
+  }
+  
+  let deductSalary = employeeProfile?.[0]?.deductSalary || [];
   let salary = 0;
   let salaryMonth = 0;
   let dailyWage = 0; // ค่าแรงต่อวัน สำหรับคำนวณ cashcustomizeDayoff
