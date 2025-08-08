@@ -1243,7 +1243,13 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
           welfareQuery.year = year;
         }
         
+        // Debug: Log the welfare query
+        console.log('🔍 Welfare Query for employee:', timeRecord.employeeId, welfareQuery);
+        
         const welfareRecords = await welfare.find(welfareQuery);
+        
+        // Debug: Log the welfare results
+        console.log('📊 Welfare Records found:', welfareRecords.length, 'records for employee:', timeRecord.employeeId);
         
         // รวม addSalaryList จากข้อมูล welfare ทั้งหมด
         let addSalaryFromWelfare = [];
@@ -1275,6 +1281,13 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
           timeRecord.addSalaryList = [];
         }
         timeRecord.addSalaryList = [...timeRecord.addSalaryList, ...addSalaryFromWelfare];
+        
+        // Debug: Log the welfare data addition
+        if (addSalaryFromWelfare.length > 0) {
+          console.log('✅ Added', addSalaryFromWelfare.length, 'welfare items to addSalaryList for employee:', timeRecord.employeeId);
+        } else {
+          console.log('⚠️ No welfare data to add for employee:', timeRecord.employeeId);
+        }
         
       } catch (welfareError) {
         console.error('Error fetching welfare data for employee:', timeRecord.employeeId, welfareError);
