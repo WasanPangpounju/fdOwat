@@ -3,6 +3,7 @@ const sURL = 'http://localhost:3000';
 
 const timerecordEmployee = require('./models/periodtimerecordModel');
 const workplaceTimerecords = require('./models/periodworkplacetimerecordModel');
+const welfare = require('./models/welfareModel');
 
 const axios = require('axios');
 
@@ -1227,6 +1228,49 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
     }
 
     const result = await timerecordEmployee.aggregate(pipeline);
+
+    // เพิ่มข้อมูล welfare/leave ลงใน addSalaryList
+    for (let timeRecord of result) {
+      try {
+        // ค้นหาข้อมูล welfare ของพนักงาน
+        const welfareRecords = await welfare.find({ employeeId: timeRecord.employeeId });
+        
+        // รวม addSalaryList จากข้อมูล welfare ทั้งหมด
+        let addSalaryFromWelfare = [];
+        welfareRecords.forEach(welfareRecord => {
+          if (welfareRecord.record && Array.isArray(welfareRecord.record)) {
+            welfareRecord.record.forEach(record => {
+              // แปลงข้อมูล welfare เป็นรูปแบบ addSalaryList
+              addSalaryFromWelfare.push({
+                id: record.id || record.welfareType || "",
+                name: record.name || record.welfareTypeEn || "",
+                SpSalary: record.SpSalary || "0",
+                roundOfSalary: record.roundOfSalary || "monthly",
+                StaffType: record.StaffType || "all",
+                nameType: record.nameType || "",
+                message: record.comment || record.message || "",
+                welfareType: record.welfareType || "",
+                startDay: record.startDay || "",
+                endDay: record.endDay || ""
+              });
+            });
+          }
+        });
+
+        // รวม addSalaryList เดิมกับข้อมูลจาก welfare
+        if (!timeRecord.addSalaryList) {
+          timeRecord.addSalaryList = [];
+        }
+        timeRecord.addSalaryList = [...timeRecord.addSalaryList, ...addSalaryFromWelfare];
+        
+      } catch (welfareError) {
+        console.error('Error fetching welfare data for employee:', timeRecord.employeeId, welfareError);
+        // ถ้ามีข้อผิดพลาดในการดึงข้อมูล welfare ก็ให้ใช้ addSalaryList เดิม
+        if (!timeRecord.addSalaryList) {
+          timeRecord.addSalaryList = [];
+        }
+      }
+    }
 
     res.status(200).json({ result });
   } catch (error) {
