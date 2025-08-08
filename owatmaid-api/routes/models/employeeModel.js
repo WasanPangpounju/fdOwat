@@ -408,6 +408,17 @@ const employeeSchema = new mongoose.Schema({
         message: String,
       },
     ],
+    addSalaryLeave: [
+      {
+        id: String,
+        name: String,
+        SpSalary: String,
+        roundOfSalary: String,
+        StaffType: String,
+        nameType: String,
+        message: String,
+      },
+    ],
     deductSalary: [
       {
         id: String,
