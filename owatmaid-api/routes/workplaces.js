@@ -29,6 +29,16 @@ router.get('/list', async (req, res) => {
     res.json(workplaces);
 });
 
+router.get('/sevenday', async (req, res) => {
+    try {
+        const workplaces = await Workplace.find({ workOfWeek: 7 });
+        res.json(workplaces);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+
 // Get list id name and address of workplaces
 router.get('/listselect', async (req, res) => {
     try {
