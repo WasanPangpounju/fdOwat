@@ -4727,14 +4727,36 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           if (item.id) validWelfareIds.add(item.id);
         });
         
-        // กรองเอาเฉพาะข้อมูลที่ไม่ใช่ welfare หรือเป็น welfare ที่ยังมีอยู่ใน DB
+        console.log(`🔍 [ACCOUNTING] validWelfareIds จาก DB:`, Array.from(validWelfareIds));
+        
+        // Debug: แสดงข้อมูล addSalaryList ก่อนกรอง
+        console.log(`🔍 [ACCOUNTING] addSalaryList ก่อนกรอง:`, record.addSalaryList.map(item => ({
+          id: item.id,
+          name: item.name,
+          welfareType: item.welfareType || 'undefined',
+          hasWelfareType: !!item.welfareType,
+          inValidIds: validWelfareIds.has(item.id)
+        })));
+        
+        // สร้าง list ของ welfare IDs ที่เป็นไปได้ (รวมที่อาจจะไม่มี welfareType)
+        const potentialWelfareIds = new Set([
+          '1442', '1235', '1234', '1230', '1350', '1410', '1520', '1535', // IDs ที่พบบ่อยใน welfare
+          ...Array.from(validWelfareIds) // และ IDs ที่มีใน welfare database
+        ]);
+        
+        // กรองเอาเฉพาะข้อมูลที่แน่ใจว่าไม่ใช่ welfare
         record.addSalaryList = record.addSalaryList.filter(item => {
-          // ถ้าไม่มี welfareType หรือ welfareType เป็น falsy และไม่อยู่ใน validWelfareIds = เก็บไว้
-          const isWelfareItem = item.welfareType || validWelfareIds.has(item.id);
-          const shouldKeep = !isWelfareItem;
+          const hasWelfareType = !!item.welfareType;
+          const isPotentialWelfare = potentialWelfareIds.has(item.id);
+          const isValidWelfare = validWelfareIds.has(item.id);
           
-          if (isWelfareItem) {
-            console.log(`🗑️ [ACCOUNTING] ลบ welfare item: id=${item.id}, name=${item.name}, welfareType=${item.welfareType || 'undefined'}`);
+          // เก็บ item ถ้า:
+          // 1. ไม่มี welfareType และไม่ใช่ potential welfare ID
+          // 2. หรือเป็น welfare ที่ยังมีอยู่ใน database
+          const shouldKeep = (!hasWelfareType && !isPotentialWelfare) || isValidWelfare;
+          
+          if (!shouldKeep) {
+            console.log(`🗑️ [ACCOUNTING] ลบ item: id=${item.id}, name=${item.name}, welfareType=${item.welfareType || 'undefined'}, isPotentialWelfare=${isPotentialWelfare}`);
           }
           
           return shouldKeep;
