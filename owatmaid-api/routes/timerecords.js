@@ -1232,13 +1232,10 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
     // เพิ่มข้อมูล welfare/leave ลงใน addSalaryList
     for (let timeRecord of result) {
       try {
-        // ค้นหาข้อมูล welfare ของพนักงาน โดยกรองตามเดือนและปีที่ค้นหา
+        // ค้นหาข้อมูล welfare ของพนักงาน
         const welfareQuery = { employeeId: timeRecord.employeeId };
         
-        // ถ้ามีการระบุ month และ year ให้กรองตามเงื่อนไขนั้น
-        if (month && month !== '') {
-          welfareQuery.month = month;
-        }
+        // ถ้ามีการระบุ year ให้กรองตามปี
         if (year && year !== '') {
           welfareQuery.year = year;
         }
@@ -1263,22 +1260,34 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
         welfareRecords.forEach(welfareRecord => {
           if (welfareRecord.record && Array.isArray(welfareRecord.record)) {
             welfareRecord.record.forEach(record => {
-              // แปลงข้อมูล welfare เป็นรูปแบบ addSalaryList
-              addSalaryFromWelfare.push({
-                id: record.id || record.welfareType || "",
-                name: record.name || record.welfareTypeEn || "",
-                SpSalary: record.SpSalary || "0",
-                roundOfSalary: record.roundOfSalary || "monthly",
-                StaffType: record.StaffType || "all",
-                nameType: record.nameType || "",
-                message: record.comment || record.message || "",
-                welfareType: record.welfareType || "",
-                startDay: record.startDay || "",
-                endDay: record.endDay || "",
-                // เพิ่มข้อมูลเดือนและปีจาก welfare record
-                welfareMonth: welfareRecord.month || "",
-                welfareYear: welfareRecord.year || ""
-              });
+              // กรองเฉพาะ records ที่อยู่ในเดือนที่ค้นหา
+              let shouldInclude = true;
+              
+              if (month && month !== '' && record.startDay) {
+                const recordStartDate = new Date(record.startDay);
+                const recordMonth = String(recordStartDate.getMonth() + 1).padStart(2, '0');
+                console.log('🗓️ Checking record:', record.id, 'startDay:', record.startDay, 'recordMonth:', recordMonth, 'searchMonth:', month);
+                shouldInclude = recordMonth === month;
+              }
+              
+              if (shouldInclude) {
+                // แปลงข้อมูล welfare เป็นรูปแบบ addSalaryList
+                addSalaryFromWelfare.push({
+                  id: record.id || record.welfareType || "",
+                  name: record.name || record.welfareTypeEn || "",
+                  SpSalary: record.SpSalary || "0",
+                  roundOfSalary: record.roundOfSalary || "monthly",
+                  StaffType: record.StaffType || "all",
+                  nameType: record.nameType || "",
+                  message: record.comment || record.message || "",
+                  welfareType: record.welfareType || "",
+                  startDay: record.startDay || "",
+                  endDay: record.endDay || "",
+                  // เพิ่มข้อมูลเดือนและปีจาก welfare record
+                  welfareMonth: welfareRecord.month || "",
+                  welfareYear: welfareRecord.year || ""
+                });
+              }
             });
           }
         });
