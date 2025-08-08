@@ -1309,12 +1309,14 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
           timeRecord.addSalaryList = [];
         }
         
-        // 🎯 ลบข้อมูล welfare เดิมออกก่อนเพิ่มใหม่ เพื่อป้องกันการซ้ำ
+        // 🎯 ลบข้อมูล welfare เดิมออกก่อนเพิ่มใหม่ เพื่อป้องกันการซ้ำ และ sync กับ DB
+        const originalLength = timeRecord.addSalaryList ? timeRecord.addSalaryList.length : 0;
         timeRecord.addSalaryList = timeRecord.addSalaryList.filter(item => !item.welfareType);
-        console.log(`🧹 [TIMERECORDS] ลบข้อมูล welfare เดิมแล้ว เหลือ: ${timeRecord.addSalaryList.length} items`);
+        console.log(`🧹 [TIMERECORDS] ลบข้อมูล welfare เดิมทั้งหมดออก: ${originalLength} → ${timeRecord.addSalaryList.length} items`);
         
-        // เพิ่ม welfare data ที่ไม่ซ้ำแล้ว
+        // เพิ่ม welfare data ที่ไม่ซ้ำแล้ว (เฉพาะที่มีอยู่จริงใน welfare database)
         timeRecord.addSalaryList = [...timeRecord.addSalaryList, ...addSalaryFromWelfare];
+        console.log(`📝 [TIMERECORDS] เพิ่ม welfare data ใหม่จาก DB: ${addSalaryFromWelfare.length} items`);
         
         // 🎯 กรองข้อมูลซ้ำขั้นสุดท้าย เผื่อมี ID ซ้ำระหว่าง addSalaryList เดิมกับ welfare data
         const finalUniqueItems = [];
