@@ -4738,37 +4738,47 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           inValidIds: validWelfareIds.has(item.id)
         })));
         
-        // สร้าง list ของ welfare IDs ที่เป็นไปได้ (รวมที่อาจจะไม่มี welfareType)
+        // สร้าง list ของ welfare IDs ที่เป็นไปได้ - รวมทุก welfare ID ที่อาจปรากฏ
         const potentialWelfareIds = new Set([
           '1442', '1235', '1234', '1230', '1350', '1410', '1520', '1535', // IDs ที่พบบ่อยใน welfare
-          '1423', '1242', // เพิ่ม welfare IDs ที่พบในระบบ
+          '1423', '1242', '1233', '1243', // welfare IDs ที่พบในระบบ
+          '1231', '1422', '1428', '1434', '1435', '1429', '1427', '1426', '1425', // welfare IDs เพิ่มเติม
           ...Array.from(validWelfareIds) // และ IDs ที่มีใน welfare database
         ]);
         
-        // กรองเอาเฉพาะข้อมูลที่แน่ใจว่าไม่ใช่ welfare
+        console.log(`🔍 [ACCOUNTING] potentialWelfareIds ทั้งหมด:`, Array.from(potentialWelfareIds));
+        
+        // 🎯 กรองออกทุก welfare ID ที่ไม่มีใน validWelfareIds (ที่มาจาก welfare database จริง)
         record.addSalaryList = record.addSalaryList.filter(item => {
           const hasWelfareType = !!item.welfareType;
           const isPotentialWelfare = potentialWelfareIds.has(item.id);
           const isValidWelfare = validWelfareIds.has(item.id);
           
+          // 🎯 Logic ใหม่: ลบทุก welfare ID ที่ไม่มีใน database จริง
           // เก็บ item ถ้า:
-          // 1. ไม่มี welfareType และไม่ใช่ potential welfare ID
-          // 2. หรือเป็น welfare ที่ยังมีอยู่ใน database
-          const shouldKeep = (!hasWelfareType && !isPotentialWelfare) || isValidWelfare;
+          // 1. ไม่ใช่ potential welfare ID เลย (เป็นรายการเงินเพิ่มปกติ)
+          // 2. หรือเป็น welfare ที่ยังมีอยู่ใน database จริง
+          const shouldKeep = !isPotentialWelfare || isValidWelfare;
           
-          // 🔍 Enhanced debug logging สำหรับ ID 1235
-          if (item.id === '1235') {
-            console.log(`🎯 [CRITICAL DEBUG] ID 1235 Analysis:`);
+          // 🔍 Enhanced debug logging สำหรับ welfare IDs
+          if (isPotentialWelfare) {
+            console.log(`🎯 [WELFARE DEBUG] ID ${item.id} Analysis:`);
+            console.log(`   - name: ${item.name}`);
             console.log(`   - hasWelfareType: ${hasWelfareType}`);
             console.log(`   - isPotentialWelfare: ${isPotentialWelfare}`);
             console.log(`   - isValidWelfare: ${isValidWelfare}`);
             console.log(`   - shouldKeep: ${shouldKeep}`);
-            console.log(`   - item.welfareType: ${item.welfareType || 'undefined'}`);
-            console.log(`   - item.name: ${item.name}`);
+            console.log(`   - welfareType: ${item.welfareType || 'undefined'}`);
+            
+            if (!shouldKeep) {
+              console.log(`   🗑️ -> จะถูกลบ เพราะไม่มีใน welfare database`);
+            } else {
+              console.log(`   ✅ -> จะถูกเก็บไว้ เพราะมีใน welfare database`);
+            }
           }
           
           if (!shouldKeep) {
-            console.log(`🗑️ [ACCOUNTING] ลบ item: id=${item.id}, name=${item.name}, welfareType=${item.welfareType || 'undefined'}, isPotentialWelfare=${isPotentialWelfare}, shouldKeep=${shouldKeep}`);
+            console.log(`🗑️ [ACCOUNTING] ลบ welfare item: id=${item.id}, name=${item.name}, isPotentialWelfare=${isPotentialWelfare}, isValidWelfare=${isValidWelfare}`);
           }
           
           return shouldKeep;
