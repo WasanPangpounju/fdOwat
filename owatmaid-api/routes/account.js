@@ -4641,22 +4641,29 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     }
 
     // เพิ่มข้อมูล welfare/leave ลงใน addSalaryList ก่อนการประมวลผล
+    console.log(`🔍 [ACCOUNTING] เริ่มค้นหาข้อมูล welfare สำหรับ ${records.length} records`);
+    
     for (let record of records) {
       try {
+        console.log(`🔍 [ACCOUNTING] ค้นหา welfare สำหรับพนักงาน: ${record.employeeId}`);
+        
         // ค้นหาข้อมูล welfare ของพนักงาน
         const welfareQuery = { employeeId: record.employeeId };
         
         // ถ้ามีการระบุ year ให้กรองตามปี
         if (year && year !== '') {
           welfareQuery.year = year;
+          console.log(`🔍 [ACCOUNTING] กรองตามปี: ${year}`);
         }
         
         const welfareRecords = await welfare.find(welfareQuery);
+        console.log(`🔍 [ACCOUNTING] พบข้อมูล welfare: ${welfareRecords.length} records สำหรับพนักงาน ${record.employeeId}`);
         
         // รวม addSalaryList จากข้อมูล welfare ทั้งหมด
         let addSalaryFromWelfare = [];
         welfareRecords.forEach(welfareRecord => {
           if (welfareRecord.record && Array.isArray(welfareRecord.record)) {
+            console.log(`🔍 [ACCOUNTING] ประมวลผล welfare record: ${welfareRecord.record.length} items`);
             welfareRecord.record.forEach(welfareItem => {
               // กรองเฉพาะ records ที่อยู่ในเดือนที่ค้นหา
               let shouldInclude = true;
@@ -4665,6 +4672,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                 const recordStartDate = new Date(welfareItem.startDay);
                 const recordMonth = String(recordStartDate.getMonth() + 1).padStart(2, '0');
                 shouldInclude = recordMonth === month;
+                console.log(`🔍 [ACCOUNTING] กรองตามเดือน: ${month}, startDay: ${welfareItem.startDay}, recordMonth: ${recordMonth}, include: ${shouldInclude}`);
               }
               
               if (shouldInclude) {
@@ -4684,10 +4692,15 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                   welfareMonth: welfareRecord.month || "",
                   welfareYear: welfareRecord.year || ""
                 });
+                console.log(`✅ [ACCOUNTING] เพิ่ม welfare item: ${welfareItem.name} (${welfareItem.SpSalary})`);
               }
             });
           }
         });
+
+        console.log(`📊 [ACCOUNTING] สำหรับพนักงาน ${record.employeeId}:`);
+        console.log(`   - addSalaryList เดิม: ${record.addSalaryList ? record.addSalaryList.length : 0} items`);
+        console.log(`   - welfare items: ${addSalaryFromWelfare.length} items`);
 
         // รวม addSalaryList เดิมกับข้อมูลจาก welfare
         if (!record.addSalaryList) {
@@ -4695,8 +4708,10 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         }
         record.addSalaryList = [...record.addSalaryList, ...addSalaryFromWelfare];
         
+        console.log(`   - รวมแล้ว: ${record.addSalaryList.length} items`);
+        
       } catch (welfareError) {
-        console.error('Error fetching welfare data for employee:', record.employeeId, welfareError);
+        console.error('❌ [ACCOUNTING] Error fetching welfare data for employee:', record.employeeId, welfareError);
         // ถ้ามีข้อผิดพลาดในการดึงข้อมูล welfare ก็ให้ใช้ addSalaryList เดิม
         if (!record.addSalaryList) {
           record.addSalaryList = [];
