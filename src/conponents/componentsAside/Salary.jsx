@@ -1751,13 +1751,13 @@ const handleWorkplace = async (event) => {
                                   </div>
                                 </div>
                               </div>
-                              <div className="col-md-6">
+                              {/* <div className="col-md-6">
                                 <div className="row">
                                   <div className="col-md-3">
                                     <label role="salaryadd6">ประเภทพนักงาน</label>
                                   </div>
                                 </div>
-                              </div>
+                              </div> */}
                             </div>
                             {/* </div> */}
                             {addSalaryWorkplace

@@ -2731,7 +2731,7 @@ if (newWorkplace) {
                               <option value="monthly">รายเดือน</option>
                             </select>
                           </div>
-                          {/* <div className="col-md-2">
+                          <div className="col-md-2">
                             <label role="StaffType">ประเภทพนักงาน</label>
                             <select
                               name="StaffType"
@@ -2833,7 +2833,7 @@ if (newWorkplace) {
                               </option>
 
                             </select>
-                          </div> */}
+                          </div>
                           {data.StaffType === "custom" && (
                             <div className="col-md-2">
                               <label>ตำแหน่ง</label>

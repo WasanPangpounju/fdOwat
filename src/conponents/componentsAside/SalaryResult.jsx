@@ -261,82 +261,39 @@ function Salaryresult() {
     setTimeout(() => handleSaveWelfare(), 0); // Use a small delay
   };
 
- const [yearWelfare, setYearWelfare] = useState("");
-const [monthWelfare, setMonthWelfare] = useState("");
-
-async function handleSaveWelfare() {
-  try {
-    if (remainArray.length === 0) {
-      alert("ลบรายการวันลาหมดแล้ว");
-      return;
-    }
-    
-    if (!yearWelfare || !monthWelfare) {
-      alert("กรุณากรอกข้อมูลปีและเดือนให้ครบถ้วน");
-      return;
-    }
-
-    // ค้นหาข้อมูลพนักงานก่อน
-    const employeeSearchData = {
-      employeeId: staffId,
-      name: "",
-      idCard: "",
-      workPlace: "",
-    };
-
-    const employeeResponse = await axios.post(endpoint + "/employee/search", employeeSearchData);
-    
-    if (!employeeResponse.data.employees || employeeResponse.data.employees.length === 0) {
-      alert("ไม่พบข้อมูลพนักงาน");
-      return;
-    }
-
-    const employee = employeeResponse.data.employees[0];
-    
-    // แปลงข้อมูลจาก remainArray ให้เป็นรูปแบบ deductSalary
-    const newDeductItems = remainArray.map((item, index) => ({
-      id: item.id || `leave_${Date.now()}_${index}`, // สร้าง ID unique
-      name: item.welfareTypeEn || item.name, // ชื่อประเภทการลา
-      amount: item.SpSalary || "0", // จำนวนเงินที่หัก
-      payType: "immedate", // ประเภทการจ่าย (จ่ายทั้งหมด)
-      message: item.comment || `ลา${item.welfareTypeEn} วันที่ ${new Date(item.startDay).toLocaleDateString('th-TH')}`,
-      createDate: new Date().toISOString(),
-      year: yearWelfare,
-      month: monthWelfare
-    }));
-
-    // รวมกับ deductSalary เดิม
-    const updatedEmployee = {
-      ...employee,
-      addSalaryList: [
-        ...employee.addSalaryList, // เก็บข้อมูลเดิม
-        ...newDeductItems // เพิ่มข้อมูลใหม่
-      ]
-    };
-
-    // อัพเดทข้อมูลพนักงาน
-    const updateResponse = await axios.put(
-      endpoint + `/employee/update/${employee._id}`, 
-      updatedEmployee
-    );
-
-    if (updateResponse.data) {
-      alert("บันทึกการลาสำเร็จ - เพิ่มเข้าระบบเงินหักแล้ว");
-      
-      // ล้างข้อมูลหลังบันทึกสำเร็จ
-      setRemainArray([]);
-      
-      // รีเฟรชข้อมูลหน้าจอ
-      if (typeof handleSearchAccounting === 'function') {
-        handleSearchAccounting();
+  const [yearWelfare, setYearWelfare] = useState("");
+  const [monthWelfare, setMonthWelfare] = useState("");
+  async function handleSaveWelfare() {
+    try {
+      if (remainArray.length === 0) {
+        // alert("กรุณาตรวจสอบรายการลา และข้อมูลพนักงาน");
+        alert("ลบรายการวันลาหมดแล้ว");
+        // return;
       }
-    }
+      if (!yearWelfare || !monthWelfare) {
+        alert("กรุณากรอกข้อมูลปีและเดือนให้ครบถ้วน");
+        return;
+      }
 
-  } catch (e) {
-    console.error("Error saving welfare to deductSalary:", e);
-    alert("เกิดข้อผิดพลาดในการบันทึก: " + e.message);
+      const welfareSave = {
+        year: yearWelfare,
+        month: monthWelfare,
+        createDate: "",
+        employeeId: staffId,
+        workplace: "",
+        createBy: "",
+        status: "",
+        record: remainArray || [],
+      };
+
+      const response = await axios.post(endpoint + "/leave/create", welfareSave);
+      if (response.data) {
+        alert("บันทึกสำเร็จ");
+      }
+    } catch (e) {
+      alert("save welfare error is " + e);
+    }
   }
-}
 
   // async function handleSaveWelfare() {
   //   // alert('handleSaveWelfare');
