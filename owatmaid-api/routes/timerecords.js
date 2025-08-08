@@ -1232,8 +1232,18 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
     // เพิ่มข้อมูล welfare/leave ลงใน addSalaryList
     for (let timeRecord of result) {
       try {
-        // ค้นหาข้อมูล welfare ของพนักงาน
-        const welfareRecords = await welfare.find({ employeeId: timeRecord.employeeId });
+        // ค้นหาข้อมูล welfare ของพนักงาน โดยกรองตามเดือนและปีที่ค้นหา
+        const welfareQuery = { employeeId: timeRecord.employeeId };
+        
+        // ถ้ามีการระบุ month และ year ให้กรองตามเงื่อนไขนั้น
+        if (month && month !== '') {
+          welfareQuery.month = month;
+        }
+        if (year && year !== '') {
+          welfareQuery.year = year;
+        }
+        
+        const welfareRecords = await welfare.find(welfareQuery);
         
         // รวม addSalaryList จากข้อมูล welfare ทั้งหมด
         let addSalaryFromWelfare = [];
@@ -1251,7 +1261,10 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
                 message: record.comment || record.message || "",
                 welfareType: record.welfareType || "",
                 startDay: record.startDay || "",
-                endDay: record.endDay || ""
+                endDay: record.endDay || "",
+                // เพิ่มข้อมูลเดือนและปีจาก welfare record
+                welfareMonth: welfareRecord.month || "",
+                welfareYear: welfareRecord.year || ""
               });
             });
           }
