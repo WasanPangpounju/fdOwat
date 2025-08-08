@@ -4741,6 +4741,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         // สร้าง list ของ welfare IDs ที่เป็นไปได้ (รวมที่อาจจะไม่มี welfareType)
         const potentialWelfareIds = new Set([
           '1442', '1235', '1234', '1230', '1350', '1410', '1520', '1535', // IDs ที่พบบ่อยใน welfare
+          '1423', '1242', // เพิ่ม welfare IDs ที่พบในระบบ
           ...Array.from(validWelfareIds) // และ IDs ที่มีใน welfare database
         ]);
         
@@ -4755,8 +4756,19 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           // 2. หรือเป็น welfare ที่ยังมีอยู่ใน database
           const shouldKeep = (!hasWelfareType && !isPotentialWelfare) || isValidWelfare;
           
+          // 🔍 Enhanced debug logging สำหรับ ID 1235
+          if (item.id === '1235') {
+            console.log(`🎯 [CRITICAL DEBUG] ID 1235 Analysis:`);
+            console.log(`   - hasWelfareType: ${hasWelfareType}`);
+            console.log(`   - isPotentialWelfare: ${isPotentialWelfare}`);
+            console.log(`   - isValidWelfare: ${isValidWelfare}`);
+            console.log(`   - shouldKeep: ${shouldKeep}`);
+            console.log(`   - item.welfareType: ${item.welfareType || 'undefined'}`);
+            console.log(`   - item.name: ${item.name}`);
+          }
+          
           if (!shouldKeep) {
-            console.log(`🗑️ [ACCOUNTING] ลบ item: id=${item.id}, name=${item.name}, welfareType=${item.welfareType || 'undefined'}, isPotentialWelfare=${isPotentialWelfare}`);
+            console.log(`🗑️ [ACCOUNTING] ลบ item: id=${item.id}, name=${item.name}, welfareType=${item.welfareType || 'undefined'}, isPotentialWelfare=${isPotentialWelfare}, shouldKeep=${shouldKeep}`);
           }
           
           return shouldKeep;
