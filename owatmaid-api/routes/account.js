@@ -4706,6 +4706,12 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         if (!record.addSalaryList) {
           record.addSalaryList = [];
         }
+
+        // 🎯 ลบข้อมูล welfare เดิมออกก่อนเพิ่มใหม่ เพื่อป้องกันการซ้ำ
+        record.addSalaryList = record.addSalaryList.filter(item => !item.welfareType);
+        console.log(`🧹 [ACCOUNTING] ลบข้อมูล welfare เดิมแล้ว เหลือ: ${record.addSalaryList.length} items`);
+        
+        // เพิ่ม welfare data ใหม่
         record.addSalaryList = [...record.addSalaryList, ...addSalaryFromWelfare];
         
         console.log(`   - รวมแล้ว: ${record.addSalaryList.length} items`);
