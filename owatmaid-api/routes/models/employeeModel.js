@@ -52,8 +52,7 @@ const employeeSchema = new mongoose.Schema({
     },
     idCard: {
       type: String,
-      required: true, //// use SocialSecurity
-      unique: true,
+
     },
     idCardIssueDate: { //วันออกบัตร
       type: String,
