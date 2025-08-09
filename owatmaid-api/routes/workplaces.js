@@ -31,7 +31,7 @@ router.get('/list', async (req, res) => {
 
 router.get('/sevenday', async (req, res) => {
     try {
-        const workplaces = await Workplace.find({ workOfWeek: 7 }, 'workplaceId workplaceName -id');
+        const workplaces = await Workplace.find({ workOfWeek: 7 }, 'workplaceId workplaceName -_id');
         res.json(workplaces);
     } catch (error) {
         res.status(500).json({ error: error.message });
