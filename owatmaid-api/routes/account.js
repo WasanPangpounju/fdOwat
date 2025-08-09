@@ -5954,21 +5954,21 @@ console.log(`\n💰 คำนวณ publicHolidayCash สำหรับพน�
     // สำหรับพนักงานเงินเดือน: ได้เงิน 1 เท่าสำหรับวันหยุดนักขัตฤกษ์ทุกวัน + เพิ่มเติมสำหรับวันที่มาทำงาน
     console.log(`💰 ✅ พนักงานเงินเดือน - คำนวณ publicHolidayCash`);
     
-    const dailyRateFromSalary = salaryMonth / 30; // เงินเดือนต่อวัน
+    const dailyRateFromWorkRate = workRate; // ใช้ workRate จาก workplace
     const totalPublicHolidaysThisMonth = totalPublicHolidays; // จำนวนวันหยุดนักขัตฤกษ์ทั้งหมด
     
     // คำนวณเงิน 1 เท่าสำหรับวันหยุดนักขัตฤกษ์ทุกวัน (ทั้งมาและไม่มาทำงาน)
-    publicHolidayCash = dailyRateFromSalary * totalPublicHolidaysThisMonth;
+    publicHolidayCash = dailyRateFromWorkRate * totalPublicHolidaysThisMonth;
     publicHolidayCount = totalPublicHolidaysThisMonth;
     
-    console.log(`💰 เงินเดือนต่อวัน (${salaryMonth} / 30): ${dailyRateFromSalary.toFixed(2)} บาท`);
+    console.log(`💰 ค่าแรงต่อวัน (workRate): ${dailyRateFromWorkRate.toFixed(2)} บาท`);
     console.log(`💰 จำนวนวันหยุดนักขัตฤกษ์ทั้งหมด: ${totalPublicHolidaysThisMonth} วัน`);
     console.log(`💰 จำนวนวันหยุดนักขัตฤกษ์ที่มาทำงาน: ${daysWorkedOnPublicHolidays} วัน`);
     console.log(`💰 จำนวนวันหยุดนักขัตฤกษ์ที่ไม่มาทำงาน: ${totalPublicHolidays - daysWorkedOnPublicHolidays} วัน`);
     
     // เพิ่มเงินพิเศษสำหรับวันที่มาทำงาน (เพิ่มอีก 2 เท่า รวมเป็น 3 เท่า)
     if (daysWorkedOnPublicHolidays > 0) {
-      const extraPayForWorking = dailyRateFromSalary * daysWorkedOnPublicHolidays * 2; // เพิ่มอีก 2 เท่า
+      const extraPayForWorking = dailyRateFromWorkRate * daysWorkedOnPublicHolidays * 2; // เพิ่มอีก 2 เท่า
       publicHolidayCash += extraPayForWorking;
       console.log(`💰 เงินพิเศษสำหรับการมาทำงานในวันหยุดนักขัตฤกษ์ (+2 เท่า): ${extraPayForWorking.toFixed(2)} บาท`);
     }
