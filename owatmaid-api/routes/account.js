@@ -4492,12 +4492,32 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
         processedRecord.sumCashWork = calculatedValues.sumCashWork;
         processedRecord.dayWorkCount = calculatedValues.dayWorkCount;
         processedRecord.dayOffCount = calculatedValues.dayOffCount;
+        processedRecord.publicHolidayCash = calculatedValues.publicHolidayCash; // เพิ่มการอัปเดต publicHolidayCash
+        processedRecord.publicHolidayCount = calculatedValues.publicHolidayCount; // เพิ่มการอัปเดต publicHolidayCount
         
         console.log(`🔄 คำนวณค่าเงินใหม่สำหรับพนักงาน ${record.employeeId}:`);
         console.log(`   - sumCashWorkMul["1.5"]: ${calculatedValues.sumCashWorkMul["1.5"]} บาท`);
         console.log(`   - sumOt1p5: ${calculatedValues.sumOt1p5} ชั่วโมง`);
         console.log(`   - dayWorkCount: ${calculatedValues.dayWorkCount} วัน`);
         console.log(`   - dayOffCount: ${calculatedValues.dayOffCount} วัน`);
+        console.log(`   - publicHolidayCash: ${calculatedValues.publicHolidayCash} บาท`); // เพิ่ม log สำหรับ publicHolidayCash
+        
+        // บันทึกค่า publicHolidayCash กลับไปยัง database
+        try {
+          await timerecordEmployee.findByIdAndUpdate(
+            record._id,
+            { 
+              publicHolidayCash: calculatedValues.publicHolidayCash,
+              publicHolidayCount: calculatedValues.publicHolidayCount,
+              sumOt1p5: calculatedValues.sumOt1p5,
+              sumOt3: calculatedValues.sumOt3
+            },
+            { new: true }
+          );
+          console.log(`✅ บันทึก publicHolidayCash (${calculatedValues.publicHolidayCash} บาท) สำหรับพนักงาน ${record.employeeId} แล้ว`);
+        } catch (saveError) {
+          console.error(`❌ Error saving publicHolidayCash for ${record.employeeId}:`, saveError.message);
+        }
         
       } catch (error) {
         console.error(`❌ Error calculating cash values for ${record.employeeId}:`, error);
