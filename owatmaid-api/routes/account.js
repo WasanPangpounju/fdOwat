@@ -5969,7 +5969,7 @@ console.log(`🔍 ค่า publicHolidayCount ที่จะบันทึก
 
 console.log(`\n💰 คำนวณ publicHolidayCash สำหรับพนักงาน ${employeeId}`);
 
-  // ตรวจสอบว่าเป็นพนักงานเงินเดือนหรือไม่
+  // คำนวณเงินวันหยุดนักขัตฤกษ์สำหรับทุกประเภทพนักงาน รวมถึง ภ.ง.ด.3
   if (salaryMonth !== 0) {
     // สำหรับพนักงานเงินเดือน: ได้เงิน 1 เท่าสำหรับวันหยุดนักขัตฤกษ์ทุกวัน + เพิ่มเติมสำหรับวันที่มาทำงาน
     console.log(`💰 ✅ พนักงานเงินเดือน - คำนวณ publicHolidayCash`);
@@ -6184,6 +6184,17 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
     if (costtype === "ภ.ง.ด.3") {
       console.log(`💰 ✅ พนักงานประเภท ภ.ง.ด.3 - ไม่คิดประกันสังคม แต่คิดภาษี 3%`);
       socialSecurity = 0;
+      
+      // คำนวณเงินวันหยุดนักขัตฤกษ์สำหรับพนักงาน ภ.ง.ด.3
+      const dailyRateFromWorkRate = workRate; // ใช้ workRate จาก workplace
+      const totalPublicHolidaysThisMonth = totalPublicHolidays; // จำนวนวันหยุดนักขัตฤกษ์ทั้งหมด
+      publicHolidayCash = dailyRateFromWorkRate * totalPublicHolidaysThisMonth;
+      publicHolidayCount = totalPublicHolidaysThisMonth;
+      
+      console.log(`💰 คำนวณ publicHolidayCash สำหรับ ภ.ง.ด.3:`);
+      console.log(`💰 - workRate: ${dailyRateFromWorkRate} บาท/วัน`);
+      console.log(`💰 - วันหยุดนักขัตฤกษ์: ${totalPublicHolidaysThisMonth} วัน`);
+      console.log(`💰 - publicHolidayCash: ${publicHolidayCash} บาท`)
       
       console.log(`\n💰 STEP 3: คำนวณรายได้รวมสำหรับภาษี 3%`);
       const totalIncomeForTax = parseFloat(sumCashWork || 0) + 
