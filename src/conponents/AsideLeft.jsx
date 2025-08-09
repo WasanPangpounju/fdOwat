@@ -13,6 +13,7 @@ function AsideLeft() {
   const [showSubMenu3_2, setShowSubMenu3_2] = useState(false);
   const [showSubMenu3_3, setShowSubMenu3_3] = useState(false);
   const [showSubMenu4, setShowSubMenu4] = useState(false);
+  const [showSubMenu5, setShowSubMenu5] = useState(false);
 
 
   const token = localStorage.getItem('token');
@@ -42,6 +43,7 @@ function AsideLeft() {
     setShowSubMenu3_2(false);
     setShowSubMenu3_3(false);
     setShowSubMenu4(false);
+    setShowSubMenu5(false);
   }
 
   function toggleSubMenu2() {
@@ -51,6 +53,7 @@ function AsideLeft() {
     setShowSubMenu3_2(false);
     setShowSubMenu3_3(false);
     setShowSubMenu4(false);
+    setShowSubMenu5(false);
   }
 
   function toggleSubMenu3() {
@@ -60,6 +63,7 @@ function AsideLeft() {
     setShowSubMenu3_2(false);
     setShowSubMenu3_3(false);
     setShowSubMenu4(false);
+    setShowSubMenu5(false);
   }
   function toggleSubMenu3_2() {
     setShowSubMenu3_2(!showSubMenu3_2);
@@ -68,6 +72,8 @@ function AsideLeft() {
     setShowSubMenu3(false);
     setShowSubMenu3_3(false);
     setShowSubMenu4(false);
+    setShowSubMenu5(false);
+    
   }
   function toggleSubMenu3_3() {
     setShowSubMenu3_3(!showSubMenu3_3);
@@ -76,6 +82,7 @@ function AsideLeft() {
     setShowSubMenu3(false);
     setShowSubMenu3_2(false);
     setShowSubMenu4(false);
+    setShowSubMenu5(false);
   }
   function toggleSubMenu4() {
     setShowSubMenu4(!showSubMenu4);
@@ -84,6 +91,16 @@ function AsideLeft() {
     setShowSubMenu3(false);
     setShowSubMenu3_2(false);
     setShowSubMenu3_3(false);
+    setShowSubMenu5(false);
+  }
+  function toggleSubMenu5() {
+    setShowSubMenu5(!showSubMenu5);
+    setShowSubMenu(false);
+    setShowSubMenu2(false);
+    setShowSubMenu3(false);
+    setShowSubMenu3_2(false);
+    setShowSubMenu3_3(false);
+    setShowSubMenu5(false);
   }
   
   // สร้าง style สำหรับ fixed sidebar
@@ -179,6 +196,7 @@ function AsideLeft() {
                   </ul>
                 )}
               </li>
+
               <li className="nav-item">
                 <a href="#" className="nav-link" onClick={toggleSubMenu3_2}>
                   <i className="nav-icon fas fa-file-invoice-dollar"></i>
@@ -205,6 +223,32 @@ function AsideLeft() {
                   </ul>
                 )}
               </li>
+
+
+
+              <li className="nav-item">
+                <a href="#" className="nav-link" onClick={toggleSubMenu5}>
+                  <i className="nav-icon fas fa-file-invoice-dollar"></i>
+                  <p> รายงาน ออดิท
+                    {/* <i className="right fas fa-angle-left"></i><i className=""></i> */}
+                    <i
+                      className={`right fas ${showSubMenu5 ? "fa-angle-down" : "fa-angle-left"}`}
+                    >
+                      <span className="sr-only">{showSubMenu5 ? "Collapse" : "Expand"}</span>
+                    </i>
+                  </p>
+                </a>
+                {showSubMenu5 && (
+                  <ul className="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+                    <>
+                      <li className="nav-item">
+                        <Link to="/salaryAllresultAudit" className="nav-link"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px", marginLeft: '1rem' }}></i> ออกรายงานเงินเดือนพนักงาน</Link>
+                      </li>
+                    </>
+                  </ul>
+                )}
+              </li>
+
               <li className="nav-item">
                 <a href="#" className="nav-link" onClick={toggleSubMenu3_3}>
                   <i className="nav-icon fas fa-file-invoice-dollar"></i>
@@ -259,10 +303,11 @@ function AsideLeft() {
                   <p> ระบบรายงานผู้บริหาร</p>
                 </a>
               </li>
-              <li className="nav-item">
-                <a href="#" className="nav-link" onClick={toggleSubMenu}>
+              <li className="nav-item"
+              style={{backgroundColor: ""}}>
+                <a href="#" style={{backgroundColor:"rgb(128, 0, 128)"}} className="nav-link " onClick={toggleSubMenu}>
                   <i className="nav-icon fas fa-network-wired"></i>
-                  <p> ระบบจัดการพนักงาน
+                  <p > ระบบจัดการพนักงาน
                     {/* <i className="right fas fa-angle-left"></i><i className=""></i> */}
                     <i
                       className={`right fas ${showSubMenu ? "fa-angle-down" : "fa-angle-left"}`}
@@ -278,7 +323,7 @@ function AsideLeft() {
                     </li>
                     {isEmployeeLinkDisabled ? (
                       <>
-                        <li className="nav-item">
+                        <li className="nav-item" > 
                           <span className="nav-link disabled"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px" }}></i> ข้อมูลพนักงาน</span>
                         </li>
                         <li className="nav-item">

@@ -2655,11 +2655,7 @@ if (newWorkplace) {
                                 handleChangeSpSalary(e, index, "codeSpSalary")
                               }
                               onInput={(e) => {
-                                // Remove any non-digit characters
-                                e.target.value = e.target.value.replace(
-                                  /[^0-9.]/g,
-                                  ""
-                                );
+                            
 
                                 // Ensure only one '.' is allowed
                                 const parts = e.target.value.split(".");

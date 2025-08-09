@@ -1009,10 +1009,7 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                 <input type="text" class="form-control" id="addSalaryId" placeholder="รหัส" value={addSalaryId} onChange={(e) => setAddSalaryId(e.target.value)}
                                                                     onInput={(e) => {
                                                                         // Remove any non-digit characters
-                                                                        e.target.value = e.target.value.replace(
-                                                                            /\D/g,
-                                                                            ""
-                                                                        );
+                                                                       
                                                                     }} />
                                                             </div>
                                                         </div>

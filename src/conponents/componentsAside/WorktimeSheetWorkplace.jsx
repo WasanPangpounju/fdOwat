@@ -362,7 +362,7 @@ const fetchWeekendData = async (year, month, workplaceId) => {
     const formattedDecimal = decimalPart > 0 ? Math.round(decimalPart * 100 / 60 * 100) / 100 : 0;
     
     const result = integerPart + formattedDecimal;
-    return result.toFixed(2);
+    return result.toFixed(1);
   };
 
   // Helper function to format numbers with comma thousands separator
@@ -7478,6 +7478,11 @@ const getDateStyle = (day) => {
         pattern: 'solid',
         fgColor: { argb: 'FFFFFFFF' } // สีขาว
       };
+       worksheet.mergeCells('AK4:AT4');
+      const period = worksheet.getCell('AK4');
+      period.value = `งวดวันที่ 21 ${monthName2} - 20 ${monthName} พ.ศ. ${yearBE}`;
+      period.alignment = { horizontal: 'center', vertical: 'middle' };
+      period.font = { bold: true, size: 30 };
       monthYearCell.border = {}; // ไม่มี border
       
       console.log('Workbook and worksheet created successfully');
@@ -9001,14 +9006,14 @@ console.log(`Employee ${idx + 1} ends at row ${currentRowIndex - 1}, page ${curr
 // console.log('📏 Setting column widths...');
 const welfareColumns = workplaceAddsalary ? workplaceAddsalary.map(() => ({ width: 10 })) : []; // เพิ่มจาก 8 เป็น 10
 worksheet.columns = [
-  { width: 7 },    // ลำดับ (เพิ่มจาก 6)  
-  { width: 34 },   // ชื่อ-สกุล (เพิ่มจาก 26)
+  { width: 10 },    // ลำดับ (เพิ่มจาก 6)  
+  { width: 40 },   // ชื่อ-สกุล (เพิ่มจาก 26)
   ...dayNumbers.map(() => ({ width: 6 })), // วันที่ (เพิ่มจาก 5)
-  { width: 10 },   // รวมวันทำงาน (เพิ่มจาก 8)
+  { width: 15 },   // รวมวันทำงาน (เพิ่มจาก 8)
   { width: 10 },   // วันหยุด (เพิ่มจาก 8)
   { width: 10 },   // วันนักขัต (เพิ่มจาก 8)
   { width: 10 },   // ทำงานวันหยุด/นักขัต (เพิ่มจาก 8)
-  { width: 10 },   // โอที 1.5 เท่า (เพิ่มจาก 8)
+  { width: 15 },   // โอที 1.5 เท่า (เพิ่มจาก 8)
   { width: 10 },   // โอที 3 เท่า (เพิ่มจาก 8)
   ...welfareColumns, // สวัสดิการ
   { width: 10 },   // หักประกันสังคม (เพิ่มจาก 8)
@@ -9062,7 +9067,7 @@ worksheet.pageSetup.scale = 100; // ลดขนาดตัวอักษร�
   margins: {
     left: 0.25,   // Narrow margin (ประมาณ 0.6 cm)
     right: 0.25,  // Narrow margin
-    top: 1,     // ขยับตารางขึ้นชิดขอบบน
+    top: 0.2,     // ขยับตารางขึ้นชิดขอบบน
     bottom: 0.3,  // ลดระยะห่างจากขอบล่าง
     header: 0.1,  // ลดระยะห่าง header
     footer: 0.1   // ลดระยะห่าง footer
@@ -9077,17 +9082,17 @@ worksheet.pageSetup.scale = 100; // ลดขนาดตัวอักษร�
       const workplaceName = searchWorkplaceName || searchWorkplaceId || 'ทุกหน่วยงาน';
       const monthYear = month && year ? `${month}/${year}` : 'ไม่ระบุ';
 
-      const headerText = `&"Angsana New,Bold"&20บริษัท โอวาท โปร แอนด์ ควิก จำกัด 
-      &ใบแสดงเวลาการทำปฏิบัติงานหน่วยงาน &U${workplaceName}&U ประจำเดือน${monthName}
-      &20 รอบวันที่ 21 ${monthName2 } ${yearBE } - 20 ${monthName} ${yearBE} ( จ่ายเงินวันที่ 30 ${monthName} ${yearBE}  )`;
+      // const headerText = `&"Angsana New,Bold"&20บริษัท โอวาท โปร แอนด์ ควิก จำกัด 
+      // &ใบแสดงเวลาการทำปฏิบัติงานหน่วยงาน &U${workplaceName}&U ประจำเดือน${monthName}
+      // &20 รอบวันที่ 21 ${monthName2 } ${yearBE } - 20 ${monthName} ${yearBE} ( จ่ายเงินวันที่ 30 ${monthName} ${yearBE}  )`;
 
       
      worksheet.headerFooter = {
-  firstHeader: headerText,
+  // firstHeader: headerText,
   firstFooter: '&L&"Angsana New"&12สร้างโดย: ระบบ Owat System&C&10หน้า &P จาก &N&R&10พิมพ์วันที่: ' + currentDate,
-  evenHeader: headerText,
+  // evenHeader: headerText,
   evenFooter: '&L&"Angsana New"&12สร้างโดย: ระบบ Owat System&C&10หน้า &P จาก &N&R&10พิมพ์วันที่: ' + currentDate,
-  oddHeader: headerText,
+  // oddHeader: headerText,
   oddFooter: '&L&"Angsana New"&12สร้างโดย: ระบบ Owat System&C&10หน้า &P จาก &N&R&10พิมพ์วันที่: ' + currentDate
 };
 
@@ -9099,7 +9104,7 @@ if (dataArray.length > 5) {
   worksheet.pageSetup.margins = {
     left: 0.1,   // Narrow margin (ประมาณ 0.6 cm)
     right: 0.1,  // Narrow margin
-    top: 0.9,     // ขยับตารางขึ้นชิดขอบบน
+    top: 0.2,     // ขยับตารางขึ้นชิดขอบบน
     bottom: 1.2,  // ลดระยะห่างจากขอบล่าง
     header: 0.1,  // ลดระยะห่าง header
     footer: 0  // ลดระยะห่าง footer
@@ -9110,7 +9115,7 @@ if (dataArray.length > 5) {
   worksheet.pageSetup.margins = {
     left: 0.25,   // Narrow margin (ประมาณ 0.6 cm)
     right: 0.25,  // Narrow margin
-    top: 1,     // เพิ่มระยะห่างเพื่อไม่ให้ตารางทับ header
+    top: 0.2,     // เพิ่มระยะห่างเพื่อไม่ให้ตารางทับ header
     bottom: 0.3,  // เพิ่มระยะห่างจากขอบล่าง
     header: 0.05,  // header ชิดขอบบน
     footer: 0.2  // footer ห่างจากขอบล่างนิดหน่อย
@@ -9121,7 +9126,7 @@ else if(dataArray.length === 5) {
   worksheet.pageSetup.margins = {
     left: 0.25,   // Narrow margin (ประมาณ 0.6 cm)
     right: 0.25,  // Narrow margin
-    top: 0.,     // เพิ่มระยะห่างเพื่อไม่ให้ตารางทับ header
+    top: 0.2,     // เพิ่มระยะห่างเพื่อไม่ให้ตารางทับ header
     bottom: 0.4,  // เพิ่มระยะห่างจากขอบล่าง
     header: 0,  // header ชิดขอบบน
     footer: 0  // footer ห่างจากขอบล่างนิดหน่อย
@@ -9174,7 +9179,7 @@ else if(dataArray.length === 5) {
               cell.font = cell.font || {};
               // กำหนดฟอนต์ขนาด 14 เป็นค่าเริ่มต้นสำหรับทุกเซลล์ ยกเว้นแถวที่ 1, 2, และ 3
               if (rowIndex !== 1 && rowIndex !== 2 && rowIndex !== 3 && rowIndex !== 4) {
-                cell.font.size = 14; // เพิ่มตัวอักษรเป็น 14pt สำหรับทุกแถว ยกเว้นแถวที่ 1, 2, และ 3
+                cell.font.size = 21; // เพิ่มตัวอักษรเป็น 14pt สำหรับทุกแถว ยกเว้นแถวที่ 1, 2, และ 3
               }
               
               // Header styling (first 4 rows)
@@ -9242,7 +9247,7 @@ else if(dataArray.length === 5) {
                   return;
                 } else {
                   // แถวอื่นๆ ใช้ฟอนต์ขนาด 14
-                  cell.font = { bold: true, size: 14 }; // Header ใช้ตัวหนา ขนาด 14pt (เพิ่มจาก 12pt)
+                  cell.font = { bold: true, size: 25 }; // Header ใช้ตัวหนา ขนาด 14pt (เพิ่มจาก 12pt)
                 }
                 
                 // Set row height for headers with special height for row 8
@@ -9253,7 +9258,7 @@ else if(dataArray.length === 5) {
                 } else if (rowIndex === 8) { // เปลี่ยนจาก 6 เป็น 8 เนื่องจากแทรกแถวว่าง 4 แถว
                   row.height = 120; // เพิ่มความสูงแถวที่ 4 (overtime labels) จาก 85 เป็น 95
                 } else {
-                  row.height = 22; // เพิ่มความสูงปกติสำหรับแถว header อื่นๆ จาก 18 เป็น 22
+                  row.height = 34; // เพิ่มความสูงปกติสำหรับแถว header อื่นๆ จาก 18 เป็น 22
                 }
                 
                 // ลำดับและชื่อ-สกุล ให้เป็นสีขาว (ยกเว้นแถวที่ 1 ที่เป็นชื่อบริษัท)
@@ -9792,8 +9797,8 @@ if (!isSummaryRow2 && colIndex >= 3 && colIndex <= 2 + dayNumbers.length) { // �
                   // Skip alignment for summary row labels - they already have right alignment applied
                   console.log(`Skipping alignment override for summary row ${rowIndex}, col ${colIndex}`);
                 } else if (colIndex === 2) {
-                  // Right alignment for employee name column (ชื่อ-สกุล พนักงาน)
-                  cell.alignment = { horizontal: 'right', vertical: 'middle' };
+                  // Left alignment for employee name column (ชื่อ-สกุล พนักงาน)
+                  cell.alignment = { horizontal: 'left', vertical: 'middle' };
                 } else {
                   // Center alignment for other cells in data rows
                   cell.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -9831,7 +9836,7 @@ if (!isSummaryRow2 && colIndex >= 3 && colIndex <= 2 + dayNumbers.length) { // �
             if (isOvertimeRow) {
               // Right alignment for overtime rows (โอที 1.5 เท่า, โอที 2 เท่า, โอที 3 เท่า)
               cell.alignment = {
-                horizontal: 'right',
+                horizontal: 'left',
                 vertical: 'middle',
                 wrapText: false,
                 shrinkToFit: false
@@ -10889,7 +10894,7 @@ try {
   // หา record ที่มี totalTime ก่อน ถ้าไม่มีก็เอา record แรก
   const found = allRecordsForDay.find(itemx => itemx.totalTime && itemx.totalTime.trim() !== '') || allRecordsForDay[0];
   
-  const isWork = found?.dayType === "work";
+  const isWork = found?.dayType === "work"  && found?.shift === "morning_shift";
   
   // ตรวจสอบว่าวันนี้เป็นวันหยุดพิเศษหรือไม่
   const isSpecialHoliday = record?.personalDayOff?.some(personalDay => {
@@ -11190,6 +11195,15 @@ try {
                     <td></td>
                     <td><span style={{ float: "right" }}>ดึก</span></td>
                     {dayNumbers.map((day, i) => {
+                      // หา record ทั้งหมดของวันนี้
+                      const allRecordsForDay = record?.employee_record?.filter(itemx => itemx.date === day) || [];
+                      
+                      // หา record ที่มี totalTime ก่อน ถ้าไม่มีก็เอา record แรก
+                      const found = allRecordsForDay.find(itemx => itemx.totalTime && itemx.totalTime.trim() !== '') || allRecordsForDay[0];
+                      
+                      // ตรวจสอบว่าเป็นการทำงานกะดึกหรือไม่
+                      const isNightShiftWork = found?.dayType === "work" && found?.shift === "night_shift";
+                      
                       // ตรวจสอบวันหยุดเหมือนกับแถวเช้า
                       const dayNum = parseInt(day);
                       let actualMonth, actualYear;
@@ -11223,12 +11237,33 @@ try {
                       // ตรวจสอบจาก dayOffOnly
                       const isDayOffOnly = weekendData && Array.isArray(weekendData) && weekendData.find(item => item.date === targetDateStr && item.type === 'dayOffOnly');
                       
-                      const isAbsent = record?.employee_record?.some(itemx => itemx.date === day && itemx.totalTime && itemx.totalTime.trim() !== '');
-                      // กำหนดสีพื้นหลัง (รวมวันที่ไม่มีอยู่จริงด้วย)
-                      const backgroundColor = (isDayoffWorkplace || isDayOffOnly || isInvalidDate || !isAbsent) ? { backgroundColor: "#9e9e9e" } : { backgroundColor: ""};
+                      // ตรวจสอบว่าเป็นวันหยุดพิเศษหรือไม่
+                      const isSpecialHoliday = record?.personalDayOff?.some(personalDay => {
+                        const personalDayDate = parseInt(personalDay.date);
+                        const currentDay = parseInt(day);
+                        return personalDayDate === currentDay;
+                      }) || record?.stopDaysList?.some(stopDay => {
+                        const stopDayDate = parseInt(stopDay.date);
+                        const currentDay = parseInt(day);
+                        return stopDayDate === currentDay;
+                      });
+                      
+                      // กำหนดสีพื้นหลังและค่าที่จะแสดง
+                      let backgroundColor = {};
+                      let displayValue = '';
+                      
+                      if (isSpecialHoliday) {
+                        backgroundColor = { backgroundColor: "#00ff00" }; // สีเขียวสำหรับวันหยุดพิเศษ
+                      } else if (isDayoffWorkplace || isDayOffOnly || isInvalidDate) {
+                        backgroundColor = { backgroundColor: "#9e9e9e" }; // สีเทาสำหรับวันหยุดหรือวันที่ไม่มีอยู่จริง
+                      } else if (isNightShiftWork) {
+                        displayValue = '1'; // แสดงเลข 1 เมื่อมาทำงานกะดึก
+                      }
                       
                       return (
-                        <td key={i} className="text-center align-middle" style={backgroundColor}></td>
+                        <td key={i} className="text-center align-middle" style={backgroundColor}>
+                          {displayValue}
+                        </td>
                       );
                     })}
 
