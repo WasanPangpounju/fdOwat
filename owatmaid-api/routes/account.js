@@ -4788,7 +4788,76 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         
         // เพิ่ม welfare data ที่ไม่ซ้ำแล้ว (เฉพาะที่มีอยู่จริงใน welfare database)
         record.addSalaryList = [...record.addSalaryList, ...addSalaryFromWelfare];
-        console.log(`📝 [ACCOUNTING] เพิ่ม welfare data ใหม่จาก DB: ${addSalaryFromWelfare.length} items`)
+        console.log(`📝 [ACCOUNTING] เพิ่ม welfare data ใหม่จาก DB: ${addSalaryFromWelfare.length} items`);
+        
+        // 🎯 กรองและรวมข้อมูลตาม ID และ message - ป้องกันการนับซ้ำของ message เดียวกัน
+        const groupedItems = {};
+        
+        record.addSalaryList.forEach(item => {
+          const itemId = item.id || "";
+          
+          // ข้าม item ที่มี ID ว่าง
+          if (!itemId) {
+            console.log(`⚠️ [ACCOUNTING] ข้าม item ที่ไม่มี ID: name=${item.name}`);
+            return;
+          }
+          
+          if (!groupedItems[itemId]) {
+            // ถ้ายังไม่มี ID นี้ใน group
+            groupedItems[itemId] = {
+              ...item,
+              SpSalary: parseFloat(item.SpSalary || 0),
+              messages: item.message ? [item.message] : [],
+              messageAmounts: item.message ? { [item.message]: parseFloat(item.SpSalary || 0) } : {}, // เก็บยอดเงินต่อ message
+              _ids: [item._id] // เก็บ _id ทั้งหมดสำหรับ debug
+            };
+            console.log(`✅ [ACCOUNTING] สร้างกลุ่มใหม่: id=${itemId}, name=${item.name}, SpSalary=${item.SpSalary}, message=${item.message}`);
+          } else {
+            // ถ้ามี ID นี้แล้ว - ตรวจสอบ message ซ้ำ
+            const existingItem = groupedItems[itemId];
+            const currentMessage = item.message || '';
+            const currentAmount = parseFloat(item.SpSalary || 0);
+            
+            if (currentMessage && !existingItem.messages.includes(currentMessage)) {
+              // message ใหม่ - เพิ่มทั้ง message และ amount
+              existingItem.messages.push(currentMessage);
+              existingItem.messageAmounts[currentMessage] = currentAmount;
+              existingItem.SpSalary += currentAmount;
+              console.log(`🔄 [ACCOUNTING] เพิ่ม message ใหม่: id=${itemId}, message=${currentMessage}, SpSalary=${currentAmount} (รวม=${existingItem.SpSalary})`);
+            } else if (currentMessage && existingItem.messages.includes(currentMessage)) {
+              // message ซ้ำ - ไม่เพิ่ม amount (แค่ log)
+              console.log(`🚫 [ACCOUNTING] ข้าม message ซ้ำ: id=${itemId}, message=${currentMessage}, SpSalary=${currentAmount} (ไม่นับซ้ำ)`);
+            } else if (!currentMessage) {
+              // ไม่มี message - เพิ่ม amount อย่างเดียว
+              existingItem.SpSalary += currentAmount;
+              console.log(`🔄 [ACCOUNTING] เพิ่ม amount (ไม่มี message): id=${itemId}, SpSalary=${currentAmount} (รวม=${existingItem.SpSalary})`);
+            }
+            
+            // เก็บ _id สำหรับ debug
+            existingItem._ids.push(item._id);
+          }
+        });
+        
+        // แปลง grouped items กลับเป็น array และจัดรูปแบบ message
+        const finalUniqueItems = Object.values(groupedItems).map(item => {
+          const finalItem = {
+            ...item,
+            SpSalary: item.SpSalary.toString(),
+            message: item.messages.join(','), // รวม message ที่ไม่ซ้ำด้วย comma
+          };
+          
+          // ลบ properties ที่ใช้ภายใน
+          delete finalItem.messages;
+          delete finalItem.messageAmounts;
+          delete finalItem._ids;
+          
+          console.log(`� [ACCOUNTING] ผลลัพธ์: id=${item.id}, name=${item.name}, SpSalary=${finalItem.SpSalary}, message=${finalItem.message}`);
+          
+          return finalItem;
+        });
+        
+        record.addSalaryList = finalUniqueItems;
+        console.log(`🧹 [ACCOUNTING] จัดกลุ่มเสร็จแล้ว: ${finalUniqueItems.length} items (กลุ่มจาก ${Object.keys(groupedItems).length} IDs)`);
         console.log(`   - รวมแล้ว: ${record.addSalaryList.length} items`);
         
       } catch (welfareError) {
