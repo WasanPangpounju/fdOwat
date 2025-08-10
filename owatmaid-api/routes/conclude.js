@@ -1434,14 +1434,24 @@ router.get('/getWeekendDates', async (req, res) => {
     // daysOff: แปลงเป็น yyyy-mm-dd string เฉพาะที่อยู่ในช่วงเวลา (local date)
     const year = Number(yyyy);
     const month = Number(mm);
+    
+    // ✅ แก้ไขการคำนวณช่วงวันที่ให้ถูกต้อง
+    // สำหรับเดือน 06: ต้องแสดงช่วง 21/05/2025 - 20/06/2025
     let prevMonth = month - 1;
     let prevYear = year;
+    
     if (prevMonth === 0) {
       prevMonth = 12;
-      prevYear -= 1;
+      prevYear = year - 1;
     }
+    
+    // วันที่เริ่มต้น: วันที่ 21 ของเดือนก่อนหน้า
     const startDate = new Date(prevYear, prevMonth - 1, 21);
+    // วันที่สิ้นสุด: วันที่ 20 ของเดือนปัจจุบัน  
     const endDate = new Date(year, month - 1, 20);
+    
+    console.log(`📅 ช่วงเวลาที่คำนวณ: ${startDate.toISOString().slice(0,10)} ถึง ${endDate.toISOString().slice(0,10)}`);
+    console.log(`🗓️ เดือนที่เลือก: ${month}/${year} -> ช่วงเงินเดือน: ${prevMonth}/${prevYear} (21) ถึง ${month}/${year} (20)`);
 
     // daysOff
     const daysOffDates = daysOff.map((d, index) => {
@@ -1521,6 +1531,59 @@ router.get('/getWeekendDates', async (req, res) => {
       }
     }
 
+    // ✅ คำนวณ dayoffWorkplace ใหม่ตามช่วงเวลาที่ถูกต้อง
+    const calculatedDayoffWorkplace = [];
+    
+    // อ่านข้อมูล workTimeDay และหาวันหยุดที่กำหนดโดยหน่วยงาน
+    if (workplace.workTimeDay && Array.isArray(workplace.workTimeDay)) {
+      const dayOffList = [];
+      
+      // หาวันหยุดจาก workTimeDay
+      workplace.workTimeDay.forEach(item => {
+        if (item.workOrStop === 'stop') {
+          try {
+            const startDayNum = getDayNumberFromName(item.startDay);
+            const endDayNum = getDayNumberFromName(item.endDay);
+            
+            if (startDayNum !== -1 && endDayNum !== -1) {
+              if (startDayNum <= endDayNum) {
+                for (let i = startDayNum; i <= endDayNum; i++) {
+                  dayOffList.push(i);
+                }
+              } else {
+                // กรณีข้ามสัปดาห์ เช่น ศุกร์-อาทิตย์
+                for (let j = startDayNum; j <= 6; j++) {
+                  dayOffList.push(j);
+                }
+                for (let k = 0; k <= endDayNum; k++) {
+                  dayOffList.push(k);
+                }
+              }
+            }
+          } catch (error) {
+            console.error(`❌ Error processing workTimeDay:`, error);
+          }
+        }
+      });
+      
+      console.log(`🗓️ วันหยุดประจำที่หน่วยงานกำหนด (เลขวัน): ${dayOffList}`);
+      
+      // สร้างรายการวันที่ในช่วงเงินเดือนที่ตรงกับวันหยุด
+      for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+        const dayNumber = d.getDay();
+        if (dayOffList.includes(dayNumber)) {
+          const yyyy = d.getFullYear();
+          const mm = String(d.getMonth() + 1).padStart(2, '0');
+          const dd = String(d.getDate()).padStart(2, '0');
+          const dateStr = `${yyyy}-${mm}-${dd}`;
+          calculatedDayoffWorkplace.push(dateStr);
+        }
+      }
+    }
+    
+    console.log(`✅ คำนวณ dayoffWorkplace ใหม่ได้: ${calculatedDayoffWorkplace.length} วัน`);
+    console.log(`📋 รายการ: ${calculatedDayoffWorkplace}`);
+
     // weekendAndDayOff: เฉพาะ daysOff ที่อยู่ในช่วงเวลา
     const weekendAndDayOff = [...daysOffDates].sort();
     // dayOffOnly: เฉพาะ publicHoliday ที่อยู่ในช่วงเวลา
@@ -1533,13 +1596,13 @@ router.get('/getWeekendDates', async (req, res) => {
     console.log('   🏢 daysOff (weekendAndDayOff):', weekendAndDayOff);
     console.log('   🎉 publicHoliday (dayOffOnly):', dayOffOnly);
     console.log('   📅 weekendOnly:', weekendOnly);
-    console.log('   🗓️ dayoffWorkplace:', dayoffWorkplace);
+    console.log('   🗓️ dayoffWorkplace (คำนวณใหม่):', calculatedDayoffWorkplace);
 
     res.json({ 
       weekendOnly, 
       dayOffOnly, 
       weekendAndDayOff,
-      dayoffWorkplace 
+      dayoffWorkplace: calculatedDayoffWorkplace // ✅ ใช้ค่าที่คำนวณใหม่ 
     });
   } catch (error) {
     console.error('❌ Error in /getWeekendDates:', error);
