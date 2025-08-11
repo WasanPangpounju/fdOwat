@@ -2426,7 +2426,40 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
   let notWorkedOnStopDays = 0;
   const attendanceDetails = [];
 
-  stopDaysList.forEach(stopDay => {
+  // 🎯 กรอง stopDaysList เพื่อเอาวันที่มี shift: "specialt_shift" ออกก่อน
+  console.log(`\n🎯 === กรอง stopDaysList สำหรับ specialt_shift ===`);
+  console.log(`🔍 stopDaysList ก่อนกรอง: ${stopDaysList.length} วัน`);
+  
+  const filteredStopDaysList = stopDaysList.filter(stopDay => {
+    // หาข้อมูลการทำงานของวันนั้นใน employee_record
+    const recordForDay = employee_record.find(record => {
+      const recordDate = parseInt(record.date);
+      const recordMonth = recordDate > 20 ? prevMonth : monthInt;
+      const recordYear = recordDate > 20 && prevMonth === 12 ? prevYear : yearInt;
+      
+      return recordDate === stopDay.date && 
+             recordMonth === stopDay.month && 
+             recordYear === stopDay.year;
+    });
+    
+    // ถ้าพบข้อมูลและมี shift: "specialt_shift" ให้เอาออก (return false)
+    if (recordForDay && recordForDay.shift === "specialt_shift") {
+      console.log(`🚫 เอาออกจาก stopDaysList: วันที่ ${stopDay.date}/${stopDay.month}/${stopDay.year} (shift: ${recordForDay.shift})`);
+      return false; // เอาออกจาก stopDaysList
+    }
+    
+    return true; // เก็บไว้ใน stopDaysList
+  });
+  
+  console.log(`🔍 stopDaysList หลังกรอง: ${filteredStopDaysList.length} วัน`);
+  console.log(`📋 รายการที่เหลือ:`);
+  filteredStopDaysList.forEach((day, index) => {
+    console.log(`   ${index + 1}. วันที่ ${day.date}/${day.month}/${day.year} (${day.dayName})`);
+  });
+
+  // ใช้ filteredStopDaysList ในการตรวจสอบการมาทำงาน
+  console.log(`\n🔍 === ตรวจสอบการมาทำงานในวันหยุด (หลังกรอง specialt_shift) ===`);
+  filteredStopDaysList.forEach(stopDay => {
     // หาข้อมูลการทำงานของวันนั้นใน employee_record
     const recordForDay = employee_record.find(record => {
       const recordDate = parseInt(record.date);
@@ -2452,9 +2485,10 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
           status: 'มาทำงาน',
           totalTime: recordForDay.totalTime,
           otTime: recordForDay.totalOtTime || '0',
-          dayType: recordForDay.dayType || 'ไม่ระบุ'
+          dayType: recordForDay.dayType || 'ไม่ระบุ',
+          shift: recordForDay.shift || 'ไม่ระบุ'
         });
-        console.log(`   ✅ วันที่ ${stopDay.date}/${stopDay.month}/${stopDay.year} (${stopDay.dayName}) - มาทำงาน ${recordForDay.totalTime} ชั่วโมง`);
+        console.log(`   ✅ วันที่ ${stopDay.date}/${stopDay.month}/${stopDay.year} (${stopDay.dayName}) - มาทำงาน ${recordForDay.totalTime} ชั่วโมง (shift: ${recordForDay.shift})`);
       } else {
         notWorkedOnStopDays++;
         attendanceDetails.push({
@@ -2463,9 +2497,10 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
           status: 'ไม่มาทำงาน',
           totalTime: '0',
           otTime: '0',
-          dayType: recordForDay.dayType || 'ไม่ระบุ'
+          dayType: recordForDay.dayType || 'ไม่ระบุ',
+          shift: recordForDay.shift || 'ไม่ระบุ'
         });
-        console.log(`   ❌ วันที่ ${stopDay.date}/${stopDay.month}/${stopDay.year} (${stopDay.dayName}) - ไม่มาทำงาน`);
+        console.log(`   ❌ วันที่ ${stopDay.date}/${stopDay.month}/${stopDay.year} (${stopDay.dayName}) - ไม่มาทำงาน (shift: ${recordForDay.shift})`);
       }
     } else {
       // ไม่พบข้อมูลในระบบ
@@ -2476,27 +2511,28 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
         status: 'ไม่มีข้อมูล',
         totalTime: '0',
         otTime: '0',
-        dayType: 'ไม่มีข้อมูล'
+        dayType: 'ไม่มีข้อมูล',
+        shift: 'ไม่มีข้อมูล'
       });
       console.log(`   ⚠️ วันที่ ${stopDay.date}/${stopDay.month}/${stopDay.year} (${stopDay.dayName}) - ไม่มีข้อมูลในระบบ`);
     }
   });
   
   // แสดงสรุปผล
-  console.log(`\n📊 === สรุปการมาทำงานในวันหยุด ===`);
-  console.log(`📅 จำนวนวันหยุดทั้งหมด: ${stopDayCount} วัน`);
+  console.log(`\n📊 === สรุปการมาทำงานในวันหยุด (หลังกรอง specialt_shift) ===`);
+  console.log(`📅 จำนวนวันหยุดที่ใช้ในการคำนวณ: ${filteredStopDaysList.length} วัน`);
   console.log(`✅ มาทำงาน: ${workedOnStopDays} วัน`);
   console.log(`❌ ไม่มาทำงาน: ${notWorkedOnStopDays} วัน`);
   console.log(`\n📋 รายละเอียดการมาทำงาน:`);
-  console.log(`┌─────────────────┬──────────┬─────────────┬────────────┬──────────┬──────────┐`);
-  console.log(`│ วันที่          │ วัน      │ สถานะ      │ ชั่วโมงงาน │ OT       │ ประเภท   │`);
-  console.log(`├─────────────────┼──────────┼─────────────┼────────────┼──────────┼──────────┤`);
+  console.log(`┌─────────────────┬──────────┬─────────────┬────────────┬──────────┬──────────┬──────────────┐`);
+  console.log(`│ วันที่          │ วัน      │ สถานะ      │ ชั่วโมงงาน │ OT       │ ประเภท   │ Shift        │`);
+  console.log(`├─────────────────┼──────────┼─────────────┼────────────┼──────────┼──────────┼──────────────┤`);
   
   attendanceDetails.forEach(detail => {
-    console.log(`│ ${detail.date.padEnd(15)} │ ${detail.dayName.padEnd(8)} │ ${detail.status.padEnd(11)} │ ${detail.totalTime.padEnd(10)} │ ${detail.otTime.padEnd(8)} │ ${detail.dayType.padEnd(8)} │`);
+    console.log(`│ ${detail.date.padEnd(15)} │ ${detail.dayName.padEnd(8)} │ ${detail.status.padEnd(11)} │ ${detail.totalTime.padEnd(10)} │ ${detail.otTime.padEnd(8)} │ ${detail.dayType.padEnd(8)} │ ${(detail.shift || '').padEnd(12)} │`);
   });
   
-  console.log(`└─────────────────┴──────────┴─────────────┴────────────┴──────────┴──────────┘`);
+  console.log(`└─────────────────┴──────────┴─────────────┴────────────┴──────────┴──────────┴──────────────┘`);
   
   // อัปเดตค่า customizeDayoff ใน database ให้เท่ากับ workedOnStopDays
   try {
@@ -2871,16 +2907,18 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
     })
   );
 
+  // 🎯 ใช้ filteredStopDaysList ที่ถูกกรองแล้วแทน stopDaysList
+
   // Return an object containing both the updated records and cashcustomizeDayoff
   console.log(`\n💎 === ส่งคืนข้อมูล ===`);
   console.log(`📋 อาร์เรย์ข้อมูลพนักงาน: ${updatedRecords.length} รายการ`);
   console.log(`💰 cashcustomizeDayoff: ${totalWorkerWage.toFixed(2)} บาท`);
-  console.log(`🟢 วันหยุดพิเศษ: ${stopDaysList.length} วัน`);
+  console.log(`🟢 วันหยุดพิเศษ (หลังกรอง): ${filteredStopDaysList.length} วัน`);
   
   return {
     updatedRecords,
     cashcustomizeDayoff: totalWorkerWage,
-    personalDayOff: stopDaysList // เปลี่ยนชื่อให้ชัดเจนขึ้น - ใช้เป็นวันหยุดส่วนบุคคล
+    personalDayOff: filteredStopDaysList // ใช้ filteredStopDaysList แทน stopDaysList
   };
 };
 
