@@ -5600,7 +5600,7 @@ try {
             record.cashOtMul = "0";
             record.beforeTotalOtTime = "0";
             record.totalTime = "0";
-            console.log(`   - totalTime ปรับเป็น: ${record.totalTime}
+            console.log(`   - totalTime ปรับเป็น: ${record.totalTime}, cashOt ปรับเป็น: ${record.totalTime}, cashOtMul ปรับเป็น: ${record.cashOtMul}`);
            
  
 
