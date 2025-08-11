@@ -5600,6 +5600,7 @@ try {
             record.cashOtMul = "0";
             record.beforeTotalOtTime = "0";
             record.totalTime = "0";
+            console.log(`   - totalTime ปรับเป็น: ${record.totalTime}
            
  
 
@@ -5722,7 +5723,8 @@ if (record?.dayType === "work") {
        record.totalOtTime = "0";
       record.cashOtMul = "0";
       record.totalTime = "0"; 
- 
+      console.log(`   - totalTime ถูกปรับเป็น: ${record.totalTime}`);
+
     }
     
     sumCashWork += cashWorkAmount;
