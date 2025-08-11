@@ -5600,6 +5600,8 @@ try {
             record.cashOtMul = "0";
             record.beforeTotalOtTime = "0";
             record.addSalaryList = [];
+            record.dayType = "stop"
+
           }
           
           // เก็บค่าเดิมก่อนที่จะเปลี่ยนแปลง
@@ -5719,6 +5721,7 @@ if (record?.dayType === "work") {
        record.totalOtTime = "0";
       record.cashOtMul = "0";
       record.addSalaryDaily = []; // ล้างรายการเงินเดือนพิเศษ
+      record.dayType = "stop"
     }
     
     sumCashWork += cashWorkAmount;
