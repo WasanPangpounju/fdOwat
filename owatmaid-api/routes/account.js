@@ -5593,6 +5593,9 @@ try {
           if (record.shift === "specialt_shift") {
             console.log(`🚫 พบ specialt_shift ในวันหยุด (วันที่ ${record.date}) - บังคับ cashWork เป็น 0 (เดิม: ${record.cashWork})`);
             record.cashWork = "0";
+            record.cashOt = "0";
+            record.cashBeforeOt = "0";
+            record.totalOtTime = "0";
           }
           
           // เก็บค่าเดิมก่อนที่จะเปลี่ยนแปลง
