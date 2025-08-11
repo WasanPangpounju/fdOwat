@@ -5589,13 +5589,15 @@ try {
           console.log(record?.dayType);
           dayOffCount += 1;
           
-          // ตรวจสอบ specialt_shift - ถ้าเป็น specialt_shift ให้ cashWork = 0
+          // ตรวจสอบ specialt_shift - ถ้าเป็น specialt_shift ให้ cashWork, cashOt, cashOtMul = 0
           if (record.shift === "specialt_shift") {
-            console.log(`🚫 พบ specialt_shift ในวันหยุด (วันที่ ${record.date}) - บังคับ cashWork เป็น 0 (เดิม: ${record.cashWork})`);
+            console.log(`🚫 พบ specialt_shift ในวันหยุด (วันที่ ${record.date}) - บังคับ cashWork, cashOt, cashOtMul เป็น 0`);
+            console.log(`   - cashWork เดิม: ${record.cashWork}, cashOt เดิม: ${record.cashOt}, cashOtMul เดิม: ${record.cashOtMul}`);
             record.cashWork = "0";
             record.cashOt = "0";
-            record.cashBeforeOt = "0";
+            record.cashOtMul = "0";
             record.totalOtTime = "0";
+            record.cashOtMul = "0";
           }
           
           // เก็บค่าเดิมก่อนที่จะเปลี่ยนแปลง
@@ -5703,12 +5705,17 @@ if (record?.dayType === "work") {
   if (hasRegularWork) {
     sumTimeWork += convertTimeToDecimal(record.totalTime);
     
-    // ตรวจสอบ specialt_shift - ถ้าเป็น specialt_shift ให้ cashWork = 0
+    // ตรวจสอบ specialt_shift - ถ้าเป็น specialt_shift ให้ cashWork, cashOt, cashOtMul = 0
     let cashWorkAmount = parseFloat(record?.cashWork || '0');
     if (record.shift === "specialt_shift") {
-      console.log(`🚫 พบ specialt_shift ในวันที่ ${record.date} - บังคับ cashWork เป็น 0 (เดิม: ${cashWorkAmount})`);
+      console.log(`🚫 พบ specialt_shift ในวันที่ ${record.date} - บังคับ cashWork, cashOt, cashOtMul เป็น 0`);
+      console.log(`   - cashWork เดิม: ${cashWorkAmount}, cashOt เดิม: ${record.cashOt}, cashOtMul เดิม: ${record.cashOtMul}`);
       cashWorkAmount = 0;
-      record.cashWork = "0"; // อัปเดตค่าใน record ด้วย
+      record.cashWork = "0";
+      record.cashOt = "0";
+      record.cashOtMul = "0";
+       record.totalOtTime = "0";
+      record.cashOtMul = "0";
     }
     
     sumCashWork += cashWorkAmount;
