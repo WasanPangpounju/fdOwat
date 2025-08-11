@@ -5599,8 +5599,9 @@ try {
             record.totalOtTime = "0";
             record.cashOtMul = "0";
             record.beforeTotalOtTime = "0";
-            record.addSalaryList = [];
-            record.dayType = "stop"
+            record.totalTime = "0";
+           
+ 
 
           }
           
@@ -5720,8 +5721,8 @@ if (record?.dayType === "work") {
       record.cashOtMul = "0";
        record.totalOtTime = "0";
       record.cashOtMul = "0";
-      record.addSalaryDaily = []; // ล้างรายการเงินเดือนพิเศษ
-      record.dayType = "stop"
+      record.totalTime = "0"; 
+ 
     }
     
     sumCashWork += cashWorkAmount;
