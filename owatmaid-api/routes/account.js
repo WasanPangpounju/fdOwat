@@ -5589,6 +5589,12 @@ try {
           console.log(record?.dayType);
           dayOffCount += 1;
           
+          // ตรวจสอบ specialt_shift - ถ้าเป็น specialt_shift ให้ cashWork = 0
+          if (record.shift === "specialt_shift") {
+            console.log(`🚫 พบ specialt_shift ในวันหยุด (วันที่ ${record.date}) - บังคับ cashWork เป็น 0 (เดิม: ${record.cashWork})`);
+            record.cashWork = "0";
+          }
+          
           // เก็บค่าเดิมก่อนที่จะเปลี่ยนแปลง
           const originalCashOtMul = record.cashOtMul;
           const originalCashWorkMul = record.cashWorkMul;
@@ -5693,11 +5699,20 @@ if (record?.dayType === "work") {
   // คำนวณเวลาทำงานปกติ
   if (hasRegularWork) {
     sumTimeWork += convertTimeToDecimal(record.totalTime);
-    sumCashWork += parseFloat(record?.cashWork || '0');
+    
+    // ตรวจสอบ specialt_shift - ถ้าเป็น specialt_shift ให้ cashWork = 0
+    let cashWorkAmount = parseFloat(record?.cashWork || '0');
+    if (record.shift === "specialt_shift") {
+      console.log(`🚫 พบ specialt_shift ในวันที่ ${record.date} - บังคับ cashWork เป็น 0 (เดิม: ${cashWorkAmount})`);
+      cashWorkAmount = 0;
+      record.cashWork = "0"; // อัปเดตค่าใน record ด้วย
+    }
+    
+    sumCashWork += cashWorkAmount;
     
     // อัปเดต sumCashWorkMul สำหรับเวลาทำงานปกติ
     if (record?.cashWorkMul && sumCashWorkMul[record.cashWorkMul] !== undefined) {
-      sumCashWorkMul[record.cashWorkMul] += parseFloat(record?.cashWork || '0');
+      sumCashWorkMul[record.cashWorkMul] += cashWorkAmount;
     }
     if (record?.cashWorkMul && timeCashWorkMul[record.cashWorkMul] !== undefined) {
       timeCashWorkMul[record.cashWorkMul] += convertTimeToDecimal(record.totalTime);
