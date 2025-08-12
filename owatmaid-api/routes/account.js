@@ -5660,6 +5660,44 @@ try {
           
           console.log(`📊 วันที่ ${record.date} (dayType=stop): cashWork=${record.cashWork}, cashWorkMul=${record.cashWorkMul}, cashOt=${record.cashOt}, cashOtMul=${record.cashOtMul}`);
 
+          // ➕ รวมค่า addSalaryDaily สำหรับวันหยุดที่มีการทำงาน (totalTime > 0)
+          if (record.addSalaryDaily && record.addSalaryDaily.length > 0) {
+            const hasTotalTime = record.totalTime && record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0;
+            console.log(`🔍 วันที่ ${record.date} (dayType=stop): totalTime=${record.totalTime}, hasTotalTime=${hasTotalTime}, addSalaryDaily.length=${record.addSalaryDaily.length}`);
+            
+            if (hasTotalTime) {
+              console.log(`✅ วันที่ ${record.date} มี totalTime > 0 จึงรวม addSalaryDaily`);
+              record.addSalaryDaily.forEach((salaryItem) => {
+                const cleanSalaryItemId = String(salaryItem.id).trim();
+                const amount = parseFloat(salaryItem.SpSalary || 0);
+                console.log(`   - ตรวจสอบ addSalaryDaily: ID=${cleanSalaryItemId}, name=${salaryItem.name}, amount=${amount}`);
+
+                const existingItem = addSalaryList.find(
+                  item => String(item.id).trim() === cleanSalaryItemId
+                );
+
+                if (existingItem) {
+                  const oldAmount = parseFloat(existingItem.SpSalary || 0);
+                  const oldMessage = parseFloat(existingItem.message || 0);
+                  existingItem.SpSalary = oldAmount + amount;
+                  existingItem.message = oldMessage + 1;
+                  console.log(`   - ✅ รวมเข้ากับรายการเดิม: ${oldAmount} + ${amount} = ${existingItem.SpSalary}, message: ${oldMessage} + 1 = ${existingItem.message}`);
+
+                  const index = addSalaryList.findIndex(item => String(item.id).trim() === cleanSalaryItemId);
+                  if (index !== -1) {
+                    addSalaryList[index] = existingItem;
+                  }
+                } else {
+                  const newItem = { ...salaryItem, message: 1 };
+                  addSalaryList.push(newItem);
+                  console.log(`   - ✅ เพิ่มรายการใหม่: ID=${cleanSalaryItemId}, amount=${amount}, message=1`);
+                }
+              });
+            } else {
+              console.log(`❌ วันที่ ${record.date} ไม่มี totalTime หรือ totalTime = 0 จึงไม่รวม addSalaryDaily`);
+            }
+          }
+
         } else
           if (record?.dayType === 'specialDayOff') {
             specialDayOff += 1;
@@ -6106,6 +6144,12 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
   console.log(`\n🔍 === การตรวจสอบเงินพิเศษที่คิดประกันสังคม ===`);
   console.log(`🔍 จำนวนรายการเงินพิเศษทั้งหมด: ${addSalaryList.length} รายการ`);
   
+  // แสดงรายการ addSalaryList ทั้งหมดก่อนตรวจสอบ
+  console.log(`\n📋 รายการเงินพิเศษทั้งหมดก่อนตรวจสอบ checkCalTax:`);
+  addSalaryList.forEach((item, index) => {
+    console.log(`   ${index + 1}. ID: ${item.id} | ชื่อ: ${item.name} | จำนวน: ${item.SpSalary} บาท | รอบ: ${item.roundOfSalary} | วัน: ${item.message || 'N/A'}`);
+  });
+  
   for (const element of addSalaryList) {
     console.log(`\n🔍 ตรวจสอบรายการ:`);
     console.log(`🔍 - ID: ${element.id}`);
@@ -6127,6 +6171,34 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
   
   console.log(`\n🔍 === สรุปเงินพิเศษที่คิดประกันสังคม ===`);
   console.log(`🔍 ยอดรวมเงินพิเศษที่คิดประกันสังคม: ${addSalarySocialSecurity} บาท`);
+  
+  // แสดงรายละเอียดการคำนวณ addSalarySocialSecurity
+  console.log(`\n💡 === รายละเอียดการคำนวณ "เงินพิเศษที่คิดภาษี" ===`);
+  const taxableItemsList = [];
+  addSalaryList.forEach(async (item) => {
+    const isCheckCalTax = await checkCalTax(item.id);
+    if (isCheckCalTax) {
+      taxableItemsList.push({
+        id: item.id,
+        name: item.name,
+        amount: parseFloat(item.SpSalary || 0),
+        roundOf: item.roundOfSalary,
+        days: item.message || 'N/A'
+      });
+    }
+  });
+  
+  if (taxableItemsList.length > 0) {
+    console.log(`💡 รายการที่ทำให้เกิด "เงินพิเศษที่คิดภาษี: ${addSalarySocialSecurity} บาท":`);
+    let totalCheck = 0;
+    taxableItemsList.forEach((item, index) => {
+      console.log(`💡   ${index + 1}. [${item.id}] ${item.name}: ${item.amount} บาท (${item.roundOf}, วัน: ${item.days})`);
+      totalCheck += item.amount;
+    });
+    console.log(`💡 ยอดรวมตรวจสอบ: ${totalCheck} บาท ${totalCheck === parseFloat(addSalarySocialSecurity) ? '✅' : '❌'}`);
+  } else {
+    console.log(`💡 ไม่พบรายการที่คิดภาษี`);
+  }
   
   console.log(`\n🔍 === รายการ ID ที่คิดประกันสังคม ===`);
   const taxableIds = ["1110","1120","1130","1140","1150","1210","1230","1231","1233","1241","1242","1251","1350","1422","1423","1428","1434","1440","1441","1444","1445","1446","1520","1522","1524","1525","1526","1528","1540","1541","1550","1447","1613","1561","1542","1536","1529","1531","1532","1533","1534","1442","1435","1429","1427","1412","1245","1234","1159","2111","2113","2116","2117","2120","2124","2160","2430","1190","1211","1212","1214","1235","1236","1243","1351","1411","1425","1426","1431","1448","1449","1527","1562","2114","2123","1543","1443","1544"];
