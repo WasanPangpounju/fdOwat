@@ -4806,17 +4806,18 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         const finalGroupedItems = [];
         
         record.addSalaryList.forEach(item => {
-          // สำหรับ daily items ให้รวมตาม id และ roundOfSalary เท่านั้น
+          // สำหรับ daily items ให้รวมตาม id เท่านั้น (ไม่สนใจ date, month, year)
           // สำหรับ monthly items ให้รวมตาม id, month, year
           let groupKey;
           if (item.roundOfSalary === "daily") {
-            groupKey = `${item.id}|${item.roundOfSalary}|${item.month}|${item.year}`;
+            groupKey = `${item.id}|daily`;
           } else {
             groupKey = `${item.id}|${item.month}|${item.year}`;
           }
           
           if (!groupedItems[groupKey]) {
             // รายการแรกของกลุ่มนี้
+            console.log(`🆕 [ACCOUNTING] สร้างกลุ่มใหม่: ${groupKey} (${item.name})`);
             groupedItems[groupKey] = {
               ...item,
               SpSalary: parseFloat(item.SpSalary) || 0,
@@ -4831,6 +4832,8 @@ router.post('/searchtimerecordemployee', async (req, res) => {
             // ตรวจสอบว่าเป็นข้อมูลซ้ำหรือไม่โดยดู _id
             const existing = groupedItems[groupKey];
             
+            console.log(`🔄 [ACCOUNTING] รวมเข้ากลุ่ม: ${groupKey} (${item.name}) - วันที่ ${item.date}`);
+            
             // ถ้า _id เดียวกันแสดงว่าเป็นข้อมูลซ้ำ ไม่ต้องรวม
             if (item._id && existing.objectIds.includes(item._id)) {
               console.log(`🚫 [ACCOUNTING] ข้าม item ซ้ำ (same _id): ${item.name} (${item._id})`);
@@ -4841,10 +4844,11 @@ router.post('/searchtimerecordemployee', async (req, res) => {
             if (item.roundOfSalary === "daily") {
               existing.dailyCount += 1;
               // ไม่รวม SpSalary สำหรับ daily items เพราะจะคำนวณใหม่ตาม countAllowance
-              console.log(`📅 [ACCOUNTING] เพิ่มวันสำหรับ ${item.name}: ${existing.dailyCount} วัน`);
+              console.log(`📅 [ACCOUNTING] เพิ่มวันสำหรับ ${item.name}: ${existing.dailyCount} วัน (SpSalary: ${item.SpSalary})`);
             } else {
               // สำหรับ monthly items - รวม SpSalary
               existing.SpSalary += parseFloat(item.SpSalary) || 0;
+              console.log(`💰 [ACCOUNTING] รวม SpSalary สำหรับ ${item.name}: ${existing.SpSalary} บาท`);
             }
             
             // รวม dates (ไม่ซ้ำ)
