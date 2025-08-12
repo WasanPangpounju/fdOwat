@@ -4671,7 +4671,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         
         // รวม addSalaryList จากข้อมูล welfare ทั้งหมด
         let addSalaryFromWelfare = [];
-        const tempWelfareIds = new Set(); // เพิ่ม Set เพื่อติดตาม ID ที่เคยเพิ่มแล้ว
+        const tempWelfareCompositeKeys = new Set(); // เปลี่ยนเป็น composite key (id|date|month|year)
         
         welfareRecords.forEach(welfareRecord => {
           if (welfareRecord.record && Array.isArray(welfareRecord.record)) {
@@ -4689,10 +4689,14 @@ router.post('/searchtimerecordemployee', async (req, res) => {
               
               if (shouldInclude) {
                 const welfareId = welfareItem.id || welfareItem.welfareType || "";
+                const itemDate = welfareItem.startDay ? new Date(welfareItem.startDay).getDate().toString() : new Date().getDate().toString();
                 
-                // ตรวจสอบว่า ID นี้เคยถูกเพิ่มแล้วหรือยัง
-                if (!tempWelfareIds.has(welfareId)) {
-                  tempWelfareIds.add(welfareId);
+                // สร้าง composite key: id|date|month|year
+                const compositeKey = `${welfareId}|${itemDate}|${month}|${year}`;
+                
+                // ตรวจสอบว่า composite key นี้เคยถูกเพิ่มแล้วหรือยัง
+                if (!tempWelfareCompositeKeys.has(compositeKey)) {
+                  tempWelfareCompositeKeys.add(compositeKey);
                   
                   // แปลงข้อมูล welfare เป็นรูปแบบ addSalaryList
                   addSalaryFromWelfare.push({
@@ -4707,16 +4711,16 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                     startDay: welfareItem.startDay || "",
                     endDay: welfareItem.endDay || "",
                     // เพิ่มข้อมูลวันที่/เดือน/ปี จาก startDay
-                    date: welfareItem.startDay ? new Date(welfareItem.startDay).getDate().toString() : new Date().getDate().toString(),
+                    date: itemDate,
                     month: month,
                     year: year,
                     // เพิ่มข้อมูลเดือนและปีจาก welfare record
                     welfareMonth: welfareRecord.month || "",
                     welfareYear: welfareRecord.year || ""
                   });
-                  console.log(`✅ [ACCOUNTING] เพิ่ม welfare item: ${welfareItem.name} (${welfareItem.SpSalary})`);
+                  console.log(`✅ [ACCOUNTING] เพิ่ม welfare item (${compositeKey}): ${welfareItem.name} (${welfareItem.SpSalary})`);
                 } else {
-                  console.log(`🚫 [ACCOUNTING] ข้าม welfare item ซ้ำในระดับ welfare records: id=${welfareId}, name=${welfareItem.name}`);
+                  console.log(`🚫 [ACCOUNTING] ข้าม welfare item ซ้ำ (${compositeKey}): ${welfareItem.name}`);
                 }
               }
             });
@@ -4804,17 +4808,24 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         record.addSalaryList = [...record.addSalaryList, ...addSalaryFromWelfare];
         console.log(`📝 [ACCOUNTING] เพิ่ม welfare data ใหม่จาก DB: ${addSalaryFromWelfare.length} items`);
         
-        // 🎯 กรองข้อมูลซ้ำขั้นสุดท้าย เผื่อมี ID ซ้ำระหว่าง addSalaryList เดิมกับ welfare data
+        // 🎯 กรองข้อมูลซ้ำขั้นสุดท้าย เผื่อมี composite key ซ้ำระหว่าง addSalaryList เดิมกับ welfare data
         const finalUniqueItems = [];
-        const finalSeenIds = new Set();
+        const finalSeenCompositeKeys = new Set(); // เปลี่ยนเป็น composite key
         
         record.addSalaryList.forEach(item => {
           const itemId = item.id || "";
-          if (!finalSeenIds.has(itemId)) {
-            finalSeenIds.add(itemId);
+          const itemDate = item.date || "";
+          const itemMonth = item.month || "";
+          const itemYear = item.year || "";
+          
+          // สร้าง composite key: id|date|month|year
+          const compositeKey = `${itemId}|${itemDate}|${itemMonth}|${itemYear}`;
+          
+          if (!finalSeenCompositeKeys.has(compositeKey)) {
+            finalSeenCompositeKeys.add(compositeKey);
             finalUniqueItems.push(item);
           } else {
-            console.log(`🚫 [ACCOUNTING] ข้าม item ซ้ำขั้นสุดท้าย: id=${itemId}, name=${item.name}`);
+            console.log(`🚫 [ACCOUNTING] ข้าม item ซ้ำขั้นสุดท้าย (${compositeKey}): ${item.name}`);
           }
         });
         
