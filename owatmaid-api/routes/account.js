@@ -4858,22 +4858,6 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         record.addSalaryList = [...record.addSalaryList, ...addSalaryFromWelfare];
         console.log(`📝 [ACCOUNTING] เพิ่ม welfare data ใหม่จาก DB: ${addSalaryFromWelfare.length} items`);
         
-        // 🎯 กรองข้อมูลซ้ำขั้นสุดท้าย เผื่อมี ID ซ้ำระหว่าง addSalaryList เดิมกับ welfare data
-        const finalUniqueItems = [];
-        const finalSeenIds = new Set();
-        
-        record.addSalaryList.forEach(item => {
-          const itemId = item.id || "";
-          if (!finalSeenIds.has(itemId)) {
-            finalSeenIds.add(itemId);
-            finalUniqueItems.push(item);
-          } else {
-            console.log(`🚫 [ACCOUNTING] ข้าม item ซ้ำขั้นสุดท้าย: id=${itemId}, name=${item.name}`);
-          }
-        });
-        
-        record.addSalaryList = finalUniqueItems;
-        
         console.log(`   - รวมแล้ว: ${record.addSalaryList.length} items`);
         
       } catch (welfareError) {
