@@ -4985,6 +4985,20 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         if (updateData.addSalaryList && Array.isArray(updateData.addSalaryList)) {
           console.log(`🎯 อัปเดต message และ SpSalary สำหรับ ${doc.employeeId} (countAllowance: ${calculatedValues.countAllowance})`);
           updateData.addSalaryList.forEach((item, itemIndex) => {
+            // 🎯 เติมฟิลด์ date, month, year ที่หายไปสำหรับข้อมูลเก่า
+            if (!item.date) {
+              item.date = new Date().getDate().toString();
+              console.log(`🔧 เติม date ให้ item[${itemIndex}] (${item.name}): ${item.date}`);
+            }
+            if (!item.month) {
+              item.month = month;
+              console.log(`🔧 เติม month ให้ item[${itemIndex}] (${item.name}): ${item.month}`);
+            }
+            if (!item.year) {
+              item.year = year;
+              console.log(`🔧 เติม year ให้ item[${itemIndex}] (${item.name}): ${item.year}`);
+            }
+            
             if (item.roundOfSalary === "daily") {
               const oldMessage = item.message;
               const oldSpSalary = item.SpSalary;
