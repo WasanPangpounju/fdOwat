@@ -69,6 +69,14 @@ addSalary: [{
   StaffType: String,
   nameType: String,
   message: String,
+  date: String,
+  month: String,
+  year: String,
+  welfareType: String,
+  startDay: String,
+  endDay: String,
+  welfareMonth: String,
+  welfareYear: String
 }],
 deductSalary: [{
   id: String,
