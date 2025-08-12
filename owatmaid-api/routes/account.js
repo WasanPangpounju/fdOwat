@@ -1171,8 +1171,10 @@ if (sumSocial < 1650) {
 
 //คำนวนหัก ณ ที่จ่าย 3 %
 if( costtype === "ภ.ง.ด.3"){
-tax = await (total  + amountDay + amountOt + calSP ) * 0.03;
+// ใช้ค่าภาษีที่คำนวณใหม่จาก calculateCashValues แทน
+tax = calculatedValues.totalTax || 0;
 data.accountingRecord.tax = await tax|| 0;
+console.log(`🔄 อัพเดตภาษี จาก ${(total + amountDay + amountOt + calSP) * 0.03} เป็น ${calculatedValues.totalTax}`);
 data.accountingRecord.socialSecurity = 0;
 
 //total
@@ -1208,7 +1210,13 @@ data.accountingRecord.total = await total || 0;
 
     data.accountingRecord.sumSalaryForTax = sumCalTax || 0;
 
-    data.accountingRecord.sumAddSalary = await sumAddSalary ||0;
+    // ใช้ค่า addSalarySocialSecurity จาก calculateCashValues แทน sumAddSalary เดิม
+    data.accountingRecord.sumAddSalary = calculatedValues.addSalarySocialSecurity || 0;
+    console.log(`🔄 อัพเดต sumAddSalary จาก ${sumAddSalary} เป็น ${calculatedValues.addSalarySocialSecurity}`);
+    console.log(`🎯 ค่าที่บันทึกลงฐานข้อมูล:`);
+    console.log(`   - totalAddSalary: ${calculatedValues.addSalarySocialSecurity}`);
+    console.log(`   - tax: ${calculatedValues.totalTax}`);
+    console.log(`   - total: ${data.accountingRecord.total}`);
 
     data.addSalary = await addSalaryList || [];
 
