@@ -5670,7 +5670,7 @@ try {
               record.addSalaryDaily.forEach((salaryItem) => {
                 const cleanSalaryItemId = String(salaryItem.id).trim();
                 const amount = parseFloat(salaryItem.SpSalary || 0);
-                console.log(`   - ตรวจสอบ addSalaryDaily: ID=${cleanSalaryItemId}, name=${salaryItem.name}, amount=${amount}`);
+                console.log(`   - 🔍 ตรวจสอบ addSalaryDaily: ID=${cleanSalaryItemId}, name=${salaryItem.name}, amount=${amount}`);
 
                 const existingItem = addSalaryList.find(
                   item => String(item.id).trim() === cleanSalaryItemId
@@ -5681,7 +5681,7 @@ try {
                   const oldMessage = parseFloat(existingItem.message || 0);
                   existingItem.SpSalary = oldAmount + amount;
                   existingItem.message = oldMessage + 1;
-                  console.log(`   - ✅ รวมเข้ากับรายการเดิม: ${oldAmount} + ${amount} = ${existingItem.SpSalary}, message: ${oldMessage} + 1 = ${existingItem.message}`);
+                  console.log(`   - ✅ รวมเข้ากับรายการเดิม ID ${cleanSalaryItemId}: ${oldAmount} + ${amount} = ${existingItem.SpSalary}, วัน: ${oldMessage} + 1 = ${existingItem.message}`);
 
                   const index = addSalaryList.findIndex(item => String(item.id).trim() === cleanSalaryItemId);
                   if (index !== -1) {
@@ -5690,7 +5690,7 @@ try {
                 } else {
                   const newItem = { ...salaryItem, message: 1 };
                   addSalaryList.push(newItem);
-                  console.log(`   - ✅ เพิ่มรายการใหม่: ID=${cleanSalaryItemId}, amount=${amount}, message=1`);
+                  console.log(`   - ✅ เพิ่มรายการใหม่ ID ${cleanSalaryItemId}: amount=${amount}, message=1`);
                 }
               });
             } else {
@@ -6175,7 +6175,9 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
   // แสดงรายละเอียดการคำนวณ addSalarySocialSecurity
   console.log(`\n💡 === รายละเอียดการคำนวณ "เงินพิเศษที่คิดภาษี" ===`);
   const taxableItemsList = [];
-  addSalaryList.forEach(async (item) => {
+  
+  // ใช้ for...of แทน forEach เพื่อให้ async/await ทำงานถูกต้อง
+  for (const item of addSalaryList) {
     const isCheckCalTax = await checkCalTax(item.id);
     if (isCheckCalTax) {
       taxableItemsList.push({
@@ -6186,7 +6188,7 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
         days: item.message || 'N/A'
       });
     }
-  });
+  }
   
   if (taxableItemsList.length > 0) {
     console.log(`💡 รายการที่ทำให้เกิด "เงินพิเศษที่คิดภาษี: ${addSalarySocialSecurity} บาท":`);
@@ -6195,7 +6197,11 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
       console.log(`💡   ${index + 1}. [${item.id}] ${item.name}: ${item.amount} บาท (${item.roundOf}, วัน: ${item.days})`);
       totalCheck += item.amount;
     });
-    console.log(`💡 ยอดรวมตรวจสอบ: ${totalCheck} บาท ${totalCheck === parseFloat(addSalarySocialSecurity) ? '✅' : '❌'}`);
+    console.log(`💡 ยอดรวมตรวจสอบ: ${totalCheck} บาท ${totalCheck === parseFloat(addSalarySocialSecurity) ? '✅ ตรงกัน' : '❌ ไม่ตรงกัน'}`);
+    
+    if (totalCheck !== parseFloat(addSalarySocialSecurity)) {
+      console.log(`💡 ⚠️ พบความไม่ตรงกัน: คาดหวัง ${addSalarySocialSecurity} แต่ได้ ${totalCheck} (ต่าง ${Math.abs(totalCheck - parseFloat(addSalarySocialSecurity))} บาท)`);
+    }
   } else {
     console.log(`💡 ไม่พบรายการที่คิดภาษี`);
   }
