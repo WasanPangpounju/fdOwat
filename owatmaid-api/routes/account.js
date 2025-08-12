@@ -4719,27 +4719,37 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                   if (!tempWelfareIds.has(welfareId)) {
                     tempWelfareIds.add(welfareId);
                     
-                    // แปลงข้อมูล welfare เป็นรูปแบบ addSalaryList
-                    addSalaryFromWelfare.push({
-                      id: welfareId,
-                      name: welfareItem.name || welfareItem.welfareTypeEn || "",
-                      SpSalary: welfareItem.SpSalary || "0",
-                      roundOfSalary: welfareItem.roundOfSalary || "monthly",
-                      StaffType: welfareItem.StaffType || "all",
-                      nameType: welfareItem.nameType || "",
-                      message: "1", // เริ่มต้นด้วย 1
-                      welfareType: welfareItem.welfareType || "",
-                      startDay: welfareItem.startDay || "",
-                      endDay: welfareItem.endDay || "",
-                      // เพิ่มข้อมูลวันที่/เดือน/ปี
-                      date: new Date().getDate().toString(),
-                      month: month,
-                      year: year,
-                      // เพิ่มข้อมูลเดือนและปีจาก welfare record
-                      welfareMonth: welfareRecord.month || "",
-                      welfareYear: welfareRecord.year || ""
-                    });
-                    console.log(`✅ [ACCOUNTING] เพิ่ม welfare item ใหม่: ${welfareItem.name} (${welfareItem.SpSalary})`);
+                    // 🎯 ตรวจสอบข้อมูลก่อนเพิ่ม เพื่อป้องกัน undefined items
+                    const hasValidData = welfareId && 
+                                       (welfareItem.name || welfareItem.welfareTypeEn) && 
+                                       welfareItem.SpSalary && 
+                                       welfareItem.SpSalary !== "0";
+                    
+                    if (hasValidData) {
+                      // แปลงข้อมูล welfare เป็นรูปแบบ addSalaryList
+                      addSalaryFromWelfare.push({
+                        id: welfareId,
+                        name: welfareItem.name || welfareItem.welfareTypeEn || "",
+                        SpSalary: welfareItem.SpSalary || "0",
+                        roundOfSalary: welfareItem.roundOfSalary || "monthly",
+                        StaffType: welfareItem.StaffType || "all",
+                        nameType: welfareItem.nameType || "",
+                        message: "1", // เริ่มต้นด้วย 1
+                        welfareType: welfareItem.welfareType || "",
+                        startDay: welfareItem.startDay || "",
+                        endDay: welfareItem.endDay || "",
+                        // เพิ่มข้อมูลวันที่/เดือน/ปี
+                        date: new Date().getDate().toString(),
+                        month: month,
+                        year: year,
+                        // เพิ่มข้อมูลเดือนและปีจาก welfare record
+                        welfareMonth: welfareRecord.month || "",
+                        welfareYear: welfareRecord.year || ""
+                      });
+                      console.log(`✅ [ACCOUNTING] เพิ่ม welfare item ใหม่: ${welfareItem.name} (${welfareItem.SpSalary})`);
+                    } else {
+                      console.log(`❌ [ACCOUNTING] ข้าม welfare item ที่ไม่มีข้อมูลครบถ้วน: id=${welfareId}, name=${welfareItem.name || 'undefined'}, SpSalary=${welfareItem.SpSalary || 'undefined'}`);
+                    }
                   } else {
                     console.log(`🚫 [ACCOUNTING] ข้าม welfare item ซ้ำในระดับ welfare records: id=${welfareId}, name=${welfareItem.name}`);
                   }
@@ -5241,8 +5251,22 @@ let timeCashWorkMul = {
   
   // 🎯 ถ้ามี welfare data ส่งมา ให้ใช้แทน addSalary เดิม
   if (welfareAddSalaryList && Array.isArray(welfareAddSalaryList) && welfareAddSalaryList.length > 0) {
-    addSalary = welfareAddSalaryList;
-    console.log(`🎯 [calculateCashValues] ใช้ welfare addSalaryList: ${addSalary.length} items`);
+    // 🎯 กรองเฉพาะข้อมูลที่มีค่าครบถ้วน
+    addSalary = welfareAddSalaryList.filter(item => {
+      const hasValidData = item && 
+                          item.id && 
+                          item.name && 
+                          item.SpSalary && 
+                          item.SpSalary !== "0" &&
+                          item.SpSalary !== "undefined";
+      
+      if (!hasValidData) {
+        console.log(`❌ [calculateCashValues] กรองข้อมูลไม่ครบถ้วน: id=${item?.id || 'undefined'}, name=${item?.name || 'undefined'}, SpSalary=${item?.SpSalary || 'undefined'}`);
+      }
+      return hasValidData;
+    });
+    
+    console.log(`🎯 [calculateCashValues] ใช้ welfare addSalaryList: ${addSalary.length} items (กรองแล้วจาก ${welfareAddSalaryList.length} items)`);
     
     // แสดงรายละเอียด welfare items ที่จะใช้ในการคำนวณ
     addSalary.forEach((item, idx) => {
