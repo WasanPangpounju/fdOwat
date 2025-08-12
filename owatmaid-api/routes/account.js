@@ -510,7 +510,7 @@ if(promise) {
         }
       }
 
-        //push addSalary to account
+        //push addSalary to account - first function calsalaryemp
         if(response.data.addSalary[k].roundOfSalary == "daily" ) {
         //   if( response.data.addSalary[k].SpSalary !== "") {
         //     let dailyTmp = await response.data.addSalary[k];
@@ -521,7 +521,12 @@ if(promise) {
         } else {
           if( response.data.addSalary[k].SpSalary !== "") {
             //add addSalary monthly to list 
-          await addSalaryList.push(response.data.addSalary[k]);
+          await addSalaryList.push({
+            ...response.data.addSalary[k],
+            date: new Date().getDate().toString(),
+            month: month,
+            year: year
+          });
           }
 
         }
@@ -1809,8 +1814,13 @@ const response = '';
     
             } else {
               if( response.data.addSalary[k].SpSalary !== "") {
-                //add addSalary monthly to list 
-              await addSalaryList.push(response.data.addSalary[k]);
+                //add addSalary monthly to list - second function calsalarylist
+              await addSalaryList.push({
+                ...response.data.addSalary[k],
+                date: new Date().getDate().toString(),
+                month: month,
+                year: year
+              });
               }
     
             }
@@ -4661,7 +4671,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         
         // รวม addSalaryList จากข้อมูล welfare ทั้งหมด
         let addSalaryFromWelfare = [];
-        const tempWelfareIds = new Set(); // ติดตามคีย์ผสม (id|message|SpSalary|month|year)
+        const tempWelfareIds = new Set(); // เพิ่ม Set เพื่อติดตาม ID ที่เคยเพิ่มแล้ว
         
         welfareRecords.forEach(welfareRecord => {
           if (welfareRecord.record && Array.isArray(welfareRecord.record)) {
@@ -4679,18 +4689,10 @@ router.post('/searchtimerecordemployee', async (req, res) => {
               
               if (shouldInclude) {
                 const welfareId = welfareItem.id || welfareItem.welfareType || "";
-                // ใช้คีย์ผสม ป้องกันการมองว่า "ซ้ำ" เมื่อมี id เดียวแต่รายละเอียดต่างกัน
-                const welfareKey = [
-                  welfareId,
-                  (welfareItem.comment || welfareItem.message || "").toString().trim(),
-                  String(parseFloat(welfareItem.SpSalary) || 0),
-                  welfareRecord.month || "",
-                  welfareRecord.year || ""
-                ].join('|');
-
-                // ตรวจสอบว่า key นี้เคยถูกเพิ่มแล้วหรือยัง
-                if (!tempWelfareIds.has(welfareKey)) {
-                  tempWelfareIds.add(welfareKey);
+                
+                // ตรวจสอบว่า ID นี้เคยถูกเพิ่มแล้วหรือยัง
+                if (!tempWelfareIds.has(welfareId)) {
+                  tempWelfareIds.add(welfareId);
                   
                   // แปลงข้อมูล welfare เป็นรูปแบบ addSalaryList
                   addSalaryFromWelfare.push({
@@ -4704,13 +4706,17 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                     welfareType: welfareItem.welfareType || "",
                     startDay: welfareItem.startDay || "",
                     endDay: welfareItem.endDay || "",
+                    // เพิ่มข้อมูลวันที่/เดือน/ปี
+                    date: new Date().getDate().toString(),
+                    month: month,
+                    year: year,
                     // เพิ่มข้อมูลเดือนและปีจาก welfare record
                     welfareMonth: welfareRecord.month || "",
                     welfareYear: welfareRecord.year || ""
                   });
-                  console.log(`✅ [ACCOUNTING] เพิ่ม welfare item: ${welfareItem.name} (${welfareItem.SpSalary}) key=${welfareKey}`);
+                  console.log(`✅ [ACCOUNTING] เพิ่ม welfare item: ${welfareItem.name} (${welfareItem.SpSalary})`);
                 } else {
-                  console.log(`🚫 [ACCOUNTING] ข้าม welfare item ซ้ำในระดับ welfare records: key=${welfareKey}, name=${welfareItem.name}`);
+                  console.log(`🚫 [ACCOUNTING] ข้าม welfare item ซ้ำในระดับ welfare records: id=${welfareId}, name=${welfareItem.name}`);
                 }
               }
             });
@@ -4762,12 +4768,11 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           const isPotentialWelfare = potentialWelfareIds.has(item.id);
           const isValidWelfare = validWelfareIds.has(item.id);
           
-          // 🎯 Logic ใหม่: ลบเฉพาะ welfare ที่ไม่มีอยู่จริงใน DB เท่านั้น
+          // 🎯 Logic ใหม่: ลบทุก welfare ID ที่ไม่มีใน database จริง
           // เก็บ item ถ้า:
-          // 1) ไม่ใช่ potential welfare ID เลย (เป็นรายการเงินเพิ่มปกติ)
-          // 2) เป็น welfare ที่ยังมีอยู่ใน database จริง
-          // 3) หรือเป็นรายการที่ไม่มี welfareType (ถือว่าเป็นการเพิ่มมือ/ทั่วไป) แม้ id จะตรงกับชุด welfare ก็ตาม
-          const shouldKeep = !isPotentialWelfare || isValidWelfare || !hasWelfareType;
+          // 1. ไม่ใช่ potential welfare ID เลย (เป็นรายการเงินเพิ่มปกติ)
+          // 2. หรือเป็น welfare ที่ยังมีอยู่ใน database จริง
+          const shouldKeep = !isPotentialWelfare || isValidWelfare;
           
           // 🔍 Enhanced debug logging สำหรับ welfare IDs
           if (isPotentialWelfare) {
@@ -4782,7 +4787,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
             if (!shouldKeep) {
               console.log(`   🗑️ -> จะถูกลบ เพราะไม่มีใน welfare database`);
             } else {
-              console.log(`   ✅ -> จะถูกเก็บไว้ (valid welfare หรือ manual item)`);
+              console.log(`   ✅ -> จะถูกเก็บไว้ เพราะมีใน welfare database`);
             }
           }
           
@@ -4980,6 +4985,20 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         if (updateData.addSalaryList && Array.isArray(updateData.addSalaryList)) {
           console.log(`🎯 อัปเดต message และ SpSalary สำหรับ ${doc.employeeId} (countAllowance: ${calculatedValues.countAllowance})`);
           updateData.addSalaryList.forEach((item, itemIndex) => {
+            // 🎯 เติมฟิลด์ date, month, year ที่หายไปสำหรับข้อมูลเก่า
+            if (!item.date) {
+              item.date = new Date().getDate().toString();
+              console.log(`🔧 เติม date ให้ item[${itemIndex}] (${item.name}): ${item.date}`);
+            }
+            if (!item.month) {
+              item.month = month;
+              console.log(`🔧 เติม month ให้ item[${itemIndex}] (${item.name}): ${item.month}`);
+            }
+            if (!item.year) {
+              item.year = year;
+              console.log(`🔧 เติม year ให้ item[${itemIndex}] (${item.name}): ${item.year}`);
+            }
+            
             if (item.roundOfSalary === "daily") {
               const oldMessage = item.message;
               const oldSpSalary = item.SpSalary;
@@ -5823,7 +5842,12 @@ if (record?.dayType === "work") {
         }
       } else {
         salaryItem.message = 1; 
-        addSalaryList.push(salaryItem);
+        addSalaryList.push({
+          ...salaryItem,
+          date: new Date().getDate().toString(),
+          month: month,
+          year: year
+        });
       }
     });
   }
