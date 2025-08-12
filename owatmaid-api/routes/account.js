@@ -3336,7 +3336,7 @@ async function getEmployeeData(id) {
 
 
 async function checkCalSocial(id) {
-  const idList = await ["1230","1231","1233","1241","1242","1350","1422","1423","1428","1434","1520","1522","1524","1525","1526","1529","1531","1533","1534","1429","1427","1245","1234","2111","2116","2120","2124"];
+  const idList = await ["1230","1535","1231","1233","1241","1242","1350","1422","1423","1428","1434","1520","1522","1524","1525","1526","1529","1531","1533","1534","1429","1427","1245","1234","2111","2116","2120","2124"];
 
   
   const idToCheck = await id;
@@ -6298,6 +6298,7 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
                                parseFloat(cashSpecialDay || 0) + 
                                parseFloat(cashcustomizeDayoff || 0) + 
                                parseFloat(publicHolidayCash || 0);
+                               
       
       console.log(`💰 - เงินค่าแรงปกติ: ${parseFloat(sumCashWork || 0)} บาท`);
       console.log(`💰 - เงินค่าล่วงเวลา: ${parseFloat(sumCashOt || 0)} บาท`);
