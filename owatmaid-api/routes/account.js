@@ -6200,7 +6200,7 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
       console.log(`\n💰 STEP 3: คำนวณรายได้รวมสำหรับภาษี 3%`);
       const totalIncomeForTax = parseFloat(sumCashWork || 0) + 
                                parseFloat(sumCashOt || 0) + 
-                               parseFloat(addSalarySocialSecurity || 0) + 
+                               parseFloat(totalAddSalary || 0) + 
             
                                parseFloat(cashSpecialDay || 0) + 
                                parseFloat(cashcustomizeDayoff || 0) + 
