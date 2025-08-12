@@ -4831,7 +4831,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           // เก็บ item ถ้า:
           // 1. ไม่ใช่ potential welfare ID เลย (เป็นรายการเงินเพิ่มปกติ)
           // 2. หรือเป็น welfare ที่ยังมีอยู่ใน database จริง
-          const shouldKeep = !isPotentialWelfare || isValidWelfare;
+         const shouldKeep = !isPotentialWelfare;
           
           // 🔍 Enhanced debug logging สำหรับ welfare IDs
           if (isPotentialWelfare) {
