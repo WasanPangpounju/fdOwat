@@ -5690,6 +5690,7 @@ try {
                   existingItem.SpSalary = oldAmount + amount;
                   existingItem.message = oldMessage + 1;
                   console.log(`   - ✅ รวมเข้ากับรายการเดิม ID ${cleanSalaryItemId}: ${oldAmount} + ${amount} = ${existingItem.SpSalary}, วัน: ${oldMessage} + 1 = ${existingItem.message}`);
+                  console.log(`   - 📍 วันที่ ${record.date} (dayType=stop): นับ message สำหรับ ID ${cleanSalaryItemId}`);
 
                   const index = addSalaryList.findIndex(item => String(item.id).trim() === cleanSalaryItemId);
                   if (index !== -1) {
@@ -5699,6 +5700,7 @@ try {
                   const newItem = { ...salaryItem, message: 1 };
                   addSalaryList.push(newItem);
                   console.log(`   - ✅ เพิ่มรายการใหม่ ID ${cleanSalaryItemId}: amount=${amount}, message=1`);
+                  console.log(`   - 📍 วันที่ ${record.date} (dayType=stop): สร้างใหม่ message สำหรับ ID ${cleanSalaryItemId}`);
                 }
               });
             } else {
@@ -5852,7 +5854,9 @@ if (record?.dayType === "work") {
 
       if (existingItem) {
         existingItem.SpSalary = parseFloat(existingItem.SpSalary || 0) + amount;
-        existingItem.message = parseFloat(existingItem.message || 0) + 1;
+        const oldMessage = parseFloat(existingItem.message || 0);
+        existingItem.message = oldMessage + 1;
+        console.log(`   - 📍 วันที่ ${record.date} (dayType=work): นับ message สำหรับ ID ${cleanSalaryItemId}, วัน: ${oldMessage} → ${existingItem.message}`);
 
         const index = addSalaryList.findIndex(item => item.id === existingItem.id);
         if (index !== -1) {
@@ -5861,6 +5865,7 @@ if (record?.dayType === "work") {
       } else {
         salaryItem.message = 1; 
         addSalaryList.push(salaryItem);
+        console.log(`   - 📍 วันที่ ${record.date} (dayType=work): สร้างใหม่ message สำหรับ ID ${cleanSalaryItemId}, วัน: 1`);
       }
     });
   }
@@ -6149,7 +6154,33 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
 
   addSalaryList = await addSalaryList.concat(monthlySalaries);
 
-  console.log(`\n🔍 === การตรวจสอบเงินพิเศษที่คิดประกันสังคม ===`);
+  console.log(`\n� === สรุปการนับ message สำหรับแต่ละ ID ===`);
+  const messageSummary = {};
+  addSalaryList.forEach((item) => {
+    if (item.roundOfSalary === 'daily') {
+      const id = item.id;
+      const message = parseFloat(item.message || 0);
+      const spSalary = parseFloat(item.SpSalary || 0);
+      messageSummary[id] = {
+        name: item.name,
+        message: message,
+        spSalary: spSalary,
+        expectedFromMessage: message * 30,
+        match: (message * 30) === spSalary
+      };
+    }
+  });
+  
+  Object.keys(messageSummary).forEach(id => {
+    const data = messageSummary[id];
+    console.log(`📊 ID ${id} (${data.name}):`);
+    console.log(`   - message: ${data.message} วัน`);
+    console.log(`   - SpSalary: ${data.spSalary} บาท`);
+    console.log(`   - คาดหวัง: ${data.message} × 30 = ${data.expectedFromMessage} บาท`);
+    console.log(`   - ตรงกัน: ${data.match ? '✅' : '❌'}`);
+  });
+
+  console.log(`\n�🔍 === การตรวจสอบเงินพิเศษที่คิดประกันสังคม ===`);
   console.log(`🔍 จำนวนรายการเงินพิเศษทั้งหมด: ${addSalaryList.length} รายการ`);
   
   // แสดงรายการ addSalaryList ทั้งหมดก่อนตรวจสอบ
