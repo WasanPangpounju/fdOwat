@@ -4862,11 +4862,6 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         }
         console.log(`🎯 =============================`);
         
-        // คำนวณ totalAddSalary จาก addSalaryList
-        const totalAddSalary = calculatedValues.addSalaryList.reduce((total, item) => {
-          return total + (parseFloat(item.SpSalary) || 0);
-        }, 0);
-        
         // คำนวณ totalDeductSalary จาก deductSalaryList
         const totalDeductSalary = calculatedValues.deductSalaryList.reduce((total, item) => {
           return total + (parseFloat(item.amount) || 0);
@@ -4944,7 +4939,6 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           sumCashWork: String(calculatedValues.sumCashWork),
           sumCashOt: String(calculatedValues.sumCashOt),
           sumcashDayOffCount: String(calculatedValues.sumcashDayOffCount),
-          totalAddSalary: String(totalAddSalary), // เพิ่มฟิลด์ totalAddSalary
           totalDeductSalary: String(totalDeductSalary), // เพิ่มฟิลด์ totalDeductSalary
           socialSecurity: String(calculatedValues.socialSecurity),
           tax: String(calculatedValues.tax),
@@ -4992,6 +4986,16 @@ router.post('/searchtimerecordemployee', async (req, res) => {
             }
           });
         }
+        
+        // 🎯 คำนวณ totalAddSalary หลังจากปรับค่า dailyRows แล้ว
+        const totalAddSalary = updateData.addSalaryList.reduce((total, item) => {
+          return total + (parseFloat(item.SpSalary) || 0);
+        }, 0);
+        
+        console.log(`💰 totalAddSalary หลังปรับค่า: ${totalAddSalary}`);
+        
+        // เพิ่ม totalAddSalary เข้าไปใน updateData
+        updateData.totalAddSalary = String(totalAddSalary);
         
         // แสดงข้อมูลสำคัญที่จะบันทึก
         console.log(`\n📝 ข้อมูลที่จะบันทึกสำหรับพนักงาน ${doc.employeeId}:`);
