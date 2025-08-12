@@ -5668,15 +5668,60 @@ try {
           
           console.log(`📊 วันที่ ${record.date} (dayType=stop): cashWork=${record.cashWork}, cashWorkMul=${record.cashWorkMul}, cashOt=${record.cashOt}, cashOtMul=${record.cashOtMul}`);
 
-          // ➕ รวมค่า addSalaryDaily สำหรับวันหยุดที่มีการทำงาน (totalTime > 0)
+          // ➕ บังคับให้นับ message สำหรับ dayType="stop" ที่มี totalTime > 0
+          const hasTotalTime = record.totalTime && record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0;
+          if (hasTotalTime) {
+            console.log(`🔧 วันที่ ${record.date} (dayType=stop) มี totalTime=${record.totalTime} บังคับนับ message สำหรับค่าเดินทาง`);
+            
+            // ค้นหารายการค่าเดินทาง (ID 1535) ที่มีอยู่แล้ว
+            const travelAllowanceItem = addSalaryList.find(item => String(item.id).trim() === '1535');
+            
+            if (travelAllowanceItem) {
+              const oldAmount = parseFloat(travelAllowanceItem.SpSalary || 0);
+              const oldMessage = parseFloat(travelAllowanceItem.message || 0);
+              travelAllowanceItem.SpSalary = oldAmount + 30; // เพิ่ม 30 บาท
+              travelAllowanceItem.message = oldMessage + 1;  // เพิ่ม 1 วัน
+              console.log(`   - ✅ บังคับนับ message สำหรับ ID 1535: ${oldAmount} + 30 = ${travelAllowanceItem.SpSalary}, วัน: ${oldMessage} + 1 = ${travelAllowanceItem.message}`);
+              console.log(`   - 📍 วันที่ ${record.date} (dayType=stop): บังคับนับ message สำหรับ ID 1535`);
+              
+              const index = addSalaryList.findIndex(item => String(item.id).trim() === '1535');
+              if (index !== -1) {
+                addSalaryList[index] = travelAllowanceItem;
+              }
+            } else {
+              // สร้างรายการใหม่สำหรับค่าเดินทาง
+              const newTravelItem = {
+                id: '1535',
+                name: 'ค่าเดินทาง(ไม่คิดประกันสังคม)',
+                SpSalary: '30',
+                roundOfSalary: 'daily',
+                StaffType: 'all',
+                nameType: '',
+                message: '1'
+              };
+              addSalaryList.push(newTravelItem);
+              console.log(`   - ✅ สร้างรายการใหม่สำหรับ ID 1535: amount=30, message=1`);
+              console.log(`   - � วันที่ ${record.date} (dayType=stop): สร้างใหม่ message สำหรับ ID 1535`);
+            }
+          } else {
+            console.log(`❌ วันที่ ${record.date} (dayType=stop) ไม่มี totalTime หรือ totalTime = 0 จึงไม่นับ message`);
+          }
+
+          // ➕ รวมค่า addSalaryDaily สำหรับวันหยุดที่มีการทำงาน (totalTime > 0) - กรณีมี addSalaryDaily อื่นๆ
           if (record.addSalaryDaily && record.addSalaryDaily.length > 0) {
-            const hasTotalTime = record.totalTime && record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0;
-            console.log(`🔍 วันที่ ${record.date} (dayType=stop): totalTime=${record.totalTime}, hasTotalTime=${hasTotalTime}, addSalaryDaily.length=${record.addSalaryDaily.length}`);
+            console.log(`🔍 วันที่ ${record.date} (dayType=stop): ตรวจสอบ addSalaryDaily เพิ่มเติม, totalTime=${record.totalTime}, addSalaryDaily.length=${record.addSalaryDaily.length}`);
             
             if (hasTotalTime) {
-              console.log(`✅ วันที่ ${record.date} มี totalTime > 0 จึงรวม addSalaryDaily`);
+              console.log(`✅ วันที่ ${record.date} มี totalTime > 0 จึงรวม addSalaryDaily เพิ่มเติม`);
               record.addSalaryDaily.forEach((salaryItem) => {
                 const cleanSalaryItemId = String(salaryItem.id).trim();
+                
+                // ข้าม ID 1535 เพราะเราจัดการแล้วข้างบน
+                if (cleanSalaryItemId === '1535') {
+                  console.log(`   - ⏭️ ข้าม ID 1535 เพราะจัดการแล้วข้างบน`);
+                  return;
+                }
+                
                 const amount = parseFloat(salaryItem.SpSalary || 0);
                 console.log(`   - 🔍 ตรวจสอบ addSalaryDaily: ID=${cleanSalaryItemId}, name=${salaryItem.name}, amount=${amount}`);
 
