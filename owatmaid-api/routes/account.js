@@ -4801,12 +4801,19 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         
         record.addSalaryList = finalUniqueItems;
         
-        // 🎯 รวมรายการที่มี ID และ month เดียวกันให้เป็นก้อนเดียว
+        // 🎯 รวมรายการที่มี ID และ roundOfSalary เดียวกันให้เป็นก้อนเดียวต่อเดือน
         const groupedItems = {};
         const finalGroupedItems = [];
         
         record.addSalaryList.forEach(item => {
-          const groupKey = `${item.id}|${item.month}|${item.year}`;
+          // สำหรับ daily items ให้รวมตาม id และ roundOfSalary เท่านั้น
+          // สำหรับ monthly items ให้รวมตาม id, month, year
+          let groupKey;
+          if (item.roundOfSalary === "daily") {
+            groupKey = `${item.id}|${item.roundOfSalary}|${item.month}|${item.year}`;
+          } else {
+            groupKey = `${item.id}|${item.month}|${item.year}`;
+          }
           
           if (!groupedItems[groupKey]) {
             // รายการแรกของกลุ่มนี้
@@ -4817,7 +4824,8 @@ router.post('/searchtimerecordemployee', async (req, res) => {
               welfareTypes: [item.welfareType].filter(Boolean),
               startDays: [item.startDay].filter(Boolean),
               endDays: [item.endDay].filter(Boolean),
-              objectIds: [item._id].filter(Boolean) // เก็บ _id ทั้งหมดเพื่อตรวจสอบ
+              objectIds: [item._id].filter(Boolean), // เก็บ _id ทั้งหมดเพื่อตรวจสอบ
+              dailyCount: 1 // นับจำนวนวันสำหรับ daily items
             };
           } else {
             // ตรวจสอบว่าเป็นข้อมูลซ้ำหรือไม่โดยดู _id
@@ -4829,8 +4837,15 @@ router.post('/searchtimerecordemployee', async (req, res) => {
               return;
             }
             
-            // รวมกับรายการที่มีอยู่แล้ว
-            existing.SpSalary += parseFloat(item.SpSalary) || 0;
+            // สำหรับ daily items - ให้นับจำนวนวันแทนการรวม SpSalary
+            if (item.roundOfSalary === "daily") {
+              existing.dailyCount += 1;
+              // ไม่รวม SpSalary สำหรับ daily items เพราะจะคำนวณใหม่ตาม countAllowance
+              console.log(`📅 [ACCOUNTING] เพิ่มวันสำหรับ ${item.name}: ${existing.dailyCount} วัน`);
+            } else {
+              // สำหรับ monthly items - รวม SpSalary
+              existing.SpSalary += parseFloat(item.SpSalary) || 0;
+            }
             
             // รวม dates (ไม่ซ้ำ)
             if (item.date && !existing.dates.includes(item.date)) {
@@ -4861,9 +4876,20 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         
         // แปลงกลับเป็น array และจัดรูปแบบข้อมูล
         Object.values(groupedItems).forEach(groupedItem => {
+          let finalSpSalary = groupedItem.SpSalary;
+          let finalMessage = groupedItem.message;
+          
+          // สำหรับ daily items ให้ใช้จำนวนวันที่นับได้เป็น message
+          if (groupedItem.roundOfSalary === "daily") {
+            finalMessage = groupedItem.dailyCount;
+            // SpSalary จะถูกคำนวณใหม่ในขั้นตอนถัดไป
+            console.log(`🔢 [ACCOUNTING] ${groupedItem.name}: รวม ${groupedItem.dailyCount} วัน`);
+          }
+          
           finalGroupedItems.push({
             ...groupedItem,
-            SpSalary: groupedItem.SpSalary.toString(),
+            SpSalary: finalSpSalary.toString(),
+            message: finalMessage,
             date: groupedItem.dates.sort((a, b) => parseInt(a) - parseInt(b)).join('-'),
             welfareType: groupedItem.welfareTypes.join('-') || groupedItem.welfareType || "",
             startDay: groupedItem.startDays[groupedItem.startDays.length - 1] || groupedItem.startDay || "", // ใช้วันล่าสุด
@@ -4873,7 +4899,8 @@ router.post('/searchtimerecordemployee', async (req, res) => {
             welfareTypes: undefined,
             startDays: undefined,
             endDays: undefined,
-            objectIds: undefined
+            objectIds: undefined,
+            dailyCount: undefined
           });
         });
         
@@ -5069,18 +5096,28 @@ router.post('/searchtimerecordemployee', async (req, res) => {
               const oldMessage = item.message;
               const oldSpSalary = item.SpSalary;
               
-              // อัปเดต message
+              // อัปเดต message เป็น countAllowance (จำนวนวันที่มาทำงาน)
               item.message = calculatedValues.countAllowance;
               
-              // คำนวณ SpSalary ใหม่: (เงินเดิม / วันเดิม) * วันใหม่
+              // คำนวณ SpSalary ใหม่: อัตราต่อวัน × จำนวนวันที่มาทำงาน
               if (oldMessage && oldMessage > 0) {
                 const dailyRate = parseFloat(oldSpSalary) / parseFloat(oldMessage);
-                item.SpSalary = dailyRate * calculatedValues.countAllowance;
+                item.SpSalary = (dailyRate * calculatedValues.countAllowance).toFixed(2);
                 console.log(`🎯   Item[${itemIndex}] (${item.name}):`);
-                console.log(`       message: ${oldMessage} → ${item.message}`);
-                console.log(`       SpSalary: ${oldSpSalary} → ${parseFloat(item.SpSalary).toFixed(2)} (rate: ${dailyRate.toFixed(2)}/วัน)`);
+                console.log(`       message: ${oldMessage} → ${item.message} วัน`);
+                console.log(`       อัตราต่อวัน: ${dailyRate.toFixed(2)} บาท/วัน`);
+                console.log(`       SpSalary: ${oldSpSalary} → ${item.SpSalary} บาท (${dailyRate.toFixed(2)} × ${calculatedValues.countAllowance})`);
               } else {
-                console.log(`🎯   Item[${itemIndex}] (${item.name}): message ${oldMessage} → ${item.message} (ไม่สามารถคำนวณ SpSalary ได้)`);
+                // กรณีที่ไม่มี oldMessage หรือเป็น 0 ให้ใช้ SpSalary เดิมโดยตรง
+                if (parseFloat(oldSpSalary) > 0) {
+                  // สมมติว่า SpSalary เดิมเป็นอัตราต่อวัน
+                  item.SpSalary = (parseFloat(oldSpSalary) * calculatedValues.countAllowance).toFixed(2);
+                  console.log(`🎯   Item[${itemIndex}] (${item.name}):`);
+                  console.log(`       message: ${oldMessage} → ${item.message} วัน`);
+                  console.log(`       SpSalary: ${oldSpSalary} → ${item.SpSalary} บาท (สมมติอัตราเดิม × ${calculatedValues.countAllowance})`);
+                } else {
+                  console.log(`⚠️   Item[${itemIndex}] (${item.name}): ไม่สามารถคำนวณ SpSalary ได้ (message: ${oldMessage}, SpSalary: ${oldSpSalary})`);
+                }
               }
             }
           });
