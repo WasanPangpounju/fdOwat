@@ -4967,21 +4967,22 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           stopDaysList: doc.stopDaysList || [],
         };
 
-        // 🎯 อัปเดต message และ SpSalary สำหรับ items ที่มี roundOfSalary: "daily" ให้เป็น countAllowance
+        // 🎯 อัปเดต message และ SpSalary สำหรับ items ที่มี roundOfSalary: "daily" ให้เป็น dayWorkCount + dayOffCount
         if (updateData.addSalaryList && Array.isArray(updateData.addSalaryList)) {
-          console.log(`🎯 อัปเดต message และ SpSalary สำหรับ ${doc.employeeId} (countAllowance: ${calculatedValues.countAllowance})`);
+          const totalDays = parseInt(calculatedValues.dayWorkCount) + parseInt(calculatedValues.dayOffCount);
+          console.log(`🎯 อัปเดต message และ SpSalary สำหรับ ${doc.employeeId} (dayWorkCount: ${calculatedValues.dayWorkCount} + dayOffCount: ${calculatedValues.dayOffCount} = ${totalDays})`);
           updateData.addSalaryList.forEach((item, itemIndex) => {
             if (item.roundOfSalary === "daily") {
               const oldMessage = item.message;
               const oldSpSalary = item.SpSalary;
               
-              // อัปเดต message
-              item.message = calculatedValues.countAllowance;
+              // อัปเดต message เป็น dayWorkCount + dayOffCount
+              item.message = totalDays;
               
               // คำนวณ SpSalary ใหม่: (เงินเดิม / วันเดิม) * วันใหม่
               if (oldMessage && oldMessage > 0) {
                 const dailyRate = parseFloat(oldSpSalary) / parseFloat(oldMessage);
-                item.SpSalary = dailyRate * calculatedValues.countAllowance;
+                item.SpSalary = dailyRate * totalDays;
                 console.log(`🎯   Item[${itemIndex}] (${item.name}):`);
                 console.log(`       message: ${oldMessage} → ${item.message}`);
                 console.log(`       SpSalary: ${oldSpSalary} → ${parseFloat(item.SpSalary).toFixed(2)} (rate: ${dailyRate.toFixed(2)}/วัน)`);
@@ -6196,6 +6197,7 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
       const totalIncomeForTax = parseFloat(sumCashWork || 0) + 
                                parseFloat(sumCashOt || 0) + 
                                parseFloat(addSalarySocialSecurity || 0) + 
+                               parseFloat()
                                parseFloat(cashSpecialDay || 0) + 
                                parseFloat(cashcustomizeDayoff || 0) + 
                                parseFloat(publicHolidayCash || 0);
