@@ -4808,18 +4808,19 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         record.addSalaryList = [...record.addSalaryList, ...addSalaryFromWelfare];
         console.log(`📝 [ACCOUNTING] เพิ่ม welfare data ใหม่จาก DB: ${addSalaryFromWelfare.length} items`);
         
-        // 🎯 กรองข้อมูลซ้ำขั้นสุดท้าย เผื่อมี composite key ซ้ำระหว่าง addSalaryList เดิมกับ welfare data
+        // 🎯 กรองข้อมูลซ้ำขั้นสุดท้าย โดยใช้ composite key ที่รวม _id ด้วย
         const finalUniqueItems = [];
-        const finalSeenCompositeKeys = new Set(); // เปลี่ยนเป็น composite key
+        const finalSeenCompositeKeys = new Set();
         
         record.addSalaryList.forEach(item => {
           const itemId = item.id || "";
           const itemDate = item.date || "";
           const itemMonth = item.month || "";
           const itemYear = item.year || "";
+          const itemObjectId = item._id || "";
           
-          // สร้าง composite key: id|date|month|year
-          const compositeKey = `${itemId}|${itemDate}|${itemMonth}|${itemYear}`;
+          // สร้าง composite key ที่รวม _id ด้วยเพื่อป้องกันการซ้ำ: id|date|month|year|_id
+          const compositeKey = `${itemId}|${itemDate}|${itemMonth}|${itemYear}|${itemObjectId}`;
           
           if (!finalSeenCompositeKeys.has(compositeKey)) {
             finalSeenCompositeKeys.add(compositeKey);
@@ -4843,14 +4844,23 @@ router.post('/searchtimerecordemployee', async (req, res) => {
             groupedItems[groupKey] = {
               ...item,
               SpSalary: parseFloat(item.SpSalary) || 0,
-              dates: [item.date],
+              dates: [item.date].filter(Boolean),
               welfareTypes: [item.welfareType].filter(Boolean),
               startDays: [item.startDay].filter(Boolean),
-              endDays: [item.endDay].filter(Boolean)
+              endDays: [item.endDay].filter(Boolean),
+              objectIds: [item._id].filter(Boolean) // เก็บ _id ทั้งหมดเพื่อตรวจสอบ
             };
           } else {
-            // รวมกับรายการที่มีอยู่แล้ว
+            // ตรวจสอบว่าเป็นข้อมูลซ้ำหรือไม่โดยดู _id
             const existing = groupedItems[groupKey];
+            
+            // ถ้า _id เดียวกันแสดงว่าเป็นข้อมูลซ้ำ ไม่ต้องรวม
+            if (item._id && existing.objectIds.includes(item._id)) {
+              console.log(`🚫 [ACCOUNTING] ข้าม item ซ้ำ (same _id): ${item.name} (${item._id})`);
+              return;
+            }
+            
+            // รวมกับรายการที่มีอยู่แล้ว
             existing.SpSalary += parseFloat(item.SpSalary) || 0;
             
             // รวม dates (ไม่ซ้ำ)
@@ -4863,14 +4873,19 @@ router.post('/searchtimerecordemployee', async (req, res) => {
               existing.welfareTypes.push(item.welfareType);
             }
             
-            // รวม startDays
+            // รวม startDays (ไม่ซ้ำ)
             if (item.startDay && !existing.startDays.includes(item.startDay)) {
               existing.startDays.push(item.startDay);
             }
             
-            // รวม endDays
+            // รวม endDays (ไม่ซ้ำ)
             if (item.endDay && !existing.endDays.includes(item.endDay)) {
               existing.endDays.push(item.endDay);
+            }
+            
+            // เก็บ _id ใหม่
+            if (item._id && !existing.objectIds.includes(item._id)) {
+              existing.objectIds.push(item._id);
             }
           }
         });
@@ -4888,7 +4903,8 @@ router.post('/searchtimerecordemployee', async (req, res) => {
             dates: undefined,
             welfareTypes: undefined,
             startDays: undefined,
-            endDays: undefined
+            endDays: undefined,
+            objectIds: undefined
           });
         });
         
