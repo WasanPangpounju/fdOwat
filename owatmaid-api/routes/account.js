@@ -4747,33 +4747,43 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         
         console.log(`🔍 [ACCOUNTING] validWelfareIds จาก DB:`, Array.from(validWelfareIds));
         
-        // 🎯 ลบเฉพาะรายการที่มี source จาก welfare หรือ id ที่มีอยู่จริงใน welfare database เท่านั้น
-        // ไม่ลบ addSalaryList ที่มีอยู่เดิมจากแหล่งอื่น
+        // 🎯 ลบเฉพาะรายการ welfare สำหรับ ID 1234 และ 1423 เท่านั้น
+        // ไม่ลบ addSalaryList อื่นๆ ทั้งหมด
         const beforeFilterLength = record.addSalaryList ? record.addSalaryList.length : 0;
         
         console.log(`🔍 [ACCOUNTING] validWelfareIds จาก DB:`, Array.from(validWelfareIds));
         
+        // กำหนด ID เฉพาะที่ต้องการจัดการ welfare
+        const targetWelfareIds = new Set(['1234', '1423']);
+        
         // ลบเฉพาะรายการที่:
-        // 1. มี welfareType หรือ welfareSource (แสดงว่ามาจาก welfare)
-        // 2. หรือ id ที่มีอยู่จริงใน welfare database ปัจจุบัน
+        // 1. มี ID เป็น 1234 หรือ 1423 และมี welfare markers
+        // 2. หรือ ID เป็น 1234 หรือ 1423 และมีอยู่ใน welfare database ปัจจุบัน
         record.addSalaryList = record.addSalaryList.filter(item => {
+          // ถ้าไม่ใช่ ID ที่เราต้องการจัดการ ให้เก็บไว้ทั้งหมด
+          if (!targetWelfareIds.has(item.id)) {
+            console.log(`✅ [ACCOUNTING] เก็บ non-target item: id=${item.id}, name=${item.name}`);
+            return true; // เก็บไว้
+          }
+          
+          // สำหรับ ID 1234 และ 1423 เท่านั้น ให้เช็ค welfare markers
           const hasWelfareMarkers = item.welfareType || item.welfareSource || item.startDay;
           const isInCurrentWelfare = validWelfareIds.has(item.id);
           
-          // ลบเฉพาะรายการที่มี markers ของ welfare หรือ id ที่มีใน welfare database ปัจจุบัน
+          // ลบเฉพาะ ID 1234/1423 ที่มี welfare markers หรือมีใน welfare database ปัจจุบัน
           const shouldRemove = hasWelfareMarkers || isInCurrentWelfare;
           const shouldKeep = !shouldRemove;
           
           if (shouldRemove) {
-            console.log(`🗑️ [ACCOUNTING] ลบ welfare item: id=${item.id}, name=${item.name}, reason=${hasWelfareMarkers ? 'has welfare markers' : 'in current welfare DB'}`);
+            console.log(`🗑️ [ACCOUNTING] ลบ welfare item (ID ${item.id}): name=${item.name}, reason=${hasWelfareMarkers ? 'has welfare markers' : 'in current welfare DB'}`);
           } else {
-            console.log(`✅ [ACCOUNTING] เก็บ non-welfare item: id=${item.id}, name=${item.name}`);
+            console.log(`✅ [ACCOUNTING] เก็บ non-welfare item (ID ${item.id}): name=${item.name}`);
           }
           
           return shouldKeep;
         });
         
-        console.log(`🧹 [ACCOUNTING] ลบข้อมูล welfare เดิมโดยใช้ markers: ${beforeFilterLength} → ${record.addSalaryList.length} items`);
+        console.log(`🧹 [ACCOUNTING] ลบข้อมูล welfare เฉพาะ ID 1234/1423: ${beforeFilterLength} → ${record.addSalaryList.length} items`);
         
         // เพิ่ม welfare data ที่ไม่ซ้ำแล้ว (เฉพาะที่มีอยู่จริงใน welfare database)
         record.addSalaryList = [...record.addSalaryList, ...addSalaryFromWelfare];
