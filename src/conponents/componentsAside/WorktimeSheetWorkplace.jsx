@@ -10857,7 +10857,7 @@ try {
                      
                       </button>
                       <div className="pt-3">
-                          <div className="table table-responsive" >
+                          <div className="table " >
                           <table
                       className="excel-style-table  "
                       style={{
@@ -11440,7 +11440,8 @@ try {
                       })}
                       <td className="text-center align-middle text-red p-1">
                       {/* หักประกันสังคม  */}
-                    {record.socialSecurity ? formatNumberWithComma(parseFloat(record.socialSecurity).toFixed(2)) : ''} 
+                    {(record.socialSecurity && parseFloat(record.socialSecurity) >= 50 ? formatNumberWithComma(parseFloat(record.socialSecurity).toFixed(2)) : '') || (record.tax ? formatNumberWithComma(parseFloat(record.tax).toFixed(2)) : '')} 
+
                     </td>
 
 
