@@ -6220,7 +6220,7 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
       console.log(`💰 - ${totalIncomeForTax} × 0.03 = ${taxBeforeCeil} บาท`);
       
       // คำนวณภาษีหัก ณ ที่จ่าย รวมเงินพิเศษทุกประเภท
-      tax = Math.ceil(taxBeforeCeil);
+      tax = taxBeforeCeil
       console.log(`💰 - Math.ceil(${taxBeforeCeil}) = ${tax} บาท`);
       console.log(`💰 ✅ ภาษีหัก ณ ที่จ่าย 3%: ${tax} บาท`);
       console.log(`💰 ✅ ประกันสังคม: ${socialSecurity} บาท (ไม่คิด)`);
