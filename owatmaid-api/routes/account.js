@@ -4692,7 +4692,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
               const amount = parseFloat(welfareItem.SpSalary || '0') || 0;
 
               if (targetIds.has(welfareId)) {
-                // ใช้ logic เฉพาะ: รวมหลาย startDay เป็น 1 รายการต่อ id, ข้ามกรณี startDay ซ้ำ
+                // ใช้ logic เฉพาะ: รวมหลาย startDay เป็น 1 รายการต่อ id, เก็บข้อมูลวันที่ทั้งหมด
                 const startKey = normalizeStartDay(welfareItem.startDay);
                 if (!welfareAgg.has(welfareId)) {
                   const baseItem = {
@@ -4724,11 +4724,18 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                     agg.item.SpSalary = String(current + amount);
                     if (startKey) {
                       agg.seenDates.add(startKey);
-                      // เก็บ startDay เป็นวันที่แรกสุดที่พบ
+                      // รวมวันที่ในฟิลด์ date โดยคั่นด้วย comma
+                      const currentDate = agg.item.date || '';
+                      const newDate = startKey.split('-')[2];
+                      if (currentDate && !currentDate.split(',').includes(newDate)) {
+                        agg.item.date = currentDate + ',' + newDate;
+                      } else if (!currentDate) {
+                        agg.item.date = newDate;
+                      }
+                      
+                      // อัปเดต startDay เป็นวันที่เก่าสุด
                       if (!agg.item.startDay) {
                         agg.item.startDay = startKey;
-                        // อัปเดต date/month/year ตาม startDay ใหม่
-                        agg.item.date = startKey.split('-')[2];
                         agg.item.month = startKey.split('-')[1];
                         agg.item.year = startKey.split('-')[0];
                       } else {
@@ -4736,14 +4743,12 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                         const incoming = new Date(startKey);
                         if (!isNaN(incoming.getTime()) && !isNaN(existing.getTime()) && incoming < existing) {
                           agg.item.startDay = startKey;
-                          // อัปเดต date/month/year ตาม startDay ที่เก่าสุด
-                          agg.item.date = startKey.split('-')[2];
                           agg.item.month = startKey.split('-')[1];
                           agg.item.year = startKey.split('-')[0];
                         }
                       }
                     }
-                    console.log(`🔄 [ACCOUNTING] (target) รวม id=${welfareId}, +${amount} ⇒ ${agg.item.SpSalary}`);
+                    console.log(`🔄 [ACCOUNTING] (target) รวม id=${welfareId}, +${amount} ⇒ ${agg.item.SpSalary}, dates=${agg.item.date}`);
                   }
                 }
               } else {
@@ -4773,7 +4778,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         });
 
         // รวมผลของกลุ่ม target ids เข้ากับรายการปกติ
-        const targetMergedItems = Array.from(welfareAgg.values()).map(v => v.item);
+        const targetMergedItems = Array.from(welfareAgg.values()).map(v => v.item); // กลับมาใช้ .map(v => v.item) เพราะใช้ structure แบบเดิม
         addSalaryFromWelfare = [...addSalaryFromWelfare, ...targetMergedItems];
         console.log(`� [ACCOUNTING] สรุป welfare หลังประมวลผล: normal=${addSalaryFromWelfare.length - targetMergedItems.length} + target=${targetMergedItems.length} → total=${addSalaryFromWelfare.length}`);
 
