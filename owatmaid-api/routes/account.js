@@ -4661,7 +4661,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         
         // รวม addSalaryList จากข้อมูล welfare ทั้งหมด
         let addSalaryFromWelfare = [];
-        const tempWelfareIds = new Set(); // เพิ่ม Set เพื่อติดตาม ID ที่เคยเพิ่มแล้ว
+        const tempWelfareIds = new Set(); // ติดตามคีย์ผสม (id|message|SpSalary|month|year)
         
         welfareRecords.forEach(welfareRecord => {
           if (welfareRecord.record && Array.isArray(welfareRecord.record)) {
@@ -4679,10 +4679,18 @@ router.post('/searchtimerecordemployee', async (req, res) => {
               
               if (shouldInclude) {
                 const welfareId = welfareItem.id || welfareItem.welfareType || "";
-                
-                // ตรวจสอบว่า ID นี้เคยถูกเพิ่มแล้วหรือยัง
-                if (!tempWelfareIds.has(welfareId)) {
-                  tempWelfareIds.add(welfareId);
+                // ใช้คีย์ผสม ป้องกันการมองว่า "ซ้ำ" เมื่อมี id เดียวแต่รายละเอียดต่างกัน
+                const welfareKey = [
+                  welfareId,
+                  (welfareItem.comment || welfareItem.message || "").toString().trim(),
+                  String(parseFloat(welfareItem.SpSalary) || 0),
+                  welfareRecord.month || "",
+                  welfareRecord.year || ""
+                ].join('|');
+
+                // ตรวจสอบว่า key นี้เคยถูกเพิ่มแล้วหรือยัง
+                if (!tempWelfareIds.has(welfareKey)) {
+                  tempWelfareIds.add(welfareKey);
                   
                   // แปลงข้อมูล welfare เป็นรูปแบบ addSalaryList
                   addSalaryFromWelfare.push({
@@ -4700,9 +4708,9 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                     welfareMonth: welfareRecord.month || "",
                     welfareYear: welfareRecord.year || ""
                   });
-                  console.log(`✅ [ACCOUNTING] เพิ่ม welfare item: ${welfareItem.name} (${welfareItem.SpSalary})`);
+                  console.log(`✅ [ACCOUNTING] เพิ่ม welfare item: ${welfareItem.name} (${welfareItem.SpSalary}) key=${welfareKey}`);
                 } else {
-                  console.log(`🚫 [ACCOUNTING] ข้าม welfare item ซ้ำในระดับ welfare records: id=${welfareId}, name=${welfareItem.name}`);
+                  console.log(`🚫 [ACCOUNTING] ข้าม welfare item ซ้ำในระดับ welfare records: key=${welfareKey}, name=${welfareItem.name}`);
                 }
               }
             });
@@ -4754,11 +4762,12 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           const isPotentialWelfare = potentialWelfareIds.has(item.id);
           const isValidWelfare = validWelfareIds.has(item.id);
           
-          // 🎯 Logic ใหม่: ลบทุก welfare ID ที่ไม่มีใน database จริง
+          // 🎯 Logic ใหม่: ลบเฉพาะ welfare ที่ไม่มีอยู่จริงใน DB เท่านั้น
           // เก็บ item ถ้า:
-          // 1. ไม่ใช่ potential welfare ID เลย (เป็นรายการเงินเพิ่มปกติ)
-          // 2. หรือเป็น welfare ที่ยังมีอยู่ใน database จริง
-          const shouldKeep = !isPotentialWelfare || isValidWelfare;
+          // 1) ไม่ใช่ potential welfare ID เลย (เป็นรายการเงินเพิ่มปกติ)
+          // 2) เป็น welfare ที่ยังมีอยู่ใน database จริง
+          // 3) หรือเป็นรายการที่ไม่มี welfareType (ถือว่าเป็นการเพิ่มมือ/ทั่วไป) แม้ id จะตรงกับชุด welfare ก็ตาม
+          const shouldKeep = !isPotentialWelfare || isValidWelfare || !hasWelfareType;
           
           // 🔍 Enhanced debug logging สำหรับ welfare IDs
           if (isPotentialWelfare) {
@@ -4773,7 +4782,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
             if (!shouldKeep) {
               console.log(`   🗑️ -> จะถูกลบ เพราะไม่มีใน welfare database`);
             } else {
-              console.log(`   ✅ -> จะถูกเก็บไว้ เพราะมีใน welfare database`);
+              console.log(`   ✅ -> จะถูกเก็บไว้ (valid welfare หรือ manual item)`);
             }
           }
           
