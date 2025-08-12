@@ -4885,6 +4885,12 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         const finalConsolidatedItems = [];
         
         record.addSalaryList.forEach(item => {
+          // 🎯 ตรวจสอบข้อมูลก่อนเข้าสู่กระบวนการ consolidation
+          if (!item || !item.id || !item.name || item.SpSalary === undefined || item.SpSalary === null) {
+            console.log(`🚫 [CONSOLIDATE] ข้าม item ที่ invalid ตั้งแต่ต้น: id=${item?.id}, name=${item?.name}, SpSalary=${item?.SpSalary}`);
+            return; // ข้ามรายการที่ไม่ valid
+          }
+          
           if (item.roundOfSalary === "daily") {
             const consolidateKey = `${item.id}|daily`;
             
@@ -4920,21 +4926,38 @@ router.post('/searchtimerecordemployee', async (req, res) => {
             }
           } else {
             // รายการ monthly ไม่ต้องรวม เก็บไว้ตามเดิม
-            finalConsolidatedItems.push(item);
-            console.log(`✅ [CONSOLIDATE] เก็บ monthly item: ID ${item.id} (${item.name})`);
+            if (item.id && item.name && item.SpSalary !== undefined && item.SpSalary !== null) {
+              finalConsolidatedItems.push(item);
+              console.log(`✅ [CONSOLIDATE] เก็บ monthly item: ID ${item.id} (${item.name})`);
+            } else {
+              console.log(`🚫 [CONSOLIDATE] ข้าม monthly item ที่ invalid: id=${item?.id}, name=${item?.name}, SpSalary=${item?.SpSalary}`);
+            }
           }
         });
         
-        // เพิ่มรายการ daily ที่รวมแล้วลงใน list
+        // เพิ่มรายการ daily ที่รวมแล้วลงใน list โดยตรวจสอบความถูกต้อง
         Object.values(consolidatedItems).forEach(consolidatedItem => {
-          finalConsolidatedItems.push({
-            ...consolidatedItem,
-            SpSalary: consolidatedItem.SpSalary.toString(),
-            message: consolidatedItem.message.toString(),
-            // ลบ properties ที่ใช้ชั่วคราว
-            dailyCount: undefined,
-            _ids: undefined
-          });
+          // 🎯 ตรวจสอบข้อมูลก่อนเพิ่มเข้า list
+          if (consolidatedItem && consolidatedItem.id && consolidatedItem.name && consolidatedItem.SpSalary !== undefined) {
+            const validItem = {
+              ...consolidatedItem,
+              SpSalary: consolidatedItem.SpSalary.toString(),
+              message: consolidatedItem.message.toString(),
+              // ลบ properties ที่ใช้ชั่วคราว
+              dailyCount: undefined,
+              _ids: undefined
+            };
+            
+            // ตรวจสอบอีกครั้งหลังจาก cleanup
+            if (validItem.id && validItem.name && validItem.SpSalary !== 'undefined') {
+              finalConsolidatedItems.push(validItem);
+              console.log(`✅ [CONSOLIDATE] เพิ่ม consolidated item: ID ${validItem.id} (${validItem.name}) - SpSalary: ${validItem.SpSalary}, message: ${validItem.message}`);
+            } else {
+              console.log(`🚫 [CONSOLIDATE] ข้าม consolidated item ที่ invalid หลัง cleanup: id=${validItem.id}, name=${validItem.name}, SpSalary=${validItem.SpSalary}`);
+            }
+          } else {
+            console.log(`🚫 [CONSOLIDATE] ข้าม consolidated item ที่ invalid: id=${consolidatedItem?.id}, name=${consolidatedItem?.name}, SpSalary=${consolidatedItem?.SpSalary}`);
+          }
         });
         
         record.addSalaryList = finalConsolidatedItems;
@@ -4954,11 +4977,16 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         
         // 🎯 กรองและทำความสะอาดข้อมูล addSalaryList ก่อนส่งไปยัง calculateCashValues
         const cleanedAddSalaryList = record.addSalaryList.filter(item => {
-          // เก็บเฉพาะรายการที่มีข้อมูลครบถ้วน
-          const isValid = item && item.id && item.name && (item.SpSalary !== undefined && item.SpSalary !== null);
+          // ตรวจสอบความถูกต้องทุกด้าน
+          const hasValidId = item && item.id && item.id !== undefined && item.id !== null && item.id !== 'undefined';
+          const hasValidName = item && item.name && item.name !== undefined && item.name !== null && item.name !== 'undefined';
+          const hasValidSpSalary = item && item.SpSalary !== undefined && item.SpSalary !== null && item.SpSalary !== 'undefined';
+          
+          const isValid = hasValidId && hasValidName && hasValidSpSalary;
           
           if (!isValid) {
-            console.log(`🚫 [CLEAN] ลบรายการ invalid: id=${item?.id}, name=${item?.name}, SpSalary=${item?.SpSalary}`);
+            console.log(`🚫 [CLEAN] ลบรายการ invalid: id=${item?.id} (${typeof item?.id}), name=${item?.name} (${typeof item?.name}), SpSalary=${item?.SpSalary} (${typeof item?.SpSalary})`);
+            console.log(`       hasValidId: ${hasValidId}, hasValidName: ${hasValidName}, hasValidSpSalary: ${hasValidSpSalary}`);
           }
           
           return isValid;
