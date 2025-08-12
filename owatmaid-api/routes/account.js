@@ -4831,6 +4831,70 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         
         record.addSalaryList = finalUniqueItems;
         
+        // 🎯 รวมรายการที่มี ID และ month เดียวกันให้เป็นก้อนเดียว
+        const groupedItems = {};
+        const finalGroupedItems = [];
+        
+        record.addSalaryList.forEach(item => {
+          const groupKey = `${item.id}|${item.month}|${item.year}`;
+          
+          if (!groupedItems[groupKey]) {
+            // รายการแรกของกลุ่มนี้
+            groupedItems[groupKey] = {
+              ...item,
+              SpSalary: parseFloat(item.SpSalary) || 0,
+              dates: [item.date],
+              welfareTypes: [item.welfareType].filter(Boolean),
+              startDays: [item.startDay].filter(Boolean),
+              endDays: [item.endDay].filter(Boolean)
+            };
+          } else {
+            // รวมกับรายการที่มีอยู่แล้ว
+            const existing = groupedItems[groupKey];
+            existing.SpSalary += parseFloat(item.SpSalary) || 0;
+            
+            // รวม dates (ไม่ซ้ำ)
+            if (item.date && !existing.dates.includes(item.date)) {
+              existing.dates.push(item.date);
+            }
+            
+            // รวม welfareTypes (ไม่ซ้ำ)
+            if (item.welfareType && !existing.welfareTypes.includes(item.welfareType)) {
+              existing.welfareTypes.push(item.welfareType);
+            }
+            
+            // รวม startDays
+            if (item.startDay && !existing.startDays.includes(item.startDay)) {
+              existing.startDays.push(item.startDay);
+            }
+            
+            // รวม endDays
+            if (item.endDay && !existing.endDays.includes(item.endDay)) {
+              existing.endDays.push(item.endDay);
+            }
+          }
+        });
+        
+        // แปลงกลับเป็น array และจัดรูปแบบข้อมูล
+        Object.values(groupedItems).forEach(groupedItem => {
+          finalGroupedItems.push({
+            ...groupedItem,
+            SpSalary: groupedItem.SpSalary.toString(),
+            date: groupedItem.dates.sort((a, b) => parseInt(a) - parseInt(b)).join('-'),
+            welfareType: groupedItem.welfareTypes.join('-') || groupedItem.welfareType || "",
+            startDay: groupedItem.startDays[groupedItem.startDays.length - 1] || groupedItem.startDay || "", // ใช้วันล่าสุด
+            endDay: groupedItem.endDays[groupedItem.endDays.length - 1] || groupedItem.endDay || "", // ใช้วันล่าสุด
+            // ลบ properties ที่ใช้ชั่วคราว
+            dates: undefined,
+            welfareTypes: undefined,
+            startDays: undefined,
+            endDays: undefined
+          });
+        });
+        
+        record.addSalaryList = finalGroupedItems;
+        console.log(`🔄 [ACCOUNTING] รวมรายการเดือนเดียวกัน: ${record.addSalaryList.length} items หลังรวม`);
+        
         console.log(`   - รวมแล้ว: ${record.addSalaryList.length} items`);
         
       } catch (welfareError) {
