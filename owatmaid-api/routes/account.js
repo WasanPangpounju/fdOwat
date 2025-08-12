@@ -6201,7 +6201,7 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
       const totalIncomeForTax = parseFloat(sumCashWork || 0) + 
                                parseFloat(sumCashOt || 0) + 
                                parseFloat(addSalarySocialSecurity || 0) + 
-                               parseFloat()
+            
                                parseFloat(cashSpecialDay || 0) + 
                                parseFloat(cashcustomizeDayoff || 0) + 
                                parseFloat(publicHolidayCash || 0);
