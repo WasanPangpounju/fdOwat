@@ -4996,6 +4996,25 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         
         // เพิ่ม totalAddSalary เข้าไปใน updateData
         updateData.totalAddSalary = String(totalAddSalary);
+
+        // 🔄 Recompute tax using adjusted totals when costtype is ภ.ง.ด.3
+        try {
+          const empForTax = await Employee.findOne({ employeeId: doc.employeeId });
+          const empCosttype = empForTax?.costtype || '';
+          if (empCosttype === "ภ.ง.ด.3") {
+            const totalIncomeForTaxNew = (parseFloat(updateData.sumCashWork) || 0)
+              + (parseFloat(updateData.sumCashOt) || 0)
+              + (parseFloat(updateData.totalAddSalary) || 0)
+              + (parseFloat(updateData.cashSpecialDay) || 0)
+              + (parseFloat(updateData.cashcustomizeDayoff) || 0)
+              + (parseFloat(updateData.publicHolidayCash) || 0);
+            const taxNew = totalIncomeForTaxNew * 0.03;
+            console.log(`🎯 Recomputed tax after daily adjustments: base=${totalIncomeForTaxNew} → tax=${taxNew}`);
+            updateData.tax = String(taxNew);
+          }
+        } catch (recalcErr) {
+          console.warn(`⚠️ Unable to recompute tax after adjustments for ${doc.employeeId}:`, recalcErr.message);
+        }
         
         // แสดงข้อมูลสำคัญที่จะบันทึก
         console.log(`\n📝 ข้อมูลที่จะบันทึกสำหรับพนักงาน ${doc.employeeId}:`);
