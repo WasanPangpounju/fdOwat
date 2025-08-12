@@ -176,6 +176,21 @@ const workplaceSchema = new mongoose.Schema({
   workRateDayoffRate: {
       type: String
   },
+  // เพิ่มใน workplaceSchema
+employeeCompensation: {
+  current: { type: Number, default: 0 }, // อัตราปัจจุบัน (%)
+  adjustment: { type: Number, default: 0 }, // ปรับเพิ่ม (%)
+  newRate: { type: Number, default: 0 }, // อัตราใหม่ (คำนวณอัตโนมัติ)
+  effectiveDate: { type: Date }, // วันที่เริ่มใช้
+  history: [{
+    oldRate: Number,
+    newRate: Number,
+    adjustment: Number,
+    effectiveDate: Date,
+    updatedBy: String,
+    updatedAt: { type: Date, default: Date.now }
+  }]
+},
   daysOff: [{
       type: Date
   }],
