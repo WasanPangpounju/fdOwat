@@ -4706,8 +4706,8 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                     welfareType: welfareItem.welfareType || "",
                     startDay: welfareItem.startDay || "",
                     endDay: welfareItem.endDay || "",
-                    // เพิ่มข้อมูลวันที่/เดือน/ปี
-                    date: new Date().getDate().toString(),
+                    // เพิ่มข้อมูลวันที่/เดือน/ปี จาก startDay
+                    date: welfareItem.startDay ? new Date(welfareItem.startDay).getDate().toString() : new Date().getDate().toString(),
                     month: month,
                     year: year,
                     // เพิ่มข้อมูลเดือนและปีจาก welfare record
@@ -4987,8 +4987,14 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           updateData.addSalaryList.forEach((item, itemIndex) => {
             // 🎯 เติมฟิลด์ date, month, year ที่หายไปสำหรับข้อมูลเก่า
             if (!item.date) {
-              item.date = new Date().getDate().toString();
-              console.log(`🔧 เติม date ให้ item[${itemIndex}] (${item.name}): ${item.date}`);
+              // ใช้วันที่จาก startDay ถ้ามี ไม่งั้นใช้วันที่ปัจจุบัน
+              if (item.startDay) {
+                item.date = new Date(item.startDay).getDate().toString();
+                console.log(`🔧 เติม date จาก startDay ให้ item[${itemIndex}] (${item.name}): ${item.date}`);
+              } else {
+                item.date = new Date().getDate().toString();
+                console.log(`🔧 เติม date ปัจจุบันให้ item[${itemIndex}] (${item.name}): ${item.date}`);
+              }
             }
             if (!item.month) {
               item.month = month;
