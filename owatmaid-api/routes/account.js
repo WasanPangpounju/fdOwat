@@ -5679,9 +5679,14 @@ try {
             if (travelAllowanceItem) {
               const oldAmount = parseFloat(travelAllowanceItem.SpSalary || 0);
               const oldMessage = parseFloat(travelAllowanceItem.message || 0);
-              travelAllowanceItem.SpSalary = oldAmount + 30; // เพิ่ม 30 บาท
-              travelAllowanceItem.message = oldMessage + 1;  // เพิ่ม 1 วัน
-              console.log(`   - ✅ บังคับนับ message สำหรับ ID 1535: ${oldAmount} + 30 = ${travelAllowanceItem.SpSalary}, วัน: ${oldMessage} + 1 = ${travelAllowanceItem.message}`);
+              
+              // คำนวณอัตราค่าเดินทางต่อวันจากข้อมูลที่มีอยู่แล้ว
+              const dailyTravelRate = oldMessage > 0 ? (oldAmount / oldMessage) : 30;
+              
+              travelAllowanceItem.SpSalary = oldAmount + dailyTravelRate;
+              travelAllowanceItem.message = oldMessage + 1;
+              console.log(`   - ✅ บังคับนับ message สำหรับ ID 1535: ${oldAmount} + ${dailyTravelRate} = ${travelAllowanceItem.SpSalary}, วัน: ${oldMessage} + 1 = ${travelAllowanceItem.message}`);
+              console.log(`   - 📍 อัตราค่าเดินทางต่อวัน: ${dailyTravelRate} บาท (คำนวณจาก ${oldAmount}/${oldMessage})`);
               console.log(`   - 📍 วันที่ ${record.date} (dayType=stop): บังคับนับ message สำหรับ ID 1535`);
               
               const index = addSalaryList.findIndex(item => String(item.id).trim() === '1535');
@@ -5689,17 +5694,10 @@ try {
                 addSalaryList[index] = travelAllowanceItem;
               }
             } else {
-              // สร้างรายการใหม่สำหรับค่าเดินทาง
-              const newTravelItem = {
-                id: '1535',
-                name: 'ค่าเดินทาง(ไม่คิดประกันสังคม)',
-                SpSalary: '30',
-                roundOfSalary: 'daily',
-                StaffType: 'all',
-                nameType: '',
-                message: '1'
-              };
-              addSalaryList.push(newTravelItem);
+              // กรณีที่ยังไม่มีรายการ ID 1535 เลย - ข้ามไปก่อน
+              // เพราะยังไม่รู้อัตราที่ถูกต้อง
+              console.log(`   - ⏭️ ยังไม่มีรายการ ID 1535 ข้ามการสร้างใหม่ (รอให้วันทำงานปกติสร้างก่อน)`);
+              console.log(`   - 📍 วันที่ ${record.date} (dayType=stop): ข้ามการนับ message สำหรับ ID 1535`);
               console.log(`   - ✅ สร้างรายการใหม่สำหรับ ID 1535: amount=30, message=1`);
               console.log(`   - � วันที่ ${record.date} (dayType=stop): สร้างใหม่ message สำหรับ ID 1535`);
             }
