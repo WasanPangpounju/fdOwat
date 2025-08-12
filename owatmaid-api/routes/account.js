@@ -4690,33 +4690,59 @@ router.post('/searchtimerecordemployee', async (req, res) => {
               if (shouldInclude) {
                 const welfareId = welfareItem.id || welfareItem.welfareType || "";
                 
-                // ตรวจสอบว่า ID นี้เคยถูกเพิ่มแล้วหรือยัง
-                if (!tempWelfareIds.has(welfareId)) {
-                  tempWelfareIds.add(welfareId);
+                // 🎯 ปรับปรุงการตรวจสอบและรวม ID เดียวกัน
+                const existingWelfareIndex = addSalaryFromWelfare.findIndex(item => item.id === welfareId);
+                
+                if (existingWelfareIndex !== -1) {
+                  // 🔄 รวม ID เดียวกัน: เพิ่มเงินและ message
+                  const existingItem = addSalaryFromWelfare[existingWelfareIndex];
+                  const currentSpSalary = parseFloat(existingItem.SpSalary) || 0;
+                  const newSpSalary = parseFloat(welfareItem.SpSalary) || 0;
+                  const currentMessage = parseInt(existingItem.message) || 1;
                   
-                  // แปลงข้อมูล welfare เป็นรูปแบบ addSalaryList
-                  addSalaryFromWelfare.push({
-                    id: welfareId,
-                    name: welfareItem.name || welfareItem.welfareTypeEn || "",
-                    SpSalary: welfareItem.SpSalary || "0",
-                    roundOfSalary: welfareItem.roundOfSalary || "monthly",
-                    StaffType: welfareItem.StaffType || "all",
-                    nameType: welfareItem.nameType || "",
-                    message: welfareItem.comment || welfareItem.message || "",
-                    welfareType: welfareItem.welfareType || "",
-                    startDay: welfareItem.startDay || "",
-                    endDay: welfareItem.endDay || "",
-                    // เพิ่มข้อมูลวันที่/เดือน/ปี
-                    date: new Date().getDate().toString(),
-                    month: month,
-                    year: year,
-                    // เพิ่มข้อมูลเดือนและปีจาก welfare record
-                    welfareMonth: welfareRecord.month || "",
-                    welfareYear: welfareRecord.year || ""
-                  });
-                  console.log(`✅ [ACCOUNTING] เพิ่ม welfare item: ${welfareItem.name} (${welfareItem.SpSalary})`);
+                  // รวมเงินและ message
+                  existingItem.SpSalary = (currentSpSalary + newSpSalary).toString();
+                  existingItem.message = (currentMessage + 1).toString();
+                  
+                  console.log(`🔄 [ACCOUNTING] รวม welfare ID ${welfareId}:`);
+                  console.log(`   - SpSalary: ${currentSpSalary} + ${newSpSalary} = ${existingItem.SpSalary}`);
+                  console.log(`   - message: ${currentMessage} + 1 = ${existingItem.message}`);
+                  
+                  // อัปเดตข้อมูลอื่นๆ ด้วย (ใช้ข้อมูลล่าสุด)
+                  existingItem.startDay = welfareItem.startDay || existingItem.startDay;
+                  existingItem.endDay = welfareItem.endDay || existingItem.endDay;
+                  existingItem.welfareMonth = welfareRecord.month || existingItem.welfareMonth;
+                  existingItem.welfareYear = welfareRecord.year || existingItem.welfareYear;
+                  
                 } else {
-                  console.log(`🚫 [ACCOUNTING] ข้าม welfare item ซ้ำในระดับ welfare records: id=${welfareId}, name=${welfareItem.name}`);
+                  // 🆕 เพิ่มรายการใหม่
+                  if (!tempWelfareIds.has(welfareId)) {
+                    tempWelfareIds.add(welfareId);
+                    
+                    // แปลงข้อมูล welfare เป็นรูปแบบ addSalaryList
+                    addSalaryFromWelfare.push({
+                      id: welfareId,
+                      name: welfareItem.name || welfareItem.welfareTypeEn || "",
+                      SpSalary: welfareItem.SpSalary || "0",
+                      roundOfSalary: welfareItem.roundOfSalary || "monthly",
+                      StaffType: welfareItem.StaffType || "all",
+                      nameType: welfareItem.nameType || "",
+                      message: "1", // เริ่มต้นด้วย 1
+                      welfareType: welfareItem.welfareType || "",
+                      startDay: welfareItem.startDay || "",
+                      endDay: welfareItem.endDay || "",
+                      // เพิ่มข้อมูลวันที่/เดือน/ปี
+                      date: new Date().getDate().toString(),
+                      month: month,
+                      year: year,
+                      // เพิ่มข้อมูลเดือนและปีจาก welfare record
+                      welfareMonth: welfareRecord.month || "",
+                      welfareYear: welfareRecord.year || ""
+                    });
+                    console.log(`✅ [ACCOUNTING] เพิ่ม welfare item ใหม่: ${welfareItem.name} (${welfareItem.SpSalary})`);
+                  } else {
+                    console.log(`🚫 [ACCOUNTING] ข้าม welfare item ซ้ำในระดับ welfare records: id=${welfareId}, name=${welfareItem.name}`);
+                  }
                 }
               }
             });
@@ -4804,21 +4830,61 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         record.addSalaryList = [...record.addSalaryList, ...addSalaryFromWelfare];
         console.log(`📝 [ACCOUNTING] เพิ่ม welfare data ใหม่จาก DB: ${addSalaryFromWelfare.length} items`);
         
-        // 🎯 กรองข้อมูลซ้ำขั้นสุดท้าย เผื่อมี ID ซ้ำระหว่าง addSalaryList เดิมกับ welfare data
+        // 🎯 กรองข้อมูลซ้ำขั้นสุดท้าย และรวม ID เดียวกัน
         const finalUniqueItems = [];
-        const finalSeenIds = new Set();
+        const idGroups = {};
         
         record.addSalaryList.forEach(item => {
           const itemId = item.id || "";
-          if (!finalSeenIds.has(itemId)) {
-            finalSeenIds.add(itemId);
-            finalUniqueItems.push(item);
+          
+          if (!idGroups[itemId]) {
+            // สร้างกลุ่มใหม่สำหรับ ID นี้
+            idGroups[itemId] = {
+              ...item,
+              SpSalary: parseFloat(item.SpSalary) || 0,
+              message: parseInt(item.message) || 1
+            };
+            console.log(`🆕 [ACCOUNTING] สร้างกลุ่มใหม่ ID ${itemId}: SpSalary=${item.SpSalary}, message=${item.message}`);
           } else {
-            console.log(`🚫 [ACCOUNTING] ข้าม item ซ้ำขั้นสุดท้าย: id=${itemId}, name=${item.name}`);
+            // รวมเข้ากับกลุ่มที่มีอยู่
+            const currentSpSalary = idGroups[itemId].SpSalary;
+            const newSpSalary = parseFloat(item.SpSalary) || 0;
+            const currentMessage = idGroups[itemId].message;
+            const newMessage = parseInt(item.message) || 1;
+            
+            idGroups[itemId].SpSalary = currentSpSalary + newSpSalary;
+            idGroups[itemId].message = currentMessage + newMessage;
+            
+            console.log(`� [ACCOUNTING] รวม ID ${itemId}:`);
+            console.log(`   - SpSalary: ${currentSpSalary} + ${newSpSalary} = ${idGroups[itemId].SpSalary}`);
+            console.log(`   - message: ${currentMessage} + ${newMessage} = ${idGroups[itemId].message}`);
+            
+            // อัปเดตข้อมูลอื่นๆ ด้วยข้อมูลล่าสุด
+            idGroups[itemId].startDay = item.startDay || idGroups[itemId].startDay;
+            idGroups[itemId].endDay = item.endDay || idGroups[itemId].endDay;
+            idGroups[itemId].month = item.month || idGroups[itemId].month;
+            idGroups[itemId].year = item.year || idGroups[itemId].year;
           }
         });
         
+        // แปลงกลับเป็น array และแปลง SpSalary เป็น string
+        Object.values(idGroups).forEach(group => {
+          finalUniqueItems.push({
+            ...group,
+            SpSalary: group.SpSalary.toString(),
+            message: group.message.toString()
+          });
+        });
+        
         record.addSalaryList = finalUniqueItems;
+        
+        console.log(`🧹 [ACCOUNTING] รวมและกรองข้อมูลซ้ำเสร็จแล้ว: ${record.addSalaryList.length} items`);
+        
+        // แสดงสรุปรายการหลังรวม
+        console.log(`📋 [ACCOUNTING] สรุปรายการหลังรวม ID เดียวกัน:`);
+        record.addSalaryList.forEach((item, index) => {
+          console.log(`   [${index}] ID: ${item.id}, Name: ${item.name}, SpSalary: ${item.SpSalary}, message: ${item.message}`);
+        });
         
         console.log(`   - รวมแล้ว: ${record.addSalaryList.length} items`);
         
