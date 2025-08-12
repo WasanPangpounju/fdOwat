@@ -4940,7 +4940,34 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         record.addSalaryList = finalConsolidatedItems;
         console.log(`✨ [CONSOLIDATE] รวมรายการ daily ที่ซ้ำ: ${record.addSalaryList.length} items สุดท้าย`);
         
+        // 🔍 Log ข้อมูล addSalaryList ก่อนส่งไปยัง calculateCashValues
+        console.log(`🔍 [DEBUG] addSalaryList ก่อนส่งไปยัง calculateCashValues:`);
+        if (record.addSalaryList && record.addSalaryList.length > 0) {
+          record.addSalaryList.slice(0, 5).forEach((item, idx) => {
+            console.log(`   [${idx}] id=${item.id}, name=${item.name}, SpSalary=${item.SpSalary}, roundOfSalary=${item.roundOfSalary}, message=${item.message}`);
+          });
+        } else {
+          console.log(`   ไม่มีข้อมูล addSalaryList`);
+        }
+        
         console.log(`   - รวมแล้ว: ${record.addSalaryList.length} items`);
+        
+        // 🎯 กรองและทำความสะอาดข้อมูล addSalaryList ก่อนส่งไปยัง calculateCashValues
+        const cleanedAddSalaryList = record.addSalaryList.filter(item => {
+          // เก็บเฉพาะรายการที่มีข้อมูลครบถ้วน
+          const isValid = item && item.id && item.name && (item.SpSalary !== undefined && item.SpSalary !== null);
+          
+          if (!isValid) {
+            console.log(`🚫 [CLEAN] ลบรายการ invalid: id=${item?.id}, name=${item?.name}, SpSalary=${item?.SpSalary}`);
+          }
+          
+          return isValid;
+        });
+        
+        console.log(`🧹 [CLEAN] ทำความสะอาดข้อมูล: ${record.addSalaryList.length} → ${cleanedAddSalaryList.length} items`);
+        
+        // อัปเดต addSalaryList ด้วยข้อมูลที่สะอาดแล้ว
+        record.addSalaryList = cleanedAddSalaryList;
         
       } catch (welfareError) {
         console.error('❌ [ACCOUNTING] Error fetching welfare data for employee:', record.employeeId, welfareError);
