@@ -4661,7 +4661,16 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         
         // รวม addSalaryList จากข้อมูล welfare ทั้งหมด
         let addSalaryFromWelfare = [];
-        const tempWelfareIds = new Set(); // เพิ่ม Set เพื่อติดตาม ID ที่เคยเพิ่มแล้ว
+        // สำหรับ id เฉพาะที่จะใช้ logic รวมตาม startDay
+        const targetIds = new Set(['1423', '1234']);
+        // ใช้ Map สำหรับรวมรายการของ id เฉพาะ: อนุญาต id ซ้ำได้ แต่ถ้า startDay ซ้ำจะไม่รวม; ถ้า startDay ต่างกันให้รวมและบวกเงิน
+        const welfareAgg = new Map(); // key = welfareId, value = { item, seenDates: Set<string> }
+
+        const normalizeStartDay = (d) => {
+          if (!d) return '';
+          const dt = new Date(d);
+          return isNaN(dt.getTime()) ? '' : dt.toISOString().slice(0, 10);
+        };
         
         welfareRecords.forEach(welfareRecord => {
           if (welfareRecord.record && Array.isArray(welfareRecord.record)) {
@@ -4677,37 +4686,96 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                 console.log(`🔍 [ACCOUNTING] กรองตามเดือน: ${month}, startDay: ${welfareItem.startDay}, recordMonth: ${recordMonth}, include: ${shouldInclude}`);
               }
               
-              if (shouldInclude) {
-                const welfareId = welfareItem.id || welfareItem.welfareType || "";
-                
-                // ตรวจสอบว่า ID นี้เคยถูกเพิ่มแล้วหรือยัง
-                if (!tempWelfareIds.has(welfareId)) {
-                  tempWelfareIds.add(welfareId);
-                  
-                  // แปลงข้อมูล welfare เป็นรูปแบบ addSalaryList
-                  addSalaryFromWelfare.push({
+              if (!shouldInclude) return;
+
+              const welfareId = welfareItem.id || welfareItem.welfareType || "";
+              const amount = parseFloat(welfareItem.SpSalary || '0') || 0;
+
+              if (targetIds.has(welfareId)) {
+                // ใช้ logic เฉพาะ: รวมหลาย startDay เป็น 1 รายการต่อ id, ข้ามกรณี startDay ซ้ำ
+                const startKey = normalizeStartDay(welfareItem.startDay);
+                if (!welfareAgg.has(welfareId)) {
+                  const baseItem = {
                     id: welfareId,
                     name: welfareItem.name || welfareItem.welfareTypeEn || "",
-                    SpSalary: welfareItem.SpSalary || "0",
+                    SpSalary: String(amount),
                     roundOfSalary: welfareItem.roundOfSalary || "monthly",
                     StaffType: welfareItem.StaffType || "all",
                     nameType: welfareItem.nameType || "",
                     message: welfareItem.comment || welfareItem.message || "",
                     welfareType: welfareItem.welfareType || "",
-                    startDay: welfareItem.startDay || "",
+                    startDay: startKey || "",
                     endDay: welfareItem.endDay || "",
-                    // เพิ่มข้อมูลเดือนและปีจาก welfare record
                     welfareMonth: welfareRecord.month || "",
-                    welfareYear: welfareRecord.year || ""
-                  });
-                  console.log(`✅ [ACCOUNTING] เพิ่ม welfare item: ${welfareItem.name} (${welfareItem.SpSalary})`);
+                    welfareYear: welfareRecord.year || "",
+                    // เพิ่ม date/month/year ตามที่ขอ
+                    date: startKey ? startKey.split('-')[2] : (welfareRecord.month ? '01' : ''),
+                    month: startKey ? startKey.split('-')[1] : (welfareRecord.month || ''),
+                    year: startKey ? startKey.split('-')[0] : (welfareRecord.year || ''),
+                  };
+                  welfareAgg.set(welfareId, { item: baseItem, seenDates: new Set(startKey ? [startKey] : []) });
+                  console.log(`✅ [ACCOUNTING] (target) สร้างกลุ่ม id=${welfareId}, startDay=${startKey}, amount=${amount}`);
                 } else {
-                  console.log(`🚫 [ACCOUNTING] ข้าม welfare item ซ้ำในระดับ welfare records: id=${welfareId}, name=${welfareItem.name}`);
+                  const agg = welfareAgg.get(welfareId);
+                  if (startKey && agg.seenDates.has(startKey)) {
+                    console.log(`🚫 [ACCOUNTING] (target) ข้าม (id ซ้ำ + startDay ซ้ำ) id=${welfareId}, startDay=${startKey}, amount=${amount}`);
+                  } else {
+                    const current = parseFloat(agg.item.SpSalary || '0') || 0;
+                    agg.item.SpSalary = String(current + amount);
+                    if (startKey) {
+                      agg.seenDates.add(startKey);
+                      // เก็บ startDay เป็นวันที่แรกสุดที่พบ
+                      if (!agg.item.startDay) {
+                        agg.item.startDay = startKey;
+                        // อัปเดต date/month/year ตาม startDay ใหม่
+                        agg.item.date = startKey.split('-')[2];
+                        agg.item.month = startKey.split('-')[1];
+                        agg.item.year = startKey.split('-')[0];
+                      } else {
+                        const existing = new Date(agg.item.startDay);
+                        const incoming = new Date(startKey);
+                        if (!isNaN(incoming.getTime()) && !isNaN(existing.getTime()) && incoming < existing) {
+                          agg.item.startDay = startKey;
+                          // อัปเดต date/month/year ตาม startDay ที่เก่าสุด
+                          agg.item.date = startKey.split('-')[2];
+                          agg.item.month = startKey.split('-')[1];
+                          agg.item.year = startKey.split('-')[0];
+                        }
+                      }
+                    }
+                    console.log(`🔄 [ACCOUNTING] (target) รวม id=${welfareId}, +${amount} ⇒ ${agg.item.SpSalary}`);
+                  }
                 }
+              } else {
+                // สำหรับ id อื่นๆ: ซ้ำได้ รวมได้ เหมือนเดิม (ไม่กันซ้ำเลย)
+                addSalaryFromWelfare.push({
+                  id: welfareId,
+                  name: welfareItem.name || welfareItem.welfareTypeEn || "",
+                  SpSalary: welfareItem.SpSalary || "0",
+                  roundOfSalary: welfareItem.roundOfSalary || "monthly",
+                  StaffType: welfareItem.StaffType || "all",
+                  nameType: welfareItem.nameType || "",
+                  message: welfareItem.comment || welfareItem.message || "",
+                  welfareType: welfareItem.welfareType || "",
+                  startDay: welfareItem.startDay || "",
+                  endDay: welfareItem.endDay || "",
+                  welfareMonth: welfareRecord.month || "",
+                  welfareYear: welfareRecord.year || "",
+                  // เพิ่ม date/month/year ตามที่ขอ
+                  date: welfareItem.startDay ? normalizeStartDay(welfareItem.startDay).split('-')[2] : (welfareRecord.month ? '01' : ''),
+                  month: welfareItem.startDay ? normalizeStartDay(welfareItem.startDay).split('-')[1] : (welfareRecord.month || ''),
+                  year: welfareItem.startDay ? normalizeStartDay(welfareItem.startDay).split('-')[0] : (welfareRecord.year || ''),
+                });
+                console.log(`✅ [ACCOUNTING] (normal) เพิ่ม welfare item: ${welfareItem.name} (${welfareItem.SpSalary})`);
               }
             });
           }
         });
+
+        // รวมผลของกลุ่ม target ids เข้ากับรายการปกติ
+        const targetMergedItems = Array.from(welfareAgg.values()).map(v => v.item);
+        addSalaryFromWelfare = [...addSalaryFromWelfare, ...targetMergedItems];
+        console.log(`� [ACCOUNTING] สรุป welfare หลังประมวลผล: normal=${addSalaryFromWelfare.length - targetMergedItems.length} + target=${targetMergedItems.length} → total=${addSalaryFromWelfare.length}`);
 
         console.log(`📊 [ACCOUNTING] สำหรับพนักงาน ${record.employeeId}:`);
         console.log(`   - addSalaryList เดิม: ${record.addSalaryList ? record.addSalaryList.length : 0} items`);
