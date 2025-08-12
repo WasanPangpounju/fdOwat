@@ -43,6 +43,14 @@ specialtSalaryOT: String,
             StaffType: String,
             nameType: String,
             message: String,
+            date: String, // เพิ่มฟิลด์วันที่
+            month: String, // เพิ่มฟิลด์เดือน
+            year: String, // เพิ่มฟิลด์ปี
+            welfareType: String, // เพิ่มฟิลด์ประเภท welfare
+            startDay: String, // เพิ่มฟิลด์วันเริ่มต้น
+            endDay: String, // เพิ่มฟิลด์วันสิ้นสุด
+            welfareMonth: String, // เพิ่มฟิลด์เดือนจาก welfare record
+            welfareYear: String, // เพิ่มฟิลด์ปีจาก welfare record
           },
         ],
     
@@ -97,6 +105,14 @@ addSalaryList: [
     StaffType: String,
     nameType: String,
     message: String,
+    date: String, // เพิ่มฟิลด์วันที่
+    month: String, // เพิ่มฟิลด์เดือน
+    year: String, // เพิ่มฟิลด์ปี
+    welfareType: String, // เพิ่มฟิลด์ประเภท welfare
+    startDay: String, // เพิ่มฟิลด์วันเริ่มต้น
+    endDay: String, // เพิ่มฟิลด์วันสิ้นสุด
+    welfareMonth: String, // เพิ่มฟิลด์เดือนจาก welfare record
+    welfareYear: String, // เพิ่มฟิลด์ปีจาก welfare record
   }
 ],
 
