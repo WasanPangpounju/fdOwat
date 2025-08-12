@@ -6198,17 +6198,18 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
       socialSecurity = 0;
       
       console.log(`\n💰 STEP 3: คำนวณรายได้รวมสำหรับภาษี 3%`);
-      const totalIncomeForTax = parseFloat(sumCashWork || 0) + 
-                               parseFloat(sumCashOt || 0) + 
-                               parseFloat(totalAddSalary || 0) + 
-            
-                               parseFloat(cashSpecialDay || 0) + 
-                               parseFloat(cashcustomizeDayoff || 0) + 
-                               parseFloat(publicHolidayCash || 0);
+      // Compute totalAddSalary locally from addSalaryList to avoid referencing undefined variables
+      const totalAddSalaryLocal = (addSalaryList || []).reduce((acc, item) => acc + (parseFloat(item?.SpSalary) || 0), 0);
+      const totalIncomeForTax = (parseFloat(sumCashWork) || 0) + 
+                               (parseFloat(sumCashOt) || 0) + 
+                               (totalAddSalaryLocal || 0) + 
+                               (parseFloat(cashSpecialDay) || 0) + 
+                               (parseFloat(cashcustomizeDayoff) || 0) + 
+                               (parseFloat(publicHolidayCash) || 0);
       
       console.log(`💰 - เงินค่าแรงปกติ: ${parseFloat(sumCashWork || 0)} บาท`);
       console.log(`💰 - เงินค่าล่วงเวลา: ${parseFloat(sumCashOt || 0)} บาท`);
-      console.log(`💰 - เงินพิเศษที่คิดภาษี: ${parseFloat(addSalarySocialSecurity || 0)} บาท`);
+      console.log(`💰 - เงินพิเศษรวมทั้งเดือน: ${totalAddSalaryLocal} บาท`);
       console.log(`💰 - เงินวันหยุดนักขัติฤกษ์: ${parseFloat(cashSpecialDay || 0)} บาท`);
       console.log(`💰 - เงินวันหยุดกำหนดเอง: ${parseFloat(cashcustomizeDayoff || 0)} บาท`);
       console.log(`💰 - เงินวันหยุดนักขัติฤกษ์ (public): ${parseFloat(publicHolidayCash || 0)} บาท`);
