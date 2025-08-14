@@ -4492,12 +4492,14 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
         processedRecord.sumCashWork = calculatedValues.sumCashWork;
         processedRecord.dayWorkCount = calculatedValues.dayWorkCount;
         processedRecord.dayOffCount = calculatedValues.dayOffCount;
+        processedRecord.employeeCompensation = calculatedValues.employeeCompensation;
         
         console.log(`🔄 คำนวณค่าเงินใหม่สำหรับพนักงาน ${record.employeeId}:`);
         console.log(`   - sumCashWorkMul["1.5"]: ${calculatedValues.sumCashWorkMul["1.5"]} บาท`);
         console.log(`   - sumOt1p5: ${calculatedValues.sumOt1p5} ชั่วโมง`);
         console.log(`   - dayWorkCount: ${calculatedValues.dayWorkCount} วัน`);
         console.log(`   - dayOffCount: ${calculatedValues.dayOffCount} วัน`);
+        console.log(`   - employeeCompensation: ${calculatedValues.employeeCompensation} บาท`);
         
       } catch (error) {
         console.error(`❌ Error calculating cash values for ${record.employeeId}:`, error);
@@ -5050,6 +5052,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           sumOt1p5: String(calculatedValues.sumOt1p5 || 0), // เพิ่มบรรทัดนี้
           sumOt3: String(calculatedValues.sumOt3 || 0), // เพิ่มบรรทัดนี้
           sumOtPublicHoliday: String(calculatedValues.sumOtPublicHoliday || 0), // 
+          employeeCompensation: String(calculatedValues.employeeCompensation || 0), // เงินสงเคราะห์ลูกจ้าง
 
 
           // clearly ensure all SpSalary are numbers
@@ -5189,6 +5192,24 @@ const convertTimeToDecimal = (timeString) => {
 const calculateCashValues = async (employeeId, employee_record, month, year, welfareAddSalaryList = null) => {
   // ดึงข้อมูลการตั้งค่าพื้นฐานของระบบ
   const settingResult = await axios.get(sURL + '/basicsetting/');
+  
+  // ดึงข้อมูลพนักงานเพื่อหา workplace
+  let employeeCompensationRate = 0;
+  try {
+    const employeeResponse = await axios.get(sURL + '/employee/' + employeeId);
+    const workplaceId = employeeResponse.data.workplace;
+    
+    if (workplaceId) {
+      // ดึงข้อมูล workplace เพื่อหา employeeCompensation.newRate
+      const workplaceResponse = await axios.get(sURL + '/workplace/' + workplaceId);
+      employeeCompensationRate = workplaceResponse.data.employeeCompensation?.newRate || 0;
+      console.log(`🔍 [employeeCompensation] ดึงข้อมูล workplace ${workplaceId} สำหรับพนักงาน ${employeeId}`);
+      console.log(`🔍 [employeeCompensation] employeeCompensationRate: ${employeeCompensationRate}`);
+    }
+  } catch (error) {
+    console.error(`⚠️ [employeeCompensation] ไม่สามารถดึงข้อมูล workplace สำหรับพนักงาน ${employeeId}:`, error.message);
+  }
+  
   let socialSecurity = 0;
   let addSalarySocialSecurity = 0;
   let socialSecurityP = 0;
@@ -6517,6 +6538,14 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
   console.log(`🎯 sumCashWorkMul["3"]: ${sumCashWorkMul["3"] || 0}`);
   console.log(`🎯 sumCashOt ใหม่: ${sumCashOt}`);
 
+  // 🎯 คำนวณ employeeCompensation (เงินสงเคราะห์ลูกจ้าง)
+  const employeeCompensation = sumCashWork * employeeCompensationRate;
+  console.log(`\n💰 === คำนวณเงินสงเคราะห์ลูกจ้าง ===`);
+  console.log(`💰 sumCashWork: ${sumCashWork} บาท`);
+  console.log(`💰 employeeCompensationRate: ${employeeCompensationRate}`);
+  console.log(`💰 employeeCompensation: ${sumCashWork} × ${employeeCompensationRate} = ${employeeCompensation} บาท`);
+  console.log(`💰 ===================================`);
+
   return await {
     dayWorkCount,
     dayOffCount,
@@ -6542,6 +6571,7 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
     sumOt3,
     sumOtPublicHoliday,
     countAllowance, // เพิ่ม countAllowance เพื่อใช้ในการตั้งค่า message
+    employeeCompensation, // เพิ่มเงินสงเคราะห์ลูกจ้าง
   };
   
   

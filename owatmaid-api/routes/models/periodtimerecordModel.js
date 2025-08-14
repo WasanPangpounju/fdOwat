@@ -84,6 +84,7 @@ sumOtPublicHoliday: String,
 sumTimeOt : String,
 sumCashWork : String,
 sumCashOt : String,
+employeeCompensation: String, // เงินสงเคราะห์ลูกจ้าง
 sumcashDayOffCount: String,
 totalAddSalary: String, // เพิ่มฟิลด์สำหรับเก็บยอดรวมเงินเพิ่ม
 totalDeductSalary: String, // เพิ่มฟิลด์สำหรับเก็บยอดรวมเงินหัก

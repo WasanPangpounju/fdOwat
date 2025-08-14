@@ -61,6 +61,8 @@ hourTwoFive: String,
 hourThree: String,
 
 }],
+
+
 addSalary: [{
   id: String,
   name: String,
