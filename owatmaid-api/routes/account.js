@@ -5201,16 +5201,28 @@ const calculateCashValues = async (employeeId, employee_record, month, year, wel
   
   // ดึงข้อมูลพนักงานเพื่อหา workplace
   let employeeCompensationRate = 0;
+  let employeeCompensationRate1_20 = 0;
+  let employeeCompensationRate21_30_31 = 0;
   try {
     const employeeResponse = await axios.get(sURL + '/employee/' + employeeId);
     const workplaceId = employeeResponse.data.workplace;
     
     if (workplaceId) {
-      // ดึงข้อมูล workplace เพื่อหา employeeCompensation.newRate
+      // ดึงข้อมูล workplace เพื่อหา employeeCompensation rates
       const workplaceResponse = await axios.get(sURL + '/workplace/' + workplaceId);
-      employeeCompensationRate = workplaceResponse.data.employeeCompensation?.newRate || 0;
+      
+      // รองรับโครงสร้างใหม่ (dual rates)
+      if (workplaceResponse.data.employeeCompensation?.Rate1_20 !== undefined || 
+          workplaceResponse.data.employeeCompensation?.Rate21_30_31 !== undefined) {
+        employeeCompensationRate1_20 = workplaceResponse.data.employeeCompensation?.Rate1_20 || 0;
+        employeeCompensationRate21_30_31 = workplaceResponse.data.employeeCompensation?.Rate21_30_31 || 0;
+        console.log(`🔍 [employeeCompensation] ใช้โครงสร้างใหม่ - Rate1_20: ${employeeCompensationRate1_20}, Rate21_30_31: ${employeeCompensationRate21_30_31}`);
+      } else {
+        // รองรับโครงสร้างเก่า (backward compatibility)
+        employeeCompensationRate = workplaceResponse.data.employeeCompensation?.newRate || 0;
+        console.log(`🔍 [employeeCompensation] ใช้โครงสร้างเก่า - employeeCompensationRate: ${employeeCompensationRate}`);
+      }
       console.log(`🔍 [employeeCompensation] ดึงข้อมูล workplace ${workplaceId} สำหรับพนักงาน ${employeeId}`);
-      console.log(`🔍 [employeeCompensation] employeeCompensationRate: ${employeeCompensationRate}`);
     }
   } catch (error) {
     console.error(`⚠️ [employeeCompensation] ไม่สามารถดึงข้อมูล workplace สำหรับพนักงาน ${employeeId}:`, error.message);
@@ -6558,13 +6570,42 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
   console.log(`🎯 sumCashWorkMul["3"]: ${sumCashWorkMul["3"] || 0}`);
   console.log(`🎯 sumCashOt ใหม่: ${sumCashOt}`);
 
-  // 🎯 คำนวณ employeeCompensation (เงินสงเคราะห์ลูกจ้าง)
-  const employeeCompensation = sumCashWork * employeeCompensationRate;
-  console.log(`\n💰 === คำนวณเงินสงเคราะห์ลูกจ้าง ===`);
-  console.log(`💰 sumCashWork: ${sumCashWork} บาท`);
-  console.log(`💰 employeeCompensationRate: ${employeeCompensationRate}`);
-  console.log(`💰 employeeCompensation: ${sumCashWork} × ${employeeCompensationRate} = ${employeeCompensation} บาท`);
-  console.log(`💰 ===================================`);
+  // 🎯 คำนวณ employeeCompensation (เงินสงเคราะห์ลูกจ้าง) ด้วยหลักการใหม่
+  let employeeCompensation = 0;
+  
+  // ตรวจสอบว่าใช้โครงสร้างใหม่หรือเก่า
+  if (employeeCompensationRate1_20 > 0 || employeeCompensationRate21_30_31 > 0) {
+    // หลักการใหม่: คำนวณแยกตามช่วงวันที่
+    
+    // คำนวณจำนวนวันในเดือนสำหรับช่วง 21-30/31
+    const daysInMonth = new Date(year, month, 0).getDate(); // จำนวนวันทั้งหมดในเดือน
+    const daysFor21_30_31 = daysInMonth - 20; // วันที่ 21 ถึงสิ้นเดือน (30 หรือ 31)
+    
+    // คำนวณ Rate1_20: Rate ÷ 19 × sumCashWork1_20
+    const compensation1_20 = (employeeCompensationRate1_20 / 19) * sumCashWork1_20;
+    
+    // คำนวณ Rate21_30_31: Rate ÷ (30 หรือ 31) × sumCashWork21_30_31
+    const compensation21_30_31 = (employeeCompensationRate21_30_31 / daysFor21_30_31) * sumCashWork21_30_31;
+    
+    // รวมทั้ง 2 ค่า
+    employeeCompensation = compensation1_20 + compensation21_30_31;
+    
+    console.log(`\n💰 === คำนวณเงินสงเคราะห์ลูกจ้าง (หลักการใหม่) ===`);
+    console.log(`💰 เดือน ${month}/${year} มี ${daysInMonth} วัน`);
+    console.log(`💰 วันที่ 21-${daysInMonth} มี ${daysFor21_30_31} วัน`);
+    console.log(`💰 Rate1_20: ${employeeCompensationRate1_20} ÷ 19 × ${sumCashWork1_20} = ${compensation1_20.toFixed(2)} บาท`);
+    console.log(`💰 Rate21_30_31: ${employeeCompensationRate21_30_31} ÷ ${daysFor21_30_31} × ${sumCashWork21_30_31} = ${compensation21_30_31.toFixed(2)} บาท`);
+    console.log(`💰 employeeCompensation รวม: ${compensation1_20.toFixed(2)} + ${compensation21_30_31.toFixed(2)} = ${employeeCompensation.toFixed(2)} บาท`);
+    console.log(`💰 ===================================================`);
+  } else {
+    // หลักการเก่า: sumCashWork × employeeCompensationRate
+    employeeCompensation = sumCashWork * employeeCompensationRate;
+    console.log(`\n💰 === คำนวณเงินสงเคราะห์ลูกจ้าง (หลักการเก่า) ===`);
+    console.log(`💰 sumCashWork: ${sumCashWork} บาท`);
+    console.log(`💰 employeeCompensationRate: ${employeeCompensationRate}`);
+    console.log(`💰 employeeCompensation: ${sumCashWork} × ${employeeCompensationRate} = ${employeeCompensation} บาท`);
+    console.log(`💰 ===============================================`);
+  }
 
   // 📅 แสดงผลการแบ่งเงินเดือนตามช่วงวันที่
   console.log(`\n📅 === การแบ่งเงินเดือนตามช่วงวันที่ ===`);
