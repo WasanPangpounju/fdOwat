@@ -85,6 +85,8 @@ sumTimeOt : String,
 sumCashWork : String,
 sumCashOt : String,
 employeeCompensation: String, // เงินสงเคราะห์ลูกจ้าง
+sumCashWork21_30_31: String,
+sumCashWork1_20: String,
 sumcashDayOffCount: String,
 totalAddSalary: String, // เพิ่มฟิลด์สำหรับเก็บยอดรวมเงินเพิ่ม
 totalDeductSalary: String, // เพิ่มฟิลด์สำหรับเก็บยอดรวมเงินหัก

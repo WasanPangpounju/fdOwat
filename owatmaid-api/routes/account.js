@@ -4493,6 +4493,8 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
         processedRecord.dayWorkCount = calculatedValues.dayWorkCount;
         processedRecord.dayOffCount = calculatedValues.dayOffCount;
         processedRecord.employeeCompensation = calculatedValues.employeeCompensation;
+        processedRecord.sumCashWork1_20 = calculatedValues.sumCashWork1_20;
+        processedRecord.sumCashWork21_30_31 = calculatedValues.sumCashWork21_30_31;
         
         console.log(`🔄 คำนวณค่าเงินใหม่สำหรับพนักงาน ${record.employeeId}:`);
         console.log(`   - sumCashWorkMul["1.5"]: ${calculatedValues.sumCashWorkMul["1.5"]} บาท`);
@@ -4500,6 +4502,8 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
         console.log(`   - dayWorkCount: ${calculatedValues.dayWorkCount} วัน`);
         console.log(`   - dayOffCount: ${calculatedValues.dayOffCount} วัน`);
         console.log(`   - employeeCompensation: ${calculatedValues.employeeCompensation} บาท`);
+        console.log(`   - sumCashWork1_20: ${calculatedValues.sumCashWork1_20} บาท`);
+        console.log(`   - sumCashWork21_30_31: ${calculatedValues.sumCashWork21_30_31} บาท`);
         
       } catch (error) {
         console.error(`❌ Error calculating cash values for ${record.employeeId}:`, error);
@@ -5053,6 +5057,8 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           sumOt3: String(calculatedValues.sumOt3 || 0), // เพิ่มบรรทัดนี้
           sumOtPublicHoliday: String(calculatedValues.sumOtPublicHoliday || 0), // 
           employeeCompensation: String(calculatedValues.employeeCompensation || 0), // เงินสงเคราะห์ลูกจ้าง
+          sumCashWork1_20: String(calculatedValues.sumCashWork1_20 || 0), // เงินเดือนวันที่ 1-20
+          sumCashWork21_30_31: String(calculatedValues.sumCashWork21_30_31 || 0), // เงินเดือนวันที่ 21-30/31
 
 
           // clearly ensure all SpSalary are numbers
@@ -5321,6 +5327,10 @@ let timeCashWorkMul = {
   let sumCashWork = 0;
   let sumCashOt = 0;
   let sumcashDayOffCount = 0;
+  
+  // เพิ่มตัวแปรสำหรับแบ่งเงินเดือนตามช่วงวันที่
+  let sumCashWork1_20 = 0;      // เงินเดือนวันที่ 1-20
+  let sumCashWork21_30_31 = 0;  // เงินเดือนวันที่ 21-30/31
 
   let weekendData = {}; // เพิ่มตัวแปรเก็บข้อมูลวันหยุด
   let publicHolidayCash = 0;
@@ -5877,6 +5887,16 @@ if (record?.dayType === "work") {
     }
     
     sumCashWork += cashWorkAmount;
+    
+    // 🔢 แบ่งเงินเดือนตามช่วงวันที่
+    const dateNumber = parseInt(record.date);
+    if (dateNumber >= 1 && dateNumber <= 20) {
+      sumCashWork1_20 += cashWorkAmount;
+      console.log(`   📅 วันที่ ${record.date}: เพิ่ม ${cashWorkAmount} บาท ไปยัง sumCashWork1_20 (รวม: ${sumCashWork1_20})`);
+    } else if (dateNumber >= 21 && dateNumber <= 31) {
+      sumCashWork21_30_31 += cashWorkAmount;
+      console.log(`   📅 วันที่ ${record.date}: เพิ่ม ${cashWorkAmount} บาท ไปยัง sumCashWork21_30_31 (รวม: ${sumCashWork21_30_31})`);
+    }
     
     // อัปเดต sumCashWorkMul สำหรับเวลาทำงานปกติ
     if (record?.cashWorkMul && sumCashWorkMul[record.cashWorkMul] !== undefined) {
@@ -6546,6 +6566,13 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
   console.log(`💰 employeeCompensation: ${sumCashWork} × ${employeeCompensationRate} = ${employeeCompensation} บาท`);
   console.log(`💰 ===================================`);
 
+  // 📅 แสดงผลการแบ่งเงินเดือนตามช่วงวันที่
+  console.log(`\n📅 === การแบ่งเงินเดือนตามช่วงวันที่ ===`);
+  console.log(`📅 sumCashWork1_20 (วันที่ 1-20): ${sumCashWork1_20} บาท`);
+  console.log(`📅 sumCashWork21_30_31 (วันที่ 21-30/31): ${sumCashWork21_30_31} บาท`);
+  console.log(`📅 รวมทั้งหมด: ${sumCashWork1_20 + sumCashWork21_30_31} บาท (ตรวจสอบ: ${sumCashWork})`);
+  console.log(`📅 =========================================`);
+
   return await {
     dayWorkCount,
     dayOffCount,
@@ -6572,6 +6599,8 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
     sumOtPublicHoliday,
     countAllowance, // เพิ่ม countAllowance เพื่อใช้ในการตั้งค่า message
     employeeCompensation, // เพิ่มเงินสงเคราะห์ลูกจ้าง
+    sumCashWork1_20, // เงินเดือนวันที่ 1-20
+    sumCashWork21_30_31, // เงินเดือนวันที่ 21-30/31
   };
   
   
