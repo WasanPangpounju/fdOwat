@@ -1257,29 +1257,143 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
         
         // รวม addSalaryList จากข้อมูล welfare ทั้งหมด
         let addSalaryFromWelfare = [];
-        const tempWelfareIds = new Set(); // เพิ่ม Set เพื่อติดตาม ID ที่เคยเพิ่มแล้ว
+        // สำหรับ id เฉพาะที่จะใช้ logic รวมตาม startDay
+        const targetIds = new Set(['1423', '1234']);
+        // ใช้ Map สำหรับรวมรายการของ id เฉพาะ: อนุญาต id ซ้ำได้ แต่ถ้า startDay ซ้ำจะไม่รวม; ถ้า startDay ต่างกันให้รวมและบวกเงิน
+        const welfareAgg = new Map(); // key = welfareId, value = { item, seenDates: Set<string> }
+
+        const normalizeStartDay = (d) => {
+          if (!d) return '';
+          const dt = new Date(d);
+          return isNaN(dt.getTime()) ? '' : dt.toISOString().slice(0, 10);
+        };
         
         welfareRecords.forEach(welfareRecord => {
           if (welfareRecord.record && Array.isArray(welfareRecord.record)) {
             welfareRecord.record.forEach(record => {
-              // กรองเฉพาะ records ที่อยู่ในเดือนที่ค้นหา
+              // 🎯 กรองเฉพาะ records ที่อยู่ในรอบเงินเดือน (21 เดือนก่อน - 20 เดือนปัจจุบัน)
               let shouldInclude = true;
               
               if (month && month !== '' && record.startDay) {
                 const recordStartDate = new Date(record.startDay);
-                const recordMonth = String(recordStartDate.getMonth() + 1).padStart(2, '0');
-                console.log('🗓️ Checking record:', record.id, 'startDay:', record.startDay, 'recordMonth:', recordMonth, 'searchMonth:', month);
-                shouldInclude = recordMonth === month;
+                
+                // คำนวณรอบเงินเดือน: 21 เดือนก่อน - 20 เดือนปัจจุบัน
+                const currentYear = parseInt(year) || new Date().getFullYear();
+                const currentMonth = parseInt(month);
+                
+                // วันที่เริ่มรอบ: 21 ของเดือนก่อน
+                let startYear = currentYear;
+                let startMonth = currentMonth - 1;
+                if (startMonth < 1) {
+                  startMonth = 12;
+                  startYear--;
+                }
+                const periodStartDate = new Date(startYear, startMonth - 1, 21); // month - 1 เพราะ JS month เริ่มจาก 0
+                
+                // วันที่สิ้นสุดรอบ: 20 ของเดือนปัจจุบัน
+                const periodEndDate = new Date(currentYear, currentMonth - 1, 20, 23, 59, 59); // สิ้นสุดวัน
+                
+                // ตรวจสอบว่า startDay อยู่ในรอบเงินเดือนหรือไม่
+                shouldInclude = recordStartDate >= periodStartDate && recordStartDate <= periodEndDate;
+                
+                console.log(`🔍 [TIMERECORDS] กรองตามรอบเงินเดือน:`);
+                console.log(`   - เดือนที่เลือก: ${month}/${year}`);
+                console.log(`   - รอบเงินเดือน: ${periodStartDate.toISOString().slice(0,10)} ถึง ${periodEndDate.toISOString().slice(0,10)}`);
+                console.log(`   - startDay: ${record.startDay}`);
+                console.log(`   - recordDate: ${recordStartDate.toISOString().slice(0,10)}`);
+                console.log(`   - include: ${shouldInclude}`);
               }
               
-              if (shouldInclude) {
-                const welfareId = record.id || record.welfareType || "";
+              if (!shouldInclude) return;
+
+              const welfareId = record.id || record.welfareType || "";
+              const amount = parseFloat(record.SpSalary || '0') || 0;
+
+              if (targetIds.has(welfareId)) {
+                // ใช้ logic เฉพาะ: รวมหลาย startDay เป็น 1 รายการต่อ id, เก็บข้อมูลวันที่ทั้งหมด
+                const startKey = normalizeStartDay(record.startDay);
+                if (!welfareAgg.has(welfareId)) {
+                  const baseItem = {
+                    id: welfareId,
+                    name: record.name || record.welfareTypeEn || "",
+                    SpSalary: String(amount),
+                    roundOfSalary: record.roundOfSalary || "monthly",
+                    StaffType: record.StaffType || "all",
+                    nameType: record.nameType || "",
+                    message: record.comment || record.message || "",
+                    welfareType: record.welfareType || "",
+                    startDay: startKey || "",
+                    endDay: record.endDay || "",
+                    welfareMonth: welfareRecord.month || "",
+                    welfareYear: welfareRecord.year || "",
+                    // เพิ่ม date/month/year ตามที่ขอ
+                    date: startKey ? startKey.split('-')[2] : (welfareRecord.month ? '01' : ''),
+                    month: startKey ? startKey.split('-')[1] : (welfareRecord.month || ''),
+                    year: startKey ? startKey.split('-')[0] : (welfareRecord.year || ''),
+                  };
+                  welfareAgg.set(welfareId, { item: baseItem, seenDates: new Set(startKey ? [startKey] : []) });
+                  console.log(`✅ [TIMERECORDS] (target) สร้างกลุ่ม id=${welfareId}, startDay=${startKey}, amount=${amount}`);
+                } else {
+                  const agg = welfareAgg.get(welfareId);
+                  if (startKey && agg.seenDates.has(startKey)) {
+                    console.log(`🚫 [TIMERECORDS] (target) ข้าม (id ซ้ำ + startDay ซ้ำ) id=${welfareId}, startDay=${startKey}, amount=${amount}`);
+                  } else {
+                    const current = parseFloat(agg.item.SpSalary || '0') || 0;
+                    agg.item.SpSalary = String(current + amount);
+                    if (startKey) {
+                      agg.seenDates.add(startKey);
+                      // รวมวันที่ในฟิลด์ date โดยคั่นด้วย comma
+                      const currentDate = agg.item.date || '';
+                      const newDate = startKey.split('-')[2];
+                      if (currentDate && !currentDate.split(',').includes(newDate)) {
+                        agg.item.date = currentDate + ',' + newDate;
+                      } else if (!currentDate) {
+                        agg.item.date = newDate;
+                      }
+                      
+                      // อัปเดต startDay เป็นวันที่เก่าสุด
+                      if (!agg.item.startDay) {
+                        agg.item.startDay = startKey;
+                        agg.item.month = startKey.split('-')[1];
+                        agg.item.year = startKey.split('-')[0];
+                      } else {
+                        const existing = new Date(agg.item.startDay);
+                        const incoming = new Date(startKey);
+                        if (!isNaN(incoming.getTime()) && !isNaN(existing.getTime()) && incoming < existing) {
+                          agg.item.startDay = startKey;
+                          agg.item.month = startKey.split('-')[1];
+                          agg.item.year = startKey.split('-')[0];
+                        }
+                      }
+                    }
+                    console.log(`🔄 [TIMERECORDS] (target) รวม id=${welfareId}, +${amount} ⇒ ${agg.item.SpSalary}, dates=${agg.item.date}`);
+                  }
+                }
+              } else {
+                // 🎯 สำหรับ id อื่นๆ: ใช้ logic รวม SpSalary ถ้า id เดียวกัน
+                const existingIndex = addSalaryFromWelfare.findIndex(existingItem => existingItem.id === welfareId);
                 
-                // ตรวจสอบว่า ID นี้เคยถูกเพิ่มแล้วหรือยัง
-                if (!tempWelfareIds.has(welfareId)) {
-                  tempWelfareIds.add(welfareId);
+                if (existingIndex !== -1) {
+                  // ถ้ามี id เดียวกันแล้ว ให้รวม SpSalary
+                  const existingAmount = parseFloat(addSalaryFromWelfare[existingIndex].SpSalary || '0') || 0;
+                  const newTotal = existingAmount + amount;
+                  addSalaryFromWelfare[existingIndex].SpSalary = String(newTotal);
                   
-                  // แปลงข้อมูล welfare เป็นรูปแบบ addSalaryList
+                  // รวมวันที่ในฟิลด์ date
+                  const currentStartDay = normalizeStartDay(record.startDay);
+                  if (currentStartDay) {
+                    const existingDate = addSalaryFromWelfare[existingIndex].date || '';
+                    const newDate = currentStartDay.split('-')[2];
+                    if (existingDate && !existingDate.split(',').includes(newDate)) {
+                      addSalaryFromWelfare[existingIndex].date = existingDate + ',' + newDate;
+                    } else if (!existingDate) {
+                      addSalaryFromWelfare[existingIndex].date = newDate;
+                    }
+                  }
+                  
+                  console.log(`🔄 [TIMERECORDS] (normal) รวม id=${welfareId}, ${existingAmount} + ${amount} ⇒ ${newTotal}`);
+                } else {
+                  // ถ้าไม่มี id เดียวกัน ให้เพิ่มใหม่
                   addSalaryFromWelfare.push({
                     id: welfareId,
                     name: record.name || record.welfareTypeEn || "",
@@ -1291,18 +1405,24 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
                     welfareType: record.welfareType || "",
                     startDay: record.startDay || "",
                     endDay: record.endDay || "",
-                    // เพิ่มข้อมูลเดือนและปีจาก welfare record
                     welfareMonth: welfareRecord.month || "",
-                    welfareYear: welfareRecord.year || ""
+                    welfareYear: welfareRecord.year || "",
+                    // เพิ่ม date/month/year ตามที่ขอ
+                    date: record.startDay ? normalizeStartDay(record.startDay).split('-')[2] : (welfareRecord.month ? '01' : ''),
+                    month: record.startDay ? normalizeStartDay(record.startDay).split('-')[1] : (welfareRecord.month || ''),
+                    year: record.startDay ? normalizeStartDay(record.startDay).split('-')[0] : (welfareRecord.year || ''),
                   });
-                  console.log(`✅ [TIMERECORDS] เพิ่ม welfare item: ${record.name} (${record.SpSalary})`);
-                } else {
-                  console.log(`🚫 [TIMERECORDS] ข้าม welfare item ซ้ำ: id=${welfareId}, name=${record.name}`);
+                  console.log(`✅ [TIMERECORDS] (normal) เพิ่ม welfare item ใหม่: ${record.name} (${record.SpSalary})`);
                 }
               }
             });
           }
         });
+
+        // รวมผลของกลุ่ม target ids เข้ากับรายการปกติ
+        const targetMergedItems = Array.from(welfareAgg.values()).map(v => v.item);
+        addSalaryFromWelfare = [...addSalaryFromWelfare, ...targetMergedItems];
+        console.log(`📊 [TIMERECORDS] สรุป welfare หลังประมวลผล: normal=${addSalaryFromWelfare.length - targetMergedItems.length} + target=${targetMergedItems.length} → total=${addSalaryFromWelfare.length}`);
 
         // รวม addSalaryList เดิมกับข้อมูลจาก welfare
         if (!timeRecord.addSalaryList) {
