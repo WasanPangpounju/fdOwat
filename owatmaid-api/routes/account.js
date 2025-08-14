@@ -4676,14 +4676,37 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           if (welfareRecord.record && Array.isArray(welfareRecord.record)) {
             console.log(`🔍 [ACCOUNTING] ประมวลผล welfare record: ${welfareRecord.record.length} items`);
             welfareRecord.record.forEach(welfareItem => {
-              // กรองเฉพาะ records ที่อยู่ในเดือนที่ค้นหา
+              // 🎯 กรองเฉพาะ records ที่อยู่ในรอบเงินเดือน (21 เดือนก่อน - 20 เดือนปัจจุบัน)
               let shouldInclude = true;
               
               if (month && month !== '' && welfareItem.startDay) {
                 const recordStartDate = new Date(welfareItem.startDay);
-                const recordMonth = String(recordStartDate.getMonth() + 1).padStart(2, '0');
-                shouldInclude = recordMonth === month;
-                console.log(`🔍 [ACCOUNTING] กรองตามเดือน: ${month}, startDay: ${welfareItem.startDay}, recordMonth: ${recordMonth}, include: ${shouldInclude}`);
+                
+                // คำนวณรอบเงินเดือน: 21 เดือนก่อน - 20 เดือนปัจจุบัน
+                const currentYear = parseInt(year) || new Date().getFullYear();
+                const currentMonth = parseInt(month);
+                
+                // วันที่เริ่มรอบ: 21 ของเดือนก่อน
+                let startYear = currentYear;
+                let startMonth = currentMonth - 1;
+                if (startMonth < 1) {
+                  startMonth = 12;
+                  startYear--;
+                }
+                const periodStartDate = new Date(startYear, startMonth - 1, 21); // month - 1 เพราะ JS month เริ่มจาก 0
+                
+                // วันที่สิ้นสุดรอบ: 20 ของเดือนปัจจุบัน
+                const periodEndDate = new Date(currentYear, currentMonth - 1, 20, 23, 59, 59); // สิ้นสุดวัน
+                
+                // ตรวจสอบว่า startDay อยู่ในรอบเงินเดือนหรือไม่
+                shouldInclude = recordStartDate >= periodStartDate && recordStartDate <= periodEndDate;
+                
+                console.log(`🔍 [ACCOUNTING] กรองตามรอบเงินเดือน:`);
+                console.log(`   - เดือนที่เลือก: ${month}/${year}`);
+                console.log(`   - รอบเงินเดือน: ${periodStartDate.toISOString().slice(0,10)} ถึง ${periodEndDate.toISOString().slice(0,10)}`);
+                console.log(`   - startDay: ${welfareItem.startDay}`);
+                console.log(`   - recordDate: ${recordStartDate.toISOString().slice(0,10)}`);
+                console.log(`   - include: ${shouldInclude}`);
               }
               
               if (!shouldInclude) return;
