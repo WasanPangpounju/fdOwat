@@ -4775,26 +4775,50 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                   }
                 }
               } else {
-                // สำหรับ id อื่นๆ: ซ้ำได้ รวมได้ เหมือนเดิม (ไม่กันซ้ำเลย)
-                addSalaryFromWelfare.push({
-                  id: welfareId,
-                  name: welfareItem.name || welfareItem.welfareTypeEn || "",
-                  SpSalary: welfareItem.SpSalary || "0",
-                  roundOfSalary: welfareItem.roundOfSalary || "monthly",
-                  StaffType: welfareItem.StaffType || "all",
-                  nameType: welfareItem.nameType || "",
-                  message: welfareItem.comment || welfareItem.message || "",
-                  welfareType: welfareItem.welfareType || "",
-                  startDay: welfareItem.startDay || "",
-                  endDay: welfareItem.endDay || "",
-                  welfareMonth: welfareRecord.month || "",
-                  welfareYear: welfareRecord.year || "",
-                  // เพิ่ม date/month/year ตามที่ขอ
-                  date: welfareItem.startDay ? normalizeStartDay(welfareItem.startDay).split('-')[2] : (welfareRecord.month ? '01' : ''),
-                  month: welfareItem.startDay ? normalizeStartDay(welfareItem.startDay).split('-')[1] : (welfareRecord.month || ''),
-                  year: welfareItem.startDay ? normalizeStartDay(welfareItem.startDay).split('-')[0] : (welfareRecord.year || ''),
-                });
-                console.log(`✅ [ACCOUNTING] (normal) เพิ่ม welfare item: ${welfareItem.name} (${welfareItem.SpSalary})`);
+                // 🎯 สำหรับ id อื่นๆ: ใช้ logic รวม SpSalary ถ้า id เดียวกัน
+                const existingIndex = addSalaryFromWelfare.findIndex(existingItem => existingItem.id === welfareId);
+                
+                if (existingIndex !== -1) {
+                  // ถ้ามี id เดียวกันแล้ว ให้รวม SpSalary
+                  const existingAmount = parseFloat(addSalaryFromWelfare[existingIndex].SpSalary || '0') || 0;
+                  const newTotal = existingAmount + amount;
+                  addSalaryFromWelfare[existingIndex].SpSalary = String(newTotal);
+                  
+                  // รวมวันที่ในฟิลด์ date
+                  const currentStartDay = normalizeStartDay(welfareItem.startDay);
+                  if (currentStartDay) {
+                    const existingDate = addSalaryFromWelfare[existingIndex].date || '';
+                    const newDate = currentStartDay.split('-')[2];
+                    if (existingDate && !existingDate.split(',').includes(newDate)) {
+                      addSalaryFromWelfare[existingIndex].date = existingDate + ',' + newDate;
+                    } else if (!existingDate) {
+                      addSalaryFromWelfare[existingIndex].date = newDate;
+                    }
+                  }
+                  
+                  console.log(`🔄 [ACCOUNTING] (normal) รวม id=${welfareId}, ${existingAmount} + ${amount} ⇒ ${newTotal}`);
+                } else {
+                  // ถ้าไม่มี id เดียวกัน ให้เพิ่มใหม่
+                  addSalaryFromWelfare.push({
+                    id: welfareId,
+                    name: welfareItem.name || welfareItem.welfareTypeEn || "",
+                    SpSalary: welfareItem.SpSalary || "0",
+                    roundOfSalary: welfareItem.roundOfSalary || "monthly",
+                    StaffType: welfareItem.StaffType || "all",
+                    nameType: welfareItem.nameType || "",
+                    message: welfareItem.comment || welfareItem.message || "",
+                    welfareType: welfareItem.welfareType || "",
+                    startDay: welfareItem.startDay || "",
+                    endDay: welfareItem.endDay || "",
+                    welfareMonth: welfareRecord.month || "",
+                    welfareYear: welfareRecord.year || "",
+                    // เพิ่ม date/month/year ตามที่ขอ
+                    date: welfareItem.startDay ? normalizeStartDay(welfareItem.startDay).split('-')[2] : (welfareRecord.month ? '01' : ''),
+                    month: welfareItem.startDay ? normalizeStartDay(welfareItem.startDay).split('-')[1] : (welfareRecord.month || ''),
+                    year: welfareItem.startDay ? normalizeStartDay(welfareItem.startDay).split('-')[0] : (welfareRecord.year || ''),
+                  });
+                  console.log(`✅ [ACCOUNTING] (normal) เพิ่ม welfare item ใหม่: ${welfareItem.name} (${welfareItem.SpSalary})`);
+                }
               }
             });
           }
