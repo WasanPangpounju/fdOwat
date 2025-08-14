@@ -178,10 +178,8 @@ const workplaceSchema = new mongoose.Schema({
   },
   // เพิ่มใน workplaceSchema
 employeeCompensation: {
-  current: { type: Number, default: 0 }, // อัตราปัจจุบัน (%)
-  adjustment: { type: Number, default: 0 }, // ปรับเพิ่ม (%)
-  newRate: { type: Number, default: 0 }, // อัตราใหม่ (คำนวณอัตโนมัติ)
-  effectiveDate: { type: Date }, // วันที่เริ่มใช้
+  Rate21_30_31: { type: Number, default: 0 }, // เงินสงเคราะห์ลูกจ้าง วันที่ 21-30/31
+  Rate1_20: { type: Number, default: 0 }, // เงินสงเคราะห์ลูกจ้าง วันที่ 1-20
   history: [{
     oldRate: Number,
     newRate: Number,
