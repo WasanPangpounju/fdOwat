@@ -32,6 +32,51 @@ async function getEmployeeJobType(employeeId) {
   }
 }
 
+// ฟังก์ชัน migrate ข้อมูลเก่าให้เพิ่ม typeOfemployee
+async function migrateTimerecordsWithTypeOfEmployee() {
+  try {
+    console.log('🔄 [MIGRATE] เริ่มการ migrate ข้อมูลเก่าให้เพิ่ม typeOfemployee...');
+    
+    // ดึงข้อมูล timerecords ที่ยังไม่มี typeOfemployee
+    const timerecordsNeedMigration = await timerecordEmployee.find({
+      $or: [
+        { 'employee_record.typeOfemployee': { $exists: false } },
+        { 'employee_record.typeOfemployee': '' }
+      ]
+    });
+
+    console.log(`📊 [MIGRATE] พบข้อมูลที่ต้อง migrate: ${timerecordsNeedMigration.length} records`);
+
+    let migratedCount = 0;
+    for (const timerecord of timerecordsNeedMigration) {
+      const employeeId = timerecord.employeeId;
+      const typeOfemployee = await getEmployeeJobType(employeeId);
+      
+      // อัปเดต employee_record ทุกรายการในข้อมูลนี้
+      const updatedEmployeeRecord = timerecord.employee_record.map(record => ({
+        ...record.toObject(),
+        typeOfemployee: typeOfemployee
+      }));
+
+      // บันทึกข้อมูลที่อัปเดตแล้ว
+      await timerecordEmployee.findByIdAndUpdate(
+        timerecord._id,
+        { employee_record: updatedEmployeeRecord },
+        { new: true }
+      );
+
+      migratedCount++;
+      console.log(`✅ [MIGRATE] อัปเดต typeOfemployee สำหรับพนักงาน ${employeeId}: ${typeOfemployee} (${migratedCount}/${timerecordsNeedMigration.length})`);
+    }
+
+    console.log(`🎉 [MIGRATE] เสร็จสิ้นการ migrate ข้อมูล: ${migratedCount} records`);
+    return { success: true, migratedCount };
+  } catch (error) {
+    console.error('❌ [MIGRATE] เกิดข้อผิดพลาดในการ migrate:', error);
+    return { success: false, error: error.message };
+  }
+}
+
 
 //Connect mongodb
 mongoose.connect(connectionString, {
@@ -118,6 +163,22 @@ router.get('/listempdeletexx', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// Endpoint สำหรับ migrate ข้อมูลเก่าให้เพิ่ม typeOfemployee
+router.get('/migrate-typeofemployee', async (req, res) => {
+  try {
+    const result = await migrateTimerecordsWithTypeOfEmployee();
+    res.json({
+      message: 'Migration completed',
+      success: result.success,
+      migratedCount: result.migratedCount,
+      error: result.error || null
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal Server Error', message: err.message });
   }
 });
 // Get list of employeeTimerecords
@@ -1275,9 +1336,38 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
 
     const result = await timerecordEmployee.aggregate(pipeline);
 
-    // เพิ่มข้อมูล welfare/leave ลงใน addSalaryList
+    // เพิ่มข้อมูล welfare/leave ลงใน addSalaryList และตรวจสอบ typeOfemployee
     for (let timeRecord of result) {
       try {
+        // ตรวจสอบและเพิ่ม typeOfemployee หากยังไม่มี
+        let needUpdate = false;
+        const updatedEmployeeRecord = [];
+        
+        for (const record of timeRecord.employee_record) {
+          if (!record.typeOfemployee || record.typeOfemployee === '') {
+            const typeOfemployee = await getEmployeeJobType(timeRecord.employeeId);
+            updatedEmployeeRecord.push({
+              ...record,
+              typeOfemployee: typeOfemployee
+            });
+            needUpdate = true;
+            console.log(`🔄 [SEARCH] เพิ่ม typeOfemployee สำหรับพนักงาน ${timeRecord.employeeId}: ${typeOfemployee}`);
+          } else {
+            updatedEmployeeRecord.push(record);
+          }
+        }
+        
+        // อัปเดตฐานข้อมูลหากจำเป็น
+        if (needUpdate) {
+          await timerecordEmployee.findByIdAndUpdate(
+            timeRecord._id,
+            { employee_record: updatedEmployeeRecord },
+            { new: true }
+          );
+          timeRecord.employee_record = updatedEmployeeRecord;
+          console.log(`✅ [SEARCH] อัปเดต typeOfemployee ในฐานข้อมูลสำหรับพนักงาน ${timeRecord.employeeId}`);
+        }
+
         // ค้นหาข้อมูล welfare ของพนักงาน
         const welfareQuery = { employeeId: timeRecord.employeeId };
         
