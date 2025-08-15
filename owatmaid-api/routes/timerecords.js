@@ -37,11 +37,12 @@ async function migrateTimerecordsWithTypeOfEmployee() {
   try {
     console.log('🔄 [MIGRATE] เริ่มการ migrate ข้อมูลเก่าให้เพิ่ม typeOfemployee...');
     
-    // ดึงข้อมูล timerecords ที่ยังไม่มี typeOfemployee
+    // ดึงข้อมูล timerecords ที่ยังไม่มี typeOfemployee ที่ระดับ root
     const timerecordsNeedMigration = await timerecordEmployee.find({
       $or: [
-        { 'employee_record.typeOfemployee': { $exists: false } },
-        { 'employee_record.typeOfemployee': '' }
+        { 'typeOfemployee': { $exists: false } },
+        { 'typeOfemployee': '' },
+        { 'typeOfemployee': null }
       ]
     });
 
@@ -52,16 +53,11 @@ async function migrateTimerecordsWithTypeOfEmployee() {
       const employeeId = timerecord.employeeId;
       const typeOfemployee = await getEmployeeJobType(employeeId);
       
-      // อัปเดต employee_record ทุกรายการในข้อมูลนี้
-      const updatedEmployeeRecord = timerecord.employee_record.map(record => ({
-        ...record.toObject(),
-        typeOfemployee: typeOfemployee
-      }));
-
+      // อัปเดตเฉพาะ typeOfemployee ที่ระดับ root (ไม่แตะ employee_record)
       // บันทึกข้อมูลที่อัปเดตแล้ว
       await timerecordEmployee.findByIdAndUpdate(
         timerecord._id,
-        { employee_record: updatedEmployeeRecord },
+        { typeOfemployee: typeOfemployee }, // เพิ่มเฉพาะที่ระดับ root
         { new: true }
       );
 
@@ -122,6 +118,7 @@ const employeeTimerecordSchema = new mongoose.Schema({
   employeeId: String,
   employeeName: String,
   month: String,
+  typeOfemployee: String, // เพิ่มที่ระดับ root
   employee_workplaceRecord: [{
     workplaceId: String,
     workplaceName: String,
@@ -463,11 +460,8 @@ timerecordId,
     // ดึงข้อมูล typeOfemployee จาก employee API
     const typeOfemployee = await getEmployeeJobType(employeeId);
 
-    // เพิ่ม typeOfemployee ใน employee_workplaceRecord ทุกรายการ
-    const updatedEmployeeWorkplaceRecord = employee_workplaceRecord.map(record => ({
-      ...record,
-      typeOfemployee: typeOfemployee
-    }));
+    // ไม่ต้องเพิ่ม typeOfemployee ใน employee_workplaceRecord แต่ละรายการ
+    // เก็บไว้ที่ระดับ root เท่านั้น
 
     // Create workplace
     const workplaceTimeRecordData = new workplaceTimerecordEmp({
@@ -475,7 +469,8 @@ timerecordId,
       employeeId,
       employeeName,
       month,
-      employee_workplaceRecord: updatedEmployeeWorkplaceRecord
+      typeOfemployee: typeOfemployee, // เพิ่มที่ระดับ root
+      employee_workplaceRecord: employee_workplaceRecord // ใช้ข้อมูลเดิม
     });
     console.log(workplaceTimeRecordData );
 
@@ -489,7 +484,7 @@ timerecordId,
     await workplaceTimeRecordData.save();
 
     //save or update to workplace timeRecord
-    for (const record of updatedEmployeeWorkplaceRecord) {
+    for (const record of employee_workplaceRecord) {
       const { workplaceId, wGroup, date } = record;
       const wdate = await month + '/' + date + '/' + timerecordId;
 
@@ -586,16 +581,13 @@ router.put('/updateemp/:employeeRecordId', async (req, res) => {
     // ดึงข้อมูล typeOfemployee จาก employee API
     const typeOfemployee = await getEmployeeJobType(updateFields.employeeId);
 
-    // เพิ่ม typeOfemployee ใน employee_workplaceRecord ทุกรายการ
-    const updatedEmployeeWorkplaceRecord = updateFields.employee_workplaceRecord.map(record => ({
-      ...record,
-      typeOfemployee: typeOfemployee
-    }));
+    // ไม่ต้องเพิ่ม typeOfemployee ใน employee_workplaceRecord แต่ละรายการ
+    // เก็บไว้ที่ระดับ root เท่านั้น
 
     // อัปเดต updateFields ด้วยข้อมูล typeOfemployee
     const updatedFields = {
       ...updateFields,
-      employee_workplaceRecord: updatedEmployeeWorkplaceRecord
+      typeOfemployee: typeOfemployee // เพิ่มที่ระดับ root เท่านั้น
     };
 
     await workplaceTimerecordEmp.deleteMany({
@@ -1342,30 +1334,37 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
         // ตรวจสอบและเพิ่ม typeOfemployee หากยังไม่มี
         let needUpdate = false;
         const updatedEmployeeRecord = [];
+        let typeOfemployee = timeRecord.typeOfemployee || ''; // ดึงจากระดับ root ก่อน
         
-        for (const record of timeRecord.employee_record) {
-          if (!record.typeOfemployee || record.typeOfemployee === '') {
-            const typeOfemployee = await getEmployeeJobType(timeRecord.employeeId);
-            updatedEmployeeRecord.push({
-              ...record,
-              typeOfemployee: typeOfemployee
-            });
-            needUpdate = true;
-            console.log(`🔄 [SEARCH] เพิ่ม typeOfemployee สำหรับพนักงาน ${timeRecord.employeeId}: ${typeOfemployee}`);
-          } else {
-            updatedEmployeeRecord.push(record);
-          }
+        // หากยังไม่มี typeOfemployee ที่ระดับ root ให้ดึงจาก employee API
+        if (!typeOfemployee || typeOfemployee === '') {
+          typeOfemployee = await getEmployeeJobType(timeRecord.employeeId);
+          needUpdate = true;
+          console.log(`🔄 [SEARCH] เพิ่ม typeOfemployee สำหรับพนักงาน ${timeRecord.employeeId}: ${typeOfemployee}`);
         }
         
-        // อัปเดตฐานข้อมูลหากจำเป็น
+        // คัดลอก employee_record โดยไม่เปลี่ยนแปลง (ไม่เพิ่ม typeOfemployee ในแต่ละ record)
+        for (const record of timeRecord.employee_record) {
+          updatedEmployeeRecord.push(record);
+        }
+        
+        // อัปเดตฐานข้อมูลหากจำเป็น - เพิ่ม typeOfemployee ที่ระดับ root
         if (needUpdate) {
           await timerecordEmployee.findByIdAndUpdate(
             timeRecord._id,
-            { employee_record: updatedEmployeeRecord },
+            { 
+              employee_record: updatedEmployeeRecord,
+              typeOfemployee: typeOfemployee // เพิ่มที่ระดับ root
+            },
             { new: true }
           );
-          timeRecord.employee_record = updatedEmployeeRecord;
+          timeRecord.typeOfemployee = typeOfemployee; // เพิ่มในผลลัพธ์ที่ส่งกลับ
           console.log(`✅ [SEARCH] อัปเดต typeOfemployee ในฐานข้อมูลสำหรับพนักงาน ${timeRecord.employeeId}`);
+        }
+
+        // ตรวจสอบให้แน่ใจว่า typeOfemployee แสดงใน response
+        if (!timeRecord.typeOfemployee) {
+          timeRecord.typeOfemployee = typeOfemployee;
         }
 
         // ค้นหาข้อมูล welfare ของพนักงาน
