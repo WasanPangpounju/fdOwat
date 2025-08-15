@@ -5199,13 +5199,25 @@ const calculateCashValues = async (employeeId, employee_record, month, year, wel
   // ดึงข้อมูลการตั้งค่าพื้นฐานของระบบ
   const settingResult = await axios.get(sURL + '/basicsetting/');
   
-  // ดึงข้อมูลพนักงานเพื่อหา workplace
+  // ดึงข้อมูลพนักงานเพื่อหา workplace และ jobtype
   let employeeCompensationRate = 0;
   let employeeCompensationRate1_20 = 0;
   let employeeCompensationRate21_30_31 = 0;
+  let typeOfemployee = '';
   try {
     const employeeResponse = await axios.get(sURL + '/employee/' + employeeId);
-    const workplaceId = employeeResponse.data.workplace;
+    
+    // ตรวจสอบว่ามีข้อมูลพนักงานหรือไม่
+    if (!employeeResponse || !employeeResponse.data) {
+      console.error(`⚠️ [employeeCompensation] ไม่พบข้อมูลพนักงาน ${employeeId}`);
+      typeOfemployee = '';
+    } else {
+      // ดึงข้อมูล jobtype สำหรับ typeOfemployee
+      typeOfemployee = employeeResponse.data.jobtype || '';
+      console.log(`🔍 [typeOfemployee] ดึงข้อมูล jobtype สำหรับพนักงาน ${employeeId}: ${typeOfemployee}`);
+    }
+    
+    const workplaceId = employeeResponse?.data?.workplace;
     
     if (workplaceId) {
       // ดึงข้อมูล workplace เพื่อหา employeeCompensation rates
@@ -5225,7 +5237,9 @@ const calculateCashValues = async (employeeId, employee_record, month, year, wel
       console.log(`🔍 [employeeCompensation] ดึงข้อมูล workplace ${workplaceId} สำหรับพนักงาน ${employeeId}`);
     }
   } catch (error) {
-    console.error(`⚠️ [employeeCompensation] ไม่สามารถดึงข้อมูล workplace สำหรับพนักงาน ${employeeId}:`, error.message);
+    console.error(`⚠️ [employeeCompensation] ไม่สามารถดึงข้อมูลพนักงาน ${employeeId}:`, error.message);
+    // ตั้งค่าเริ่มต้นกรณี error
+    typeOfemployee = '';
   }
   
   let socialSecurity = 0;
@@ -6642,6 +6656,7 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
     employeeCompensation, // เพิ่มเงินสงเคราะห์ลูกจ้าง
     sumCashWork1_20, // เงินเดือนวันที่ 1-20
     sumCashWork21_30_31, // เงินเดือนวันที่ 21-30/31
+    typeOfemployee, // เพิ่ม typeOfemployee (jobtype จาก employee)
   };
   
   
@@ -6653,6 +6668,7 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
   console.log(`🔍 addSalaryList.length: ${addSalaryList.length}`);
   console.log(`🔍 socialSecurity: ${socialSecurity}`);
   console.log(`🔍 tax: ${tax}`);
+  console.log(`🔍 typeOfemployee: ${typeOfemployee}`);
   console.log(`🔍 =============================`);
 };
 

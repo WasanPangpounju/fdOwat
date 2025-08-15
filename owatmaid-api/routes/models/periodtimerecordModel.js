@@ -94,6 +94,7 @@ socialSecurity: String,
 tax: String,
 fund: String,
 cashSpecialDay: String,
+typeOfemployee: String,
 
 sumSocialSecurity: String,
 sumTax: String,
