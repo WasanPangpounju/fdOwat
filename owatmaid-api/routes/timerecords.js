@@ -16,6 +16,22 @@ const jwt = require('jsonwebtoken');
 const bodyParser = require('body-parser');
 const { months } = require('moment');
 
+// ฟังก์ชันดึงข้อมูล typeOfemployee จาก employee API
+async function getEmployeeJobType(employeeId) {
+  try {
+    const employeeResponse = await axios.get(sURL + '/employee/' + employeeId);
+    if (employeeResponse && employeeResponse.data) {
+      const typeOfemployee = employeeResponse.data.jobtype || '';
+      console.log(`🔍 [timerecords] ดึงข้อมูล jobtype สำหรับพนักงาน ${employeeId}: ${typeOfemployee}`);
+      return typeOfemployee;
+    }
+    return '';
+  } catch (error) {
+    console.error(`⚠️ [timerecords] ไม่สามารถดึงข้อมูลพนักงาน ${employeeId}:`, error.message);
+    return '';
+  }
+}
+
 
 //Connect mongodb
 mongoose.connect(connectionString, {
@@ -37,6 +53,7 @@ const workplaceTimerecordSchema = new mongoose.Schema({
   employeeRecord: [{
     staffId: String,
     staffName: String,
+    typeOfemployee: String,
     shift: String,
     startTime: String,
     endTime: String,
@@ -65,6 +82,7 @@ const employeeTimerecordSchema = new mongoose.Schema({
     workplaceName: String,
     wGroup : String,
     date: String,
+    typeOfemployee: String,
     shift: String,
     startTime: String,
     endTime: String,
@@ -380,18 +398,26 @@ timerecordId,
     employee_workplaceRecord
   } = req.body;
 
-
-  // Create workplace
-  const workplaceTimeRecordData = new workplaceTimerecordEmp({
-timerecordId,
-    employeeId,
-    employeeName,
-    month,
-    employee_workplaceRecord
-  });
-console.log(workplaceTimeRecordData );
-
   try {
+    // ดึงข้อมูล typeOfemployee จาก employee API
+    const typeOfemployee = await getEmployeeJobType(employeeId);
+
+    // เพิ่ม typeOfemployee ใน employee_workplaceRecord ทุกรายการ
+    const updatedEmployeeWorkplaceRecord = employee_workplaceRecord.map(record => ({
+      ...record,
+      typeOfemployee: typeOfemployee
+    }));
+
+    // Create workplace
+    const workplaceTimeRecordData = new workplaceTimerecordEmp({
+timerecordId,
+      employeeId,
+      employeeName,
+      month,
+      employee_workplaceRecord: updatedEmployeeWorkplaceRecord
+    });
+    console.log(workplaceTimeRecordData );
+
     // Delete existing records for the same employee and month timerecordId
     await workplaceTimerecordEmp.deleteMany({
       timerecordId,
@@ -402,7 +428,7 @@ console.log(workplaceTimeRecordData );
     await workplaceTimeRecordData.save();
 
     //save or update to workplace timeRecord
-    for (const record of employee_workplaceRecord) {
+    for (const record of updatedEmployeeWorkplaceRecord) {
       const { workplaceId, wGroup, date } = record;
       const wdate = await month + '/' + date + '/' + timerecordId;
 
@@ -414,7 +440,20 @@ console.log(workplaceTimeRecordData );
         const existingEmployeeIndex = workplaceRecord.employeeRecord.findIndex(emp => emp.staffId === employeeId);
         if (existingEmployeeIndex !== -1) {
                     // Update existing employee record
-
+          workplaceRecord.employeeRecord[existingEmployeeIndex] = {
+            staffId: employeeId,
+            staffName: employeeName,
+            typeOfemployee: typeOfemployee,
+            ...record
+          };
+        } else {
+          // Add new employee record
+          workplaceRecord.employeeRecord.push({
+            staffId: employeeId,
+            staffName: employeeName,
+            typeOfemployee: typeOfemployee,
+            ...record
+          });
         }
 
                 
@@ -423,12 +462,13 @@ console.log(workplaceTimeRecordData );
                   workplaceRecord = new workplaceTimerecord({
                     timerecordId,
                     workplaceId,
-                    workplaceName,
+                    workplaceName: record.workplaceName,
                     wGroup,
-                    date,
+                    date: wdate,
                     employeeRecord: [{
                       staffId: employeeId,
                       staffName: employeeName,
+                      typeOfemployee: typeOfemployee,
                       ...record
                     }]
                   });
@@ -482,34 +522,28 @@ router.put('/updateemp/:employeeRecordId', async (req, res) => {
   const updateFields = await req.body;
 
   try {
-    // // Find the existing record to get timerecordId, employeeId, and month
-    // const existingRecord = await workplaceTimerecordEmp.findById(employeeIdToUpdate);
+    // ดึงข้อมูล typeOfemployee จาก employee API
+    const typeOfemployee = await getEmployeeJobType(updateFields.employeeId);
 
-    // if (!existingRecord) {
-    //   return res.status(404).json({ message: 'Resource not found' });
-    // }
-    
-    // // Delete all records that match timerecordId, employeeId, and month
-    // await workplaceTimerecordEmp.deleteMany({
-    //   timerecordId: existingRecord.timerecordId,
-    //   employeeId: existingRecord.employeeId,
-    //   month: existingRecord.month,
-    // });
+    // เพิ่ม typeOfemployee ใน employee_workplaceRecord ทุกรายการ
+    const updatedEmployeeWorkplaceRecord = updateFields.employee_workplaceRecord.map(record => ({
+      ...record,
+      typeOfemployee: typeOfemployee
+    }));
+
+    // อัปเดต updateFields ด้วยข้อมูล typeOfemployee
+    const updatedFields = {
+      ...updateFields,
+      employee_workplaceRecord: updatedEmployeeWorkplaceRecord
+    };
+
     await workplaceTimerecordEmp.deleteMany({
       timerecordId: updateFields.timerecordId,
       employeeId: updateFields.employeeId,
       month: updateFields.month,
     });
     
-        const newRecord = await new workplaceTimerecordEmp(updateFields);
-    // Create a new record with updated fields
-    // const newRecord = await new workplaceTimerecordEmp({
-    //   timerecordId: updateFields.timerecordId || existingRecord.timerecordId,
-    //   employeeId: updateFields.employeeId || existingRecord.employeeId,
-    //   employeeName: updateFields.employeeName || existingRecord.employeeName,
-    //   month: updateFields.month || existingRecord.month,
-    //   employee_workplaceRecord: updateFields.employee_workplaceRecord || existingRecord.employee_workplaceRecord
-    // });
+    const newRecord = await new workplaceTimerecordEmp(updatedFields);
 
     // Save the new record
     const savedRecord = await newRecord.save();
@@ -809,6 +843,7 @@ async function setToEmployee(selectWorkplaceId, selectworkplaceName, selectWGrou
             'workplaceName': selectworkplaceName,
             'wGroup': selectWGroup || '',
             'date': day,
+            'typeOfemployee': element.typeOfemployee || '',
             'shift': element.shift,
             'startTime': element.startTime,
             'endTime': element.endTime,
@@ -839,6 +874,7 @@ async function setToEmployee(selectWorkplaceId, selectworkplaceName, selectWGrou
               'workplaceName': selectworkplaceName,
               'wGroup': selectWGroup || '',
               'date': day,
+              'typeOfemployee': element.typeOfemployee || '',
               'shift': element.shift,
               'startTime': element.startTime,
               'endTime': element.endTime,
@@ -975,24 +1011,34 @@ router.post('/create', async (req, res) => {
     // Filter out employeeRecord objects where staffId is null
     const filteredEmployeeRecord = employeeRecord.filter(record => record.staffId !== '');
 
+    // เพิ่ม typeOfemployee สำหรับแต่ละพนักงาน
+    const updatedEmployeeRecord = [];
+    for (const record of filteredEmployeeRecord) {
+      const typeOfemployee = await getEmployeeJobType(record.staffId);
+      updatedEmployeeRecord.push({
+        ...record,
+        typeOfemployee: typeOfemployee
+      });
+    }
+
     const currentDate = new Date(date);
     const currentYear = currentDate.getFullYear();
     const timerecordId = currentYear;
 
-    // Create workplace with filtered employeeRecord array
+    // Create workplace with updated employeeRecord array
     const workplaceTimeRecordData = new workplaceTimerecord({
       timerecordId,
       workplaceId,
       workplaceName,
       wGroup ,
       date,
-      employeeRecord: filteredEmployeeRecord
+      employeeRecord: updatedEmployeeRecord
     });
 
     const ans = await workplaceTimeRecordData.save();
     if (ans) {
       console.log('Create workplace time record success');
-      await setToEmployee(workplaceId, workplaceName, wGroup, date, filteredEmployeeRecord);
+      await setToEmployee(workplaceId, workplaceName, wGroup, date, updatedEmployeeRecord);
     }
 
     res.json(workplaceTimeRecordData);

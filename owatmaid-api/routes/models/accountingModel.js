@@ -9,6 +9,7 @@ const accountingSchema = new mongoose.Schema({
   workplace: String,
   name: String,
   lastName: String,
+  typeOfemployee: String,
   createBy: String,
 accountingRecord: [{ 
   countDay: String, 
