@@ -4867,7 +4867,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         
         // สร้าง list ของ welfare IDs ที่เป็นไปได้ - รวมทุก welfare ID ที่อาจปรากฏ
         const potentialWelfareIds = new Set([
-          '1410', '1235', '1234', '1230', '1350', '1410', '1520', '1535', // IDs ที่พบบ่อยใน welfare
+      '1235', '1234', '1230', '1350', '1410', '1520', '1535', 
           '1423', '1242', '1233', '1243', // welfare IDs ที่พบในระบบ
           '1231', '1422', '1428', '1434', '1435', '1429', '1427', '1426', '1425', // welfare IDs เพิ่มเติม
           ...Array.from(validWelfareIds) // และ IDs ที่มีใน welfare database
