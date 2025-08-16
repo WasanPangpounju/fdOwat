@@ -4350,9 +4350,9 @@ router.post('/updatetimerecord', async (req, res) => {
 
 router.post('/searchtimerecordbyworkplace', async (req, res) => {
   try {
-    const { month, year, workplaceId } = req.body;
+    const { month, year, workplaceId, isRecursiveCall } = req.body;
     
-    console.log(`🔍 [WORKPLACE] API called with parameters:`, { month, year, workplaceId });
+    console.log(`🔍 [WORKPLACE] API called with parameters:`, { month, year, workplaceId, isRecursiveCall });
 
     if (!month || !year) {
       console.log(`❌ [WORKPLACE] Missing month or year parameters`);
