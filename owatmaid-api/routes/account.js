@@ -4351,8 +4351,11 @@ router.post('/updatetimerecord', async (req, res) => {
 router.post('/searchtimerecordbyworkplace', async (req, res) => {
   try {
     const { month, year, workplaceId } = req.body;
+    
+    console.log(`🔍 [WORKPLACE] API called with parameters:`, { month, year, workplaceId });
 
     if (!month || !year) {
+      console.log(`❌ [WORKPLACE] Missing month or year parameters`);
       return res.status(400).json({ message: 'Month and year are required' });
     }
 
@@ -4361,19 +4364,26 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
       month: { $regex: new RegExp(month, 'i') },
       year: { $regex: new RegExp(year, 'i') },
     });
+    
+    console.log(`🔍 [WORKPLACE] Found ${records.length} total records for month=${month}, year=${year}`);
 
     if (!records.length) {
+      console.log(`❌ [WORKPLACE] No records found, returning empty result`);
       return res.status(200).json({ groupedResult: {}, message: 'No records found' });
     }
 
     // Step 2: Fetch all employee profiles to avoid repeated queries
     const employeeIds = records.map(r => r.employeeId);
+    console.log(`🔍 [WORKPLACE] Employee IDs from records: ${employeeIds.join(', ')}`);
+    
     const employees = await Employee.find({ employeeId: { $in: employeeIds } });
+    console.log(`🔍 [WORKPLACE] Found ${employees.length} employee profiles`);
 
     const employeeMap = {};
     employees.forEach(emp => {
       if (emp.employeeId) {
         employeeMap[emp.employeeId] = emp;
+        console.log(`🔍 [WORKPLACE] Employee ${emp.employeeId} -> workplace: ${emp.workplace}`);
       }
     });
 
@@ -4382,10 +4392,21 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
 
     for (const record of records) {
       const employee = employeeMap[record.employeeId];
+      
+      console.log(`🔍 [WORKPLACE] Processing record for employeeId: ${record.employeeId}`);
 
-      if (!employee || !employee.workplace) continue;
+      if (!employee) {
+        console.log(`❌ [WORKPLACE] No employee profile found for employeeId: ${record.employeeId}`);
+        continue;
+      }
+      
+      if (!employee.workplace) {
+        console.log(`❌ [WORKPLACE] Employee ${record.employeeId} has no workplace assigned`);
+        continue;
+      }
 
       const empWorkplaceId = employee.workplace;
+      console.log(`🔍 [WORKPLACE] Employee ${record.employeeId} workplace: ${empWorkplaceId}, target: ${workplaceId || 'ALL'}`);
 
       // ตรวจสอบว่าพนักงานทำงานในหน่วยงานที่ต้องการหรือไม่
       let shouldInclude = false;
@@ -4393,10 +4414,12 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
       if (!workplaceId) {
         // ถ้าไม่ระบุ workplaceId ให้แสดงทั้งหมด
         shouldInclude = true;
+        console.log(`✅ [WORKPLACE] Include all - employee ${record.employeeId}`);
       } else {
         // เช็คว่าพนักงานสังกัดหน่วยงานที่ต้องการ
         if (empWorkplaceId === workplaceId) {
           shouldInclude = true;
+          console.log(`✅ [WORKPLACE] Match direct workplace - employee ${record.employeeId}`);
         } else {
           // เช็คว่าพนักงานจากหน่วยงานอื่นมาทำงานที่หน่วยงานนี้หรือไม่
           if (record.employee_record && Array.isArray(record.employee_record)) {
@@ -4405,13 +4428,22 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
             );
             if (worksAtTargetWorkplace) {
               shouldInclude = true;
-              console.log(`🔄 พบพนักงานข้ามหน่วยงาน: ${record.employeeId} (สังกัด ${empWorkplaceId}) มาทำงานที่ ${workplaceId}`);
+              console.log(`🔄 [WORKPLACE] Cross-workplace match - employee ${record.employeeId} (belongs to ${empWorkplaceId}) works at ${workplaceId}`);
+            } else {
+              console.log(`❌ [WORKPLACE] No cross-workplace match - employee ${record.employeeId} workplace ${empWorkplaceId} != target ${workplaceId}`);
             }
+          } else {
+            console.log(`❌ [WORKPLACE] No employee_record for cross-workplace check - employee ${record.employeeId}`);
           }
         }
       }
 
-      if (!shouldInclude) continue;
+      if (!shouldInclude) {
+        console.log(`❌ [WORKPLACE] Skipping employee ${record.employeeId} - no workplace match`);
+        continue;
+      }
+      
+      console.log(`✅ [WORKPLACE] Including employee ${record.employeeId} in results`);
 
             // 🔥 เพิ่มเช็ค dayWorkCount หรือ dayOffCount และดึง personalDayOff
             if (!isRecursiveCall && (!record.dayWorkCount || !record.dayOffCount || !record.personalDayOff)) {
@@ -4577,6 +4609,16 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
       console.log(`  - personalDayOff: ${record.personalDayOff ? `${record.personalDayOff.length} วัน` : 'ไม่มี'}`);
       console.log(`  - stopDaysList: ${record.stopDaysList ? `${record.stopDaysList.length} วัน` : 'ไม่มี'}`);
       console.log(`  - cashcustomizeDayoff: ${record.cashcustomizeDayoff || 'ไม่มี'} บาท`);
+    }
+    
+    console.log(`📊 [WORKPLACE] Final results summary:`);
+    console.log(`   - Total workplace groups: ${Object.keys(groupedResult).length}`);
+    Object.keys(groupedResult).forEach(wpId => {
+      console.log(`   - Workplace ${wpId}: ${groupedResult[wpId].length} employees`);
+    });
+    
+    if (Object.keys(groupedResult).length === 0) {
+      console.log(`⚠️ [WORKPLACE] Returning empty groupedResult - no employees matched criteria`);
     }
 
     return res.status(200).json({ groupedResult });
