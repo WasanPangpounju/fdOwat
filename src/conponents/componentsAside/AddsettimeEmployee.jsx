@@ -438,6 +438,10 @@ await workplacesearch.workplaceGroup[departmentIndex]
                       );
 
                       break;
+
+                    case "specialt_shift":
+
+                    
                     case "night_shift":
                       const nightTimes = await item.allTimes.filter(
                         (time) => time.shift === "กะดึก"
@@ -2786,7 +2790,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
           <th colSpan="3">OT (ก่อนเวลาทำงาน)</th>
         <th colSpan="3">เวลาทำงาน</th>
         <th colSpan="3">OT (หลังเวลาทำงาน)</th>
-        {wShift === "specialt_shift" && <th colSpan="3">ข้อมูลพิเศษ</th>}
+        {wShift === "specialt_shift" && <th colSpan="3">จ่ายสด</th>}
         </tr>
       {/* Second Row - Detailed Headers */}
       <tr>
@@ -2803,7 +2807,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
 
           {wShift === "specialt_shift" && (
             <>
-              <th>จ่ายสด</th>
+       
               <th>เงิน</th>
               <th>เงิน OT</th>
               {/* <th>หมายเหตุ</th> */}
@@ -2999,21 +3003,15 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
           {/* Special Shift Salary Fields (Only for กะพิเศษ) */}
           {wShift === "specialt_shift" && (
             <>
-              <td>
-                <input
-                  type="checkbox"
-                  className="form-control"
-                  checked={cashSalary}
-                  onChange={handleCheckboxChange}
-                />
-              </td>
+              
               <td>
                 <input
                   type="text"
-                  className="form-control text-center"
+                  className="form-control text-center input"
                   id="specialtSalary"
                   placeholder="เป็นเงิน"
                   value={specialtSalary}
+                  style={{ width: "100px" }}
                   onChange={(e) => setSpecialtSalary(e.target.value)}
                 />
               </td>
@@ -3023,6 +3021,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                   className="form-control text-center"
                   id="specialtSalaryOT"
                   placeholder="OT เป็นเงิน"
+                  style={{ width: "100px" }}
                   value={specialtSalaryOT}
                   onChange={(e) => setSpecialtSalaryOT(e.target.value)}
                 />

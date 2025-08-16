@@ -55,6 +55,16 @@ function Setting({ workplaceList, employeeList }) {
   const [spWorkStart3, setSpWorkStart3] = useState("");
   const [spWorkEnd3, setSpWorkEnd3] = useState("");
 
+  // Employee compensation states
+  const [currentEmployeeCompensation, setCurrentEmployeeCompensation] = useState("");
+  const [addEmployeeCompensation, setAddEmployeeCompensation] = useState("");
+  const [employeeCompensation, setEmployeeCompensation] = useState("");
+  const [employeeCompensationStartDate, setEmployeeCompensationStartDate] = useState("");
+  
+  // New dual-rate employee compensation states
+  const [employeeCompensationRate21_30_31, setEmployeeCompensationRate21_30_31] = useState(""); // อัตราเงินสงเคราะห์ลูกจ้าง วันที่ 21-30/31
+  const [employeeCompensationRate1_20, setEmployeeCompensationRate1_20] = useState(""); // อัตราเงินสงเคราะห์ลูกจ้าง วันที่ 1-20
+
   const [listSpecialWorktime, setListSpecialWorktime] = useState([]);
 
   const [listMonday, setListMonday] = useState([]);
@@ -1342,6 +1352,41 @@ setWorkTimeDayList_specialwork(workplace.specialWorkTimeDay || []);
     setWorkTimeDayList(workplace.workTimeDay);
     setWorkTimeDayPersonList(workplace.workTimeDayPerson);
 setWorkRateChange(workplace.workRateChange)
+
+    // ✅ โหลดข้อมูลเงินสงเคราะห์ลูกจ้าง
+    if (workplace.employeeCompensation) {
+      // Load new dual-rate structure
+      if (workplace.employeeCompensation.Rate1_20 !== undefined || workplace.employeeCompensation.Rate21_30_31 !== undefined) {
+        setEmployeeCompensationRate1_20((workplace.employeeCompensation.Rate1_20 * 100) || '');
+        setEmployeeCompensationRate21_30_31((workplace.employeeCompensation.Rate21_30_31 * 100) || '');
+      } else {
+        // Backward compatibility with old structure
+        setCurrentEmployeeCompensation(workplace.employeeCompensation.current || '');
+        setAddEmployeeCompensation(workplace.employeeCompensation.adjustment || '');
+        
+        // คำนวณค่าจ้างใหม่
+        const current = parseFloat(workplace.employeeCompensation.current || 0);
+        const adjustment = parseFloat(workplace.employeeCompensation.adjustment || 0);
+        const newRate = current + (current * adjustment / 100);
+        setEmployeeCompensation(newRate.toString());
+      }
+      
+      setEmployeeCompensationStartDate(
+        workplace.employeeCompensation.effectiveDate 
+          ? new Date(workplace.employeeCompensation.effectiveDate).toISOString().split('T')[0] 
+          : ''
+      );
+    } else {
+      // ล้างข้อมูลถ้าไม่มี
+      setCurrentEmployeeCompensation('');
+      setAddEmployeeCompensation('');
+      setEmployeeCompensation('');
+      setEmployeeCompensationStartDate('');
+      // ล้างข้อมูล dual-rate ใหม่
+      setEmployeeCompensationRate1_20('');
+      setEmployeeCompensationRate21_30_31('');
+    }
+
     // console.log(workplace);
     // // console.log(initialFormData);
     // console.log("formData", formData);
@@ -1368,6 +1413,61 @@ setWorkRateChange(workplace.workRateChange)
   };
   const handleCheckboxChange7 = () => {
     setWorkday7(!workday7);
+  };
+
+  // ฟังก์ชันสำหรับล้างข้อมูล form ทั้งหมด
+  const clearForm = () => {
+    // ล้างข้อมูลหลัก
+    setWorkplaceId("");
+    setWorkplaceName("");
+    setWorkplaceArea("");
+    setWorkOfWeek("");
+    setWorkOfHour("");
+    setWorkRate("");
+    
+    // ล้างข้อมูลเงินสงเคราะห์ลูกจ้าง
+    setCurrentEmployeeCompensation("");
+    setAddEmployeeCompensation("");
+    setEmployeeCompensation("");
+    setEmployeeCompensationStartDate("");
+    // ล้างข้อมูล dual-rate ใหม่
+    setEmployeeCompensationRate1_20("");
+    setEmployeeCompensationRate21_30_31("");
+    
+    // ล้างข้อมูลวันทำงาน
+    setWorkday1(false);
+    setWorkday2(false);
+    setWorkday3(false);
+    setWorkday4(false);
+    setWorkday5(false);
+    setWorkday6(false);
+    setWorkday7(false);
+    
+    // ล้างข้อมูลจำนวนคน
+    setWorkcount1("");
+    setWorkcount2("");
+    setWorkcount3("");
+    setWorkcount4("");
+    setWorkcount5("");
+    setWorkcount6("");
+    setWorkcount7("");
+    
+    // ล้างข้อมูลการปรับเงินเดือน
+    setFormData({
+      addSalary: []
+    });
+    
+    // ล้างข้อมูลรายการต่างๆ
+    setListEmployeeDay([]);
+    setListSpecialWorktime([]);
+    setWorkTimeDayList([]);
+    setWorkTimeDayPersonList([]);
+    
+    // ล้างข้อมูลวันหยุด
+    setPublicHolidayDates([]);
+    setVaccinationDates([]);
+    
+    console.log("Form cleared successfully");
   };
 
   //data for search
@@ -1500,6 +1600,25 @@ setWorkRateChange(workplace.workRateChange)
       workRateChange: workRateChange,
       reason: reason,
 
+      // ✅ เพิ่มข้อมูลเงินสงเคราะห์ลูกจ้าง
+      employeeCompensation: {
+        Rate21_30_31: parseFloat(employeeCompensationRate21_30_31 || 0) / 100,
+        Rate1_20: parseFloat(employeeCompensationRate1_20 || 0) / 100,
+        effectiveDate: employeeCompensationStartDate ? new Date(employeeCompensationStartDate) : null,
+        // เพิ่มประวัติเมื่อมีการเปลี่ยนแปลง
+        ...(employeeCompensationRate1_20 || employeeCompensationRate21_30_31 ? {
+          $push: {
+            history: {
+              Rate21_30_31: parseFloat(employeeCompensationRate21_30_31 || 0) / 100,
+              Rate1_20: parseFloat(employeeCompensationRate1_20 || 0) / 100,
+              effectiveDate: employeeCompensationStartDate ? new Date(employeeCompensationStartDate) : new Date(),
+              updatedBy: 'admin', // หรือ user ID ที่ login อยู่
+              updatedAt: new Date()
+            }
+          }
+        } : {})
+      },
+
       employeeIdList: employeeIdList,
       employeeNameList: employeeNameList,
 
@@ -1550,6 +1669,51 @@ if (newWorkplace) {
       missingFields.push(label);
     }
   });
+
+  // ตรวจสอบข้อมูล Employee Compensation (dual-rate structure)
+  if (employeeCompensationRate1_20 && employeeCompensationRate1_20.trim() !== "") {
+    if (isNaN(parseFloat(employeeCompensationRate1_20))) {
+      missingFields.push("Rate สำหรับวันที่ 1-20 ต้องเป็นตัวเลข");
+    }
+  }
+  
+  if (employeeCompensationRate21_30_31 && employeeCompensationRate21_30_31.trim() !== "") {
+    if (isNaN(parseFloat(employeeCompensationRate21_30_31))) {
+      missingFields.push("Rate สำหรับวันที่ 21-30/31 ต้องเป็นตัวเลข");
+    }
+  }
+  
+  // ตรวจสอบวันที่มีผลบังคับใช้สำหรับ employee compensation
+  if ((employeeCompensationRate1_20 || employeeCompensationRate21_30_31) && 
+      (!employeeCompensationStartDate || employeeCompensationStartDate.trim() === "")) {
+    missingFields.push("วันที่เริ่มใช้อัตราใหม่");
+  }
+  
+  // ตรวจสอบข้อมูล Employee Compensation (old structure - backward compatibility)
+  if (currentEmployeeCompensation && currentEmployeeCompensation.trim() !== "") {
+    const compensationValidation = {
+      currentRate: currentEmployeeCompensation,
+      adjustmentPercentage: addEmployeeCompensation || "0",
+      newRate: employeeCompensation || "0",
+      effectiveDate: employeeCompensationStartDate
+    };
+
+    // ตรวจสอบว่าเป็นตัวเลขที่ถูกต้อง
+    if (isNaN(parseFloat(compensationValidation.currentRate))) {
+      missingFields.push("ค่าจ้างปัจจุบันต้องเป็นตัวเลข");
+    }
+    if (isNaN(parseFloat(compensationValidation.adjustmentPercentage))) {
+      missingFields.push("เปอร์เซ็นต์การปรับต้องเป็นตัวเลข");
+    }
+    if (isNaN(parseFloat(compensationValidation.newRate))) {
+      missingFields.push("ค่าจ้างใหม่ต้องเป็นตัวเลข");
+    }
+    
+    // ตรวจสอบวันที่มีผลบังคับใช้
+    if (!compensationValidation.effectiveDate || compensationValidation.effectiveDate.trim() === "") {
+      missingFields.push("วันที่เริ่มใช้อัตราใหม่");
+    }
+  }
 
   if (missingFields.length > 0) {
   Swal.fire({
@@ -1628,16 +1792,83 @@ if (newWorkplace) {
     alert(`รหัสหน่วยงาน ${data.workplaceId} มีอยู่แล้วในระบบ กรุณาใช้รหัสอื่น`);
     return;
   }
+
+  // แสดงข้อมูลสรุปก่อนบันทึก
+  let summaryText = `
+    หน่วยงาน: ${data.workplaceName}
+    รหัส: ${data.workplaceId}
+    สถานที่: ${data.workplaceArea}
+    จำนวนวันทำงาน: ${data.workOfWeek} วัน/สัปดาห์
+    ชั่วโมงทำงาน: ${data.workOfHour} ชั่วโมง
+    ค่าจ้างรายวัน: ${data.workRate} บาท
+  `;
+
+  // เพิ่มข้อมูลเงินสงเคราะห์ลูกจ้างถ้ามี (dual-rate structure)
+  if ((employeeCompensationRate1_20 && employeeCompensationRate1_20.trim() !== "") || 
+      (employeeCompensationRate21_30_31 && employeeCompensationRate21_30_31.trim() !== "")) {
+    summaryText += `
+    
+    ข้อมูลเงินสงเคราะห์ลูกจ้าง:
+    Rate สำหรับวันที่ 1-20: ${employeeCompensationRate1_20 || 0}%
+    Rate สำหรับวันที่ 21-30/31: ${employeeCompensationRate21_30_31 || 0}%
+    วันที่เริ่มใช้: ${employeeCompensationStartDate ? new Date(employeeCompensationStartDate).toLocaleDateString('th-TH') : 'ไม่ระบุ'}
+    `;
+  }
+  
+  // เพิ่มข้อมูลเงินสงเคราะห์ลูกจ้างถ้ามี (old structure - backward compatibility)
+  if (currentEmployeeCompensation && currentEmployeeCompensation.trim() !== "") {
+    summaryText += `
+    
+    ข้อมูลเงินสงเคราะห์ลูกจ้าง (รูปแบบเก่า):
+    ค่าจ้างปัจจุบัน: ${parseFloat(currentEmployeeCompensation).toLocaleString()} บาท
+    เปอร์เซ็นต์การปรับ: ${addEmployeeCompensation}%
+    ค่าจ้างใหม่: ${parseFloat(employeeCompensation || 0).toLocaleString()} บาท
+    วันที่เริ่มใช้: ${new Date(employeeCompensationStartDate).toLocaleDateString('th-TH')}
+    `;
+  }
+
+  const confirmResult = await Swal.fire({
+    title: "ยืนยันการบันทึกข้อมูล",
+    html: `<pre style="text-align: left; white-space: pre-wrap;">${summaryText}</pre>`,
+    icon: "question",
+    showCancelButton: true,
+    confirmButtonText: "ยืนยัน",
+    cancelButtonText: "ยกเลิก",
+    reverseButtons: true
+  });
+
+  if (!confirmResult.isConfirmed) {
+    return;
+  }
       
+  // แสดงข้อมูลที่จะส่งไป API สำหรับ debugging
+  console.log("Data being sent to API:", JSON.stringify(data, null, 2));
+  
   try {
     const response = await axios.post(endpoint + "/workplace/create", data);
     if (response) {
+      let successMessage = `ข้อมูลหน่วยงาน "${data.workplaceName}" ถูกบันทึกเรียบร้อยแล้ว`;
+      
+      // เพิ่มข้อความสำหรับเงินสงเคราะห์ลูกจ้างถ้ามีการบันทึก (dual-rate structure)
+      if ((employeeCompensationRate1_20 && employeeCompensationRate1_20.trim() !== "") || 
+          (employeeCompensationRate21_30_31 && employeeCompensationRate21_30_31.trim() !== "")) {
+        successMessage += `\n\nรวมถึงข้อมูลเงินสงเคราะห์ลูกจ้าง:\n• Rate สำหรับวันที่ 1-20: ${employeeCompensationRate1_20 || 0}%\n• Rate สำหรับวันที่ 21-30/31: ${employeeCompensationRate21_30_31 || 0}%`;
+      }
+      
+      // เพิ่มข้อความสำหรับเงินสงเคราะห์ลูกจ้างถ้ามีการบันทึก (old structure - backward compatibility)
+      if (currentEmployeeCompensation && currentEmployeeCompensation.trim() !== "") {
+        successMessage += `\n\nรวมถึงข้อมูลเงินสงเคราะห์ลูกจ้าง (รูปแบบเก่า):\n• ค่าจ้างปัจจุบัน: ${parseFloat(currentEmployeeCompensation || 0).toLocaleString()} บาท\n• ปรับเพิ่ม: ${addEmployeeCompensation}%\n• ค่าจ้างใหม่: ${parseFloat(employeeCompensation || 0).toLocaleString()} บาท`;
+      }
+
       Swal.fire({
         title: "บันทึกสำเร็จ",
-        text: "ข้อมูลหน่วยงานถูกบันทึกเรียบร้อยแล้ว",
+        html: successMessage.replace(/\n/g, '<br>'),
         icon: "success",
         draggable: true
       });
+      
+      // ล้างข้อมูล form หลังจากบันทึกสำเร็จ
+      clearForm();
       
       // sync วันหยุดนักขัตฤกษ์ไป API หลังจากสร้างหน่วยงานสำเร็จ
       if (publicHolidayDates.length > 0) {
@@ -2557,6 +2788,7 @@ if (newWorkplace) {
                           }}
                         />
                       </div>
+                
                     </div>
                     <div class="col-md-3">
                       <div class="form-group">
@@ -2631,11 +2863,82 @@ if (newWorkplace) {
                       </div></div>
                       </div>
                       </div>
+                      
 
 
                 </div>
+               
 
+          
                 </section>
+
+                 <h2 className="title">เงินสงเคราะห์ลูกจ้าง</h2>
+                <section className="Frame">
+                  <div className="row">
+                        <div className="col-md-3">
+                          <div className="form-group">
+                            <label>Rate สำหรับวันที่ 21-30/31</label>
+                            <div className="input-group">
+                              <input type="text"
+                              className="form-control"
+                              id="employeeCompensationRate21_30_31"
+                              placeholder="เช่น 0.25"
+                              value={employeeCompensationRate21_30_31 || ""}
+                              onChange={(e) => setEmployeeCompensationRate21_30_31(e.target.value)}
+                              onInput={(e) => {
+                                // Remove any non-digit characters except decimal point
+                                e.target.value = e.target.value.replace(/[^0-9.]/g, "");
+                                // Ensure only one '.' is allowed
+                                const parts = e.target.value.split(".");
+                                if (parts.length > 2) {
+                                  e.target.value = `${parts[0]}.${parts[1]}`;
+                                }
+                                // Limit to 2 decimal places
+                                if (parts[1] && parts[1].length > 2) {
+                                  e.target.value = `${parts[0]}.${parts[1].substring(0, 2)}`;
+                                }
+                              }}
+                            />
+                            <div className="input-group-append">
+                              <span className="input-group-text">%</span>
+                            </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="col-md-3">
+                          <div className="form-group">
+                            <label>Rate สำหรับวันที่ 1-20</label>
+                            <div className="input-group">
+                              <input type="text"
+                              className="form-control"
+                              id="employeeCompensationRate1_20"
+                              placeholder="เช่น 0.25"
+                              value={employeeCompensationRate1_20 || ""}
+                              onChange={(e) => setEmployeeCompensationRate1_20(e.target.value)}
+                              onInput={(e) => {
+                                // Remove any non-digit characters except decimal point
+                                e.target.value = e.target.value.replace(/[^0-9.]/g, "");
+                                // Ensure only one '.' is allowed
+                                const parts = e.target.value.split(".");
+                                if (parts.length > 2) {
+                                  e.target.value = `${parts[0]}.${parts[1]}`;
+                                }
+                                // Limit to 2 decimal places
+                                if (parts[1] && parts[1].length > 2) {
+                                  e.target.value = `${parts[0]}.${parts[1].substring(0, 2)}`;
+                                }
+                              }}
+                            />
+                            <div className="input-group-append">
+                              <span className="input-group-text">%</span>
+                            </div>
+                            </div>
+                          </div>
+                        </div>
+                      
+                      </div>
+                </section>
+
                 {/* <!--Frame--> */}
                 <h2 class="title">สวัสดิการเงินเพิ่มพนักงาน</h2>
                 <section class="Frame">

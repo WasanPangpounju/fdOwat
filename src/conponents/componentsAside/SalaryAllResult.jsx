@@ -626,6 +626,7 @@ console.log(`Final plusOther for employee ${record.employeeId}: ${plusOther}`);
     lastName: (record.employeeName || '').split(' ').slice(1).join(' ') || '',
     workplaceId: workplaceId,
     workplaceName: workplaceName,
+    typeOfemployee: record.typeOfemployee || '', // เพิ่มฟิลด์ typeOfemployee
     dayWorkCount: record.dayWorkCount || '0',
     sumCashWork: formatNumber(record.sumCashWork || 0),
     wageRevise: formatNumber(wageRevise), // ใช้ค่าที่คำนวณจาก wageRevise
@@ -785,7 +786,8 @@ const fetchAllWorkplaceData = useCallback(async () => {
       groupedByWorkplace[workplaceId].employees.push({
         ...record,
         firstName: (record.employeeName || '').split(' ')[0] || '',
-        lastName: (record.employeeName || '').split(' ').slice(1).join(' ') || ''
+        lastName: (record.employeeName || '').split(' ').slice(1).join(' ') || '',
+        typeOfemployee: record.typeOfemployee || '' // เพิ่มฟิลด์ typeOfemployee
       });
       
       // คำนวณยอดรวมของหน่วยงาน
@@ -1505,7 +1507,7 @@ const employeeData = displayEmployees.map((emp) => {
   return {
     id: emp.employeeId || "-",
     name:`${emp.prefix || ''} ${emp.firstName || ""} ${emp.lastName || ""}`,
-    days: emp.dayWorkCount || '0',
+    days: emp.typeOfemployee === 'รายเดือน' ? '30' : (emp.dayWorkCount || '0'),
     salary: emp.sumCashWork || '0',
     wageRevise: emp.wageRevise || '0',
     leaveInLieu: emp.leaveInLieu || '0',
@@ -2083,7 +2085,7 @@ const employeeData = displayEmployees.map((emp) => {
   return {
     id: emp.employeeId || "-",
     name: `${emp.prefix} ${emp.firstName || ""} ${emp.lastName || ""}`,
-    days: emp.dayWorkCount || '0',
+    days: emp.typeOfemployee === 'รายเดือน' ? '30' : (emp.dayWorkCount || '0'),
     salary: emp.sumCashWork || '0',
     wageRevise: emp.wageRevise || '0',
     leaveInLieu: emp.leaveInLieu || '0',
@@ -2430,7 +2432,7 @@ const createWorkplaceTable = (doc, wpId, wpName, employees, startY) => {
     return {
       id: emp.employeeId || "-",
       name: `${emp.firstName || ""} ${emp.lastName || ""}`,
-      days: emp.dayWorkCount || '0',
+      days: emp.typeOfemployee === 'รายเดือน' ? '30' : (emp.dayWorkCount || '0'),
       salary: emp.sumCashOt || '0',
       wageRevise: emp.wageRevise || '0',
       leaveInLieu: emp.leaveInLieu || '0',
@@ -6288,7 +6290,7 @@ const exportToExcel = async () => {
           const addAfterTax = parseFloat(emp.additionalAfterTax?.replace(/,/g, '') || 0);
           const deductAfterTax = parseFloat(emp.deductionAfterTax?.replace(/,/g, '') || 0);
           const advance = parseFloat(emp.advancePayment?.replace(/,/g, '') || 0);
-          const days = parseFloat(emp.dayWorkCount || 0);
+          const days = parseFloat(emp.typeOfemployee === 'รายเดือน' ? '30' : (emp.dayWorkCount || '0'));
 
           // คำนวณยอดสุทธิ
           const netCalculated = 
@@ -6481,7 +6483,7 @@ const exportToExcel = async () => {
         const addAfterTax = parseFloat(emp.additionalAfterTax?.replace(/,/g, '') || 0);
         const deductAfterTax = parseFloat(emp.deductionAfterTax?.replace(/,/g, '') || 0);
         const advance = parseFloat(emp.advancePayment?.replace(/,/g, '') || 0);
-        const days = parseFloat(emp.dayWorkCount || 0);
+        const days = parseFloat(emp.typeOfemployee === 'รายเดือน' ? '30' : (emp.dayWorkCount || '0'));
 
         // คำนวณยอดสุทธิ
         const netCalculated = 

@@ -637,11 +637,12 @@ const [isGeneratingExcel, setIsGeneratingExcel] = useState(false);
 
       // เงินเดือนพื้นฐาน - ใช้ข้อมูลที่แก้ไขแล้ว
       const workDays = currentEmployee.employee_record?.filter(record => record.dayType === "work").length || 0;
+      const displayWorkDays = currentEmployee.typeOfemployee === 'รายเดือน' ? '30' : workDays.toString();
       const totalCashWork = parseFloat(accountingRecord.amountDay || accountingRecord.sumCashWork || 0);
       
       if (totalCashWork > 0) {
         textArray.push("เงินเดือน");
-        countArray.push(workDays.toString());
+        countArray.push(displayWorkDays);
         valueArray.push(totalCashWork.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","));
       }
 
@@ -925,20 +926,22 @@ const [isGeneratingExcel, setIsGeneratingExcel] = useState(false);
         const position2 = nextEmployee.position_name || 'ไม่ระบุ';
         const workPlace2 = nextEmployee.workplace_name || 'ไม่ระบุ';
         const workdays2 = nextEmployee.workdays || 0;
+        const displayWorkDays2 = nextEmployee.typeOfemployee === 'รายเดือน' ? '30' : workdays2;
 
         // แสดงข้อมูลพนักงานคนที่สอง
         pdf.text(`ชื่อ : ${empName2}`, 110, head2 + 14);
         pdf.text(`รหัสพนักงาน : ${empId2}`, 110, head2 + 19);
         pdf.text(`ตำแหน่ง : ${position2}`, 110, head2 + 24);
         pdf.text(`สถานที่ปฏิบัติงาน : ${workPlace2}`, 110, head2 + 29);
-        pdf.text(`วันทำงาน : ${workdays2} วัน`, 110, head2 + 34);
+        pdf.text(`วันทำงาน : ${displayWorkDays2} วัน`, 110, head2 + 34);
 
         // แสดงรายการรายได้สำหรับพนักงานคนที่สอง
         let yPos2 = head2 + 45;
         textArray2.forEach((text, index) => {
           if (yPos2 <= head2 + 65) {
             pdf.text(text, 110, yPos2);
-            pdf.text(valueArray2[index].toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","), 188, yPos2, { align: "right" });
+            const value = parseFloat(valueArray2[index] || 0);
+            pdf.text(value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","), 188, yPos2, { align: "right" });
             yPos2 += 4;
           }
         });
@@ -1581,14 +1584,15 @@ const generatePDF = async () => {
     // คำนวณจำนวนวันทำงาน (ใช้ข้อมูลที่แก้ไขแล้ว)
     const workDays = editableData && editableData.length > i && editableData[i]?.editableFields?.workDays ||
                      employeeRecords.filter(record => record.dayType === "work").length;
+    const displayWorkDays = currentEmployee.typeOfemployee === 'รายเดือน' ? 30 : workDays;
 
       // รวมเงินจาก cashWork (ใช้ข้อมูลที่แก้ไขแล้ว)
-    const totalCashWork = currentEmployee.sumCashWork || employeeRecords.reduce((sum, record) => {
+    const totalCashWork = parseFloat(currentEmployee.sumCashWork || 0) || employeeRecords.reduce((sum, record) => {
       return sum + parseFloat(record.cashWork || 0);
     }, 0);
 
     // รวมเงิน OT (ใช้ข้อมูลที่แก้ไขแล้ว)
-    const totalCashOt = currentEmployee.sumCashOt || employeeRecords.reduce((sum, record) => {
+    const totalCashOt = parseFloat(currentEmployee.sumCashOt || 0) || employeeRecords.reduce((sum, record) => {
       return sum + parseFloat(record.cashOt || 0);
     }, 0);
     // กรองเงินพิเศษตาม ID
@@ -1766,7 +1770,7 @@ const resultExtraCash = addSalaryList
     // เงินเดือนพื้นฐาน (ใช้ข้อมูลที่แก้ไขแล้ว)
     if (totalCashWork > 0) {
       textArray.push("เงินเดือน");
-      countArray.push(workDays.toString());
+      countArray.push(displayWorkDays.toString());
       valueArray.push(totalCashWork); // เก็บเป็น number เหมือน generatePDFAudit
     }
   const pubDayCount = parseFloat(currentEmployee.publicHolidayCount || 0);
@@ -2041,19 +2045,22 @@ if (ot3Hours > 0 && ot3Cash > 0) {
       // คำนวณข้อมูลสำหรับพนักงานคนที่ 2 (ใช้ข้อมูลที่แก้ไขแล้ว)
       const workDays2 = editableData && editableData.length > (i + 1) && editableData[i + 1]?.editableFields?.workDays ||
                         employeeRecords2.filter(record => record.dayType === "work").length;
+      const displayWorkDays2 = currentEmployee2.typeOfemployee === 'รายเดือน' ? 30 : workDays2;
       
       // รวมเงินจาก cashWork (ใช้ข้อมูลที่แก้ไขแล้ว)
-      const totalCashWork2 = currentEmployee2.sumCashWork || employeeRecords2.reduce((sum, record) => {
+      const totalCashWork2 = parseFloat(currentEmployee2.sumCashWork || 0) || employeeRecords2.reduce((sum, record) => {
         return sum + parseFloat(record.cashWork || 0);
       }, 0);
 
       // รวมเงิน OT (ใช้ข้อมูลที่แก้ไขแล้ว)
-      const totalCashOt2 = currentEmployee2.sumCashOt || employeeRecords2.reduce((sum, record) => {
+      const totalCashOt2 = parseFloat(currentEmployee2.sumCashOt || 0) || employeeRecords2.reduce((sum, record) => {
         return sum + parseFloat(record.cashOt || 0);
       }, 0);
 
 
       const totalCashOt1p5 = parseFloat(currentEmployee2.sumCashWorkMul["1.5"] || 0);
+      const totalCashOt2x = parseFloat(currentEmployee2.sumCashWorkMul["2"] || 0);
+      const totalCashOt3x = parseFloat(currentEmployee2.sumCashWorkMul["3"] || 0);
       // สวัสดิการหลักสำหรับพนักงานคนที่ 2
       const result2 = addSalaryList2
         .filter((item) => ["1230", "1350", "1241"].includes(item.id))
@@ -2183,9 +2190,9 @@ if (ot3Hours > 0 && ot3Cash > 0) {
  
       if (totalCashWork2 > 0) {
         textArray2.push("เงินเดือน");
-        countArray2.push(workDays2.toString());
+        countArray2.push(displayWorkDays2.toString());
         valueArray2.push(
-          totalCashWork2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+          parseFloat(totalCashWork2 || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
         );
       }
       const pubDayCount2 = parseFloat(currentEmployee2.publicHolidayCount || 0);
@@ -2209,6 +2216,16 @@ if (ot3Hours > 0 && ot3Cash > 0) {
         );
       }
 
+      if (totalCashOt2x > 0) {
+        const otHours2x = parseFloat(currentEmployee2.sumOt2 || 0);
+
+        textArray2.push("ค่าล่วงเวลา 2 เท่า (ตัวคูณ)");
+        countArray2.push(otHours2x.toFixed(2));
+        valueArray2.push(
+          totalCashOt2x.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
       if (totalCashOt2 > 0) {
         const otHours2 = parseFloat(currentEmployee2.sumOtPublicHoliday || 0);
 
@@ -2219,13 +2236,13 @@ if (ot3Hours > 0 && ot3Cash > 0) {
         );
       }
 
-      if (totalCashOt3 > 0) {
+      if (totalCashOt3x > 0) {
         const otHours3 = parseFloat(currentEmployee2.sumOt3 || 0);
 
         textArray2.push("ค่าล่วงเวลา 3 เท่า");
         countArray2.push(otHours3.toFixed(2));
         valueArray2.push(
-          totalCashOt3.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+          totalCashOt3x.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
         );
       }
 
@@ -2466,6 +2483,7 @@ const generateExcel = async () => {
       // คำนวณข้อมูลต่างๆ (ใช้ข้อมูลที่แก้ไขแล้ว)
       const workDays = editableData && editableData.length > i && editableData[i]?.editableFields?.workDays ||
                        employeeRecords.filter(record => record.dayType === "work").length;
+      const displayWorkDays = currentEmployee.typeOfemployee === 'รายเดือน' ? 30 : workDays;
       const currentWorkplaceId = employeeRecords[0]?.workplaceId;
       const workplace = workplaceList.find(item => item.workplaceId === currentWorkplaceId);
       const workplaceName = workplace ? workplace.workplaceName : "Unknown";
@@ -2710,7 +2728,7 @@ const generateExcel = async () => {
       if (currentEmployee.sumCashWorkMul?.["1"] > 0) {
         addIncomeRow(
           'เงินเดือน', 
-          workDays, 
+          displayWorkDays, 
           formatNumber(currentEmployee.sumCashWorkMul["1"]), 
           '', 
           '', 
@@ -3258,6 +3276,7 @@ const generateExcel = async () => {
         // คำนวณข้อมูลต่างๆ (ใช้ข้อมูลที่แก้ไขแล้ว)
         const workDays = editableData && editableData.length > i && editableData[i]?.editableFields?.workDays ||
                          employeeRecords.filter(record => record.dayType === "work").length;
+        const displayWorkDays = currentEmployee.typeOfemployee === 'รายเดือน' ? 30 : workDays;
         const currentWorkplaceId = employeeRecords[0]?.workplaceId;
         const workplace = workplaceList.find(item => item.workplaceId === currentWorkplaceId);
         const workplaceName = workplace ? workplace.workplaceName : "Unknown";
@@ -3500,7 +3519,7 @@ const generateExcel = async () => {
         if (currentEmployee.sumCashWorkMul?.["1"] > 0) {
           addIncomeRow(
             'เงินเดือน', 
-            workDays, 
+            displayWorkDays, 
             formatNumber(currentEmployee.sumCashWorkMul["1"]), 
             '', 
             '', 
