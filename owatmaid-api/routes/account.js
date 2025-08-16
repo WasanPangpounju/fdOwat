@@ -4414,7 +4414,7 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
       if (!shouldInclude) continue;
 
             // 🔥 เพิ่มเช็ค dayWorkCount หรือ dayOffCount และดึง personalDayOff
-            if (!record.dayWorkCount || !record.dayOffCount || !record.personalDayOff) {
+            if (!isRecursiveCall && (!record.dayWorkCount || !record.dayOffCount || !record.personalDayOff)) {
               console.log(`🔍 Missing data for employeeId=${record.employeeId} month ${record.month} year ${record.year}`);
               console.log(`  - dayWorkCount: ${record.dayWorkCount || 'ไม่มี'}`);
               console.log(`  - dayOffCount: ${record.dayOffCount || 'ไม่มี'}`);
@@ -4432,6 +4432,7 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
                   employeeId: record.employeeId,
                   month: record.month,
                   year: record.year,
+                  isRecursiveCall: true  // เพิ่ม flag เพื่อป้องกัน recursive call
                 });
             
                 // ดึง personalDayOff จาก conclude API response
@@ -4629,7 +4630,7 @@ const getEmployeeProfile = async (employeeId) => {
 
 router.post('/searchtimerecordemployee', async (req, res) => {
   try {
-    const { employeeId, month, year } = req.body;
+    const { employeeId, month, year, isRecursiveCall } = req.body;
     const query = {};
 
     if (employeeId) query.employeeId = employeeId;
