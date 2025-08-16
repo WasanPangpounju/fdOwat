@@ -4880,11 +4880,11 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           const isPotentialWelfare = potentialWelfareIds.has(item.id);
           const isValidWelfare = validWelfareIds.has(item.id);
           
-          // 🎯 Logic ใหม่: เก็บเฉพาะ welfare ที่มีใน database จริง หรือไม่ใช่ welfare เลย
+          // 🎯 Logic ใหม่: ลบทุก welfare ID ที่ไม่มีใน database จริง
           // เก็บ item ถ้า:
           // 1. ไม่ใช่ potential welfare ID เลย (เป็นรายการเงินเพิ่มปกติ)
           // 2. หรือเป็น welfare ที่ยังมีอยู่ใน database จริง
-         const shouldKeep = !isPotentialWelfare || isValidWelfare;
+         const shouldKeep = !isPotentialWelfare;
           
           // 🔍 Enhanced debug logging สำหรับ welfare IDs
           if (isPotentialWelfare) {
@@ -4899,7 +4899,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
             if (!shouldKeep) {
               console.log(`   🗑️ -> จะถูกลบ เพราะไม่มีใน welfare database`);
             } else {
-              console.log(`   ✅ -> จะถูกเก็บไว้ เพราะมีใน welfare database หรือไม่ใช่ welfare`);
+              console.log(`   ✅ -> จะถูกเก็บไว้ เพราะมีใน welfare database`);
             }
           }
           
@@ -4910,7 +4910,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           return shouldKeep;
         });
         
-        console.log(`🧹 [ACCOUNTING] กรองข้อมูล welfare: ${originalLength} → ${record.addSalaryList.length} items (เก็บเฉพาะที่มีใน DB จริง)`);
+        console.log(`🧹 [ACCOUNTING] ลบข้อมูล welfare เดิมทั้งหมดออก: ${originalLength} → ${record.addSalaryList.length} items`);
         
         // เพิ่ม welfare data ที่ไม่ซ้ำแล้ว (เฉพาะที่มีอยู่จริงใน welfare database)
         record.addSalaryList = [...record.addSalaryList, ...addSalaryFromWelfare];
