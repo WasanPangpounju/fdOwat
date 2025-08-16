@@ -126,8 +126,19 @@ let upSalary_month  = '';
 
     const dataConclude = {};
     const concludeRecord = [];
-
     const addSalaryDaily = [];
+    
+    // ประกาศตัวแปรสำหรับการอัพเงินเดือน
+    let upsalary = 0;
+    let upSalary_year = 0;
+    let upSalary_month = 0;
+    
+    // ประกาศตัวแปรสำหรับการคำนวณ
+    let sumWorkHour = 0;
+    let sumWorkRate = 0;
+    let sumWorkHourOt = 0;
+    let sumWorkRateOt = 0;
+    let workplaceListTmp = [];
 
     //get employee add salary data
     const searchEmp = await {
@@ -151,20 +162,20 @@ let upSalary_month  = '';
     let addSalaryList = [];
 
 
-    dataConclude.year = await year;
-    dataConclude.month = await month;
+    dataConclude.year = year;
+    dataConclude.month = month;
 
-    const today = await new Date();
-    const dd = await String(today.getDate()).padStart(2, '0');
-    const mm = await String(today.getMonth() + 1).padStart(2, '0'); // January is 0!
-    const yyyy = await today.getFullYear();
-    const hh = await String(today.getHours()).padStart(2, '0');
-    const min = await String(today.getMinutes()).padStart(2, '0');
-    const concludeDate = await `${dd}-${mm}-${yyyy} ${hh}:${min}`;
-    await console.log(concludeDate); // Example output: "20-06-2024 14:30"
+    const today = new Date();
+    const dd = String(today.getDate()).padStart(2, '0');
+    const mm = String(today.getMonth() + 1).padStart(2, '0'); // January is 0!
+    const yyyy = today.getFullYear();
+    const hh = String(today.getHours()).padStart(2, '0');
+    const min = String(today.getMinutes()).padStart(2, '0');
+    const concludeDate = `${dd}-${mm}-${yyyy} ${hh}:${min}`;
+    console.log(concludeDate); // Example output: "20-06-2024 14:30"
 
-    dataConclude.concludeDate = await concludeDate || '';
-    dataConclude.employeeId = await employeeId;
+    dataConclude.concludeDate = concludeDate || '';
+    dataConclude.employeeId = employeeId;
 
     // data.concludeRecord.day = '';
     // data.concludeRecord.workplaceId = '';
@@ -179,22 +190,22 @@ let upSalary_month  = '';
     // dataConclude.addSalary = [];
 
     
-    let year1 = await Number(year);
+    let year1 = Number(year);
     // Convert the month string to an integer
-    let monthInt = await parseInt(month, 10);
+    let monthInt = parseInt(month, 10);
 
     // Subtract one to get the previous month
-    let prevMonthInt = await monthInt - 1;
+    let prevMonthInt = monthInt - 1;
 
     // Handle the case where the month is January
     if (prevMonthInt === 0) {
-      prevMonthInt = await 12;
-      year1 = await year1 - 1;
+      prevMonthInt = 12;
+      year1 = year1 - 1;
     }
 
     // Convert the result back to a two-digit string
-    let prevMonth = await prevMonthInt.toString().padStart(2, '0');
-    const lastday = await new Date(year1, prevMonth, 0).getDate();
+    let prevMonth = prevMonthInt.toString().padStart(2, '0');
+    const lastday = new Date(year1, prevMonth, 0).getDate();
 
     // console.log('Previous month:', prevMonth); // Output: "02"
     const searchData1 = await {
@@ -244,7 +255,7 @@ console.log('prevMonth ' + prevMonth   + ' / ' +  'upSalary_month ' + upSalary_m
 //check up Salary with month and year
 if((prevMonth  == upSalary_month ) && (year1  == upSalary_year ) ) {
   salary  = await parseFloat(salary)   + parseFloat(upsalary  || '0');
-  tmpSalary = await parseFloat(tmpSalary)  + salary   + parseFloat(upsalary  || '0');
+  tmpSalary = await parseFloat(tmpSalary)  + parseFloat(upsalary  || '0'); // แก้ไขสูตรการคำนวณ
 }
   } else {
   }
@@ -350,12 +361,12 @@ if((prevMonth  == upSalary_month ) && (year1  == upSalary_year ) ) {
 
             if (element.specialtSalary !== '' || element.specialtSalaryOT !== '') {
               tmp.workRate = element.specialtSalary || '';
-              tmp.workRateMultiply = Number(element.specialtSalary || 0) / Number(wpResponse.data.workRate || 0);
+              tmp.workRateMultiply = Number(element.specialtSalary || 0) / Number(tmpWP.data.workRate || 0);
 
               tmp.otTimes = otTime || 0;
 
               tmp.workRateOT = element.specialtSalaryOT || '';
-              tmp.workRateOTMultiply = Number(element.specialtSalaryOT || 0) / (Number(wpResponse.data.workRate || 0) / 8);
+              tmp.workRateOTMultiply = Number(element.specialtSalaryOT || 0) / (Number(tmpWP.data.workRate || 0) / 8);
               tmp.workType = 'specialtSalary';
 
               sumWorkHour += parseFloat(allTime) || 0;
@@ -845,8 +856,8 @@ const         wpDataCalculator1 = await {
 
 //check up Salary with month and year
 if((month == upSalary_month ) && (year == upSalary_year ) ) {
-  salary  = await parseFloat(salary)   + parseFloat(upsalary  || '9');
-  temSalary = await parseFloat(temSalary )  + salary   + parseFloat(upsalary  || '9');
+  salary  = await parseFloat(salary)   + parseFloat(upsalary  || '0');
+  temSalary = await parseFloat(temSalary)  + parseFloat(upsalary  || '0'); // แก้ไขสูตรการคำนวณ
 }
 
       // console.log('wGroup X ' + JSON.stringify(wGroup    ,2,null))
@@ -948,10 +959,10 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
 
             if (element.specialtSalary !== '' || element.specialtSalaryOT !== '') {
               tmp.workRate = element.specialtSalary || '';
-              tmp.workRateMultiply = Number(element.specialtSalary || 0) / Number(wpResponse.data.workRate || 0);
+              tmp.workRateMultiply = Number(element.specialtSalary || 0) / Number(tmpWP.data.workRate || 0);
 
               tmp.workRateOT = element.specialtSalaryOT || '';
-              tmp.workRateOTMultiply = Number(element.specialtSalaryOT || 0) / (Number(wpResponse.data.workRate || 0) / 8);
+              tmp.workRateOTMultiply = Number(element.specialtSalaryOT || 0) / (Number(tmpWP.data.workRate || 0) / 8);
               tmp.workType = 'specialtSalary';
 
               sumWorkHour += parseFloat(allTime) || 0;
@@ -962,7 +973,7 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
             } else {
               if (specialDayOff1.includes(Number(str1))) {
                 if (salary === 0 || salary == upsalary  ) {
-                  salary = parseFloat(wpResponse.data.workRate || '0') + parseFloat(upsalary   || '0');
+                  salary = parseFloat(tmpWP.data.workRate || '0') + parseFloat(upsalary   || '0');
                 }
 
                 if (allTime >= workOfHour) {
