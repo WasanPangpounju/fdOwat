@@ -1575,6 +1575,42 @@ function Compensation() {
     const tmpyear = tmpcurrentDate.getFullYear();
     const formattedDate = `${tmpday}-${tmpmonth}-${tmpyear}`;
 
+    // ใช้ข้อมูลจาก concludeResultx ที่มีการแก้ไขแล้ว แทนที่จะใช้ dataTable
+    let concludeRecord = [];
+    if (concludeResultx.length > 0) {
+      // ใช้ข้อมูลที่แก้ไขแล้วจาก concludeResultx ที่ได้ผ่านการอัพเดทจาก handleSave
+      concludeRecord = concludeResultx[0].employee_record;
+      
+      // ตรวจสอบและใส่ข้อมูลที่แก้ไขจาก editedData เข้าไปใน concludeRecord
+      concludeRecord = concludeRecord.map((record, idx) => {
+        const updatedRecord = { ...record };
+        
+        // ค้นหาข้อมูลที่แก้ไขสำหรับ record นี้
+        Object.keys(editedData).forEach((key) => {
+          // ตรวจสอบว่า key นี้เป็นของ record นี้หรือไม่
+          const keyParts = key.split('_');
+          if (keyParts.length >= 3) {
+            const [indexPart, field, type] = [keyParts[0], keyParts[1], keyParts[2]];
+            const recordIdx = indexPart.split('-')[2]; // ดึง idx จาก "0-0-idx"
+            
+            if (recordIdx == idx && type === 'table' && editedData[key] !== undefined) {
+              // อัพเดทข้อมูลที่แก้ไข
+              if (field === 'addSalaryDaily') {
+                updatedRecord[field] = editedData[key];
+              } else {
+                updatedRecord[field] = editedData[key];
+              }
+            }
+          }
+        });
+        
+        return updatedRecord;
+      });
+    } else {
+      // ถ้าไม่มี concludeResultx ให้ใช้ dataTable แทน
+      concludeRecord = dataTable;
+    }
+
     await dataTable.map(async (item, index) => {
       if (!item.workplaceId) {
         // alert(index);
@@ -1589,7 +1625,7 @@ function Compensation() {
       month: month,
       concludeDate: formattedDate,
       employeeId: staffId,
-      concludeRecord: dataTable,
+      concludeRecord: concludeRecord, // ใช้ข้อมูลที่แก้ไขแล้ว
       addSalary: addSalaryList,
       createBy: jsonObject.name,
       sumWorkHour: sumWorkHourX,
@@ -1599,21 +1635,39 @@ function Compensation() {
       status: editStatus,
     };
 
+    // Debug: แสดงข้อมูลที่จะส่งไปยัง API
+    console.log("🔍 Data to save:", JSON.stringify(data, null, 2));
+    console.log("🔍 Conclude Record:", JSON.stringify(concludeRecord, null, 2));
+    console.log("🔍 Original concludeResultx:", JSON.stringify(concludeResultx, null, 2));
+    console.log("🔍 EditedData:", JSON.stringify(editedData, null, 2));
+    console.log("🔍 Update ID:", update);
+    console.log("🔍 Edit Status:", editStatus);
+
     //ccc
     if (update == null && editStatus == "") {
       //create new conclude record
       try {
+        console.log("📤 Creating new conclude record...");
         const response = await axios.post(endpoint + "/conclude/create", data);
 
         if (response) {
+          console.log("✅ Create response:", response.data);
+          
+          // ล้างข้อมูลที่แก้ไขใน localStorage หลังบันทึกสำเร็จ
+          const editedDataKey = `editedData_${staffId}_${month}_${year}`;
+          localStorage.removeItem(editedDataKey);
+          setEditedData({}); // ล้างข้อมูลที่แก้ไขใน state ด้วย
+          
           alert("บันทึกสำเร็จ");
         }
       } catch (e) {
+        console.error("❌ Create error:", e);
         alert("บันทึกไม่สำเร็จ");
         alert(e);
       }
     } else {
       try {
+        console.log("📤 Updating conclude record with ID:", update);
         const response = await axios.put(
           endpoint + "/conclude/update1/" + update,
           data
@@ -1622,6 +1676,12 @@ function Compensation() {
         const updatedDoc = response?.data?.data;
         if (updatedDoc) {
           console.log("✅ ข้อมูลหลังอัปเดต:", updatedDoc);
+          
+          // ล้างข้อมูลที่แก้ไขใน localStorage หลังบันทึกสำเร็จ
+          const editedDataKey = `editedData_${staffId}_${month}_${year}`;
+          localStorage.removeItem(editedDataKey);
+          setEditedData({}); // ล้างข้อมูลที่แก้ไขใน state ด้วย
+          
           alert("บันทึกสำเร็จ");
           // window.location.reload(); // หรือเรียก fetch ใหม่แทน reload
         } else {
@@ -1811,6 +1871,21 @@ function Compensation() {
 const [editingIndex, setEditingIndex] = useState(null);
 const [editedData, setEditedData] = useState({});
 
+// โหลดข้อมูลที่แก้ไขจาก localStorage เมื่อ component mount
+useEffect(() => {
+  const editedDataKey = `editedData_${staffId}_${month}_${year}`;
+  const savedEditedData = localStorage.getItem(editedDataKey);
+  if (savedEditedData) {
+    try {
+      const parsedData = JSON.parse(savedEditedData);
+      setEditedData(parsedData);
+      console.log("🔄 Loaded edited data from localStorage:", parsedData);
+    } catch (e) {
+      console.error("❌ Error parsing saved edited data:", e);
+    }
+  }
+}, [staffId, month, year]);
+
 // Handle input change
 const handleInputChange = (event, field, index, subIndex, idx) => {
   const newValue = event.target.value;
@@ -1864,6 +1939,10 @@ const handleSave = (index, subIndex, idx) => {
 
     return updatedData;
   });
+
+  // บันทึกข้อมูลที่แก้ไขลง localStorage เพื่อให้อยู่ได้แม้รีเฟรช
+  const editedDataKey = `editedData_${staffId}_${month}_${year}`;
+  localStorage.setItem(editedDataKey, JSON.stringify(editedData));
 
   setEditingIndex(null); // Exit edit mode
 };
@@ -2147,87 +2226,74 @@ const handleSave_back = (index, subIndex, idx) => {
                               // คำนวณค่าสำหรับพนักงานเงินเดือน
                               let displayValue = matchedRecord[field];
                               
-                              // Format time fields to 2 decimal places
-                              if (field === 'beforeTotalOtTime' || field === 'totalTime' || field === 'totalOtTime') {
-                                displayValue = parseFloat(displayValue || 0).toFixed(2);
-                              }
-                              
-                              // Format cash fields to 2 decimal places
-                              if (field === 'cashBeforeOt' || field === 'cashWork' || field === 'cashOt') {
-                                // ตรวจสอบประเภทพนักงานก่อน format
-                                if (isMonthlyEmployee && employeeSalary > 1680) {
-                                  if (field === 'cashWork') {
-                                    // สำหรับพนักงานเงินเดือน แสดง salary/30
-                                    displayValue = (employeeSalary / 30).toFixed(2);
-                                  } else if (field === 'cashBeforeOt') {
-                                    // คำนวณ cashBeforeOt สำหรับพนักงานเงินเดือน
-                                    const workRate = employeeSalary; // ใช้ salary จาก API employee/search
-                                    // ตรวจสอบประเภทพนักงาน: ถ้าเงินเดือน > 1680 = พนักงานเงินเดือน, ถ้าไม่ = พนักงานรายวัน
-                                    const dayPerHour = employeeSalary > 1680 ? (workRate / 30) / 8 : workRate / 8;
-                                    const beforeTotalOtTime = parseFloat(matchedRecord.beforeTotalOtTime) || 0;
-                                    
-                                    // ตรวจสอบประเภทวันหยุดหรือการทำงานล่วงเวลา
-                                    let otRate = 1.5; // ค่าเริ่มต้น 1.5 เท่า
-                                    
-                                    if (matchedRecord.isPublicHoliday) {
-                                      otRate = 2; // วันหยุดนักขัตฤกษ์ 2 เท่า
-                                    } else if (matchedRecord.isSpecialHoliday) {
-                                      otRate = 3; // วันหยุดพิเศษ 3 เท่า
-                                    }
-                                    
-                                    const dayPerHourOt = dayPerHour * otRate;
-                                    displayValue = (dayPerHourOt * beforeTotalOtTime).toFixed(2);
-                                  } else if (field === 'cashOt') {
-                                    // คำนวณ cashOt สำหรับพนักงานเงินเดือน
-                                    const workRate = employeeSalary; // ใช้ salary จาก API employee/search
-                                    // ตรวจสอบประเภทพนักงาน: ถ้าเงินเดือน > 1680 = พนักงานเงินเดือน, ถ้าไม่ = พนักงานรายวัน
-                                    const dayPerHour = employeeSalary > 1680 ? (workRate / 30) / 8 : workRate / 8;
-                                    const totalOtTime = parseFloat(matchedRecord.totalOtTime) || 0;
-                                    
-                                    // ตรวจสอบประเภทวันหยุดหรือการทำงานล่วงเวลา
-                                    let otRate = 1.5; // ค่าเริ่มต้น 1.5 เท่า
-                                    
-                                    if (matchedRecord.isPublicHoliday) {
-                                      otRate = 2; // วันหยุดนักขัตฤกษ์ 2 เท่า
-                                    } else if (matchedRecord.isSpecialHoliday) {
-                                      otRate = 3; // วันหยุดพิเศษ 3 เท่า
-                                    }
-                                    
-                                    const dayPerHourOt = dayPerHour * otRate;
-                                    displayValue = (dayPerHourOt * totalOtTime).toFixed(2);
-                                  }
-                                } else {
-                                  // สำหรับพนักงานรายวัน ใช้ค่าเดิม
+                              // ตรวจสอบว่ามีค่าที่แก้ไขแล้วหรือไม่ (ลำดับความสำคัญสูงสุด)
+                              const editedKey = `${index}-${subIndex}-${idx}_${field}_table`;
+                              if (editedData[editedKey] !== undefined && !isEditing) {
+                                // ใช้ค่าที่แก้ไขแล้ว โดยไม่คำนวณใหม่
+                                displayValue = editedData[editedKey];
+                                
+                                // Format ค่าที่แก้ไขแล้วให้เป็นทศนิยม 2 ตำแหน่ง
+                                if (field === 'cashBeforeOt' || field === 'cashWork' || field === 'cashOt') {
+                                  displayValue = parseFloat(displayValue || 0).toFixed(2);
+                                } else if (field === 'beforeTotalOtTime' || field === 'totalTime' || field === 'totalOtTime') {
                                   displayValue = parseFloat(displayValue || 0).toFixed(2);
                                 }
-                              }
-                              
-                              if (isMonthlyEmployee && employeeSalary > 1680) {
-                                if (field === 'cashWork') {
-                                  // สำหรับพนักงานเงินเดือน แสดง salary/30
-                                  displayValue = (employeeSalary / 30).toFixed(2);
-                                } else if (field === 'cashOt') {
-                                  // คำนวณ cashOt สำหรับพนักงานเงินเดือน
-                                  // ใช้ salary จาก employee/search endpoint
-                                  const workRate = employeeSalary; // ใช้ salary จาก API employee/search
-                                  
-                                  // ตรวจสอบประเภทพนักงาน: ถ้าเงินเดือน > 1680 = พนักงานเงินเดือน, ถ้าไม่ = พนักงานรายวัน
-                                  const dayPerHour = employeeSalary > 1680 ? (workRate / 30) / 8 : workRate / 8;
-                                  const totalOtTime = parseFloat(matchedRecord.totalOtTime) || 0;
-                                  
-                                  // ตรวจสอบประเภทวันหยุดหรือการทำงานล่วงเวลา
-                                  // ถ้าเป็นวันหยุดพิเศษใช้อัตรา 2 หรือ 3 เท่า
-                                  let otRate = 1.5; // ค่าเริ่มต้น 1.5 เท่า
-                                  
-                                  // ตรวจสอบประเภทวันทำงาน (สามารถปรับเพิ่มเติมตามความต้องการ)
-                                  if (matchedRecord.isPublicHoliday) {
-                                    otRate = 2; // วันหยุดนักขัตฤกษ์ 2 เท่า
-                                  } else if (matchedRecord.isSpecialHoliday) {
-                                    otRate = 3; // วันหยุดพิเศษ 3 เท่า
+                              } else if (!isEditing) {
+                                // เฉพาะเมื่อไม่มีการแก้ไขและไม่ได้อยู่ในโหมดแก้ไข ถึงจะคำนวณใหม่
+                                
+                                // Format time fields to 2 decimal places
+                                if (field === 'beforeTotalOtTime' || field === 'totalTime' || field === 'totalOtTime') {
+                                  displayValue = parseFloat(displayValue || 0).toFixed(2);
+                                }
+                                
+                                // Format cash fields to 2 decimal places และคำนวณสำหรับพนักงานเงินเดือน
+                                if (field === 'cashBeforeOt' || field === 'cashWork' || field === 'cashOt') {
+                                  // ตรวจสอบประเภทพนักงานก่อน format (เฉพาะเมื่อไม่มีการแก้ไข)
+                                  if (isMonthlyEmployee && employeeSalary > 1680) {
+                                    if (field === 'cashWork') {
+                                      // สำหรับพนักงานเงินเดือน แสดง salary/30
+                                      displayValue = (employeeSalary / 30).toFixed(2);
+                                    } else if (field === 'cashBeforeOt') {
+                                      // คำนวณ cashBeforeOt สำหรับพนักงานเงินเดือน
+                                      const workRate = employeeSalary; // ใช้ salary จาก API employee/search
+                                      // ตรวจสอบประเภทพนักงาน: ถ้าเงินเดือน > 1680 = พนักงานเงินเดือน, ถ้าไม่ = พนักงานรายวัน
+                                      const dayPerHour = employeeSalary > 1680 ? (workRate / 30) / 8 : workRate / 8;
+                                      const beforeTotalOtTime = parseFloat(matchedRecord.beforeTotalOtTime) || 0;
+                                      
+                                      // ตรวจสอบประเภทวันหยุดหรือการทำงานล่วงเวลา
+                                      let otRate = 1.5; // ค่าเริ่มต้น 1.5 เท่า
+                                      
+                                      if (matchedRecord.isPublicHoliday) {
+                                        otRate = 2; // วันหยุดนักขัตฤกษ์ 2 เท่า
+                                      } else if (matchedRecord.isSpecialHoliday) {
+                                        otRate = 3; // วันหยุดพิเศษ 3 เท่า
+                                      }
+                                      
+                                      const dayPerHourOt = dayPerHour * otRate;
+                                      displayValue = (dayPerHourOt * beforeTotalOtTime).toFixed(2);
+                                    } else if (field === 'cashOt') {
+                                      // คำนวณ cashOt สำหรับพนักงานเงินเดือน
+                                      const workRate = employeeSalary; // ใช้ salary จาก API employee/search
+                                      // ตรวจสอบประเภทพนักงาน: ถ้าเงินเดือน > 1680 = พนักงานเงินเดือน, ถ้าไม่ = พนักงานรายวัน
+                                      const dayPerHour = employeeSalary > 1680 ? (workRate / 30) / 8 : workRate / 8;
+                                      const totalOtTime = parseFloat(matchedRecord.totalOtTime) || 0;
+                                      
+                                      // ตรวจสอบประเภทวันหยุดหรือการทำงานล่วงเวลา
+                                      let otRate = 1.5; // ค่าเริ่มต้น 1.5 เท่า
+                                      
+                                      if (matchedRecord.isPublicHoliday) {
+                                        otRate = 2; // วันหยุดนักขัตฤกษ์ 2 เท่า
+                                      } else if (matchedRecord.isSpecialHoliday) {
+                                        otRate = 3; // วันหยุดพิเศษ 3 เท่า
+                                      }
+                                      
+                                      const dayPerHourOt = dayPerHour * otRate;
+                                      displayValue = (dayPerHourOt * totalOtTime).toFixed(2);
+                                    }
+                                  } else {
+                                    // สำหรับพนักงานรายวัน ใช้ค่าเดิม
+                                    displayValue = parseFloat(displayValue || 0).toFixed(2);
                                   }
-                                  
-                                  const dayPerHourOt = dayPerHour * otRate;
-                                  displayValue = (dayPerHourOt * totalOtTime).toFixed(2);
                                 }
                               }
                               
@@ -2235,7 +2301,8 @@ const handleSave_back = (index, subIndex, idx) => {
                                 <th className="fw-normal" key={field}>
                                   {isEditing ? (
                                     <input
-                                      type="text "
+                                      type="number"
+                                      step="0.01"
                                       className="form-control " 
                                       style={{ width: "6rem", margin: "0 auto" }} 
             
@@ -2246,7 +2313,9 @@ const handleSave_back = (index, subIndex, idx) => {
                                       onChange={(e) => handleInputChange(e, field, index, subIndex, idx)}
                                     />
                                   ) : (
-                                    displayValue
+                                    <span style={{ cursor: "pointer" }} title="กดปุ่มแก้ไขเพื่อแก้ไขค่านี้">
+                                      {displayValue}
+                                    </span>
                                   )}
                                 </th>
                               );
@@ -2320,22 +2389,225 @@ const handleSave_back = (index, subIndex, idx) => {
                   ) : (
                     <tr key={`${index}-${subIndex}-no-record`}>
                       <th className="fw-normal">{day}</th>
-                      <th className="text-danger"></th>
-                      <th ></th>
-                      <th ></th>
-                      <th ></th>
-                      <th ></th>
-                      <th ></th>
-                      <th ></th>
-                      <th ></th>
-                      <th ></th>
-                      <th ></th>
-                      <th ></th>
-                      <th>
+                      
+                      {/* แสดงฟิลด์ที่สามารถแก้ไขได้เลย */}
+                      <th className="fw-normal">
+                        <input
+                          type="text"
+                          className="form-control"
+                          style={{ width: "4rem", margin: "0 auto" }}
+                          placeholder="รหัส"
+                          value={editedData[`${index}-${subIndex}-no-record_workplaceId_table`] || ""}
+                          onChange={(e) => setEditedData(prev => ({
+                            ...prev,
+                            [`${index}-${subIndex}-no-record_workplaceId_table`]: e.target.value
+                          }))}
+                        />
+                      </th>
+                      
+                      <th className="fw-normal">
+                        <input
+                          type="text"
+                          className="form-control"
+                          style={{ width: "6rem", margin: "0 auto" }}
+                          placeholder="ชื่อ"
+                          value={editedData[`${index}-${subIndex}-no-record_workplaceName_table`] || ""}
+                          onChange={(e) => setEditedData(prev => ({
+                            ...prev,
+                            [`${index}-${subIndex}-no-record_workplaceName_table`]: e.target.value
+                          }))}
+                        />
+                      </th>
+                      
+                      <th className="fw-normal">
+                        <input
+                          type="text"
+                          className="form-control"
+                          style={{ width: "4rem", margin: "0 auto" }}
+                          placeholder="กลุ่ม"
+                          value={editedData[`${index}-${subIndex}-no-record_wGroup_table`] || ""}
+                          onChange={(e) => setEditedData(prev => ({
+                            ...prev,
+                            [`${index}-${subIndex}-no-record_wGroup_table`]: e.target.value
+                          }))}
+                        />
+                      </th>
+                      
+                      <th className="fw-normal">
+                        <select
+                          className="form-control"
+                          style={{ width: "6rem", margin: "0 auto" }}
+                          value={editedData[`${index}-${subIndex}-no-record_shift_table`] || ""}
+                          onChange={(e) => setEditedData(prev => ({
+                            ...prev,
+                            [`${index}-${subIndex}-no-record_shift_table`]: e.target.value
+                          }))}
+                        >
+                          <option value="">เลือกกะ</option>
+                          <option value="morning_shift">กะเช้า</option>
+                          <option value="afternoon_shift">กะบ่าย</option>
+                          <option value="night_shift">กะดึก</option>
+                          <option value="special_shift">กะพิเศษ</option>
+                        </select>
+                      </th>
+                      
+                      {/* OT ก่อน */}
+                      <th className="fw-normal">
+                        <input
+                          type="number"
+                          step="0.01"
+                          className="form-control"
+                          style={{ width: "6rem", margin: "0 auto" }}
+                          placeholder="0.00"
+                          value={editedData[`${index}-${subIndex}-no-record_beforeTotalOtTime_table`] || ""}
+                          onChange={(e) => setEditedData(prev => ({
+                            ...prev,
+                            [`${index}-${subIndex}-no-record_beforeTotalOtTime_table`]: e.target.value
+                          }))}
+                        />
+                      </th>
+                      
+                      {/* ค่าจ้าง OT ก่อน */}
+                      <th className="fw-normal">
+                        <input
+                          type="number"
+                          step="0.01"
+                          className="form-control"
+                          style={{ width: "6rem", margin: "0 auto" }}
+                          placeholder="0.00"
+                          value={editedData[`${index}-${subIndex}-no-record_cashBeforeOt_table`] || ""}
+                          onChange={(e) => setEditedData(prev => ({
+                            ...prev,
+                            [`${index}-${subIndex}-no-record_cashBeforeOt_table`]: e.target.value
+                          }))}
+                        />
+                      </th>
+                      
+                      {/* เวลาทำงาน */}
+                      <th className="fw-normal">
+                        <input
+                          type="number"
+                          step="0.01"
+                          className="form-control"
+                          style={{ width: "6rem", margin: "0 auto" }}
+                          placeholder="0.00"
+                          value={editedData[`${index}-${subIndex}-no-record_totalTime_table`] || ""}
+                          onChange={(e) => setEditedData(prev => ({
+                            ...prev,
+                            [`${index}-${subIndex}-no-record_totalTime_table`]: e.target.value
+                          }))}
+                        />
+                      </th>
+                      
+                      {/* ค่าจ้างทำงาน */}
+                      <th className="fw-normal">
+                        <input
+                          type="number"
+                          step="0.01"
+                          className="form-control"
+                          style={{ width: "6rem", margin: "0 auto" }}
+                          placeholder="0.00"
+                          value={editedData[`${index}-${subIndex}-no-record_cashWork_table`] || ""}
+                          onChange={(e) => setEditedData(prev => ({
+                            ...prev,
+                            [`${index}-${subIndex}-no-record_cashWork_table`]: e.target.value
+                          }))}
+                        />
+                      </th>
+                      
+                      {/* OT หลัง */}
+                      <th className="fw-normal">
+                        <input
+                          type="number"
+                          step="0.01"
+                          className="form-control"
+                          style={{ width: "6rem", margin: "0 auto" }}
+                          placeholder="0.00"
+                          value={editedData[`${index}-${subIndex}-no-record_totalOtTime_table`] || ""}
+                          onChange={(e) => setEditedData(prev => ({
+                            ...prev,
+                            [`${index}-${subIndex}-no-record_totalOtTime_table`]: e.target.value
+                          }))}
+                        />
+                      </th>
+                      
+                      {/* ค่าจ้าง OT หลัง */}
+                      <th className="fw-normal">
+                        <input
+                          type="number"
+                          step="0.01"
+                          className="form-control"
+                          style={{ width: "6rem", margin: "0 auto" }}
+                          placeholder="0.00"
+                          value={editedData[`${index}-${subIndex}-no-record_cashOt_table`] || ""}
+                          onChange={(e) => setEditedData(prev => ({
+                            ...prev,
+                            [`${index}-${subIndex}-no-record_cashOt_table`]: e.target.value
+                          }))}
+                        />
+                      </th>
+                      
+                      {/* เงินเพิ่ม */}
+                      <th className="fw-normal">
+                        <input
+                          type="number"
+                          step="0.01"
+                          className="form-control"
+                          style={{ width: "6rem", margin: "0 auto" }}
+                          placeholder="0.00"
+                          value={editedData[`${index}-${subIndex}-no-record_addSalaryDaily_table`] || ""}
+                          onChange={(e) => setEditedData(prev => ({
+                            ...prev,
+                            [`${index}-${subIndex}-no-record_addSalaryDaily_table`]: e.target.value
+                          }))}
+                        />
+                      </th>
+                      
+                      <th className="fw-normal">
                         <button
-                        className="btn btn-warning btn-sm"
-                        style={{ padding: "0.3rem", width: "3rem" }}>
-                          <i class="bi bi-pencil-square"></i>
+                          className="btn btn-success btn-sm"
+                          style={{ padding: "0.3rem", width: "3rem" }}
+                          onClick={() => {
+                            // สร้างข้อมูลใหม่สำหรับวันที่ไม่มีข้อมูล
+                            const newRecord = {
+                              date: day,
+                              workplaceId: editedData[`${index}-${subIndex}-no-record_workplaceId_table`] || "",
+                              workplaceName: editedData[`${index}-${subIndex}-no-record_workplaceName_table`] || "",
+                              wGroup: editedData[`${index}-${subIndex}-no-record_wGroup_table`] || "",
+                              shift: editedData[`${index}-${subIndex}-no-record_shift_table`] || "",
+                              beforeTotalOtTime: editedData[`${index}-${subIndex}-no-record_beforeTotalOtTime_table`] || "0",
+                              cashBeforeOt: editedData[`${index}-${subIndex}-no-record_cashBeforeOt_table`] || "0",
+                              totalTime: editedData[`${index}-${subIndex}-no-record_totalTime_table`] || "0",
+                              cashWork: editedData[`${index}-${subIndex}-no-record_cashWork_table`] || "0",
+                              totalOtTime: editedData[`${index}-${subIndex}-no-record_totalOtTime_table`] || "0",
+                              cashOt: editedData[`${index}-${subIndex}-no-record_cashOt_table`] || "0",
+                              addSalaryDaily: []
+                            };
+                            
+                            // เพิ่มข้อมูลใหม่เข้าไปใน concludeResultx
+                            setConcludeResultx(prevData => {
+                              const updatedData = JSON.parse(JSON.stringify(prevData));
+                              if (updatedData[index]) {
+                                updatedData[index].employee_record.push(newRecord);
+                              }
+                              return updatedData;
+                            });
+                            
+                            // ล้างข้อมูลในฟอร์ม
+                            setEditedData(prev => {
+                              const newData = { ...prev };
+                              Object.keys(newData).forEach(key => {
+                                if (key.includes(`${index}-${subIndex}-no-record`)) {
+                                  delete newData[key];
+                                }
+                              });
+                              return newData;
+                            });
+                            
+                            setEditStatus("update");
+                          }}
+                        >
+                          ✅
                         </button>
                       </th>
                     </tr>
