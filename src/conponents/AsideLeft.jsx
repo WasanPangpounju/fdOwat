@@ -14,6 +14,7 @@ function AsideLeft() {
   const [showSubMenu3_3, setShowSubMenu3_3] = useState(false);
   const [showSubMenu4, setShowSubMenu4] = useState(false);
   const [showSubMenu5, setShowSubMenu5] = useState(false);
+  const [showSubMenu6, setShowSubMenu6] = useState(false);
 
 
   const token = localStorage.getItem('token');
@@ -44,6 +45,7 @@ function AsideLeft() {
     setShowSubMenu3_3(false);
     setShowSubMenu4(false);
     setShowSubMenu5(false);
+    setShowSubMenu6(false);
   }
 
   function toggleSubMenu2() {
@@ -54,6 +56,7 @@ function AsideLeft() {
     setShowSubMenu3_3(false);
     setShowSubMenu4(false);
     setShowSubMenu5(false);
+    setShowSubMenu6(false);
   }
 
   function toggleSubMenu3() {
@@ -64,6 +67,7 @@ function AsideLeft() {
     setShowSubMenu3_3(false);
     setShowSubMenu4(false);
     setShowSubMenu5(false);
+    setShowSubMenu6(false);
   }
   function toggleSubMenu3_2() {
     setShowSubMenu3_2(!showSubMenu3_2);
@@ -73,6 +77,7 @@ function AsideLeft() {
     setShowSubMenu3_3(false);
     setShowSubMenu4(false);
     setShowSubMenu5(false);
+    setShowSubMenu6(false);
     
   }
   function toggleSubMenu3_3() {
@@ -83,6 +88,7 @@ function AsideLeft() {
     setShowSubMenu3_2(false);
     setShowSubMenu4(false);
     setShowSubMenu5(false);
+    setShowSubMenu6(false);
   }
   function toggleSubMenu4() {
     setShowSubMenu4(!showSubMenu4);
@@ -92,6 +98,7 @@ function AsideLeft() {
     setShowSubMenu3_2(false);
     setShowSubMenu3_3(false);
     setShowSubMenu5(false);
+    setShowSubMenu6(false);
   }
   function toggleSubMenu5() {
     setShowSubMenu5(!showSubMenu5);
@@ -100,6 +107,17 @@ function AsideLeft() {
     setShowSubMenu3(false);
     setShowSubMenu3_2(false);
     setShowSubMenu3_3(false);
+    setShowSubMenu4(false);
+    setShowSubMenu6(false);
+  }
+  function toggleSubMenu6() {
+    setShowSubMenu6(!showSubMenu6);
+    setShowSubMenu(false);
+    setShowSubMenu2(false);
+    setShowSubMenu3(false);
+    setShowSubMenu3_2(false);
+    setShowSubMenu3_3(false);
+    setShowSubMenu4(false);
     setShowSubMenu5(false);
   }
   
@@ -173,15 +191,15 @@ function AsideLeft() {
                       <li className="nav-item">
                         <Link to="/salaryresult" className="nav-link bg-success"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px", marginLeft: '1rem' }}></i> เงินเดือนรายบุคคล</Link>
                       </li>
-                      <li className="nav-item">
-                        <Link to="/salaryAllresult" className="nav-link"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px", marginLeft: '1rem' }}></i> ออกรายงานเงินเดือนพนักงาน</Link>
+                      <li className="nav-item bg-success">
+                        <Link to="/salaryAllresult" className="nav-link"><i className="nav-icon far fa-dot-circle " style={{ fontSize: "14px", marginLeft: '1rem' }}></i> ออกรายงานเงินเดือนพนักงาน</Link>
                       </li>
                       <li className="nav-item bg-success">
                         <Link to="/worktimesheetworkplace" className="nav-link"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px", marginLeft: '1rem' }}></i> ตารางเวลาทำงานพนักงาน (ตาราง 8)</Link>
                       </li>
-                      <li className="nav-item">
+                      {/* <li className="nav-item">
                         <Link to="/worktimesheetworkplaceSpace" className="nav-link"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px", marginLeft: '1rem' }}></i> ตารางเวลาทำงานพนักงานหน่วยพิเศษ</Link>
-                      </li>
+                      </li> */}
                       <li className="nav-item bg-success">
                         <Link to="/salarySlipPDF" className="nav-link"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px", marginLeft: '1rem' }}></i> ออกสลิปเงินเดือน</Link>
                       </li>
@@ -189,9 +207,7 @@ function AsideLeft() {
                         <Link to="/bankReport" className="nav-link"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px", marginLeft: '1rem' }}></i> ออกรายงานธนาคาร</Link>
                       </li>
 
-                      <li className="nav-item bg-success">
-                        <Link to="/bankReportExecutiveCommittee" className="nav-link"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px", marginLeft: '1rem' }}></i> ออกรายงานธนาคารผู้บริหาร</Link>
-                      </li>
+                     
                     </>
                   </ul>
                 )}
@@ -303,9 +319,36 @@ function AsideLeft() {
                   <p> ระบบรายงานผู้บริหาร</p>
                 </a>
               </li>
+              
+              <li className="nav-item">
+                <a href="#" className="nav-link bg-warning" onClick={toggleSubMenu6}>
+                  <i className="nav-icon fas fa-user-tie"></i>
+                  <p> ระบบผู้บริหาร
+                    <i
+                      className={`right fas ${showSubMenu6 ? "fa-angle-down" : "fa-angle-left"}`}
+                    ></i>
+                  </p>
+                </a>
+                {showSubMenu6 && (
+                  <ul className="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+                    <>
+                     <li className="nav-item bg-success">
+                        <Link to="/bankReportExecutiveCommittee" className="nav-link"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px", marginLeft: '1rem' }}></i> ออกรายงานธนาคารผู้บริหาร</Link>
+                      </li>
+                     <li className="nav-item bg-success">
+                        <Link to="/bankReportExecutiveCommittee" className="nav-link"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px", marginLeft: '1rem' }}></i>ตาราง8</Link>
+                      </li>
+                      
+                      <li className="nav-item">
+                        <Link to="/executive-settings" className="nav-link"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px", marginLeft: '1rem' }}></i> ตั้งค่าระบบผู้บริหาร</Link>
+                      </li>
+                    </>
+                  </ul>
+                )}
+              </li>
               <li className="nav-item"
               style={{backgroundColor: ""}}>
-                <a href="#" style={{backgroundColor:"rgb(128, 0, 128)"}} className="nav-link " onClick={toggleSubMenu}>
+                <a href="#" style={{backgroundColor:"rgb(128, 0, 128)", color:"white"}} className="nav-link " onClick={toggleSubMenu}>
                   <i className="nav-icon fas fa-network-wired"></i>
                   <p > ระบบจัดการพนักงาน
                     {/* <i className="right fas fa-angle-left"></i><i className=""></i> */}

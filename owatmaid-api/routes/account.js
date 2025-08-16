@@ -3326,7 +3326,7 @@ async function getEmployeeData(id) {
 
 
 async function checkCalSocial(id) {
-  const idList = await ["1230","1231","1233","1241","1242","1350","1422","1423","1428","1434","1520","1522","1524","1525","1526","1529","1531","1533","1534","1429","1427","1245","1234","2111","2116","2120","2124"];
+  const idList = await ["1230","1231","1233","1241","1242","1350","1423","1428","1434","1520","1522","1524","1525","1526","1529","1531","1533","1534","1429","1427","1245","1234","2111","2116","2120","2124"];
 
   
   const idToCheck = await id;
@@ -3356,7 +3356,7 @@ async function checkCalSocial(id) {
 // }
 
 async function checkCalTax(id) {
-  const idList = await ["1110","1120","1130","1140","1150","1230","1231","1233","1241","1242","1251","1350","1422","1423","1428","1434","1440","1441","1444","1445","1446","1520","1522","1524","1525","1526","1528","1540","1541","1550","1447","1613","1561","1542","1536","1529","1531","1532","1533","1534","1442","1435","1429","1427","1412","1245","1234","1159","2111","2113","2116","2117","2120","2124","2160","2430","1190","1211","1212","1214","1235","1236","1243","1351","1411","1425","1426","1431","1448","1449","1527","1562","2114","2123","1543","1443","1544"];
+  const idList = await ["1110","1120","1130","1140","1150","1230","1231","1233","1241","1242","1251","1350","1422","1423","1428","1434","1440","1441","1444","1445","1446","1520","1522","1524","1525","1526","1528","1540","1541","1550","1447","1613","1561","1542","1536","1529","1531","1532","1533","1534","1435","1429","1427","1412","1245","1234","1159","2111","2113","2116","2117","2120","2124","2160","2430","1190","1211","1212","1214","1235","1236","1243","1351","1411","1425","1426","1431","1448","1449","1527","1562","2114","2123","1543","1443","1544"];
   
   const idToCheck = await id;
   
@@ -4350,9 +4350,12 @@ router.post('/updatetimerecord', async (req, res) => {
 
 router.post('/searchtimerecordbyworkplace', async (req, res) => {
   try {
-    const { month, year, workplaceId } = req.body;
+    const { month, year, workplaceId, isRecursiveCall } = req.body;
+    
+    console.log(`🔍 [WORKPLACE] API called with parameters:`, { month, year, workplaceId, isRecursiveCall });
 
     if (!month || !year) {
+      console.log(`❌ [WORKPLACE] Missing month or year parameters`);
       return res.status(400).json({ message: 'Month and year are required' });
     }
 
@@ -4361,19 +4364,26 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
       month: { $regex: new RegExp(month, 'i') },
       year: { $regex: new RegExp(year, 'i') },
     });
+    
+    console.log(`🔍 [WORKPLACE] Found ${records.length} total records for month=${month}, year=${year}`);
 
     if (!records.length) {
+      console.log(`❌ [WORKPLACE] No records found, returning empty result`);
       return res.status(200).json({ groupedResult: {}, message: 'No records found' });
     }
 
     // Step 2: Fetch all employee profiles to avoid repeated queries
     const employeeIds = records.map(r => r.employeeId);
+    console.log(`🔍 [WORKPLACE] Employee IDs from records: ${employeeIds.join(', ')}`);
+    
     const employees = await Employee.find({ employeeId: { $in: employeeIds } });
+    console.log(`🔍 [WORKPLACE] Found ${employees.length} employee profiles`);
 
     const employeeMap = {};
     employees.forEach(emp => {
       if (emp.employeeId) {
         employeeMap[emp.employeeId] = emp;
+        console.log(`🔍 [WORKPLACE] Employee ${emp.employeeId} -> workplace: ${emp.workplace}`);
       }
     });
 
@@ -4382,10 +4392,21 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
 
     for (const record of records) {
       const employee = employeeMap[record.employeeId];
+      
+      console.log(`🔍 [WORKPLACE] Processing record for employeeId: ${record.employeeId}`);
 
-      if (!employee || !employee.workplace) continue;
+      if (!employee) {
+        console.log(`❌ [WORKPLACE] No employee profile found for employeeId: ${record.employeeId}`);
+        continue;
+      }
+      
+      if (!employee.workplace) {
+        console.log(`❌ [WORKPLACE] Employee ${record.employeeId} has no workplace assigned`);
+        continue;
+      }
 
       const empWorkplaceId = employee.workplace;
+      console.log(`🔍 [WORKPLACE] Employee ${record.employeeId} workplace: ${empWorkplaceId}, target: ${workplaceId || 'ALL'}`);
 
       // ตรวจสอบว่าพนักงานทำงานในหน่วยงานที่ต้องการหรือไม่
       let shouldInclude = false;
@@ -4393,10 +4414,12 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
       if (!workplaceId) {
         // ถ้าไม่ระบุ workplaceId ให้แสดงทั้งหมด
         shouldInclude = true;
+        console.log(`✅ [WORKPLACE] Include all - employee ${record.employeeId}`);
       } else {
         // เช็คว่าพนักงานสังกัดหน่วยงานที่ต้องการ
         if (empWorkplaceId === workplaceId) {
           shouldInclude = true;
+          console.log(`✅ [WORKPLACE] Match direct workplace - employee ${record.employeeId}`);
         } else {
           // เช็คว่าพนักงานจากหน่วยงานอื่นมาทำงานที่หน่วยงานนี้หรือไม่
           if (record.employee_record && Array.isArray(record.employee_record)) {
@@ -4405,16 +4428,25 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
             );
             if (worksAtTargetWorkplace) {
               shouldInclude = true;
-              console.log(`🔄 พบพนักงานข้ามหน่วยงาน: ${record.employeeId} (สังกัด ${empWorkplaceId}) มาทำงานที่ ${workplaceId}`);
+              console.log(`🔄 [WORKPLACE] Cross-workplace match - employee ${record.employeeId} (belongs to ${empWorkplaceId}) works at ${workplaceId}`);
+            } else {
+              console.log(`❌ [WORKPLACE] No cross-workplace match - employee ${record.employeeId} workplace ${empWorkplaceId} != target ${workplaceId}`);
             }
+          } else {
+            console.log(`❌ [WORKPLACE] No employee_record for cross-workplace check - employee ${record.employeeId}`);
           }
         }
       }
 
-      if (!shouldInclude) continue;
+      if (!shouldInclude) {
+        console.log(`❌ [WORKPLACE] Skipping employee ${record.employeeId} - no workplace match`);
+        continue;
+      }
+      
+      console.log(`✅ [WORKPLACE] Including employee ${record.employeeId} in results`);
 
             // 🔥 เพิ่มเช็ค dayWorkCount หรือ dayOffCount และดึง personalDayOff
-            if (!record.dayWorkCount || !record.dayOffCount || !record.personalDayOff) {
+            if (!isRecursiveCall && (!record.dayWorkCount || !record.dayOffCount || !record.personalDayOff)) {
               console.log(`🔍 Missing data for employeeId=${record.employeeId} month ${record.month} year ${record.year}`);
               console.log(`  - dayWorkCount: ${record.dayWorkCount || 'ไม่มี'}`);
               console.log(`  - dayOffCount: ${record.dayOffCount || 'ไม่มี'}`);
@@ -4432,6 +4464,7 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
                   employeeId: record.employeeId,
                   month: record.month,
                   year: record.year,
+                  isRecursiveCall: true  // เพิ่ม flag เพื่อป้องกัน recursive call
                 });
             
                 // ดึง personalDayOff จาก conclude API response
@@ -4577,6 +4610,16 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
       console.log(`  - stopDaysList: ${record.stopDaysList ? `${record.stopDaysList.length} วัน` : 'ไม่มี'}`);
       console.log(`  - cashcustomizeDayoff: ${record.cashcustomizeDayoff || 'ไม่มี'} บาท`);
     }
+    
+    console.log(`📊 [WORKPLACE] Final results summary:`);
+    console.log(`   - Total workplace groups: ${Object.keys(groupedResult).length}`);
+    Object.keys(groupedResult).forEach(wpId => {
+      console.log(`   - Workplace ${wpId}: ${groupedResult[wpId].length} employees`);
+    });
+    
+    if (Object.keys(groupedResult).length === 0) {
+      console.log(`⚠️ [WORKPLACE] Returning empty groupedResult - no employees matched criteria`);
+    }
 
     return res.status(200).json({ groupedResult });
 
@@ -4629,7 +4672,7 @@ const getEmployeeProfile = async (employeeId) => {
 
 router.post('/searchtimerecordemployee', async (req, res) => {
   try {
-    const { employeeId, month, year } = req.body;
+    const { employeeId, month, year, isRecursiveCall } = req.body;
     const query = {};
 
     if (employeeId) query.employeeId = employeeId;
@@ -4866,7 +4909,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         
         // สร้าง list ของ welfare IDs ที่เป็นไปได้ - รวมทุก welfare ID ที่อาจปรากฏ
         const potentialWelfareIds = new Set([
-          '1442', '1235', '1234', '1230', '1350', '1410', '1520', '1535', // IDs ที่พบบ่อยใน welfare
+      '1235', '1234', '1230', '1350', '1410', '1520', '1535', 
           '1423', '1242', '1233', '1243', // welfare IDs ที่พบในระบบ
           '1231', '1422', '1428', '1434', '1435', '1429', '1427', '1426', '1425', // welfare IDs เพิ่มเติม
           ...Array.from(validWelfareIds) // และ IDs ที่มีใน welfare database
@@ -4874,17 +4917,17 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         
         console.log(`🔍 [ACCOUNTING] potentialWelfareIds ทั้งหมด:`, Array.from(potentialWelfareIds));
         
-        // 🎯 กรองออกทุก welfare ID ที่ไม่มีใน validWelfareIds (ที่มาจาก welfare database จริง)
+        // 🎯 กรองออกเฉพาะ welfare ID ที่มีใน validWelfareIds เพื่อป้องกันการซ้ำ
+        // ⚠️ แก้ไข: ไม่ลบ welfare ที่มีอยู่แล้ว แต่ลบเฉพาะที่จะมีการอัปเดตใหม่
         record.addSalaryList = record.addSalaryList.filter(item => {
           const hasWelfareType = !!item.welfareType;
           const isPotentialWelfare = potentialWelfareIds.has(item.id);
           const isValidWelfare = validWelfareIds.has(item.id);
           
-          // 🎯 Logic ใหม่: ลบทุก welfare ID ที่ไม่มีใน database จริง
+          // 🎯 Logic ใหม่: เก็บทุก item ที่ไม่ได้อยู่ใน validWelfareIds (ที่จะมีการอัปเดตใหม่)
           // เก็บ item ถ้า:
-          // 1. ไม่ใช่ potential welfare ID เลย (เป็นรายการเงินเพิ่มปกติ)
-          // 2. หรือเป็น welfare ที่ยังมีอยู่ใน database จริง
-         const shouldKeep = !isPotentialWelfare;
+          // 1. ไม่ใช่ welfare ID ที่จะมีการอัปเดตใหม่จาก database
+          const shouldKeep = !isValidWelfare;
           
           // 🔍 Enhanced debug logging สำหรับ welfare IDs
           if (isPotentialWelfare) {
@@ -4897,22 +4940,22 @@ router.post('/searchtimerecordemployee', async (req, res) => {
             console.log(`   - welfareType: ${item.welfareType || 'undefined'}`);
             
             if (!shouldKeep) {
-              console.log(`   🗑️ -> จะถูกลบ เพราะไม่มีใน welfare database`);
+              console.log(`   🗑️ -> จะถูกลบ เพราะจะถูกอัปเดตใหม่จาก welfare database`);
             } else {
-              console.log(`   ✅ -> จะถูกเก็บไว้ เพราะมีใน welfare database`);
+              console.log(`   ✅ -> จะถูกเก็บไว้ เพราะไม่มีการอัปเดตใหม่`);
             }
           }
           
           if (!shouldKeep) {
-            console.log(`🗑️ [ACCOUNTING] ลบ welfare item: id=${item.id}, name=${item.name}, isPotentialWelfare=${isPotentialWelfare}, isValidWelfare=${isValidWelfare}`);
+            console.log(`🗑️ [ACCOUNTING] ลบ welfare item เพื่ออัปเดตใหม่: id=${item.id}, name=${item.name}, isValidWelfare=${isValidWelfare}`);
           }
           
           return shouldKeep;
         });
         
-        console.log(`🧹 [ACCOUNTING] ลบข้อมูล welfare เดิมทั้งหมดออก: ${originalLength} → ${record.addSalaryList.length} items`);
+        console.log(`🧹 [ACCOUNTING] ลบข้อมูล welfare ที่จะมีการอัปเดตใหม่: ${originalLength} → ${record.addSalaryList.length} items`);
         
-        // เพิ่ม welfare data ที่ไม่ซ้ำแล้ว (เฉพาะที่มีอยู่จริงใน welfare database)
+        // เพิ่ม welfare data ใหม่ที่อัปเดตแล้ว (เฉพาะที่มีอยู่จริงใน welfare database)
         record.addSalaryList = [...record.addSalaryList, ...addSalaryFromWelfare];
         console.log(`📝 [ACCOUNTING] เพิ่ม welfare data ใหม่จาก DB: ${addSalaryFromWelfare.length} items`);
         
@@ -6324,7 +6367,7 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
   console.log(`🔍 ยอดรวมเงินพิเศษที่คิดประกันสังคม: ${addSalarySocialSecurity} บาท`);
   
   console.log(`\n🔍 === รายการ ID ที่คิดประกันสังคม ===`);
-  const taxableIds = ["1110","1120","1130","1140","1150","1210","1230","1231","1233","1241","1242","1251","1350","1422","1423","1428","1434","1440","1441","1444","1445","1446","1520","1522","1524","1525","1526","1528","1540","1541","1550","1447","1613","1561","1542","1536","1529","1531","1532","1533","1534","1442","1435","1429","1427","1412","1245","1234","1159","2111","2113","2116","2117","2120","2124","2160","2430","1190","1211","1212","1214","1235","1236","1243","1351","1411","1425","1426","1431","1448","1449","1527","1562","2114","2123","1543","1443","1544"];
+  const taxableIds = ["1110","1120","1130","1140","1150","1210","1230","1231","1233","1241","1242","1251","1350","1422","1423","1428","1434","1440","1441","1444","1445","1446","1520","1522","1524","1525","1526","1528","1540","1541","1550","1447","1613","1561","1542","1536","1529","1531","1532","1533","1534","1435","1429","1427","1412","1245","1234","1159","2111","2113","2116","2117","2120","2124","2160","2430","1190","1211","1212","1214","1235","1236","1243","1351","1411","1425","1426","1431","1448","1449","1527","1562","2114","2123","1543","1443","1544"];
   console.log(`🔍 ID ที่คิดประกันสังคม: ${taxableIds.join(', ')}`);
   console.log(`🔍 ===============================================\n`);
 

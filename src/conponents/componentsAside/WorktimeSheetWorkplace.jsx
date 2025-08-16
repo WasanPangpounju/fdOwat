@@ -25,6 +25,17 @@ import * as XLSX from 'xlsx';
 
 
 function WorktimeSheetWorkplace({ employeeList }) {
+  // ===== การตั้งค่าการรวม ID ที่นี่จุดเดียว =====
+  // *** การแก้ไข: เปลี่ยนเฉพาะค่าใน MERGE_CONFIG นี้เท่านั้น ***
+  const MERGE_CONFIG = {
+    sourceId1: '',    // ID แรกที่จะรวม (เปลี่ยนตรงนี้เป็น ID ที่ต้องการ)
+    sourceId2: '',    // ID ที่สองที่จะรวม (เปลี่ยนตรงนี้เป็น ID ที่ต้องการ)
+    displayId: '1599' // รูปแบบที่จะแสดงเมื่อรวมแล้ว (เปลี่ยนตรงนี้เป็นรูปแบบที่ต้องการ)
+  };
+  // ตัวอย่าง: หากต้องการรวม ID 1560 กับ 1410 ให้แก้เป็น:
+  // sourceId1: '1560', sourceId2: '1410', displayId: '1560(1)'
+  // ============================================
+
   // เพิ่ม error state
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -624,6 +635,52 @@ useEffect(() => {
   const [data, setData] = useState([]); // เปลี่ยนเป็น array เพื่อป้องกันปัญหา
   const [loading, setLoading] = useState(true);
   const [workplaceAddsalary , setWorkplaceAddsalary ] = useState([]);
+
+  // ฟังก์ชันสำหรับรวม ID ตาม config
+  const mergeWorkplaceAddsalary = (items) => {
+    const mergedItems = [];
+    const processedIndices = new Set();
+    
+    items.forEach((item, i) => {
+      if (processedIndices.has(i)) return;
+      
+      if (item.codeSpSalary === MERGE_CONFIG.sourceId1) {
+        // หา item ที่มี codeSpSalary เป็น sourceId2
+        const sourceId2Index = items.findIndex((otherItem, j) => 
+          j > i && otherItem.codeSpSalary === MERGE_CONFIG.sourceId2
+        );
+        
+        if (sourceId2Index !== -1) {
+          // รวม sourceId1 และ sourceId2 เข้าด้วยกัน
+          mergedItems.push({
+            ...item,
+            codeSpSalary: MERGE_CONFIG.displayId,
+            name: item.name + ' + ' + items[sourceId2Index].name
+          });
+          processedIndices.add(sourceId2Index);
+        } else {
+          mergedItems.push(item);
+        }
+      } else if (item.codeSpSalary === MERGE_CONFIG.sourceId2) {
+        // ตรวจสอบว่า sourceId2 นี้ยังไม่ได้ถูกรวมกับ sourceId1 แล้ว
+        const sourceId1Index = items.findIndex((otherItem, j) => 
+          j < i && otherItem.codeSpSalary === MERGE_CONFIG.sourceId1
+        );
+        
+        if (sourceId1Index === -1) {
+          // ถ้าไม่มี sourceId1 ก่อนหน้า ให้แสดง sourceId2 ปกติ
+          mergedItems.push(item);
+        }
+        // ถ้ามี sourceId1 ก่อนหน้าแล้ว จะถูก skip เพราะถูกรวมไปแล้ว
+      } else {
+        mergedItems.push(item);
+      }
+      
+      processedIndices.add(i);
+    });
+    
+    return mergedItems;
+  };
 
   // useEffect สำหรับ fetchEmployeePrefixes (ย้ายมาไว้หลังการประกาศ state)
   useEffect(() => {
@@ -7410,6 +7467,12 @@ const getDateStyle = (day) => {
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet('ตารางเวลาทำงาน');
       
+      // เพิ่ม debug log เพื่อดูข้อมูลก่อนสร้าง Excel
+      console.log(`📊 Excel Export Debug - Days: ${dayNumbers.length}, Employees: ${dataArray.length}`);
+      console.log(`📊 Welfare columns: ${mergeWorkplaceAddsalary(workplaceAddsalary)?.length || 0}`);
+      console.log(`📊 Expected total columns: ${2 + dayNumbers.length + 1 + 5 + (mergeWorkplaceAddsalary(workplaceAddsalary)?.length || 0) + 2}`);
+      console.log(`📊 Data sample:`, dataArray.slice(0, 2));
+      
       // แทรกแถวว่างเป็นแถวแรก (Row 1)
       const blankRow1 = worksheet.addRow([]);
       blankRow1.height = 50; // เพิ่มความสูงแถวเพื่อรองรับฟอนต์ขนาด 30
@@ -7517,7 +7580,7 @@ const getDateStyle = (day) => {
       // Calculate column counts for proper layout
       const totalDayColumns = dayNumbers.length;
       const summaryColumnsCount = 5; // วันหยุด, วันนักขัต, ทำงานวันหยุด/นักขัต, โอที 1.5 เท่า, โอที 3 เท่า
-      const welfareColumnsCount = workplaceAddsalary ? workplaceAddsalary.length : 0;
+      const welfareColumnsCount = workplaceAddsalary ? mergeWorkplaceAddsalary(workplaceAddsalary).length : 0;
       
       console.log(`Layout: Day columns: ${totalDayColumns}, Welfare columns: ${welfareColumnsCount}`);
       
@@ -7527,9 +7590,9 @@ const getDateStyle = (day) => {
       row1.push('รวมวันทำงาน');
       row1.push('วันหยุด', 'วันนักขัต', 'ทำงานวันหยุด/นักขัต', 'โอที 1.5 เท่า', 'โอที 3 เท่า');
       if (workplaceAddsalary && workplaceAddsalary.length > 0) {
-        workplaceAddsalary.forEach(item => row1.push('สวัสดิการ'));
+        mergeWorkplaceAddsalary(workplaceAddsalary).forEach(item => row1.push('สวัสดิการ'));
       }
-      row1.push('หักประกันสังคม %', 'หมายเหตุ');
+      row1.push('หักประกันสังคม %', 'เงินสงเคราะห์ลูกจ้าง', 'หมายเหตุ');
       
       // Row 2: Sub headers (จริงๆ อยู่ใน Excel Row 6)
       const row2 = ['', ''];
@@ -7537,7 +7600,7 @@ const getDateStyle = (day) => {
       row2.push('');
       row2.push('1441', '1434', '1130', '1120', '1140');
       if (workplaceAddsalary && workplaceAddsalary.length > 0) {
-        workplaceAddsalary.forEach(item => row2.push(item.codeSpSalary));
+        mergeWorkplaceAddsalary(workplaceAddsalary).forEach(item => row2.push(item.codeSpSalary));
       }
       row2.push('', '');
       
@@ -7548,7 +7611,7 @@ const getDateStyle = (day) => {
       // กำหนดหน่วยสำหรับคอลัมน์สรุป: วันหยุด, วันนักขัต, ทำงานวันหยุด/นักขัต, โอที 1.5 เท่า, โอที 3 เท่า
       row3.push('วัน', 'วัน', 'ชม', 'ชม', 'ชม');
       if (workplaceAddsalary && workplaceAddsalary.length > 0) {
-        workplaceAddsalary.forEach(() => row3.push(''));
+        mergeWorkplaceAddsalary(workplaceAddsalary).forEach(() => row3.push(''));
       }
       row3.push('', '');
       
@@ -7558,7 +7621,7 @@ const getDateStyle = (day) => {
       row4.push('');
       overtimeLabels.forEach(label => row4.push(label));
       if (workplaceAddsalary && workplaceAddsalary.length > 0) {
-        workplaceAddsalary.forEach(item => row4.push(item.name));
+        mergeWorkplaceAddsalary(workplaceAddsalary).forEach(item => row4.push(item.name));
       }
       row4.push('', '');
       
@@ -7786,10 +7849,12 @@ try {
   
   // คำนวณตำแหน่งคอลัมน์สุดท้าย
   const lastColIndex = row1.length - 1; // หมายเหตุ
-  const socialSecurityColIndex = row1.length - 2; // หักประกันสังคม %
+  const employeeAllowanceColIndex = row1.length - 2; // เงินสงเคราะห์ลูกจ้าง  
+  const socialSecurityColIndex = row1.length - 3; // หักประกันสังคม %
   
   console.log('🔍 Merge columns debug:');
   console.log('Social Security Column Index:', socialSecurityColIndex);
+  console.log('Employee Allowance Column Index:', employeeAllowanceColIndex);
   console.log('Notes Column Index:', lastColIndex);
   
   // แปลง index เป็นตัวอักษรคอลัมน์ Excel
@@ -7819,13 +7884,28 @@ try {
   if (mergedSocial) {
     console.log('🔄 Adding text rotation to หักประกันสังคม % column...');
     try {
+      const getColumnLetter = (index) => {
+    if (index < 26) {
+        return String.fromCharCode(65 + index);
+    } else {
+        const firstLetter = String.fromCharCode(65 + Math.floor(index / 26) - 1);
+        const secondLetter = String.fromCharCode(65 + (index % 26));
+        return firstLetter + secondLetter;
+    }
+};
+const totalWorkDaysColIndex = 3 + dayNumbers.length;
+const welfareColumnsCount = mergeWorkplaceAddsalary(workplaceAddsalary)?.length || 0;
+const socialSecurityColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount;
+
+      const socialSecurityColLetter = getColumnLetter(socialSecurityColIndex - 1);
+
       const socialSecurityCell = worksheet.getCell(`${socialSecurityCol}5`);
       if (socialSecurityCell) {
         socialSecurityCell.value = 'หักประกันสังคม %'; // ตั้งค่าข้อความใหม่
         socialSecurityCell.alignment = {
           horizontal: 'center',
           vertical: 'middle',
-          textRotation: 90 // หมุนข้อความ 90 องศา
+          textRotation: 0 // หมุนข้อความ 90 องศา
         };
         socialSecurityCell.font = {
           bold: true,
@@ -7835,6 +7915,36 @@ try {
       }
     } catch (rotationError) {
       console.warn('❌ Error applying text rotation to หักประกันสังคม %:', rotationError.message);
+    }
+  }
+  
+  // Merge เงินสงเคราะห์ลูกจ้าง column (row 5-8)
+  console.log('🔗 Starting เงินสงเคราะห์ลูกจ้าง merge...');
+  const employeeAllowanceCol = getColumnLetter(lastColIndex - 1); // เงินสงเคราะห์ลูกจ้าง
+  const employeeAllowanceRange = `${employeeAllowanceCol}5:${employeeAllowanceCol}8`;
+  const mergedEmployeeAllowance = safeMergeCell(employeeAllowanceRange);
+  console.log(`🔗 Merge เงินสงเคราะห์ลูกจ้าง (${employeeAllowanceRange}):`, mergedEmployeeAllowance ? '✅ SUCCESS' : '❌ FAILED');
+  
+  // Add text rotation to "เงินสงเคราะห์ลูกจ้าง" column header after merge
+  if (mergedEmployeeAllowance) {
+    console.log('🔄 Adding text rotation to เงินสงเคราะห์ลูกจ้าง column...');
+    try {
+      const employeeAllowanceCell = worksheet.getCell(`${employeeAllowanceCol}5`);
+      if (employeeAllowanceCell) {
+        employeeAllowanceCell.value = 'เงินสงเคราะห์ลูกจ้าง'; // ตั้งค่าข้อความใหม่
+        employeeAllowanceCell.alignment = {
+          horizontal: 'center',
+          vertical: 'middle',
+          textRotation: 90 // หมุนข้อความ 90 องศา
+        };
+        employeeAllowanceCell.font = {
+          bold: true,
+          size: 9
+        };
+        console.log(`🔄 Text rotation applied to เงินสงเคราะห์ลูกจ้าง cell ${employeeAllowanceCol}5`);
+      }
+    } catch (rotationError) {
+      console.warn('❌ Error applying text rotation to เงินสงเคราะห์ลูกจ้าง:', rotationError.message);
     }
   }
   
@@ -7934,6 +8044,11 @@ try {
       let employeeEndRows = [];
       
       if (dataArray && dataArray.length > 0) {
+        // กำหนดตัวแปรสำหรับคำนวณจำนวนคอลัมน์ - ใช้ร่วมกันในทุกแถว
+        const summaryColumns = 5; // โอที 5 ช่อง 
+        const welfareColumns = workplaceAddsalary.length;
+        const endColumns = 2; // หักประกันสังคม + หมายเหตุ
+        
         dataArray.forEach((record, idx) => {
           console.log(`Adding employee ${idx + 1}/${dataArray.length}: ${record.employeeName || record.name}`);
           
@@ -8013,15 +8128,26 @@ try {
           
           // Workplace additional salary data
           if (workplaceAddsalary && workplaceAddsalary.length > 0) {
-            workplaceAddsalary.forEach(item => {
-              const found = record.addSalaryList?.find(itemx => itemx.id === item.codeSpSalary);
-              const value = found?.message;
-              empRow1.push(value ? formatNumberWithComma(parseFloat(value)) : "");
+            mergeWorkplaceAddsalary(workplaceAddsalary).forEach(item => {
+              if (item.codeSpSalary === MERGE_CONFIG.displayId) {
+                // รวมค่าจาก sourceId1 และ sourceId2
+                const foundSourceId1 = record.addSalaryList?.find(itemx => itemx.id === MERGE_CONFIG.sourceId1);
+                const foundSourceId2 = record.addSalaryList?.find(itemx => itemx.id === MERGE_CONFIG.sourceId2);
+                const valueSourceId1 = foundSourceId1?.message && !isNaN(foundSourceId1.message) ? parseFloat(foundSourceId1.message) : 0;
+                const valueSourceId2 = foundSourceId2?.message && !isNaN(foundSourceId2.message) ? parseFloat(foundSourceId2.message) : 0;
+                const totalValue = valueSourceId1 + valueSourceId2;
+                empRow1.push(totalValue ? formatNumberWithComma(totalValue) : "");
+              } else {
+                const found = record.addSalaryList?.find(itemx => itemx.id === item.codeSpSalary);
+                const value = found?.message;
+                empRow1.push(value ? formatNumberWithComma(parseFloat(value)) : "");
+              }
             });
           }
           
-          empRow1.push('', ''); // Social security and notes columns
-          
+         empRow1.push(''); // หักประกันสังคม
+         empRow1.push(''); // เงินสงเคราะห์ลูกจ้าง
+        empRow1.push(''); // หมายเหตุ
           // Row 2: Night shift data (ดึก) - Use same values as web table
           const empRow2 = ['', 'ดึก'];
           dayNumbers.forEach(() => empRow2.push(''));
@@ -8035,14 +8161,31 @@ try {
           empRow2.push(record.sumCashWorkMul?.["3"] ? formatNumberWithComma(parseFloat(record.sumCashWorkMul["3"]).toFixed(2)) : ''); // โอที 3
           
           if (workplaceAddsalary && workplaceAddsalary.length > 0) {
-            workplaceAddsalary.forEach(item => {
-              const found = record.addSalaryList?.find(itemx => itemx.id === item.codeSpSalary);
-              const value = parseFloat(found?.SpSalary || 0);
-              empRow2.push(value === 0 ? "NO" : formatNumberWithComma(value.toFixed(2)));
+            mergeWorkplaceAddsalary(workplaceAddsalary).forEach(item => {
+              if (item.codeSpSalary === MERGE_CONFIG.displayId) {
+                // รวมค่าจาก sourceId1 และ sourceId2
+                const foundSourceId1 = record.addSalaryList?.find(itemx => itemx.id === MERGE_CONFIG.sourceId1);
+                const foundSourceId2 = record.addSalaryList?.find(itemx => itemx.id === MERGE_CONFIG.sourceId2);
+                const valueSourceId1 = parseFloat(foundSourceId1?.SpSalary || 0);
+                const valueSourceId2 = parseFloat(foundSourceId2?.SpSalary || 0);
+                const totalValue = valueSourceId1 + valueSourceId2;
+                empRow2.push(totalValue === 0 ? "NO" : formatNumberWithComma(totalValue.toFixed(2)));
+              } else {
+                const found = record.addSalaryList?.find(itemx => itemx.id === item.codeSpSalary);
+                const value = parseFloat(found?.SpSalary || 0);
+                empRow2.push(value === 0 ? "NO" : formatNumberWithComma(value.toFixed(2)));
+              }
             });
           }
           
-          empRow2.push(record.socialSecurity ? formatNumberWithComma(parseFloat(record.socialSecurity).toFixed(2)) : '', '');
+          // เพิ่ม social security column
+          empRow2.push(record.socialSecurity ? formatNumberWithComma(parseFloat(record.socialSecurity).toFixed(2)) : '');
+          
+          // เพิ่ม employee allowance column (เงินสงเคราะห์ลูกจ้าง)
+          empRow2.push(record.employeeAllowance ? formatNumberWithComma(parseFloat(record.employeeAllowance).toFixed(2)) : '');
+          
+          // Add empty cells for remaining columns - ใช้การนับอัตโนมัติ  
+         empRow2.push(''); // หมายเหตุ
           
           // Row 3: OT 1.5 data - using same condition as sumOvertimePerDay
           const empRow3 = ['', `${record.employeeId} โอที 1.5`];
@@ -8076,10 +8219,10 @@ try {
             }
           });
           
-          // Add empty cells for summary columns
-          for (let i = 0; i < 6 + workplaceAddsalary.length + 2; i++) {
-            empRow3.push('');
-          }
+         const remainingCols3 = row1.length - empRow3.length;
+for (let i = 0; i < remainingCols3; i++) {
+    empRow3.push('');
+}
           
           // Row 4: OT 2 data
           const empRow4 = ['', 'โอที 2'];
@@ -8104,9 +8247,11 @@ try {
             empRow4.push(shouldShowData ? formatTimeValueForExcel(found.totalTime) : '');
           });
           
-          for (let i = 0; i < 6 + (workplaceAddsalary?.length || 0) + 2; i++) {
-            empRow4.push('');
-          }
+          // Add empty cells for summary columns - ใช้การนับอัตโนมัติ
+         const remainingCols4 = row1.length - empRow4.length;
+for (let i = 0; i < remainingCols4; i++) {
+    empRow4.push('');
+}
           
           // Row 5: OT 3 data
           const empRow5 = ['', 'โอที3'];
@@ -8139,9 +8284,11 @@ try {
             }
           });
           
-          for (let i = 0; i < 5 + (workplaceAddsalary?.length || 0) + 2; i++) {
-            empRow5.push('');
-          }
+         const remainingCols5 = row1.length - empRow5.length;
+for (let i = 0; i < remainingCols5; i++) {
+    empRow5.push('');
+}
+
           
           // Add employee rows to worksheet
           const empRowRefs = [];
@@ -8166,18 +8313,18 @@ lastRowRef.eachCell((cell, colNumber) => {
 
           
           // Apply thick bottom border to OT3 row (empRow5)
-          const ot3RowNumber = currentRowIndex + 4; // empRow5 is the 5th row (index 4)
-          const totalColumns = 2 + dayNumbers.length + 5 + (workplaceAddsalary?.length || 0) + 2; // All columns in the table
-          
-          for (let colIdx = 1; colIdx <= totalColumns; colIdx++) {
-            const cell = worksheet.getCell(ot3RowNumber, colIdx);
-            if (!cell.border) cell.border = {};
-            
-            cell.border = {
-              ...cell.border,
-              bottom: { style: 'double', color: { argb: 'FF000000' } }
-            };
-          }
+         const ot3RowNumber = currentRowIndex + 4; // empRow5 is the 5th row (index 4)
+const actualTotalColumns = row1.length; // ใช้จำนวนคอลัมน์จริงจาก header
+
+for (let colIdx = 1; colIdx <= actualTotalColumns; colIdx++) {
+    const cell = worksheet.getCell(ot3RowNumber, colIdx);
+    if (!cell.border) cell.border = {};
+    
+    cell.border = {
+        ...cell.border,
+        bottom: { style: 'double', color: { argb: 'FF000000' } }
+    };
+}
           
           // Apply gray styling to empty cells in employee day columns
           console.log(`🎨 Applying styling to cells for employee ${record.employeeName || record.name}...`);
@@ -8456,9 +8603,10 @@ console.log(`Employee ${idx + 1} ends at row ${currentRowIndex - 1}, page ${curr
         totalEmpRow.push(count === 0 ? '' : count);
       });
       totalEmpRow.push(employeeCountPerDay.reduce((total, count) => total + (count || 0), 0));
-      for (let i = 0; i < 5 + (workplaceAddsalary?.length || 0) + 2; i++) {
-        totalEmpRow.push('');
-      }
+const remainingColsTotal = row1.length - totalEmpRow.length;
+for (let i = 0; i < remainingColsTotal; i++) {
+    totalEmpRow.push('');
+}
       
       // Mark special styling for empty work days (gray background)
       totalEmpRow.specialStyles = {};
@@ -8485,9 +8633,10 @@ console.log(`Employee ${idx + 1} ends at row ${currentRowIndex - 1}, page ${curr
         return (employeeCountPerDay[dayIndex] || 0) > 0;
       }).length;
       contractEmpRow.push(contractEmployeeCount ? contractEmployeeCount * workingDaysCount : 0);
-      for (let i = 0; i < 5 + (workplaceAddsalary?.length || 0) + 2; i++) {
-        contractEmpRow.push('');
-      }
+const remainingColsContract = row1.length - contractEmpRow.length;
+for (let i = 0; i < remainingColsContract; i++) {
+    contractEmpRow.push('');
+}
       
       // Mark special styling for contract employees row
       contractEmpRow.specialStyles = {};
@@ -8568,9 +8717,10 @@ console.log(`Employee ${idx + 1} ends at row ${currentRowIndex - 1}, page ${curr
         };
       }
       
-      for (let i = 0; i < (workplaceAddsalary?.length || 0) + 2; i++) {
-        absentEmpRow.push('');
-      }
+      const remainingColsAbsent = row1.length - absentEmpRow.length;
+for (let i = 0; i < remainingColsAbsent; i++) {
+    absentEmpRow.push('');
+}
       
       // OT 1.5 summary
       const ot15Row = ['โอที 1.5 เท่า', ''];
@@ -8579,9 +8729,11 @@ console.log(`Employee ${idx + 1} ends at row ${currentRowIndex - 1}, page ${curr
         ot15Row.push(overtimeSum === 0 ? '' : formatTimeValueForExcel(overtimeSum));
       });
       ot15Row.push(formatTimeValueForExcel(overtimeSumPerDay.reduce((total, sum) => total + (sum || 0), 0)));
-      for (let i = 0; i < 5 + (workplaceAddsalary?.length || 0) + 2; i++) {
-        ot15Row.push('');
-      }
+const remainingColsOt15 = row1.length - ot15Row.length;
+for (let i = 0; i < remainingColsOt15; i++) {
+    ot15Row.push('');
+}
+
       
       // Mark special styling for empty OT 1.5 days (gray background)
       ot15Row.specialStyles = {};
@@ -8605,9 +8757,11 @@ console.log(`Employee ${idx + 1} ends at row ${currentRowIndex - 1}, page ${curr
         ot2Row.push(overtime2Sum === 0 ? '' : formatTimeValueForExcel(overtime2Sum));
       });
       ot2Row.push(formatTimeValueForExcel(overtime2SumPerDay.reduce((total, sum) => total + (sum || 0), 0)));
-      for (let i = 0; i < 5 + (workplaceAddsalary?.length || 0) + 2; i++) {
-        ot2Row.push('');
-      }
+const remainingColsOt2 = row1.length - ot2Row.length;
+for (let i = 0; i < remainingColsOt2; i++) {
+    ot2Row.push('');
+}
+
       
       // Mark special styling for OT 2 days with values (yellow background)
       ot2Row.specialStyles = {};
@@ -8629,9 +8783,11 @@ console.log(`Employee ${idx + 1} ends at row ${currentRowIndex - 1}, page ${curr
         ot3Row.push(overtime3Sum === 0 ? '' : formatTimeValueForExcel(overtime3Sum));
       });
       ot3Row.push(formatTimeValueForExcel(overtime3SumPerDay.reduce((total, sum) => total + (sum || 0), 0)));
-      for (let i = 0; i < 5 + (workplaceAddsalary?.length || 0) + 2; i++) {
-        ot3Row.push('');
-      }
+const remainingColsOt3 = row1.length - ot3Row.length;
+for (let i = 0; i < remainingColsOt3; i++) {
+    ot3Row.push('');
+}
+
       
       // Mark special styling for OT 3 days with values (light pink background)
       ot3Row.specialStyles = {};
@@ -9095,7 +9251,7 @@ console.log(`Employee ${idx + 1} ends at row ${currentRowIndex - 1}, page ${curr
      
 
 // console.log('📏 Setting column widths...');
-const welfareColumns = workplaceAddsalary ? workplaceAddsalary.map(() => ({ width: 10 })) : []; // เพิ่มจาก 8 เป็น 10
+const welfareColumns = workplaceAddsalary ? mergeWorkplaceAddsalary(workplaceAddsalary).map(() => ({ width: 10 })) : []; // เพิ่มจาก 8 เป็น 10
 worksheet.columns = [
   { width: 10 },    // ลำดับ (เพิ่มจาก 6)  
   { width: 40 },   // ชื่อ-สกุล (เพิ่มจาก 26)
@@ -9270,7 +9426,7 @@ else if(dataArray.length === 5) {
               cell.font = cell.font || {};
               // กำหนดฟอนต์ขนาด 14 เป็นค่าเริ่มต้นสำหรับทุกเซลล์ ยกเว้นแถวที่ 1, 2, และ 3
               if (rowIndex !== 1 && rowIndex !== 2 && rowIndex !== 3 && rowIndex !== 4) {
-                cell.font.size = 21; // เพิ่มตัวอักษรเป็น 14pt สำหรับทุกแถว ยกเว้นแถวที่ 1, 2, และ 3
+                cell.font.size = 22; // เพิ่มตัวอักษรเป็น 14pt สำหรับทุกแถว ยกเว้นแถวที่ 1, 2, และ 3
               }
               
               // Header styling (first 4 rows)
@@ -9621,7 +9777,8 @@ else if(dataArray.length === 5) {
                   
                   // คำนวณตำแหน่งคอลัมน์สุดท้าย
                   const socialSecurityColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount; // หักประกันสังคม %
-                  const notesColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount + 1; // หมายเหตุ
+                  const employeeAllowanceColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount + 1; // เงินสงเคราะห์ลูกจ้าง
+                  const notesColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount + 2; // หมายเหตุ
                   
                   if (colIndex === totalWorkDaysColIndex) {
                     // คอลัมน์รวมวันทำงาน - สีเหลือง
@@ -9656,6 +9813,13 @@ else if(dataArray.length === 5) {
                     }
                   } else if (colIndex === socialSecurityColIndex) {
                     // คอลัมน์หักประกันสังคม % - สีเหลือง
+                    cell.fill = {
+                      type: 'pattern',
+                      pattern: 'solid',
+                      fgColor: { argb: 'FFFFF7C2' } // สีเหลือง #fff7c2
+                    };
+                  } else if (colIndex === employeeAllowanceColIndex) {
+                    // คอลัมน์เงินสงเคราะห์ลูกจ้าง - สีเหลือง
                     cell.fill = {
                       type: 'pattern',
                       pattern: 'solid',
@@ -9708,14 +9872,16 @@ else if(dataArray.length === 5) {
                 const welfareStartColIndex = totalWorkDaysColIndex + 6; // เริ่มต้นคอลัมน์สวัสดิการ
                 const welfareColumnsCount = workplaceAddsalary?.length || 0;
                 
-                // Calculate final columns (หักประกันสังคม % และ หมายเหตุ)
+                // Calculate final columns (หักประกันสังคม %, เงินสงเคราะห์ลูกจ้าง และ หมายเหตุ)
                 const socialSecurityColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount; // หักประกันสังคม %
-                const notesColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount + 1; // หมายเหตุ
+                const employeeAllowanceColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount + 1; // เงินสงเคราะห์ลูกจ้าง
+                const notesColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount + 2; // หมายเหตุ
                 
                 console.log(`🔍 Column indices debug:
                   totalWorkDaysColIndex: ${totalWorkDaysColIndex}
                   welfareColumnsCount: ${welfareColumnsCount}
                   socialSecurityColIndex: ${socialSecurityColIndex}
+                  employeeAllowanceColIndex: ${employeeAllowanceColIndex}
                   notesColIndex: ${notesColIndex}
                   current colIndex: ${colIndex}
                 `);
@@ -9729,6 +9895,7 @@ else if(dataArray.length === 5) {
                   ot3ColIndex,               // โอที 3 เท่า
                   totalWorkDaysColIndex,     // รวมวันทำงาน (existing)
                   socialSecurityColIndex,    // หักประกันสังคม %
+                  employeeAllowanceColIndex, // เงินสงเคราะห์ลูกจ้าง
                   notesColIndex              // หมายเหตุ
                 ].includes(colIndex);
                 
@@ -9749,11 +9916,13 @@ else if(dataArray.length === 5) {
                     'ค่าน้ำ/ไฟ/โทรศัพท์',
                     'ค่าตำแหน่ง',
                     'เบี้ยขยัน',
+                    'จ่ายลาป่วยมีใบแพทย์',
                     'ค่าเดินทาง',
                     'ไม่คิดประกันสังคม',
                     'เงินเพิ่มพิเศษ',
                     'เงินช่วยเหลือบุตร',
                     'หักประกันสังคม %',
+                    'หักประกันสังคม %'
                   ];
                   
                   isWelfareWithRotation = rotationKeywords.some(keyword => 
@@ -9958,21 +10127,21 @@ const totalEmployees = dataArray.length;
 for (let i = 0; i < totalEmployees; i++) {
   const ot3RowNumber = 9 + (i * 5) + 4; // แถวที่ 13, 18, 23, ... (แถว โอที3 ของแต่ละคน) เปลี่ยนจาก 5 เป็น 9 เนื่องจากมีแถวว่าง 4 แถว
   
-  // วน loop ทุกคอลัมน์
-  for (let col = 1; col <= worksheet.columnCount; col++) {
+  // คำนวณจำนวนคอลัมน์ที่แน่นอนโดยใช้ notesColIndex เป็นฐาน
+  const actualColumns = row1.length;
+
+// วน loop ตามจำนวนคอลัมน์จริง
+for (let col = 1; col <= actualColumns; col++) {
     const cell = worksheet.getCell(ot3RowNumber, col);
     
     // เพิ่มเส้นขอบล่างสีแดง
     cell.border = {
-      top: { style: 'thin', color: { argb: 'FF000000' } },
-      left: { style: 'thin', color: { argb: 'FF000000' } },
-      bottom: { 
-        style: 'thick', 
-        color: { argb: 'FF000000' } // สีแดง
-      },
-      right: { style: 'thin', color: { argb: 'FF000000' } }
+        top: { style: 'thin', color: { argb: 'FF000000' } },
+        left: { style: 'thin', color: { argb: 'FF000000' } },
+        bottom: { style: 'thick', color: { argb: 'FF000000' } },
+        right: { style: 'thin', color: { argb: 'FF000000' } }
     };
-  }
+}
 }
 console.log(`✅ Applied red borders to ${totalEmployees} employees`);
 
@@ -9984,10 +10153,20 @@ try {
   
   console.log(`Fixing borders for OT 3 summary row at row ${ot3SummaryRowNumber}`);
   
-  // Apply borders to all columns that have data or are part of the table structure
-  const totalColumnsForBorder = 2 + dayNumbers.length + 1 + 5 + (workplaceAddsalary?.length || 0) + 2;
-  
-  for (let colIdx = 1; colIdx <= totalColumnsForBorder; colIdx++) {
+  // Calculate exact columns using the same logic as notesColIndex
+const exactColumns = row1.length; // ใช้จำนวนคอลัมน์จริงจาก header
+
+for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
+    const cell = worksheet.getCell(ot3SummaryRowNumber, colIdx);
+    
+    // Force borders on all cells in this row
+    cell.border = {
+        top: { style: 'thin', color: { argb: 'FF000000' } },
+        left: { style: 'thin', color: { argb: 'FF000000' } },
+        bottom: { style: 'thin', color: { argb: 'FF000000' } },
+        right: { style: 'thin', color: { argb: 'FF000000' } }
+    };
+}  for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
     const cell = worksheet.getCell(ot3SummaryRowNumber, colIdx);
     
     // Force borders on all cells in this row
@@ -9999,7 +10178,7 @@ try {
     };
   }
   
-  console.log(`✅ Applied borders to ${totalColumnsForBorder} columns in OT 3 summary row ${ot3SummaryRowNumber}`);
+  console.log(`✅ Applied borders to ${exactColumns} columns in OT 3 summary row ${ot3SummaryRowNumber}`);
 } catch (borderFixError) {
   console.warn('Error in final OT 3 border fix:', borderFixError.message);
 }
@@ -10857,7 +11036,7 @@ try {
                      
                       </button>
                       <div className="pt-3">
-                          <div className="table " >
+                          <div className="table table-responsive" >
                           <table
                       className="excel-style-table  "
                       style={{
@@ -10889,8 +11068,10 @@ try {
                                   {/* ค่าล่วงเวลา → 5 คอลัมน์ */}
                         
                                   <th style={{backgroundColor:'#fff7c2'}} colSpan="5" className="text-center  align-middle">ค่าล่วงเวลา</th>
-                                  <th  colSpan={workplaceAddsalary.length} className="text-center p-2">สวัสดิการ</th>
+                                  <th  colSpan={mergeWorkplaceAddsalary(workplaceAddsalary).length} className="text-center p-2">สวัสดิการ</th>
+
                                   <th rowSpan={4}  className="vertical-text ">หักประกันสังคม %</th>
+                                  <th rowSpan={4}  className="vertical-text ">เงินสงเคราะห์ลูกจ้าง</th>
                                   <th rowSpan={4} className="vertical-text ">หมายเหตุ</th>
                                 </tr>
 
@@ -10902,9 +11083,12 @@ try {
                                   <th style={{backgroundColor:'#fff7c2'}}>1120</th>
                                   <th style={{backgroundColor:'#fff7c2'}}>1140</th>
 
-                                  {workplaceAddsalary.map((item, i) => (
-                                        <th key={i} className="text-center ">{item.codeSpSalary} </th>
-                                    ))}
+                                  {(() => {
+                                    const mergedItems = mergeWorkplaceAddsalary(workplaceAddsalary);
+                                    return mergedItems.map((item, i) => (
+                                      <th key={i} className="text-center ">{item.codeSpSalary} </th>
+                                    ));
+                                  })()}
                                 </tr>
 
                                 {/* ---------------- แถวที่ 3 ---------------- */}
@@ -10914,9 +11098,12 @@ try {
                                     <td className="text-bold align-middle" style={{backgroundColor:'#fff7c2'}}>ชม</td>
                                     <td className="text-bold align-middle" style={{backgroundColor:'#fff7c2'}}>ชม</td>
                                     <td className="text-bold align-middle" style={{backgroundColor:'#fff7c2'}}>ชม</td>
-                                     {workplaceAddsalary.map((_, i) => (
-                                        <th  key={i}></th>
-                                    ))}
+                                     {(() => {
+                                       const mergedItems = mergeWorkplaceAddsalary(workplaceAddsalary);
+                                       return mergedItems.map((_, i) => (
+                                         <th key={i}></th>
+                                       ));
+                                     })()}
 
                                 </tr>
 
@@ -10935,11 +11122,14 @@ try {
     
 
                                         {/* สวัสดิการตามหน่วยงาน */}
-                                        {workplaceAddsalary.map((item, index) => (
-                                            <th key={index}  className="vertical-text align-middle">
-                                            {item.name}
+                                        {(() => {
+                                          const mergedItems = mergeWorkplaceAddsalary(workplaceAddsalary);
+                                          return mergedItems.map((item, index) => (
+                                            <th key={index} className="vertical-text align-middle">
+                                              {item.name}
                                             </th>
-                                        ))}
+                                          ));
+                                        })()}
 
                                     </tr>
                               </thead>
@@ -11275,16 +11465,31 @@ try {
 
                    
   
-                    {workplaceAddsalary.map((item, i) => {
-                        const found = record.addSalaryList.find(itemx => itemx.id === item.codeSpSalary);
-                        const value = found?.message;
-                const displayValue = value && !isNaN(value) ? parseFloat(value) : "";
+                    {(() => {
+                      const mergedItems = mergeWorkplaceAddsalary(workplaceAddsalary);
+                      return mergedItems.map((item, i) => {
+                        // สำหรับ item ที่ถูกรวมแล้ว ให้หาข้อมูลจากทั้ง sourceId1 และ sourceId2
+                        let displayValue = "";
+                        if (item.codeSpSalary === MERGE_CONFIG.displayId) {
+                          const foundSourceId1 = record.addSalaryList.find(itemx => itemx.id === MERGE_CONFIG.sourceId1);
+                          const foundSourceId2 = record.addSalaryList.find(itemx => itemx.id === MERGE_CONFIG.sourceId2);
+                          const valueSourceId1 = foundSourceId1?.message && !isNaN(foundSourceId1.message) ? parseFloat(foundSourceId1.message) : 0;
+                          const valueSourceId2 = foundSourceId2?.message && !isNaN(foundSourceId2.message) ? parseFloat(foundSourceId2.message) : 0;
+                          displayValue = (valueSourceId1 + valueSourceId2) || "";
+                        } else {
+                          const found = record.addSalaryList.find(itemx => itemx.id === item.codeSpSalary);
+                          const value = found?.message;
+                          displayValue = value && !isNaN(value) ? parseFloat(value) : "";
+                        }
+                        
                         return (
                            <td key={i} className="text-center text-red p-1 align-middle">
                             {displayValue}
                           </td>
                         );
-                      })}
+                      });
+                    })()}
+                      <td></td>
                       <td></td>
 
 
@@ -11299,6 +11504,7 @@ try {
 
                     <tr>
                     <td></td>
+                    
                     <td><span style={{ float: "right" }}>ดึก</span></td>
                     {dayNumbers.map((day, i) => {
                       // หา record ทั้งหมดของวันนี้
@@ -11424,9 +11630,22 @@ try {
 
                     
                     
-                    {workplaceAddsalary.map((item, i) => {
-                        const found = record.addSalaryList.find(itemx => itemx.id === item.codeSpSalary);
-                        const value = parseFloat(found?.SpSalary || 0);
+                    {(() => {
+                      const mergedItems = mergeWorkplaceAddsalary(workplaceAddsalary);
+                      return mergedItems.map((item, i) => {
+                        let value = 0;
+                        if (item.codeSpSalary === MERGE_CONFIG.displayId) {
+                          // รวมค่าจาก sourceId1 และ sourceId2
+                          const foundSourceId1 = record.addSalaryList.find(itemx => itemx.id === MERGE_CONFIG.sourceId1);
+                          const foundSourceId2 = record.addSalaryList.find(itemx => itemx.id === MERGE_CONFIG.sourceId2);
+                          const valueSourceId1 = parseFloat(foundSourceId1?.SpSalary || 0);
+                          const valueSourceId2 = parseFloat(foundSourceId2?.SpSalary || 0);
+                          value = valueSourceId1 + valueSourceId2;
+                        } else {
+                          const found = record.addSalaryList.find(itemx => itemx.id === item.codeSpSalary);
+                          value = parseFloat(found?.SpSalary || 0);
+                        }
+                        
                         const isZero = value === 0;
 
                         return (
@@ -11437,11 +11656,17 @@ try {
                             {isZero ? "NO" : formatNumberWithComma(value.toFixed(2))}
                           </td>
                         );
-                      })}
+                      });
+                    })()}
                       <td className="text-center align-middle text-red p-1">
                       {/* หักประกันสังคม  */}
                     {(record.socialSecurity && parseFloat(record.socialSecurity) >= 50 ? formatNumberWithComma(parseFloat(record.socialSecurity).toFixed(2)) : '') || (record.tax ? formatNumberWithComma(parseFloat(record.tax).toFixed(2)) : '')} 
 
+                    </td>
+
+                    <td className="text-center align-middle text-red p-1">
+                      {/* เงินสงเคราะห์ลูกจ้าง  */}
+                      {record.employeeAllowance ? formatNumberWithComma(parseFloat(record.employeeAllowance).toFixed(2)) : ''}
                     </td>
 
 
@@ -11551,6 +11776,7 @@ try {
                 {workplaceAddsalary.map((item, i) => (
                         <td key={i} className="text-center"></td>
                     ))}
+                    <td></td>
                     <td></td>
                     <td></td>
       
@@ -11664,6 +11890,7 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
 {workplaceAddsalary.map((_, i) => (
                         <td key={i} className="text-center"></td>
                     ))}
+                    <td></td>
                     <td></td>
                     <td></td>              
                     
@@ -11791,9 +12018,10 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
   <td></td>
   <td></td>
   <td></td>
-  {workplaceAddsalary.map((_, i) => (
+  {mergeWorkplaceAddsalary(workplaceAddsalary).map((_, i) => (
     <td key={`ws-${i}`} className="text-center"></td>
   ))}
+  <td></td>
   <td></td>
   <td></td>
 
@@ -11837,9 +12065,10 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
                       {Array.from({ length: 5 - 1 }).map((_, i) => (
                         <td key={i} className="text-center" style={{ backgroundColor: "" }}></td>
                       ))}
-                      {workplaceAddsalary.map((_, i) => (
+                      {mergeWorkplaceAddsalary(workplaceAddsalary).map((_, i) => (
                         <td key={`ws-${i}`} className="text-center" style={{ backgroundColor: "" }}></td>
                       ))}
+                      <td className="text-center" style={{ backgroundColor: "" }}></td>
                       <td className="text-center" style={{ backgroundColor: "" }}></td>
                       <td className="text-center" style={{ backgroundColor: "" }}></td>
                       
@@ -11885,9 +12114,10 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
                       {Array.from({ length: 5 - 1 }).map((_, i) => (
                         <td key={i} className="text-center" style={{ backgroundColor: "" }}></td>
                       ))}
-                      {workplaceAddsalary.map((_, i) => (
+                      {mergeWorkplaceAddsalary(workplaceAddsalary).map((_, i) => (
                         <td key={`ws-${i}`} className="text-center" style={{ backgroundColor: "" }}></td>
                       ))}
+                      <td className="text-center" style={{ backgroundColor: "" }}></td>
                       <td className="text-center" style={{ backgroundColor: "" }}></td>
                       <td className="text-center" style={{ backgroundColor: "" }}></td>
                       
@@ -11929,9 +12159,10 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
                       </td>
 
                       {/* เติมช่องสำหรับสวัสดิการ */}
-                      {workplaceAddsalary.map((_, i) => (
+                      {mergeWorkplaceAddsalary(workplaceAddsalary).map((_, i) => (
                         <td key={`ws-${i}`} className="text-center"></td>
                       ))}
+                      <td className="text-center"></td>
                       <td className="text-center"></td>
                       <td className="text-center"></td>
                       
@@ -11949,7 +12180,7 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
                               key={i} 
                               className={`text-center text-bold align-middle`}
                               style={isZero ? { backgroundColor: "#bfbdbf" , color: "" } : { color: "green" }}
-                            >3
+                            >
                               {isZero ? "" : formatTimeValue(overtimeSum)}
                             </td>
                           );
@@ -11961,9 +12192,10 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
                         <td className="text-center"></td>
                         <td className="text-center"></td>
                         <td className="text-center"></td>
-                        {workplaceAddsalary.map((_, i) => (
+                        {mergeWorkplaceAddsalary(workplaceAddsalary).map((_, i) => (
                           <td key={`ws-${i}`} className="text-center"></td>
                         ))}
+                        <td className="text-center"></td>
                         <td className="text-center"></td>
                         <td className="text-center"></td>
  
@@ -11992,9 +12224,10 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
                         <td className="text-center"></td>
                         <td className="text-center"></td>
                         <td className="text-center"></td>
-                        {workplaceAddsalary.map((_, i) => (
+                        {mergeWorkplaceAddsalary(workplaceAddsalary).map((_, i) => (
                           <td key={`ws-${i}`} className="text-center"></td>
                         ))}
+                        <td className="text-center"></td>
                         <td className="text-center"></td>
                         <td className="text-center"></td>
                  
@@ -12023,9 +12256,10 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
                         <td className="text-center"></td>
                         <td className="text-center"></td>
                         <td className="text-center"></td>
-                        {workplaceAddsalary.map((_, i) => (
+                        {mergeWorkplaceAddsalary(workplaceAddsalary).map((_, i) => (
                           <td key={`ws-${i}`} className="text-center"></td>
                         ))}
+                        <td className="text-center"></td>
                         <td className="text-center"></td>
                         <td className="text-center"></td>
                  
