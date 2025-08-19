@@ -6410,7 +6410,7 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
                        parseFloat(publicHolidayCash || 0);
     
     console.log(`💰 - เงินเดือนพื้นฐาน: ${parseFloat(salaryMonth || 0)} บาท`);
-    console.log(`💰 - เงินพิเศษที่คิดประกันสังคม: ${parseFloat(addSalarySocialSecurity || 0)} บาท`);
+    console.log(`💰 - เงินพิเศษที่คิดประกันสังคม: ${parseFloat(totalAddSalaryLocal || 0)} บาท`);
     console.log(`💰 - เงินวันหยุดกำหนดเอง: ${parseFloat(cashcustomizeDayoff || 0)} บาท`);
     console.log(`💰 - เงินวันหยุดนักขัติฤกษ์: ${parseFloat(publicHolidayCash || 0)} บาท`);
     console.log(`💰 - รวมรายได้ที่คิดประกันสังคม: ${totalIncome} บาท`);
