@@ -6456,11 +6456,11 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
     
     console.log(`\n💰 STEP 3: คำนวณรายได้รวมสำหรับประกันสังคม`);
     const totalIncome = parseFloat(salaryMonth || 0) + 
-                       parseFloat(a || 0) + 
+                       parseFloat(addSalarySoialSecurity || 0) + 
                        parseFloat(publicHolidayCash || 0);
     
     console.log(`💰 - เงินเดือนพื้นฐาน: ${parseFloat(salaryMonth || 0)} บาท`);
-    console.log(`💰 - เงินพิเศษที่คิดประกันสังคม: ${parseFloat(a || 0)} บาท`);
+    console.log(`💰 - เงินพิเศษที่คิดประกันสังคม: ${parseFloat(addSalarySocialSecurity || 0)} บาท`);
     console.log(`💰 - เงินวันหยุดกำหนดเอง: ${parseFloat(cashcustomizeDayoff || 0)} บาท`);
     console.log(`💰 - เงินวันหยุดนักขัติฤกษ์: ${parseFloat(publicHolidayCash || 0)} บาท`);
     console.log(`💰 - รวมรายได้ที่คิดประกันสังคม: ${totalIncome} บาท`);
@@ -6513,13 +6513,13 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
       
       console.log(`\n💰 STEP 3: คำนวณรายได้รวมสำหรับประกันสังคม`);
       const totalIncome = parseFloat(sumCashWork || 0) + 
-                         parseFloat(a || 0) + 
+                         parseFloat(sumCashWork || 0) + 
                  
                      
                          parseFloat(publicHolidayCash || 0);
       
       console.log(`💰 - เงินค่าแรงปกติ: ${parseFloat(sumCashWork || 0)} บาท`);
-      console.log(`💰 - เงินพิเศษที่คิดประกันสังคม: ${parseFloat(a || 0)} บาท`);
+      console.log(`💰 - เงินพิเศษที่คิดประกันสังคม: ${parseFloat(sumCashWork || 0)} บาท`);
       console.log(`💰 - เงินวันหยุดนักขัติฤกษ์: ${parseFloat(cashSpecialDay || 0)} บาท`);
       console.log(`💰 - เงินวันหยุดกำหนดเอง: ${parseFloat(cashcustomizeDayoff || 0)} บาท`);
       console.log(`💰 - เงินวันหยุดนักขัติฤกษ์ (public): ${parseFloat(publicHolidayCash || 0)} บาท`);
