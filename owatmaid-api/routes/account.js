@@ -4981,21 +4981,6 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           doc.addSalaryList // ส่ง addSalaryList ที่มี welfare data แล้วจากการประมวลผลข้างต้น
         );
 
-        // Log ค่าที่ได้จาก calculateCashValues
-        console.log(`\n🎯 === ค่าที่ได้รับจาก calculateCashValues ===`);
-        console.log(`🎯 calculatedValues.countAllowance: ${calculatedValues.countAllowance}`);
-        console.log(`🎯 calculatedValues.dayWorkCount: ${calculatedValues.dayWorkCount}`);
-        console.log(`🎯 calculatedValues.addSalaryList.length: ${calculatedValues.addSalaryList?.length || 0}`);
-        
-        // แสดงรายละเอียด addSalaryList ที่ได้รับมา
-        if (Array.isArray(calculatedValues.addSalaryList) && calculatedValues.addSalaryList.length > 0) {
-          console.log(`🎯 รายละเอียด addSalaryList ที่ได้รับมา:`);
-          calculatedValues.addSalaryList.forEach((item, idx) => {
-            console.log(`   [${idx}] id=${item.id}, name=${item.name}, SpSalary=${item.SpSalary}, message=${item.message}, roundOfSalary=${item.roundOfSalary || 'N/A'}`);
-          });
-        }
-        console.log(`🎯 =============================`);
-        
         // คำนวณ totalDeductSalary จาก deductSalaryList
         const totalDeductSalary = calculatedValues.deductSalaryList.reduce((total, item) => {
           return total + (parseFloat(item.amount) || 0);
@@ -5142,6 +5127,21 @@ router.post('/searchtimerecordemployee', async (req, res) => {
             }
           });
         }
+        
+        // Log ค่าที่ได้จาก calculateCashValues หลังจากอัปเดต
+        console.log(`\n🎯 === ค่าหลังอัปเดต addSalaryList ===`);
+        console.log(`🎯 calculatedValues.countAllowance: ${calculatedValues.countAllowance}`);
+        console.log(`🎯 calculatedValues.dayWorkCount: ${calculatedValues.dayWorkCount}`);
+        console.log(`🎯 updateData.addSalaryList.length: ${updateData.addSalaryList?.length || 0}`);
+        
+        // แสดงรายละเอียด addSalaryList หลังอัปเดต
+        if (Array.isArray(updateData.addSalaryList) && updateData.addSalaryList.length > 0) {
+          console.log(`🎯 รายละเอียด addSalaryList หลังอัปเดต:`);
+          updateData.addSalaryList.forEach((item, idx) => {
+            console.log(`   [${idx}] id=${item.id}, name=${item.name}, SpSalary=${item.SpSalary}, message=${item.message}, roundOfSalary=${item.roundOfSalary || 'N/A'}`);
+          });
+        }
+        console.log(`🎯 =============================`);
         
         // 🎯 คำนวณ totalAddSalary หลังจากปรับค่า dailyRows แล้ว
         const totalAddSalary = parseFloat(calculatedValues.totalAddSalary) || 0;
