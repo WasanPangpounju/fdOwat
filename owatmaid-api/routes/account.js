@@ -5144,9 +5144,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         }
         
         // 🎯 คำนวณ totalAddSalary หลังจากปรับค่า dailyRows แล้ว
-        const totalAddSalary = updateData.addSalaryList.reduce((total, item) => {
-          return total + (parseFloat(item.SpSalary) || 0);
-        }, 0);
+        const totalAddSalary = parseFloat(calculatedValues.totalAddSalary) || 0;
         
         console.log(`💰 totalAddSalary หลังปรับค่า: ${totalAddSalary}`);
         
@@ -6512,15 +6510,15 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
       console.log(`💰 ✅ พนักงานรายวันปกติ - คิดประกันสังคม`);
       
       console.log(`\n💰 STEP 3: คำนวณรายได้รวมสำหรับประกันสังคม`);
-      const totalAddSalaryFromResponse = parseFloat(result.totalAddSalary) || 0;
+      // คำนวณ totalAddSalary จาก addSalaryList ที่มีอยู่
+      const totalAddSalaryLocal = (addSalaryList || []).reduce((acc, item) => acc + (parseFloat(item?.SpSalary) || 0), 0);
       const totalIncome = parseFloat(sumCashWork || 0) + 
-                         parseFloat(totalAddSalaryFromResponse || 0) + 
-                 
-                     
+                         parseFloat(totalAddSalaryLocal || 0) + 
+                         parseFloat(cashcustomizeDayoff || 0) +
                          parseFloat(publicHolidayCash || 0);
       
       console.log(`💰 - เงินค่าแรงปกติ: ${parseFloat(sumCashWork || 0)} บาท`);
-      console.log(`💰 - เงินพิเศษที่คิดประกันสังคม: ${parseFloat(totalAddSalaryFromResponse || 0)} บาท`);
+      console.log(`💰 - เงินพิเศษที่คิดประกันสังคม: ${parseFloat(totalAddSalaryLocal || 0)} บาท`);
       console.log(`💰 - เงินวันหยุดนักขัติฤกษ์: ${parseFloat(cashSpecialDay || 0)} บาท`);
       console.log(`💰 - เงินวันหยุดกำหนดเอง: ${parseFloat(cashcustomizeDayoff || 0)} บาท`);
       console.log(`💰 - เงินวันหยุดนักขัติฤกษ์ (public): ${parseFloat(publicHolidayCash || 0)} บาท`);
@@ -6723,6 +6721,9 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
   console.log(`📅 รวมทั้งหมด: ${sumCashWork1_20 + sumCashWork21_30_31} บาท (ตรวจสอบ: ${sumCashWork})`);
   console.log(`📅 =========================================`);
 
+  // คำนวณ totalAddSalary จาก addSalaryList ก่อน return
+  const totalAddSalary = (addSalaryList || []).reduce((acc, item) => acc + (parseFloat(item?.SpSalary) || 0), 0);
+
   return await {
     dayWorkCount,
     dayOffCount,
@@ -6740,6 +6741,7 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
     sumCashWorkMul,
     timeCashWorkMul,
     addSalaryList,
+    totalAddSalary, // เพิ่ม totalAddSalary ที่คำนวณจาก addSalaryList
     socialSecurity,
     tax,
     cashSpecialDay,
