@@ -6404,8 +6404,9 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
     console.log(`💰 - คำนวณค่าแรงต่อชั่วโมงจากเงินเดือน: ${dayPerHour} บาท/ชม.`);
     
     console.log(`\n💰 STEP 3: คำนวณรายได้รวมสำหรับประกันสังคม`);
+    const totalAddSalaryLocal = (addSalaryList || []).reduce((acc, item) => acc + (parseFloat(item?.SpSalary) || 0), 0);
     const totalIncome = parseFloat(salaryMonth || 0) + 
-                       parseFloat(addSalarySocialSecurity || 0) + 
+                       parseFloat(totalAddSalaryLocal || 0) + 
                        parseFloat(publicHolidayCash || 0);
     
     console.log(`💰 - เงินเดือนพื้นฐาน: ${parseFloat(salaryMonth || 0)} บาท`);
