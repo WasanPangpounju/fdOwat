@@ -5100,6 +5100,13 @@ router.post('/searchtimerecordemployee', async (req, res) => {
 
         // 🎯 อัปเดต message และ SpSalary สำหรับ items ที่มี roundOfSalary: "daily" ให้เป็น dayWorkCount + วันที่ทำงานในวันหยุด
         if (updateData.addSalaryList && Array.isArray(updateData.addSalaryList)) {
+          // Debug: ตรวจสอบทุก record ที่มี dayType: "stop"
+          const stopRecords = doc.employee_record?.filter(record => record?.dayType === 'stop') || [];
+          console.log(`🔍 Debug stopRecords สำหรับ ${doc.employeeId}:`);
+          stopRecords.forEach((record, idx) => {
+            console.log(`   [${idx}] วันที่: ${record.workDay}, dayType: ${record.dayType}, totalTime: "${record.totalTime}", parseFloat: ${parseFloat(record.totalTime) || 0}`);
+          });
+          
           // คำนวณวันที่มาทำงานในวันหยุด (dayType: "stop" แต่มี totalTime > 0)
           const workedStopDays = doc.employee_record?.filter(record => 
             record?.dayType === 'stop' && 
@@ -5120,7 +5127,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
               const oldSpSalary = item.SpSalary;
               
               // อัปเดต message เป็นวันทำงานจริงทั้งหมด
-              item.message = 1;
+              item.message = totalWorkingDays;
               
               // คำนวณ SpSalary ใหม่: (เงินเดิม / วันเดิม) * วันใหม่
               if (oldMessage && oldMessage > 0) {
