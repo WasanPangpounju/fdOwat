@@ -4973,6 +4973,53 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           console.warn(`⚠️ Could not fetch prefix and employeeName for employee ${doc.employeeId}:`, prefixError.message);
         }
 
+        // 🎯 ปรับ addSalaryList ก่อนส่งให้ calculateCashValues
+        console.log(`\n🎯 === ปรับ addSalaryList ก่อนส่งให้ calculateCashValues ===`);
+        
+        // คำนวณวันที่มาทำงานในวันหยุด (dayType: "stop" แต่มี totalTime > 0)
+        const workedStopDays = doc.employee_record?.filter(record => 
+          record?.dayType === 'stop' && 
+          record.totalTime && 
+          record.totalTime.trim() !== '' && 
+          parseFloat(record.totalTime) > 0
+        ).length || 0;
+        
+        // ขั้นตอนคร่าวๆ ในการคำนวณ dayWorkCount จาก employee_record
+        const preliminaryDayWorkCount = doc.employee_record?.filter(record => 
+          record?.dayType === 'work' && 
+          record.totalTime && 
+          record.totalTime.trim() !== '' && 
+          parseFloat(record.totalTime) > 0
+        ).length || 0;
+        
+        const totalWorkingDays = preliminaryDayWorkCount + workedStopDays;
+        
+        console.log(`🎯 preliminaryDayWorkCount: ${preliminaryDayWorkCount}`);
+        console.log(`🎯 workedStopDays: ${workedStopDays}`);
+        console.log(`🎯 totalWorkingDays: ${totalWorkingDays}`);
+        
+        // อัปเดต addSalaryList สำหรับ roundOfSalary: "daily"
+        if (doc.addSalaryList && Array.isArray(doc.addSalaryList)) {
+          doc.addSalaryList.forEach((item, itemIndex) => {
+            if (item.roundOfSalary === "daily") {
+              const oldMessage = item.message;
+              const oldSpSalary = item.SpSalary;
+              
+              // อัปเดต message เป็นวันทำงานจริงทั้งหมด
+              item.message = totalWorkingDays;
+              
+              // คำนวณ SpSalary ใหม่: (เงินเดิม / วันเดิม) * วันใหม่
+              if (oldMessage && oldMessage > 0) {
+                const dailyRate = parseFloat(oldSpSalary) / parseFloat(oldMessage);
+                item.SpSalary = dailyRate * totalWorkingDays;
+                console.log(`🎯   Pre-update Item[${itemIndex}] (${item.name}):`);
+                console.log(`       message: ${oldMessage} → ${item.message}`);
+                console.log(`       SpSalary: ${oldSpSalary} → ${parseFloat(item.SpSalary).toFixed(2)} (rate: ${dailyRate.toFixed(2)}/วัน)`);
+              }
+            }
+          });
+        }
+
         const calculatedValues = await calculateCashValues(
           doc.employeeId,
           doc.employee_record,
@@ -5083,51 +5130,6 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           stopDaysList: doc.stopDaysList || [],
         };
 
-        // 🎯 อัปเดต message และ SpSalary สำหรับ items ที่มี roundOfSalary: "daily" ให้เป็น dayWorkCount + วันที่ทำงานในวันหยุด
-        if (updateData.addSalaryList && Array.isArray(updateData.addSalaryList)) {
-          // Debug: ตรวจสอบทุก record ที่มี dayType: "stop"
-          const stopRecords = doc.employee_record?.filter(record => record?.dayType === 'stop') || [];
-          console.log(`🔍 Debug stopRecords สำหรับ ${doc.employeeId}:`);
-          stopRecords.forEach((record, idx) => {
-            console.log(`   [${idx}] วันที่: ${record.workDay}, dayType: ${record.dayType}, totalTime: "${record.totalTime}", parseFloat: ${parseFloat(record.totalTime) || 0}`);
-          });
-          
-          // คำนวณวันที่มาทำงานในวันหยุด (dayType: "stop" แต่มี totalTime > 0)
-          const workedStopDays = doc.employee_record?.filter(record => 
-            record?.dayType === 'stop' && 
-            record.totalTime && 
-            record.totalTime.trim() !== '' && 
-            parseFloat(record.totalTime) > 0
-          ).length || 0;
-          
-          const totalWorkingDays = parseInt(calculatedValues.dayWorkCount) + workedStopDays;
-          console.log(`🎯 อัปเดต message และ SpSalary สำหรับ ${doc.employeeId}:`);
-          console.log(`   - dayWorkCount: ${calculatedValues.dayWorkCount}`);
-          console.log(`   - วันที่ทำงานในวันหยุด (stop): ${workedStopDays}`);
-          console.log(`   - รวมวันทำงานจริง: ${totalWorkingDays}`);
-          
-          updateData.addSalaryList.forEach((item, itemIndex) => {
-            if (item.roundOfSalary === "daily") {
-              const oldMessage = item.message;
-              const oldSpSalary = item.SpSalary;
-              
-              // อัปเดต message เป็นวันทำงานจริงทั้งหมด
-              item.message = totalWorkingDays;
-              
-              // คำนวณ SpSalary ใหม่: (เงินเดิม / วันเดิม) * วันใหม่
-              if (oldMessage && oldMessage > 0) {
-                const dailyRate = parseFloat(oldSpSalary) / parseFloat(oldMessage);
-                item.SpSalary = dailyRate * totalWorkingDays;
-                console.log(`🎯   Item[${itemIndex}] (${item.name}):`);
-                console.log(`       message: ${oldMessage} → ${item.message}`);
-                console.log(`       SpSalary: ${oldSpSalary} → ${parseFloat(item.SpSalary).toFixed(2)} (rate: ${dailyRate.toFixed(2)}/วัน)`);
-              } else {
-                console.log(`🎯   Item[${itemIndex}] (${item.name}): message ${oldMessage} → ${item.message} (ไม่สามารถคำนวณ SpSalary ได้)`);
-              }
-            }
-          });
-        }
-        
         // Log ค่าที่ได้จาก calculateCashValues หลังจากอัปเดต
         console.log(`\n🎯 === ค่าหลังอัปเดต addSalaryList ===`);
         console.log(`🎯 calculatedValues.countAllowance: ${calculatedValues.countAllowance}`);
