@@ -5120,7 +5120,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
               const oldSpSalary = item.SpSalary;
               
               // อัปเดต message เป็นวันทำงานจริงทั้งหมด
-              item.message = totalWorkingDays;
+              item.message = 1;
               
               // คำนวณ SpSalary ใหม่: (เงินเดิม / วันเดิม) * วันใหม่
               if (oldMessage && oldMessage > 0) {
