@@ -5153,6 +5153,55 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         // เพิ่ม totalAddSalary เข้าไปใน updateData
         updateData.totalAddSalary = String(totalAddSalary);
 
+        // 🔄 คำนวณประกันสังคมใหม่หลังจากอัปเดต totalAddSalary
+        try {
+          const empForSocialSecurity = await Employee.findOne({ employeeId: doc.employeeId });
+          const empTypeOfemployee = empForSocialSecurity?.typeOfemployee || '';
+          
+          if (empTypeOfemployee === '1') { // พนักงานรายวัน
+            console.log(`\n🔄 คำนวณประกันสังคมใหม่หลังอัปเดต totalAddSalary`);
+            
+            // คำนวณรายได้รวมสำหรับประกันสังคม (ใหม่)
+            const sumCashWorkNew = parseFloat(updateData.sumCashWork) || 0;
+            const totalAddSalaryNew = parseFloat(updateData.totalAddSalary) || 0;
+            const cashSpecialDayNew = parseFloat(updateData.cashSpecialDay) || 0;
+            const cashcustomizeDayoffNew = parseFloat(updateData.cashcustomizeDayoff) || 0;
+            const cashPublicHolidayNew = parseFloat(updateData.cashPublicHoliday) || 0;
+            
+            const totalIncomeForSocialSecurityNew = sumCashWorkNew + totalAddSalaryNew + cashSpecialDayNew + cashcustomizeDayoffNew + cashPublicHolidayNew;
+            
+            console.log(`🔄 - เงินค่าแรงปกติ: ${sumCashWorkNew} บาท`);
+            console.log(`🔄 - เงินพิเศษที่คิดประกันสังคม (ใหม่): ${totalAddSalaryNew} บาท`);
+            console.log(`🔄 - เงินวันหยุดนักขัติฤกษ์: ${cashSpecialDayNew} บาท`);
+            console.log(`🔄 - เงินวันหยุดกำหนดเอง: ${cashcustomizeDayoffNew} บาท`);
+            console.log(`🔄 - เงินวันหยุดนักขัติฤกษ์ (public): ${cashPublicHolidayNew} บาท`);
+            console.log(`🔄 - รวมรายได้ที่คิดประกันสังคม (ใหม่): ${totalIncomeForSocialSecurityNew} บาท`);
+            
+            // คำนวณประกันสังคมใหม่
+            const socialSecurityRateNew = 0.05;
+            const socialSecurityAmountNew = Math.round(totalIncomeForSocialSecurityNew * socialSecurityRateNew);
+            
+            // ตรวจสอบขั้นต่ำและขั้นสูง
+            const minSocialSecurity = 83;
+            const maxSocialSecurity = 750;
+            let finalSocialSecurityNew = socialSecurityAmountNew;
+            
+            if (finalSocialSecurityNew < minSocialSecurity) {
+              finalSocialSecurityNew = minSocialSecurity;
+            } else if (finalSocialSecurityNew > maxSocialSecurity) {
+              finalSocialSecurityNew = maxSocialSecurity;
+            }
+            
+            console.log(`🔄 - คำนวณประกันสังคม: ${totalIncomeForSocialSecurityNew} × 0.05 = ${socialSecurityAmountNew} บาท`);
+            console.log(`🔄 - ประกันสังคมสุดท้าย (ใหม่): ${finalSocialSecurityNew} บาท`);
+            
+            // อัปเดตค่าประกันสังคมใหม่
+            updateData.socialSecurity = String(finalSocialSecurityNew);
+          }
+        } catch (error) {
+          console.error("❌ Error recalculating social security:", error);
+        }
+
         // 🔄 Recompute tax using adjusted totals when costtype is ภ.ง.ด.3
         try {
           const empForTax = await Employee.findOne({ employeeId: doc.employeeId });
