@@ -5098,22 +5098,34 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           stopDaysList: doc.stopDaysList || [],
         };
 
-        // 🎯 อัปเดต message และ SpSalary สำหรับ items ที่มี roundOfSalary: "daily" ให้เป็น dayWorkCount + dayOffCount
+        // 🎯 อัปเดต message และ SpSalary สำหรับ items ที่มี roundOfSalary: "daily" ให้เป็น dayWorkCount + วันที่ทำงานในวันหยุด
         if (updateData.addSalaryList && Array.isArray(updateData.addSalaryList)) {
-          const totalDays = parseInt(calculatedValues.dayWorkCount) + parseInt(calculatedValues.dayOffCount);
-          console.log(`🎯 อัปเดต message และ SpSalary สำหรับ ${doc.employeeId} (dayWorkCount: ${calculatedValues.dayWorkCount} + dayOffCount: ${calculatedValues.dayOffCount} = ${totalDays})`);
+          // คำนวณวันที่มาทำงานในวันหยุด (dayType: "stop" แต่มี totalTime > 0)
+          const workedStopDays = doc.employee_record?.filter(record => 
+            record?.dayType === 'stop' && 
+            record.totalTime && 
+            record.totalTime.trim() !== '' && 
+            parseFloat(record.totalTime) > 0
+          ).length || 0;
+          
+          const totalWorkingDays = parseInt(calculatedValues.dayWorkCount) + workedStopDays;
+          console.log(`🎯 อัปเดต message และ SpSalary สำหรับ ${doc.employeeId}:`);
+          console.log(`   - dayWorkCount: ${calculatedValues.dayWorkCount}`);
+          console.log(`   - วันที่ทำงานในวันหยุด (stop): ${workedStopDays}`);
+          console.log(`   - รวมวันทำงานจริง: ${totalWorkingDays}`);
+          
           updateData.addSalaryList.forEach((item, itemIndex) => {
             if (item.roundOfSalary === "daily") {
               const oldMessage = item.message;
               const oldSpSalary = item.SpSalary;
               
-              // อัปเดต message เป็น dayWorkCount + dayOffCount
-              item.message = totalDays;
+              // อัปเดต message เป็นวันทำงานจริงทั้งหมด
+              item.message = totalWorkingDays;
               
               // คำนวณ SpSalary ใหม่: (เงินเดิม / วันเดิม) * วันใหม่
               if (oldMessage && oldMessage > 0) {
                 const dailyRate = parseFloat(oldSpSalary) / parseFloat(oldMessage);
-                item.SpSalary = dailyRate * totalDays;
+                item.SpSalary = dailyRate * totalWorkingDays;
                 console.log(`🎯   Item[${itemIndex}] (${item.name}):`);
                 console.log(`       message: ${oldMessage} → ${item.message}`);
                 console.log(`       SpSalary: ${oldSpSalary} → ${parseFloat(item.SpSalary).toFixed(2)} (rate: ${dailyRate.toFixed(2)}/วัน)`);
