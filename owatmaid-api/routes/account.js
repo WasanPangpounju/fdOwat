@@ -5153,29 +5153,30 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         // เพิ่ม totalAddSalary เข้าไปใน updateData
         updateData.totalAddSalary = String(totalAddSalary);
 
-        // 🔄 คำนวณประกันสังคมใหม่หลังจากอัปเดต totalAddSalary
+        // 🔄 คำนวณประกันสังคมใหม่โดยใช้ totalAddSalary ที่อัปเดตแล้ว
         try {
           const empForSocialSecurity = await Employee.findOne({ employeeId: doc.employeeId });
           const empTypeOfemployee = empForSocialSecurity?.typeOfemployee || '';
           
           if (empTypeOfemployee === '1') { // พนักงานรายวัน
-            console.log(`\n🔄 คำนวณประกันสังคมใหม่หลังอัปเดต totalAddSalary`);
+            console.log(`\n🔄 คำนวณประกันสังคมใหม่โดยใช้ totalAddSalary`);
             
-            // คำนวณรายได้รวมสำหรับประกันสังคม (ใหม่)
+            // ใช้ค่าที่คำนวณไว้แล้วใน calculateCashValues
             const sumCashWorkNew = parseFloat(updateData.sumCashWork) || 0;
-            const totalAddSalaryNew = parseFloat(updateData.totalAddSalary) || 0;
-            const cashSpecialDayNew = parseFloat(updateData.cashSpecialDay) || 0;
+            const sumCashOtNew = parseFloat(updateData.sumCashOt) || 0;
+            const totalAddSalaryNew = parseFloat(updateData.totalAddSalary) || 0; // ใช้ค่าที่อัปเดตแล้ว
             const cashcustomizeDayoffNew = parseFloat(updateData.cashcustomizeDayoff) || 0;
-            const cashPublicHolidayNew = parseFloat(updateData.cashPublicHoliday) || 0;
+            const publicHolidayCashNew = parseFloat(updateData.publicHolidayCash) || 0;
             
-            const totalIncomeForSocialSecurityNew = sumCashWorkNew + totalAddSalaryNew + cashSpecialDayNew + cashcustomizeDayoffNew + cashPublicHolidayNew;
+            // คำนวณรายได้รวมสำหรับประกันสังคม
+            const totalIncomeForSocialSecurityNew = sumCashWorkNew + totalAddSalaryNew + cashcustomizeDayoffNew + publicHolidayCashNew;
             
             console.log(`🔄 - เงินค่าแรงปกติ: ${sumCashWorkNew} บาท`);
-            console.log(`🔄 - เงินพิเศษที่คิดประกันสังคม (ใหม่): ${totalAddSalaryNew} บาท`);
-            console.log(`🔄 - เงินวันหยุดนักขัติฤกษ์: ${cashSpecialDayNew} บาท`);
+            console.log(`🔄 - เงิน OT: ${sumCashOtNew} บาท`);
+            console.log(`🔄 - เงินพิเศษที่คิดประกันสังคม (totalAddSalary): ${totalAddSalaryNew} บาท`);
             console.log(`🔄 - เงินวันหยุดกำหนดเอง: ${cashcustomizeDayoffNew} บาท`);
-            console.log(`🔄 - เงินวันหยุดนักขัติฤกษ์ (public): ${cashPublicHolidayNew} บาท`);
-            console.log(`🔄 - รวมรายได้ที่คิดประกันสังคม (ใหม่): ${totalIncomeForSocialSecurityNew} บาท`);
+            console.log(`🔄 - เงินวันหยุดนักขัติฤกษ์: ${publicHolidayCashNew} บาท`);
+            console.log(`🔄 - รวมรายได้ที่คิดประกันสังคม: ${totalIncomeForSocialSecurityNew} บาท`);
             
             // คำนวณประกันสังคมใหม่
             const socialSecurityRateNew = 0.05;
@@ -5193,7 +5194,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
             }
             
             console.log(`🔄 - คำนวณประกันสังคม: ${totalIncomeForSocialSecurityNew} × 0.05 = ${socialSecurityAmountNew} บาท`);
-            console.log(`🔄 - ประกันสังคมสุดท้าย (ใหม่): ${finalSocialSecurityNew} บาท`);
+            console.log(`🔄 - ประกันสังคมสุดท้าย: ${finalSocialSecurityNew} บาท`);
             
             // อัปเดตค่าประกันสังคมใหม่
             updateData.socialSecurity = String(finalSocialSecurityNew);
