@@ -99,6 +99,7 @@ typeOfemployee: String,
 sumSocialSecurity: String,
 sumTax: String,
 sumFund: String,
+specialShiftTotalSalary:String,
 
 addSalaryList: [
   {
