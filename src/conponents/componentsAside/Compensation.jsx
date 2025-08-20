@@ -1049,7 +1049,7 @@ function Compensation() {
   // const monthTest = "09"; // Assuming "09" represents September
   const commonNumbers123 = new Set();
 
-  if (workplace) {
+  if (workplace && workplace.daysOff && Array.isArray(workplace.daysOff)) {
     const matchingDays = workplace.daysOff.filter((date) => {
       const dateObj = new Date(date);
       return (dateObj.getMonth() + 1).toString().padStart(2, "0") === month; // +1 because getMonth() returns zero-based month index
@@ -1078,7 +1078,7 @@ function Compensation() {
       commonNumbers123.add(day); // Add filtered day numbers back to commonNumbers123_2nd
     });
   } else {
-    console.error("Workplace not found");
+    // console.log("Workplace not found or daysOff is not available for workplaceId:", workplaceIdEMP);
   }
 
   const commonNumbers123_2nd = new Set();
@@ -1805,7 +1805,10 @@ function Compensation() {
         const isMonthlyEmployee = record.isMonthlyEmployee;
         const employeeSalary = parseFloat(record.salary) || 0;
         
-        if (isMonthlyEmployee && employeeSalary > 1680) {
+        if (record.shift === 'specialt_shift') {
+          // สำหรับกะพิเศษ ใช้ specialtSalary
+          acc.cashWork += parseFloat(record.specialtSalary) || 0;
+        } else if (isMonthlyEmployee && employeeSalary > 1680) {
           // สำหรับพนักงานเงินเดือน ใช้ salary/30
           acc.cashWork += employeeSalary / 30 || 0;
           
@@ -1841,6 +1844,9 @@ function Compensation() {
           
           const dayPerHourOt = dayPerHour * otRate;
           acc.cashOt += dayPerHourOt * totalOtTime || 0;
+        } else if (record.shift === 'specialt_shift') {
+          // สำหรับกะพิเศษที่ไม่ใช่พนักงานเงินเดือน ใช้ specialtSalaryOT
+          acc.cashOt += parseFloat(record.specialtSalaryOT) || 0;
         } else {
           // สำหรับพนักงานรายวัน ใช้ cashWork และ cashOt ปกติ
           acc.cashWork += parseFloat(record.cashWork) || 0;
@@ -2248,8 +2254,14 @@ const handleSave_back = (index, subIndex, idx) => {
                                 
                                 // Format cash fields to 2 decimal places และคำนวณสำหรับพนักงานเงินเดือน
                                 if (field === 'cashBeforeOt' || field === 'cashWork' || field === 'cashOt') {
-                                  // ตรวจสอบประเภทพนักงานก่อน format (เฉพาะเมื่อไม่มีการแก้ไข)
-                                  if (isMonthlyEmployee && employeeSalary > 1680) {
+                                  // เช็คกะพิเศษก่อน
+                                  if (field === 'cashWork' && matchedRecord.shift === 'specialt_shift') {
+                                    // ถ้าเป็นกะพิเศษ ให้ใช้ specialtSalary
+                                    displayValue = parseFloat(matchedRecord.specialtSalary || 0).toFixed(2);
+                                  } else if (field === 'cashOt' && matchedRecord.shift === 'specialt_shift') {
+                                    // ถ้าเป็นกะพิเศษ ให้ใช้ specialtSalaryOT
+                                    displayValue = parseFloat(matchedRecord.specialtSalaryOT || 0).toFixed(2);
+                                  } else if (isMonthlyEmployee && employeeSalary > 1680) {
                                     if (field === 'cashWork') {
                                       // สำหรับพนักงานเงินเดือน แสดง salary/30
                                       displayValue = (employeeSalary / 30).toFixed(2);
@@ -2324,31 +2336,34 @@ const handleSave_back = (index, subIndex, idx) => {
 
                           {/* เงินเพิ่ม (Show sum or detailed list) */}
                           <th className="fw-normal">
-                          {isEditing ? (
-  <div>
-    <p>รายการเงินเพิ่ม</p>
-    <ul style={{ listStyleType: "none", padding: 0, margin: 0 }}>
-      {(editedData[`${index}-${subIndex}-${idx}_addSalaryDaily_table`] || []).map((addSalaryDay, salaryIndex) => (
-        <li key={salaryIndex} style={{ marginBottom: "10px" }}>
-          {addSalaryDay.name} {addSalaryDay.SpSalary} บาท
-          <button
-            type="button"
-            className="btn btn-danger btn-sm w-75"
-            onClick={() => handleDeleteSalary(index, subIndex, idx, salaryIndex)}
-          >
-            <i class="bi bi-trash3"></i>
-          </button>
-        </li>
-      ))}
-    </ul>
-  </div>
-) : (
-  matchedRecord.addSalaryDaily.reduce(
-    (sum, salary) => sum + parseFloat(salary.SpSalary || 0),
-    0
-  ) + " บาท"
-)}
-
+                          {matchedRecord.shift === 'specialt_shift' ? (
+                            <span>รวมแล้ว</span>
+                          ) : (
+                            isEditing ? (
+                              <div>
+                                <p>รายการเงินเพิ่ม</p>
+                                <ul style={{ listStyleType: "none", padding: 0, margin: 0 }}>
+                                  {(editedData[`${index}-${subIndex}-${idx}_addSalaryDaily_table`] || []).map((addSalaryDay, salaryIndex) => (
+                                    <li key={salaryIndex} style={{ marginBottom: "10px" }}>
+                                      {addSalaryDay.name} {addSalaryDay.SpSalary} บาท
+                                      <button
+                                        type="button"
+                                        className="btn btn-danger btn-sm w-75"
+                                        onClick={() => handleDeleteSalary(index, subIndex, idx, salaryIndex)}
+                                      >
+                                        <i class="bi bi-trash3"></i>
+                                      </button>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            ) : (
+                              matchedRecord.addSalaryDaily.reduce(
+                                (sum, salary) => sum + parseFloat(salary.SpSalary || 0),
+                                0
+                              ) + " บาท"
+                            )
+                          )}
                           </th>
 
                           {/* แก้ไข / บันทึก */}

@@ -138,7 +138,7 @@ function Dashboard() {
 
 // รายการปุ่มในแดชบอร์ด
 const dashboardItems = [
-  { to: "/addsettime", icon: "fas fa-business-time", text: "ระบบลงเวลา", color: "#ff6c60" },
+  { to: "/addsettimeauto", icon: "fas fa-business-time", text: "ระบบลงเวลาอัตโมมัติ", color: "#ff6c60" },
   { to: "/addEdit_Employee", icon: "fas fa-people-arrows", text: "เพิ่ม/ลบ พนักงาน", color: "#9DBAEA" },
   { to: "/addEdit_SalaryEmployee", icon: "fas fa-money-bill-wave", text: "เงินเพิ่ม/เงินหัก", color: "#A2B4D2" },
   { to: "#", icon: "fas fa-file-invoice-dollar", text: "ระบบเงินเดือน", color: "#58c9f3" },

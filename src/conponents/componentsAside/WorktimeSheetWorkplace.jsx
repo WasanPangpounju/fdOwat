@@ -22,6 +22,7 @@ import en from "date-fns/locale/en-US";
 
 import DatePicker from "react-datepicker";
 import * as XLSX from 'xlsx';
+import { is } from "date-fns/locale";
 
 
 function WorktimeSheetWorkplace({ employeeList }) {
@@ -8150,7 +8151,30 @@ const socialSecurityColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount;
         empRow1.push(''); // หมายเหตุ
           // Row 2: Night shift data (ดึก) - Use same values as web table
           const empRow2 = ['', 'ดึก'];
-          dayNumbers.forEach(() => empRow2.push(''));
+          dayNumbers.forEach(day => {
+            // 🆕 ตรวจสอบการลาเหมือนกับแถวเช้า
+            const isSickLeave = record?.addSalaryList?.some(salaryItem => {
+              // เช็คเฉพาะ welfare ที่เป็นการลาป่วย หรือ ลาพักร้อน
+              if (salaryItem.welfareType === "ลาป่วย" || 
+                  salaryItem.welfareType === "ลาคลอด" ||
+                  salaryItem.name?.includes("ลาป่วย") || 
+                  salaryItem.name?.includes("ป่วย") ||
+                  salaryItem.name?.includes("ลาพักร้อน") ||
+                  salaryItem.name?.includes("ชดเชย")) {
+                
+                // แปลง date string เป็น array ของวันที่
+                const dates = salaryItem.date ? salaryItem.date.split(',').map(d => d.trim()) : [];
+                const currentDay = parseInt(day);
+                
+                const isMatch = dates.some(dateStr => parseInt(dateStr) === currentDay);
+                return isMatch;
+              }
+              return false;
+            });
+            
+            // empRow2 (ดึก) ไม่แสดงสัญลักษณ์การลา
+            empRow2.push(''); // ช่องว่าง
+          });
           
           // Use exact same calculations as the web table to ensure consistency
           empRow2.push(formatNumberWithComma(record.sumCashWork) || '');                    // เงินวันทำงาน
@@ -8253,34 +8277,97 @@ for (let i = 0; i < remainingCols4; i++) {
     empRow4.push('');
 }
           
-          // Row 5: OT 3 data
+          // Row 5: OT 3 data + การลา
           const empRow5 = ['', 'โอที3'];
           dayNumbers.forEach(day => {
             const found = record?.employee_record?.find(itemx => itemx.date === day);
             
-            // ตรวจสอบว่าเป็นพนักงานข้ามหน่วยงานหรือไม่
-            const isCrossWorkplaceEmployee = record?.isCrossWorkplace || false;
-            const recordWorkplaceId = found?.workplaceId;
-            const isMatchSearchWorkplace = recordWorkplaceId === searchWorkplaceId;
+            // 🆕 ตรวจสอบการลาก่อน
+            const isSickLeave = record?.addSalaryList?.some(salaryItem => {
+              // เช็คเฉพาะ welfare ที่เป็นการลาป่วย หรือ ลาพักร้อน
+              if (salaryItem.welfareType === "ลาป่วย" || 
+                  salaryItem.welfareType === "ลาคลอด" ||
+                  salaryItem.name?.includes("ลาป่วย") || 
+                  salaryItem.name?.includes("ป่วย") ||
+                  salaryItem.name?.includes("ลาพักร้อน") ||
+                  salaryItem.name?.includes("ชดเชย")) {
+                
+                // แปลง date string เป็น array ของวันที่
+                const dates = salaryItem.date ? salaryItem.date.split(',').map(d => d.trim()) : [];
+                const currentDay = parseInt(day);
+                
+                const isMatch = dates.some(dateStr => parseInt(dateStr) === currentDay);
+                return isMatch;
+              }
+              return false;
+            });
             
-            // กำหนดเงื่อนไขการแสดงผล
-            let shouldShowData = false;
-            if (isCrossWorkplaceEmployee) {
-              // พนักงานข้ามหน่วยงาน: แสดงเฉพาะวันที่มาทำงานที่หน่วยงานที่เลือก
-              shouldShowData = found && isMatchSearchWorkplace && found?.dayType === "stop" && found?.cashOtMul?.trim() && found.cashOtMul === "3";
+            // ถ้าเป็นวันลา ให้แสดงสัญลักษณ์การลา
+            if (isSickLeave) {
+              // หาข้อมูลการลาที่ตรงกับวันนี้
+              const sickLeaveItem = record?.addSalaryList?.find(salaryItem => {
+                if (salaryItem.welfareType === "ลาป่วย" || 
+                    salaryItem.welfareType === "ลาคลอด" ||
+                    salaryItem.name?.includes("ลาป่วย") || 
+                    salaryItem.name?.includes("ป่วย") ||
+                    salaryItem.name?.includes("ลาพักร้อน") ||
+                    salaryItem.name?.includes("ชดเชย")) {
+                  
+                  const dates = salaryItem.date ? salaryItem.date.split(',').map(d => d.trim()) : [];
+                  const currentDay = parseInt(day);
+                  return dates.some(dateStr => parseInt(dateStr) === currentDay);
+                }
+                return false;
+              });
+              
+              // กำหนดตัวย่อตามชื่อการลา
+              if (sickLeaveItem) {
+                const leaveName = sickLeaveItem.name || sickLeaveItem.welfareType || '';
+                
+                if (leaveName.includes("ลาพักร้อน") || leaveName.includes("ชดเชย")) {
+                  empRow5.push('พร'); // พักร้อน
+                } else if (leaveName.includes("ลาป่วย") || leaveName.includes("ป่วย")) {
+                  empRow5.push('ป'); // ป่วย
+                } else if (leaveName.includes("ลาคลอด") || leaveName.includes("คลอด")) {
+                  empRow5.push('ค'); // คลอด
+                } else if (leaveName.includes("ลากิจ") || leaveName.includes("กิจ")) {
+                  empRow5.push('ก'); // กิจ
+                } else if (leaveName.includes("ลาบวช")) {
+                  empRow5.push('บ'); // บวช
+                } else if (leaveName.includes("ลาทหาร")) {
+                  empRow5.push('ท'); // ทหาร
+                } else {
+                  empRow5.push('ล'); // การลาทั่วไป
+                }
+              } else {
+                empRow5.push('ล'); // fallback
+              }
             } else {
-              // พนักงานปกติ: แสดงทุกวันที่มีข้อมูล
-              shouldShowData = found?.dayType === "stop" && found?.cashOtMul?.trim() && found.cashOtMul === "3";
-            }
-            
-            if (shouldShowData) {
-              // รวม beforeTotalOtTime และ totalOtTime แทนการ join
-              const beforeTime = found.beforeTotalOtTime ? parseFloat(found.beforeTotalOtTime) : 0;
-              const totalTime = found.totalOtTime ? parseFloat(found.totalOtTime) : 0;
-              const summedTime = beforeTime + totalTime;
-              empRow5.push(summedTime > 0 ? formatTimeValueForExcel(summedTime) : '');
-            } else {
-              empRow5.push('');
+              // ไม่ใช่วันลา ตรวจสอบข้อมูล OT 3 ตามปกติ
+              // ตรวจสอบว่าเป็นพนักงานข้ามหน่วยงานหรือไม่
+              const isCrossWorkplaceEmployee = record?.isCrossWorkplace || false;
+              const recordWorkplaceId = found?.workplaceId;
+              const isMatchSearchWorkplace = recordWorkplaceId === searchWorkplaceId;
+              
+              // กำหนดเงื่อนไขการแสดงผล
+              let shouldShowData = false;
+              if (isCrossWorkplaceEmployee) {
+                // พนักงานข้ามหน่วยงาน: แสดงเฉพาะวันที่มาทำงานที่หน่วยงานที่เลือก
+                shouldShowData = found && isMatchSearchWorkplace && found?.dayType === "stop" && found?.cashOtMul?.trim() && found.cashOtMul === "3";
+              } else {
+                // พนักงานปกติ: แสดงทุกวันที่มีข้อมูล
+                shouldShowData = found?.dayType === "stop" && found?.cashOtMul?.trim() && found.cashOtMul === "3";
+              }
+              
+              if (shouldShowData) {
+                // รวม beforeTotalOtTime และ totalOtTime แทนการ join
+                const beforeTime = found.beforeTotalOtTime ? parseFloat(found.beforeTotalOtTime) : 0;
+                const totalTime = found.totalOtTime ? parseFloat(found.totalOtTime) : 0;
+                const summedTime = beforeTime + totalTime;
+                empRow5.push(summedTime > 0 ? formatTimeValueForExcel(summedTime) : '');
+              } else {
+                empRow5.push('');
+              }
             }
           });
           
@@ -8399,26 +8486,59 @@ for (let colIdx = 1; colIdx <= actualTotalColumns; colIdx++) {
               const hasOT2 = ot2Value && ot2Value !== '' && ot2Value !== null && ot2Value !== undefined;
               const hasOT3 = ot3Value && ot3Value !== '' && ot3Value !== null && ot3Value !== undefined;
               
-              // Apply specific styling based on row type and cell content
-              if (specialIndividual) {
-                // วันที่อยู่ใน specialt_shift หรือ stopDaysList - สีม่วง (มีความสำคัญสูงสุด)
+              // 🆕 เพิ่มการตรวจสอบการลา (เหมือนกับ HTML table)
+              const isSickLeave = record?.addSalaryList?.some(salaryItem => {
+                // เช็คเฉพาะ welfare ที่เป็นการลาป่วย หรือ ลาพักร้อน
+                if (salaryItem.welfareType === "ลาป่วย" || 
+                    salaryItem.welfareType === "ลาคลอด" ||
+                    salaryItem.name?.includes("ลาป่วย") || 
+                    salaryItem.name?.includes("ป่วย") ||
+                    salaryItem.name?.includes("ลาพักร้อน") ||
+                    salaryItem.name?.includes("ชดเชย")) {
+                  
+                  // แปลง date string เป็น array ของวันที่
+                  const dates = salaryItem.date ? salaryItem.date.split(',').map(d => d.trim()) : [];
+                  const currentDay = parseInt(day);
+                  
+                  const isMatch = dates.some(dateStr => parseInt(dateStr) === currentDay);
+                  return isMatch;
+                }
+                return false;
+              });
+              
+              // Apply specific styling based on row type and cell content (ใช้ลำดับความสำคัญเหมือน HTML)
+              if (isSickLeave) {
+                // 🖤 วันลา - สีฟ้าอ่อน (ความสำคัญสูงสุด)
                 cell.fill = {
                   type: 'pattern',
                   pattern: 'solid',
-                  fgColor: { argb: 'FFD1C4E9' } // สีม่วง #d1c4e9
+                  fgColor: { argb: 'FFC5EAEB' } // สีฟ้าอ่อน #c5eaebff
                 };
                 cell.font = {
                   bold: false,
-                  size: rowIdx <= 1 ? 14 : 9, // เช้า/ดึก ใช้ฟอนต์ 14, OT ใช้ฟอนต์ 9
+                  size: rowIdx <= 1 ? 14 : 9,
                   color: { argb: 'FF000000' } // ตัวอักษรสีดำ
                 };
-                console.log(`Applied purple to special individual cell in ${rowNames[rowIdx]} row, day ${day} (${actualRowNumber}, ${colNumber})`);
-              } else if (isPersonalDayOff) {
-                // วันหยุดส่วนบุคคล - สีเขียว
+                console.log(`Applied sick leave color to cell in ${rowNames[rowIdx]} row, day ${day} (${actualRowNumber}, ${colNumber})`);
+              } else if (specialIndividual) {
+                // � วันหยุดพิเศษ - สีเทาพื้นหลังและตัวอักษรสีแดง (ความสำคัญรองลงมา)
                 cell.fill = {
                   type: 'pattern',
                   pattern: 'solid',
-                  fgColor: { argb: 'FF90EE90' } // สีเขียวอ่อน
+                  fgColor: { argb: 'FF9E9E9E' } // สีเทา #9e9e9e
+                };
+                cell.font = {
+                  bold: false,
+                  size: rowIdx <= 1 ? 14 : 9,
+                  color: { argb: 'FFFF0000' } // ตัวอักษรสีแดง
+                };
+                console.log(`Applied gray background with red text to special individual cell in ${rowNames[rowIdx]} row, day ${day} (${actualRowNumber}, ${colNumber})`);
+              } else if (isPersonalDayOff) {
+                // 🟢 วันหยุดส่วนบุคคล - สีเขียว
+                cell.fill = {
+                  type: 'pattern',
+                  pattern: 'solid',
+                  fgColor: { argb: 'FF00FF00' } // สีเขียว #00ff00
                 };
                 cell.font = {
                   bold: false,
@@ -8426,7 +8546,7 @@ for (let colIdx = 1; colIdx <= actualTotalColumns; colIdx++) {
                   color: { argb: 'FF000000' }
                 };
                 console.log(`Applied green to personal day off cell in ${rowNames[rowIdx]} row, day ${day} (${actualRowNumber}, ${colNumber})`);
-              } else if (rowIdx === 3) { // โอที 2 (empRow4)
+              } else if (rowIdx === 3) { // โอที 2 (empRow4) - ตรวจสอบก่อนวันหยุดหน่วยงาน
                 if (cellValue && cellValue !== '' && cellValue !== null && cellValue !== undefined) {
                   // โอที 2 มีค่า - สีเหลือง
                   cell.fill = {
@@ -8440,67 +8560,39 @@ for (let colIdx = 1; colIdx <= actualTotalColumns; colIdx++) {
                     color: { argb: 'FF000000' } // ตัวอักษรสีดำ
                   };
                   console.log(`Applied yellow to OT2 cell with value: ${cellValue} in ${rowNames[rowIdx]} row, day ${day} (${actualRowNumber}, ${colNumber})`);
+                } else if (isDayoffWorkplace || isDayOffOnly) {
+                  // โอที 2 ไม่มีค่า แต่เป็นวันหยุดหน่วยงาน - สีเทา
+                  cell.fill = {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FFFAE0F1' } // ชมพู #FAE0F1
+                  };
+                  cell.font = {
+                    bold: false,
+                    size: 9,
+                    color: { argb: 'FF000000' }
+                  };
+                  console.log(`Applied gray to OT2 holiday cell in ${rowNames[rowIdx]} row, day ${day} (${actualRowNumber}, ${colNumber})`);
                 } else {
-                  // โอที 2 ไม่มีค่า - ตรวจสอบว่าเป็นวันหยุดหรือขาดงานหรือไม่
-                  if (isDayoffWorkplace || isDayOffOnly || !isAbsent) {
-                    // วันหยุดหรือขาดงาน - สีเทา
-                    cell.fill = {
-                      type: 'pattern',
-                      pattern: 'solid',
-                      fgColor: { argb: 'FF9E9E9E' } // สีเทา
-                    };
-                    console.log(`Applied gray to empty OT2 cell - Holiday or absent in ${rowNames[rowIdx]} row, day ${day} (${actualRowNumber}, ${colNumber})`);
-                  } else {
-                    // ไม่ใช่วันหยุดและไม่ขาดงาน - สีขาว
-                    cell.fill = {
-                      type: 'pattern',
-                      pattern: 'solid',
-                      fgColor: { argb: 'FFFFFFFF' } // สีขาว
-                    };
-                  }
+                  // โอที 2 ไม่มีค่า และไม่ใช่วันหยุด - สีขาว (วันปกติ)
+                  cell.fill = {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FFFFFFFF' } // สีขาว
+                  };
                   cell.font = {
                     bold: false,
                     size: 9,
                     color: { argb: 'FF000000' } // ตัวอักษรสีดำ
                   };
                 }
-              } else if (rowIdx === 1) { // แถวดึก (empRow2) - กรณีพิเศษ
-                if (isDayOffOnly) {
-                  // วันหยุดนักขัตฤกษ์ในแถวดึก - สีขาว 
-                  cell.fill = {
-                    type: 'pattern',
-                    pattern: 'solid',
-                    fgColor: { argb: 'FFFFFFFF' } // สีขาว
-                  };
-                  console.log(`Applied white to day off only in night shift row, day ${day} (${actualRowNumber}, ${colNumber})`);
-                } else if (isDayoffWorkplace || !isAbsent) {
-                  // วันหยุดอื่นๆ ในแถวดึก - สีเทา
-                  cell.fill = {
-                    type: 'pattern',
-                    pattern: 'solid',
-                    fgColor: { argb: 'FF9E9E9E' } // สีเทา
-                  };
-                  console.log(`Applied gray to holiday/absent cell in night shift row, day ${day} (${actualRowNumber}, ${colNumber})`);
-                } else {
-                  // วันทำงานปกติในแถวดึก - สีขาว
-                  cell.fill = {
-                    type: 'pattern',
-                    pattern: 'solid',
-                    fgColor: { argb: 'FFFFFFFF' } // สีขาว
-                  };
-                }
-                cell.font = {
-                  bold: false,
-                  size: 14,
-                  color: { argb: 'FF000000' }
-                };
-              } else if (rowIdx === 4) { // โอที 3 (empRow5)
+              } else if (rowIdx === 4) { // โอที 3 (empRow5) - ตรวจสอบก่อนวันหยุดหน่วยงาน
                 if (cellValue && cellValue !== '' && cellValue !== null && cellValue !== undefined) {
-                  // โอที 3 มีค่า - สี #fae0f1
+                  // โอที 3 มีค่า - สีชมพู
                   cell.fill = {
                     type: 'pattern',
                     pattern: 'solid',
-                    fgColor: { argb: 'FFFAE0F1' } // สี #fae0f1
+                    fgColor: { argb: 'FFFAE0F1' } // สีชมพู
                   };
                   cell.font = {
                     bold: false,
@@ -8508,48 +8600,21 @@ for (let colIdx = 1; colIdx <= actualTotalColumns; colIdx++) {
                     color: { argb: 'FF000000' } // ตัวอักษรสีดำ
                   };
                   console.log(`Applied pink to OT3 cell with value: ${cellValue} in ${rowNames[rowIdx]} row, day ${day} (${actualRowNumber}, ${colNumber})`);
-                } else {
-                  // โอที 3 ไม่มีค่า - ตรวจสอบว่าเป็นวันหยุดหรือขาดงานหรือไม่
-                  if (isDayoffWorkplace || isDayOffOnly || !isAbsent) {
-                    // วันหยุดหรือขาดงาน - สีเทา
-                    cell.fill = {
-                      type: 'pattern',
-                      pattern: 'solid',
-                      fgColor: { argb: 'FF9E9E9E' } // สีเทา
-                    };
-                    console.log(`Applied gray to empty OT3 cell - Holiday or absent in ${rowNames[rowIdx]} row, day ${day} (${actualRowNumber}, ${colNumber})`);
-                  } else {
-                    // ไม่ใช่วันหยุดและไม่ขาดงาน - สีขาว
-                    cell.fill = {
-                      type: 'pattern',
-                      pattern: 'solid',
-                      fgColor: { argb: 'FFFFFFFF' } // สีขาว
-                    };
-                  }
+                } else if (isDayoffWorkplace || isDayOffOnly) {
+                  // โอที 3 ไม่มีค่า แต่เป็นวันหยุดหน่วยงาน - สีเทา
+                  cell.fill = {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FF9E9E9E' } // สีเทา #9e9e9e
+                  };
                   cell.font = {
                     bold: false,
                     size: 9,
-                    color: { argb: 'FF000000' } // ตัวอักษรสีดำ
+                    color: { argb: 'FF000000' }
                   };
-                }
-              } else {
-  // แถวอื่นๆ (เช้า, โอที 1.5) 
-  // ถ้าเป็นวันหยุดหรือขาดงาน และไม่มีโอที 2 หรือ โอที 3 ในวันนี้ ให้ระบายสีเทา
-  if ((isDayoffWorkplace || isDayOffOnly || !isAbsent) && !hasOT2 && !hasOT3) {
-    // วันหยุดหรือขาดงาน และไม่มีโอที 2 หรือ โอที 3 - สีเทา
-    cell.fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'FF9E9E9E' } // สีเทา
-    };
-                  cell.font = {
-                    bold: false,
-                    size: rowIdx === 0 ? 14 : 9, // แถวเช้าใช้ฟอนต์ 14, โอที 1.5 ใช้ฟอนต์ 9
-                    color: { argb: 'FF000000' } // ตัวอักษรสีดำ
-                  };
-                  console.log(`Applied gray to holiday/absent cell: ${rowNames[rowIdx]} row, day ${day} (${actualRowNumber}, ${colNumber})`);
+                  console.log(`Applied gray to OT3 holiday cell in ${rowNames[rowIdx]} row, day ${day} (${actualRowNumber}, ${colNumber})`);
                 } else {
-                  // ไม่ใช่วันหยุดและไม่ขาดงาน - สีขาว
+                  // โอที 3 ไม่มีค่า และไม่ใช่วันหยุด - สีขาว (วันปกติ)
                   cell.fill = {
                     type: 'pattern',
                     pattern: 'solid',
@@ -8557,10 +8622,36 @@ for (let colIdx = 1; colIdx <= actualTotalColumns; colIdx++) {
                   };
                   cell.font = {
                     bold: false,
-                    size: rowIdx === 0 ? 14 : 9,
+                    size: 9,
                     color: { argb: 'FF000000' } // ตัวอักษรสีดำ
                   };
                 }
+              } else if (isDayoffWorkplace || isDayOffOnly) {
+                // 🔵 วันหยุดหน่วยงาน - สีเทา (สำหรับแถวอื่นๆ)
+                cell.fill = {
+                  type: 'pattern',
+                  pattern: 'solid',
+                  fgColor: { argb: '' } // สีเทา #9e9e9e
+                };
+                cell.font = {
+                  bold: false,
+                  size: rowIdx <= 1 ? 14 : 9,
+                  color: { argb: 'FF000000' }
+                };
+                console.log(`Applied gray to holiday cell in ${rowNames[rowIdx]} row, day ${day} (${actualRowNumber}, ${colNumber})`);
+              } else {
+                // ⚪ วันปกติ - สีขาว (default)
+                cell.fill = {
+                  type: 'pattern',
+                  pattern: 'solid',
+                  fgColor: { argb: 'FFFFFFFF' } // สีขาว
+                };
+                cell.font = {
+                  bold: false,
+                  size: rowIdx <= 1 ? 14 : 9,
+                  color: { argb: 'FF000000' }
+                };
+                console.log(`Applied white to normal day cell in ${rowNames[rowIdx]} row, day ${day} (${actualRowNumber}, ${colNumber})`);
               }
             });
           });
@@ -9045,209 +9136,6 @@ for (let i = 0; i < remainingColsOt3; i++) {
       // เพิ่มตารางข้อมูลเพิ่มเติมในหน้าสุดท้าย (แยกจากตารางหลัก)
       console.log('📋 Adding additional information table for last page...');
       
-      // เพิ่มแถวว่าง 3 แถวเพื่อแยกจากตารางหลัก
-//       worksheet.addRow([]);
-//       worksheet.addRow([]);
-//       worksheet.addRow([]);
-      
-//       // สร้างตารางข้อมูลเพิ่มเติมแบบสวยงาม (กว้าง 7 คอลัมน์)
-//       // ดึงข้อมูลจาก API
-//       let managementData = 'พนง 2 คน'; // ค่าเริ่มต้น
-//       let workTimeData = 'เวลาดด'; // ค่าเริ่มต้น
-//       let workDaysData = 'จันทร์ - เสาร์'; // ค่าเริ่มต้น
-//       let holidayData = 'หยุดอาทิตย์และวันพักผ่อน'; // ค่าเริ่มต้น
-//       let oldSalaryData = 'ค่าแรง 331 บาท โอทีวันละ 1 ชม X 62 = 62.0625 บาท'; // ค่าเริ่มต้น
-//       let newSalaryData = 'ค่าแรง 372 บาท/วัน โอทีวันละ 1.5 ชม./วัน=104.625 บาท'; // ค่าเริ่มต้น
-//       let welfareData = 'พักร้อน 6 วัน/ปี ต้องทำงานครบ 1 ปีก่อน จ่ายปรมาแล้วตัดกษณี'; // ค่าเริ่มต้น
-//       let importantNote1 = 'ข้องของการค้ำประวัดค่าจ้าง/ขอกิจการ/โอที.5ก่าง 21ก่า 3เก่าอยู่การปรับอบ้นการบันทึกของ่ายได้'; // ค่าเริ่มต้น
-//       let importantNote2 = 'เพื่อให้เป็นไปตามข้อตกลงของทหยวยสหกันนุร และเพื่อให้การจ่ายค่าจ้างตรงได้เรดตอรงข้างใดระดบอยลาง'; // ค่าเริ่มต้น
-      
-//       // เรียก API เพื่อดึงข้อมูลหน่วยงาน
-//       try {
-//         console.log('🌐 Fetching workplace information from API...');
-//         console.log('📍 Workplace ID:', searchWorkplaceId);
-        
-//         if (!searchWorkplaceId) {
-//           console.warn('⚠️ No workplace ID provided, using default values');
-//         } else {
-//           const response = await fetch(`${endpoint}/workplace/${searchWorkplaceId}`);
-//           if (response.ok) {
-//             const workplaceInfo = await response.json();
-//             console.log('✅ API Response:', workplaceInfo);
-            
-//             // อัพเดตข้อมูลจาก API (ปรับตามโครงสร้างข้อมูลที่ได้จาก API)
-//             if (workplaceInfo) {
-//               // ข้อมูลการบริหารจัดการจาก workTimeDayPerson
-//               if (workplaceInfo.workTimeDayPerson && workplaceInfo.workTimeDayPerson.length > 0) {
-//                 const personData = workplaceInfo.workTimeDayPerson[0]; // เอาข้อมูลตัวแรก
-                
-//                 if (personData.allTimesPerson && personData.allTimesPerson.length > 0) {
-//                   // รวมจำนวนคนทั้งหมด
-//                   const totalPerson = personData.allTimesPerson.reduce((total, person) => {
-//                     return total + parseInt(person.countPerson || 0);
-//                   }, 0);
-                  
-//                   managementData = `พนง ${totalPerson} คน`;
-                  
-//                   // สร้างรายละเอียดตำแหน่งงาน
-//                   const positionDetails = personData.allTimesPerson.map(person => 
-//                     `${person.positionWork} ${person.countPerson} คน`
-//                   ).join(', ');
-                  
-//                   // เพิ่มรายละเอียดตำแหน่งในข้อมูลการบริหาร
-//                   managementData += ` (${positionDetails})`;
-                  
-//                   console.log('👥 Personnel Data:', personData.allTimesPerson);
-//                   console.log('📊 Total Personnel:', totalPerson);
-//                 }
-//               } else {
-//                 // fallback ถ้าไม่มีข้อมูล workTimeDayPerson
-//                 managementData = workplaceInfo.countEmployee ? `พนง ${workplaceInfo.countEmployee} คน` : managementData;
-//               }
-              
-//               // ข้อมูลเวลาทำงานและวันทำงาน
-//               if (workplaceInfo.workTimeDay && workplaceInfo.workTimeDay.length > 0) {
-//                 // หาข้อมูลวันที่มีการทำงาน (workOrStop = "work")
-//                 const workDays = workplaceInfo.workTimeDay.filter(day => day.workOrStop === "work");
-                
-//                 if (workDays.length > 0) {
-//                   // เอาข้อมูลวันทำงานตัวแรก
-//                   const workTime = workDays[0];
-                  
-//                   // วันทำงาน: วันจันทร์ - เสาร์
-//                   workDaysData = `วัน${workTime.startDay} - ${workTime.endDay}`;
-                  
-//                   // เวลาทำงาน: startTime-endTime
-//                   if (workTime.allTimes && workTime.allTimes.length > 0) {
-//                     const timeSlot = workTime.allTimes[0]; // เอาข้อมูลเวลาตัวแรก
-                    
-//                     if (timeSlot.startTime && timeSlot.endTime) {
-//                       workTimeData = `${workDaysData} เวลา ${timeSlot.startTime}-${timeSlot.endTime}`;
-                      
-//                       // เพิ่มข้อมูล OT ถ้ามี
-//                       if (timeSlot.startTimeOT && timeSlot.endTimeOT) {
-//                         workTimeData += ` (OT: ${timeSlot.startTimeOT}-${timeSlot.endTimeOT})`;
-//                       }
-//                     } else {
-//                       workTimeData = workDaysData; // ถ้าไม่มีเวลา ใช้แค่วันทำงาน
-//                     }
-//                   } else {
-//                     workTimeData = workDaysData; // ถ้าไม่มี allTimes ใช้แค่วันทำงาน
-//                   }
-                  
-//                   console.log('📅 Work Days Found:', workDays.length);
-//                   console.log('🕐 Work Time Data:', workTimeData);
-//                 } else {
-//                   console.warn('⚠️ No work days found (workOrStop = "work")');
-//                 }
-//               }
-              
-//               // ข้อมูลอื่นๆ
-//               holidayData = workplaceInfo.holiday || workplaceInfo.holidays || holidayData;
-//               oldSalaryData = workplaceInfo.oldSalary || workplaceInfo.old_salary || oldSalaryData;
-//               newSalaryData = workplaceInfo.newSalary || workplaceInfo.new_salary || newSalaryData;
-//               welfareData = workplaceInfo.welfare || workplaceInfo.benefits || welfareData;
-//               importantNote1 = workplaceInfo.importantNote1 || workplaceInfo.important_note_1 || importantNote1;
-//               importantNote2 = workplaceInfo.importantNote2 || workplaceInfo.important_note_2 || importantNote2;
-              
-//               console.log('📋 Processed data:');
-//               console.log('- Management:', managementData);
-//               console.log('- Work Days:', workDaysData);
-//               console.log('- Work Time:', workTimeData);
-//             }
-//           } else {
-//             console.warn('⚠️ API call failed, using default values');
-//           }
-//         }
-//       } catch (error) {
-//         console.error('❌ Error fetching workplace info:', error);
-//         console.log('📋 Using default values for workplace information');
-//       }
-      
-//       const infoTable = [
-//         ['รายการ', '', 'รายละเอียด', '', '', '', ''],
-//         ['การบริหารจัดการ', '', managementData, '', '', '', ''],
-//         ['เวลาปฏิบัติงาน', '', workTimeData, '', '', '', ''],
-//         ['วันทำงาน', '', workDaysData, '', '', '', ''],
-//         ['วันหยุด', '', holidayData, '', '', '', ''],
-//         ['ค่าแรง 1/1/63', '', oldSalaryData, '', '', '', ''],
-//         ['ค่าแรงใหม่เริ่ม 1/1/68', '', newSalaryData, '', '', '', ''],
-//         ['สวัสดิการ', '', welfareData, '', '', '', ''],
-//         ['หมายเหตุสำคัญ', '', importantNote1, '', '', '', ''],
-//         ['', '', importantNote2, '', '', '', '']
-//       ];
-      
-//       // เพิ่มแถวตารางข้อมูลเพิ่มเติม
-//       const additionalTableRows = [];
-//       infoTable.forEach((rowData, index) => {
-//         const newRow = worksheet.addRow(rowData);
-//         additionalTableRows.push(newRow);
-        
-//         // จัดสไตล์สำหรับแต่ละแถว (7 คอลัมน์)
-//         for (let cellIndex = 1; cellIndex <= 7; cellIndex++) {
-//           const cell = newRow.getCell(cellIndex);
-          
-//           if (index === 0) {
-//             // Header row - สีฟ้า ตัวหนา
-//             cell.font = { bold: true, size: 12, name: 'Angsana New', color: { argb: 'FFFFFFFF' } };
-//             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } };
-//           } else if (index >= 8) {
-//             // หมายเหตุสำคัญ - สีแดง ตัวหนา
-//             cell.font = { bold: true, size: 11, name: 'Angsana New', color: { argb: 'FFFF0000' } };
-//             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFE6E6' } };
-//           } else {
-//             // แถวปกติ - สีเทาอ่อนสลับ
-//             const bgColor = index % 2 === 1 ? 'FFF2F2F2' : 'FFFFFFFF';
-//             if (cellIndex <= 2) {
-//               // คอลัมน์รายการ (A-B) - ตัวหนา
-//               cell.font = { bold: true, size: 11, name: 'Angsana New' };
-//             } else {
-//               // คอลัมน์รายละเอียด (C-G) - ตัวปกติ
-//               cell.font = { size: 11, name: 'Angsana New' };
-//             }
-//             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgColor } };
-//           }
-          
-//           // จัด alignment
-//           cell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
-          
-//           // เพิ่ม border
-//           cell.border = {
-//             top: { style: 'thin' }, bottom: { style: 'thin' },
-//             left: { style: 'thin' }, right: { style: 'thin' }
-//           };
-//         }
-        
-//         // Merge cells สำหรับแต่ละแถว
-//         try {
-//           // Merge รายการ (คอลัมน์ A-B)
-//           const rowNum = newRow.number;
-//           worksheet.mergeCells(`A${rowNum}:B${rowNum}`);
-          
-//           // Merge รายละเอียด (คอลัมน์ C-G)
-//           worksheet.mergeCells(`C${rowNum}:P${rowNum}`);
-//         } catch (mergeError) {
-//           console.warn('Warning: Could not merge cells for row', newRow.number, mergeError.message);
-//         }
-//       });
-      
-//       // ปรับความกว้างคอลัมน์สำหรับตารางข้อมูลเพิ่มเติม (7 คอลัมน์)
-//       worksheet.getColumn(1).width = Math.max(worksheet.getColumn(1).width || 0, 15); // รายการ A
-//       worksheet.getColumn(2).width = Math.max(worksheet.getColumn(2).width || 0, 15); // รายการ B
-//       worksheet.getColumn(3).width = Math.max(worksheet.getColumn(3).width || 0, 20); // รายละเอียด C
-//       worksheet.getColumn(4).width = Math.max(worksheet.getColumn(4).width || 0, 20); // รายละเอียด D
-//       worksheet.getColumn(5).width = Math.max(worksheet.getColumn(5).width || 0, 20); // รายละเอียด E
-//       worksheet.getColumn(6).width = Math.max(worksheet.getColumn(6).width || 0, 20); // รายละเอียด F
-//       worksheet.getColumn(7).width = Math.max(worksheet.getColumn(7).width || 0, 20); // รายละเอียด G
-//       worksheet.getColumn(8).width = Math.max(worksheet.getColumn(8).width || 0, 20); // รายละเอียด H
-//       worksheet.getColumn(9).width = Math.max(worksheet.getColumn(9).width || 0, 20); // รายละเอียด I
-//       worksheet.getColumn(10).width = Math.max(worksheet.getColumn(10).width || 0, 20); // รายละเอียด J
-//       worksheet.getColumn(11).width = Math.max(worksheet.getColumn(11).width || 0, 20); // รายละเอียด K
-//       worksheet.getColumn(12).width = Math.max(worksheet.getColumn(12).width || 0, 20); // รายละเอียด L
-//       worksheet.getColumn(13).width = Math.max(worksheet.getColumn(13).width || 0, 20); // รายละเอียด M
-//       worksheet.getColumn(14).width = Math.max(worksheet.getColumn(14).width || 0, 20); // รายละเอียด N
-//       worksheet.getColumn(15).width = Math.max(worksheet.getColumn(15).width || 0, 20); // รายละเอียด O
-//       worksheet.getColumn(16).width = Math.max(worksheet.getColumn(16).width || 0, 20); // รายละเอียด P
      
 
 // console.log('📏 Setting column widths...');
@@ -9916,6 +9804,9 @@ else if(dataArray.length === 5) {
                     'ค่าน้ำ/ไฟ/โทรศัพท์',
                     'ค่าตำแหน่ง',
                     'เบี้ยขยัน',
+                    'ชดเชยวันลาพักร้อน (ประกันสังคม)',
+                    'ค่ากะ',
+                    'จ่ายลาป่วยมีใบรับรองแพทย์(รับล่วงหน้า)',
                     'จ่ายลาป่วยมีใบแพทย์',
                     'ค่าเดินทาง',
                     'ไม่คิดประกันสังคม',
@@ -10008,9 +9899,10 @@ if (!isSummaryRow2 && colIndex >= 3 && colIndex <= 2 + dayNumbers.length) { // �
                    if (isHoliday) {
   // ตรวจสอบว่าเซลล์มีค่าหรือไม่
   const cellValue = cell.value;
-  const hasValue = cellValue && cellValue !== '' && cellValue !== null && cellValue !== undefined;
+  const hasValue = cellValue  && cellValue !== null && cellValue !== undefined;
   
   // ถ้าเป็นวันหยุดและไม่มีค่า ให้ระบายสีเทา
+  // แต่ถ้ามีค่า (พนักงานมาทำงาน) ไม่ต้องระบายสีเทา
   if (!hasValue) {
     // วันหยุดจาก workplace - สีเทา (rgb(158, 158, 158))
     cell.fill = {
@@ -10019,7 +9911,8 @@ if (!isSummaryRow2 && colIndex >= 3 && colIndex <= 2 + dayNumbers.length) { // �
       fgColor: { argb: 'FF9E9E9E' }
     };
   }
-  // ถ้ามีค่า ไม่ต้องระบายสีเทา (คงสีเดิมไว้)
+  // ถ้ามีค่า (เช่น "1" หรือ "3.0") แสดงว่าพนักงานมาทำงานในวันนักขัตฤกษ์ 
+  // ไม่ต้องระบายสีเทา เพื่อให้เห็นว่ามีคนมาทำงาน
 }
                     } // ปิด if (isInvalidDate) - วันที่ไม่มีอยู่จริงสำหรับแถวข้อมูล
                   }
@@ -11198,6 +11091,46 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
     return stopDayDate === currentDay;
   });
   
+  // ตรวจสอบว่าวันนี้เป็นวันลาป่วยหรือไม่
+  const isSickLeave = record?.addSalaryList?.some(salaryItem => {
+    // Debug เฉพาะวันแรก
+    if (day === dayNumbers[0]) {
+      console.log('🔍 Debug addSalaryList สำหรับ employee:', record.employeeId);
+      console.log('🔍 addSalaryList:', record.addSalaryList);
+    }
+    
+    // เช็คเฉพาะ welfare ที่เป็นการลาป่วย หรือ ลาพักร้อน
+    if (salaryItem.welfareType === "ลาป่วย" || 
+        salaryItem.welfareType === "ลาคลอด" ||
+        salaryItem.name?.includes("ลาป่วย") || 
+        salaryItem.name?.includes("ป่วย") ||
+        salaryItem.name?.includes("ลาพักร้อน") ||
+        salaryItem.name?.includes("ชดเชย")) {
+      
+      // แปลง date string เป็น array ของวันที่
+      const dates = salaryItem.date ? salaryItem.date.split(',').map(d => d.trim()) : [];
+      const currentDay = parseInt(day);
+      
+      // Debug เฉพาะวันแรก
+      if (day === dayNumbers[0]) {
+        console.log('🔍 Found sick/leave item:', salaryItem.name);
+        console.log('🔍 welfareType:', salaryItem.welfareType);
+        console.log('🔍 dates array:', dates);
+        console.log('🔍 current day:', currentDay);
+      }
+      
+      const isMatch = dates.some(dateStr => parseInt(dateStr) === currentDay);
+      
+      // Debug เฉพาะเมื่อมีการตรงกัน
+      if (isMatch) {
+        console.log(`🖤 วันที่ ${day} ตรงกับ ${salaryItem.name} (${salaryItem.welfareType})`);
+      }
+      
+      return isMatch;
+    }
+    return false;
+  });
+  
   // ตรวจสอบวันหยุดจาก dayoffWorkplace API
   const checkDayoffWorkplace = (day, month, year) => {
     const dayNum = parseInt(day);
@@ -11304,6 +11237,22 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
   const getHolidayInfo = (day, month, year) => {
     const targetDateStr = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
     
+    // ตรวจสอบการลาป่วยก่อน
+    if (isSickLeave) {
+      // หาข้อมูลการลาป่วยที่ตรงกับวันนี้
+      const sickLeaveInfo = record?.addSalaryList?.find(salaryItem => {
+        if (salaryItem.welfareType === "ลาป่วย" || 
+            salaryItem.name?.includes("ลาป่วย") || 
+            salaryItem.name?.includes("ป่วย")) {
+          const dates = salaryItem.date ? salaryItem.date.split(',').map(d => d.trim()) : [];
+          const currentDay = parseInt(day);
+          return dates.some(dateStr => parseInt(dateStr) === currentDay);
+        }
+        return false;
+      });
+      return sickLeaveInfo?.name || "ลาป่วย";
+    }
+    
     // ตรวจสอบจาก dayoffWorkplace ก่อน
     if (weekendData && weekendData.dayoffWorkplace && weekendData.dayoffWorkplace.includes(targetDateStr)) {
       return "วันหยุดตามปฏิทินการทำงาน";
@@ -11330,24 +11279,28 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
   
   // กำหนดสีพื้นหลัง
   let backgroundColor = {};
-  
-  if (isSpecialHoliday) {
+  let color = {};
+
+  if (isSickLeave) {
+    backgroundColor = { backgroundColor: "#c5eaebff", color: "black" }; // สีดำสำหรับวันลาป่วย
+    console.log(`🖤 วันที่ ${day} เป็นวันลาป่วย - ระบายสีดำ`);
+  } else if (isSpecialHoliday) {
     console.log(`🟢 วันที่ ${day} เป็นวันหยุดส่วนบุคคล - ระบายสีเขียว`);
   } else if (isDayoffWorkplace || isDayOffOnly) {
     backgroundColor = { backgroundColor: "#9e9e9e" }; // สีเทาสำหรับวันหยุดจาก dayoffWorkplace หรือ dayOffOnly
     if (isDayoffWorkplace) {
       console.log(`🔘 วันที่ ${day} เป็นวันหยุดจาก dayoffWorkplace - ระบายสีเทา`);
+      backgroundColor = { backgroundColor: "#9e9e9e" }; // สีเทาสำหรับวันหยุดจาก dayoffWorkplace
     }
     if (isDayOffOnly) {
       console.log(`🔘 วันที่ ${day} เป็นวันหยุดนักขัตฤกษ์ (dayOffOnly) - ระบายสีเทา`);
     }
   } else if (!isWork ) {
-    backgroundColor = { backgroundColor: "#9e9e9e" };
+    backgroundColor = { backgroundColor: "" };
   }
 
   if(specialIndividual) {
-    backgroundColor = { backgroundColor: "#d1c4e9" }; // สีม่วงสำหรับวันหยุดพิเศษ
-   
+    backgroundColor = { backgroundColor: "#9e9e9e", color: "red" }; // สีเทาพื้นหลังและตัวอักษรสีเหลืองสำหรับวันหยุดพิเศษ
   }
 
   // Debug: แสดงข้อมูล weekendData ทั้งหมด (ทำครั้งเดียวพอ)
@@ -11375,7 +11328,26 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
   // กำหนดค่าที่จะแสดง
   let displayValue = '';
 
-  if (isWork && !isDayoffWorkplace && !isDayOffOnly) { // ไม่แสดงข้อมูลถ้าเป็นวันหยุดจาก dayoffWorkplace หรือ dayOffOnly
+  if (isSickLeave) {
+    // ถ้าเป็นวันลาป่วย ให้แสดงตัวย่อตามประเภทการลา
+    const sickLeaveItem = record?.addSalaryList?.find(salaryItem => {
+      if (salaryItem.welfareType === "ลาป่วย" || 
+          salaryItem.welfareType === "ลาคลอด" ||
+          salaryItem.name?.includes("ลาป่วย") || 
+          salaryItem.name?.includes("ป่วย") ||
+          salaryItem.name?.includes("ลาพักร้อน") ||
+          salaryItem.name?.includes("ชดเชย")) {
+        
+        const dates = salaryItem.date ? salaryItem.date.split(',').map(d => d.trim()) : [];
+        const currentDay = parseInt(day);
+        return dates.some(dateStr => parseInt(dateStr) === currentDay);
+      }
+      return false;
+    });
+    
+    // กำหนดตัวย่อตามชื่อการลา
+    
+  } else if (isWork && !isDayoffWorkplace && !isDayOffOnly) { // ไม่แสดงข้อมูลถ้าเป็นวันหยุดจาก dayoffWorkplace หรือ dayOffOnly
     // เปรียบเทียบ workplaceId ของ record กับ searchWorkplaceId ที่เลือก
     const recordWorkplaceId = found?.workplaceId;
     const isMatchSearchWorkplace = recordWorkplaceId === searchWorkplaceId;
@@ -11406,13 +11378,18 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
     }
   }
 
+  // เพิ่มเงื่อนไขพิเศษ: ถ้าเป็นวันหยุดส่วนบุคคลแต่มี totalTime ให้แสดงเลข 1
+  if (specialIndividual && found?.totalTime && found.totalTime.trim() !== '') {
+    displayValue = "1";
+  }
+
   
   return (
     <td 
       key={i} 
       className="text-center align-middle" 
       style={backgroundColor}
-      title={isSpecialHoliday ? "วันหยุดส่วนบุคคล" : (isDayoffWorkplace || isDayOffOnly) ? getHolidayInfo(parseInt(day), parseInt(month), parseInt(year)) : (found?.workplaceName || "")}
+      title={isSickLeave ? getHolidayInfo(parseInt(day), parseInt(month), parseInt(year)) : isSpecialHoliday ? "วันหยุดส่วนบุคคล" : (isDayoffWorkplace || isDayOffOnly) ? getHolidayInfo(parseInt(day), parseInt(month), parseInt(year)) : (found?.workplaceName || "")}
     >
       {displayValue}
     </td>
@@ -11553,10 +11530,29 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                       
                       // ตรวจสอบจาก dayoffWorkplace
                       const isDayoffWorkplace = weekendData && weekendData.dayoffWorkplace && Array.isArray(weekendData.dayoffWorkplace) && weekendData.dayoffWorkplace.includes(targetDateStr);
+                      const isSickLeave = record?.addSalaryList?.some(salaryItem => {
+    // เช็คเฉพาะ welfare ที่เป็นการลาป่วย หรือ ลาพักร้อน
+    if (salaryItem.welfareType === "ลาป่วย" || 
+        salaryItem.welfareType === "ลาคลอด" ||
+        salaryItem.name?.includes("ลาป่วย") || 
+        salaryItem.name?.includes("ป่วย") ||
+        salaryItem.name?.includes("ลาพักร้อน") ||
+        salaryItem.name?.includes("ชดเชย")) {
+      
+      // แปลง date string เป็น array ของวันที่
+      const dates = salaryItem.date ? salaryItem.date.split(',').map(d => d.trim()) : [];
+      const currentDay = parseInt(day);
+      
+      const isMatch = dates.some(dateStr => parseInt(dateStr) === currentDay);
+      return isMatch;
+    }
+    return false;
+  });
                       
                       // ตรวจสอบจาก dayOffOnly
                       const isDayOffOnly = weekendData && Array.isArray(weekendData) && weekendData.find(item => item.date === targetDateStr && item.type === 'dayOffOnly');
-                      const isWork = found?.dayType === "work" 
+                      const isWork = found?.dayType === "work"
+                      
                       // ตรวจสอบว่าเป็นวันหยุดพิเศษหรือไม่
                       const isSpecialHoliday = record?.personalDayOff?.some(personalDay => {
                         const personalDayDate = parseInt(personalDay.date);
@@ -11576,15 +11572,17 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                         backgroundColor = { backgroundColor: "#00ff00" }; // สีเขียวสำหรับวันหยุดพิเศษ
                       } else if (isDayOffOnly) {
                         backgroundColor = { backgroundColor: "#9e9e9e" }; // สีขาวสำหรับวันหยุดนักขัตฤกษ์
-                      } else if (isDayoffWorkplace || isInvalidDate || !isWork) {
+                      } else if (isDayoffWorkplace || isInvalidDate ) {
                         backgroundColor = { backgroundColor: "#9e9e9e" }; // สีเทาสำหรับวันหยุดหรือวันที่ไม่มีอยู่จริง
                       } else if (isNightShiftWork) {
                         displayValue = '1'; // แสดงเลข 1 เมื่อมาทำงานกะดึก
                       }
-                 
+                      if(isSickLeave) {
+                        backgroundColor = { backgroundColor: "#c5eaebff", color: "black" }; // สีดำสำหรับวันลาป่วย
+                      }
 
                       if(specialIndividualNight) {
-                        backgroundColor = { backgroundColor: "#d1c4e9" }; // สีม่วงสำหรับวันหยุดพิเศษ
+                        backgroundColor = { backgroundColor: "#9e9e9e" }; // สีม่วงสำหรับวันหยุดพิเศษ
                       }
                       
                       return (
@@ -11689,7 +11687,24 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                       const currentDay = parseInt(day);
                       return stopDayDate === currentDay;
                     });
-
+                    const isSickLeave2 = record?.addSalaryList?.some(salaryItem => {
+    // เช็คเฉพาะ welfare ที่เป็นการลาป่วย หรือ ลาพักร้อน
+    if (salaryItem.welfareType === "ลาป่วย" || 
+        salaryItem.welfareType === "ลาคลอด" ||
+        salaryItem.name?.includes("ลาป่วย") || 
+        salaryItem.name?.includes("ป่วย") ||
+        salaryItem.name?.includes("ลาพักร้อน") ||
+        salaryItem.name?.includes("ชดเชย")) {
+      
+      // แปลง date string เป็น array ของวันที่
+      const dates = salaryItem.date ? salaryItem.date.split(',').map(d => d.trim()) : [];
+      const currentDay = parseInt(day);
+      
+      const isMatch = dates.some(dateStr => parseInt(dateStr) === currentDay);
+      return isMatch;
+    }
+    return false;
+  });
                     // ตรวจสอบทั้ง specialt_shift และ stopDaysList สำหรับ OT 1.5
                     const specialIndividualOT15 = (found?.dayType === "work" && found?.shift === "specialt_shift") || isInStopDaysList;
                     
@@ -11742,16 +11757,38 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                     }
                     
                     // กำหนดสีพื้นหลัง (วันหยุดเป็นสีเทา)
-                    const isHoliday = isDayoffWorkplace || isDayOffOnly || isInvalidDate;
+                    const isHoliday = isDayoffWorkplace || isInvalidDate;
+                    const isSickLeave = record?.addSalaryList?.some(salaryItem => {
+    // เช็คเฉพาะ welfare ที่เป็นการลาป่วย หรือ ลาพักร้อน
+    if (salaryItem.welfareType === "ลาป่วย" || 
+        salaryItem.welfareType === "ลาคลอด" ||
+        salaryItem.name?.includes("ลาป่วย") || 
+        salaryItem.name?.includes("ป่วย") ||
+        salaryItem.name?.includes("ลาพักร้อน") ||
+        salaryItem.name?.includes("ชดเชย")) {
+      
+      // แปลง date string เป็น array ของวันที่
+      const dates = salaryItem.date ? salaryItem.date.split(',').map(d => d.trim()) : [];
+      const currentDay = parseInt(day);
+      
+      const isMatch = dates.some(dateStr => parseInt(dateStr) === currentDay);
+      return isMatch;
+    }
+    return false;
+  });
                     let backgroundColor;
+                    
                     
                     if (specialIndividualOT15) {
                       // ให้ความสำคัญกับ specialt_shift และ stopDaysList ก่อน
-                      backgroundColor = { backgroundColor: "#d1c4e9" };
-                    } else if (isHoliday || !shouldShowData) {
+                      backgroundColor = { backgroundColor: "#9e9e9e" , color: "red" }; // สีเทาพื้นหลังและตัวอักษรสีแดงสำหรับวันหยุดพิเศษ
+                    } else if (isHoliday ) {
                       backgroundColor = { backgroundColor: "#9e9e9e" };
                     } else {
                       backgroundColor = {};
+                    }
+                    if(isSickLeave2) {
+                      backgroundColor = { backgroundColor: "#c5eaebff", color: "black" }; // สีดำสำหรับวันลาป่วย
                     }
 
                     return (
@@ -11764,7 +11801,15 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                               const summedTime = beforeTime + totalTime;
                               return summedTime > 0 ? formatTimeValue(summedTime) : '';
                             })()
-                          : ''}
+                          : (specialIndividualOT15 && found?.cashOtMul?.trim() && found?.cashOtMul === "1.5")
+                            ? (() => {
+                                // แสดง OT ในวันหยุดส่วนบุคคล
+                                const beforeTime = found.beforeTotalOtTime ? parseFloat(found.beforeTotalOtTime) : 0;
+                                const totalTime = found.totalOtTime ? parseFloat(found.totalOtTime) : 0;
+                                const summedTime = beforeTime + totalTime;
+                                return summedTime > 0 ? formatTimeValue(summedTime) : '';
+                              })()
+                            : ''}
                       </td>
                     );
                   })}
@@ -11793,6 +11838,24 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
   const isCrossWorkplaceEmployee = record?.isCrossWorkplace || false;
   const recordWorkplaceId = found?.workplaceId;
   const isMatchSearchWorkplace = recordWorkplaceId === searchWorkplaceId;
+  const isSickLeave = record?.addSalaryList?.some(salaryItem => {
+    // เช็คเฉพาะ welfare ที่เป็นการลาป่วย หรือ ลาพักร้อน
+    if (salaryItem.welfareType === "ลาป่วย" || 
+        salaryItem.welfareType === "ลาคลอด" ||
+        salaryItem.name?.includes("ลาป่วย") || 
+        salaryItem.name?.includes("ป่วย") ||
+        salaryItem.name?.includes("ลาพักร้อน") ||
+        salaryItem.name?.includes("ชดเชย")) {
+      
+      // แปลง date string เป็น array ของวันที่
+      const dates = salaryItem.date ? salaryItem.date.split(',').map(d => d.trim()) : [];
+      const currentDay = parseInt(day);
+      
+      const isMatch = dates.some(dateStr => parseInt(dateStr) === currentDay);
+      return isMatch;
+    }
+    return false;
+  });
   
   // กำหนดเงื่อนไขการแสดงผล
   let shouldShowData = false;
@@ -11858,16 +11921,18 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
     
     const isAbsent = found?.dayType === "work"; // ตรวจสอบว่าเป็นวันขาดงานหรือไม่
     // ถ้าเป็นวันหยุดหรือวันที่ไม่มีอยู่จริง ให้เป็นสีเทา
-    if (isDayoffWorkplace || isDayOffOnly || isInvalidDate || !isAbsent) {
+    if (isDayoffWorkplace || isInvalidDate ) {
       backgroundColor = { backgroundColor: "#9e9e9e" };
     }
   } else {
     // ถ้ามีข้อมูลให้แสดง ใช้สีเหลืองตามเดิม
     backgroundColor = { backgroundColor: "yellow" };
   }
-
+  if (isSickLeave) {
+    backgroundColor = { backgroundColor: "#c5eaebff" }; // สีฟ้าอ่อนสำหรับวันลาป่วย
+  } 
   if(specialIndividual) { 
-    backgroundColor = { backgroundColor: "#d1c4e9" }; // สีม่วงสำหรับวันหยุดพิเศษ
+    backgroundColor = { backgroundColor: "#9e9e9e" , color: "red" }; // สีเทาพื้นหลังและตัวอักษรสีแดงสำหรับวันหยุดพิเศษ
   }
 
   
@@ -11878,7 +11943,9 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
       className="text-red align-middle text-center"
       style={backgroundColor}
     >
-      {shouldShowData ? formatTimeValue(found.totalTime) : ''}
+      {shouldShowData ? formatTimeValue(found.totalTime) : 
+       (specialIndividual && found?.dayType === "stop" && found.totalTime) ? 
+       formatTimeValue(found.totalTime) : ''}
     </td>
   );
 })}       
@@ -11910,6 +11977,80 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
   {dayNumbers.map((day, i) => {
 const found = record?.employee_record?.find(itemx => itemx.date === day);
 
+  // 🆕 ตรวจสอบการลาก่อน
+  const isSickLeave = record?.addSalaryList?.some(salaryItem => {
+    // เช็คเฉพาะ welfare ที่เป็นการลาป่วย หรือ ลาพักร้อน
+    if (salaryItem.welfareType === "ลาป่วย" || 
+        salaryItem.welfareType === "ลาคลอด" ||
+        salaryItem.name?.includes("ลาป่วย") || 
+        salaryItem.name?.includes("ป่วย") ||
+        salaryItem.name?.includes("ลาพักร้อน") ||
+        salaryItem.name?.includes("ชดเชย")) {
+      
+      // แปลง date string เป็น array ของวันที่
+      const dates = salaryItem.date ? salaryItem.date.split(',').map(d => d.trim()) : [];
+      const currentDay = parseInt(day);
+      
+      const isMatch = dates.some(dateStr => parseInt(dateStr) === currentDay);
+      return isMatch;
+    }
+    return false;
+  });
+
+  // ถ้าเป็นวันลา ให้แสดงสัญลักษณ์การลา
+  if (isSickLeave) {
+    // หาข้อมูลการลาที่ตรงกับวันนี้
+    const sickLeaveItem = record?.addSalaryList?.find(salaryItem => {
+      if (salaryItem.welfareType === "ลาป่วย" || 
+          salaryItem.welfareType === "ลาคลอด" ||
+          salaryItem.name?.includes("ลาป่วย") || 
+          salaryItem.name?.includes("ป่วย") ||
+          salaryItem.name?.includes("ลาพักร้อน") ||
+          salaryItem.name?.includes("ชดเชย")) {
+        
+        const dates = salaryItem.date ? salaryItem.date.split(',').map(d => d.trim()) : [];
+        const currentDay = parseInt(day);
+        return dates.some(dateStr => parseInt(dateStr) === currentDay);
+      }
+      return false;
+    });
+    
+    // กำหนดตัวย่อตามชื่อการลา
+    let leaveSymbol = '';
+    if (sickLeaveItem) {
+      const leaveName = sickLeaveItem.name || sickLeaveItem.welfareType || '';
+      
+      if (leaveName.includes("ลาพักร้อน") || leaveName.includes("ชดเชย")) {
+        leaveSymbol = 'พร'; // พักร้อน
+      } else if (leaveName.includes("ลาป่วย") || leaveName.includes("ป่วย")) {
+        leaveSymbol = 'ป'; // ป่วย
+      } else if (leaveName.includes("ลาคลอด") || leaveName.includes("คลอด")) {
+        leaveSymbol = 'ค'; // คลอด
+      } else if (leaveName.includes("ลากิจ") || leaveName.includes("กิจ")) {
+        leaveSymbol = 'ก'; // กิจ
+      } else if (leaveName.includes("ลาบวช")) {
+        leaveSymbol = 'บ'; // บวช
+      } else if (leaveName.includes("ลาทหาร")) {
+        leaveSymbol = 'ท'; // ทหาร
+      } else {
+        leaveSymbol = 'ล'; // การลาทั่วไป
+      }
+    } else {
+      leaveSymbol = 'ล'; // fallback
+    }
+    
+    return (
+      <td 
+        key={i} 
+        className="text-center align-middle"
+        style={{ backgroundColor: "#c5eaebff", color: "black" }}
+      >
+        {leaveSymbol}
+      </td>
+    );
+  }
+
+  // ไม่ใช่วันลา ตรวจสอบข้อมูล OT 3 ตามปกติ
   // ตรวจสอบว่าเป็นพนักงานข้ามหน่วยงานหรือไม่
   const isCrossWorkplaceEmployee = record?.isCrossWorkplace || false;
   const recordWorkplaceId = found?.workplaceId;
@@ -11981,7 +12122,7 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
       const isAbsent = found?.dayType === "work"; // ตรวจสอบว่าเป็นวันขาดงานหรือไม่
       
       // ถ้าเป็นวันหยุด ให้เป็นสีเทา
-      if (isDayoffWorkplace || isDayOffOnly || !isAbsent) {
+      if (isDayoffWorkplace || isDayOffOnly  ) {
         backgroundColor = { backgroundColor: "#9e9e9e" };
       }
     }
@@ -11991,7 +12132,7 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
   }
 
   if(specialIndividualOT3) {
-    backgroundColor = { backgroundColor: "#d1c4e9" }; // สีม่วงสำหรับวันหยุดพิเศษ
+    backgroundColor = { backgroundColor: "#9e9e9e" , color: "red" }; // สีเทาพื้นหลังและตัวอักษรสีแดงสำหรับวันหยุดพิเศษ
   }
 
   return (
@@ -12008,7 +12149,15 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
             const summedTime = beforeTime + totalTime;
             return summedTime > 0 ? formatTimeValue(summedTime) : '';
           })()
-        : ''}
+        : (specialIndividualOT3 && found?.cashOtMul?.trim() && found?.cashOtMul === "3")
+          ? (() => {
+              // แสดง OT 3 ในวันหยุดส่วนบุคคล
+              const beforeTime = found.beforeTotalOtTime ? parseFloat(found.beforeTotalOtTime) : 0;
+              const totalTime = found.totalOtTime ? parseFloat(found.totalOtTime) : 0;
+              const summedTime = beforeTime + totalTime;
+              return summedTime > 0 ? formatTimeValue(summedTime) : '';
+            })()
+          : ''}
     </td>
   );
 })}
@@ -12205,7 +12354,11 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
                         <td colSpan={2} className="text-right text-bold align-middle " style={{ backgroundColor:"#fff7c2",color:"#80801b"}}>โอที 2 เท่า</td>
                         {dayNumbers.map((day, i) => {
                           const overtime2Sum = overtime2SumPerDay[i] || 0;
+                          
+                          
                           const isZero = overtime2Sum === 0;
+                          
+                          
                           return (
                             <td 
                               key={i} 
