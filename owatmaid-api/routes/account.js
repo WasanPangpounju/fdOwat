@@ -6224,20 +6224,47 @@ console.log(`💰 รวมทั้งหมด: ${sumCashWork + sumCashOt} บ
   // ตรวจสอบการเปรียบเทียบวันที่อีกครั้ง โดยแสดงรายละเอียดทุกรายการใน employee_record
  // ตรวจสอบการเปรียบเทียบวันที่อีกครั้ง โดยแสดงรายละเอียดทุกรายการใน employee_record
 console.log(`\n🔍 === ตรวจสอบรายการวันที่ทั้งหมดในบันทึก ===`);
-console.log(`🗓️ รอบเงินเดือน: วันที่ 21 ${month == "01" ? "ธันวาคม" : "เดือนก่อน"} - วันที่ 20 ${month}/${year}`);
-console.log(`📋 หมายเหตุ: ข้อมูลด้านล่างครอบคลุมรอบเงินเดือนดังกล่าว ไม่ใช่แค่เดือน ${month} เท่านั้น`);
+
+// คำนวณเดือนก่อนหน้าสำหรับแสดงผล
+const currentMonth = parseInt(month);
+const currentYear = parseInt(year);
+let displayPrevMonth = currentMonth - 1;
+let displayPrevYear = currentYear;
+
+if (displayPrevMonth < 1) {
+  displayPrevMonth = 12;
+  displayPrevYear = currentYear - 1;
+}
+
+console.log(`🗓️ รอบเงินเดือน: วันที่ 21/${displayPrevMonth}/${displayPrevYear} - วันที่ 20/${currentMonth}/${currentYear}`);
+console.log(`📋 หมายเหตุ: ข้อมูลด้านล่างครอบคลุมรอบเงินเดือนดังกล่าว ไม่ใช่แค่เดือน ${String(currentMonth).padStart(2, '0')} เท่านั้น`);
 console.log(`| วันที่        | ประเภทวัน | เวลาทำงาน | เป็นวันหยุด customizeDayoff | มาทำงาน |`);
 console.log(`|-------------|----------|----------|--------------------------|--------|`);
 
 employee_record.forEach(record => {
   try {
-    // ใช้ค่า year และ month จากระดับรากของออบเจกต์
-    const recordYear = year;
-    const recordMonth = month;
-    const recordDate = record.date;
+    const recordDate = parseInt(record.date);
+    
+    // คำนวณปีและเดือนที่ถูกต้องตามรอบเงินเดือน
+    let actualYear, actualMonth;
+    
+    if (recordDate >= 21) {
+      // วันที่ 21-31 เป็นของเดือนก่อนหน้า
+      actualMonth = parseInt(month) - 1;
+      actualYear = parseInt(year);
+      
+      if (actualMonth < 1) {
+        actualMonth = 12;
+        actualYear = parseInt(year) - 1;
+      }
+    } else {
+      // วันที่ 1-20 เป็นของเดือนปัจจุบัน
+      actualMonth = parseInt(month);
+      actualYear = parseInt(year);
+    }
 
-    // สร้างวันที่ในรูปแบบ YYYY-MM-DD
-    const dateStr = `${recordYear}-${String(recordMonth).padStart(2, '0')}-${String(recordDate).padStart(2, '0')}`;
+    // สร้างวันที่ในรูปแบบ YYYY-MM-DD ด้วยเดือน/ปีที่ถูกต้อง
+    const dateStr = `${actualYear}-${String(actualMonth).padStart(2, '0')}-${String(recordDate).padStart(2, '0')}`;
 
     // ตรวจสอบว่าเป็นวันหยุดที่กำหนดเองหรือไม่
     const isCustomDayoff = weekendData?.weekendAndDayOff?.includes(dateStr);
@@ -6247,9 +6274,9 @@ employee_record.forEach(record => {
     
     // กำหนดส่วนของรอบเงินเดือน
     let periodPart = '';
-    if (parseInt(recordDate) >= 21) {
+    if (recordDate >= 21) {
       periodPart = ' [เดือนก่อน]';
-    } else if (parseInt(recordDate) <= 20) {
+    } else if (recordDate <= 20) {
       periodPart = ' [เดือนปัจจุบัน]';
     }
     
