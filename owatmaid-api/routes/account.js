@@ -5269,6 +5269,24 @@ const convertTimeToDecimal = (timeString) => {
 
 
 const calculateCashValues = async (employeeId, employee_record, month, year, welfareAddSalaryList = null) => {
+  // แสดงข้อมูลรอบเงินเดือนก่อนเริ่มการคำนวณ
+  const monthInt = parseInt(month);
+  const yearInt = parseInt(year);
+  let prevMonth = monthInt - 1;
+  let prevYear = yearInt;
+  
+  if (prevMonth < 1) {
+    prevMonth = 12;
+    prevYear = yearInt - 1;
+  }
+  
+  console.log(`\n💰 === เริ่มคำนวณเงินเดือนพนักงาน ${employeeId} ===`);
+  console.log(`🗓️ รอบเงินเดือน: วันที่ 21/${prevMonth}/${prevYear} - วันที่ 20/${month}/${year}`);
+  console.log(`📋 ขอบเขตการคำนวณ:`);
+  console.log(`   - วันที่ 21-31 ของ ${prevMonth}/${prevYear}`);
+  console.log(`   - วันที่ 1-20 ของ ${month}/${year}`);
+  console.log(`🔍 จำนวนข้อมูลการทำงาน: ${employee_record.length} รายการ\n`);
+  
   // ดึงข้อมูลการตั้งค่าพื้นฐานของระบบ
   const settingResult = await axios.get(sURL + '/basicsetting/');
   
@@ -6206,6 +6224,8 @@ console.log(`💰 รวมทั้งหมด: ${sumCashWork + sumCashOt} บ
   // ตรวจสอบการเปรียบเทียบวันที่อีกครั้ง โดยแสดงรายละเอียดทุกรายการใน employee_record
  // ตรวจสอบการเปรียบเทียบวันที่อีกครั้ง โดยแสดงรายละเอียดทุกรายการใน employee_record
 console.log(`\n🔍 === ตรวจสอบรายการวันที่ทั้งหมดในบันทึก ===`);
+console.log(`🗓️ รอบเงินเดือน: วันที่ 21 ${month == "01" ? "ธันวาคม" : "เดือนก่อน"} - วันที่ 20 ${month}/${year}`);
+console.log(`📋 หมายเหตุ: ข้อมูลด้านล่างครอบคลุมรอบเงินเดือนดังกล่าว ไม่ใช่แค่เดือน ${month} เท่านั้น`);
 console.log(`| วันที่        | ประเภทวัน | เวลาทำงาน | เป็นวันหยุด customizeDayoff | มาทำงาน |`);
 console.log(`|-------------|----------|----------|--------------------------|--------|`);
 
@@ -6225,8 +6245,16 @@ employee_record.forEach(record => {
     // ตรวจสอบว่าพนักงานมาทำงานหรือไม่ โดยดูจาก totalTime
     const hasWorked = record.totalTime && record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0;
     
+    // กำหนดส่วนของรอบเงินเดือน
+    let periodPart = '';
+    if (parseInt(recordDate) >= 21) {
+      periodPart = ' [เดือนก่อน]';
+    } else if (parseInt(recordDate) <= 20) {
+      periodPart = ' [เดือนปัจจุบัน]';
+    }
+    
     // แสดงข้อมูลในรูปแบบตาราง
-    console.log(`| ${recordDate} (${dateStr}) | ${record.dayType || 'ไม่ระบุ'} | ${record.totalTime || '0'} | ${isCustomDayoff ? 'ใช่' : 'ไม่ใช่'} | ${hasWorked ? 'ใช่' : 'ไม่ใช่'} |`);
+    console.log(`| ${recordDate}${periodPart} (${dateStr}) | ${record.dayType || 'ไม่ระบุ'} | ${record.totalTime || '0'} | ${isCustomDayoff ? 'ใช่' : 'ไม่ใช่'} | ${hasWorked ? 'ใช่' : 'ไม่ใช่'} |`);
     
     // แสดงข้อมูลเพิ่มเติมสำหรับวันหยุดที่กำหนดเอง
     if (isCustomDayoff) {
