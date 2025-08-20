@@ -6412,17 +6412,16 @@ console.log(`\n💰 คำนวณ publicHolidayCash สำหรับพน�
     
     // ตรวจสอบว่ามีการมาทำงานในวันหยุดนักขัตฤกษ์หรือไม่
     if (daysWorkedOnPublicHolidays === 0) {
-      // ถ้าไม่มีการมาทำงานในวันหยุดนักขัตฤกษ์ ก็ไม่ต้องจ่ายเงิน
-      publicHolidayCash = 0;
-      publicHolidayCount = 0; // สำหรับพนักงานรายวัน ไม่นับวันหยุดที่ไม่ได้มาทำงาน
+       const dailyRate = sumCashWorkMul["1"] / dayWorkCount;
+        publicHolidayCash = dailyRate * daysWorkedOnPublicHolidays; // จ่ายตามจำนวนวันที่มาทำงาน
+        publicHolidayCount = daysWorkedOnPublicHolidays; // นับเฉพาะวันที่มาทำงาน
       console.log(`💰 ไม่มีการมาทำงานในวันหยุดนักขัตฤกษ์ - ไม่ได้เงิน (publicHolidayCash = 0 บาท)`);
     } else {
       // ตรวจสอบว่ามีข้อมูลที่จำเป็นสำหรับการคำนวณหรือไม่
       if (sumCashWorkMul["1"] && dayWorkCount > 0) {
-        // คำนวณค่าแรงต่อวันจาก sumCashWorkMul["1"] / dayWorkCount
-        const dailyRate = sumCashWorkMul["1"] / dayWorkCount;
-        publicHolidayCash = dailyRate * daysWorkedOnPublicHolidays; // จ่ายตามจำนวนวันที่มาทำงาน
-        publicHolidayCount = daysWorkedOnPublicHolidays; // นับเฉพาะวันที่มาทำงาน
+
+        publicHolidayCash =0
+        publicHolidayCount = 0
         
         console.log(`💰 ค่าแรงต่อวัน (sumCashWorkMul["1"] / dayWorkCount): ${dailyRate.toFixed(2)} บาท`);
         console.log(`💰 จำนวนวันหยุดนักขัตฤกษ์ที่มาทำงาน: ${daysWorkedOnPublicHolidays} วัน`);
