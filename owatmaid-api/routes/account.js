@@ -5706,6 +5706,14 @@ try {
   
   console.log(`📅 วันหยุดนักขัตฤกษ์ทั้งหมด: ${dayOffOnlyDates.length} วัน`);
   console.log(`📅 รายการวันหยุดนักขัตฤกษ์: ${JSON.stringify(dayOffOnlyDates)}`);
+  
+  // แสดงรายการวันหยุดนักขัตฤกษ์ในรูปแบบที่อ่านง่าย
+  if (dayOffOnlyDates.length > 0) {
+    console.log(`\n📋 === รายละเอียดวันหยุดนักขัตฤกษ์ในเดือนนี้ ===`);
+    dayOffOnlyDates.forEach((dateStr, index) => {
+      console.log(`  ${index + 1}. ${dateStr}`);
+    });
+  }
 
   // นับจำนวนวันหยุดที่กำหนดเอง
   if (weekendData.weekendAndDayOff && Array.isArray(weekendData.weekendAndDayOff)) {
@@ -5714,6 +5722,12 @@ try {
     
     console.log(`📅 พบวันหยุดที่กำหนดเอง ${customizeDayoff} วัน: ${JSON.stringify(weekendData.weekendAndDayOff)}`);
     console.log(`ℹ️ จำนวนวันหยุดที่กำหนดเองเริ่มต้น: ${customizeDayoff} วัน`);
+    
+    // แสดงรายการวันหยุดที่กำหนดเองในรูปแบบที่อ่านง่าย
+    console.log(`\n📋 === รายละเอียดวันหยุดที่กำหนดเองในเดือนนี้ ===`);
+    weekendData.weekendAndDayOff.forEach((dateStr, index) => {
+      console.log(`  ${index + 1}. ${dateStr}`);
+    });
 
     // เก็บสถานะการมาทำงานในวันหยุดที่กำหนดเอง
     let customDayoffStatus = [];
@@ -6228,7 +6242,9 @@ employee_record.forEach(record => {
   }
 });
 const totalPublicHolidays = dayOffOnlyDates.length;
-const daysWorkedOnPublicHolidays = employee_record.filter(record => {
+
+// ค้นหาวันหยุดนักขัตฤกษ์ที่พนักงานมาทำงาน พร้อมเก็บรายละเอียด
+const workedPublicHolidayRecords = employee_record.filter(record => {
   try {
     const recordDate = record.date;
     const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(recordDate).padStart(2, '0')}`;
@@ -6238,7 +6254,9 @@ const daysWorkedOnPublicHolidays = employee_record.filter(record => {
   } catch (error) {
     return false;
   }
-}).length;
+});
+
+const daysWorkedOnPublicHolidays = workedPublicHolidayRecords.length;
 
 // คำนวณ publicHolidayCount ใหม่ โดยหักจำนวนวันที่มาทำงานออก
 publicHolidayCount = totalPublicHolidays - daysWorkedOnPublicHolidays;
@@ -6246,6 +6264,27 @@ publicHolidayCount = totalPublicHolidays - daysWorkedOnPublicHolidays;
 console.log(`\n📊 === สรุปการตรวจสอบวันหยุดนักขัตฤกษ์ ===`);
 console.log(`📅 จำนวนวันหยุดนักขัตฤกษ์ทั้งหมด: ${totalPublicHolidays} วัน`);
 console.log(`🔍 พนักงานมาทำงานในวันหยุดนักขัตฤกษ์: ${daysWorkedOnPublicHolidays} วัน`);
+
+// แสดงรายละเอียดวันหยุดนักขัตฤกษ์ที่มาทำงาน
+if (daysWorkedOnPublicHolidays > 0) {
+  console.log(`\n📋 === รายละเอียดวันหยุดนักขัตฤกษ์ที่มาทำงาน ===`);
+  workedPublicHolidayRecords.forEach((record, index) => {
+    const recordDate = record.date;
+    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(recordDate).padStart(2, '0')}`;
+    console.log(`  ${index + 1}. วันที่ ${recordDate}/${month}/${year} (${dateStr})`);
+    console.log(`     - เวลาทำงาน: ${record.totalTime} ชั่วโมง`);
+    console.log(`     - ประเภทวัน: ${record.dayType || 'ไม่ระบุ'}`);
+    if (record.workRate) {
+      console.log(`     - ค่าแรงวันนี้: ${record.workRate} บาท`);
+    }
+    if (record.workRateOT) {
+      console.log(`     - ค่าแรง OT: ${record.workRateOT} บาท`);
+    }
+  });
+} else {
+  console.log(`✅ ไม่มีการมาทำงานในวันหยุดนักขัตฤกษ์`);
+}
+
 console.log(`🔍 พนักงานไม่ได้มาทำงานในวันหยุดนักขัตฤกษ์: ${publicHolidayCount} วัน`);
 console.log(`🔍 ค่า publicHolidayCount ที่จะบันทึก: ${publicHolidayCount}`);
 
@@ -6319,7 +6358,9 @@ console.log(`\n💰 คำนวณ publicHolidayCash สำหรับพน�
 
   // สรุปผลการตรวจสอบวันหยุดที่กำหนดเอง
 const totalCustomDayoff = weekendData?.weekendAndDayOff?.length || 0;
-const daysWorkedOnCustomDayoff = employee_record.filter(record => {
+
+// ค้นหาวันหยุดที่กำหนดเองที่พนักงานมาทำงาน พร้อมเก็บรายละเอียด
+const workedCustomDayoffRecords = employee_record.filter(record => {
   try {
     const recordDate = record.date;
     const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(recordDate).padStart(2, '0')}`;
@@ -6329,10 +6370,37 @@ const daysWorkedOnCustomDayoff = employee_record.filter(record => {
   } catch (error) {
     return false;
   }
-}).length;
+});
+
+const daysWorkedOnCustomDayoff = workedCustomDayoffRecords.length;
+
+console.log(`\n📊 === สรุปการตรวจสอบวันหยุดที่กำหนดเอง ===`);
+console.log(`📅 จำนวนวันหยุดที่กำหนดเองทั้งหมด: ${totalCustomDayoff} วัน`);
+console.log(`🔍 พนักงานมาทำงานในวันหยุดที่กำหนดเอง: ${daysWorkedOnCustomDayoff} วัน`);
+
+// แสดงรายละเอียดวันหยุดที่กำหนดเองที่มาทำงาน
+if (daysWorkedOnCustomDayoff > 0) {
+  console.log(`\n📋 === รายละเอียดวันหยุดที่กำหนดเองที่มาทำงาน ===`);
+  workedCustomDayoffRecords.forEach((record, index) => {
+    const recordDate = record.date;
+    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(recordDate).padStart(2, '0')}`;
+    console.log(`  ${index + 1}. วันที่ ${recordDate}/${month}/${year} (${dateStr})`);
+    console.log(`     - เวลาทำงาน: ${record.totalTime} ชั่วโมง`);
+    console.log(`     - ประเภทวัน: ${record.dayType || 'ไม่ระบุ'}`);
+    if (record.workRate) {
+      console.log(`     - ค่าแรงวันนี้: ${record.workRate} บาท`);
+    }
+    if (record.workRateOT) {
+      console.log(`     - ค่าแรง OT: ${record.workRateOT} บาท`);
+    }
+  });
+} else {
+  console.log(`✅ ไม่มีการมาทำงานในวันหยุดที่กำหนดเอง`);
+}
 
 // คำนวณ customizeDayoff ใหม่ โดยหักจำนวนวันที่มาทำงานออก
 customizeDayoff = totalCustomDayoff - daysWorkedOnCustomDayoff;
+console.log(`🔍 พนักงานไม่ได้มาทำงานในวันหยุดที่กำหนดเอง: ${customizeDayoff} วัน`);
 
 // คำนวณ cashcustomizeDayoff ตามสูตร
 // ถ้า customizeDayoff เป็น 0 ให้ cashcustomizeDayoff เป็น 0
