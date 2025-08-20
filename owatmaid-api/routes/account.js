@@ -6318,28 +6318,54 @@ publicHolidayCount = totalPublicHolidays - daysWorkedOnPublicHolidays;
 
 console.log(`\n📊 === สรุปการตรวจสอบวันหยุดนักขัตฤกษ์ ===`);
 console.log(`📅 จำนวนวันหยุดนักขัตฤกษ์ทั้งหมด: ${totalPublicHolidays} วัน`);
-console.log(`🔍 พนักงานมาทำงานในวันหยุดนักขัตฤกษ์: ${daysWorkedOnPublicHolidays} วัน`);
 
-// แสดงรายละเอียดวันหยุดนักขัตฤกษ์ที่มาทำงาน
-if (daysWorkedOnPublicHolidays > 0) {
-  console.log(`\n📋 === รายละเอียดวันหยุดนักขัตฤกษ์ที่มาทำงาน ===`);
-  workedPublicHolidayRecords.forEach((record, index) => {
-    const recordDate = record.date;
-    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(recordDate).padStart(2, '0')}`;
-    console.log(`  ${index + 1}. วันที่ ${recordDate}/${month}/${year} (${dateStr})`);
-    console.log(`     - เวลาทำงาน: ${record.totalTime} ชั่วโมง`);
-    console.log(`     - ประเภทวัน: ${record.dayType || 'ไม่ระบุ'}`);
-    if (record.workRate) {
-      console.log(`     - ค่าแรงวันนี้: ${record.workRate} บาท`);
-    }
-    if (record.workRateOT) {
-      console.log(`     - ค่าแรง OT: ${record.workRateOT} บาท`);
+// แสดงรายละเอียดวันหยุดนักขัตฤกษ์ทั้งหมด พร้อมสถานะการมาทำงาน
+if (totalPublicHolidays > 0) {
+  console.log(`\n📋 === รายละเอียดวันหยุดนักขัตฤกษ์ทั้งหมดในรอบเงินเดือนนี้ ===`);
+  dayOffOnlyDates.forEach((publicHolidayDate, index) => {
+    // ตรวจสอบว่าพนักงานมาทำงานในวันหยุดนี้หรือไม่
+    const workedRecord = employee_record.find(record => {
+      const recordDate = parseInt(record.date);
+      
+      // คำนวณปีและเดือนที่ถูกต้องตามรอบเงินเดือน
+      let actualYear, actualMonth;
+      
+      if (recordDate >= 21) {
+        actualMonth = parseInt(month) - 1;
+        actualYear = parseInt(year);
+        if (actualMonth < 1) {
+          actualMonth = 12;
+          actualYear = parseInt(year) - 1;
+        }
+      } else {
+        actualMonth = parseInt(month);
+        actualYear = parseInt(year);
+      }
+      
+      const dateStr = `${actualYear}-${String(actualMonth).padStart(2, '0')}-${String(recordDate).padStart(2, '0')}`;
+      const hasWorked = record.totalTime && record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0;
+      
+      return dateStr === publicHolidayDate && hasWorked;
+    });
+    
+    console.log(`  ${index + 1}. วันหยุดนักขัตฤกษ์: ${publicHolidayDate}`);
+    if (workedRecord) {
+      console.log(`     ✅ พนักงานมาทำงาน`);
+      console.log(`     - เวลาทำงาน: ${workedRecord.totalTime} ชั่วโมง`);
+      console.log(`     - ประเภทวัน: ${workedRecord.dayType || 'ไม่ระบุ'}`);
+      if (workedRecord.workRate) {
+        console.log(`     - ค่าแรงวันนี้: ${workedRecord.workRate} บาท`);
+      }
+      if (workedRecord.workRateOT) {
+        console.log(`     - ค่าแรง OT: ${workedRecord.workRateOT} บาท`);
+      }
+    } else {
+      console.log(`     ❌ พนักงานไม่ได้มาทำงาน`);
     }
   });
-} else {
-  console.log(`✅ ไม่มีการมาทำงานในวันหยุดนักขัตฤกษ์`);
 }
 
+console.log(`🔍 พนักงานมาทำงานในวันหยุดนักขัตฤกษ์: ${daysWorkedOnPublicHolidays} วัน`);
 console.log(`🔍 พนักงานไม่ได้มาทำงานในวันหยุดนักขัตฤกษ์: ${publicHolidayCount} วัน`);
 console.log(`🔍 ค่า publicHolidayCount ที่จะบันทึก: ${publicHolidayCount}`);
 
