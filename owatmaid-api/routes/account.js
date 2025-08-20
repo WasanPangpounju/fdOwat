@@ -6374,9 +6374,9 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
   console.log(`\n🔍 === การตรวจสอบเงินพิเศษที่คิดประกันสังคม ===`);
   console.log(`🔍 จำนวนรายการเงินพิเศษทั้งหมด: ${addSalaryList.length} รายการ`);
   
-  // 🔧 ใช้ข้อมูลจาก doc.addSalaryList (ที่อัปเดตแล้ว) แทนการรวมจาก addSalaryDaily
-  const finalAddSalaryList = doc.addSalaryList && doc.addSalaryList.length > 0 ? doc.addSalaryList : addSalaryList;
-  console.log(`🔍 ใช้ข้อมูลจาก: ${doc.addSalaryList && doc.addSalaryList.length > 0 ? 'doc.addSalaryList (อัปเดตแล้ว)' : 'addSalaryList (รวมจาก daily)'}`);
+  // 🔧 ใช้ข้อมูลจาก welfareAddSalaryList (ที่อัปเดตแล้ว) แทนการรวมจาก addSalaryDaily
+  const finalAddSalaryList = welfareAddSalaryList && welfareAddSalaryList.length > 0 ? welfareAddSalaryList : addSalaryList;
+  console.log(`🔍 ใช้ข้อมูลจาก: ${welfareAddSalaryList && welfareAddSalaryList.length > 0 ? 'welfareAddSalaryList (อัปเดตแล้ว)' : 'addSalaryList (รวมจาก daily)'}`);
   
   for (const element of finalAddSalaryList) {
     console.log(`\n🔍 ตรวจสอบรายการ:`);
