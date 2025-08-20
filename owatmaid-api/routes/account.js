@@ -4676,46 +4676,16 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     const query = {};
 
     if (employeeId) query.employeeId = employeeId;
-    
-    // ปรับปรุงการค้นหา month และ year ให้ยืดหยุ่นมากขึ้น
-    if (month) {
-      // รองรับทั้ง "05", "5" และรูปแบบอื่นๆ
-      const monthNumber = parseInt(month);
-      const monthPadded = String(monthNumber).padStart(2, '0');
-      query.month = { 
-        $in: [
-          month,                    // รูปแบบเดิมที่ส่งมา
-          String(monthNumber),      // เลขเดือนไม่มี leading zero
-          monthPadded               // เลขเดือนมี leading zero
-        ]
-      };
-    }
-    
-    if (year) {
-      query.year = { $regex: new RegExp(year, 'i') };
-    }
+    if (month) query.month = { $regex: new RegExp(month, 'i') };
+    if (year) query.year = { $regex: new RegExp(year, 'i') };
 
     if (!employeeId && !month && !year) {
       return res.status(200).json({ result: [], message: 'No query parameters provided' });
     }
 
-    console.log(`🔍 [SEARCH] กำลังค้นหาข้อมูลด้วย query:`, JSON.stringify(query, null, 2));
     const records = await timerecordEmployee.find(query);
-    console.log(`🔍 [SEARCH] พบข้อมูล: ${records.length} records`);
 
     if (!records.length) {
-      // เพิ่มการค้นหาทั้งหมดเพื่อ debug
-      console.log(`🔍 [DEBUG] ไม่พบข้อมูล - ทำการค้นหาทั้งหมดเพื่อตรวจสอบ`);
-      const allRecords = await timerecordEmployee.find({});
-      console.log(`🔍 [DEBUG] ข้อมูลทั้งหมดในฐาน: ${allRecords.length} records`);
-      
-      if (allRecords.length > 0) {
-        console.log(`🔍 [DEBUG] ตัวอย่างข้อมูล 3 รายการแรก:`);
-        allRecords.slice(0, 3).forEach((record, index) => {
-          console.log(`   [${index}] employeeId: "${record.employeeId}", month: "${record.month}", year: "${record.year}"`);
-        });
-      }
-      
       return res.status(200).json({ result: [], message: 'No records found' });
     }
 
@@ -6374,39 +6344,20 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
   console.log(`\n🔍 === การตรวจสอบเงินพิเศษที่คิดประกันสังคม ===`);
   console.log(`🔍 จำนวนรายการเงินพิเศษทั้งหมด: ${addSalaryList.length} รายการ`);
   
-  // 🔧 ใช้ข้อมูลจาก doc.addSalaryList (ที่อัปเดตแล้ว) แทนการรวมจาก addSalaryDaily
-  const finalAddSalaryList = doc.addSalaryList && doc.addSalaryList.length > 0 ? doc.addSalaryList : addSalaryList;
-  console.log(`🔍 ใช้ข้อมูลจาก: ${doc.addSalaryList && doc.addSalaryList.length > 0 ? 'doc.addSalaryList (อัปเดตแล้ว)' : 'addSalaryList (รวมจาก daily)'}`);
-  
-  for (const element of finalAddSalaryList) {
+  for (const element of addSalaryList) {
     console.log(`\n🔍 ตรวจสอบรายการ:`);
     console.log(`🔍 - ID: ${element.id}`);
     console.log(`🔍 - ชื่อ: ${element.name}`);
     console.log(`🔍 - จำนวนเงิน (SpSalary): ${element.SpSalary} บาท`);
     console.log(`🔍 - roundOfSalary: ${element.roundOfSalary}`);
-    console.log(`🔍 - message: ${element.message}`);
     
     let check = await checkCalTax(element.id);
     console.log(`🔍 - checkCalTax(${element.id}): ${check ? '✅ คิดประกันสังคม' : '❌ ไม่คิดประกันสังคม'}`);
     
     if (check) {
       const beforeAdd = addSalarySocialSecurity;
-      let amountToAdd = parseFloat(element.SpSalary) || 0;
-
-      // ถ้าเป็นรายการแบบรายวัน ให้คูณตามจำนวนวันที่ต้องใช้จริง (dayWorkCount + dayOffCount)
-      if (String(element.roundOfSalary || '').toLowerCase() === 'daily') {
-        const msgCount = parseFloat(element.message) || 0;
-        const totalDaysForDaily = (parseInt(dayWorkCount) || 0) + (parseInt(dayOffCount) || 0);
-        if (msgCount > 0 && totalDaysForDaily > 0 && totalDaysForDaily !== msgCount) {
-          const ratePerDay = amountToAdd / msgCount;
-          const adjustedAmount = ratePerDay * totalDaysForDaily;
-          console.log(`🔧 - ปรับจำนวนเงินรายวัน: rate=${ratePerDay.toFixed(2)} × days=${totalDaysForDaily} (เดิม message=${msgCount}) → ${adjustedAmount.toFixed(2)} บาท`);
-          amountToAdd = adjustedAmount;
-        }
-      }
-
-      addSalarySocialSecurity = (parseFloat(addSalarySocialSecurity || 0) + amountToAdd);
-      console.log(`🔍 - เพิ่มเงินพิเศษ: ${beforeAdd} + ${amountToAdd} = ${addSalarySocialSecurity} บาท`);
+      addSalarySocialSecurity = parseFloat(addSalarySocialSecurity || 0) + parseFloat(element.SpSalary);
+      console.log(`🔍 - เพิ่มเงินพิเศษ: ${beforeAdd} + ${element.SpSalary} = ${addSalarySocialSecurity} บาท`);
     } else {
       console.log(`🔍 - ไม่นำไปคิดประกันสังคม`);
     }
@@ -6475,7 +6426,7 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
     console.log(`💰 ✅ พนักงานรายวัน (salaryMonth = ${salaryMonth} = 0)`);
     
     //กรณีหักภาษี ณ ที่จ่าย 3% (ภ.ง.ด.)
-    if (costtype === "ภ.ง.ด.") {
+    if (costtype === "ภ.ง.ด.3") {
       console.log(`💰 ✅ พนักงานประเภท ภ.ง.ด.3 - ไม่คิดประกันสังคม แต่คิดภาษี 3%`);
       socialSecurity = 0;
       
