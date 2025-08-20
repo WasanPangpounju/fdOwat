@@ -6344,12 +6344,17 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
   console.log(`\n🔍 === การตรวจสอบเงินพิเศษที่คิดประกันสังคม ===`);
   console.log(`🔍 จำนวนรายการเงินพิเศษทั้งหมด: ${addSalaryList.length} รายการ`);
   
-  for (const element of addSalaryList) {
+  // 🔧 ใช้ข้อมูลจาก doc.addSalaryList (ที่อัปเดตแล้ว) แทนการรวมจาก addSalaryDaily
+  const finalAddSalaryList = doc.addSalaryList && doc.addSalaryList.length > 0 ? doc.addSalaryList : addSalaryList;
+  console.log(`🔍 ใช้ข้อมูลจาก: ${doc.addSalaryList && doc.addSalaryList.length > 0 ? 'doc.addSalaryList (อัปเดตแล้ว)' : 'addSalaryList (รวมจาก daily)'}`);
+  
+  for (const element of finalAddSalaryList) {
     console.log(`\n🔍 ตรวจสอบรายการ:`);
     console.log(`🔍 - ID: ${element.id}`);
     console.log(`🔍 - ชื่อ: ${element.name}`);
     console.log(`🔍 - จำนวนเงิน (SpSalary): ${element.SpSalary} บาท`);
     console.log(`🔍 - roundOfSalary: ${element.roundOfSalary}`);
+    console.log(`🔍 - message: ${element.message}`);
     
     let check = await checkCalTax(element.id);
     console.log(`🔍 - checkCalTax(${element.id}): ${check ? '✅ คิดประกันสังคม' : '❌ ไม่คิดประกันสังคม'}`);
