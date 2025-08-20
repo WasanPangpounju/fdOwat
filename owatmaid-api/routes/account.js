@@ -6301,10 +6301,27 @@ const totalPublicHolidays = dayOffOnlyDates.length;
 // ค้นหาวันหยุดนักขัตฤกษ์ที่พนักงานมาทำงาน พร้อมเก็บรายละเอียด
 const workedPublicHolidayRecords = employee_record.filter(record => {
   try {
-    const recordDate = record.date;
-    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(recordDate).padStart(2, '0')}`;
+    const recordDate = parseInt(record.date);
+    
+    // คำนวณปีและเดือนที่ถูกต้องตามรอบเงินเดือน (เหมือนกับการแสดงผล)
+    let actualYear, actualMonth;
+    
+    if (recordDate >= 21) {
+      actualMonth = parseInt(month) - 1;
+      actualYear = parseInt(year);
+      if (actualMonth < 1) {
+        actualMonth = 12;
+        actualYear = parseInt(year) - 1;
+      }
+    } else {
+      actualMonth = parseInt(month);
+      actualYear = parseInt(year);
+    }
+    
+    const dateStr = `${actualYear}-${String(actualMonth).padStart(2, '0')}-${String(recordDate).padStart(2, '0')}`;
     const isPublicHoliday = dayOffOnlyDates.includes(dateStr);
     const hasWorked = record.totalTime && record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0;
+    
     return isPublicHoliday && hasWorked;
   } catch (error) {
     return false;
@@ -6366,8 +6383,8 @@ if (totalPublicHolidays > 0) {
 }
 
 console.log(`🔍 พนักงานมาทำงานในวันหยุดนักขัตฤกษ์: ${daysWorkedOnPublicHolidays} วัน`);
-console.log(`🔍 พนักงานไม่ได้มาทำงานในวันหยุดนักขัตฤกษ์: ${publicHolidayCount} วัน`);
-console.log(`🔍 ค่า publicHolidayCount ที่จะบันทึก: ${publicHolidayCount}`);
+console.log(`🔍 พนักงานไม่ได้มาทำงานในวันหยุดนักขัตฤกษ์: ${totalPublicHolidays - daysWorkedOnPublicHolidays} วัน`);
+console.log(`🔍 ค่า publicHolidayCount เริ่มต้น: ${publicHolidayCount}`);
 
 console.log(`\n💰 คำนวณ publicHolidayCash สำหรับพนักงาน ${employeeId}`);
 
@@ -6390,27 +6407,30 @@ console.log(`\n💰 คำนวณ publicHolidayCash สำหรับพน�
       console.log(`💰 ไม่มาทำงานในวันหยุดนักขัตฤกษ์ - ไม่ได้เงิน (publicHolidayCash = 0 บาท)`);
     }
   } else {
-    // สำหรับพนักงานรายวัน: ใช้ logic เดิม
+    // สำหรับพนักงานรายวัน: จ่ายเงินให้กับการมาทำงานในวันหยุดนักขัตฤกษ์
     console.log(`💰 ✅ พนักงานรายวัน - คำนวณ publicHolidayCash`);
     
-    // ตรวจสอบว่า publicHolidayCount เป็น 0 หรือไม่
-    if (publicHolidayCount === 0) {
-      // ถ้าไม่มีวันหยุดนักขัตฤกษ์ที่พนักงานไม่มาทำงาน ก็ไม่ต้องจ่ายเงิน
+    // ตรวจสอบว่ามีการมาทำงานในวันหยุดนักขัตฤกษ์หรือไม่
+    if (daysWorkedOnPublicHolidays === 0) {
+      // ถ้าไม่มีการมาทำงานในวันหยุดนักขัตฤกษ์ ก็ไม่ต้องจ่ายเงิน
       publicHolidayCash = 0;
-      console.log(`💰 publicHolidayCount เป็น 0 จึงกำหนด publicHolidayCash = 0 บาท`);
+      publicHolidayCount = 0; // สำหรับพนักงานรายวัน ไม่นับวันหยุดที่ไม่ได้มาทำงาน
+      console.log(`💰 ไม่มีการมาทำงานในวันหยุดนักขัตฤกษ์ - ไม่ได้เงิน (publicHolidayCash = 0 บาท)`);
     } else {
       // ตรวจสอบว่ามีข้อมูลที่จำเป็นสำหรับการคำนวณหรือไม่
       if (sumCashWorkMul["1"] && dayWorkCount > 0) {
         // คำนวณค่าแรงต่อวันจาก sumCashWorkMul["1"] / dayWorkCount
         const dailyRate = sumCashWorkMul["1"] / dayWorkCount;
-        publicHolidayCash = dailyRate * publicHolidayCount;
+        publicHolidayCash = dailyRate * daysWorkedOnPublicHolidays; // จ่ายตามจำนวนวันที่มาทำงาน
+        publicHolidayCount = daysWorkedOnPublicHolidays; // นับเฉพาะวันที่มาทำงาน
         
         console.log(`💰 ค่าแรงต่อวัน (sumCashWorkMul["1"] / dayWorkCount): ${dailyRate.toFixed(2)} บาท`);
-        console.log(`💰 จำนวนวันหยุดนักขัตฤกษ์ที่ไม่มาทำงาน: ${publicHolidayCount} วัน`);
+        console.log(`💰 จำนวนวันหยุดนักขัตฤกษ์ที่มาทำงาน: ${daysWorkedOnPublicHolidays} วัน`);
         console.log(`💰 เงินสำหรับวันหยุดนักขัตฤกษ์ (publicHolidayCash): ${publicHolidayCash.toFixed(2)} บาท`);
       } else {
         // กรณีไม่มีข้อมูล sumCashWorkMul["1"] หรือ dayWorkCount เป็น 0
         publicHolidayCash = 0;
+        publicHolidayCount = 0;
         console.log(`⚠️ ไม่สามารถคำนวณ publicHolidayCash ได้ (sumCashWorkMul["1"]=${sumCashWorkMul["1"] || 0}, dayWorkCount=${dayWorkCount})`);
         console.log(`💰 กำหนด publicHolidayCash = 0 บาท`);
       }
@@ -6419,6 +6439,7 @@ console.log(`\n💰 คำนวณ publicHolidayCash สำหรับพน�
 
   // แสดงสรุปค่า publicHolidayCash ที่คำนวณได้
   console.log(`💰 ค่า publicHolidayCash ที่จะบันทึก: ${publicHolidayCash.toFixed(2)} บาท`);
+  console.log(`🔍 ค่า publicHolidayCount สุดท้าย: ${publicHolidayCount}`);
 
   // ❌ ลบส่วนที่เขียนทับค่า sumCashWorkMul["1.5"] ออกเพื่อให้ใช้ค่าที่คำนวณจาก Loop แทน
   // console.log(`\n💰 คำนวณค่า sumCashWorkMul["1.5"] สำหรับพนักงาน ${employeeId}`);
