@@ -6639,7 +6639,7 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
     console.log(`💰 ✅ พนักงานรายวัน (salaryMonth = ${salaryMonth} = 0)`);
     
     //กรณีหักภาษี ณ ที่จ่าย 3% (ภ.ง.ด.)
-    if (costtype === "ภ.ง.ด.") {
+    if (costtype === "ภ.ง.ด.3") {
       console.log(`💰 ✅ พนักงานประเภท ภ.ง.ด.3 - ไม่คิดประกันสังคม แต่คิดภาษี 3%`);
       socialSecurity = 0;
       
