@@ -6392,12 +6392,9 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
     if (check) {
       const beforeAdd = addSalarySocialSecurity;
       
-      // คำนวณจำนวนเงินที่แท้จริง - สำหรับรายวันต้องคูณกับจำนวนวัน
+      // ใช้ SpSalary โดยตรง เพราะข้อมูลที่ส่งมาได้ผ่านการคำนวณแล้ว
       let actualAmount = parseFloat(element.SpSalary || 0);
-      if (element.roundOfSalary === "daily" && element.message) {
-        actualAmount = parseFloat(element.SpSalary || 0) * parseFloat(element.message || 1);
-        console.log(`🔍 - คำนวณรายวัน: ${element.SpSalary} × ${element.message} = ${actualAmount} บาท`);
-      }
+      console.log(`🔍 - ใช้จำนวนเงินโดยตรง: ${actualAmount} บาท (${element.roundOfSalary})`);
       
       addSalarySocialSecurity = parseFloat(addSalarySocialSecurity || 0) + actualAmount;
       console.log(`🔍 - เพิ่มเงินพิเศษ: ${beforeAdd} + ${actualAmount} = ${addSalarySocialSecurity} บาท`);
