@@ -10963,6 +10963,7 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                                   <th style={{backgroundColor:'#fff7c2'}} colSpan="5" className="text-center  align-middle">ค่าล่วงเวลา</th>
                                   <th  colSpan={mergeWorkplaceAddsalary(workplaceAddsalary).length} className="text-center p-2">สวัสดิการ</th>
 
+                                  <th rowSpan={4}  className="vertical-text ">ทำงานวันหยุด(จ่ายสด)</th>
                                   <th rowSpan={4}  className="vertical-text ">หักประกันสังคม %</th>
                                   <th rowSpan={4}  className="vertical-text ">เงินสงเคราะห์ลูกจ้าง</th>
                                   <th rowSpan={4} className="vertical-text ">หมายเหตุ</th>
@@ -11468,6 +11469,7 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                     })()}
                       <td></td>
                       <td></td>
+                      <td></td>
 
 
                     
@@ -11656,9 +11658,14 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                         );
                       });
                     })()}
+                     <td className="text-center align-middle text-red p-1">
+                      {/* จ่ายสด  */}
+                    {(record.specialShiftTotalSalary && parseFloat(record.specialShiftTotalSalary) >= 50 ? formatNumberWithComma(parseFloat(record.specialShiftTotalSalary).toFixed(2)) : '') || (record.tax ? formatNumberWithComma(parseFloat(record.specialShiftTotalSalary).toFixed(2)) : '')} 
+
+                    </td>
                       <td className="text-center align-middle text-red p-1">
                       {/* หักประกันสังคม  */}
-                    {(record.socialSecurity && parseFloat(record.socialSecurity) >= 50 ? formatNumberWithComma(parseFloat(record.socialSecurity).toFixed(2)) : '') || (record.tax ? formatNumberWithComma(parseFloat(record.tax).toFixed(2)) : '')} 
+                    {(record.tax && parseFloat(record.tax) > 0 ? formatNumberWithComma(parseFloat(record.tax).toFixed(2)) : '') || (record.socialSecurity && parseFloat(record.socialSecurity) >= 50 ? formatNumberWithComma(parseFloat(record.socialSecurity).toFixed(2)) : '')} 
 
                     </td>
 
@@ -11757,7 +11764,7 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                     }
                     
                     // กำหนดสีพื้นหลัง (วันหยุดเป็นสีเทา)
-                    const isHoliday = isDayoffWorkplace || isInvalidDate;
+                    const isHoliday = isDayoffWorkplace || isInvalidDate  || isDayOffOnly;
                     const isSickLeave = record?.addSalaryList?.some(salaryItem => {
     // เช็คเฉพาะ welfare ที่เป็นการลาป่วย หรือ ลาพักร้อน
     if (salaryItem.welfareType === "ลาป่วย" || 
@@ -11921,7 +11928,7 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
     
     const isAbsent = found?.dayType === "work"; // ตรวจสอบว่าเป็นวันขาดงานหรือไม่
     // ถ้าเป็นวันหยุดหรือวันที่ไม่มีอยู่จริง ให้เป็นสีเทา
-    if (isDayoffWorkplace || isInvalidDate ) {
+    if (isDayoffWorkplace || isInvalidDate || isDayOffOnly) {
       backgroundColor = { backgroundColor: "#9e9e9e" };
     }
   } else {

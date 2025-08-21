@@ -38,6 +38,7 @@ import CalculateTax from "./conponents/componentsAside/CalculateTax";
 import CalculateTaxDeductions from "./conponents/componentsAside/CalculateTaxDeductions";
 import OtherExpenses from "./conponents/componentsAside/OtherExpenses";
 import SearchResults from "./conponents/componentsAside/SearchResults";
+import SpecialShiftCash from "./conponents/componentsAside/SpecialShiftCash";
 
 import Application from "./conponents/componentsAside/Application";
 import Application1 from "./conponents/componentsAside/Application1";
@@ -295,6 +296,11 @@ useEffect(() => {
                   />
                 }
               />
+               <Route
+                path="/speacialshiftcash"
+                element={<SpecialShiftCash employeeList={employeeList} workplaceList={workplaceList} />}
+              />
+             
                <Route
                 path="/replaceReport"
                 element={<ReplaceReport employeeList={employeeList} workplaceList={workplaceList} />}

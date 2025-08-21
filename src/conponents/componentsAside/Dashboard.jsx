@@ -141,7 +141,7 @@ const dashboardItems = [
   { to: "/addsettimeauto", icon: "fas fa-business-time", text: "ระบบลงเวลาอัตโมมัติ", color: "#ff6c60" },
   { to: "/addEdit_Employee", icon: "fas fa-people-arrows", text: "เพิ่ม/ลบ พนักงาน", color: "#9DBAEA" },
   { to: "/addEdit_SalaryEmployee", icon: "fas fa-money-bill-wave", text: "เงินเพิ่ม/เงินหัก", color: "#A2B4D2" },
-  { to: "#", icon: "fas fa-file-invoice-dollar", text: "ระบบเงินเดือน", color: "#58c9f3" },
+  { to: "/speacialshiftcash", icon: "fas fa-file-invoice-dollar", text: "ระบบเอกสารจ่ายสด", color: "#58c9f3" },
   { to: "#", icon: "fas fa-paste", text: "ระบบออกเอกสาร", color: "#41cac0" },
   { to: "#", icon: "fas fa-file-alt", text: "รายงานผู้บริหาร", color: "#8175c7" },
   { to: "/search", icon: "fas fa-network-wired", text: "จัดการพนักงาน", color: "#ffc107" },
