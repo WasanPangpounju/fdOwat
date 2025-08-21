@@ -5147,22 +5147,28 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           stopDaysList: doc.stopDaysList || [],
         };
 
-        // 🎯 อัปเดต message และ SpSalary สำหรับ items ที่มี roundOfSalary: "daily" ให้เป็น dayWorkCount + dayOffCount
+        // 🎯 อัปเดต message และ SpSalary สำหรับ items ที่มี roundOfSalary: "daily" ให้เป็นจำนวนวันที่จริงๆ ได้รับเงิน
         if (updateData.addSalaryList && Array.isArray(updateData.addSalaryList)) {
-          const totalDays = parseInt(calculatedValues.dayWorkCount) + parseInt(calculatedValues.dayOffCount);
-          console.log(`🎯 อัปเดต message และ SpSalary สำหรับ ${doc.employeeId} (dayWorkCount: ${calculatedValues.dayWorkCount} + dayOffCount: ${calculatedValues.dayOffCount} = ${totalDays})`);
           updateData.addSalaryList.forEach((item, itemIndex) => {
             if (item.roundOfSalary === "daily") {
               const oldMessage = item.message;
               const oldSpSalary = item.SpSalary;
               
-              // อัปเดต message เป็น dayWorkCount + dayOffCount
-              item.message = totalDays;
+              // นับจำนวนวันที่จริงๆ ได้รับเงินพิเศษนี้จาก employee_record
+              const actualDaysReceived = doc.employee_record?.filter(record => 
+                record.addSalaryDaily?.some(addSal => addSal.id === item.id)
+              ).length || 0;
+              
+              console.log(`🎯 อัปเดต message สำหรับ ${doc.employeeId} - ${item.name} (id: ${item.id})`);
+              console.log(`    วันที่จริงๆ ได้รับเงิน: ${actualDaysReceived} วัน`);
+              
+              // อัปเดต message เป็นจำนวนวันที่จริงๆ ได้รับเงิน
+              item.message = actualDaysReceived;
               
               // คำนวณ SpSalary ใหม่: (เงินเดิม / วันเดิม) * วันใหม่
               if (oldMessage && oldMessage > 0) {
                 const dailyRate = parseFloat(oldSpSalary) / parseFloat(oldMessage);
-                item.SpSalary = dailyRate * totalDays;
+                item.SpSalary = dailyRate * actualDaysReceived;
                 console.log(`🎯   Item[${itemIndex}] (${item.name}):`);
                 console.log(`       message: ${oldMessage} → ${item.message}`);
                 console.log(`       SpSalary: ${oldSpSalary} → ${parseFloat(item.SpSalary).toFixed(2)} (rate: ${dailyRate.toFixed(2)}/วัน)`);
