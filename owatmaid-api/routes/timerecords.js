@@ -1871,22 +1871,50 @@ router.post('/checkspecialtshift', async (req, res) => {
     
     pipeline.push({ $match: matchConditions });
 
-    // Group ตามหน่วยงานและนับจำนวนพนักงานที่มีกะพิเศษ
+    // Unwind employee_record เพื่อเข้าถึงข้อมูลในแต่ละ record
+    pipeline.push({ $unwind: "$employee_record" });
+
+    // กรองเฉพาะ employee_record ที่มี shift = 'specialt_shift'
+    pipeline.push({
+      $match: {
+        'employee_record.shift': 'specialt_shift'
+      }
+    });
+
+    // Group ตามหน่วยงานและพนักงาน
     pipeline.push({
       $group: {
         _id: {
           workplaceId: "$employee_record.workplaceId",
-          workplaceName: "$employee_record.workplaceName"
-        },
-        employeesWithSpecialShift: { $addToSet: "$employeeId" }, // พนักงานที่มีกะพิเศษ
-        specialShiftRecords: { $push: {
+          workplaceName: "$employee_record.workplaceName",
           employeeId: "$employeeId",
-          employeeName: "$employeeName",
-          shift: "$employee_record.shift",
-          date: "$employee_record.date",
-          specialtSalary: "$employee_record.specialtSalary",
-          specialtSalaryOT: "$employee_record.specialtSalaryOT"
-        }}
+          employeeName: "$employeeName"
+        },
+        specialShiftDays: { 
+          $push: {
+            date: "$employee_record.date",
+            specialtSalary: "$employee_record.specialtSalary",
+            specialtSalaryOT: "$employee_record.specialtSalaryOT"
+          }
+        }
+      }
+    });
+
+    // Group อีกครั้งตามหน่วยงาน
+    pipeline.push({
+      $group: {
+        _id: {
+          workplaceId: "$_id.workplaceId",
+          workplaceName: "$_id.workplaceName"
+        },
+        employees: {
+          $push: {
+            employeeId: "$_id.employeeId",
+            employeeName: "$_id.employeeName",
+            specialShiftDays: "$specialShiftDays"
+          }
+        },
+        totalEmployees: { $sum: 1 }
       }
     });
 
@@ -1896,8 +1924,8 @@ router.post('/checkspecialtshift', async (req, res) => {
         _id: 0,
         workplaceId: "$_id.workplaceId",
         workplaceName: "$_id.workplaceName",
-        totalEmployeesWithSpecialShift: { $size: "$employeesWithSpecialShift" },
-        specialShiftDetails: "$specialShiftRecords"
+        totalEmployeesWithSpecialShift: "$totalEmployees",
+        employees: "$employees"
       }
     });
 
@@ -1908,13 +1936,15 @@ router.post('/checkspecialtshift', async (req, res) => {
 
     // สร้างข้อความสรุป
     const totalWorkplaces = workplacesWithSpecialShift.length;
+    const totalEmployees = workplacesWithSpecialShift.reduce((sum, wp) => sum + wp.totalEmployeesWithSpecialShift, 0);
+    
     const workplaceList = workplacesWithSpecialShift.map(wp => 
       `${wp.workplaceName} (รหัส: ${wp.workplaceId}, พนักงานกะพิเศษ: ${wp.totalEmployeesWithSpecialShift} คน)`
     ).join(', ');
 
     const yearText = year && year !== '' ? ` ปี ${year}` : '';
     const summary = totalWorkplaces > 0 
-      ? `เดือน ${month}${yearText} มี ${totalWorkplaces} หน่วยงานที่มีกะพิเศษ: ${workplaceList}`
+      ? `เดือน ${month}${yearText} มี ${totalWorkplaces} หน่วยงานที่มีกะพิเศษ รวม ${totalEmployees} คน: ${workplaceList}`
       : `เดือน ${month}${yearText} ไม่มีหน่วยงานที่มีกะพิเศษ`;
 
     console.log(`🌟 [CHECK SPECIAL SHIFT] ${summary}`);
@@ -1924,9 +1954,9 @@ router.post('/checkspecialtshift', async (req, res) => {
       month: month,
       year: year || 'ทุกปี',
       totalWorkplacesWithSpecialShift: totalWorkplaces,
+      totalEmployeesWithSpecialShift: totalEmployees,
       summary: summary,
-      workplaces: workplacesWithSpecialShift,
-      details: workplacesWithSpecialShift
+      workplaces: workplacesWithSpecialShift
     });
 
   } catch (error) {
