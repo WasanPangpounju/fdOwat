@@ -1753,6 +1753,95 @@ router.put("/updatetimerecordemployee/:employeeRecordId", async (req, res) => {
   }
 });
 
+// เช็คจำนวนหน่วยงานในแต่ละเดือน
+router.post('/checkworkplacesinmonth', async (req, res) => {
+  try {
+    const { month, year } = req.body;
+
+    if (!month || month === '') {
+      return res.status(400).json({ 
+        success: false,
+        message: 'กรุณาระบุเดือนที่ต้องการเช็ค' 
+      });
+    }
+
+    // ใช้ aggregation pipeline เพื่อหาหน่วยงานที่ไม่ซ้ำกันในเดือนที่ระบุ
+    const pipeline = [];
+
+    // Match stage - กรองตามเดือนและปี
+    const matchConditions = {
+      month: { $regex: new RegExp(month, 'i') }
+    };
+    
+    if (year && year !== '') {
+      matchConditions.year = { $regex: new RegExp(year, 'i') };
+    }
+    
+    pipeline.push({ $match: matchConditions });
+
+    // Unwind employee_record เพื่อเข้าถึงข้อมูลหน่วยงานในแต่ละ record
+    pipeline.push({ $unwind: "$employee_record" });
+
+    // Group เพื่อหาหน่วยงานที่ไม่ซ้ำกัน
+    pipeline.push({
+      $group: {
+        _id: {
+          workplaceId: "$employee_record.workplaceId",
+          workplaceName: "$employee_record.workplaceName"
+        },
+        employeeCount: { $addToSet: "$employeeId" }, // นับพนักงานที่ไม่ซ้ำ
+        recordCount: { $sum: 1 } // นับจำนวน record ทั้งหมด
+      }
+    });
+
+    // Project เพื่อจัดรูปแบบข้อมูล
+    pipeline.push({
+      $project: {
+        _id: 0,
+        workplaceId: "$_id.workplaceId",
+        workplaceName: "$_id.workplaceName",
+        employeeCount: { $size: "$employeeCount" },
+        recordCount: "$recordCount"
+      }
+    });
+
+    // Sort ตามรหัสหน่วยงาน
+    pipeline.push({ $sort: { workplaceId: 1 } });
+
+    const workplaces = await timerecordEmployee.aggregate(pipeline);
+
+    // สร้างข้อความสรุป
+    const totalWorkplaces = workplaces.length;
+    const workplaceList = workplaces.map(wp => 
+      `${wp.workplaceName} (รหัส: ${wp.workplaceId}, พนักงาน: ${wp.employeeCount} คน, บันทึก: ${wp.recordCount} รายการ)`
+    ).join(', ');
+
+    const yearText = year && year !== '' ? ` ปี ${year}` : '';
+    const summary = totalWorkplaces > 0 
+      ? `เดือน ${month}${yearText} มี ${totalWorkplaces} หน่วยงาน: ${workplaceList}`
+      : `เดือน ${month}${yearText} ไม่มีข้อมูลหน่วยงาน`;
+
+    console.log(`📊 [CHECK WORKPLACES] ${summary}`);
+
+    res.status(200).json({
+      success: true,
+      month: month,
+      year: year || 'ทุกปี',
+      totalWorkplaces: totalWorkplaces,
+      summary: summary,
+      workplaces: workplaces,
+      details: workplaces
+    });
+
+  } catch (error) {
+    console.error('❌ [CHECK WORKPLACES] เกิดข้อผิดพลาด:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการดึงข้อมูล',
+      error: error.message 
+    });
+  }
+});
 
 
 // ========= workplace
