@@ -1862,7 +1862,7 @@ router.post('/checkspecialtshift', async (req, res) => {
     // Match stage - กรองตามเดือน ปี และต้องมีกะพิเศษ
     const matchConditions = {
       month: { $regex: new RegExp(month, 'i') },
-      'employee_record.specialt_shift': { $exists: true, $ne: null, $ne: '' }
+      'employee_record.shift': 'specialt_shift'
     };
     
     if (year && year !== '') {
@@ -1882,7 +1882,10 @@ router.post('/checkspecialtshift', async (req, res) => {
         specialShiftRecords: { $push: {
           employeeId: "$employeeId",
           employeeName: "$employeeName",
-          specialt_shift: "$employee_record.specialt_shift"
+          shift: "$employee_record.shift",
+          date: "$employee_record.date",
+          specialtSalary: "$employee_record.specialtSalary",
+          specialtSalaryOT: "$employee_record.specialtSalaryOT"
         }}
       }
     });
