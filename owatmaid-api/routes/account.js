@@ -5143,7 +5143,6 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           sumCashWork1_20: String(calculatedValues.sumCashWork1_20 || 0), // เงินเดือนวันที่ 1-20
           sumCashWork21_30_31: String(calculatedValues.sumCashWork21_30_31 || 0), // เงินเดือนวันที่ 21-30/31
 
-
           // clearly ensure all SpSalary are numbers
           // addSalaryList: calculatedValues.addSalaryList.map(item => ({
           //   ...item,
@@ -5155,6 +5154,8 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           sumCashWorkMul: calculatedValues.sumCashWorkMul,
           // เพิ่ม stopDaysList สำหรับหน่วยงาน 7 วัน
           stopDaysList: doc.stopDaysList || [],
+          // บันทึกการเปลี่ยนแปลง employee_record ที่มีการปรับ cashWork สำหรับ cash_holiday
+          employee_record: doc.employee_record,
         };
 
         // 🎯 อัปเดต message และ SpSalary สำหรับ items ที่มี roundOfSalary: "daily" ให้เป็นจำนวนวันที่จริงๆ ได้รับเงิน
