@@ -2227,8 +2227,17 @@ try {
                           <th style={cellStyle}>
                             <span onClick={togglePopup}
                             style={{ color: color, cursor: "pointer" }}>
-                            {parseFloat(accountingResult?.[0]?.sumCashOt || 0).toFixed(2)}
+                            {(() => {
+                              const overtimeAmount = parseFloat(accountingResult?.[0]?.sumCashOt || 0);
+                              const specialShiftAmount = parseFloat(accountingResult?.[0]?.specialShiftTotalSalary || 0);
+                              const total = overtimeAmount + specialShiftAmount;
+                              return total.toLocaleString('th-TH', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2
+                              });
+                            })()}
                             </span>
+                            
 
                           { showPopup && (
                             <div className="popup">
@@ -2246,6 +2255,10 @@ try {
                                         })} บาท
                                       </li>
                                     ))}
+                                    {accountingResult?.[0]?.specialShiftTotalSalary && 
+                                     parseFloat(accountingResult[0].specialShiftTotalSalary) > 0 && (
+                                      <li>ค่าทำงานในวันหยุดสด -  {accountingResult[0].specialShiftTotalSalary} บาท</li>
+                                    )}
                               </ul>
                               <button className="btn btn-danger" onClick={togglePopup}>Close</button>
                             </div>
@@ -2321,6 +2334,7 @@ try {
   const total = 
     parseFloat(accountingResult?.[0]?.sumCashWork || '0') + 
     parseFloat(accountingResult?.[0]?.sumCashOt || '0') + 
+    parseFloat(accountingResult?.[0]?.specialShiftTotalSalary || '0') + 
     parseFloat(totalAddSalary || '0'); // ใช้ totalAddSalary แทน
 
   return isNaN(total)
@@ -2560,6 +2574,7 @@ try {
     parseFloat(accountingResult?.[0]?.sumCashWork || '0') + 
     parseFloat(accountingResult?.[0]?.sumCashOt || '0') +
     parseFloat(accountingResult?.[0]?.publicHolidayCash || '0') + 
+    parseFloat(accountingResult?.[0]?.specialShiftTotalSalary || '0') + 
     parseFloat(totalAddSalary || '0'); // ใช้ totalAddSalary แทน
 
   return isNaN(total)
@@ -2596,6 +2611,7 @@ try {
     parseFloat(accountingResult?.[0]?.sumCashWork || '0') + 
     parseFloat(accountingResult?.[0]?.sumCashOt || '0') +
     parseFloat(accountingResult?.[0]?.publicHolidayCash || '0') + 
+    parseFloat(accountingResult?.[0]?.specialShiftTotalSalary || '0') + 
     parseFloat(totalAddSalary || '0'); // ใช้ totalAddSalary แทน
 
   const deductionTotal =

@@ -62,7 +62,7 @@ hourTwoFive: String,
 hourThree: String,
 
 }],
-
+specialShiftTotalSalary:String,
 
 addSalary: [{
   id: String,

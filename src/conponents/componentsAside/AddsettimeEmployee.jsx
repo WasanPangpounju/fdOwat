@@ -2357,6 +2357,15 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
     event.preventDefault();
     // alert('test');
 
+    // Calculate special shift total salary
+    const specialShiftTotalSalary = rowDataList2
+      .filter(item => item.shift === "specialt_shift" && item.workplaceId)
+      .reduce((total, item) => {
+        const specialtSalary = parseFloat(item.specialtSalary || '0');
+        const specialtSalaryOT = parseFloat(item.specialtSalaryOT || '0');
+        return total + specialtSalary + specialtSalaryOT;
+      }, 0);
+
     //get data from input in useState to data
     const data = {
       year: year,
@@ -2364,6 +2373,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
       employeeName: name,
       month: month,
       employee_record: rowDataList2,
+      specialShiftTotalSalary: specialShiftTotalSalary.toString(), // Add this field
     };
 
     try {
@@ -2373,6 +2383,26 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
       );
       // setEmployeesResult(response.data.employees);
       if (response) {
+        // Send specialShiftTotalSalary to accounting endpoint
+        try {
+          const accountingData = {
+            employeeId: employeeId,
+            month: month,
+            year: year,
+            specialShiftTotalSalary: specialShiftTotalSalary.toString()
+          };
+          
+          console.log("CREATE: Sending to accounting API:", accountingData);
+          const accountingResponse = await axios.post(
+            "http://10.10.110.7:3000/accounting/searchtimerecordemployee",
+            accountingData
+          );
+          console.log("CREATE: Accounting API response:", accountingResponse.data);
+        } catch (accountingError) {
+          console.error("CREATE: Error sending to accounting API:", accountingError);
+          console.error("CREATE: Accounting error details:", accountingError.response?.data);
+        }
+
         alert("บันทึกสำเร็จ");
         // Scroll to top of the page
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -2391,6 +2421,16 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
 
   async function handleUpdateWorkplaceTimerecord(event) {
     event.preventDefault();
+    
+    // Calculate special shift total salary
+    const specialShiftTotalSalary = rowDataList2
+      .filter(item => item.shift === "specialt_shift" && item.workplaceId)
+      .reduce((total, item) => {
+        const specialtSalary = parseFloat(item.specialtSalary || '0');
+        const specialtSalaryOT = parseFloat(item.specialtSalaryOT || '0');
+        return total + specialtSalary + specialtSalaryOT;
+      }, 0);
+
     //get data from input in useState to data
     const data = {
       year: year,
@@ -2398,6 +2438,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
       employeeName: staffFullName,
       month: month,
       employee_record: rowDataList2,
+      specialShiftTotalSalary: specialShiftTotalSalary.toString(), // Add this field
     };
     try {
       const response = await axios.put(
@@ -2406,6 +2447,26 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
       );
       // setEmployeesResult(response.data.employees);
       if (response?.status === 201) {
+        // Send specialShiftTotalSalary to accounting endpoint
+        try {
+          const accountingData = {
+            employeeId: employeeId,
+            month: month,
+            year: year,
+            specialShiftTotalSalary: specialShiftTotalSalary.toString()
+          };
+          
+          console.log("UPDATE: Sending to accounting API:", accountingData);
+          const accountingResponse = await axios.post(
+            "http://10.10.110.7:3000/accounting/searchtimerecordemployee",
+            accountingData
+          );
+          console.log("UPDATE: Accounting API response:", accountingResponse.data);
+        } catch (accountingError) {
+          console.error("UPDATE: Error sending to accounting API:", accountingError);
+          console.error("UPDATE: Accounting error details:", accountingError.response?.data);
+        }
+
         alert("บันทึกสำเร็จ");
         // Scroll to top of the page
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -3167,6 +3228,85 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
       </tbody>
     </table>
   </div>
+
+  {/* สรุปสถิติ */}
+  {rowDataList2.length > 0 && (() => {
+    // Calculate special shift totals
+    const specialShiftData = rowDataList2.filter(item => item.shift === "specialt_shift" && item.workplaceId);
+    const specialShiftDays = specialShiftData.length;
+    const specialShiftTotalSalary = specialShiftData.reduce((total, item) => {
+      const specialtSalary = parseFloat(item.specialtSalary || '0');
+      const specialtSalaryOT = parseFloat(item.specialtSalaryOT || '0');
+      return total + specialtSalary + specialtSalaryOT;
+    }, 0);
+
+    return (
+      <div className="mt-3 p-3" style={{ backgroundColor: "#f8f9fa", borderRadius: "5px" }}>
+        <h5 className="text-center mb-3">สรุปสถิติการทำงาน</h5>
+        <div className="row text-center">
+          <div className="col-md-3">
+            <div className="card">
+              <div className="card-body">
+                <h6 className="card-title">รวมทั้งหมด</h6>
+                <h4 className="text-primary">
+                  {rowDataList2.filter(item => item.workplaceId).length} วัน
+                </h4>
+              </div>
+            </div>
+          </div>
+          <div className="col-md-3">
+            <div className="card">
+              <div className="card-body">
+                <h6 className="card-title">กะเช้า</h6>
+                <h4 className="text-success">
+                  {rowDataList2.filter(item => item.shift === "morning_shift" && item.workplaceId).length} วัน
+                </h4>
+              </div>
+            </div>
+          </div>
+          <div className="col-md-3">
+            <div className="card">
+              <div className="card-body">
+                <h6 className="card-title">กะบ่าย</h6>
+                <h4 className="text-warning">
+                  {rowDataList2.filter(item => item.shift === "afternoon_shift" && item.workplaceId).length} วัน
+                </h4>
+              </div>
+            </div>
+          </div>
+          <div className="col-md-3">
+            <div className="card">
+              <div className="card-body">
+                <h6 className="card-title">กะพิเศษ</h6>
+                <h4 className="text-danger">
+                  {specialShiftDays} วัน
+                </h4>
+                <p className="text-muted mb-0">
+                  รวม: {specialShiftTotalSalary.toLocaleString()} บาท
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* แสดงรายละเอียดวันที่เป็นกะพิเศษ */}
+        {specialShiftDays > 0 && (
+          <div className="mt-3">
+            <h6>รายละเอียดวันที่ทำงานกะพิเศษ:</h6>
+            <div className="row">
+              {specialShiftData.map((item, index) => (
+                <div key={index} className="col-md-2 mb-2">
+                  <span className="badge badge-danger p-2">
+                    วันที่ {item.date} - {item.workplaceName}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  })()}
 </section>
 
               <div class="form-group">

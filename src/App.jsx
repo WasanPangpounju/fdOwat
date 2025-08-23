@@ -14,6 +14,7 @@ import BankReportExecutiveCommittee from "./conponents/componentsAside/BankRepor
 import AsideLeft from "./conponents/AsideLeft";
 import Footer from "./conponents/Footer";
 import AdminRoute from "./conponents/AdminRoute";
+import AddSetTimeAuto from "./conponents/componentsAside/addsettimeauto";
 
 import Top from "./conponents/Top";
 
@@ -37,6 +38,7 @@ import CalculateTax from "./conponents/componentsAside/CalculateTax";
 import CalculateTaxDeductions from "./conponents/componentsAside/CalculateTaxDeductions";
 import OtherExpenses from "./conponents/componentsAside/OtherExpenses";
 import SearchResults from "./conponents/componentsAside/SearchResults";
+import SpecialShiftCash from "./conponents/componentsAside/SpecialShiftCash";
 
 import Application from "./conponents/componentsAside/Application";
 import Application1 from "./conponents/componentsAside/Application1";
@@ -268,6 +270,8 @@ useEffect(() => {
               <Route path="/examine" element={<Examine />} />
               <Route path="/compensation" element={<Compensation />} />
               <Route path="/salaryresult" element={<Salaryresult />} />
+              <Route path="/addsettimeauto" element={<AddSetTimeAuto workplaceList={workplaceList}
+                    employeeList={employeeList} /> }/>
               <Route
                 path="/salaryAllresult"
                 element={<SalaryAllResult employeeList={employeeList} workplaceList={workplaceList} />}
@@ -292,6 +296,11 @@ useEffect(() => {
                   />
                 }
               />
+               <Route
+                path="/speacialshiftcash"
+                element={<SpecialShiftCash employeeList={employeeList} workplaceList={workplaceList} />}
+              />
+             
                <Route
                 path="/replaceReport"
                 element={<ReplaceReport employeeList={employeeList} workplaceList={workplaceList} />}

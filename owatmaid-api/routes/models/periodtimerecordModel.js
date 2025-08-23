@@ -30,6 +30,8 @@ const periodEmployeeTimerecordSchema = new mongoose.Schema({
     cashOt: String,
     cashOtMul: String,
     cashSalary: String,
+    cashOfHoliday: String,
+    cashOfHolidayOt: String,
 specialtSalary: String,
 specialtSalaryOT: String,
         messageSalary: String,
@@ -99,6 +101,7 @@ typeOfemployee: String,
 sumSocialSecurity: String,
 sumTax: String,
 sumFund: String,
+specialShiftTotalSalary:String,
 
 addSalaryList: [
   {

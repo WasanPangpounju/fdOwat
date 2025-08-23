@@ -141,10 +141,10 @@ function AsideLeft() {
             <a href="dashboard.php" className="brand-link logo-switch">
               <img src="assets/images/logo-xs.png" alt="Logo Small" className="brand-image-xl logo-xs" />
               {/* <img src="assets/images/logo.png" alt=" Docs Logo Large" className="brand-image-xl logo-xl" style={{ borderRadius: "8px", width: '92%' }} /> */}
-              <img src="assets/images/logo.png" alt=" Docs Logo Large" className="" style={{ borderRadius: "8px", width: '92%' }} />
+              <img src="src/assets/images/OwatLogo.png" alt=" Docs Logo Large" className="" style={{ borderRadius: "8px", width: '95%' }} />
             </a>
           </div>
-          <div className="user-panel mt-3 pb-3 mb-3 d-flex">
+          <div className="user-panel mt-2 pb-3 mb-3 d-flex">
             <div className="image">
               <img src="assets/images/admin.jpg" className="img-circle" alt="User Image" />
             </div>

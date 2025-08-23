@@ -1753,7 +1753,221 @@ router.put("/updatetimerecordemployee/:employeeRecordId", async (req, res) => {
   }
 });
 
+// เช็คจำนวนหน่วยงานในแต่ละเดือน
+router.post('/checkworkplacesinmonth', async (req, res) => {
+  try {
+    const { month, year } = req.body;
 
+    if (!month || month === '') {
+      return res.status(400).json({ 
+        success: false,
+        message: 'กรุณาระบุเดือนที่ต้องการเช็ค' 
+      });
+    }
+
+    // ใช้ aggregation pipeline เพื่อหาหน่วยงานที่ไม่ซ้ำกันในเดือนที่ระบุ
+    const pipeline = [];
+
+    // Match stage - กรองตามเดือนและปี
+    const matchConditions = {
+      month: { $regex: new RegExp(month, 'i') }
+    };
+    
+    if (year && year !== '') {
+      matchConditions.year = { $regex: new RegExp(year, 'i') };
+    }
+    
+    pipeline.push({ $match: matchConditions });
+
+    // Unwind employee_record เพื่อเข้าถึงข้อมูลหน่วยงานในแต่ละ record
+    pipeline.push({ $unwind: "$employee_record" });
+
+    // Group เพื่อหาหน่วยงานที่ไม่ซ้ำกัน
+    pipeline.push({
+      $group: {
+        _id: {
+          workplaceId: "$employee_record.workplaceId",
+          workplaceName: "$employee_record.workplaceName"
+        },
+        employeeCount: { $addToSet: "$employeeId" }, // นับพนักงานที่ไม่ซ้ำ
+        recordCount: { $sum: 1 } // นับจำนวน record ทั้งหมด
+      }
+    });
+
+    // Project เพื่อจัดรูปแบบข้อมูล
+    pipeline.push({
+      $project: {
+        _id: 0,
+        workplaceId: "$_id.workplaceId",
+        workplaceName: "$_id.workplaceName",
+        employeeCount: { $size: "$employeeCount" },
+        recordCount: "$recordCount"
+      }
+    });
+
+    // Sort ตามรหัสหน่วยงาน
+    pipeline.push({ $sort: { workplaceId: 1 } });
+
+    const workplaces = await timerecordEmployee.aggregate(pipeline);
+
+    // สร้างข้อความสรุป
+    const totalWorkplaces = workplaces.length;
+    const workplaceList = workplaces.map(wp => 
+      `${wp.workplaceName} (รหัส: ${wp.workplaceId}, พนักงาน: ${wp.employeeCount} คน, บันทึก: ${wp.recordCount} รายการ)`
+    ).join(', ');
+
+    const yearText = year && year !== '' ? ` ปี ${year}` : '';
+    const summary = totalWorkplaces > 0 
+      ? `เดือน ${month}${yearText} มี ${totalWorkplaces} หน่วยงาน: ${workplaceList}`
+      : `เดือน ${month}${yearText} ไม่มีข้อมูลหน่วยงาน`;
+
+    console.log(`📊 [CHECK WORKPLACES] ${summary}`);
+
+    res.status(200).json({
+      success: true,
+      month: month,
+      year: year || 'ทุกปี',
+      totalWorkplaces: totalWorkplaces,
+      summary: summary,
+      workplaces: workplaces,
+      details: workplaces
+    });
+
+  } catch (error) {
+    console.error('❌ [CHECK WORKPLACES] เกิดข้อผิดพลาด:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการดึงข้อมูล',
+      error: error.message 
+    });
+  }
+});
+
+
+// เช็คหน่วยงานที่มีกะพิเศษ (specialt_shift) ในแต่ละเดือน
+router.post('/checkspecialtshift', async (req, res) => {
+  try {
+    const { month, year } = req.body;
+
+    if (!month || month === '') {
+      return res.status(400).json({ 
+        success: false,
+        message: 'กรุณาระบุเดือนที่ต้องการเช็ค' 
+      });
+    }
+
+    // ใช้ aggregation pipeline เพื่อหาหน่วยงานที่มีกะพิเศษในเดือนที่ระบุ
+    const pipeline = [];
+
+    // Match stage - กรองตามเดือน ปี และต้องมีกะพิเศษ
+    const matchConditions = {
+      month: { $regex: new RegExp(month, 'i') },
+      'employee_record.shift': 'specialt_shift'
+    };
+    
+    if (year && year !== '') {
+      matchConditions.year = { $regex: new RegExp(year, 'i') };
+    }
+    
+    pipeline.push({ $match: matchConditions });
+
+    // Unwind employee_record เพื่อเข้าถึงข้อมูลในแต่ละ record
+    pipeline.push({ $unwind: "$employee_record" });
+
+    // กรองเฉพาะ employee_record ที่มี shift = 'specialt_shift'
+    pipeline.push({
+      $match: {
+        'employee_record.shift': 'specialt_shift'
+      }
+    });
+
+    // Group ตามหน่วยงานและพนักงาน
+    pipeline.push({
+      $group: {
+        _id: {
+          workplaceId: "$employee_record.workplaceId",
+          workplaceName: "$employee_record.workplaceName",
+          employeeId: "$employeeId",
+          employeeName: "$employeeName"
+        },
+        specialShiftDays: { 
+          $push: {
+            date: "$employee_record.date",
+            specialtSalary: "$employee_record.specialtSalary",
+            specialtSalaryOT: "$employee_record.specialtSalaryOT"
+          }
+        }
+      }
+    });
+
+    // Group อีกครั้งตามหน่วยงาน
+    pipeline.push({
+      $group: {
+        _id: {
+          workplaceId: "$_id.workplaceId",
+          workplaceName: "$_id.workplaceName"
+        },
+        employees: {
+          $push: {
+            employeeId: "$_id.employeeId",
+            employeeName: "$_id.employeeName",
+            specialShiftDays: "$specialShiftDays"
+          }
+        },
+        totalEmployees: { $sum: 1 }
+      }
+    });
+
+    // Project เพื่อจัดรูปแบบข้อมูล
+    pipeline.push({
+      $project: {
+        _id: 0,
+        workplaceId: "$_id.workplaceId",
+        workplaceName: "$_id.workplaceName",
+        totalEmployeesWithSpecialShift: "$totalEmployees",
+        employees: "$employees"
+      }
+    });
+
+    // Sort ตามรหัสหน่วยงาน
+    pipeline.push({ $sort: { workplaceId: 1 } });
+
+    const workplacesWithSpecialShift = await timerecordEmployee.aggregate(pipeline);
+
+    // สร้างข้อความสรุป
+    const totalWorkplaces = workplacesWithSpecialShift.length;
+    const totalEmployees = workplacesWithSpecialShift.reduce((sum, wp) => sum + wp.totalEmployeesWithSpecialShift, 0);
+    
+    const workplaceList = workplacesWithSpecialShift.map(wp => 
+      `${wp.workplaceName} (รหัส: ${wp.workplaceId}, พนักงานกะพิเศษ: ${wp.totalEmployeesWithSpecialShift} คน)`
+    ).join(', ');
+
+    const yearText = year && year !== '' ? ` ปี ${year}` : '';
+    const summary = totalWorkplaces > 0 
+      ? `เดือน ${month}${yearText} มี ${totalWorkplaces} หน่วยงานที่มีกะพิเศษ รวม ${totalEmployees} คน: ${workplaceList}`
+      : `เดือน ${month}${yearText} ไม่มีหน่วยงานที่มีกะพิเศษ`;
+
+    console.log(`🌟 [CHECK SPECIAL SHIFT] ${summary}`);
+
+    res.status(200).json({
+      success: true,
+      month: month,
+      year: year || 'ทุกปี',
+      totalWorkplacesWithSpecialShift: totalWorkplaces,
+      totalEmployeesWithSpecialShift: totalEmployees,
+      summary: summary,
+      workplaces: workplacesWithSpecialShift
+    });
+
+  } catch (error) {
+    console.error('❌ [CHECK SPECIAL SHIFT] เกิดข้อผิดพลาด:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการดึงข้อมูลกะพิเศษ',
+      error: error.message 
+    });
+  }
+});
 
 // ========= workplace
 
