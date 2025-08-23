@@ -5964,12 +5964,16 @@ try {
             const cashBeforeOt = parseFloat(record?.cashBeforeOt || '0');
             const cashOtAmount = cashBeforeOt + recalculatedCashOt;
             
+            // 🔄 อัปเดตค่า cashOt กลับไปยัง record
+            record.cashOt = recalculatedCashOt.toFixed(2);
+            
             sumCashWorkMul[record.cashOtMul] += cashOtAmount;
             console.log(`   🎯 [STOP DAY OT] วันที่ ${record.date}:`);
             console.log(`      - cashWork: ${cashWork} บาท`);
             console.log(`      - OT Time: ${otTime} ชม.`);
             console.log(`      - OT Rate: ${otRate}x`);
             console.log(`      - คำนวณใหม่: ((${cashWork}/2)/8) * ${otRate} * ${otTime} = ${recalculatedCashOt.toFixed(2)} บาท`);
+            console.log(`      - อัปเดต record.cashOt เป็น: ${record.cashOt} บาท`);
             console.log(`      - รวม cashOt (รวม beforeOt): ${cashOtAmount.toFixed(2)} บาท`);
             console.log(`      - เพิ่มไปยัง sumCashWorkMul[${record.cashOtMul}] (รวม: ${sumCashWorkMul[record.cashOtMul]})`);
           }
