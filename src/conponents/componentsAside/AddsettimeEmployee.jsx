@@ -9,6 +9,11 @@ import "react-datepicker/dist/react-datepicker.css";
 
 import EmployeesSelected from "./EmployeesSelected";
 
+// Helper function to safely get the first element from a filtered array
+const safeGetFirstShift = (filteredArray) => {
+  return filteredArray.length > 0 ? filteredArray[0] : null;
+};
+
 function AddsettimeEmployee() {
   const [isDataTrue, setIsDataTrue] = useState(false);
   const linkRef = useRef(null);
@@ -28,6 +33,9 @@ function AddsettimeEmployee() {
   const [cashSalary, setCashSalary] = useState(false);
   const [specialtSalary, setSpecialtSalary] = useState("");
   const [specialtSalaryOT, setSpecialtSalaryOT] = useState("");
+  
+  const [cashOfHoliday, setCashOfHoliday] = useState("");
+  const [cashOfHolidayOt, setCashOfHolidayOt] = useState("");
 
   const [messageSalary, setMessageSalary] = useState("");
 
@@ -156,23 +164,78 @@ const [customWorkplace , setCustomWorkplace] = useState({});
       });
   }, []); // The empty array [] ensures that the effect runs only once after the initial render
 
-  console.log(employeeList);
+
 
   useEffect(() => {
     // Fetch data from the API when the component mounts
     fetch(endpoint + "/workplace/list")
       .then((response) => response.json())
       .then((data) => {
-        // Update the state with the fetched data
-        setWorkplaceList(data);
-        // alert(data[0].workplaceName);
+        // Add test specialWorkTimeDay data to workplaces
+        const dataWithSpecialDays = data.map(workplace => {
+          // Get current date info for testing
+          const today = new Date();
+          const currentDay = today.getDate();
+          const currentMonth = today.getMonth() + 1; // JavaScript months are 0-based
+          const currentYear = today.getFullYear();
+          const buddhistYear = currentYear + 543;
+          
+          // Keep existing specialWorkTimeDay and add new test data
+          const existingSpecialDays = workplace.specialWorkTimeDay || [];
+          
+          console.log(`🏢 Processing workplace ${workplace.workplaceId}:`, workplace.workplaceName);
+          
+          // Add test data for ALL workplaces to ensure it works
+          const newSpecialDays = [
+            ...existingSpecialDays, // เก็บข้อมูลเดิมไว้
+            
+            {
+              "day_specialwork": `${currentDay}/${currentMonth}/${buddhistYear}`, // Today's date
+              "shift_specialwork": "กะพิเศษ",
+              "startTime_specialwork": "09.00",
+              "endTime_specialwork": "18.00",
+              "startTimeOT_specialwork": "18.00",
+              "endTimeOT_specialwork": "20.00",
+              "payment_specialwork": 1500,
+              "paymentOT_specialwork": 750,
+              "workDetail_specialwork": `งานพิเศษวันที่ ${currentDay} (ทดสอบ)`,
+              "employees_specialwork": [
+                {
+                  "positionWork_specialwork": "ทั้งหมด",
+                  "countPerson_specialwork": 5,
+                  "_id": "test003"
+                }
+              ],
+              "_id": "test003"
+            }
+          ];
+          
+          console.log(`✅ Total special days after adding test data:`, newSpecialDays.length);
+          
+          return {
+            ...workplace,
+            specialWorkTimeDay: newSpecialDays
+          };
+        });
+        
+        // Update the state with the enhanced data
+        setWorkplaceList(dataWithSpecialDays);
+        console.log('🎯 Enhanced workplaceList with specialWorkTimeDay:', dataWithSpecialDays);
+        
+        // Debug: Check specific workplace 1001
+        const workplace1001 = dataWithSpecialDays.find(w => w.workplaceId === "1001");
+        if (workplace1001) {
+          console.log('🔬 Workplace 1001 enhanced data:');
+          console.log('- specialWorkTimeDay count:', workplace1001.specialWorkTimeDay?.length || 0);
+          console.log('- specialWorkTimeDay dates:', workplace1001.specialWorkTimeDay?.map(d => d.day_specialwork) || []);
+        }
       })
       .catch((error) => {
         console.error("Error fetching data:", error);
       });
   }, []); // The empty array [] ensures that the effect runs only once after the initial render
 
-  console.log(workplaceList);
+
 
   /////////////////////////////////////////////
   const [tmpIndex, setTmpIndex] = useState(0);
@@ -260,7 +323,170 @@ const [customWorkplace , setCustomWorkplace] = useState({});
     return timeDiffFormatted;
   }
 
+  // Function to check and apply special work time day data
+  const checkSpecialWorkTimeDay = async () => {
+    if (wDate && wId) {
+      try {
+        console.log(`🔍 Checking special work time day for wDate: ${wDate}, wId: ${wId}, month: ${month}, year: ${year}`);
+        
+        // Always prioritize workplaceList (which has enhanced test data) over customWorkplace
+        let workplacesearch = workplaceList.find((workplace) => workplace.workplaceId === wId);
+        
+        // If not found in workplaceList, fallback to customWorkplace
+        if (!workplacesearch && Object.keys(customWorkplace).length !== 0) {
+          workplacesearch = customWorkplace;
+        }
+        
+        if (workplacesearch && workplacesearch.specialWorkTimeDay) {
+          console.log(`📅 Found workplace with ${workplacesearch.specialWorkTimeDay.length} special work days:`, 
+            workplacesearch.specialWorkTimeDay.map(d => d.day_specialwork));
+          
+          // Format the current date for comparison (DD/MM/YYYY in Buddhist year)
+          const currentDay = parseInt(wDate);
+          let currentMonth = parseInt(month);
+          let currentYear = parseInt(year);
+          
+          // ระบบบัญชี: เดือน 21-20 (เช่น 21/7 - 20/8 = เดือนบัญชี 8)
+          // การแปลง: วันที่ในเดือนบัญชี -> วันที่ปฏิทิน
+          let actualMonth, actualYear;
+          
+          if (currentDay >= 21) {
+            // วันที่ 21-31: อยู่ในช่วงแรกของเดือนบัญชี
+            // เดือนปฏิทิน = เดือนบัญชี - 1
+            if (currentMonth === 1) {
+              actualMonth = 12;
+              actualYear = currentYear - 1;
+            } else {
+              actualMonth = currentMonth - 1;
+              actualYear = currentYear;
+            }
+          } else {
+            // วันที่ 1-20: อยู่ในช่วงหลังของเดือนบัญชี  
+            // เดือนปฏิทิน = เดือนบัญชี
+            actualMonth = currentMonth;
+            actualYear = currentYear;
+          }
+          
+          const buddhistYear = actualYear + 543;
+          const formattedDate = `${currentDay}/${actualMonth}/${buddhistYear}`;
+          
+          console.log(`📅 Date conversion: Accounting date ${currentDay}/${currentMonth}/${currentYear} -> Calendar date ${currentDay}/${actualMonth}/${buddhistYear}`);
+          
+          // Also try alternative date formats to ensure matching
+          const alternatives = [
+            `${currentDay}/${actualMonth}/${buddhistYear}`,
+            `${currentDay.toString().padStart(2, '0')}/${actualMonth}/${buddhistYear}`,
+            `${currentDay}/${actualMonth.toString().padStart(2, '0')}/${buddhistYear}`,
+            `${currentDay.toString().padStart(2, '0')}/${actualMonth.toString().padStart(2, '0')}/${buddhistYear}`
+          ];
+          
+          console.log(`🎯 Looking for dates:`, alternatives);
+          
+          // Find matching special work day
+          const specialDay = workplacesearch.specialWorkTimeDay.find(
+            item => alternatives.includes(item.day_specialwork)
+          );
+          
+          if (specialDay) {
+            console.log(`✅ Found matching special day:`, specialDay);
+            
+            // Auto switch to special shift
+            if (wShift !== "specialt_shift") {
+              console.log(`🔄 Switching from ${wShift} to specialt_shift`);
+              await setWShift("specialt_shift");
+            }
+            
+            // Set work times
+            await setWStartTime(specialDay.startTime_specialwork || "");
+            await setWEndTime(specialDay.endTime_specialwork || "");
+            
+            // Set OT times
+            await setWSelectOtTime(specialDay.startTimeOT_specialwork || "");
+            await setWSelectOtTimeout(specialDay.endTimeOT_specialwork || "");
+            
+            // Set payment amounts
+            await setSpecialtSalary(specialDay.payment_specialwork?.toString() || "");
+            await setSpecialtSalaryOT(specialDay.paymentOT_specialwork?.toString() || "");
+            
+            // Calculate work hours
+            if (specialDay.startTime_specialwork && specialDay.endTime_specialwork) {
+              const workHours = calTime(
+                specialDay.startTime_specialwork,
+                specialDay.endTime_specialwork,
+                8
+              );
+              await setWAllTime(workHours);
+            }
+            
+            // Calculate OT hours
+            if (specialDay.startTimeOT_specialwork && specialDay.endTimeOT_specialwork) {
+              const otHours = calTime(
+                specialDay.startTimeOT_specialwork,
+                specialDay.endTimeOT_specialwork,
+                4
+              );
+              await setWOtTime(otHours);
+            }
+            
+            // Show notification
+            alert(`✅ ระบบพบวันพิเศษ วันที่ ${formattedDate} และสลับเป็นกะพิเศษอัตโนมัติ\nเงิน: ${specialDay.payment_specialwork} บาท\nOT: ${specialDay.paymentOT_specialwork} บาท`);
+            
+            return true; // Special day found and applied
+          } else {
+            console.log(`❌ No matching special day found for dates:`, alternatives);
+            
+            // No special day found - check if we should switch back to normal shift
+            if (wShift === "specialt_shift") {
+              // Auto switch back to morning shift as default
+              const normalShift = "morning_shift";
+              
+              console.log(`🔄 Switching back from specialt_shift to ${normalShift}`);
+              await setWShift(normalShift);
+              
+              // Clear special salary fields
+              await setSpecialtSalary("");
+              await setSpecialtSalaryOT("");
+              // Clear cash holiday fields
+              await setCashOfHoliday("");
+              await setCashOfHolidayOt("");
+            }
+          }
+        } else {
+          console.log(`❌ No workplace found or no special work time day data for wId: ${wId}`);
+        }
+      } catch (error) {
+        console.error('❌ Error checking special work time day:', error);
+      }
+    }
+    return false; // No special day found
+  };
+
+  // useEffect to clear salary fields when switching shifts
   useEffect(() => {
+    // Clear appropriate salary fields based on current shift
+    if (wShift === "specialt_shift") {
+      // Clear cash holiday fields when switching to special shift
+      setCashOfHoliday("");
+      setCashOfHolidayOt("");
+    } else if (wShift === "cash_holiday") {
+      // Clear special salary fields when switching to cash holiday
+      setSpecialtSalary("");
+      setSpecialtSalaryOT("");
+    } else {
+      // Clear both when switching to normal shifts
+      setSpecialtSalary("");
+      setSpecialtSalaryOT("");
+      setCashOfHoliday("");
+      setCashOfHolidayOt("");
+    }
+  }, [wShift]);
+
+  useEffect(() => {
+    // Wait for workplaceList to be loaded
+    if (workplaceList.length === 0) {
+      return;
+    }
+    
     try {
       setWStartTime("");
       setWEndTime("");
@@ -272,6 +498,16 @@ const [customWorkplace , setCustomWorkplace] = useState({});
       setWBeforeSelectOtTime("");
       setWBeforeSelectOtTimeout("");
       setWBeforeOtTime("");
+
+      const runAsync = async () => {
+        // First check for special work time day
+        const isSpecialDay = await checkSpecialWorkTimeDay();
+        
+        // If it's not a special day, proceed with normal logic
+        if (!isSpecialDay) {
+          await timeOfWork();
+        }
+      };
 
       const timeOfWork = async () => {
         await setWStartTime("");
@@ -366,24 +602,25 @@ await workplacesearch.workplaceGroup[departmentIndex]
                         (time) => time.shift === "กะเช้า"
                       );
 
-                      await setWStartTime(morningTimes[0].startTime || "");
-                      await setWEndTime(morningTimes[0].endTime || "");
-                      await setWAllTime(
-                        calTime(
-                          morningTimes[0].startTime || "",
-                          morningTimes[0].endTime || "",
-                          workplacesearch.workOfHour
-                        ) || ""
-                      );
-                      await setWOtTime(
-                        calTime(
-                          morningTimes[0].startTimeOT || "",
-                          morningTimes[0].endTimeOT || "",
-                          workplacesearch.workOfOT || ""
-                        ) || ""
-                      );
-                      await setWSelectOtTime(morningTimes[0].startTimeOT || "");
-                      await setWSelectOtTimeout(morningTimes[0].endTimeOT || "");
+                      if (morningTimes.length > 0) {
+                        await setWStartTime(morningTimes[0].startTime || "");
+                        await setWEndTime(morningTimes[0].endTime || "");
+                        await setWAllTime(
+                          calTime(
+                            morningTimes[0].startTime || "",
+                            morningTimes[0].endTime || "",
+                            workplacesearch.workOfHour
+                          ) || ""
+                        );
+                        await setWOtTime(
+                          calTime(
+                            morningTimes[0].startTimeOT || "",
+                            morningTimes[0].endTimeOT || "",
+                            workplacesearch.workOfOT || ""
+                          ) || ""
+                        );
+                        await setWSelectOtTime(morningTimes[0].startTimeOT || "");
+                        await setWSelectOtTimeout(morningTimes[0].endTimeOT || "");
 
                         await setWBeforeSelectOtTime(morningTimes[0].beforeStartTimeOT || "");
                         await setWBeforeSelectOtTimeout(morningTimes[0].beforeEndTimeOT || "");
@@ -394,48 +631,51 @@ await workplacesearch.workplaceGroup[departmentIndex]
                             workplacesearch?.beforeWorkOfOT || ""
                           ) || ""
                         );
+                      }
                       break;
                     case "afternoon_shift":
                       const afternoonTimes = await item.allTimes.filter(
                         (time) => time.shift === "กะบ่าย"
                       );
 
-                      await setWStartTime(afternoonTimes[0].startTime || "");
-                      await setWEndTime(afternoonTimes[0].endTime || "");
-                      await setWAllTime(
-                        calTime(
-                          afternoonTimes[0].startTime || "",
-                          afternoonTimes[0].endTime || "",
-                          workplacesearch.workOfHour
-                        ) || ""
-                      );
-                      await setWOtTime(
-                        calTime(
-                          afternoonTimes[0].startTimeOT || "",
-                          afternoonTimes[0].endTimeOT || "",
-                          workplacesearch.workOfOT || ""
-                        ) || ""
-                      );
-                      await setWSelectOtTime(
-                        afternoonTimes[0].startTimeOT || ""
-                      );
-                      await setWSelectOtTimeout(
-                        afternoonTimes[0].endTimeOT || ""
-                      );
+                      if (afternoonTimes.length > 0) {
+                        await setWStartTime(afternoonTimes[0].startTime || "");
+                        await setWEndTime(afternoonTimes[0].endTime || "");
+                        await setWAllTime(
+                          calTime(
+                            afternoonTimes[0].startTime || "",
+                            afternoonTimes[0].endTime || "",
+                            workplacesearch.workOfHour
+                          ) || ""
+                        );
+                        await setWOtTime(
+                          calTime(
+                            afternoonTimes[0].startTimeOT || "",
+                            afternoonTimes[0].endTimeOT || "",
+                            workplacesearch.workOfOT || ""
+                          ) || ""
+                        );
+                        await setWSelectOtTime(
+                          afternoonTimes[0].startTimeOT || ""
+                        );
+                        await setWSelectOtTimeout(
+                          afternoonTimes[0].endTimeOT || ""
+                        );
 
-                      await setWBeforeSelectOtTime(
-                        afternoonTimes[0]?.beforeStartTimeOT || ""
-                      );
-                      await setWBeforeSelectOtTimeout(
-                        afternoonTimes[0]?.beforeEndTimeOT || ""
-                      );
-                      await setWBeforeOtTime(
-                        calTime(
-                          afternoonTimes[0]?.beforeStartTimeOT || "",
-                          afternoonTimes[0]?.beforeEndTimeOT || "",
-                          workplacesearch?.beforeWorkOfOT || ""
-                        ) || ""
-                      );
+                        await setWBeforeSelectOtTime(
+                          afternoonTimes[0]?.beforeStartTimeOT || ""
+                        );
+                        await setWBeforeSelectOtTimeout(
+                          afternoonTimes[0]?.beforeEndTimeOT || ""
+                        );
+                        await setWBeforeOtTime(
+                          calTime(
+                            afternoonTimes[0]?.beforeStartTimeOT || "",
+                            afternoonTimes[0]?.beforeEndTimeOT || "",
+                            workplacesearch?.beforeWorkOfOT || ""
+                          ) || ""
+                        );
+                      }
 
                       break;
 
@@ -447,34 +687,36 @@ await workplacesearch.workplaceGroup[departmentIndex]
                         (time) => time.shift === "กะดึก"
                       );
 
-                      await setWStartTime(nightTimes[0].startTime || "");
-                      await setWEndTime(nightTimes[0].endTime || "");
-                      await setWAllTime(
-                        calTime(
-                          nightTimes[0].startTime || "",
-                          nightTimes[0].endTime || "",
-                          workplacesearch.workOfHour
-                        ) || ""
-                      );
-                      await setWOtTime(
-                        calTime(
-                          nightTimes[0].startTimeOT || "",
-                          nightTimes[0].endTimeOT || "",
-                          workplacesearch.workOfOT || ""
-                        ) || ""
-                      );
-                      await setWSelectOtTime(nightTimes[0].startTimeOT || "");
-                      await setWSelectOtTimeout(nightTimes[0].endTimeOT || "");
+                      if (nightTimes.length > 0) {
+                        await setWStartTime(nightTimes[0].startTime || "");
+                        await setWEndTime(nightTimes[0].endTime || "");
+                        await setWAllTime(
+                          calTime(
+                            nightTimes[0].startTime || "",
+                            nightTimes[0].endTime || "",
+                            workplacesearch.workOfHour
+                          ) || ""
+                        );
+                        await setWOtTime(
+                          calTime(
+                            nightTimes[0].startTimeOT || "",
+                            nightTimes[0].endTimeOT || "",
+                            workplacesearch.workOfOT || ""
+                          ) || ""
+                        );
+                        await setWSelectOtTime(nightTimes[0].startTimeOT || "");
+                        await setWSelectOtTimeout(nightTimes[0].endTimeOT || "");
 
-                      await setWBeforeSelectOtTime(nightTimes[0]?.beforeStartTimeOT || "");
-                      await setWBeforeSelectOtTimeout(nightTimes[0]?.beforeEndTimeOT || "");
-                      await setWBeforeOtTime(
-                        calTime(
-                          nightTimes[0]?.beforeStartTimeOT || "",
-                          nightTimes[0]?.beforeEndTimeOT || "",
-                          workplacesearch?.beforeWorkOfOT || ""
-                        ) || ""
-                      );
+                        await setWBeforeSelectOtTime(nightTimes[0]?.beforeStartTimeOT || "");
+                        await setWBeforeSelectOtTimeout(nightTimes[0]?.beforeEndTimeOT || "");
+                        await setWBeforeOtTime(
+                          calTime(
+                            nightTimes[0]?.beforeStartTimeOT || "",
+                            nightTimes[0]?.beforeEndTimeOT || "",
+                            workplacesearch?.beforeWorkOfOT || ""
+                          ) || ""
+                        );
+                      }
 
                       break;
                     case "specialt_shift":
@@ -487,42 +729,45 @@ await workplacesearch.workplaceGroup[departmentIndex]
                       const specialt_shift = await item.allTimes.filter(
                         (time) => time.shift === "กะเช้า"
                       );
-                      await setWStartTime(specialt_shift[0].startTime || "");
-                      await setWEndTime(specialt_shift[0].endTime || "");
-                      await setWAllTime(
-                        calTime(
-                          specialt_shift[0].startTime || "",
-                          specialt_shift[0].endTime || "",
-                          workplacesearch.workOfHour
-                        ) || ""
-                      );
-                      await setWOtTime(
-                        calTime(
-                          specialt_shift[0].startTimeOT || "",
-                          specialt_shift[0].endTimeOT || "",
-                          workplacesearch.workOfOT || ""
-                        ) || ""
-                      );
-                      await setWSelectOtTime(
-                        specialt_shift[0].startTimeOT || ""
-                      );
-                      await setWSelectOtTimeout(
-                        specialt_shift[0].endTimeOT || ""
-                      );
+                      
+                      if (specialt_shift.length > 0) {
+                        await setWStartTime(specialt_shift[0].startTime || "");
+                        await setWEndTime(specialt_shift[0].endTime || "");
+                        await setWAllTime(
+                          calTime(
+                            specialt_shift[0].startTime || "",
+                            specialt_shift[0].endTime || "",
+                            workplacesearch.workOfHour
+                          ) || ""
+                        );
+                        await setWOtTime(
+                          calTime(
+                            specialt_shift[0].startTimeOT || "",
+                            specialt_shift[0].endTimeOT || "",
+                            workplacesearch.workOfOT || ""
+                          ) || ""
+                        );
+                        await setWSelectOtTime(
+                          specialt_shift[0].startTimeOT || ""
+                        );
+                        await setWSelectOtTimeout(
+                          specialt_shift[0].endTimeOT || ""
+                        );
 
-                      await setWBeforeSelectOtTime(
-                        specialt_shift[0]?.beforeStartTimeOT || ""
-                      );
-                      await setWBeforeSelectOtTimeout(
-                        specialt_shift[0]?.beforeEndTimeOT || ""
-                      );
-                      await setWBeforeOtTime(
-                        calTime(
-                          specialt_shift[0]?.beforeStartTimeOT || "",
-                          specialt_shift[0]?.beforeEndTimeOT || "",
-                          workplacesearch?.beforeWorkOfOT || ""
-                        ) || ""
-                      );
+                        await setWBeforeSelectOtTime(
+                          specialt_shift[0]?.beforeStartTimeOT || ""
+                        );
+                        await setWBeforeSelectOtTimeout(
+                          specialt_shift[0]?.beforeEndTimeOT || ""
+                        );
+                        await setWBeforeOtTime(
+                          calTime(
+                            specialt_shift[0]?.beforeStartTimeOT || "",
+                            specialt_shift[0]?.beforeEndTimeOT || "",
+                            workplacesearch?.beforeWorkOfOT || ""
+                          ) || ""
+                        );
+                      }
 
                       break;
                     default:
@@ -549,34 +794,38 @@ await workplacesearch.workplaceGroup[departmentIndex]
                       const morningTimes = await item.allTimes.filter(
                         (time) => time.shift === "กะเช้า"
                       );
-                      // await alert(morningTimes[0].startTime );
-                      await setWAllTime(
-                        calTime(
-                          morningTimes[0].startTime || "",
-                          morningTimes[0].endTime || "",
-                          workplacesearch.workOfHour
-                        ) || ""
-                      );
-                      await setWStartTime(morningTimes[0].startTime || "");
-                      await setWEndTime(morningTimes[0].endTime || "");
-                      await setWOtTime(
-                        calTime(
-                          morningTimes[0].startTimeOT || "",
-                          morningTimes[0].endTimeOT || "",
-                          workplacesearch.workOfOT || ""
-                        ) || ""
-                      );
-                      await setWSelectOtTime(morningTimes[0].startTimeOT || "");
-                      await setWSelectOtTimeout(morningTimes[0].endTimeOT || "");
-                      await setWBeforeSelectOtTime(morningTimes[0]?.beforeStartTimeOT || "");
-                      await setWBeforeSelectOtTimeout(morningTimes[0]?.beforeEndTimeOT || "");
-                      await setWBeforeOtTime(
-                        calTime(
-                          morningTimes[0]?.beforeStartTimeOT || "",
-                          morningTimes[0]?.beforeEndTimeOT || "",
-                          workplacesearch?.beforeWorkOfOT || ""
-                        ) || ""
-                      );
+                      
+                      const morningShift = safeGetFirstShift(morningTimes);
+                      if (morningShift) {
+                        // await alert(morningTimes[0].startTime );
+                        await setWAllTime(
+                          calTime(
+                            morningShift.startTime || "",
+                            morningShift.endTime || "",
+                            workplacesearch.workOfHour
+                          ) || ""
+                        );
+                        await setWStartTime(morningShift.startTime || "");
+                        await setWEndTime(morningShift.endTime || "");
+                        await setWOtTime(
+                          calTime(
+                            morningShift.startTimeOT || "",
+                            morningShift.endTimeOT || "",
+                            workplacesearch.workOfOT || ""
+                          ) || ""
+                        );
+                        await setWSelectOtTime(morningShift.startTimeOT || "");
+                        await setWSelectOtTimeout(morningShift.endTimeOT || "");
+                        await setWBeforeSelectOtTime(morningShift?.beforeStartTimeOT || "");
+                        await setWBeforeSelectOtTimeout(morningShift?.beforeEndTimeOT || "");
+                        await setWBeforeOtTime(
+                          calTime(
+                            morningShift?.beforeStartTimeOT || "",
+                            morningShift?.beforeEndTimeOT || "",
+                            workplacesearch?.beforeWorkOfOT || ""
+                          ) || ""
+                        );
+                      }
 
                       break;
                     case "afternoon_shift":
@@ -944,9 +1193,6 @@ y = year
               let date = new Date(y, parseInt(m, 10) - 1, wDate); // Ensure month is a number
               let dayOfWeek = date.getDay(); // Get day of the week
               
-              console.log('Date:', date);
-              console.log('Day of the Week:', dayOfWeek);
-              
               // alert(JSON.stringify('hi') );
 
               await workplacesearch.workTimeDay.map(async (item, index) => {
@@ -965,38 +1211,40 @@ y = year
                         (time) => time.shift === "กะเช้า"
                       );
 
-                      await setWStartTime(morningTimes[0].startTime || "");
-                      await setWEndTime(morningTimes[0].endTime || "");
-                      await setWAllTime(
-                        calTime(
-                          morningTimes[0].startTime || "",
-                          morningTimes[0].endTime || "",
-                          workplacesearch.workOfHour
-                        ) || ""
-                      );
-                      await setWOtTime(
-                        calTime(
-                          morningTimes[0].startTimeOT || "",
-                          morningTimes[0].endTimeOT || "",
-                          workplacesearch.workOfOT || ""
-                        ) || ""
-                      );
-                      await setWSelectOtTime(morningTimes[0].startTimeOT || "");
-                      await setWSelectOtTimeout(
-                        morningTimes[0].endTimeOT || ""
-                      );
+                      if (morningTimes.length > 0) {
+                        await setWStartTime(morningTimes[0].startTime || "");
+                        await setWEndTime(morningTimes[0].endTime || "");
+                        await setWAllTime(
+                          calTime(
+                            morningTimes[0].startTime || "",
+                            morningTimes[0].endTime || "",
+                            workplacesearch.workOfHour
+                          ) || ""
+                        );
+                        await setWOtTime(
+                          calTime(
+                            morningTimes[0].startTimeOT || "",
+                            morningTimes[0].endTimeOT || "",
+                            workplacesearch.workOfOT || ""
+                          ) || ""
+                        );
+                        await setWSelectOtTime(morningTimes[0].startTimeOT || "");
+                        await setWSelectOtTimeout(
+                          morningTimes[0].endTimeOT || ""
+                        );
 
-                      await setWBeforeOtTime(
-                        calTime(
-                          morningTimes[0]?.beforeStartTimeOT || "",
-                          morningTimes[0]?.beforeEndTimeOT || "",
-                          workplacesearch?.beforeWorkOfOT || ""
-                        ) || ""
-                      );
-                      await setWBeforeSelectOtTime(morningTimes[0]?.beforeStartTimeOT || "");
-                      await setWBeforeSelectOtTimeout(
-                        morningTimes[0]?.beforeEndTimeOT || ""
-                      );
+                        await setWBeforeOtTime(
+                          calTime(
+                            morningTimes[0]?.beforeStartTimeOT || "",
+                            morningTimes[0]?.beforeEndTimeOT || "",
+                            workplacesearch?.beforeWorkOfOT || ""
+                          ) || ""
+                        );
+                        await setWBeforeSelectOtTime(morningTimes[0]?.beforeStartTimeOT || "");
+                        await setWBeforeSelectOtTimeout(
+                          morningTimes[0]?.beforeEndTimeOT || ""
+                        );
+                      }
 
                       break;
                     case "afternoon_shift":
@@ -1004,40 +1252,42 @@ y = year
                         (time) => time.shift === "กะบ่าย"
                       );
 
-                      await setWStartTime(afternoonTimes[0].startTime || "");
-                      await setWEndTime(afternoonTimes[0].endTime || "");
-                      await setWAllTime(
-                        calTime(
-                          afternoonTimes[0].startTime || "",
-                          afternoonTimes[0].endTime || "",
-                          workplacesearch.workOfHour
-                        ) || ""
-                      );
-                      await setWOtTime(
-                        calTime(
-                          afternoonTimes[0].startTimeOT || "",
-                          afternoonTimes[0].endTimeOT || "",
-                          workplacesearch.workOfOT || ""
-                        ) || ""
-                      );
-                      await setWSelectOtTime(
-                        afternoonTimes[0].startTimeOT || ""
-                      );
-                      await setWSelectOtTimeout(
-                        afternoonTimes[0].endTimeOT || ""
-                      );
+                      if (afternoonTimes.length > 0) {
+                        await setWStartTime(afternoonTimes[0].startTime || "");
+                        await setWEndTime(afternoonTimes[0].endTime || "");
+                        await setWAllTime(
+                          calTime(
+                            afternoonTimes[0].startTime || "",
+                            afternoonTimes[0].endTime || "",
+                            workplacesearch.workOfHour
+                          ) || ""
+                        );
+                        await setWOtTime(
+                          calTime(
+                            afternoonTimes[0].startTimeOT || "",
+                            afternoonTimes[0].endTimeOT || "",
+                            workplacesearch.workOfOT || ""
+                          ) || ""
+                        );
+                        await setWSelectOtTime(
+                          afternoonTimes[0].startTimeOT || ""
+                        );
+                        await setWSelectOtTimeout(
+                          afternoonTimes[0].endTimeOT || ""
+                        );
 
-                      await setWBeforeOtTime(
-                        calTime(
-                          afternoonTimes[0]?.beforeStartTimeOT || "",
-                          afternoonTimes[0]?.beforeEndTimeOT || "",
-                          workplacesearch?.beforeWorkOfOT || ""
-                        ) || ""
-                      );
-                      await setWBeforeSelectOtTime(afternoonTimes[0]?.beforeStartTimeOT || "");
-                      await setWBeforeSelectOtTimeout(
-                        afternoonTimes[0]?.beforeEndTimeOT || ""
-                      );
+                        await setWBeforeOtTime(
+                          calTime(
+                            afternoonTimes[0]?.beforeStartTimeOT || "",
+                            afternoonTimes[0]?.beforeEndTimeOT || "",
+                            workplacesearch?.beforeWorkOfOT || ""
+                          ) || ""
+                        );
+                        await setWBeforeSelectOtTime(afternoonTimes[0]?.beforeStartTimeOT || "");
+                        await setWBeforeSelectOtTimeout(
+                          afternoonTimes[0]?.beforeEndTimeOT || ""
+                        );
+                      }
 
                       break;
                     case "night_shift":
@@ -1087,37 +1337,43 @@ y = year
                       const specialt_shift = await item.allTimes.filter(
                         (time) => time.shift === "กะเช้า"
                       );
-                      await setWStartTime(specialt_shift[0].startTime || "");
-                      await setWEndTime(specialt_shift[0].endTime || "");
-                      await setWAllTime(
-                        calTime(
-                          specialt_shift[0].startTime || "",
-                          specialt_shift[0].endTime || "",
-                          workplacesearch.workOfHour
-                        ) || ""
-                      );
-                      await setWOtTime(
-                        calTime(
-                          specialt_shift[0].startTimeOT || "",
-                          specialt_shift[0].endTimeOT || "",
-                          workplacesearch.workOfOT || ""
-                        ) || ""
-                      );
-                      await setWSelectOtTime(
-                        specialt_shift[0].startTimeOT || ""
-                      );
-                      await setWSelectOtTimeout(
-                        specialt_shift[0].endTimeOT || ""
-                      );
+                      
+                      if (specialt_shift.length > 0) {
+                        await setWStartTime(specialt_shift[0].startTime || "");
+                        await setWEndTime(specialt_shift[0].endTime || "");
+                        await setWAllTime(
+                          calTime(
+                            specialt_shift[0].startTime || "",
+                            specialt_shift[0].endTime || "",
+                            workplacesearch.workOfHour
+                          ) || ""
+                        );
+                        await setWOtTime(
+                          calTime(
+                            specialt_shift[0].startTimeOT || "",
+                            specialt_shift[0].endTimeOT || "",
+                            workplacesearch.workOfOT || ""
+                          ) || ""
+                        );
+                        await setWSelectOtTime(
+                          specialt_shift[0].startTimeOT || ""
+                        );
+                        await setWSelectOtTimeout(
+                          specialt_shift[0].endTimeOT || ""
+                        );
 
-                      await setWBeforeOtTime(
-                        calTime(
-                          specialt_shift[0]?.beforeStartTimeOT || "",
-                          specialt_shift[0]?.beforeEndTimeOT || "",
-                          workplacesearch?.beforeWorkOfOT || ""
-                        ) || ""
-                      );
-                      await setWBeforeSelectOtTime(specialt_shift[0]?.beforeStartTimeOT || "");
+                        await setWBeforeOtTime(
+                          calTime(
+                            specialt_shift[0]?.beforeStartTimeOT || "",
+                            specialt_shift[0]?.beforeEndTimeOT || "",
+                            workplacesearch?.beforeWorkOfOT || ""
+                          ) || ""
+                        );
+                        await setWBeforeSelectOtTime(specialt_shift[0]?.beforeStartTimeOT || "");
+                        await setWBeforeSelectOtTimeout(
+                          specialt_shift[0]?.beforeEndTimeOT || ""
+                        );
+                      }
                       await setWBeforeSelectOtTimeout(
                         specialt_shift[0]?.beforeEndTimeOT || ""
                       );
@@ -1518,11 +1774,11 @@ y = year
         }
       };
 
-      timeOfWork();
+      runAsync();
     } catch (err) {
       console("err", err);
     }
-  }, [wShift, wDate]);
+  }, [wShift, wDate, workplaceList]);
 
   //calculate time of work
   useEffect(() => {
@@ -1539,7 +1795,7 @@ y = year
               workplacesearch.workOfHour || ""
             )
           );
-          if (wShift == "specialt_shift") {
+          if (wShift == "specialt_shift" || wShift == "cash_holiday") {
             setWAllTime(calTime(wStartTime || "", wEndTime || "", 24));
           } else {
             setWAllTime(
@@ -1564,7 +1820,7 @@ y = year
           (workplace) => workplace.workplaceId === wId
         );
         if (workplacesearch) {
-          if (wShift == "specialt_shift") {
+          if (wShift == "specialt_shift" || wShift == "cash_holiday") {
             setWOtTime(
               calTime(wSelectOtTime || "", wSelectOtTimeout || "", 24)
             );
@@ -1592,7 +1848,7 @@ y = year
           (workplace) => workplace.workplaceId === wId
         );
         if (workplacesearch) {
-          if (wShift == "specialt_shift") {
+          if (wShift == "specialt_shift" || wShift == "cash_holiday") {
             setWBeforeOtTime(
               calTime(wBeforeSelectOtTime || "", wBeforeSelectOtTimeout || "", 24)
             );
@@ -1710,6 +1966,8 @@ y = year
     cashSalary: "",
     specialtSalary: "",
     specialtSalaryOT: "",
+    cashOfHoliday: "",
+    cashOfHolidayOt: "",
     messageSalary: "",
   };
 
@@ -1884,6 +2142,27 @@ y = year
                   ["selectotTimeOut"]: workplaceIdSearch.workEndOt1 || "" + "",
                 };
                 break;
+              case "cash_holiday":
+                newDataList2[index2] = {
+                  ...newDataList2[index2],
+                  ["startTime"]: workplaceIdSearch.workStart1 || "" + "",
+                  ["endTime"]: workplaceIdSearch.workEnd1 || "" + "",
+                  ["allTime"]:
+                    calTime(
+                      workplaceIdSearch.workStart1 || "",
+                      workplaceIdSearch.workEnd1 || "",
+                      workplaceIdSearch.workOfHour || ""
+                    ) || "" + "",
+                  ["otTime"]:
+                    calTime(
+                      workplaceIdSearch.workStartOt1 || "",
+                      workplaceIdSearch.workEndOt1 || "",
+                      workplaceIdSearch.workOfOT || ""
+                    ) || "" + "",
+                  ["selectotTime"]: workplaceIdSearch.workStartOt1 || "" + "",
+                  ["selectotTimeOut"]: workplaceIdSearch.workEndOt1 || "" + "",
+                };
+                break;
               default:
                 newDataList2[index2] = {
                   ...newDataList2[index2],
@@ -1923,7 +2202,7 @@ y = year
           );
           if (workplaceIdSearch) {
             //check specialt_shift
-            if (newDataList2[index2].shift !== "specialt_shift") {
+            if (newDataList2[index2].shift !== "specialt_shift" && newDataList2[index2].shift !== "cash_holiday") {
               //     newDataList2[index2] = {
               //         ...newDataList2[index2],
               //         ['startTime']: newDataList2[index2].startTime + '',
@@ -2070,8 +2349,10 @@ y = year
   const [searchWorkplaceName, setSearchWorkplaceName] = useState(""); //ชื่อหน่วยงาน
 
   async function handleSearch(event) {
-    event.preventDefault();
-setCustomWorkplace({});
+    if (event && event.preventDefault) {
+      event.preventDefault();
+    }
+    setCustomWorkplace({});
 
     // get value from form search
     const data = await {
@@ -2230,6 +2511,8 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
       cashSalary: cashSalary || "",
       specialtSalary: specialtSalary || "",
       specialtSalaryOT: specialtSalaryOT || "",
+      cashOfHoliday: cashOfHoliday || "",
+      cashOfHolidayOt: cashOfHolidayOt || "",
 
       messageSalary: messageSalary || "",
     };
@@ -2424,10 +2707,10 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
     
     // Calculate special shift total salary
     const specialShiftTotalSalary = rowDataList2
-      .filter(item => item.shift === "specialt_shift" && item.workplaceId)
+      .filter(item => item.shift === "cash_holiday" && item.workplaceId)
       .reduce((total, item) => {
-        const specialtSalary = parseFloat(item.specialtSalary || '0');
-        const specialtSalaryOT = parseFloat(item.specialtSalaryOT || '0');
+        const specialtSalary = parseFloat(item.cashOfHoliday || '0');
+        const specialtSalaryOT = parseFloat(item.cashOfHolidayOt || '0');
         return total + specialtSalary + specialtSalaryOT;
       }, 0);
 
@@ -2705,7 +2988,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                         </div>
                       </div>
                       <div class="d-flex justify-content-center">
-                        <button class="btn b_save" onClick={handleSearch()}>
+                        <button class="btn b_save" onClick={handleSearch}>
                           <i class="nav-icon fas fa-search"></i> &nbsp; ค้นหา
                         </button>
                       </div>
@@ -2851,7 +3134,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
           <th colSpan="3">OT (ก่อนเวลาทำงาน)</th>
         <th colSpan="3">เวลาทำงาน</th>
         <th colSpan="3">OT (หลังเวลาทำงาน)</th>
-        {wShift === "specialt_shift" && <th colSpan="3">จ่ายสด</th>}
+        {(wShift === "specialt_shift" || wShift === "cash_holiday") && <th colSpan="3">จ่ายสด</th>}
         </tr>
       {/* Second Row - Detailed Headers */}
       <tr>
@@ -2866,7 +3149,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
           <th>ออก OT</th>
           <th>ชั่วโมง OT</th>
 
-          {wShift === "specialt_shift" && (
+          {(wShift === "specialt_shift" || wShift === "cash_holiday") && (
             <>
        
               <th>เงิน</th>
@@ -2950,6 +3233,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
               <option value="afternoon_shift">กะบ่าย</option>
               <option value="night_shift">กะดึก</option>
               <option value="specialt_shift">กะพิเศษ</option>
+              <option value="cash_holiday">เงินสด</option>
             </select>
           </td>
 
@@ -3062,29 +3346,29 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
           </td>
 
           {/* Special Shift Salary Fields (Only for กะพิเศษ) */}
-          {wShift === "specialt_shift" && (
+          {(wShift === "specialt_shift" || wShift === "cash_holiday") && (
             <>
               
               <td>
                 <input
                   type="text"
                   className="form-control text-center input"
-                  id="specialtSalary"
+                  id={wShift === "specialt_shift" ? "specialtSalary" : "cashOfHoliday"}
                   placeholder="เป็นเงิน"
-                  value={specialtSalary}
+                  value={wShift === "specialt_shift" ? specialtSalary : cashOfHoliday}
                   style={{ width: "100px" }}
-                  onChange={(e) => setSpecialtSalary(e.target.value)}
+                  onChange={(e) => wShift === "specialt_shift" ? setSpecialtSalary(e.target.value) : setCashOfHoliday(e.target.value)}
                 />
               </td>
               <td>
                 <input
                   type="text"
                   className="form-control text-center"
-                  id="specialtSalaryOT"
+                  id={wShift === "specialt_shift" ? "specialtSalaryOT" : "cashOfHolidayOt"}
                   placeholder="OT เป็นเงิน"
                   style={{ width: "100px" }}
-                  value={specialtSalaryOT}
-                  onChange={(e) => setSpecialtSalaryOT(e.target.value)}
+                  value={wShift === "specialt_shift" ? specialtSalaryOT : cashOfHolidayOt}
+                  onChange={(e) => wShift === "specialt_shift" ? setSpecialtSalaryOT(e.target.value) : setCashOfHolidayOt(e.target.value)}
                 />
               </td>
               {/* <td>
@@ -3185,6 +3469,8 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                     ? "กะดึก"
                     : rowData2.shift === "specialt_shift"
                     ? "กะพิเศษ"
+                    : rowData2.shift === "cash_holiday"
+                    ? "เงินสด"
                     : ""}
                 </th>
                 <th>{rowData2.beforeStartOtTime}</th>
@@ -3201,6 +3487,8 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                 <th>
                   {rowData2.specialtSalary !== "" 
                     ? `${parseFloat(rowData2.specialtSalary || '0') + parseFloat(rowData2.specialtSalaryOT || '0')} บาท`
+                    : rowData2.cashOfHoliday !== ""
+                    ? `${parseFloat(rowData2.cashOfHoliday || '0') + parseFloat(rowData2.cashOfHolidayOt || '0')} บาท`
                     : ""}
                 </th>
                 <th className="text-center">
