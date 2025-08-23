@@ -5009,13 +5009,12 @@ router.post('/searchtimerecordemployee', async (req, res) => {
       }
 
       try {
-        // เงื่อนไขพิเศษ: ถ้า shift เป็น "cash_holiday" ให้กำหนด cashWork และ cashOt เป็น 0
+        // เงื่อนไขพิเศษ: ถ้า shift เป็น "cash_holiday" ให้กำหนด cashWork เป็น 0
         if (doc.employee_record && Array.isArray(doc.employee_record)) {
           doc.employee_record.forEach(record => {
             if (record.shift === "cash_holiday") {
-              console.log(`🎯 [CASH_HOLIDAY] พบ shift cash_holiday สำหรับวันที่ ${record.date} - กำหนด cashWork และ cashOt เป็น 0`);
+              console.log(`🎯 [CASH_HOLIDAY] พบ shift cash_holiday สำหรับวันที่ ${record.date} - กำหนด cashWork เป็น 0`);
               record.cashWork = "0";
-              record.cashOt = "0";
             }
           });
         }
@@ -5144,6 +5143,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           sumCashWork1_20: String(calculatedValues.sumCashWork1_20 || 0), // เงินเดือนวันที่ 1-20
           sumCashWork21_30_31: String(calculatedValues.sumCashWork21_30_31 || 0), // เงินเดือนวันที่ 21-30/31
 
+
           // clearly ensure all SpSalary are numbers
           // addSalaryList: calculatedValues.addSalaryList.map(item => ({
           //   ...item,
@@ -5155,8 +5155,6 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           sumCashWorkMul: calculatedValues.sumCashWorkMul,
           // เพิ่ม stopDaysList สำหรับหน่วยงาน 7 วัน
           stopDaysList: doc.stopDaysList || [],
-          // บันทึกการเปลี่ยนแปลง employee_record ที่มีการปรับ cashWork สำหรับ cash_holiday
-          employee_record: doc.employee_record,
         };
 
         // 🎯 อัปเดต message และ SpSalary สำหรับ items ที่มี roundOfSalary: "daily" ให้เป็นจำนวนวันที่จริงๆ ได้รับเงิน
