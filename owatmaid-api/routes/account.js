@@ -5009,12 +5009,13 @@ router.post('/searchtimerecordemployee', async (req, res) => {
       }
 
       try {
-        // เงื่อนไขพิเศษ: ถ้า shift เป็น "cash_holiday" ให้กำหนด cashWork เป็น 0
+        // เงื่อนไขพิเศษ: ถ้า shift เป็น "cash_holiday" ให้กำหนด cashWork และ cashOt เป็น 0
         if (doc.employee_record && Array.isArray(doc.employee_record)) {
           doc.employee_record.forEach(record => {
             if (record.shift === "cash_holiday") {
-              console.log(`🎯 [CASH_HOLIDAY] พบ shift cash_holiday สำหรับวันที่ ${record.date} - กำหนด cashWork เป็น 0`);
+              console.log(`🎯 [CASH_HOLIDAY] พบ shift cash_holiday สำหรับวันที่ ${record.date} - กำหนด cashWork และ cashOt เป็น 0`);
               record.cashWork = "0";
+              record.cashOt = "0";
             }
           });
         }
