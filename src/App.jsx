@@ -6,6 +6,8 @@ import { useLocation } from "react-router-dom";
 // import Home from "./Home";
 // import Profile from './Profile';
 
+import WorkplaceSpecialShiftDetail from "./conponents/componentsAside/WorkplaceSpecialShiftDetail";
+
 import LoginForm from "./conponents/Login";
 
 import BankReport from "./conponents/componentsAside/BankReport";
@@ -333,6 +335,7 @@ useEffect(() => {
               <Route path="/provident_fund" element={<ProvidentFund />} />
               <Route path="/collateral" element={<Collateral />} />
               <Route path="/document" element={<Document />} />
+              <Route path="/workplace-special-shift-detail" element={<WorkplaceSpecialShiftDetail />} />
 
               <Route path="/calculate_tax" element={<CalculateTax />} />
               <Route

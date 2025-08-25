@@ -213,11 +213,11 @@ function AsideLeft() {
                 )}
               </li>
 
-              <li className="nav-item">
+              {/* <li className="nav-item">
                 <a href="#" className="nav-link" onClick={toggleSubMenu3_2}>
                   <i className="nav-icon fas fa-file-invoice-dollar"></i>
                   <p> รายงาน ออดิท
-                    {/* <i className="right fas fa-angle-left"></i><i className=""></i> */}
+                    <i className="right fas fa-angle-left"></i><i className=""></i>
                     <i
                       className={`right fas ${showSubMenu3_2 ? "fa-angle-down" : "fa-angle-left"}`}
                     ></i>
@@ -238,15 +238,15 @@ function AsideLeft() {
                     </>
                   </ul>
                 )}
-              </li>
+              </li> */}
 
 
 
-              <li className="nav-item">
+              {/* <li className="nav-item">
                 <a href="#" className="nav-link" onClick={toggleSubMenu5}>
                   <i className="nav-icon fas fa-file-invoice-dollar"></i>
                   <p> รายงาน ออดิท
-                    {/* <i className="right fas fa-angle-left"></i><i className=""></i> */}
+                    <i className="right fas fa-angle-left"></i><i className=""></i>
                     <i
                       className={`right fas ${showSubMenu5 ? "fa-angle-down" : "fa-angle-left"}`}
                     >
@@ -263,7 +263,7 @@ function AsideLeft() {
                     </>
                   </ul>
                 )}
-              </li>
+              </li> */}
 
               <li className="nav-item">
                 <a href="#" className="nav-link" onClick={toggleSubMenu3_3}>

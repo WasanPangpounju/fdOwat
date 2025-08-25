@@ -2255,12 +2255,12 @@ const handleSave_back = (index, subIndex, idx) => {
                                 // Format cash fields to 2 decimal places และคำนวณสำหรับพนักงานเงินเดือน
                                 if (field === 'cashBeforeOt' || field === 'cashWork' || field === 'cashOt') {
                                   // เช็คกะพิเศษก่อน
-                                  if (field === 'cashWork' && matchedRecord.shift === 'specialt_shift') {
+                                  if (field === 'cashWork' && matchedRecord.shift === 'cash_holiday') {
                                     // ถ้าเป็นกะพิเศษ ให้ใช้ specialtSalary
-                                    displayValue = parseFloat(matchedRecord.specialtSalary || 0).toFixed(2);
-                                  } else if (field === 'cashOt' && matchedRecord.shift === 'specialt_shift') {
+                                    displayValue = parseFloat(matchedRecord.cashOfHoliday || 0).toFixed(2);
+                                  } else if (field === 'cashOt' && matchedRecord.shift === 'cash_holiday') {
                                     // ถ้าเป็นกะพิเศษ ให้ใช้ specialtSalaryOT
-                                    displayValue = parseFloat(matchedRecord.specialtSalaryOT || 0).toFixed(2);
+                                    displayValue = parseFloat(matchedRecord.cashOfHolidayOt || 0).toFixed(2);
                                   } else if (isMonthlyEmployee && employeeSalary > 1680) {
                                     if (field === 'cashWork') {
                                       // สำหรับพนักงานเงินเดือน แสดง salary/30
@@ -2336,7 +2336,7 @@ const handleSave_back = (index, subIndex, idx) => {
 
                           {/* เงินเพิ่ม (Show sum or detailed list) */}
                           <th className="fw-normal">
-                          {matchedRecord.shift === 'specialt_shift' ? (
+                          {matchedRecord.shift === 'cash_holiday' ? (
                             <span>รวมแล้ว</span>
                           ) : (
                             isEditing ? (

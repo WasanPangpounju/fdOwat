@@ -268,7 +268,8 @@ employeeCompensation: {
            beforeResultTimeOT: String,
            startTimeOT: String, 
            endTimeOT: String, 
-           resultTimeOT: String }]
+           resultTimeOT: String ,
+           numberOfPeople: String,}]
   }
   ],
 

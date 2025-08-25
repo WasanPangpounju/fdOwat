@@ -268,6 +268,16 @@ function Salary() {
       addSalary: newAddSalary,
     });
 
+    // Also update addSalaryWorkplace if this is for the workplace salary section
+    if (addSalaryWorkplace && addSalaryWorkplace[index]) {
+      const updatedSalaryWorkplace = [...addSalaryWorkplace];
+      updatedSalaryWorkplace[index] = {
+        ...updatedSalaryWorkplace[index],
+        [key]: newValue,
+      };
+      setAddSalaryWorkplace(updatedSalaryWorkplace);
+    }
+
   };
 
 
@@ -1453,7 +1463,7 @@ const handleWorkplace = async (event) => {
                                     onChange={(e) => handleChange(e, "salary")}
                                     onInput={(e) => {
                                       // Remove any non-digit characters
-                                      e.target.value = e.target.value.replace(/\D/g, "");
+                                    
                                     }}
                                   />
                                 </div>
@@ -1862,7 +1872,6 @@ const handleWorkplace = async (event) => {
                                               "roundOfSalary"
                                             )
                                           }
-                                          disabled
                                         >
                                           <option value="daily">รายวัน</option>
                                           <option value="monthly">รายเดือน</option>

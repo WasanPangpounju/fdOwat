@@ -3483,6 +3483,7 @@ if (newWorkplace) {
                         <div class="col-md-2">เวลาออก</div>
                         <div class="col-md-2">เวลาเข้าOT</div>
                         <div class="col-md-2">เวลาออกOT</div>
+                        <div class="col-md-2">จำนวนคน</div>
                       </div>
                     </div>
                   </div>
@@ -3648,6 +3649,25 @@ if (newWorkplace) {
                                 }}
                               />
                             </div>
+                            <div class="col-md-1">
+                              <input
+                                type="text"
+                                class="form-control"
+                                placeholder="จำนวนคน"
+                                value={time.numberOfPeople || ""}
+                                onChange={(e) =>
+                                  handleTimeChange(
+                                    index,
+                                    "numberOfPeople",
+                                    e.target.value
+                                  )
+                                }
+                                onInput={(e) => {
+                                  // Allow only numbers
+                                  e.target.value = e.target.value.replace(/[^0-9]/g, "");
+                                }}
+                              />
+                            </div>
                             {/* <span>Result OT: {time.resultOT}</span> */}
                             <div class="col-md-1">
                               {index >= 1 ? (
@@ -3714,6 +3734,7 @@ if (newWorkplace) {
                         <th style={headerCellStyle}>เวลาเข้าOT</th>
                         <th style={headerCellStyle}>เวลาออกOT</th>
                         <th style={headerCellStyle}>ชม.OT</th>
+                        <th style={headerCellStyle}>จำนวนคน</th>
                         <th style={headerCellStyle}>ลบ</th>
                       </tr>
                     </thead>
@@ -3754,6 +3775,7 @@ if (newWorkplace) {
                             <td style={cellStyle}>{item1.startTimeOT}</td>
                             <td style={cellStyle}>{item1.endTimeOT}</td>
                             <td style={cellStyle}>{item1.resultTimeOT}</td>
+                            <td style={cellStyle}>{item1.numberOfPeople}</td>
 
                             {index1 > 0 ? (
                               <>
