@@ -105,6 +105,12 @@ const workplaceSchema = new mongoose.Schema({
   addWorkRate: {
       type: String
   },
+  newWorkRate: {
+      type: String
+  },
+  workRateEffectiveDate: {
+      type: Date
+  },
   workRateOT: {
       type: String
   },

@@ -250,7 +250,9 @@ salary = await response.data.salary || 0;
 
     if (foundWorkplace) {
       upsalary = await foundWorkplace.addWorkRate || 0;
-      const workRateChange = await foundWorkplace.workRateChange || 0;
+      const workRateChange = await foundWorkplace.workRateChange || foundWorkplace.workRateEffectiveDate || 0;
+      const newWorkRate = await foundWorkplace.newWorkRate || 0;
+      
 // Convert the string to a Date object
 const date = await new Date(workRateChange);
 
@@ -265,7 +267,9 @@ upSalary_month = await date.getMonth() + 1; // Use getMonth() for local time
 
       //employee salary is not set use with workplace
       if(salary === 0 ) {
-        salary = await parseFloat(foundWorkplace.workRate || 0) + parseFloat(upsalary );
+        // ใช้ newWorkRate ถ้ามี หรือคำนวณจาก workRate + addWorkRate
+        const calculatedRate = newWorkRate > 0 ? newWorkRate : (parseFloat(foundWorkplace.workRate || 0) + parseFloat(upsalary));
+        salary = await calculatedRate;
       }
       
       // Found the workplace
@@ -5421,7 +5425,33 @@ let timeCashWorkMul = {
     
     if (wpId) {
       const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${wpId}`);
-      workRate = parseFloat(workplaceResponse.data.workRate || 0);
+      const baseWorkRate = parseFloat(workplaceResponse.data.workRate || 0);
+      const addWorkRate = parseFloat(workplaceResponse.data.addWorkRate || 0);
+      const newWorkRate = parseFloat(workplaceResponse.data.newWorkRate || 0);
+      const workRateEffectiveDate = workplaceResponse.data.workRateEffectiveDate;
+      
+      // 🎯 ตรวจสอบว่าต้องใช้อัตราใหม่หรือไม่
+      if (workRateEffectiveDate && newWorkRate > 0) {
+        const effectiveDate = new Date(workRateEffectiveDate);
+        const currentPeriodStart = new Date(year, month - 2, 21); // 21 เดือนก่อน
+        const currentPeriodEnd = new Date(year, month - 1, 20); // 20 เดือนปัจจุบัน
+        
+        console.log(`🎯 ตรวจสอบวันที่มีผลบังคับใช้:`);
+        console.log(`   - วันที่มีผล: ${effectiveDate.toISOString().slice(0,10)}`);
+        console.log(`   - รอบเงินเดือน: ${currentPeriodStart.toISOString().slice(0,10)} ถึง ${currentPeriodEnd.toISOString().slice(0,10)}`);
+        
+        if (effectiveDate <= currentPeriodEnd) {
+          workRate = newWorkRate;
+          console.log(`🏢 ใช้อัตราใหม่: ${workRate} บาท (มีผลตั้งแต่ ${effectiveDate.toISOString().slice(0,10)})`);
+        } else {
+          workRate = baseWorkRate + addWorkRate;
+          console.log(`🏢 ใช้อัตราเดิม: ${workRate} บาท (อัตราใหม่ยังไม่มีผล)`);
+        }
+      } else {
+        workRate = baseWorkRate + addWorkRate;
+        console.log(`🏢 ใช้อัตราปกติ: ${workRate} บาท (${baseWorkRate} + ${addWorkRate})`);
+      }
+      
       console.log(`🏢 ดึงข้อมูล workplace ${wpId}: workRate = ${workRate}`);
     } else {
       console.log(`⚠️ ไม่พบ workplace สำหรับพนักงาน ${employeeId}`);
