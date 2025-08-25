@@ -5973,7 +5973,13 @@ try {
             console.log(`➕ เพิ่ม OT ใน sumOt3: ${convertTimeToDecimal(record.totalOtTime)} ชม. (วันที่ ${record.date})`);
           }
           
-          sumOtPublicHoliday += convertTimeToDecimal(record.totalTime); // เพิ่มผลรวมของ totalOtTime ในวันหยุดนักขัตฤกษ์
+          // เพิ่ม sumOtPublicHoliday เฉพาะกรณีที่ไม่ใช่ shift: "cash_holiday"
+          if (record.shift !== "cash_holiday") {
+            sumOtPublicHoliday += convertTimeToDecimal(record.totalTime); 
+            console.log(`➕ เพิ่ม OT วันหยุดนักขัตฤกษ์: ${convertTimeToDecimal(record.totalTime)} ชม. (วันที่ ${record.date}, shift: ${record.shift})`);
+          } else {
+            console.log(`⏭️ ข้าม cash_holiday ไม่รวมใน sumOtPublicHoliday (วันที่ ${record.date})`);
+          }
           
           // คำนวณ sumCashWorkMul และ timeCashWorkMul โดยใช้ค่าที่ปรับแล้ว
           if (record?.cashWorkMul && sumCashWorkMul[record.cashWorkMul] !== undefined) {
