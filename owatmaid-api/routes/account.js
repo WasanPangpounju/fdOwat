@@ -6690,6 +6690,20 @@ console.log(`💰 เงินสำหรับวันหยุดที่�
   } else {
     console.log(`💰 ✅ พนักงานรายวัน (salaryMonth = ${salaryMonth} = 0)`);
     
+    // คำนวณ dayPerHour สำหรับพนักงานรายวัน
+    const dayPerHour = workRate / 8; // ใช้ workRate หารด้วย 8 ชั่วโมง
+    const dayPerHour1p5 = dayPerHour * 1.5; 
+    const dayPerHour2 = dayPerHour * 2;
+    const dayPerHour3 = dayPerHour * 3; 
+    sumCashWorkMul["1.5"] = (dayPerHour1p5 * sumOt1p5).toFixed(2)
+    sumCashWorkMul["2"] = (dayPerHour2 * sumOtPublicHoliday).toFixed(2)
+    sumCashWorkMul["3"] = (dayPerHour3 * sumOt3).toFixed(2)
+    
+    console.log(`💰 - คำนวณค่าแรงต่อชั่วโมงสำหรับพนักงานรายวัน: ${dayPerHour} บาท/ชม. (workRate: ${workRate} ÷ 8)`);
+    console.log(`💰 - sumCashWorkMul["1.5"]: ${sumCashWorkMul["1.5"]} บาท (${dayPerHour1p5} × ${sumOt1p5})`);
+    console.log(`💰 - sumCashWorkMul["2"]: ${sumCashWorkMul["2"]} บาท (${dayPerHour2} × ${sumOtPublicHoliday})`);
+    console.log(`💰 - sumCashWorkMul["3"]: ${sumCashWorkMul["3"]} บาท (${dayPerHour3} × ${sumOt3})`);
+    
     //กรณีหักภาษี ณ ที่จ่าย 3% (ภ.ง.ด.)
     if (costtype === "ภ.ง.ด.3") {
       console.log(`💰 ✅ พนักงานประเภท ภ.ง.ด.3 - ไม่คิดประกันสังคม แต่คิดภาษี 3%`);
