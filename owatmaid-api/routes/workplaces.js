@@ -266,8 +266,6 @@ router.post('/create', async (req, res) => {
         workOfOT_breakMinute,
         workRate,
         addWorkRate,
-        newWorkRate,
-        workRateEffectiveDate,
         workRateOT,
         workTotalPeople,
         dayoffRate,
@@ -599,8 +597,6 @@ if (workplaceDayOffList.length > 0) {
 
 data.workRate = workplace.workRate || 0;
 data.addWorkRate = workplace.addWorkRate || 0;
-data.newWorkRate = workplace.newWorkRate || 0;
-data.workRateEffectiveDate = workplace.workRateEffectiveDate;
 data.workRateOT = workplace.workRateOT || 0;
 data.dayoffRateHour = workplace.dayoffRateHour || 0;
 data.dayoffRateOT = workplace.dayoffRateOT  || 0;
