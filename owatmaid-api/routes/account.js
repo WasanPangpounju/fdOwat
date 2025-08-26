@@ -5161,46 +5161,10 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           stopDaysList: doc.stopDaysList || [],
         };
 
-        // 🎯 อัปเดต message และ SpSalary สำหรับ items ที่มี roundOfSalary: "daily" ให้เป็นจำนวนวันที่จริงๆ ได้รับเงิน
-        if (updateData.addSalaryList && Array.isArray(updateData.addSalaryList)) {
-          updateData.addSalaryList.forEach((item, itemIndex) => {
-            if (item.roundOfSalary === "daily") {
-              const oldMessage = item.message;
-              const oldSpSalary = item.SpSalary;
-              
-              // นับจำนวนวันที่จริงๆ ได้รับเงินพิเศษนี้จาก employee_record
-              const actualDaysReceived = doc.employee_record?.filter(record => 
-                record.addSalaryDaily?.some(addSal => addSal.id === item.id)
-              ).length || 0;
-              
-              console.log(`🎯 อัปเดต message สำหรับ ${doc.employeeId} - ${item.name} (id: ${item.id})`);
-              console.log(`    วันที่จริงๆ ได้รับเงิน: ${actualDaysReceived} วัน`);
-              
-              // อัปเดต message เป็นจำนวนวันที่จริงๆ ได้รับเงิน
-              item.message = actualDaysReceived;
-              
-              // คำนวณ SpSalary ใหม่: (เงินเดิม / วันเดิม) * วันใหม่
-              if (oldMessage && oldMessage > 0) {
-                const dailyRate = parseFloat(oldSpSalary) / parseFloat(oldMessage);
-                item.SpSalary = dailyRate * actualDaysReceived;
-                console.log(`🎯   Item[${itemIndex}] (${item.name}):`);
-                console.log(`       message: ${oldMessage} → ${item.message}`);
-                console.log(`       SpSalary: ${oldSpSalary} → ${parseFloat(item.SpSalary).toFixed(2)} (rate: ${dailyRate.toFixed(2)}/วัน)`);
-              } else {
-                console.log(`🎯   Item[${itemIndex}] (${item.name}): message ${oldMessage} → ${item.message} (ไม่สามารถคำนวณ SpSalary ได้)`);
-              }
-            }
-          });
-        }
-        
-        // 🎯 คำนวณ totalAddSalary หลังจากปรับค่า dailyRows แล้ว
+        // เพิ่ม totalAddSalary เข้าไปใน updateData
         const totalAddSalary = updateData.addSalaryList.reduce((total, item) => {
           return total + (parseFloat(item.SpSalary) || 0);
         }, 0);
-        
-        console.log(`💰 totalAddSalary หลังปรับค่า: ${totalAddSalary}`);
-        
-        // เพิ่ม totalAddSalary เข้าไปใน updateData
         updateData.totalAddSalary = String(totalAddSalary);
 
         // 🔄 Recompute tax using adjusted totals when costtype is ภ.ง.ด.3
@@ -6161,16 +6125,22 @@ if (record?.dayType === "work") {
       );
 
       if (existingItem) {
-        existingItem.SpSalary = parseFloat(existingItem.SpSalary || 0) + amount;
-        existingItem.message = parseFloat(existingItem.message || 0) + 1;
+        const currentAmount = parseFloat(existingItem.SpSalary || 0);
+        const currentDays = parseFloat(existingItem.message || 0);
+        
+        existingItem.SpSalary = String(currentAmount + amount);
+        existingItem.message = String(currentDays + 1);
 
         const index = addSalaryList.findIndex(item => item.id === existingItem.id);
         if (index !== -1) {
           addSalaryList[index] = existingItem;
         }
+        
+        console.log(`🔄 รวม addSalary ID ${cleanSalaryItemId}: ${currentAmount} + ${amount} = ${existingItem.SpSalary} บาท (วัน: ${currentDays} + 1 = ${existingItem.message})`);
       } else {
-        salaryItem.message = 1; 
+        salaryItem.message = "1"; 
         addSalaryList.push(salaryItem);
+        console.log(`➕ เพิ่ม addSalary ID ${cleanSalaryItemId}: ${amount} บาท (1 วัน)`);
       }
     });
   }
