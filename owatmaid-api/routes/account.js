@@ -5964,13 +5964,17 @@ try {
           sumTimeOt += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalTime) + convertTimeToDecimal(record.totalOtTime);
           // sumCashOt = parseFloat(sumCashOt || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0') // ลบการคำนวณแบบเก่า
           
-          // คำนวณ OT time โดยใช้ค่าที่ปรับแล้ว
-          if (holidayOT === "1.5") {
-            sumOt1p5 += convertTimeToDecimal(record.totalOtTime);
-            console.log(`➕ เพิ่ม OT ใน sumOt1p5: ${convertTimeToDecimal(record.totalOtTime)} ชม. (วันที่ ${record.date})`);
+          // คำนวณ OT time โดยใช้ค่าที่ปรับแล้ว (ยกเว้น cash_holiday)
+          if (record.shift !== "cash_holiday") {
+            if (holidayOT === "1.5") {
+              sumOt1p5 += convertTimeToDecimal(record.totalOtTime);
+              console.log(`➕ เพิ่ม OT ใน sumOt1p5: ${convertTimeToDecimal(record.totalOtTime)} ชม. (วันที่ ${record.date})`);
+            } else {
+              sumOt3 += convertTimeToDecimal(record.totalOtTime);
+              console.log(`➕ เพิ่ม OT ใน sumOt3: ${convertTimeToDecimal(record.totalOtTime)} ชม. (วันที่ ${record.date})`);
+            }
           } else {
-            sumOt3 += convertTimeToDecimal(record.totalOtTime);
-            console.log(`➕ เพิ่ม OT ใน sumOt3: ${convertTimeToDecimal(record.totalOtTime)} ชม. (วันที่ ${record.date})`);
+            console.log(`⏭️ ข้าม cash_holiday ไม่รวมใน sumOt1p5/sumOt3 (วันที่ ${record.date})`);
           }
           
           // เพิ่ม sumOtPublicHoliday เฉพาะกรณีที่ไม่ใช่ shift: "cash_holiday"
