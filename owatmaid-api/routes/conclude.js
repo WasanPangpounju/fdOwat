@@ -3085,15 +3085,6 @@ const totalDecimalHour = tmpHour + (tmpMinute / 60); // 1 + 30/60 = 1.5
           cashBeforeOtMul = await dataRate?.workRateOT || 0;
           cashWorkMul = 1; // ตัวคูณค่าแรงปกติเป็น 1
           cashOtMul = await dataRate?.workRateOT || 0;
-          
-          // เพิ่มเงินพิเศษรายวัน
-          addSalaryDaily = [...(employeeProfile[0].addSalary || [])
-            .filter(salary => salary.roundOfSalary === "daily")
-            .map(salary => ({
-              ...salary,
-              SpSalary: parseFloat(salary.SpSalary) > 100 ? (parseFloat(salary.SpSalary) / 30).toFixed(2) : salary.SpSalary
-            }))
-          ];
         } else {
           cashBeforeOt = '';
           cashWork = '';
@@ -3105,15 +3096,15 @@ const totalDecimalHour = tmpHour + (tmpMinute / 60); // 1 + 30/60 = 1.5
         }
       }
 
-      // เงินเพิ่มพิเศษรายวัน - คิดทุกวันที่มี totalTime (ไม่ว่า dayType จะเป็นอะไร)
+      // เงินเพิ่มพิเศษรายวัน - คิดเฉพาะวันทำงานปกติ (work) เท่านั้น
       const hasWorked = record.totalTime && parseFloat(record.totalTime) > 0;
-      if (hasWorked) {
-        // เพิ่มเงินพิเศษรายวัน
+      if (hasWorked && dayType === 'work') {
+        // เพิ่มเงินพิเศษรายวันเฉพาะวันทำงานปกติ
         addSalaryDaily = [...(employeeProfile[0].addSalary || [])
           .filter(salary => salary.roundOfSalary === "daily")
           .map(salary => ({
             ...salary,
-            SpSalary: parseFloat(salary.SpSalary) > 100 ? (parseFloat(salary.SpSalary) / 30).toFixed(2) : salary.SpSalary
+            SpSalary: parseFloat(salary.SpSalary) // ลบการหาร 30 สำหรับรายการรายวัน
           }))
         ];
       } else {
