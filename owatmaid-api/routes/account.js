@@ -4512,6 +4512,32 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
 
       const processedRecord = record.toObject();
       
+      // 📊 Log employee_record ก่อนเข้า calculateCashValues เพื่อดูว่าทำไมได้ 29 วัน
+      console.log(`\n📊 === ตรวจสอบ employee_record ก่อนเข้า calculateCashValues ===`);
+      console.log(`📊 พนักงาน: ${record.employeeId}`);
+      console.log(`📊 จำนวน records ทั้งหมด: ${record.employee_record ? record.employee_record.length : 0}`);
+      
+      if (record.employee_record && Array.isArray(record.employee_record)) {
+        console.log(`📊 รายละเอียดแต่ละวัน:`);
+        record.employee_record.forEach((rec, index) => {
+          const hasTotalTime = rec.totalTime && rec.totalTime.trim() !== '' && parseFloat(rec.totalTime) > 0;
+          const hasAddSalaryDaily = rec.addSalaryDaily && rec.addSalaryDaily.trim() !== '' && parseFloat(rec.addSalaryDaily) > 0;
+          
+          console.log(`   ${index + 1}. วันที่ ${rec.date}:`);
+          console.log(`      dayType: "${rec.dayType || 'ไม่มี'}"`);
+          console.log(`      totalTime: "${rec.totalTime || 'ไม่มี'}" ${hasTotalTime ? '(มีเวลา)' : '(ไม่มีเวลา)'}`);
+          console.log(`      addSalaryDaily: "${rec.addSalaryDaily || 'ไม่มี'}" ${hasAddSalaryDaily ? '(มีค่าเดินทาง)' : '(ไม่มีค่าเดินทาง)'}`);
+          console.log(`      hasWorked: ${rec.hasWorked}`);
+          
+          if (hasTotalTime) {
+            console.log(`      🔢 วันนี้จะถูกนับใน countAllowance แบบเดิม`);
+          }
+          if (hasAddSalaryDaily) {
+            console.log(`      💰 วันนี้มีค่าเดินทาง`);
+          }
+        });
+      }
+      
       // คำนวณค่าเงินใหม่โดยใช้ฟังก์ชัน calculateCashValues
       try {
         const calculatedValues = await calculateCashValues(
