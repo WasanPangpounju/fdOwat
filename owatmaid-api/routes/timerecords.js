@@ -1997,8 +1997,48 @@ router.post('/checkspecialtshift', async (req, res) => {
     const workplacesWithSpecialShift = await timerecordEmployee.aggregate(pipeline);
 
     console.log(`🔍 [DEBUG] Pipeline executed, found ${workplacesWithSpecialShift.length} workplaces with special shifts`);
+    
+    // เพิ่ม debug เพื่อดูข้อมูลทั้งหมดที่พบ
     if (workplacesWithSpecialShift.length > 0) {
       console.log(`🔍 [DEBUG] Sample data:`, JSON.stringify(workplacesWithSpecialShift[0], null, 2));
+      
+      // ตรวจสอบข้อมูลจากเดือน 7
+      workplacesWithSpecialShift.forEach((workplace, wpIndex) => {
+        workplace.employees.forEach((emp, empIndex) => {
+          emp.specialShiftDays.forEach((day, dayIndex) => {
+            if (day.date.includes('/07/')) {
+              console.log(`🎯 [DEBUG] Found July data: Employee ${emp.employeeName} on ${day.date}`);
+            }
+          });
+        });
+      });
+    }
+    
+    // เพิ่ม debug เพื่อตรวจสอบข้อมูลก่อน aggregation
+    console.log(`🔍 [DEBUG] Let's check raw data for July ${prevYear} month ${prevMonth}...`);
+    const julyCheck = await timerecordEmployee.find({
+      year: prevYear.toString(),
+      month: prevMonthPattern,
+      'employee_record.shift': 'cash_holiday'
+    });
+    console.log(`🔍 [DEBUG] Found ${julyCheck.length} records in July with special shifts`);
+    
+    if (julyCheck.length > 0) {
+      julyCheck.forEach((record, index) => {
+        if (index < 2) { // แสดงแค่ 2 record แรก
+          console.log(`🔍 [DEBUG] July record ${index + 1}:`, {
+            employeeId: record.employeeId,
+            employeeName: record.employeeName,
+            month: record.month,
+            year: record.year,
+            specialShifts: record.employee_record.filter(r => r.shift === 'cash_holiday' && parseInt(r.date) >= 21).map(r => ({
+              date: r.date,
+              shift: r.shift,
+              workplaceId: r.workplaceId
+            }))
+          });
+        }
+      });
     }
 
     // สร้างข้อความสรุป
