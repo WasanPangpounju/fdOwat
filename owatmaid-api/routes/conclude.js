@@ -1213,7 +1213,8 @@ for (let c = 0; c < concludeRecord.length; c++) {
     // สำหรับหน่วยงานพิเศษ 7 วัน - ตรวจสอบว่ามี allTimes หรือไม่
     if (parseFloat(concludeRecord[c].allTimes || 0) > 0) {
       // มี allTimes (มาทำงาน) ให้เพิ่มเงินพิเศษรายวันพร้อมปรับ message เป็น totalWorkDays
-      let adjustedAddSalaryDaily = addSalaryDaily.map(item => ({
+      // ใช้ addSalaryDaily จาก record แต่ละวัน
+      let adjustedAddSalaryDaily = (concludeRecord[c].addSalaryDaily || []).map(item => ({
         ...item,
         message: totalWorkDays.toString()  // อัปเดต message เป็นจำนวนวันจริงที่มา
       }));
@@ -1232,15 +1233,18 @@ for (let c = 0; c < concludeRecord.length; c++) {
         if(testx) {
           await addSalaryList.push(testx.addSalary);
         } else {
-          await addSalaryList.push(addSalaryDaily);
+          // ใช้ addSalaryDaily จาก record แต่ละวัน
+          await addSalaryList.push(concludeRecord[c].addSalaryDaily || []);
         }
       } else {
         // remove 1012 when shift is morning_shift
         if(concludeRecord[c].shift === 'morning_shift') {
-          let addSalaryDailyx = await addSalaryDaily.filter(item1 => item1.id !== '1210');
+          // ใช้ addSalaryDaily จาก record แต่ละวัน และกรองออก 1210
+          let addSalaryDailyx = (concludeRecord[c].addSalaryDaily || []).filter(item1 => item1.id !== '1210');
           await addSalaryList.push(addSalaryDailyx);
         } else {
-          await addSalaryList.push(addSalaryDaily);
+          // ใช้ addSalaryDaily จาก record แต่ละวัน
+          await addSalaryList.push(concludeRecord[c].addSalaryDaily || []);
         }
       }
     } else {
