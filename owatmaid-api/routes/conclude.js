@@ -3096,10 +3096,10 @@ const totalDecimalHour = tmpHour + (tmpMinute / 60); // 1 + 30/60 = 1.5
         }
       }
 
-      // เงินเพิ่มพิเศษรายวัน - คิดเฉพาะวันทำงานปกติ (work) เท่านั้น
+      // เงินเพิ่มพิเศษรายวัน - คิดทุกวันที่มีการทำงาน (totalTime > 0)
       const hasWorked = record.totalTime && parseFloat(record.totalTime) > 0;
-      if (hasWorked && dayType === 'work') {
-        // เพิ่มเงินพิเศษรายวันเฉพาะวันทำงานปกติ
+      if (hasWorked) {
+        // เพิ่มเงินพิเศษรายวันสำหรับทุกวันที่มีการทำงาน
         addSalaryDaily = [...(employeeProfile[0].addSalary || [])
           .filter(salary => salary.roundOfSalary === "daily")
           .map(salary => ({
