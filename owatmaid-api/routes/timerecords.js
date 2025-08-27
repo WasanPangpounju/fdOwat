@@ -1877,10 +1877,23 @@ router.post('/checkspecialtshift', async (req, res) => {
     // ใช้ aggregation pipeline เพื่อหาหน่วยงานที่มีกะพิเศษในช่วงวันที่ที่ระบุ
     const pipeline = [];
 
-    // Match stage - กรองตามปี และต้องมีกะพิเศษ
+    // Match stage - กรองตามปี และต้องมีกะพิเศษ และเดือนที่อยู่ในช่วง
     const matchConditions = {
-      year: { $regex: new RegExp(targetYear.toString(), 'i') },
-      'employee_record.shift': 'cash_holiday'
+      $and: [
+        {
+          $or: [
+            { year: { $regex: new RegExp(targetYear.toString(), 'i') } },
+            { year: { $regex: new RegExp(prevYear.toString(), 'i') } }
+          ]
+        },
+        {
+          $or: [
+            { month: prevMonthPattern },
+            { month: currentMonthPattern }
+          ]
+        },
+        { 'employee_record.shift': 'cash_holiday' }
+      ]
     };
     
     pipeline.push({ $match: matchConditions });
@@ -1918,6 +1931,7 @@ router.post('/checkspecialtshift', async (req, res) => {
               {
                 $and: [
                   { month: prevMonthPattern },
+                  { year: { $regex: new RegExp(prevYear.toString(), 'i') } },
                   { 'employee_record.date': { $gte: "21" } }
                 ]
               },
@@ -1925,6 +1939,7 @@ router.post('/checkspecialtshift', async (req, res) => {
               {
                 $and: [
                   { month: currentMonthPattern },
+                  { year: { $regex: new RegExp(targetYear.toString(), 'i') } },
                   { 'employee_record.date': { $lte: "20" } }
                 ]
               }
