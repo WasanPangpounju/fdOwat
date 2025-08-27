@@ -3022,7 +3022,6 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
           cashBeforeOtMul = dataRate?.dayoffRateOT || 0;
           cashWorkMul = dataRate?.dayoffRateHour || 0;
           cashOtMul = dataRate?.dayoffRateOT || 0;
-          addSalaryDaily = [];
         } else if(dataRate?.dayType === 'specialDayOff') {
           // แก้ไขเวลา OT ก่อนทำงานให้คิดจากหน่วยนาที (วันหยุดพิเศษ)
           const beforeTmpHour_special = Math.floor(record.beforeTotalOtTime || 0);
@@ -3049,7 +3048,6 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
           cashBeforeOtMul = dataRate?.holidayOT || 0;
           cashWorkMul = dataRate?.holidayHour || 0;
           cashOtMul = dataRate?.holidayOT || 0;
-          addSalaryDaily = [];
         } else if(dataRate?.dayType === "work") {
           // เพิ่มเงื่อนไขสำหรับวันทำงานปกติ (work)
           // แก้ไขเวลา OT ก่อนทำงานให้คิดจากหน่วยนาที (ใช้วิธีเดียวกันกับ cashOt)
@@ -3104,8 +3102,22 @@ const totalDecimalHour = tmpHour + (tmpMinute / 60); // 1 + 30/60 = 1.5
           cashBeforeOtMul = '';
           cashWorkMul = '';
           cashOtMul = '';
-          addSalaryDaily = [];
         }
+      }
+
+      // เงินเพิ่มพิเศษรายวัน - คิดทุกวันที่มี totalTime (ไม่ว่า dayType จะเป็นอะไร)
+      const hasWorked = record.totalTime && parseFloat(record.totalTime) > 0;
+      if (hasWorked) {
+        // เพิ่มเงินพิเศษรายวัน
+        addSalaryDaily = [...(employeeProfile[0].addSalary || [])
+          .filter(salary => salary.roundOfSalary === "daily")
+          .map(salary => ({
+            ...salary,
+            SpSalary: parseFloat(salary.SpSalary) > 100 ? (parseFloat(salary.SpSalary) / 30).toFixed(2) : salary.SpSalary
+          }))
+        ];
+      } else {
+        addSalaryDaily = [];
       }
 
       // แสดงข้อมูลเพื่อตรวจสอบ
