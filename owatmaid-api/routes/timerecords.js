@@ -1877,59 +1877,45 @@ router.post('/checkspecialtshift', async (req, res) => {
     console.log(`🔍 [DEBUG] Date range: ${prevMonth}/${prevYear} (21-31) to ${targetMonth}/${targetYear} (1-20)`);
     console.log(`🔍 [DEBUG] Patterns: prev=${prevMonthPattern}, current=${currentMonthPattern}`);
     
+    // 🎯 FIX: ข้อมูลวันที่ 21-31 ของเดือนก่อนหน้าเก็บไว้ในเดือนปัจจุบันแล้ว
+    console.log(`🔧 [LOGIC FIX] ข้อมูลทั้งหมดเก็บไว้ในเดือน ${currentMonthPattern}/${targetYear} แล้ว`);
+    
     // เช็คข้อมูลดิบในฐานข้อมูลก่อน aggregation
     console.log(`🔍 [RAW DATA CHECK] ตรวจสอบข้อมูลดิบในฐานข้อมูล`);
     
-    // เช็คข้อมูลเดือน 7 
-    const julyRawData = await timerecordEmployee.find({
-      year: prevYear.toString(),
-      month: prevMonthPattern,
-      'employee_record.shift': 'cash_holiday'
-    }).limit(5);
-    console.log(`📊 [JULY RAW] พบข้อมูลเดือน ${prevMonth}/${prevYear} จำนวน: ${julyRawData.length}`);
-    if (julyRawData.length > 0) {
-      console.log(`📋 [JULY SAMPLE] ตัวอย่างข้อมูล:`, JSON.stringify(julyRawData[0], null, 2));
-    }
-    
-    // เช็คข้อมูลเดือน 8
-    const augustRawData = await timerecordEmployee.find({
+    // เช็คข้อมูลเดือนปัจจุบันที่มีทั้งวันที่ 21-31 ของเดือนก่อน + 1-20 ของเดือนปัจจุบัน
+    const allMonthData = await timerecordEmployee.find({
       year: targetYear.toString(),
       month: currentMonthPattern,
       'employee_record.shift': 'cash_holiday'
-    }).limit(5);
-    console.log(`📊 [AUGUST RAW] พบข้อมูลเดือน ${targetMonth}/${targetYear} จำนวน: ${augustRawData.length}`);
-    if (augustRawData.length > 0) {
-      console.log(`📋 [AUGUST SAMPLE] ตัวอย่างข้อมูล:`, JSON.stringify(augustRawData[0], null, 2));
-    }
+    }).limit(10);
+    console.log(`📊 [MONTH ${currentMonthPattern} DATA] พบข้อมูลกะพิเศษในเดือน ${currentMonthPattern}: ${allMonthData.length} records`);
     
-    // เช็คข้อมูลทั้งหมดที่มีในฐานข้อมูล (ไม่กรองเดือน)
-    const allData = await timerecordEmployee.find({
-      'employee_record.shift': 'cash_holiday'
-    }, { year: 1, month: 1, employeeId: 1, employeeName: 1 }).limit(10);
-    console.log(`📊 [ALL SPECIAL SHIFT] ข้อมูลกะพิเศษทั้งหมดในระบบ: ${allData.length} records`);
-    allData.forEach(record => {
-      console.log(`📅 [DATA OVERVIEW] Year: ${record.year}, Month: ${record.month}, Employee: ${record.employeeName} (${record.employeeId})`);
-    });
+    if (allMonthData.length > 0) {
+      // วิเคราะห์ช่วงวันที่
+      allMonthData.forEach((record, index) => {
+        if (index < 3) {
+          const specialShifts = record.employee_record.filter(emp => emp.shift === 'cash_holiday');
+          console.log(`� [EMPLOYEE ${index + 1}] ${record.employeeName}: มีกะพิเศษ ${specialShifts.length} วัน`);
+          specialShifts.forEach(shift => {
+            const dayNum = parseInt(shift.date);
+            const isJulyPeriod = dayNum >= 21 && dayNum <= 31;
+            const isAugustPeriod = dayNum >= 1 && dayNum <= 20;
+            console.log(`   - วันที่ ${shift.date}: ${isJulyPeriod ? '(ช่วงกรกฎาคม)' : isAugustPeriod ? '(ช่วงสิงหาคม)' : '(นอกช่วง)'}`);
+          });
+        }
+      });
+    }
     
     // ใช้ aggregation pipeline เพื่อหาหน่วยงานที่มีกะพิเศษในช่วงวันที่ที่ระบุ
     const pipeline = [];
 
-    // Match stage - กรองเบื้องต้นเฉพาะปีและข้อมูลที่มีกะพิเศษ
+    // Match stage - กรองเฉพาะเดือนปัจจุบันที่มีข้อมูลทั้งหมด
     const matchConditions = {
       $and: [
         { 
-          $or: [
-            // สำหรับเดือนปัจจุบัน (วันที่ 1-20)
-            { 
-              year: targetYear.toString(),
-              month: currentMonthPattern
-            },
-            // สำหรับเดือนก่อนหน้า (วันที่ 21-31)
-            { 
-              year: prevYear.toString(),
-              month: prevMonthPattern
-            }
-          ]
+          year: targetYear.toString(),
+          month: currentMonthPattern
         },
         { 'employee_record.shift': 'cash_holiday' }
       ]
@@ -1961,35 +1947,23 @@ router.post('/checkspecialtshift', async (req, res) => {
     pipeline.push({
       $addFields: {
         "employee_record.dateInt": { $toInt: "$employee_record.date" },
-        // ใช้ฟิลด์จาก document เพื่อระบุว่านี่คือข้อมูลเดือนไหน
+        // เมื่อข้อมูลทั้งหมดอยู่ในเดือนเดียวกัน ใช้เดือนปัจจุบัน
         "docMonthInt": { $toInt: "$month" },
         "docYearInt": { $toInt: "$year" }
       }
     });
 
-    // กรองข้อมูลตามช่วงวันที่และ shift
+    // กรองข้อมูลตามช่วงวันที่และ shift (ข้อมูลทั้งหมดอยู่ในเดือนเดียวกัน)
     pipeline.push({
       $match: {
         $and: [
           { 'employee_record.shift': 'cash_holiday' },
           {
             $or: [
-              // วันที่ 21-31 ของเดือนก่อนหน้า
-              {
-                $and: [
-                  { docMonthInt: prevMonth },
-                  { docYearInt: prevYear },
-                  { 'employee_record.dateInt': { $gte: 21, $lte: 31 } }
-                ]
-              },
-              // วันที่ 1-20 ของเดือนปัจจุบัน
-              {
-                $and: [
-                  { docMonthInt: targetMonth },
-                  { docYearInt: targetYear },
-                  { 'employee_record.dateInt': { $gte: 1, $lte: 20 } }
-                ]
-              }
+              // วันที่ 21-31 (ช่วงเดือนก่อนหน้า แต่เก็บไว้ในเดือนปัจจุบัน)
+              { 'employee_record.dateInt': { $gte: 21, $lte: 31 } },
+              // วันที่ 1-20 (ช่วงเดือนปัจจุบัน)
+              { 'employee_record.dateInt': { $gte: 1, $lte: 20 } }
             ]
           }
         ]
@@ -2087,25 +2061,31 @@ router.post('/checkspecialtshift', async (req, res) => {
 
     console.log(`🔍 [DEBUG] Pipeline executed, found ${workplacesWithSpecialShift.length} workplaces with special shifts`);
     
-    // Debug: ตรวจสอบว่ามีข้อมูลจากเดือน 7 หรือไม่
+    // Debug: ตรวจสอบว่ามีข้อมูลจากช่วงวันที่ต่างๆ หรือไม่
     if (workplacesWithSpecialShift.length > 0) {
-      let julyCount = 0;
-      let augustCount = 0;
+      let julyPeriodCount = 0;  // วันที่ 21-31
+      let augustPeriodCount = 0; // วันที่ 1-20
       
       workplacesWithSpecialShift.forEach((workplace) => {
         workplace.employees.forEach((emp) => {
           emp.specialShiftDays.forEach((day) => {
-            if (day.date.includes(`/${prevMonthPattern}/`)) {
-              julyCount++;
-              console.log(`📅 [JULY] Found: ${emp.employeeName} on ${day.date}`);
-            } else if (day.date.includes(`/${currentMonthPattern}/`)) {
-              augustCount++;
+            // แยกวันที่จาก format "21/08/2568"
+            const dateParts = day.date.split('/');
+            const dayNum = parseInt(dateParts[0]);
+            
+            if (dayNum >= 21 && dayNum <= 31) {
+              julyPeriodCount++;
+              console.log(`📅 [JULY PERIOD] พบ: ${emp.employeeName} วันที่ ${day.date} (ช่วงกรกฎาคม)`);
+            } else if (dayNum >= 1 && dayNum <= 20) {
+              augustPeriodCount++;
+              console.log(`📅 [AUGUST PERIOD] พบ: ${emp.employeeName} วันที่ ${day.date} (ช่วงสิงหาคม)`);
             }
           });
         });
       });
       
-      console.log(`📊 [SUMMARY] July shifts: ${julyCount}, August shifts: ${augustCount}`);
+      console.log(`📊 [FINAL SUMMARY] ช่วงกรกฎาคม (21-31): ${julyPeriodCount} วัน, ช่วงสิงหาคม (1-20): ${augustPeriodCount} วัน`);
+      console.log(`🎯 [RESULT] รวมทั้งหมด: ${julyPeriodCount + augustPeriodCount} วันกะพิเศษ`);
     }
 
     // สร้างข้อความสรุป
