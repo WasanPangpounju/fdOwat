@@ -1874,22 +1874,20 @@ router.post('/checkspecialtshift', async (req, res) => {
     const prevMonthPattern = prevMonth.toString().padStart(2, '0');
     const currentMonthPattern = targetMonth.toString().padStart(2, '0');
     
+    console.log(`🔍 [DEBUG] Searching for special shift in period: ${targetMonth} (${targetYear})`);
+    console.log(`🔍 [DEBUG] Date range: ${prevMonth}/${prevYear} (21-31) to ${targetMonth}/${targetYear} (1-20)`);
+    console.log(`🔍 [DEBUG] Patterns: prev=${prevMonthPattern}, current=${currentMonthPattern}`);
+    
     // ใช้ aggregation pipeline เพื่อหาหน่วยงานที่มีกะพิเศษในช่วงวันที่ที่ระบุ
     const pipeline = [];
 
-    // Match stage - กรองตามปี และต้องมีกะพิเศษ และเดือนที่อยู่ในช่วง
+    // Match stage - กรองเบื้องต้นเฉพาะปีและข้อมูลที่มีกะพิเศษ
     const matchConditions = {
       $and: [
-        {
+        { 
           $or: [
-            { year: { $regex: new RegExp(targetYear.toString(), 'i') } },
-            { year: { $regex: new RegExp(prevYear.toString(), 'i') } }
-          ]
-        },
-        {
-          $or: [
-            { month: prevMonthPattern },
-            { month: currentMonthPattern }
+            { year: targetYear.toString() },
+            { year: prevYear.toString() }
           ]
         },
         { 'employee_record.shift': 'cash_holiday' }
@@ -1904,19 +1902,9 @@ router.post('/checkspecialtshift', async (req, res) => {
     // กรองเฉพาะ employee_record ที่มี shift = 'cash_holiday' และอยู่ในช่วงวันที่ที่ต้องการ
     pipeline.push({
       $addFields: {
-        "employee_record.dateFormatted": {
-          $dateFromString: {
-            dateString: {
-              $concat: [
-                "$employee_record.date", "/",
-                "$month", "/",
-                "$year"
-              ]
-            },
-            format: "%d/%m/%Y",
-            onError: null
-          }
-        }
+        "employee_record.dateInt": { $toInt: "$employee_record.date" },
+        "monthInt": { $toInt: "$month" },
+        "yearInt": { $toInt: "$year" }
       }
     });
 
@@ -1930,17 +1918,17 @@ router.post('/checkspecialtshift', async (req, res) => {
               // วันที่ 21-31 ของเดือนก่อนหน้า
               {
                 $and: [
-                  { month: prevMonthPattern },
-                  { year: { $regex: new RegExp(prevYear.toString(), 'i') } },
-                  { 'employee_record.date': { $gte: "21" } }
+                  { monthInt: prevMonth },
+                  { yearInt: prevYear },
+                  { 'employee_record.dateInt': { $gte: 21 } }
                 ]
               },
               // วันที่ 1-20 ของเดือนปัจจุบัน
               {
                 $and: [
-                  { month: currentMonthPattern },
-                  { year: { $regex: new RegExp(targetYear.toString(), 'i') } },
-                  { 'employee_record.date': { $lte: "20" } }
+                  { monthInt: targetMonth },
+                  { yearInt: targetYear },
+                  { 'employee_record.dateInt': { $lte: 20 } }
                 ]
               }
             ]
@@ -2007,6 +1995,11 @@ router.post('/checkspecialtshift', async (req, res) => {
     pipeline.push({ $sort: { workplaceId: 1 } });
 
     const workplacesWithSpecialShift = await timerecordEmployee.aggregate(pipeline);
+
+    console.log(`🔍 [DEBUG] Pipeline executed, found ${workplacesWithSpecialShift.length} workplaces with special shifts`);
+    if (workplacesWithSpecialShift.length > 0) {
+      console.log(`🔍 [DEBUG] Sample data:`, JSON.stringify(workplacesWithSpecialShift[0], null, 2));
+    }
 
     // สร้างข้อความสรุป
     const totalWorkplaces = workplacesWithSpecialShift.length;
