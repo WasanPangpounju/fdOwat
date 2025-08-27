@@ -1856,28 +1856,81 @@ router.post('/checkspecialtshift', async (req, res) => {
       });
     }
 
-    // ใช้ aggregation pipeline เพื่อหาหน่วยงานที่มีกะพิเศษในเดือนที่ระบุ
+    // คำนวณช่วงวันที่สำหรับเดือนที่เลือก
+    // เดือน 8 หมายถึง 21/7 - 20/8
+    const targetMonth = parseInt(month);
+    const targetYear = year ? parseInt(year) : new Date().getFullYear();
+    
+    // คำนวณเดือนก่อนหน้าและปี
+    let prevMonth = targetMonth - 1;
+    let prevYear = targetYear;
+    
+    if (prevMonth === 0) {
+      prevMonth = 12;
+      prevYear = targetYear - 1;
+    }
+
+    // สร้าง regex patterns สำหรับช่วงวันที่
+    const prevMonthPattern = prevMonth.toString().padStart(2, '0');
+    const currentMonthPattern = targetMonth.toString().padStart(2, '0');
+    
+    // ใช้ aggregation pipeline เพื่อหาหน่วยงานที่มีกะพิเศษในช่วงวันที่ที่ระบุ
     const pipeline = [];
 
-    // Match stage - กรองตามเดือน ปี และต้องมีกะพิเศษ
+    // Match stage - กรองตามปี และต้องมีกะพิเศษ
     const matchConditions = {
-      month: { $regex: new RegExp(month, 'i') },
+      year: { $regex: new RegExp(targetYear.toString(), 'i') },
       'employee_record.shift': 'cash_holiday'
     };
-    
-    if (year && year !== '') {
-      matchConditions.year = { $regex: new RegExp(year, 'i') };
-    }
     
     pipeline.push({ $match: matchConditions });
 
     // Unwind employee_record เพื่อเข้าถึงข้อมูลในแต่ละ record
     pipeline.push({ $unwind: "$employee_record" });
 
-    // กรองเฉพาะ employee_record ที่มี shift = 'cash_holiday'
+    // กรองเฉพาะ employee_record ที่มี shift = 'cash_holiday' และอยู่ในช่วงวันที่ที่ต้องการ
+    pipeline.push({
+      $addFields: {
+        "employee_record.dateFormatted": {
+          $dateFromString: {
+            dateString: {
+              $concat: [
+                "$employee_record.date", "/",
+                "$month", "/",
+                "$year"
+              ]
+            },
+            format: "%d/%m/%Y",
+            onError: null
+          }
+        }
+      }
+    });
+
+    // กรองข้อมูลตามช่วงวันที่และ shift
     pipeline.push({
       $match: {
-        'employee_record.shift': 'cash_holiday'
+        $and: [
+          { 'employee_record.shift': 'cash_holiday' },
+          {
+            $or: [
+              // วันที่ 21-31 ของเดือนก่อนหน้า
+              {
+                $and: [
+                  { month: prevMonthPattern },
+                  { 'employee_record.date': { $gte: "21" } }
+                ]
+              },
+              // วันที่ 1-20 ของเดือนปัจจุบัน
+              {
+                $and: [
+                  { month: currentMonthPattern },
+                  { 'employee_record.date': { $lte: "20" } }
+                ]
+              }
+            ]
+          }
+        ]
       }
     });
 
@@ -1892,7 +1945,13 @@ router.post('/checkspecialtshift', async (req, res) => {
         },
         specialShiftDays: { 
           $push: {
-            date: "$employee_record.date",
+            date: {
+              $concat: [
+                "$employee_record.date", "/",
+                "$month", "/",
+                { $toString: { $add: [{ $toInt: "$year" }, 543] } } // แปลงเป็น พ.ศ.
+              ]
+            },
             cashOfHoliday: "$employee_record.cashOfHoliday",
             cashOfHolidayOt: "$employee_record.cashOfHolidayOt"
           }
@@ -1942,17 +2001,18 @@ router.post('/checkspecialtshift', async (req, res) => {
       `${wp.workplaceName} (รหัส: ${wp.workplaceId}, พนักงานกะพิเศษ: ${wp.totalEmployeesWithSpecialShift} คน)`
     ).join(', ');
 
-    const yearText = year && year !== '' ? ` ปี ${year}` : '';
+    const dateRange = `21/${prevMonthPattern}/${targetYear} - 20/${currentMonthPattern}/${targetYear}`;
     const summary = totalWorkplaces > 0 
-      ? `เดือน ${month}${yearText} มี ${totalWorkplaces} หน่วยงานที่มีกะพิเศษ รวม ${totalEmployees} คน: ${workplaceList}`
-      : `เดือน ${month}${yearText} ไม่มีหน่วยงานที่มีกะพิเศษ`;
+      ? `งวดเดือน ${month} (${dateRange}) มี ${totalWorkplaces} หน่วยงานที่มีกะพิเศษ รวม ${totalEmployees} คน: ${workplaceList}`
+      : `งวดเดือน ${month} (${dateRange}) ไม่มีหน่วยงานที่มีกะพิเศษ`;
 
     console.log(`🌟 [CHECK SPECIAL SHIFT] ${summary}`);
 
     res.status(200).json({
       success: true,
       month: month,
-      year: year || 'ทุกปี',
+      year: targetYear,
+      dateRange: dateRange,
       totalWorkplacesWithSpecialShift: totalWorkplaces,
       totalEmployeesWithSpecialShift: totalEmployees,
       summary: summary,
