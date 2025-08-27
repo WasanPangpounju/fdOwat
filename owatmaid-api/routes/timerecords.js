@@ -1893,8 +1893,8 @@ router.post('/checkspecialtshift', async (req, res) => {
         specialShiftDays: { 
           $push: {
             date: "$employee_record.date",
-            specialtSalary: "$employee_record.specialtSalary",
-            specialtSalaryOT: "$employee_record.specialtSalaryOT"
+            cashOfHoliday: "$employee_record.cashOfHoliday",
+            cashOfHolidayOt: "$employee_record.cashOfHolidayOt"
           }
         }
       }
