@@ -1877,6 +1877,40 @@ router.post('/checkspecialtshift', async (req, res) => {
     console.log(`🔍 [DEBUG] Date range: ${prevMonth}/${prevYear} (21-31) to ${targetMonth}/${targetYear} (1-20)`);
     console.log(`🔍 [DEBUG] Patterns: prev=${prevMonthPattern}, current=${currentMonthPattern}`);
     
+    // เช็คข้อมูลดิบในฐานข้อมูลก่อน aggregation
+    console.log(`🔍 [RAW DATA CHECK] ตรวจสอบข้อมูลดิบในฐานข้อมูล`);
+    
+    // เช็คข้อมูลเดือน 7 
+    const julyRawData = await timerecordEmployee.find({
+      year: prevYear.toString(),
+      month: prevMonthPattern,
+      'employee_record.shift': 'cash_holiday'
+    }).limit(5);
+    console.log(`📊 [JULY RAW] พบข้อมูลเดือน ${prevMonth}/${prevYear} จำนวน: ${julyRawData.length}`);
+    if (julyRawData.length > 0) {
+      console.log(`📋 [JULY SAMPLE] ตัวอย่างข้อมูล:`, JSON.stringify(julyRawData[0], null, 2));
+    }
+    
+    // เช็คข้อมูลเดือน 8
+    const augustRawData = await timerecordEmployee.find({
+      year: targetYear.toString(),
+      month: currentMonthPattern,
+      'employee_record.shift': 'cash_holiday'
+    }).limit(5);
+    console.log(`📊 [AUGUST RAW] พบข้อมูลเดือน ${targetMonth}/${targetYear} จำนวน: ${augustRawData.length}`);
+    if (augustRawData.length > 0) {
+      console.log(`📋 [AUGUST SAMPLE] ตัวอย่างข้อมูล:`, JSON.stringify(augustRawData[0], null, 2));
+    }
+    
+    // เช็คข้อมูลทั้งหมดที่มีในฐานข้อมูล (ไม่กรองเดือน)
+    const allData = await timerecordEmployee.find({
+      'employee_record.shift': 'cash_holiday'
+    }, { year: 1, month: 1, employeeId: 1, employeeName: 1 }).limit(10);
+    console.log(`📊 [ALL SPECIAL SHIFT] ข้อมูลกะพิเศษทั้งหมดในระบบ: ${allData.length} records`);
+    allData.forEach(record => {
+      console.log(`📅 [DATA OVERVIEW] Year: ${record.year}, Month: ${record.month}, Employee: ${record.employeeName} (${record.employeeId})`);
+    });
+    
     // ใช้ aggregation pipeline เพื่อหาหน่วยงานที่มีกะพิเศษในช่วงวันที่ที่ระบุ
     const pipeline = [];
 
@@ -1901,7 +1935,24 @@ router.post('/checkspecialtshift', async (req, res) => {
       ]
     };
     
+    console.log(`🔍 [MATCH CONDITIONS] `, JSON.stringify(matchConditions, null, 2));
     pipeline.push({ $match: matchConditions });
+
+    // ตรวจสอบผลลัพธ์หลัง match stage
+    const matchResults = await timerecordEmployee.aggregate([
+      { $match: matchConditions }
+    ]);
+    console.log(`📊 [AFTER MATCH] พบข้อมูลหลัง match: ${matchResults.length} records`);
+    matchResults.forEach((record, index) => {
+      if (index < 3) { // แสดงแค่ 3 records แรก
+        console.log(`📋 [MATCH RESULT ${index + 1}] Year: ${record.year}, Month: ${record.month}, Employee: ${record.employeeName}`);
+        const specialShifts = record.employee_record.filter(emp => emp.shift === 'cash_holiday');
+        console.log(`📅 [SPECIAL SHIFTS] พนักงาน ${record.employeeName} มีกะพิเศษ ${specialShifts.length} วัน`);
+        specialShifts.forEach(shift => {
+          console.log(`   - วันที่ ${shift.date}/${record.month}/${record.year}: ${shift.shift}`);
+        });
+      }
+    });
 
     // Unwind employee_record เพื่อเข้าถึงข้อมูลในแต่ละ record
     pipeline.push({ $unwind: "$employee_record" });
