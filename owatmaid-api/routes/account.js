@@ -6243,21 +6243,26 @@ console.log(`💰 เงินค่าแรงรวม: ${sumCashWork} บา
 console.log(`💰 เงิน OT รวม: ${sumCashOt} บาท`);
 console.log(`💰 รวมทั้งหมด: ${sumCashWork + sumCashOt} บาท`);
 
-  // คำนวณ countAllowance จาก employee_record โดยนับทั้ง stop และ work ที่มี totalTime
-  console.log(`\n🔍 === คำนวณ countAllowance จาก employee_record (ทั้ง stop และ work) ===`);
-  console.log(`🔍 จำนวน records ทั้งหมด: ${employee_record.length}`);
+  // คำนวณ countAllowance จาก addSalaryList สำหรับ ID 1535 (ค่าเดินทาง)
+  console.log(`\n🔍 === คำนวณ countAllowance จาก addSalaryList (ID 1535) ===`);
+  console.log(`🔍 จำนวน addSalaryList: ${addSalaryList.length} รายการ`);
   
-  countAllowance = employee_record.filter(record => {
-    // ตรวจสอบว่ามี totalTime และไม่ใช่ค่าว่าง โดยไม่สนใจ dayType
-    const hasTotalTime = record.totalTime && record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0;
-    
-    // เพิ่ม log เพื่อตรวจสอบ
-    console.log(`   วันที่ ${record.date}: dayType="${record.dayType}", totalTime="${record.totalTime || 'ไม่มี'}" ${hasTotalTime ? '✅ นับ' : '❌ ไม่นับ'}`);
-    
-    return hasTotalTime;
-  }).length;
+  // หา addSalaryList ที่มี ID 1535 (ค่าเดินทาง)
+  const travelAllowanceItem = addSalaryList.find(item => String(item.id).trim() === "1535");
   
-  console.log(`🔍 countAllowance ที่คำนวณได้ (ทั้ง stop และ work): ${countAllowance} วัน`);
+  if (travelAllowanceItem) {
+    countAllowance = parseInt(travelAllowanceItem.message || 0);
+    console.log(`🔍 พบค่าเดินทาง (ID 1535):`);
+    console.log(`   - จำนวนเงิน: ${travelAllowanceItem.SpSalary} บาท`);
+    console.log(`   - จำนวนวัน (message): ${travelAllowanceItem.message} วัน`);
+    console.log(`   - countAllowance = ${countAllowance} วัน`);
+  } else {
+    countAllowance = 0;
+    console.log(`🔍 ไม่พบค่าเดินทาง (ID 1535) ใน addSalaryList`);
+    console.log(`   - countAllowance = ${countAllowance} วัน`);
+  }
+  
+  console.log(`🔍 countAllowance สุดท้าย: ${countAllowance} วัน`);
 
   // Log สรุปข้อมูลที่สำคัญ
   console.log(`\n📊 === สรุปข้อมูลการคำนวณ ===`);
