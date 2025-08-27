@@ -620,6 +620,9 @@ router.post("/create", async (req, res) => {
     addSalary,
     selectAddSalary,
     sumAddSalary,
+    banknumber,
+    salarybank,
+    
   } = req.body;
   console.log(`Name: ${name}, Id card: ${idCard}`);
 
