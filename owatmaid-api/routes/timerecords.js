@@ -1971,7 +1971,7 @@ router.post('/checkspecialtshift', async (req, res) => {
     });
 
     // Group ตามหน่วยงานและพนักงาน
-    pipeline.push({
+    const groupStage = {
       $group: {
         _id: {
           workplaceId: "$employee_record.workplaceId",
@@ -1984,8 +1984,20 @@ router.post('/checkspecialtshift', async (req, res) => {
             date: {
               $concat: [
                 "$employee_record.date", "/",
-                "$month", "/",
-                { $toString: { $add: [{ $toInt: "$year" }, 543] } } // แปลงเป็น พ.ศ.
+                // 🔧 FIX: ตรวจสอบช่วงวันที่เพื่อใส่เดือนที่ถูกต้อง
+                {
+                  $cond: {
+                    if: { 
+                      $and: [
+                        { $gte: ["$employee_record.dateInt", 21] },
+                        { $lte: ["$employee_record.dateInt", 31] }
+                      ]
+                    },
+                    then: prevMonthPattern, // วันที่ 21-31 = เดือนก่อนหน้า (กรกฎาคม)
+                    else: currentMonthPattern // วันที่ 1-20 = เดือนปัจจุบัน (สิงหาคม)
+                  }
+                }, "/",
+                { $toString: { $add: [targetYear, 543] } } // แปลงเป็น พ.ศ. (ใช้ปีเดียวกันสำหรับง่าย)
               ]
             },
             cashOfHoliday: "$employee_record.cashOfHoliday",
@@ -1994,7 +2006,9 @@ router.post('/checkspecialtshift', async (req, res) => {
         },
         totalDays: { $sum: 1 }
       }
-    });
+    };
+    
+    pipeline.push(groupStage);
 
     // Sort specialShiftDays by date
     pipeline.push({
