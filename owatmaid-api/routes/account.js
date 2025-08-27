@@ -4512,6 +4512,32 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
 
       const processedRecord = record.toObject();
       
+      // 📊 Log employee_record ก่อนเข้า calculateCashValues เพื่อดูว่าทำไมได้ 29 วัน
+      console.log(`\n📊 === ตรวจสอบ employee_record ก่อนเข้า calculateCashValues ===`);
+      console.log(`📊 พนักงาน: ${record.employeeId}`);
+      console.log(`📊 จำนวน records ทั้งหมด: ${record.employee_record ? record.employee_record.length : 0}`);
+      
+      if (record.employee_record && Array.isArray(record.employee_record)) {
+        console.log(`📊 รายละเอียดแต่ละวัน:`);
+        record.employee_record.forEach((rec, index) => {
+          const hasTotalTime = rec.totalTime && rec.totalTime.trim() !== '' && parseFloat(rec.totalTime) > 0;
+          const hasAddSalaryDaily = rec.addSalaryDaily && rec.addSalaryDaily.trim() !== '' && parseFloat(rec.addSalaryDaily) > 0;
+          
+          console.log(`   ${index + 1}. วันที่ ${rec.date}:`);
+          console.log(`      dayType: "${rec.dayType || 'ไม่มี'}"`);
+          console.log(`      totalTime: "${rec.totalTime || 'ไม่มี'}" ${hasTotalTime ? '(มีเวลา)' : '(ไม่มีเวลา)'}`);
+          console.log(`      addSalaryDaily: "${rec.addSalaryDaily || 'ไม่มี'}" ${hasAddSalaryDaily ? '(มีค่าเดินทาง)' : '(ไม่มีค่าเดินทาง)'}`);
+          console.log(`      hasWorked: ${rec.hasWorked}`);
+          
+          if (hasTotalTime) {
+            console.log(`      🔢 วันนี้จะถูกนับใน countAllowance แบบเดิม`);
+          }
+          if (hasAddSalaryDaily) {
+            console.log(`      💰 วันนี้มีค่าเดินทาง`);
+          }
+        });
+      }
+      
       // คำนวณค่าเงินใหม่โดยใช้ฟังก์ชัน calculateCashValues
       try {
         const calculatedValues = await calculateCashValues(
@@ -5968,8 +5994,11 @@ try {
             timeCashWorkMul[record.cashOtMul] += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalOtTime);
           }
           // จัดการ addSalaryDaily สำหรับวันหยุด (dayType = stop)
-if (record.addSalaryDaily && record.addSalaryDaily.length > 0) {
-  console.log(`💰 ประมวลผล addSalaryDaily สำหรับวันหยุด (วันที่ ${record.date}): ${record.addSalaryDaily.length} รายการ`);
+          // ตรวจสอบว่าพนักงานมาทำงานในวันหยุดหรือไม่
+          const hasWorked = record.totalTime && record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0;
+          
+if (record.addSalaryDaily && record.addSalaryDaily.length > 0 && hasWorked) {
+  console.log(`💰 ประมวลผล addSalaryDaily สำหรับวันหยุดที่มาทำงาน (วันที่ ${record.date}): ${record.addSalaryDaily.length} รายการ`);
   record.addSalaryDaily.forEach((salaryItem) => {
     const cleanSalaryItemId = String(salaryItem.id).trim();
     const amount = parseFloat(salaryItem.SpSalary || 0);
@@ -5997,6 +6026,8 @@ if (record.addSalaryDaily && record.addSalaryDaily.length > 0) {
       console.log(`➕ เพิ่ม addSalary ID ${cleanSalaryItemId}: ${amount} บาท (1 วัน)`);
     }
   });
+} else if (record.addSalaryDaily && record.addSalaryDaily.length > 0 && !hasWorked) {
+  console.log(`⏭️ ข้าม addSalaryDaily สำหรับวันหยุดที่ไม่มาทำงาน (วันที่ ${record.date}): ไม่มี totalTime`);
 }
           
           // จัดการ addSalaryDaily สำหรับวันหยุด (dayType = stop)
@@ -6177,8 +6208,11 @@ if (record?.dayType === "work") {
     console.log(`   - รวม OT ทั้งหมด: ${totalOtTime} ชม. (${totalOtCash} บาท)`);
   }
 
-  // จัดการ addSalaryDaily (เหมือนเดิม)
-  if (record.addSalaryDaily && record.addSalaryDaily.length > 0) {
+  // จัดการ addSalaryDaily สำหรับวันทำงาน (เฉพาะเมื่อมีการทำงานจริง)
+  const hasWorkedRegularOrOT = hasRegularWork || hasBeforeOT || hasAfterOT;
+  
+  if (record.addSalaryDaily && record.addSalaryDaily.length > 0 && hasWorkedRegularOrOT) {
+    console.log(`💰 ประมวลผล addSalaryDaily สำหรับวันทำงาน (วันที่ ${record.date}): ${record.addSalaryDaily.length} รายการ`);
     record.addSalaryDaily.forEach((salaryItem) => {
       const cleanSalaryItemId = String(salaryItem.id).trim();
       const amount = parseFloat(salaryItem.SpSalary || 0);
@@ -6206,6 +6240,8 @@ if (record?.dayType === "work") {
         console.log(`➕ เพิ่ม addSalary ID ${cleanSalaryItemId}: ${amount} บาท (1 วัน)`);
       }
     });
+  } else if (record.addSalaryDaily && record.addSalaryDaily.length > 0 && !hasWorkedRegularOrOT) {
+    console.log(`⏭️ ข้าม addSalaryDaily สำหรับวันทำงานที่ไม่มีการทำงาน (วันที่ ${record.date}): ไม่มีเวลาทำงานหรือ OT`);
   }
 }
           }
@@ -6233,21 +6269,26 @@ console.log(`💰 เงินค่าแรงรวม: ${sumCashWork} บา
 console.log(`💰 เงิน OT รวม: ${sumCashOt} บาท`);
 console.log(`💰 รวมทั้งหมด: ${sumCashWork + sumCashOt} บาท`);
 
-  // คำนวณ countAllowance จาก employee_record โดยนับทั้ง stop และ work ที่มี totalTime
-  console.log(`\n🔍 === คำนวณ countAllowance จาก employee_record (ทั้ง stop และ work) ===`);
-  console.log(`🔍 จำนวน records ทั้งหมด: ${employee_record.length}`);
+  // คำนวณ countAllowance จาก addSalaryList สำหรับ ID 1535 (ค่าเดินทาง)
+  console.log(`\n🔍 === คำนวณ countAllowance จาก addSalaryList (ID 1535) ===`);
+  console.log(`🔍 จำนวน addSalaryList: ${addSalaryList.length} รายการ`);
   
-  countAllowance = employee_record.filter(record => {
-    // ตรวจสอบว่ามี totalTime และไม่ใช่ค่าว่าง โดยไม่สนใจ dayType
-    const hasTotalTime = record.totalTime && record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0;
-    
-    // เพิ่ม log เพื่อตรวจสอบ
-    console.log(`   วันที่ ${record.date}: dayType="${record.dayType}", totalTime="${record.totalTime || 'ไม่มี'}" ${hasTotalTime ? '✅ นับ' : '❌ ไม่นับ'}`);
-    
-    return hasTotalTime;
-  }).length;
+  // หา addSalaryList ที่มี ID 1535 (ค่าเดินทาง)
+  const travelAllowanceItem = addSalaryList.find(item => String(item.id).trim() === "1535");
   
-  console.log(`🔍 countAllowance ที่คำนวณได้ (ทั้ง stop และ work): ${countAllowance} วัน`);
+  if (travelAllowanceItem) {
+    countAllowance = parseInt(travelAllowanceItem.message || 0);
+    console.log(`🔍 พบค่าเดินทาง (ID 1535):`);
+    console.log(`   - จำนวนเงิน: ${travelAllowanceItem.SpSalary} บาท`);
+    console.log(`   - จำนวนวัน (message): ${travelAllowanceItem.message} วัน`);
+    console.log(`   - countAllowance = ${countAllowance} วัน`);
+  } else {
+    countAllowance = 0;
+    console.log(`🔍 ไม่พบค่าเดินทาง (ID 1535) ใน addSalaryList`);
+    console.log(`   - countAllowance = ${countAllowance} วัน`);
+  }
+  
+  console.log(`🔍 countAllowance สุดท้าย: ${countAllowance} วัน`);
 
   // Log สรุปข้อมูลที่สำคัญ
   console.log(`\n📊 === สรุปข้อมูลการคำนวณ ===`);
