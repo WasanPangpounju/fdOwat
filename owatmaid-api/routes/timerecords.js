@@ -1844,7 +1844,6 @@ router.post('/checkworkplacesinmonth', async (req, res) => {
 });
 
 
-// เช็คหน่วยงานที่มีกะพิเศษ (cash_holiday) ในแต่ละเดือน
 router.post('/checkspecialtshift', async (req, res) => {
   try {
     const { month, year } = req.body;
@@ -1886,8 +1885,16 @@ router.post('/checkspecialtshift', async (req, res) => {
       $and: [
         { 
           $or: [
-            { year: targetYear.toString() },
-            { year: prevYear.toString() }
+            // สำหรับเดือนปัจจุบัน (วันที่ 1-20)
+            { 
+              year: targetYear.toString(),
+              month: currentMonthPattern
+            },
+            // สำหรับเดือนก่อนหน้า (วันที่ 21-31)
+            { 
+              year: prevYear.toString(),
+              month: prevMonthPattern
+            }
           ]
         },
         { 'employee_record.shift': 'cash_holiday' }
@@ -1899,12 +1906,13 @@ router.post('/checkspecialtshift', async (req, res) => {
     // Unwind employee_record เพื่อเข้าถึงข้อมูลในแต่ละ record
     pipeline.push({ $unwind: "$employee_record" });
 
-    // กรองเฉพาะ employee_record ที่มี shift = 'cash_holiday' และอยู่ในช่วงวันที่ที่ต้องการ
+    // เพิ่มฟิลด์สำหรับการเปรียบเทียบ
     pipeline.push({
       $addFields: {
         "employee_record.dateInt": { $toInt: "$employee_record.date" },
-        "monthInt": { $toInt: "$month" },
-        "yearInt": { $toInt: "$year" }
+        // ใช้ฟิลด์จาก document เพื่อระบุว่านี่คือข้อมูลเดือนไหน
+        "docMonthInt": { $toInt: "$month" },
+        "docYearInt": { $toInt: "$year" }
       }
     });
 
@@ -1918,17 +1926,17 @@ router.post('/checkspecialtshift', async (req, res) => {
               // วันที่ 21-31 ของเดือนก่อนหน้า
               {
                 $and: [
-                  { monthInt: prevMonth },
-                  { yearInt: prevYear },
-                  { 'employee_record.dateInt': { $gte: 21 } }
+                  { docMonthInt: prevMonth },
+                  { docYearInt: prevYear },
+                  { 'employee_record.dateInt': { $gte: 21, $lte: 31 } }
                 ]
               },
               // วันที่ 1-20 ของเดือนปัจจุบัน
               {
                 $and: [
-                  { monthInt: targetMonth },
-                  { yearInt: targetYear },
-                  { 'employee_record.dateInt': { $lte: 20 } }
+                  { docMonthInt: targetMonth },
+                  { docYearInt: targetYear },
+                  { 'employee_record.dateInt': { $gte: 1, $lte: 20 } }
                 ]
               }
             ]
@@ -1958,6 +1966,21 @@ router.post('/checkspecialtshift', async (req, res) => {
             cashOfHoliday: "$employee_record.cashOfHoliday",
             cashOfHolidayOt: "$employee_record.cashOfHolidayOt"
           }
+        },
+        totalDays: { $sum: 1 }
+      }
+    });
+
+    // Sort specialShiftDays by date
+    pipeline.push({
+      $addFields: {
+        specialShiftDays: {
+          $sortArray: {
+            input: "$specialShiftDays",
+            sortBy: { 
+              date: 1 
+            }
+          }
         }
       }
     });
@@ -1973,10 +1996,24 @@ router.post('/checkspecialtshift', async (req, res) => {
           $push: {
             employeeId: "$_id.employeeId",
             employeeName: "$_id.employeeName",
-            specialShiftDays: "$specialShiftDays"
+            specialShiftDays: "$specialShiftDays",
+            totalDays: "$totalDays"
           }
         },
-        totalEmployees: { $sum: 1 }
+        totalEmployees: { $sum: 1 },
+        totalShiftDays: { $sum: "$totalDays" }
+      }
+    });
+
+    // Sort employees by employeeId
+    pipeline.push({
+      $addFields: {
+        employees: {
+          $sortArray: {
+            input: "$employees",
+            sortBy: { employeeId: 1 }
+          }
+        }
       }
     });
 
@@ -1987,6 +2024,7 @@ router.post('/checkspecialtshift', async (req, res) => {
         workplaceId: "$_id.workplaceId",
         workplaceName: "$_id.workplaceName",
         totalEmployeesWithSpecialShift: "$totalEmployees",
+        totalShiftDays: "$totalShiftDays",
         employees: "$employees"
       }
     });
@@ -1998,63 +2036,42 @@ router.post('/checkspecialtshift', async (req, res) => {
 
     console.log(`🔍 [DEBUG] Pipeline executed, found ${workplacesWithSpecialShift.length} workplaces with special shifts`);
     
-    // เพิ่ม debug เพื่อดูข้อมูลทั้งหมดที่พบ
+    // Debug: ตรวจสอบว่ามีข้อมูลจากเดือน 7 หรือไม่
     if (workplacesWithSpecialShift.length > 0) {
-      console.log(`🔍 [DEBUG] Sample data:`, JSON.stringify(workplacesWithSpecialShift[0], null, 2));
+      let julyCount = 0;
+      let augustCount = 0;
       
-      // ตรวจสอบข้อมูลจากเดือน 7
-      workplacesWithSpecialShift.forEach((workplace, wpIndex) => {
-        workplace.employees.forEach((emp, empIndex) => {
-          emp.specialShiftDays.forEach((day, dayIndex) => {
-            if (day.date.includes('/07/')) {
-              console.log(`🎯 [DEBUG] Found July data: Employee ${emp.employeeName} on ${day.date}`);
+      workplacesWithSpecialShift.forEach((workplace) => {
+        workplace.employees.forEach((emp) => {
+          emp.specialShiftDays.forEach((day) => {
+            if (day.date.includes(`/${prevMonthPattern}/`)) {
+              julyCount++;
+              console.log(`📅 [JULY] Found: ${emp.employeeName} on ${day.date}`);
+            } else if (day.date.includes(`/${currentMonthPattern}/`)) {
+              augustCount++;
             }
           });
         });
       });
-    }
-    
-    // เพิ่ม debug เพื่อตรวจสอบข้อมูลก่อน aggregation
-    console.log(`🔍 [DEBUG] Let's check raw data for July ${prevYear} month ${prevMonth}...`);
-    const julyCheck = await timerecordEmployee.find({
-      year: prevYear.toString(),
-      month: prevMonthPattern,
-      'employee_record.shift': 'cash_holiday'
-    });
-    console.log(`🔍 [DEBUG] Found ${julyCheck.length} records in July with special shifts`);
-    
-    if (julyCheck.length > 0) {
-      julyCheck.forEach((record, index) => {
-        if (index < 2) { // แสดงแค่ 2 record แรก
-          console.log(`🔍 [DEBUG] July record ${index + 1}:`, {
-            employeeId: record.employeeId,
-            employeeName: record.employeeName,
-            month: record.month,
-            year: record.year,
-            specialShifts: record.employee_record.filter(r => r.shift === 'cash_holiday' && parseInt(r.date) >= 21).map(r => ({
-              date: r.date,
-              shift: r.shift,
-              workplaceId: r.workplaceId
-            }))
-          });
-        }
-      });
+      
+      console.log(`📊 [SUMMARY] July shifts: ${julyCount}, August shifts: ${augustCount}`);
     }
 
     // สร้างข้อความสรุป
     const totalWorkplaces = workplacesWithSpecialShift.length;
     const totalEmployees = workplacesWithSpecialShift.reduce((sum, wp) => sum + wp.totalEmployeesWithSpecialShift, 0);
+    const totalDays = workplacesWithSpecialShift.reduce((sum, wp) => sum + wp.totalShiftDays, 0);
     
     const workplaceList = workplacesWithSpecialShift.map(wp => 
-      `${wp.workplaceName} (รหัส: ${wp.workplaceId}, พนักงานกะพิเศษ: ${wp.totalEmployeesWithSpecialShift} คน)`
+      `${wp.workplaceName} (รหัส: ${wp.workplaceId}, พนักงาน: ${wp.totalEmployeesWithSpecialShift} คน, กะพิเศษรวม: ${wp.totalShiftDays} วัน)`
     ).join(', ');
 
-    const dateRange = `21/${prevMonthPattern}/${targetYear} - 20/${currentMonthPattern}/${targetYear}`;
+    const dateRange = `21/${prevMonthPattern}/${prevYear} - 20/${currentMonthPattern}/${targetYear}`;
     const summary = totalWorkplaces > 0 
-      ? `งวดเดือน ${month} (${dateRange}) มี ${totalWorkplaces} หน่วยงานที่มีกะพิเศษ รวม ${totalEmployees} คน: ${workplaceList}`
+      ? `งวดเดือน ${month} (${dateRange}) มี ${totalWorkplaces} หน่วยงานที่มีกะพิเศษ รวม ${totalEmployees} คน และ ${totalDays} วันทำงาน: ${workplaceList}`
       : `งวดเดือน ${month} (${dateRange}) ไม่มีหน่วยงานที่มีกะพิเศษ`;
 
-    console.log(`🌟 [CHECK SPECIAL SHIFT] ${summary}`);
+    console.log(`✅ [CHECK SPECIAL SHIFT] ${summary}`);
 
     res.status(200).json({
       success: true,
@@ -2063,6 +2080,7 @@ router.post('/checkspecialtshift', async (req, res) => {
       dateRange: dateRange,
       totalWorkplacesWithSpecialShift: totalWorkplaces,
       totalEmployeesWithSpecialShift: totalEmployees,
+      totalShiftDays: totalDays,
       summary: summary,
       workplaces: workplacesWithSpecialShift
     });
@@ -2076,7 +2094,6 @@ router.post('/checkspecialtshift', async (req, res) => {
     });
   }
 });
-
 // ========= workplace
 
 // Create new workplaceTimerecords
