@@ -5968,8 +5968,11 @@ try {
             timeCashWorkMul[record.cashOtMul] += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalOtTime);
           }
           // จัดการ addSalaryDaily สำหรับวันหยุด (dayType = stop)
-if (record.addSalaryDaily && record.addSalaryDaily.length > 0) {
-  console.log(`💰 ประมวลผล addSalaryDaily สำหรับวันหยุด (วันที่ ${record.date}): ${record.addSalaryDaily.length} รายการ`);
+          // ตรวจสอบว่าพนักงานมาทำงานในวันหยุดหรือไม่
+          const hasWorked = record.totalTime && record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0;
+          
+if (record.addSalaryDaily && record.addSalaryDaily.length > 0 && hasWorked) {
+  console.log(`💰 ประมวลผล addSalaryDaily สำหรับวันหยุดที่มาทำงาน (วันที่ ${record.date}): ${record.addSalaryDaily.length} รายการ`);
   record.addSalaryDaily.forEach((salaryItem) => {
     const cleanSalaryItemId = String(salaryItem.id).trim();
     const amount = parseFloat(salaryItem.SpSalary || 0);
@@ -5997,6 +6000,8 @@ if (record.addSalaryDaily && record.addSalaryDaily.length > 0) {
       console.log(`➕ เพิ่ม addSalary ID ${cleanSalaryItemId}: ${amount} บาท (1 วัน)`);
     }
   });
+} else if (record.addSalaryDaily && record.addSalaryDaily.length > 0 && !hasWorked) {
+  console.log(`⏭️ ข้าม addSalaryDaily สำหรับวันหยุดที่ไม่มาทำงาน (วันที่ ${record.date}): ไม่มี totalTime`);
 }
           
           // จัดการ addSalaryDaily สำหรับวันหยุด (dayType = stop)
@@ -6177,8 +6182,11 @@ if (record?.dayType === "work") {
     console.log(`   - รวม OT ทั้งหมด: ${totalOtTime} ชม. (${totalOtCash} บาท)`);
   }
 
-  // จัดการ addSalaryDaily (เหมือนเดิม)
-  if (record.addSalaryDaily && record.addSalaryDaily.length > 0) {
+  // จัดการ addSalaryDaily สำหรับวันทำงาน (เฉพาะเมื่อมีการทำงานจริง)
+  const hasWorkedRegularOrOT = hasRegularWork || hasBeforeOT || hasAfterOT;
+  
+  if (record.addSalaryDaily && record.addSalaryDaily.length > 0 && hasWorkedRegularOrOT) {
+    console.log(`💰 ประมวลผล addSalaryDaily สำหรับวันทำงาน (วันที่ ${record.date}): ${record.addSalaryDaily.length} รายการ`);
     record.addSalaryDaily.forEach((salaryItem) => {
       const cleanSalaryItemId = String(salaryItem.id).trim();
       const amount = parseFloat(salaryItem.SpSalary || 0);
@@ -6206,6 +6214,8 @@ if (record?.dayType === "work") {
         console.log(`➕ เพิ่ม addSalary ID ${cleanSalaryItemId}: ${amount} บาท (1 วัน)`);
       }
     });
+  } else if (record.addSalaryDaily && record.addSalaryDaily.length > 0 && !hasWorkedRegularOrOT) {
+    console.log(`⏭️ ข้าม addSalaryDaily สำหรับวันทำงานที่ไม่มีการทำงาน (วันที่ ${record.date}): ไม่มีเวลาทำงานหรือ OT`);
   }
 }
           }
