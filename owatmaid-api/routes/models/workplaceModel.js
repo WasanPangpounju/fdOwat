@@ -275,7 +275,8 @@ employeeCompensation: {
            startTimeOT: String, 
            endTimeOT: String, 
            resultTimeOT: String ,
-           numberOfPeople: String,}]
+           numberOfPeople: String,
+           Remark: String}]
   }
   ],
 

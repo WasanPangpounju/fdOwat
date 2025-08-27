@@ -1844,7 +1844,7 @@ router.post('/checkworkplacesinmonth', async (req, res) => {
 });
 
 
-// เช็คหน่วยงานที่มีกะพิเศษ (specialt_shift) ในแต่ละเดือน
+// เช็คหน่วยงานที่มีกะพิเศษ (cash_holiday) ในแต่ละเดือน
 router.post('/checkspecialtshift', async (req, res) => {
   try {
     const { month, year } = req.body;
@@ -1862,7 +1862,7 @@ router.post('/checkspecialtshift', async (req, res) => {
     // Match stage - กรองตามเดือน ปี และต้องมีกะพิเศษ
     const matchConditions = {
       month: { $regex: new RegExp(month, 'i') },
-      'employee_record.shift': 'specialt_shift'
+      'employee_record.shift': 'cash_holiday'
     };
     
     if (year && year !== '') {
@@ -1874,10 +1874,10 @@ router.post('/checkspecialtshift', async (req, res) => {
     // Unwind employee_record เพื่อเข้าถึงข้อมูลในแต่ละ record
     pipeline.push({ $unwind: "$employee_record" });
 
-    // กรองเฉพาะ employee_record ที่มี shift = 'specialt_shift'
+    // กรองเฉพาะ employee_record ที่มี shift = 'cash_holiday'
     pipeline.push({
       $match: {
-        'employee_record.shift': 'specialt_shift'
+        'employee_record.shift': 'cash_holiday'
       }
     });
 
