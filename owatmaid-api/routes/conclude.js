@@ -1280,18 +1280,21 @@ if(testx ) {
   // console.log('testx ' + JSON.stringify(testx.addSalary,null,2) )
   await addSalaryList.push(testx.addSalary );
 } else {
-  await addSalaryList.push(addSalaryDaily);
+  // ใช้ addSalaryDaily จาก record แต่ละวัน แทนการใช้ตัวแปรทั่วไป
+  await addSalaryList.push(concludeRecord[c].addSalaryDaily || []);
 }
 
 } else {
 
   // remove 1012 when shift is morning_shift
 if(concludeRecord [c].shift === 'morning_shift') {
-let addSalaryDailyx = await addSalaryDaily.filter(item1 => item1.id !== '1210');
+// ใช้ addSalaryDaily จาก record แต่ละวัน และกรองออก 1210
+let addSalaryDailyx = (concludeRecord[c].addSalaryDaily || []).filter(item1 => item1.id !== '1210');
   await addSalaryList.push(addSalaryDailyx);
   // console.log(JSON.stringify(addSalaryDailyx) )
 } else {
-  await addSalaryList.push(addSalaryDaily);
+  // ใช้ addSalaryDaily จาก record แต่ละวัน
+  await addSalaryList.push(concludeRecord[c].addSalaryDaily || []);
   // console.log('*any xxx ' + concludeRecord [c].shift + ' ' + JSON.stringify(addSalaryDaily,null,2) );
 }
 
