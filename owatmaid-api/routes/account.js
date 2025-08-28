@@ -6068,12 +6068,23 @@ if (record?.dayType === "work") {
   }
   
   // นับวันทำงานเฉพาะ record ที่มีเวลาทำงานปกติ และยังไม่เคยนับวันนี้
-  if (hasRegularWork && !countedWorkDates.has(record.date)) {
+  // แต่ต้องยกเว้น shift พิเศษที่ไม่ควรนับเป็นวันทำงานปกติ
+  const isSpecialShift = record.shift === "specialt_shift" || record.shift === "cash_holiday";
+  
+  // สำหรับ dayWorkCount: นับเฉพาะ dayType: "work" เท่านั้น ไม่นับ dayType: "stop"
+  // แม้จะมี totalTime และเป็น morning_shift ธรรมดาก็ตาม
+  const isWorkDay = record.dayType === "work";
+  
+  if (hasRegularWork && !countedWorkDates.has(record.date) && !isSpecialShift && isWorkDay) {
     dayWorkCount += 1;
     countedWorkDates.add(record.date);
-    console.log(`✅ นับวันที่ ${record.date} เป็นวันทำงาน (dayWorkCount = ${dayWorkCount})`);
+    console.log(`✅ นับวันที่ ${record.date} เป็นวันทำงาน (dayType: ${record.dayType}, shift: ${record.shift}, dayWorkCount = ${dayWorkCount})`);
   } else if (countedWorkDates.has(record.date)) {
     console.log(`⚠️ วันที่ ${record.date} ถูกนับแล้ว ข้ามการนับวัน`);
+  } else if (isSpecialShift) {
+    console.log(`⚠️ วันที่ ${record.date} เป็น ${record.shift} ไม่นับเป็นวันทำงานปกติ`);
+  } else if (!isWorkDay) {
+    console.log(`⚠️ วันที่ ${record.date} เป็น dayType: "${record.dayType}" ไม่นับใน dayWorkCount (นับเฉพาะ dayType: "work")`);
   } else if (!hasRegularWork && (hasBeforeOT || hasAfterOT)) {
     console.log(`⚠️ วันที่ ${record.date} ไม่มีเวลาทำงานปกติ (มีแค่ OT) ไม่นับเป็นวันทำงาน`);
   }
@@ -6082,20 +6093,24 @@ if (record?.dayType === "work") {
   if (hasRegularWork) {
     sumTimeWork += convertTimeToDecimal(record.totalTime);
     
-    // ตรวจสอบ cash_holiday - ถ้าเป็น cash_holiday ให้ cashWork, cashOt, cashOtMul = 0
+    // ตรวจสอบ shift พิเศษ - ถ้าเป็น specialt_shift หรือ cash_holiday ให้ปรับค่าต่างๆ
     let cashWorkAmount = parseFloat(record?.cashWork || '0');
-    if (record.shift === "cash_holiday") {
+    if (record.shift === "specialt_shift") {
       console.log(`🚫 พบ specialt_shift ในวันที่ ${record.date} - บังคับ cashWork, cashOt, cashOtMul เป็น 0`);
       console.log(`   - cashWork เดิม: ${cashWorkAmount}, cashOt เดิม: ${record.cashOt}, cashOtMul เดิม: ${record.cashOtMul}`);
       cashWorkAmount = 0;
       record.cashWork = "0";
       record.cashOt = "0";
       record.cashOtMul = "0";
-       record.totalOtTime = "0";
-      record.cashOtMul = "0";
+      record.totalOtTime = "0";
       record.totalTime = "0"; 
       console.log(`   - totalTime ถูกปรับเป็น: ${record.totalTime}`);
-
+    } else if (record.shift === "cash_holiday") {
+      console.log(`🚫 พบ cash_holiday ในวันที่ ${record.date} - ไม่นับเป็นวันทำงานปกติ`);
+      console.log(`   - cashWork เดิม: ${cashWorkAmount}, cashOt เดิม: ${record.cashOt}, shift: ${record.shift}`);
+      // สำหรับ cash_holiday ไม่ต้องเปลี่ยน cashWork เพราะเป็นค่าแรงวันหยุด
+      // แต่ไม่นับเป็นวันทำงานปกติ
+      console.log(`   - เก็บค่าแรงวันหยุด: ${cashWorkAmount} บาท`);
     }
     
     sumCashWork += cashWorkAmount;
@@ -6232,28 +6247,70 @@ console.log(`💰 เงิน OT รวม: ${sumCashOt} บาท`);
 console.log(`💰 รวมทั้งหมด: ${sumCashWork + sumCashOt} บาท`);
 
   // คำนวณ countAllowance จาก employee_record โดยนับทั้ง stop และ work ที่มี totalTime
-  console.log(`\n🔍 === คำนวณ countAllowance จาก employee_record (ทั้ง stop และ work) ===`);
+  // ใช้สำหรับคำนวณ message ใน addSalaryList (ต้องนับทั้ง dayType: "work" และ "stop")
+  console.log(`\n🔍 === คำนวณ countAllowance สำหรับ message (addSalaryList) ===`);
   console.log(`🔍 จำนวน records ทั้งหมด: ${employee_record.length}`);
   
   countAllowance = employee_record.filter(record => {
-    // ตรวจสอบว่ามี totalTime และไม่ใช่ค่าว่าง โดยไม่สนใจ dayType
-    const hasTotalTime = record.totalTime && record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0;
+    // ตรวจสอบว่ามี totalTime และไม่ใช่ค่าว่าง 
+    // แต่ต้องยกเว้น shift พิเศษที่ไม่ควรนับเป็นวันทำงานปกติ (specialt_shift, cash_holiday)
+    let effectiveTotalTime = record.totalTime;
+    let shouldCount = true;
+    let reason = "";
     
-    // เพิ่ม log เพื่อตรวจสอบ
-    console.log(`   วันที่ ${record.date}: dayType="${record.dayType}", totalTime="${record.totalTime || 'ไม่มี'}" ${hasTotalTime ? '✅ นับ' : '❌ ไม่นับ'}`);
+    // ถ้าเป็น specialt_shift หรือ cash_holiday ให้ไม่นับ
+    if (record.shift === "specialt_shift") {
+      shouldCount = false;
+      reason = "เป็น specialt_shift";
+      effectiveTotalTime = "0";
+    } else if (record.shift === "cash_holiday") {
+      shouldCount = false;
+      reason = "เป็น cash_holiday";
+    }
     
-    return hasTotalTime;
+    const hasTotalTime = effectiveTotalTime && effectiveTotalTime.trim() !== '' && parseFloat(effectiveTotalTime) > 0;
+    const finalResult = shouldCount && hasTotalTime;
+    
+    // เพิ่ม log เพื่อตรวจสอบ (รวมถึง dayType: "stop" ที่เป็น morning_shift สำหรับ message)
+    console.log(`   วันที่ ${record.date}: dayType="${record.dayType}", shift="${record.shift}", totalTime="${record.totalTime || 'ไม่มี'}" ${finalResult ? '✅ นับใน message' : `❌ ไม่นับใน message${reason ? ` (${reason})` : ''}`}`);
+    
+    return finalResult;
   }).length;
   
-  console.log(`🔍 countAllowance ที่คำนวณได้ (ทั้ง stop และ work): ${countAllowance} วัน`);
+  console.log(`🔍 countAllowance สำหรับ message (รวมทั้ง work + stop): ${countAllowance} วัน`);
 
   // Log สรุปข้อมูลที่สำคัญ
   console.log(`\n📊 === สรุปข้อมูลการคำนวณ ===`);
   console.log(`👤 employeeId: ${employeeId}`);
   console.log(`📅 เดือน/ปี: ${month}/${year}`);
   console.log(`📋 จำนวน employee_record ทั้งหมด: ${employee_record.length}`);
-  console.log(`🔢 countAllowance: ${countAllowance} วัน`);
+  
+  // นับประเภท shift
+  const shiftCounts = {};
+  employee_record.forEach(record => {
+    const shift = record.shift || 'ไม่ระบุ';
+    shiftCounts[shift] = (shiftCounts[shift] || 0) + 1;
+  });
+  
+  console.log(`� จำนวนตาม shift:`);
+  Object.entries(shiftCounts).forEach(([shift, count]) => {
+    console.log(`   - ${shift}: ${count} วัน`);
+  });
+  
+  console.log(`�🔢 countAllowance: ${countAllowance} วัน`);
   console.log(`📊 dayWorkCount: ${dayWorkCount} วัน`);
+  
+  // ตรวจสอบว่า countAllowance และ dayWorkCount ตรงกันหรือไม่
+  if (countAllowance !== dayWorkCount) {
+    console.log(`⚠️ === เตือน: countAllowance และ dayWorkCount ไม่ตรงกัน ===`);
+    console.log(`⚠️ countAllowance: ${countAllowance} วัน`);
+    console.log(`⚠️ dayWorkCount: ${dayWorkCount} วัน`);
+    console.log(`⚠️ ความแตกต่าง: ${Math.abs(countAllowance - dayWorkCount)} วัน`);
+    console.log(`⚠️ ====================================================`);
+  } else {
+    console.log(`✅ countAllowance และ dayWorkCount ตรงกัน: ${countAllowance} วัน`);
+  }
+  
   console.log(`📊 dayOffCount: ${dayOffCount} วัน`);
   console.log(`📊 specialDayOff: ${specialDayOff} วัน`);
   console.log(`💰 sumCashWork: ${sumCashWork} บาท`);
