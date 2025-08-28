@@ -67,7 +67,7 @@ router.post('/approve-special-shift', async (req, res) => {
       });
     }
     
-    // ตรวจสอบว่ามีการอนุมัติแล้วหรือไม่
+    // ตรวจสอบว่ามีการอนุมัติแล้วหรือไม่ (ตรงเป๊ะ)
     const existingApproval = await WorkplaceApproval.findOne({
       workplaceId: workplaceId,
       startDate: new Date(startDate),
@@ -85,6 +85,40 @@ router.post('/approve-special-shift', async (req, res) => {
           approved_by: existingApproval.approvedBy,
           approved_at: existingApproval.approvedAt
         }
+      });
+    }
+
+    // ตรวจสอบการซ้อนทับช่วงวันที่
+    const searchStartDate = new Date(startDate);
+    const searchEndDate = new Date(endDate);
+    
+    const overlappingApprovals = await WorkplaceApproval.find({
+      workplaceId: workplaceId,
+      status: 'approved',
+      $or: [
+        // ช่วงใหม่เริ่มก่อนที่เก่าจะจบ และ จบหลังที่เก่าเริ่ม
+        {
+          $and: [
+            { startDate: { $lte: searchEndDate } },
+            { endDate: { $gte: searchStartDate } }
+          ]
+        }
+      ]
+    });
+    
+    if (overlappingApprovals.length > 0) {
+      const overlappingDates = overlappingApprovals.map(approval => ({
+        start_date: approval.startDate,
+        end_date: approval.endDate,
+        approved_by: approval.approvedBy,
+        approved_at: approval.approvedAt
+      }));
+
+      return res.status(409).json({
+        success: false,
+        message: 'ช่วงวันที่ที่เลือกซ้อนทับกับการอนุมัติที่มีอยู่แล้ว',
+        isOverlapping: true,
+        overlappingApprovals: overlappingDates
       });
     }
     

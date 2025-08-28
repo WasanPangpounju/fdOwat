@@ -1899,19 +1899,62 @@ router.post('/checkspecialtshift', async (req, res) => {
           WorkplaceApproval = mongoose.model('WorkplaceApproval', workplaceApprovalSchema);
         }
         
-        const approval = await WorkplaceApproval.findOne({
+        const searchStartDate = new Date(startDate);
+        const searchEndDate = new Date(endDate);
+        
+        // ตรวจสอบการอนุมัติที่ตรงเป็นเป๊ะ
+        const exactApproval = await WorkplaceApproval.findOne({
           workplaceId: workplaceId,
-          startDate: new Date(startDate),
-          endDate: new Date(endDate),
+          startDate: searchStartDate,
+          endDate: searchEndDate,
           status: 'approved'
         });
         
-        if (approval) {
+        if (exactApproval) {
           return res.json({
             success: true,
             month: month,
             year: year ? parseInt(year) : new Date().getFullYear(),
             approvalInfo: {
+              id: exactApproval._id,
+              workplace_id: exactApproval.workplaceId,
+              workplace_name: exactApproval.workplaceName,
+              start_date: exactApproval.startDate,
+              end_date: exactApproval.endDate,
+              approved_by: exactApproval.approvedBy,
+              approved_at: exactApproval.approvedAt,
+              total_amount: exactApproval.totalAmount,
+              total_employees: exactApproval.totalEmployees,
+              month: exactApproval.month,
+              year: exactApproval.year,
+              status: exactApproval.status
+            },
+            workplaces: []
+          });
+        }
+        
+        // ตรวจสอบการซ้อนทับช่วงวันที่
+        const overlappingApprovals = await WorkplaceApproval.find({
+          workplaceId: workplaceId,
+          status: 'approved',
+          $or: [
+            // ช่วงใหม่เริ่มก่อนที่เก่าจะจบ และ จบหลังที่เก่าเริ่ม
+            {
+              $and: [
+                { startDate: { $lte: searchEndDate } },
+                { endDate: { $gte: searchStartDate } }
+              ]
+            }
+          ]
+        });
+        
+        if (overlappingApprovals.length > 0) {
+          return res.json({
+            success: true,
+            month: month,
+            year: year ? parseInt(year) : new Date().getFullYear(),
+            hasOverlap: true,
+            overlappingApprovals: overlappingApprovals.map(approval => ({
               id: approval._id,
               workplace_id: approval.workplaceId,
               workplace_name: approval.workplaceName,
@@ -1921,13 +1964,12 @@ router.post('/checkspecialtshift', async (req, res) => {
               approved_at: approval.approvedAt,
               total_amount: approval.totalAmount,
               total_employees: approval.totalEmployees,
-              month: approval.month,
-              year: approval.year,
               status: approval.status
-            },
+            })),
             workplaces: []
           });
         }
+        
       } catch (error) {
         console.error('Error checking approval:', error);
       }
