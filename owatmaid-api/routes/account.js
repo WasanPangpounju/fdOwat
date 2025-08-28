@@ -6325,6 +6325,19 @@ console.log(`💰 รวมทั้งหมด: ${sumCashWork + sumCashOt} บ
   }
   console.log(`📊 =============================`);
 
+  // แก้ไข message ใน addSalaryList ให้ใช้ countAllowance แทนการนับจากแต่ละวัน
+  console.log(`\n🔧 === แก้ไข message ใน addSalaryList ให้ใช้ countAllowance ===`);
+  addSalaryList.forEach((item, idx) => {
+    if (item.roundOfSalary === "daily") {
+      const oldMessage = item.message;
+      item.message = String(countAllowance);
+      console.log(`   [${idx}] id=${item.id}: แก้ไข message จาก ${oldMessage} เป็น ${item.message} (ใช้ countAllowance)`);
+    } else {
+      console.log(`   [${idx}] id=${item.id}: ไม่แก้ไข message=${item.message} (roundOfSalary=${item.roundOfSalary})`);
+    }
+  });
+  console.log(`🔧 =============================`);
+
   // คำนวณค่า cashcustomizeDayoff
   // ค่าแรงต่อวันคูณจำนวนวันที่ไม่มาทำงาน
   console.log(`\n💰 คำนวณ cashcustomizeDayoff สำหรับพนักงาน ${employeeId}`);
