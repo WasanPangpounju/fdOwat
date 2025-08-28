@@ -1846,13 +1846,91 @@ router.post('/checkworkplacesinmonth', async (req, res) => {
 
 router.post('/checkspecialtshift', async (req, res) => {
   try {
-    const { month, year } = req.body;
+    const { month, year, checkApproval, workplaceId, startDate, endDate } = req.body;
 
     if (!month || month === '') {
       return res.status(400).json({ 
         success: false,
         message: 'กรุณาระบุเดือนที่ต้องการเช็ค' 
       });
+    }
+
+    // ถ้าเป็นการตรวจสอบ approval
+    if (checkApproval && workplaceId && startDate && endDate) {
+      try {
+        // ใช้ MongoDB เพื่อตรวจสอบ approval
+        const mongoose = require('mongoose');
+        
+        // Schema สำหรับการอนุมัติ (ถ้ายังไม่มี)
+        let WorkplaceApproval;
+        try {
+          WorkplaceApproval = mongoose.model('WorkplaceApproval');
+        } catch (error) {
+          // ถ้ายังไม่มี model ให้สร้างใหม่
+          const approvalDetailSchema = new mongoose.Schema({
+            employeeId: String,
+            employeeName: String,
+            specialShiftAmount: { type: Number, default: 0 },
+            otAmount: { type: Number, default: 0 },
+            totalAmount: { type: Number, default: 0 },
+            workDays: { type: Number, default: 0 }
+          });
+
+          const workplaceApprovalSchema = new mongoose.Schema({
+            workplaceId: { type: String, required: true },
+            workplaceName: { type: String, required: true },
+            startDate: { type: Date, required: true },
+            endDate: { type: Date, required: true },
+            approvedBy: { type: String, required: true },
+            approvedAt: { type: Date, default: Date.now },
+            totalAmount: { type: Number, required: true },
+            totalEmployees: { type: Number, required: true },
+            month: String,
+            year: String,
+            status: { type: String, enum: ['approved', 'cancelled'], default: 'approved' },
+            employeeDetails: [approvalDetailSchema],
+            createdAt: { type: Date, default: Date.now },
+            updatedAt: { type: Date, default: Date.now }
+          });
+
+          // สร้าง compound index เพื่อป้องกันการอนุมัติซ้ำ
+          workplaceApprovalSchema.index({ workplaceId: 1, startDate: 1, endDate: 1 }, { unique: true });
+
+          WorkplaceApproval = mongoose.model('WorkplaceApproval', workplaceApprovalSchema);
+        }
+        
+        const approval = await WorkplaceApproval.findOne({
+          workplaceId: workplaceId,
+          startDate: new Date(startDate),
+          endDate: new Date(endDate),
+          status: 'approved'
+        });
+        
+        if (approval) {
+          return res.json({
+            success: true,
+            month: month,
+            year: year ? parseInt(year) : new Date().getFullYear(),
+            approvalInfo: {
+              id: approval._id,
+              workplace_id: approval.workplaceId,
+              workplace_name: approval.workplaceName,
+              start_date: approval.startDate,
+              end_date: approval.endDate,
+              approved_by: approval.approvedBy,
+              approved_at: approval.approvedAt,
+              total_amount: approval.totalAmount,
+              total_employees: approval.totalEmployees,
+              month: approval.month,
+              year: approval.year,
+              status: approval.status
+            },
+            workplaces: []
+          });
+        }
+      } catch (error) {
+        console.error('Error checking approval:', error);
+      }
     }
 
     // คำนวณช่วงวันที่สำหรับเดือนที่เลือก
