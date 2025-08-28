@@ -251,7 +251,7 @@ const date = await new Date(workRateChange);
 upSalary_year = await date.getFullYear(); // Use getFullYear() for local time
 // Get the month (0-based index, so add 1 for the correct month)
 upSalary_month = await date.getMonth() + 1; // Use getMonth() for local time
-console.log('prevMonth ' + prevMonth   + ' / ' +  'upSalary_month ' + upSalary_month )
+console.log('prevMonth ' + prevMonth   + ' / ' +  '' + upSalary_month )
 //check up Salary with month and year
 if((prevMonth  == upSalary_month ) && (year1  == upSalary_year ) ) {
   salary  = await parseFloat(salary)   + parseFloat(upsalary  || '0');

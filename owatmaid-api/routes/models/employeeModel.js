@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const { workplaceSchema } = require('./workplaceModel'); // 👈 export schema ด้วย
+ const { workplaceSchema } = require('./workplaceModel'); // 👈 export schema ด้วย
 
 // Define employee schema
 const employeeSchema = new mongoose.Schema({
@@ -69,7 +69,7 @@ const employeeSchema = new mongoose.Schema({
     origin: { // เชื้อชาติ
       type: String,
     },
-    religion: { // ประเทศ
+    religion: { // ศาสนา
       type: String,
     },
     ethnicity: { //เชื้อชาติ
