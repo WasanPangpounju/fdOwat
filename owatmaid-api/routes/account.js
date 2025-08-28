@@ -6326,14 +6326,26 @@ console.log(`💰 รวมทั้งหมด: ${sumCashWork + sumCashOt} บ
   console.log(`📊 =============================`);
 
   // แก้ไข message ใน addSalaryList ให้ใช้ countAllowance แทนการนับจากแต่ละวัน
-  console.log(`\n🔧 === แก้ไข message ใน addSalaryList ให้ใช้ countAllowance ===`);
+  console.log(`\n🔧 === แก้ไข message และ SpSalary ใน addSalaryList ให้ใช้ countAllowance ===`);
   addSalaryList.forEach((item, idx) => {
     if (item.roundOfSalary === "daily") {
       const oldMessage = item.message;
+      const oldSpSalary = item.SpSalary;
+      
+      // แก้ไข message ให้ใช้ countAllowance
       item.message = String(countAllowance);
-      console.log(`   [${idx}] id=${item.id}: แก้ไข message จาก ${oldMessage} เป็น ${item.message} (ใช้ countAllowance)`);
+      
+      // คำนวณ SpSalary ใหม่โดยใช้ countAllowance
+      // หา SpSalary ต่อวันจาก SpSalary เดิม ÷ message เดิม
+      const dailyRate = parseFloat(oldSpSalary) / parseFloat(oldMessage);
+      const newSpSalary = dailyRate * countAllowance;
+      item.SpSalary = String(newSpSalary);
+      
+      console.log(`   [${idx}] id=${item.id}:`);
+      console.log(`     - message: ${oldMessage} → ${item.message} (ใช้ countAllowance)`);
+      console.log(`     - SpSalary: ${oldSpSalary} → ${item.SpSalary} (${dailyRate} บาท/วัน × ${countAllowance} วัน)`);
     } else {
-      console.log(`   [${idx}] id=${item.id}: ไม่แก้ไข message=${item.message} (roundOfSalary=${item.roundOfSalary})`);
+      console.log(`   [${idx}] id=${item.id}: ไม่แก้ไข message=${item.message}, SpSalary=${item.SpSalary} (roundOfSalary=${item.roundOfSalary})`);
     }
   });
   console.log(`🔧 =============================`);
