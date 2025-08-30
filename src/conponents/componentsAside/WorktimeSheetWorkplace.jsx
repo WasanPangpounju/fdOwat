@@ -8086,7 +8086,7 @@ const socialSecurityColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount;
             // หา record ที่มี totalTime ก่อน ถ้าไม่มีก็เอา record แรก
             const found = allRecordsForDay.find(itemx => itemx.totalTime && itemx.totalTime.trim() !== '') || allRecordsForDay[0];
             
-            const isWork = found?.dayType === "work";
+            const isWork = found?.dayType === "work" || found?.dayType === "stop" || found?.shift === "cash_holiday"; // แสดงข้อมูลการทำงานทุกกะ รวมถึงวันหยุด และ stop
             
             // กำหนดค่าที่จะแสดง (ใช้ logic เดียวกันกับตาราง)
             let displayValue = '';
@@ -11069,7 +11069,7 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
   // หา record ที่มี totalTime ก่อน ถ้าไม่มีก็เอา record แรก
   const found = allRecordsForDay.find(itemx => itemx.totalTime && itemx.totalTime.trim() !== '') || allRecordsForDay[0];
 
-  const isWork = found?.dayType === "work"  && found?.shift === "morning_shift" 
+  const isWork = found?.dayType === "work" || found?.dayType === "stop" || found?.shift === "cash_holiday" // แสดงข้อมูลการทำงานทุกกะ รวมถึงวันหยุด และ stop 
 
   // ตรวจสอบว่าวันนี้อยู่ใน stopDaysList หรือไม่
   const isInStopDaysList = record?.stopDaysList?.some(stopDay => {
@@ -11348,7 +11348,7 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
     
     // กำหนดตัวย่อตามชื่อการลา
     
-  } else if (isWork && !isDayoffWorkplace && !isDayOffOnly) { // ไม่แสดงข้อมูลถ้าเป็นวันหยุดจาก dayoffWorkplace หรือ dayOffOnly
+  } else if (isWork) { // แสดงข้อมูลการทำงานทั้งวันปกติและวันหยุด
     // เปรียบเทียบ workplaceId ของ record กับ searchWorkplaceId ที่เลือก
     const recordWorkplaceId = found?.workplaceId;
     const isMatchSearchWorkplace = recordWorkplaceId === searchWorkplaceId;
@@ -12291,7 +12291,6 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
                           <td 
                             key={i} 
                             className={`text-center text-bold align-middle ${isZero ? "" : "text-danger"}`}
-                            style={isHoliday ? { backgroundColor: "#bfbdbf" } : isZero ? {backgroundColor: "#bfbdbf"} : { backgroundColor: "#ffcccc" }}
                           >
                             {isZero ? "" : absentCount}
                           </td>

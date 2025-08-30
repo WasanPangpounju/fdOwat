@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { pdf } from '@react-pdf/renderer';
+import AllWorkplacesSummaryPDFReport from '../PDF/AllWorkplacesSummaryPDFReport';
+import Swal from 'sweetalert2';
 
 function SpecialShiftCash() {
   const navigate = useNavigate();
@@ -74,9 +77,11 @@ function SpecialShiftCash() {
         if (data.workplaces && data.workplaces.length > 0) {
           const filteredWorkplaces = data.workplaces.map(workplace => {
             const filteredEmployees = workplace.employees.map(employee => {
-              const filteredDays = employee.specialShiftDays.filter(day => 
-                selectedDates.includes(day.date)
-              );
+              const filteredDays = employee.specialShiftDays.filter(day => {
+                // แยกวันที่จาก format "21/07/2568" เพื่อเปรียบเทียบ
+                const dayNumber = day.date.split('/')[0];
+                return selectedDates.includes(dayNumber);
+              });
               
               return {
                 ...employee,
@@ -153,19 +158,184 @@ function SpecialShiftCash() {
   }, []);
 
   // Handle workplace card click - navigate to workplace detail page
-  const handleWorkplaceClick = (workplace) => {
-    // สร้าง URL สำหรับหน้ารายละเอียดหน่วยงาน โดยส่ง parameters
-    const params = new URLSearchParams({
-      workplaceId: workplace.workplaceId,
-      workplaceName: workplace.workplaceName,
-      startDate: startDate,
-      endDate: endDate,
-      employeeData: JSON.stringify(workplace.employees),
-      totalEmployees: workplace.totalEmployeesWithSpecialShift.toString()
-    });
-    
-    // Navigate ไปยังหน้ารายละเอียดหน่วยงาน
-    navigate(`/workplace-special-shift-detail?${params.toString()}`);
+  const handleWorkplaceClick = async (workplace) => {
+    try {
+      // ตรวจสอบสถานะการอนุมัติก่อน
+      const startDateObj = new Date(startDate);
+      const month = String(startDateObj.getMonth() + 1).padStart(2, '0');
+      const year = startDateObj.getFullYear().toString();
+      
+      const approvalCheck = await fetch('http://10.10.110.7:3000/timerecord/checkspecialtshift', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          month: month,
+          year: year,
+          workplaceId: workplace.workplaceId,
+          startDate: startDate,
+          endDate: endDate,
+          checkApproval: true
+        })
+      });
+
+      if (approvalCheck.ok) {
+        const approvalData = await approvalCheck.json();
+        
+        if (approvalData.approvalInfo && approvalData.approvalInfo.status === 'approved') {
+          // แสดง modal แจ้งเตือนว่าได้รับการอนุมัติแล้ว
+          const result = await Swal.fire({
+            title: 'ข้อมูลได้รับการอนุมัติแล้ว',
+            html: `<div class="text-start">
+              <p>ข้อมูลช่วงวันที่นี้ได้รับการอนุมัติไปแล้ว</p>
+              <hr>
+              <p><strong>หน่วยงาน:</strong> ${workplace.workplaceName}</p>
+              <p><strong>ผู้อนุมัติ:</strong> ${approvalData.approvalInfo.approved_by}</p>
+              <p><strong>วันที่อนุมัติ:</strong> ${new Date(approvalData.approvalInfo.approved_at).toLocaleString('th-TH')}</p>
+              <p><strong>ยอดเงินที่อนุมัติ:</strong> ${approvalData.approvalInfo.total_amount?.toLocaleString()} บาท</p>
+            </div>`,
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonText: 'ดูรายละเอียดแบบอ่านอย่างเดียว',
+            cancelButtonText: 'ยกเลิก',
+            confirmButtonColor: '#2b5d8e',
+            cancelButtonColor: '#6c757d'
+          });
+          
+          if (!result.isConfirmed) {
+            return; // ถ้าผู้ใช้ยกเลิก ไม่ต้องไปหน้ารายละเอียด
+          }
+        }
+
+        // ตรวจสอบการซ้อนทับช่วงวันที่
+        if (approvalData.overlappingApprovals && approvalData.overlappingApprovals.length > 0) {
+          const overlappingDates = approvalData.overlappingApprovals.map(approval => {
+            const startStr = new Date(approval.start_date).toLocaleDateString('th-TH');
+            const endStr = new Date(approval.end_date).toLocaleDateString('th-TH');
+            return `${startStr} - ${endStr}`;
+          }).join(', ');
+
+          await Swal.fire({
+            title: 'ไม่สามารถอนุมัติได้',
+            html: `<div class="text-start">
+              <p>ช่วงวันที่ที่เลือก (${new Date(startDate).toLocaleDateString('th-TH')} - ${new Date(endDate).toLocaleDateString('th-TH')}) ซ้อนทับกับการอนุมัติที่มีอยู่แล้ว</p>
+              <hr>
+              <p><strong>หน่วยงาน:</strong> ${workplace.workplaceName}</p>
+              <p><strong>ช่วงวันที่ที่ซ้อนทับ:</strong></p>
+              <ul>
+                ${approvalData.overlappingApprovals.map(approval => `
+                  <li>${new Date(approval.start_date).toLocaleDateString('th-TH')} - ${new Date(approval.end_date).toLocaleDateString('th-TH')} (อนุมัติโดย: ${approval.approved_by})</li>
+                `).join('')}
+              </ul>
+              <p class="text-warning"><i class="fas fa-exclamation-triangle me-2"></i>กรุณาเลือกช่วงวันที่ที่ไม่ซ้อนทับกัน</p>
+            </div>`,
+            icon: 'warning',
+            confirmButtonText: 'ตกลง',
+            confirmButtonColor: '#dc3545'
+          });
+          return;
+        }
+      }
+      
+      // สร้าง URL สำหรับหน้ารายละเอียดหน่วยงาน
+      const params = new URLSearchParams({
+        workplaceId: workplace.workplaceId,
+        workplaceName: workplace.workplaceName,
+        startDate: startDate,
+        endDate: endDate,
+        employeeData: JSON.stringify(workplace.employees),
+        totalEmployees: workplace.totalEmployeesWithSpecialShift.toString()
+      });
+      
+      navigate(`/workplace-special-shift-detail?${params.toString()}`);
+      
+    } catch (error) {
+      console.error('Error checking approval status:', error);
+      // หากเกิดข้อผิดพลาดในการตรวจสอบ ให้ไปหน้ารายละเอียดปกติ
+      const params = new URLSearchParams({
+        workplaceId: workplace.workplaceId,
+        workplaceName: workplace.workplaceName,
+        startDate: startDate,
+        endDate: endDate,
+        employeeData: JSON.stringify(workplace.employees),
+        totalEmployees: workplace.totalEmployeesWithSpecialShift.toString()
+      });
+      
+      navigate(`/workplace-special-shift-detail?${params.toString()}`);
+    }
+  };
+
+  // Handle generate summary PDF for all workplaces
+  const handleGenerateSummaryPDF = async () => {
+    if (!searchResults || !searchResults.workplaces || searchResults.workplaces.length === 0) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'ไม่มีข้อมูล',
+        text: 'กรุณาค้นหาข้อมูลก่อนออกรายงาน',
+        confirmButtonColor: '#2b5d8e'
+      });
+      return;
+    }
+
+    try {
+      // Show loading
+      Swal.fire({
+        title: 'กำลังสร้างรายงาน PDF...',
+        text: 'กรุณารอสักครู่',
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        willOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
+      // Generate PDF
+      const blob = await pdf(
+        <AllWorkplacesSummaryPDFReport 
+          searchResults={searchResults}
+          startDate={startDate}
+          endDate={endDate}
+        />
+      ).toBlob();
+
+      // Create download link
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // Create filename with date range
+      const startDateObj = new Date(startDate);
+      const endDateObj = new Date(endDate);
+      const startMonth = String(startDateObj.getMonth() + 1).padStart(2, '0');
+      const startYear = startDateObj.getFullYear();
+      const filename = `รายงานสรุปกะพิเศษทุกหน่วยงาน_${startDateObj.getDate()}-${endDateObj.getDate()}_${startMonth}_${startYear}.pdf`;
+      
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      // Close loading and show success
+      Swal.close();
+      Swal.fire({
+        icon: 'success',
+        title: 'สำเร็จ!',
+        text: 'ออกรายงาน PDF เรียบร้อยแล้ว',
+        confirmButtonColor: '#2b5d8e'
+      });
+
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      Swal.close();
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: 'ไม่สามารถสร้างรายงาน PDF ได้',
+        confirmButtonColor: '#2b5d8e'
+      });
+    }
   };
 
   return (
@@ -285,7 +455,7 @@ function SpecialShiftCash() {
                             <div className="d-grid gap-2  justify-content-md-center">
                               <button 
                                 type="submit" 
-                                className="btn btn-primary"
+                                className="btn btn-primary me-2"
                                 style={{backgroundColor:"rgb(43,93,142)"}}
                                 disabled={loading}
                               >
@@ -301,6 +471,18 @@ function SpecialShiftCash() {
                                   </>
                                 )}
                               </button>
+                              
+                              {searchResults && searchResults.workplaces && searchResults.workplaces.length > 0 && (
+                                <button 
+                                  type="button"
+                                  className="btn btn-success"
+                                  onClick={handleGenerateSummaryPDF}
+                                  style={{backgroundColor:"#28a745"}}
+                                >
+                                  <i className="fas fa-file-pdf me-2"></i>
+                                  ออกรายงาน PDF สรุปทุกหน่วยงาน
+                                </button>
+                              )}
                              
                             </div>
                           </div>

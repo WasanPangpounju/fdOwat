@@ -115,12 +115,16 @@ function Setting({ workplaceList, employeeList }) {
     allTimes: [
       {
         shift: "",
+        beforeStartTimeOT: "", // เข้า OT ก่อน
+        beforeEndTimeOT: "", // ออก OT ก่อน
         startTime: "",
         endTime: "",
         resultTime: "",
         startTimeOT: "",
         endTimeOT: "",
         resultTimeOT: "",
+        numberOfPeople: "",
+        Remark: "",
       },
     ],
   });
@@ -147,12 +151,16 @@ function Setting({ workplaceList, employeeList }) {
         ...prevData.allTimes,
         {
           shift: "",
+          beforeStartTimeOT: "", // เข้า OT ก่อน
+          beforeEndTimeOT: "", // ออก OT ก่อน
           startTime: "",
           endTime: "",
           resultTime: "",
           startTimeOT: "",
           endTimeOT: "",
           resultTimeOT: "",
+          numberOfPeople: "",
+          Remark: "",
         },
       ],
     }));
@@ -176,6 +184,8 @@ function Setting({ workplaceList, employeeList }) {
       allTimes: [
         {
           shift: "",
+          beforeStartTimeOT: "", // เข้า OT ก่อน
+          beforeEndTimeOT: "", // ออก OT ก่อน
           startTime: "",
           endTime: "",
           resultTime: "",
@@ -206,7 +216,9 @@ function Setting({ workplaceList, employeeList }) {
         timeType === "startTime" ||
         timeType === "endTime" ||
         timeType === "startTimeOT" ||
-        timeType === "endTimeOT"
+        timeType === "endTimeOT" ||
+        timeType === "beforeStartTimeOT" ||
+        timeType === "beforeEndTimeOT"
       ) {
         const startTime = updatedTimes[index].startTime;
         const endTime = updatedTimes[index].endTime;
@@ -866,7 +878,9 @@ const handleRemovePublicHoliday = async (holidayToRemove) => {
   };
 
   const [workRate, setWorkRate] = useState(""); //ค่าจ้างต่อวัน
-  const [addWorkRate, setAddWorkRate] = useState(""); //ค่าจ้างต่อวัน
+  const [addWorkRate, setAddWorkRate] = useState(""); //ค่าจ้างที่จะเพิ่ม
+  const [newWorkRate, setNewWorkRate] = useState(""); // ค่าจ้างใหม่ทั้งหมด
+  const [workRateEffectiveDate, setWorkRateEffectiveDate] = useState(""); // วันที่มีผลบังคับใช้
 
   const [workRateOT, setWorkRateOT] = useState(""); //ค่าจ้าง OT ต่อชั่วโมง
   const [workTotalPeople, setWorkTotalPeople] = useState(""); //จำนวนคนในหน่วยงาน
@@ -1180,6 +1194,8 @@ const handleRemovePublicHoliday = async (holidayToRemove) => {
     }
     setWorkRate(workplace.workRate);
     setAddWorkRate(workplace.addWorkRate);
+    setNewWorkRate(workplace.newWorkRate || (parseFloat(workplace.addWorkRate || '0') + parseFloat(workplace.workRate || '0')));
+    setWorkRateEffectiveDate(workplace.workRateEffectiveDate || "");
     setWorkRateOT(workplace.workRateOT);
     setWorkTotalPeople(workplace.workTotalPeople);
     setDayoffRate(workplace.dayoffRate);
@@ -1542,6 +1558,8 @@ setWorkRateChange(workplace.workRateChange)
 
       workRate: workRate,
       addWorkRate: addWorkRate,
+      newWorkRate: parseFloat(addWorkRate || '0') + parseFloat(workRate || '0'), // ค่าจ้างใหม่รวม
+      workRateEffectiveDate: workRateEffectiveDate, // วันที่มีผลบังคับใช้
       workRateOT: workRateOT,
       workTotalPeople: workTotalPeople,
       countEmployee: showEmployeeListResult.length.toString(),
@@ -2001,10 +2019,12 @@ if (newWorkplace) {
   //     }
   // }
 
-  //Specail work 
+  //Special work - Added beforeStartTimeOT_specialwork and beforeEndTimeOT_specialwork fields
   const [workDate_specialwork, setWorkDate_specialwork] = useState(null);
   const [workTimeDay_specialwork, setWorkTimeDay_specialwork] = useState({
     shift_specialwork: "",
+    beforeStartTimeOT_specialwork: "", // เข้า OT ก่อน
+    beforeEndTimeOT_specialwork: "", // ออก OT ก่อน  
     startTime_specialwork: "",
     endTime_specialwork: "",
     startTimeOT_specialwork: "",
@@ -2101,15 +2121,28 @@ if (newWorkplace) {
     const newEntry = {
       ...workTimeDay_specialwork,
       day_specialwork: workDate_specialwork.toLocaleDateString("th-TH"),
+      // ✅ Use workRate as default if payment_specialwork is empty
+      payment_specialwork: workTimeDay_specialwork.payment_specialwork || workRate || 0,
+      // ✅ Use calculated OT rate as default if paymentOT_specialwork is empty
+      paymentOT_specialwork: workTimeDay_specialwork.paymentOT_specialwork || 
+        ((parseFloat(workRate || 0) / 8) * parseFloat(workRateOT || 1.5)) || 0,
       employees_specialwork: [...workTimeDay_specialwork.employees_specialwork], // ✅ Copy employees list
     };
 
     setWorkTimeDayList_specialwork((prev) => [...prev, newEntry]);
 
-    // Reset input fields
-    // ✅ Modified: Keep values and only reset specific fields
+    // Reset input fields to default values after adding to list
     setWorkTimeDay_specialwork((prev) => ({
-      ...prev, // Keep all existing values
+      shift_specialwork: "",
+      beforeStartTimeOT_specialwork: "", // เข้า OT ก่อน
+      beforeEndTimeOT_specialwork: "", // ออก OT ก่อน  
+      startTime_specialwork: "",
+      endTime_specialwork: "",
+      startTimeOT_specialwork: "",
+      endTimeOT_specialwork: "",
+      payment_specialwork: "",
+      paymentOT_specialwork: "",
+      workDetail_specialwork: "",
       employees_specialwork: [], // Only reset employees list
     }));
     setWorkDate_specialwork(null); // Only reset date
@@ -2787,6 +2820,7 @@ if (newWorkplace) {
                             }
                           }}
                         />
+                        <small className="text-muted">เช่น: ปรับเพิ่ม 28 บาท</small>
                       </div>
                 
                     </div>
@@ -2796,12 +2830,41 @@ if (newWorkplace) {
                         <input
                           type="text"
                           class="form-control"
-                          id="addWorkRate"
+                          id="newWorkRate"
                           placeholder="บาท"
                           value={parseFloat(addWorkRate || '0')+ parseFloat(workRate || '0') }
+                          readOnly
                         />
+                        <small className="text-muted">จะเป็น: {parseFloat(workRate || '0')} + {parseFloat(addWorkRate || '0')} = {parseFloat(addWorkRate || '0')+ parseFloat(workRate || '0')}</small>
                       </div>
                     </div>
+                    <div class="col-md-3">
+                      <div class="form-group">
+                        <label role="workRateEffectiveDate">วันที่มีผลบังคับใช้</label>
+                        <input
+                          type="date"
+                          class="form-control"
+                          id="workRateEffectiveDate"
+                          value={workRateEffectiveDate}
+                          onChange={(e) => setWorkRateEffectiveDate(e.target.value)}
+                        />
+                        <small className="text-warning">⚠️ การคำนวณเงินเดือนจะใช้อัตราใหม่ตั้งแต่วันที่นี้</small>
+                      </div>
+                    </div>
+                    <div class="col-md-3">
+                      <div class="form-group">
+                        <label> </label>
+                        <div class="form-control-static">
+                          <small className="text-info">
+                            📝 <strong>หมายเหตุ:</strong><br/>
+                            • รอบเงินเดือน: 21 เดือนก่อน - 20 เดือนปัจจุบัน<br/>
+                            • การปรับค่าจ้างจะมีผลในรอบถัดไป<br/>
+                            • ต้องทำ Re-calculate ข้อมูลเงินเดือนใหม่
+                          </small>
+                        </div>
+                      </div>
+                    </div>
+                 </div>
 
 <div class="col-md-6">
 
@@ -2866,8 +2929,7 @@ if (newWorkplace) {
                       
 
 
-                </div>
-               
+             
 
           
                 </section>
@@ -3476,14 +3538,18 @@ if (newWorkplace) {
                     <div class="col-md-1">ตั้งแต่</div>
                     <div class="col-md-1">ถึงวันที่</div>
                     <div class="col-md-1">ทำงาน/หยุด</div>
-                    <div class="col-md-8">
+                    <div class="col-md-9">
                       <div class="row">
-                        <div class="col-md-2">กะ</div>
-                        <div class="col-md-2">เวลาเข้า</div>
-                        <div class="col-md-2">เวลาออก</div>
-                        <div class="col-md-2">เวลาเข้าOT</div>
-                        <div class="col-md-2">เวลาออกOT</div>
-                        <div class="col-md-2">จำนวนคน</div>
+                        <div class="col-md-1">กะ</div>
+                
+                        <div class="col-md-1">เข้า OT ก่อน</div>
+                        <div class="col-md-1">ออก OT ก่อน</div>
+                        <div class="col-md-1">เวลาเข้า</div>
+                        <div class="col-md-1">เวลาออก</div>
+                        <div class="col-md-1">เวลาเข้าOT</div>
+                        <div class="col-md-1">เวลาออกOT</div>
+                        <div class="col-md-1">จำนวนคน</div>
+                        <div class="col-md-2">หมายเหตุ</div>
                       </div>
                     </div>
                   </div>
@@ -3530,11 +3596,11 @@ if (newWorkplace) {
                         <option value="stop">หยุด</option>
                       </select>
                     </div>
-                    <div class="col-md-8">
+                    <div class="col-md-9">
                       {workTimeDay.allTimes.map((time, index) => (
                         <div key={index}>
                           <div class="row">
-                            <div class="col-md-2">
+                            <div class="col-md-1">
                               <select
                                 name="shift"
                                 className="form-control"
@@ -3555,7 +3621,53 @@ if (newWorkplace) {
                                 ))}
                               </select>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-1">
+                              <input
+                                type="text"
+                                class="form-control"
+                                placeholder="เช่น 06:00"
+                                value={time.beforeStartTimeOT || ""}
+                                onChange={(e) =>
+                                  handleTimeChange(
+                                    index,
+                                    "beforeStartTimeOT",
+                                    e.target.value
+                                  )
+                                }
+                                onInput={(e) => {
+                                  // Format as HH:MM
+                                  let value = e.target.value.replace(/[^0-9]/g, "");
+                                  if (value.length >= 3) {
+                                    value = value.substring(0, 2) + ":" + value.substring(2, 4);
+                                  }
+                                  e.target.value = value;
+                                }}
+                              />
+                            </div>
+                            <div class="col-md-1">
+                              <input
+                                type="text"
+                                class="form-control"
+                                placeholder="เช่น 08:00"
+                                value={time.beforeEndTimeOT || ""}
+                                onChange={(e) =>
+                                  handleTimeChange(
+                                    index,
+                                    "beforeEndTimeOT",
+                                    e.target.value
+                                  )
+                                }
+                                onInput={(e) => {
+                                  // Format as HH:MM
+                                  let value = e.target.value.replace(/[^0-9]/g, "");
+                                  if (value.length >= 3) {
+                                    value = value.substring(0, 2) + ":" + value.substring(2, 4);
+                                  }
+                                  e.target.value = value;
+                                }}
+                              />
+                            </div>
+                            <div class="col-md-1">
                               <input
                                 type="text"
                                 class="form-control"
@@ -3583,7 +3695,7 @@ if (newWorkplace) {
                                 }}
                               />
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-1">
                               <input
                                 type="text"
                                 class="form-control"
@@ -3605,7 +3717,7 @@ if (newWorkplace) {
                                 }}
                               />
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-1">
                               <input
                                 type="text"
                                 class="form-control"
@@ -3627,7 +3739,7 @@ if (newWorkplace) {
                                 }}
                               />
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-1">
                               <input
                                 type="text"
                                 class="form-control"
@@ -3666,6 +3778,21 @@ if (newWorkplace) {
                                   // Allow only numbers
                                   e.target.value = e.target.value.replace(/[^0-9]/g, "");
                                 }}
+                              />
+                            </div>
+                            <div class="col-md-2">
+                              <input
+                                type="text"
+                                class="form-control"
+                                placeholder="หมายเหตุ"
+                                value={time.Remark || ""}
+                                onChange={(e) =>
+                                  handleTimeChange(
+                                    index,
+                                    "Remark",
+                                    e.target.value
+                                  )
+                                }
                               />
                             </div>
                             {/* <span>Result OT: {time.resultOT}</span> */}
@@ -3728,6 +3855,7 @@ if (newWorkplace) {
                         <th style={headerCellStyle}>ถึง</th>
                         <th style={headerCellStyle}>ทำงาน/หยุด</th>
                         <th style={headerCellStyle}>กะ</th>
+                      
                         <th style={headerCellStyle}>เวลาเข้า</th>
                         <th style={headerCellStyle}>เวลาออก</th>
                         <th style={headerCellStyle}>ชม.</th>
@@ -3735,6 +3863,7 @@ if (newWorkplace) {
                         <th style={headerCellStyle}>เวลาออกOT</th>
                         <th style={headerCellStyle}>ชม.OT</th>
                         <th style={headerCellStyle}>จำนวนคน</th>
+                        <th style={headerCellStyle}>หมายเหตุ</th>
                         <th style={headerCellStyle}>ลบ</th>
                       </tr>
                     </thead>
@@ -3776,7 +3905,8 @@ if (newWorkplace) {
                             <td style={cellStyle}>{item1.endTimeOT}</td>
                             <td style={cellStyle}>{item1.resultTimeOT}</td>
                             <td style={cellStyle}>{item1.numberOfPeople}</td>
-
+                            <td style={cellStyle}>{item1.Remark}</td>
+                            
                             {index1 > 0 ? (
                               <>
                                 <td style={cellStyle}></td>
@@ -4448,22 +4578,21 @@ if (newWorkplace) {
     </div>
 
     {/* Textbox */}
-    <div className="col-md-2">ค่าใช้จ่ายหน่วยงาน</div>
-    <div className="col-md-2">
-      <input type="text" className="form-control" placeholder="รหัสหน่วยงาน" />
-    </div>
+   
   </div>
 
-{/* Work Time Inputs using Bootstrap Grid */}
+  {/* Work Time Inputs using Bootstrap Grid */}
   <div className="row text-center font-weight-bold mb-2">
     <div className="col-md-1">กะ</div>
+    <div className="col-md-1">เข้า OT ก่อน</div>
+    <div className="col-md-1">ออก OT ก่อน</div>
     <div className="col-md-1">เวลาเข้า</div>
     <div className="col-md-1">เวลาออก</div>
     <div className="col-md-1">เวลาเข้า OT</div>
     <div className="col-md-1">เวลาออก OT</div>
     <div className="col-md-1">ค่าจ้าง</div>
     <div className="col-md-1">ค่าจ้าง OT</div>
-    <div className="col-md-3">รายละเอียดงาน</div>
+    <div className="col-md-2">รายละเอียดงาน</div>
   </div>
 
   <div className="row align-items-center mb-3">
@@ -4483,15 +4612,39 @@ if (newWorkplace) {
       </select>
     </div>
 
-    {["startTime_specialwork", "endTime_specialwork", "startTimeOT_specialwork", "endTimeOT_specialwork", "payment_specialwork", "paymentOT_specialwork"].map((field, idx) => (
+    {["beforeStartTimeOT_specialwork","beforeEndTimeOT_specialwork", "startTime_specialwork", "endTime_specialwork", "startTimeOT_specialwork", "endTimeOT_specialwork", "payment_specialwork", "paymentOT_specialwork"].map((field, idx) => (
       <div key={idx} className="col-md-1">
         <input
           type="text"
           name={field}
           className="form-control"
-          placeholder={field.replace("_specialwork", "")}
-          value={workTimeDay_specialwork[field]}
+          placeholder={field.includes("Time") ? "เช่น 08:30" : 
+            field.includes("payment_specialwork") && !field.includes("paymentOT") ? `บาท (ค่าเริ่มต้น: ${workRate || 0})` : 
+            field.includes("paymentOT_specialwork") ? `บาท (ค่าเริ่มต้น: ${((parseFloat(workRate || 0) / 8) * parseFloat(workRateOT || 1.5)).toFixed(2)})` : 
+            "บาท"}
+          value={workTimeDay_specialwork[field] || 
+            (field === "payment_specialwork" && workRate ? workRate : 
+             field === "paymentOT_specialwork" && workRate && workRateOT ? 
+             ((parseFloat(workRate) / 8) * parseFloat(workRateOT)).toFixed(2) : 
+             workTimeDay_specialwork[field] || "")}
           onChange={handleInputChange_specialwork}
+          onInput={(e) => {
+            // For time fields, format the input as HH:MM
+            if (field.includes("Time")) {
+              let value = e.target.value.replace(/[^0-9]/g, "");
+              if (value.length >= 3) {
+                value = value.substring(0, 2) + "." + value.substring(2, 4);
+              }
+              e.target.value = value;
+            } else if (field.includes("payment")) {
+              // For payment fields, allow only numbers and decimal
+              e.target.value = e.target.value.replace(/[^0-9.]/g, "");
+              const parts = e.target.value.split(".");
+              if (parts.length > 2) {
+                e.target.value = `${parts[0]}.${parts[1]}`;
+              }
+            }
+          }}
         />
       </div>
     ))}
@@ -4573,6 +4726,8 @@ if (newWorkplace) {
         <tr>
           <th>วันที่</th>
           <th>กะ</th>
+          <th>เข้า OT ก่อน</th>
+          <th>ออก OT ก่อน</th>
           <th>เวลาเข้า</th>
           <th>เวลาออก</th>
           <th>เวลาเข้า OT</th>
@@ -4589,6 +4744,8 @@ if (newWorkplace) {
           <tr key={index}>
             <td>{item.day_specialwork}</td>
             <td>{item.shift_specialwork}</td>
+            <td>{item.beforeStartTimeOT_specialwork}</td>
+            <td>{item.beforeEndTimeOT_specialwork}</td>
             <td>{item.startTime_specialwork}</td>
             <td>{item.endTime_specialwork}</td>
             <td>{item.startTimeOT_specialwork}</td>

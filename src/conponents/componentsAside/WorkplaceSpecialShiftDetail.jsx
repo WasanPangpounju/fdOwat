@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import Swal from 'sweetalert2';
+import { pdf } from '@react-pdf/renderer';
+import WorkplacePDFReport from '../PDF/WorkplacePDFReport';
 
 function WorkplaceSpecialShiftDetail() {
   const location = useLocation();
@@ -8,6 +11,12 @@ function WorkplaceSpecialShiftDetail() {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [isApproved, setIsApproved] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isSecretVerified, setIsSecretVerified] = useState(false);
+  const [approvalStatus, setApprovalStatus] = useState(null);
+  const [isCheckingApproval, setIsCheckingApproval] = useState(true);
 
   useEffect(() => {
     // รับข้อมูลจาก URL parameters
@@ -32,16 +41,106 @@ function WorkplaceSpecialShiftDetail() {
     }
   }, [location.search]);
 
+  // ตรวจสอบสิทธิ์ user
+  useEffect(() => {
+    // ตรวจสอบข้อมูล user จาก localStorage หรือ session
+    const checkUserRole = () => {
+      try {
+        // ตัวอย่างการตรวจสอบจาก localStorage
+        const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+        const userRole = localStorage.getItem('userRole') || '';
+        
+        setCurrentUser(userData);
+        
+        // ตรวจสอบว่าเป็น admin หรือไม่
+        if (userRole === 'admin' || userData.role === 'admin' || userData.isAdmin === true) {
+          setIsAdmin(true);
+        } else {
+          setIsAdmin(false);
+        }
+      } catch (error) {
+        console.error('Error checking user role:', error);
+        setIsAdmin(false);
+      }
+    };
+
+    checkUserRole();
+  }, []);
+
+  // ตรวจสอบสถานะการอนุมัติ
+  useEffect(() => {
+    const checkApprovalStatus = async () => {
+      if (!workplaceData) return;
+      
+      setIsCheckingApproval(true);
+      
+      try {
+        // ใช้ API ที่มีอยู่แล้ว โดยส่ง parameters เพิ่มเติม
+        const startDateObj = new Date(workplaceData.startDate);
+        const endDateObj = new Date(workplaceData.endDate);
+        const month = String(startDateObj.getMonth() + 1).padStart(2, '0');
+        const year = startDateObj.getFullYear().toString();
+        
+        const response = await fetch('http://10.10.110.7:3000/timerecord/checkspecialtshift', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            month: month,
+            year: year,
+            workplaceId: workplaceData.workplaceId,
+            startDate: workplaceData.startDate,
+            endDate: workplaceData.endDate,
+            checkApproval: true // เพิ่ม flag เพื่อบอกให้ API ตรวจสอบ approval
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          
+          // ตรวจสอบว่ามี approval record หรือไม่
+          if (data.approvalInfo) {
+            setApprovalStatus(data.approvalInfo);
+            setIsApproved(data.approvalInfo.status === 'approved');
+          }
+        }
+      } catch (error) {
+        console.error('Error checking approval status:', error);
+      } finally {
+        setIsCheckingApproval(false);
+      }
+    };
+
+    checkApprovalStatus();
+  }, [workplaceData]);
+
+  // ฟังก์ชันสำหรับทดสอบ (ใช้ในการพัฒนาเท่านั้น)
+  const toggleAdminMode = () => {
+    const newAdminStatus = !isAdmin;
+    setIsAdmin(newAdminStatus);
+    
+    // รีเซ็ต secret verification และ approval เมื่อเปลี่ยน admin status
+    setIsSecretVerified(false);
+    setIsApproved(false);
+    
+    // อัพเดท localStorage
+    const userData = { ...currentUser, role: newAdminStatus ? 'admin' : 'user' };
+    localStorage.setItem('userData', JSON.stringify(userData));
+    localStorage.setItem('userRole', newAdminStatus ? 'admin' : 'user');
+    setCurrentUser(userData);
+  };
+
   // Calculate total salary for employee
   const calculateEmployeeSalary = (employee) => {
     if (!employee || !employee.specialShiftDays) return { total: 0, totalOT: 0, grandTotal: 0 };
     
     const total = employee.specialShiftDays.reduce((sum, day) => {
-      return sum + (parseFloat(day.specialtSalary) || 0);
+      return sum + (parseFloat(day.cashOfHoliday) || 0);
     }, 0);
     
     const totalOT = employee.specialShiftDays.reduce((sum, day) => {
-      return sum + (parseFloat(day.specialtSalaryOT) || 0);
+      return sum + (parseFloat(day.cashOfHolidayOt) || 0);
     }, 0);
     
     return { total, totalOT, grandTotal: total + totalOT };
@@ -76,8 +175,58 @@ function WorkplaceSpecialShiftDetail() {
   };
 
   // Handle print
-  const handlePrint = () => {
-    window.print();
+  const handlePrint = async () => {
+    try {
+      // Show loading
+      const loadingSwal = Swal.fire({
+        title: 'กำลังสร้าง PDF...',
+        text: 'กรุณารอสักครู่',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
+      // Generate PDF
+      const doc = <WorkplacePDFReport 
+        workplaceData={workplaceData} 
+        employees={employees} 
+        summary={calculateWorkplaceSummary()} 
+      />;
+      
+      const asPdf = pdf(doc);
+      const blob = await asPdf.toBlob();
+      
+      // Create download link
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `รายงานการจ่ายเงินกะพิเศษ_${workplaceData.workplaceName}_${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      // Close loading and show success
+      loadingSwal.close();
+      
+      await Swal.fire({
+        title: 'สำเร็จ!',
+        text: 'ดาวน์โหลดไฟล์ PDF เรียบร้อยแล้ว',
+        icon: 'success',
+        timer: 2000,
+        showConfirmButton: false
+      });
+      
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      Swal.fire({
+        title: 'เกิดข้อผิดพลาด',
+        text: 'ไม่สามารถสร้างไฟล์ PDF ได้',
+        icon: 'error',
+        confirmButtonText: 'ตกลง'
+      });
+    }
   };
 
   // Handle employee click
@@ -88,6 +237,204 @@ function WorkplaceSpecialShiftDetail() {
   // Close employee detail
   const closeEmployeeDetail = () => {
     setSelectedEmployee(null);
+  };
+
+  // Handle approval confirmation
+  const handleApprovalConfirmation = async (e) => {
+    e.preventDefault();
+    
+    // ตรวจสอบว่ามีการอนุมัติไปแล้วหรือไม่
+    if (approvalStatus && approvalStatus.status === 'approved') {
+      await Swal.fire({
+        title: 'ไม่สามารถแก้ไขได้',
+        html: `<div class="text-start">
+          <p>ข้อมูลนี้ได้รับการอนุมัติไปแล้ว</p>
+          <hr>
+          <p><strong>ผู้อนุมัติ:</strong> ${approvalStatus.approved_by}</p>
+          <p><strong>วันที่อนุมัติ:</strong> ${new Date(approvalStatus.approved_at).toLocaleString('th-TH')}</p>
+          <p><strong>ยอดเงินรวม:</strong> ${approvalStatus.total_amount?.toLocaleString()} บาท</p>
+        </div>`,
+        icon: 'warning',
+        confirmButtonText: 'ตกลง',
+        confirmButtonColor: '#dc3545'
+      });
+      return;
+    }
+    
+    // ตรวจสอบสิทธิ์ admin ก่อน
+    if (!isAdmin) {
+      await Swal.fire({
+        title: 'ไม่มีสิทธิ์เข้าถึง',
+        text: 'เฉพาะผู้ดูแลระบบ (Admin) เท่านั้นที่สามารถอนุมัติการจ่ายเงินได้',
+        icon: 'error',
+        confirmButtonText: 'ตกลง',
+        confirmButtonColor: '#dc3545'
+      });
+      return;
+    }
+
+    // ถ้ายังไม่ได้ verify secret key ให้ขอรหัสก่อน
+    if (!isSecretVerified) {
+      const { value: secretKey } = await Swal.fire({
+        title: 'ยืนยันตัวตน',
+        text: 'กรุณาใส่รหัสลับเพื่อยืนยันการอนุมัติ',
+        input: 'password',
+        inputPlaceholder: 'ใส่รหัสลับ',
+        inputAttributes: {
+          maxlength: 10,
+          autocapitalize: 'off',
+          autocorrect: 'off'
+        },
+        showCancelButton: true,
+        confirmButtonText: 'ยืนยัน',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#007bff',
+        cancelButtonColor: '#6c757d',
+        inputValidator: (value) => {
+          if (!value) {
+            return 'กรุณาใส่รหัสลับ';
+          }
+          if (value !== '1234') {
+            return 'รหัสลับไม่ถูกต้อง';
+          }
+        }
+      });
+
+      if (!secretKey) {
+        return; // ยกเลิกการดำเนินการ
+      }
+
+      // รหัสถูกต้อง ตั้งค่า verified
+      setIsSecretVerified(true);
+      
+      await Swal.fire({
+        title: 'ยืนยันสำเร็จ!',
+        text: 'รหัสลับถูกต้อง คุณสามารถอนุมัติได้แล้ว',
+        icon: 'success',
+        timer: 1500,
+        showConfirmButton: false
+      });
+      
+      return; // ออกจากฟังก์ชันเพื่อให้ผู้ใช้กดติ๊กอีกครั้ง
+    }
+    
+    // ถ้า verified แล้ว ให้ทำการอนุมัติต่อไป
+    const summary = calculateWorkplaceSummary();
+    const result = await Swal.fire({
+      title: 'ยืนยันการอนุมัติ',
+      html: `<div class="text-start">
+        <p>คุณต้องการอนุมัติการจ่ายเงินทั้งหมดใช่หรือไม่?</p>
+        <hr>
+        <p><strong>หน่วยงาน:</strong> ${workplaceData.workplaceName}</p>
+        <p><strong>จำนวนพนักงาน:</strong> ${employees.length} คน</p>
+        <p><strong>ยอดเงินรวม:</strong> ${summary.grandTotal.toLocaleString()} บาท</p>
+      </div>`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#28a745',
+      cancelButtonColor: '#dc3545',
+      confirmButtonText: 'ยืนยัน',
+      cancelButtonText: 'ยกเลิก',
+      reverseButtons: true
+    });
+
+    if (result.isConfirmed) {
+      try {
+        // บันทึกการอนุมัติลงฐานข้อมูล
+        const approvalData = {
+          workplaceId: workplaceData.workplaceId,
+          workplaceName: workplaceData.workplaceName,
+          startDate: workplaceData.startDate,
+          endDate: workplaceData.endDate,
+          totalAmount: summary.grandTotal,
+          totalEmployees: employees.length,
+          approvedBy: currentUser?.name || currentUser?.username || 'Admin',
+          month: String(new Date(workplaceData.startDate).getMonth() + 1).padStart(2, '0'),
+          year: new Date(workplaceData.startDate).getFullYear().toString(),
+          employeeData: employees.map(emp => {
+            const salary = calculateEmployeeSalary(emp);
+            return {
+              employeeId: emp.employeeId,
+              employeeName: emp.employeeName,
+              specialShiftAmount: salary.total,
+              otAmount: salary.totalOT,
+              totalAmount: salary.grandTotal,
+              workDays: emp.specialShiftDays.length
+            };
+          })
+        };
+
+        // ส่งข้อมูลการอนุมัติไปยัง API
+        const approvalResponse = await fetch('http://10.10.110.7:3000/timerecord/approve-special-shift', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(approvalData)
+        });
+
+        if (approvalResponse.ok) {
+          const approvalResult = await approvalResponse.json();
+          
+          setIsApproved(true);
+          setApprovalStatus({
+            status: 'approved',
+            approved_by: approvalData.approvedBy,
+            approved_at: new Date().toISOString(),
+            total_amount: approvalData.totalAmount
+          });
+          
+          await Swal.fire({
+            title: 'อนุมัติสำเร็จ!',
+            text: 'การจ่ายเงินได้รับการอนุมัติและบันทึกเรียบร้อยแล้ว',
+            icon: 'success',
+            confirmButtonText: 'ตกลง'
+          });
+        } else {
+          const errorData = await approvalResponse.json();
+          
+          if (errorData.isOverlapping) {
+            // แสดงข้อผิดพลาดสำหรับการซ้อนทับ
+            const overlappingDates = errorData.overlappingApprovals.map(approval => {
+              const startStr = new Date(approval.start_date).toLocaleDateString('th-TH');
+              const endStr = new Date(approval.end_date).toLocaleDateString('th-TH');
+              return `${startStr} - ${endStr} (อนุมัติโดย: ${approval.approved_by})`;
+            }).join('<br>');
+
+            await Swal.fire({
+              title: 'ไม่สามารถอนุมัติได้',
+              html: `<div class="text-start">
+                <p>ช่วงวันที่ที่เลือกซ้อนทับกับการอนุมัติที่มีอยู่แล้ว:</p>
+                <hr>
+                <div class="alert alert-warning">
+                  ${overlappingDates}
+                </div>
+                <p class="text-muted">
+                  <i class="fas fa-info-circle me-2"></i>
+                  กรุณาเลือกช่วงวันที่ที่ไม่ซ้อนทับกัน
+                </p>
+              </div>`,
+              icon: 'warning',
+              confirmButtonText: 'ตกลง',
+              confirmButtonColor: '#dc3545'
+            });
+          } else {
+            throw new Error(errorData.message || 'ไม่สามารถบันทึกการอนุมัติได้');
+          }
+        }
+      } catch (error) {
+        console.error('Error saving approval:', error);
+        await Swal.fire({
+          title: 'เกิดข้อผิดพลาด',
+          text: error.message || 'ไม่สามารถบันทึกการอนุมัติได้ กรุณาลองใหม่',
+          icon: 'error',
+          confirmButtonText: 'ตกลง'
+        });
+      }
+    } else {
+      // If user cancels, uncheck the checkbox
+      setIsApproved(false);
+    }
   };
 
   if (loading) {
@@ -173,11 +520,30 @@ function WorkplaceSpecialShiftDetail() {
                                 เดือน {String(startDateObj.getMonth()+1).padStart(2,'0')}
                                 ปี {startDateObj.getFullYear()}
                             </p>
+                            {currentUser && (
+                              <p className="mb-0 opacity-75">
+                                <i className="fas fa-user me-1"></i>
+                                ผู้ใช้งาน: {currentUser.name || currentUser.username || 'ไม่ระบุ'}
+                                {isAdmin && <span className="badge bg-warning text-dark ms-2">Admin</span>}
+                                {isAdmin && isSecretVerified && <span className="badge bg-success ms-2">🔑 Verified</span>}
+                              </p>
+                            )}
                             </div>
                         
                         <button className="btn bg-white ml-auto" onClick={handlePrint}>
-                            <i className="fas fa-print me-1"></i> พิมพ์
+                            <i className="fas fa-file-pdf me-1"></i> ดาวน์โหลด PDF
                         </button>
+                        
+                        {/* ปุ่มทดสอบ Admin Mode (ลบออกเมื่อ deploy จริง) */}
+                        <button 
+                          className={`btn ms-2 ${isAdmin ? 'btn-success' : 'btn-secondary'}`} 
+                          onClick={toggleAdminMode}
+                          title="ทดสอบ Admin Mode"
+                        >
+                          <i className={`fas ${isAdmin ? 'fa-user-shield' : 'fa-user'} me-1`}></i>
+                          {isAdmin ? 'Admin' : 'User'}
+                        </button>
+                    
                     
                       </div>
                     </div>
@@ -322,6 +688,71 @@ function WorkplaceSpecialShiftDetail() {
                             </div>
                           );
                         })}
+                        <div>
+                          
+                          <h5 className='text-red'>กรุณาอ่าน!!</h5>
+                          <h5>เมื่อกดอนุมัติแล้วจะไม่สามารถแก้ไขข้อมูลได้อีก</h5>
+                          
+                          {/* แสดง loading state */}
+                          {isCheckingApproval && (
+                            <div className="alert alert-info d-flex align-items-center mb-3">
+                              <div className="spinner-border spinner-border-sm me-2" role="status"></div>
+                              <span>กำลังตรวจสอบสถานะการอนุมัติ...</span>
+                            </div>
+                          )}
+                          
+                          {/* แสดงข้อมูลการอนุมัติหากมี */}
+                          {approvalStatus && approvalStatus.status === 'approved' && (
+                            <div className="alert alert-success mb-3">
+                              <h6 className="alert-heading">
+                                <i className="fas fa-check-circle me-2"></i>
+                                ได้รับการอนุมัติแล้ว
+                              </h6>
+                              <p className="mb-1"><strong>ผู้อนุมัติ:</strong> {approvalStatus.approved_by}</p>
+                              <p className="mb-1"><strong>วันที่อนุมัติ:</strong> {new Date(approvalStatus.approved_at).toLocaleString('th-TH')}</p>
+                              <p className="mb-0"><strong>ยอดเงินที่อนุมัติ:</strong> {approvalStatus.total_amount?.toLocaleString()} บาท</p>
+                            </div>
+                          )}
+                          
+                          {!isAdmin && !approvalStatus && (
+                            <div className="alert alert-warning d-flex align-items-center mb-3">
+                              <i className="fas fa-exclamation-triangle me-2"></i>
+                              <span>เฉพาะผู้ดูแลระบบ (Admin) เท่านั้นที่สามารถอนุมัติการจ่ายเงินได้</span>
+                            </div>
+                          )}
+                          
+                      
+                          <div className={`d-flex align-items-center ${isApproved ? 'text-success' : ''} ${!isAdmin || (approvalStatus && approvalStatus.status === 'approved') ? 'opacity-50' : ''}`}>
+                            <input 
+                              type="checkbox" 
+                              className='input me-2' 
+                              id="approvalCheckbox"
+                              checked={isApproved}
+                              onChange={handleApprovalConfirmation}
+                              disabled={!isAdmin || (approvalStatus && approvalStatus.status === 'approved')}
+                              style={{ cursor: (isAdmin && (!approvalStatus || approvalStatus.status !== 'approved')) ? 'pointer' : 'not-allowed' }}
+                            />
+                            <label className='mb-0' htmlFor="approvalCheckbox" style={{ cursor: (isAdmin && (!approvalStatus || approvalStatus.status !== 'approved')) ? 'pointer' : 'not-allowed' }}>
+                              {isApproved || (approvalStatus && approvalStatus.status === 'approved') ? (
+                                <>
+                                  <i className="fas fa-check-circle me-2"></i>
+                                  อนุมัติการจ่ายเงินทั้งหมดแล้ว
+                                </>
+                              ) : (
+                                <>
+                                  {!isAdmin && <i className="fas fa-lock me-2 text-warning"></i>}
+                                  {isAdmin && !isSecretVerified && <i className="fas fa-key me-2 text-info"></i>}
+                                  {isAdmin && isSecretVerified && <i className="fas fa-shield-alt me-2 text-success"></i>}
+                                  ยืนยันการอนุมัติการจ่ายเงินทั้งหมด
+                                  {!isAdmin && <span className="text-muted ms-2">(เฉพาะ Admin)</span>}
+                                  {isAdmin && !isSecretVerified && <span className="text-info ms-2">(ต้องใส่รหัสลับ)</span>}
+                                  {isAdmin && isSecretVerified && <span className="text-success ms-2">(พร้อมอนุมัติ)</span>}
+                                </>
+                              )}
+                            </label>
+                          </div>
+                         
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -430,8 +861,8 @@ function WorkplaceSpecialShiftDetail() {
                                 </thead>
                                 <tbody>
                                   {selectedEmployee.specialShiftDays.map((day, index) => {
-                                    const specialSalary = parseFloat(day.specialtSalary) || 0;
-                                    const otSalary = parseFloat(day.specialtSalaryOT) || 0;
+                                    const specialSalary = parseFloat(day.cashOfHoliday) || 0;
+                                    const otSalary = parseFloat(day.cashOfHolidayOt) || 0;
                                     const totalDay = specialSalary + otSalary;
                                     
                                     return (
