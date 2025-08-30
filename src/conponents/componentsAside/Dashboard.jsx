@@ -141,7 +141,7 @@ const dashboardItems = [
   { to: "/addsettimeauto", icon: "fas fa-business-time", text: "ระบบลงเวลาอัตโมมัติ", color: "#ff6c60" },
   { to: "/addEdit_Employee", icon: "fas fa-people-arrows", text: "เพิ่ม/ลบ พนักงาน", color: "#9DBAEA" },
   { to: "/addEdit_SalaryEmployee", icon: "fas fa-money-bill-wave", text: "เงินเพิ่ม/เงินหัก", color: "#A2B4D2" },
-  { to: "/speacialshiftcash", icon: "fas fa-file-invoice-dollar", text: "ระบบเอกสารจ่ายสด", color: "#58c9f3" },
+  { to: "#", icon: "fas fa-file-invoice-dollar", text: "ระบบเอกสารจ่ายสด", color: "#58c9f3", disabled: true },
   { to: "#", icon: "fas fa-paste", text: "ระบบออกเอกสาร", color: "#41cac0" },
   { to: "#", icon: "fas fa-file-alt", text: "รายงานผู้บริหาร", color: "#8175c7" },
   { to: "/search", icon: "fas fa-network-wired", text: "จัดการพนักงาน", color: "#ffc107" },
@@ -150,19 +150,34 @@ const dashboardItems = [
 
 
 // Component ปุ่มแต่ละอัน
-function DashboardButton({ to, icon, text, color }) {
+function DashboardButton({ to, icon, text, color, disabled }) {
+  const handleClick = (e) => {
+    if (disabled) {
+      e.preventDefault();
+      Swal.fire({
+        title: 'ปิดปรับปรุงชั่วคราว',
+        text: 'ระบบนี้อยู่ระหว่างการปรับปรุง กรุณาลองใหม่อีกครั้งในภายหลัง',
+        icon: 'info',
+        confirmButtonColor: '#3085d6',
+        confirmButtonText: 'ตกลง'
+      });
+    }
+  };
+
   return (
     <div className="col-6 col-md-3 mb-3 d-flex justify-content-center">
       <Link
         to={to}
-        className="d-block text-white text-center rounded shadow-sm p-2 text-decoration-none h-100"
+        onClick={handleClick}
+        className={`d-block text-white text-center rounded shadow-sm p-2 text-decoration-none h-100 ${disabled ? 'disabled-link' : ''}`}
         style={{
-          background: color,
+          background: disabled ? '#6c757d' : color,
           minHeight: '90px',
           maxWidth: '190px', // ✅ กว้างขึ้น
           width: '100%',
           fontSize: '1rem',
           lineHeight: 1.4,
+          opacity: disabled ? 0.6 : 1,
         }}
       >
         <i className={`${icon} fa-2x mb-2 d-block`}></i>
