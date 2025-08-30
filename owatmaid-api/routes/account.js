@@ -6592,11 +6592,39 @@ console.log(`\n💰 คำนวณ publicHolidayCash สำหรับพน�
       // ตรวจสอบว่ามีข้อมูลที่จำเป็นสำหรับการคำนวณหรือไม่
       if (sumCashWorkMul["1"] && dayWorkCount > 0) {
         // คำนวณค่าแรงต่อวันจาก sumCashWorkMul["1"] / dayWorkCount
-        const dailyRate = sumCashWorkMul["1"] / dayWorkCount;
+        const dailyRate2 = sumCashWorkMul["1"] / dayWorkCount;
+        
+        // ดึงค่าแรงต่อวันจาก employee profile
+        let dailyRate = dailyRate2; // ค่าเริ่มต้นจากการคำนวณ
+        
+        try {
+          console.log(`🔍 กำลังดึงข้อมูลเงินเดือนของพนักงาน ${employeeId} จาก API...`);
+          
+          const axios = require('axios');
+          const response = await axios.post('http://10.10.110.7:3000/employee/search', {
+            employeeId: employeeId
+          });
+          
+          if (response.data && response.data.employees && response.data.employees.length > 0) {
+            const employee = response.data.employees[0];
+            if (employee.salary && !isNaN(parseFloat(employee.salary))) {
+              dailyRate = parseFloat(employee.salary);
+              console.log(`✅ ดึงค่าแรงต่อวันจาก employee profile สำเร็จ: ${dailyRate} บาท`);
+            } else {
+              console.log(`⚠️ ไม่พบข้อมูล salary ใน employee profile หรือข้อมูลไม่ถูกต้อง, ใช้ค่าที่คำนวณได้: ${dailyRate2.toFixed(2)} บาท`);
+            }
+          } else {
+            console.log(`⚠️ ไม่พบข้อมูลพนักงาน ${employeeId} ใช้ค่าที่คำนวณได้: ${dailyRate2.toFixed(2)} บาท`);
+          }
+        } catch (error) {
+          console.log(`❌ เกิดข้อผิดพลาดในการดึงข้อมูลจาก API: ${error.message}`);
+          console.log(`ใช้ค่าที่คำนวณได้: ${dailyRate2.toFixed(2)} บาท`);
+        }
+        
         publicHolidayCash = dailyRate * daysNotWorkedOnPublicHolidays; // จ่ายตามจำนวนวันที่ไม่ได้มาทำงาน
         publicHolidayCount = daysNotWorkedOnPublicHolidays; // นับเฉพาะวันที่ไม่ได้มาทำงาน
         
-        console.log(`💰 ค่าแรงต่อวัน (sumCashWorkMul["1"] / dayWorkCount): ${dailyRate.toFixed(2)} บาท`);
+        console.log(`💰 ค่าแรงต่อวันที่ใช้คำนวณ: ${dailyRate.toFixed(2)} บาท`);
         console.log(`💰 จำนวนวันหยุดนักขัตฤกษ์ที่ไม่ได้มาทำงาน: ${daysNotWorkedOnPublicHolidays} วัน`);
         console.log(`💰 เงินสำหรับวันหยุดนักขัตฤกษ์ (publicHolidayCash): ${publicHolidayCash.toFixed(2)} บาท`);
       } else {
