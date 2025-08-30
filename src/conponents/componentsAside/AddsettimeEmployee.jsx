@@ -390,66 +390,12 @@ const [customWorkplace , setCustomWorkplace] = useState({});
           if (specialDay) {
             console.log(`✅ Found matching special day:`, specialDay);
             
-            // Auto switch to special shift
-            if (wShift !== "specialt_shift") {
-              console.log(`🔄 Switching from ${wShift} to specialt_shift`);
-              await setWShift("specialt_shift");
-            }
+            // Show notification only - no auto switch
+            alert(`📅 พบวันพิเศษ วันที่ ${formattedDate}\nรายละเอียด: ${specialDay.workDetail_specialwork || 'งานพิเศษ'}\nเวลาทำงาน: ${specialDay.startTime_specialwork} - ${specialDay.endTime_specialwork}\nเวลา OT: ${specialDay.startTimeOT_specialwork} - ${specialDay.endTimeOT_specialwork}\nเงิน: ${specialDay.payment_specialwork} บาท\nOT: ${specialDay.paymentOT_specialwork} บาท\n\n💡 สามารถเปลี่ยนเป็นกะพิเศษได้ด้วยตนเอง`);
             
-            // Set work times
-            await setWStartTime(specialDay.startTime_specialwork || "");
-            await setWEndTime(specialDay.endTime_specialwork || "");
-            
-            // Set OT times
-            await setWSelectOtTime(specialDay.startTimeOT_specialwork || "");
-            await setWSelectOtTimeout(specialDay.endTimeOT_specialwork || "");
-            
-            // Set payment amounts
-            await setSpecialtSalary(specialDay.payment_specialwork?.toString() || "");
-            await setSpecialtSalaryOT(specialDay.paymentOT_specialwork?.toString() || "");
-            
-            // Calculate work hours
-            if (specialDay.startTime_specialwork && specialDay.endTime_specialwork) {
-              const workHours = calTime(
-                specialDay.startTime_specialwork,
-                specialDay.endTime_specialwork,
-                8
-              );
-              await setWAllTime(workHours);
-            }
-            
-            // Calculate OT hours
-            if (specialDay.startTimeOT_specialwork && specialDay.endTimeOT_specialwork) {
-              const otHours = calTime(
-                specialDay.startTimeOT_specialwork,
-                specialDay.endTimeOT_specialwork,
-                4
-              );
-              await setWOtTime(otHours);
-            }
-            
-            // Show notification
-            alert(`✅ ระบบพบวันพิเศษ วันที่ ${formattedDate} และสลับเป็นกะพิเศษอัตโนมัติ\nเงิน: ${specialDay.payment_specialwork} บาท\nOT: ${specialDay.paymentOT_specialwork} บาท`);
-            
-            return true; // Special day found and applied
+            return specialDay; // Return special day data
           } else {
             console.log(`❌ No matching special day found for dates:`, alternatives);
-            
-            // No special day found - check if we should switch back to normal shift
-            if (wShift === "specialt_shift") {
-              // Auto switch back to morning shift as default
-              const normalShift = "morning_shift";
-              
-              console.log(`🔄 Switching back from specialt_shift to ${normalShift}`);
-              await setWShift(normalShift);
-              
-              // Clear special salary fields
-              await setSpecialtSalary("");
-              await setSpecialtSalaryOT("");
-              // Clear cash holiday fields
-              await setCashOfHoliday("");
-              await setCashOfHolidayOt("");
-            }
           }
         } else {
           console.log(`❌ No workplace found or no special work time day data for wId: ${wId}`);
@@ -458,7 +404,58 @@ const [customWorkplace , setCustomWorkplace] = useState({});
         console.error('❌ Error checking special work time day:', error);
       }
     }
-    return false; // No special day found
+    return null; // No special day found
+  };
+
+  // Function to apply special work day data when manually switching to special shift
+  const applySpecialWorkDayData = async () => {
+    if (wDate && wId && wShift === "specialt_shift") {
+      try {
+        const specialDay = await checkSpecialWorkTimeDay();
+        
+        if (specialDay) {
+          console.log(`🔧 Applying special work day data for manual shift change`);
+          
+          // Set work times
+          await setWStartTime(specialDay.startTime_specialwork || "");
+          await setWEndTime(specialDay.endTime_specialwork || "");
+          
+          // Set OT times
+          await setWSelectOtTime(specialDay.startTimeOT_specialwork || "");
+          await setWSelectOtTimeout(specialDay.endTimeOT_specialwork || "");
+          
+          // Set payment amounts
+          await setSpecialtSalary(specialDay.payment_specialwork?.toString() || "");
+          await setSpecialtSalaryOT(specialDay.paymentOT_specialwork?.toString() || "");
+          
+          // Calculate work hours
+          if (specialDay.startTime_specialwork && specialDay.endTime_specialwork) {
+            const workHours = calTime(
+              specialDay.startTime_specialwork,
+              specialDay.endTime_specialwork,
+              8
+            );
+            await setWAllTime(workHours);
+          }
+          
+          // Calculate OT hours
+          if (specialDay.startTimeOT_specialwork && specialDay.endTimeOT_specialwork) {
+            const otHours = calTime(
+              specialDay.startTimeOT_specialwork,
+              specialDay.endTimeOT_specialwork,
+              4
+            );
+            await setWOtTime(otHours);
+          }
+          
+          console.log(`✅ Successfully applied special work day data`);
+        } else {
+          console.log(`ℹ️ No special work day data found for this date, using default special shift settings`);
+        }
+      } catch (error) {
+        console.error('❌ Error applying special work day data:', error);
+      }
+    }
   };
 
   // useEffect to clear salary fields when switching shifts
@@ -468,6 +465,9 @@ const [customWorkplace , setCustomWorkplace] = useState({});
       // Clear cash holiday fields when switching to special shift
       setCashOfHoliday("");
       setCashOfHolidayOt("");
+      
+      // Apply special work day data if available
+      applySpecialWorkDayData();
     } else if (wShift === "cash_holiday") {
       // Clear special salary fields when switching to cash holiday
       setSpecialtSalary("");
@@ -500,13 +500,11 @@ const [customWorkplace , setCustomWorkplace] = useState({});
       setWBeforeOtTime("");
 
       const runAsync = async () => {
-        // First check for special work time day
-        const isSpecialDay = await checkSpecialWorkTimeDay();
+        // Check for special work time day (notification only)
+        await checkSpecialWorkTimeDay();
         
-        // If it's not a special day, proceed with normal logic
-        if (!isSpecialDay) {
-          await timeOfWork();
-        }
+        // Always proceed with normal logic
+        await timeOfWork();
       };
 
       const timeOfWork = async () => {
