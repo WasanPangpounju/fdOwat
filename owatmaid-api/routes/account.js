@@ -6490,7 +6490,8 @@ const workedPublicHolidayRecords = employee_record.filter(record => {
     const dateStr = `${actualYear}-${String(actualMonth).padStart(2, '0')}-${String(recordDate).padStart(2, '0')}`;
     const isPublicHoliday = dayOffOnlyDates.includes(dateStr);
     const hasWorked = record.totalTime && record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0;
-    
+    console.log(`🔍 ตรวจสอบวันที่ ${recordDate} (${dateStr}): เป็นวันหยุดนักขัตฤกษ์: ${isPublicHoliday ? 'ใช่' : 'ไม่ใช่'}, มาทำงาน: ${hasWorked ? 'ใช่' : 'ไม่ใช่'}`);
+
     return isPublicHoliday && hasWorked;
   } catch (error) {
     return false;
