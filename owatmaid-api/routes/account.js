@@ -6167,7 +6167,13 @@ if (record?.dayType === "work") {
     
     totalOtTime += afterOtTime;
     totalOtCash += afterOtCash;
+      if (record.shift !== "cash_holiday") {
     sumOt1p5 += afterOtTime; // นับเฉพาะ OT หลังเวลาทำงาน
+    console.log(`➕ เพิ่ม OT ใน sumOt1p5: ${afterOtTime} ชม. (วันที่ ${record.date}, shift: ${record.shift})`);
+  } else {
+    console.log(`⏭️ ข้าม cash_holiday ไม่รวมใน sumOt1p5 (วันที่ ${record.date})`);
+  }
+   
     
     // อัปเดต sumCashWorkMul สำหรับ OT หลังเวลา
     const otMul = record?.cashOtMul || "1.5";
