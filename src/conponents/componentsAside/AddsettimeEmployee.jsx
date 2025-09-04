@@ -51,6 +51,10 @@ function AddsettimeEmployee() {
   const [updateButton, setUpdateButton] = useState(false); // Initially, set to false
   const [timeRecord_id, setTimeRecord_id] = useState("");
 
+  // Edit mode states
+  const [editMode, setEditMode] = useState({}); // Object to track which rows are in edit mode
+  const [editData, setEditData] = useState({}); // Object to store edit data for each row
+
   const [newWorkplace, setNewWorkplace] = useState(true);
 
   const [searchEmployeeId, setSearchEmployeeId] = useState("");
@@ -2620,6 +2624,58 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
     await setWGroup(tmp.wGroup || '');
   };
 
+  // New functions for inline editing
+  const handleStartEdit = (index) => {
+    const rowData = rowDataList2[index];
+    setEditMode({ ...editMode, [index]: true });
+    setEditData({ 
+      ...editData, 
+      [index]: { 
+        ...rowData,
+        beforeStartOtTime: rowData.beforeStartOtTime || '',
+        beforeEndOtTime: rowData.beforeEndOtTime || '',
+        beforeTotalOtTime: rowData.beforeTotalOtTime || '',
+        startTime: rowData.startTime || '',
+        endTime: rowData.endTime || '',
+        totalTime: rowData.totalTime || '',
+        startOtTime: rowData.startOtTime || '',
+        endOtTime: rowData.endOtTime || '',
+        totalOtTime: rowData.totalOtTime || '',
+        specialtSalary: rowData.specialtSalary || '',
+        specialtSalaryOT: rowData.specialtSalaryOT || '',
+        cashOfHoliday: rowData.cashOfHoliday || '',
+        cashOfHolidayOt: rowData.cashOfHolidayOt || ''
+      } 
+    });
+  };
+
+  const handleCancelEdit = (index) => {
+    setEditMode({ ...editMode, [index]: false });
+    const newEditData = { ...editData };
+    delete newEditData[index];
+    setEditData(newEditData);
+  };
+
+  const handleSaveEdit = (index) => {
+    const newDataList = [...rowDataList2];
+    newDataList[index] = { ...newDataList[index], ...editData[index] };
+    setRowDataList2(newDataList);
+    setEditMode({ ...editMode, [index]: false });
+    const newEditData = { ...editData };
+    delete newEditData[index];
+    setEditData(newEditData);
+  };
+
+  const handleEditFieldChange = (index, fieldName, value) => {
+    setEditData({
+      ...editData,
+      [index]: {
+        ...editData[index],
+        [fieldName]: value
+      }
+    });
+  };
+
   // Function to handle deleting a row
   const handleDeleteRow = (index) => {
     // Create a copy of the current state
@@ -3430,7 +3486,8 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
         <th colSpan="3" className="text-center">เวลาทำงาน</th>
         <th colSpan="3" className="text-center">OT (หลังเวลาทำงาน)</th>
         <th rowSpan="2" className="text-center">เงินจ้าง</th>
-        <th rowSpan="2" className="text-center">ลบ</th>
+        <th rowSpan="2" className="text-center">จัดการ</th>
+
 
         </tr><tr>
 
@@ -3455,8 +3512,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
               <tr key={index} className="align-middle text-center">
                 <th>{rowData2.workplaceId}</th>
                 <th>{rowData2.workplaceName}</th>
-                 <th>{groupOptions[parseInt(rowData2.wGroup) -1 ] || ""}</th> 
-
+                <th>{groupOptions[parseInt(rowData2.wGroup) -1 ] || ""}</th> 
                 <th>{rowData2.date}</th>
                 <th>
                   {rowData2.shift === "morning_shift"
@@ -3471,42 +3527,219 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                     ? "เงินสด"
                     : ""}
                 </th>
-                <th>{rowData2.beforeStartOtTime}</th>
-                <th>{rowData2.beforeEndOtTime}</th>
-                <th>{rowData2.beforeTotalOtTime}</th>
-
-                <th>{rowData2.startTime}</th>
-                <th>{rowData2.endTime}</th>
-                <th>{rowData2.totalTime}</th>
-                <th>{rowData2.startOtTime}</th>
-                <th>{rowData2.endOtTime}</th>
-                <th>{rowData2.totalOtTime}</th>
-
+                
+                {/* OT Before Work */}
                 <th>
-                  {rowData2.specialtSalary !== "" 
-                    ? `${parseFloat(rowData2.specialtSalary || '0') + parseFloat(rowData2.specialtSalaryOT || '0')} บาท`
-                    : rowData2.cashOfHoliday !== ""
-                    ? `${parseFloat(rowData2.cashOfHoliday || '0') + parseFloat(rowData2.cashOfHolidayOt || '0')} บาท`
-                    : ""}
+                  {editMode[index] ? (
+                    <input
+                      type="text"
+                      className="form-control form-control-sm"
+                      value={editData[index]?.beforeStartOtTime || ''}
+                      onChange={(e) => handleEditFieldChange(index, 'beforeStartOtTime', e.target.value)}
+                      style={{ width: "80px", fontSize: "12px" }}
+                    />
+                  ) : (
+                    rowData2.beforeStartOtTime
+                  )}
                 </th>
-                <th className="text-center">
-                  {/* <button
-                    type="button"
-                    className="btn btn-danger btn-sm"
-                    style={{ padding: "0.2rem", width: "6rem" }}
-                    onClick={() => handleDeleteRow(rowData2.tmpIndex)}
-                  >
-                    Delete
-                  </button> */}
-                  <button 
-  type="button"
-  className="btn btn-danger btn-sm d-flex align-items-center justify-content-center"
-  style={{ padding: "0.3rem", width: "3rem", display: "flex" }}
-  onClick={() => handleDeleteRow(rowData2.tmpIndex)}
+                <th>
+                  {editMode[index] ? (
+                    <input
+                      type="text"
+                      className="form-control form-control-sm"
+                      value={editData[index]?.beforeEndOtTime || ''}
+                      onChange={(e) => handleEditFieldChange(index, 'beforeEndOtTime', e.target.value)}
+                      style={{ width: "80px", fontSize: "12px" }}
+                    />
+                  ) : (
+                    rowData2.beforeEndOtTime
+                  )}
+                </th>
+                <th>
+                  {editMode[index] ? (
+                    <input
+                      type="text"
+                      className="form-control form-control-sm"
+                      value={editData[index]?.beforeTotalOtTime || ''}
+                      onChange={(e) => handleEditFieldChange(index, 'beforeTotalOtTime', e.target.value)}
+                      style={{ width: "80px", fontSize: "12px" }}
+                    />
+                  ) : (
+                    rowData2.beforeTotalOtTime
+                  )}
+                </th>
 
->
-  <i className="fas fa-trash-alt"></i>
-</button>
+                {/* Work Time */}
+                <th>
+                  {editMode[index] ? (
+                    <input
+                      type="text"
+                      className="form-control form-control-sm"
+                      value={editData[index]?.startTime || ''}
+                      onChange={(e) => handleEditFieldChange(index, 'startTime', e.target.value)}
+                      style={{ width: "80px", fontSize: "12px" }}
+                    />
+                  ) : (
+                    rowData2.startTime
+                  )}
+                </th>
+                <th>
+                  {editMode[index] ? (
+                    <input
+                      type="text"
+                      className="form-control form-control-sm"
+                      value={editData[index]?.endTime || ''}
+                      onChange={(e) => handleEditFieldChange(index, 'endTime', e.target.value)}
+                      style={{ width: "80px", fontSize: "12px" }}
+                    />
+                  ) : (
+                    rowData2.endTime
+                  )}
+                </th>
+                <th>
+                  {editMode[index] ? (
+                    <input
+                      type="text"
+                      className="form-control form-control-sm"
+                      value={editData[index]?.totalTime || ''}
+                      onChange={(e) => handleEditFieldChange(index, 'totalTime', e.target.value)}
+                      style={{ width: "80px", fontSize: "12px" }}
+                    />
+                  ) : (
+                    rowData2.totalTime
+                  )}
+                </th>
+                
+                {/* OT After Work */}
+                <th>
+                  {editMode[index] ? (
+                    <input
+                      type="text"
+                      className="form-control form-control-sm"
+                      value={editData[index]?.startOtTime || ''}
+                      onChange={(e) => handleEditFieldChange(index, 'startOtTime', e.target.value)}
+                      style={{ width: "80px", fontSize: "12px" }}
+                    />
+                  ) : (
+                    rowData2.startOtTime
+                  )}
+                </th>
+                <th>
+                  {editMode[index] ? (
+                    <input
+                      type="text"
+                      className="form-control form-control-sm"
+                      value={editData[index]?.endOtTime || ''}
+                      onChange={(e) => handleEditFieldChange(index, 'endOtTime', e.target.value)}
+                      style={{ width: "80px", fontSize: "12px" }}
+                    />
+                  ) : (
+                    rowData2.endOtTime
+                  )}
+                </th>
+                <th>
+                  {editMode[index] ? (
+                    <input
+                      type="text"
+                      className="form-control form-control-sm"
+                      value={editData[index]?.totalOtTime || ''}
+                      onChange={(e) => handleEditFieldChange(index, 'totalOtTime', e.target.value)}
+                      style={{ width: "80px", fontSize: "12px" }}
+                    />
+                  ) : (
+                    rowData2.totalOtTime
+                  )}
+                </th>
+
+                {/* Salary */}
+                <th>
+                  {editMode[index] ? (
+                    <div className="d-flex flex-column" style={{ gap: "2px" }}>
+                      {(rowData2.shift === "specialt_shift" || rowData2.shift === "cash_holiday") && (
+                        <>
+                          <input
+                            type="number"
+                            className="form-control form-control-sm"
+                            placeholder="เงินหลัก"
+                            value={rowData2.shift === "specialt_shift" ? 
+                              (editData[index]?.specialtSalary || '') : 
+                              (editData[index]?.cashOfHoliday || '')}
+                            onChange={(e) => handleEditFieldChange(index, 
+                              rowData2.shift === "specialt_shift" ? 'specialtSalary' : 'cashOfHoliday', 
+                              e.target.value)}
+                            style={{ width: "80px", fontSize: "11px" }}
+                          />
+                          <input
+                            type="number"
+                            className="form-control form-control-sm"
+                            placeholder="เงิน OT"
+                            value={rowData2.shift === "specialt_shift" ? 
+                              (editData[index]?.specialtSalaryOT || '') : 
+                              (editData[index]?.cashOfHolidayOt || '')}
+                            onChange={(e) => handleEditFieldChange(index, 
+                              rowData2.shift === "specialt_shift" ? 'specialtSalaryOT' : 'cashOfHolidayOt', 
+                              e.target.value)}
+                            style={{ width: "80px", fontSize: "11px" }}
+                          />
+                        </>
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                      {rowData2.specialtSalary !== "" 
+                        ? `${parseFloat(rowData2.specialtSalary || '0') + parseFloat(rowData2.specialtSalaryOT || '0')} บาท`
+                        : rowData2.cashOfHoliday !== ""
+                        ? `${parseFloat(rowData2.cashOfHoliday || '0') + parseFloat(rowData2.cashOfHolidayOt || '0')} บาท`
+                        : ""}
+                    </>
+                  )}
+                </th>
+                
+                {/* Action Buttons */}
+                <th className="text-center">
+                  {editMode[index] ? (
+                    <div className="d-flex gap-1 justify-content-center">
+                      <button 
+                        type="button"
+                        className="btn btn-success btn-sm"
+                        style={{ padding: "0.25rem 0.5rem" }}
+                        onClick={() => handleSaveEdit(index)}
+                        title="บันทึก"
+                      >
+                        <i className="fas fa-check"></i>
+                      </button>
+                      <button 
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        style={{ padding: "0.25rem 0.5rem" }}
+                        onClick={() => handleCancelEdit(index)}
+                        title="ยกเลิก"
+                      >
+                        <i className="fas fa-times"></i>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="d-flex gap-1 justify-content-center">
+                      <button 
+                        type="button"
+                        className="btn btn-warning btn-sm"
+                        style={{ width: "2.5rem", padding: "0.25rem 0.5rem" }}
+                        onClick={() => handleStartEdit(index)}
+                        title="แก้ไข"
+                      >
+                        <i className="fas fa-edit"></i>
+                      </button>
+                      <button 
+                        type="button"
+                        className="btn btn-danger btn-sm"
+                        style={{ width: "2.5rem", padding: "0.25rem 0.5rem" }}
+                        onClick={() => handleDeleteRow(rowData2.tmpIndex)}
+                        title="ลบ"
+                      >
+                        <i className="fas fa-trash-alt"></i>
+                      </button>
+                    </div>
+                  )}
                 </th>
               </tr>
             )

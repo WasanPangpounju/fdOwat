@@ -141,7 +141,7 @@ function AsideLeft() {
             <a href="dashboard.php" className="brand-link logo-switch">
               <img src="assets/images/logo-xs.png" alt="Logo Small" className="brand-image-xl logo-xs" />
               {/* <img src="assets/images/logo.png" alt=" Docs Logo Large" className="brand-image-xl logo-xl" style={{ borderRadius: "8px", width: '92%' }} /> */}
-              <img src="src/assets/images/OwatLogo.png" alt=" Docs Logo Large" className="" style={{ borderRadius: "8px", width: '95%' }} />
+              <img src="assets/images/owatLogo.png" alt="Owat Logo Large" className="" style={{ borderRadius: "8px", width: '95%' }} />
             </a>
           </div>
           <div className="user-panel mt-2 pb-3 mb-3 d-flex">
@@ -196,6 +196,9 @@ function AsideLeft() {
                       </li>
                       <li className="nav-item bg-success">
                         <Link to="/worktimesheetworkplace" className="nav-link"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px", marginLeft: '1rem' }}></i> ตารางเวลาทำงานพนักงาน (ตาราง 8)</Link>
+                      </li>
+                      <li className="nav-item bg-success">
+                        <Link to="/worktimesheetworkplacefor10105" className="nav-link"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px", marginLeft: '1rem' }}></i> ตารางเวลาทำงานพนักงาน 10105</Link>
                       </li>
                       {/* <li className="nav-item">
                         <Link to="/worktimesheetworkplaceSpace" className="nav-link"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px", marginLeft: '1rem' }}></i> ตารางเวลาทำงานพนักงานหน่วยพิเศษ</Link>

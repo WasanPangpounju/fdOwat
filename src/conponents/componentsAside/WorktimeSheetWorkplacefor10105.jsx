@@ -25,7 +25,7 @@ import * as XLSX from 'xlsx';
 import { is } from "date-fns/locale";
 
 
-function WorktimeSheetWorkplace({ employeeList }) {
+function WorktimeSheetWorkplacefor10105({ employeeList }) {
   // ===== การตั้งค่าการรวม ID ที่นี่จุดเดียว =====
   // *** การแก้ไข: เปลี่ยนเฉพาะค่าใน MERGE_CONFIG นี้เท่านั้น ***
   const MERGE_CONFIG = {
@@ -10684,25 +10684,20 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
   value={searchWorkplaceId}
   onChange={handleStaffIdChange}
   onInput={(e) => {
-    // Remove any non-digit characters first
-    let value = e.target.value;
+    // Only allow "10105"
+    const inputValue = e.target.value;
     
-    // Check if user is trying to enter the restricted code
-    if (value === '10105' || value.includes('10105')) {
-      // Show SweetAlert warning
-      Swal.fire({
-        icon: 'warning',
-        title: 'หน่วยงานพิเศษ',
-        text: 'รหัสหน่วยงาน 10105 เป็นหน่วยงานพิเศษ ต้องกรอกเฉพาะหน้าหน่วยงานพิเศษเท่านั้น',
-        confirmButtonText: 'ตกลง',
-        confirmButtonColor: '#f0ad4e'
-      });
-      
-      // Clear the input value
-      e.target.value = '';
-      setSearchWorkplaceId('');
-      setSearchWorkplaceName('');
+    // If input is not a substring of "10105" or is longer than 5 characters, prevent it
+    if (!("10105".startsWith(inputValue)) || inputValue.length > 5) {
+      e.target.value = searchWorkplaceId; // Reset to previous valid value
       return;
+    }
+    
+    // If input is exactly "10105" or a valid beginning of it, allow it
+    if (inputValue === "" || "10105".startsWith(inputValue)) {
+      // This is valid, let onChange handle it
+    } else {
+      e.target.value = searchWorkplaceId; // Reset to previous valid value
     }
   }}
   list="WorkplaceIdList"
@@ -12557,4 +12552,4 @@ const getDateDayOfWeek = (dateString) => {
 
 
 
-export default WorktimeSheetWorkplace;
+export default WorktimeSheetWorkplacefor10105;

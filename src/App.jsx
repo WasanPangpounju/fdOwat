@@ -74,6 +74,7 @@ import Compensation from "./conponents/componentsAside/Compensation";
 import Salaryresult from "./conponents/componentsAside/SalaryResult";
 import SalaryAllResult from "./conponents/componentsAside/SalaryAllResult";
 import SalaryAllResultAudit from "./conponents/componentsAside/SalaryAllResultAudit";
+import WorktimeSheetWorkplacefor10105 from "./conponents/componentsAside/WorktimeSheetWorkplacefor10105";
 
 
 import AddsettimeReplace from "./conponents/componentsAside/AddsettimeReplace";
@@ -320,6 +321,10 @@ useEffect(() => {
               <Route
                 path="/worktimesheetworkplace"
                 element={<WorktimeSheetWorkplace employeeList={employeeList} />}
+              />
+              <Route
+                path="/worktimesheetworkplacefor10105"
+                element={<WorktimeSheetWorkplacefor10105 employeeList={employeeList} />}
               />
                <Route
                 path="/worktimesheetworkplaceSpace"
