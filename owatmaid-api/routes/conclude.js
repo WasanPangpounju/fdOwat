@@ -1209,7 +1209,7 @@ if (isSpecialWorkplace7Days) {
 for (let c = 0; c < concludeRecord.length; c++) {
   
   // ตรวจสอบว่าเป็นหน่วยงานพิเศษ 7 วัน
-  if (isSpecialWorkplace7Days ) { 
+  if (isSpecialWorkplace7Days) {
     // สำหรับหน่วยงานพิเศษ 7 วัน - ตรวจสอบว่ามี allTimes หรือไม่
     if (parseFloat(concludeRecord[c].allTimes || 0) > 0) {
       // มี allTimes (มาทำงาน) ให้เพิ่มเงินพิเศษรายวันพร้อมปรับ message เป็น totalWorkDays
@@ -3125,13 +3125,13 @@ const totalDecimalHour = tmpHour + (tmpMinute / 60); // 1 + 30/60 = 1.5
           cashOtMul = await dataRate?.workRateOT || 0;
           
           // เพิ่มเงินพิเศษรายวัน
-          // addSalaryDaily = [...(employeeProfile[0].addSalary || [])
-          //   .filter(salary => salary.roundOfSalary === "daily")
-          //   .map(salary => ({
-          //     ...salary,
-          //     SpSalary: parseFloat(salary.SpSalary) > 300 ? (parseFloat(salary.SpSalary) / 30).toFixed(2) : salary.SpSalary
-          //   }))
-          // ];
+          addSalaryDaily = [...(employeeProfile[0].addSalary || [])
+            .filter(salary => salary.roundOfSalary === "daily")
+            .map(salary => ({
+              ...salary,
+              SpSalary: parseFloat(salary.SpSalary) > 300 ? (parseFloat(salary.SpSalary) / 30).toFixed(2) : salary.SpSalary
+            }))
+          ];
         } else {
           cashBeforeOt = '';
           cashWork = '';
