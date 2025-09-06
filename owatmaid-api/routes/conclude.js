@@ -2988,6 +2988,7 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
       let cashOtMul = 0;
       let dayType = '';
       let addSalaryDaily = [];
+
         if (salaryTmp !== 0) {
         // ใช้เงินเดือนจาก profile
             } else if (dataRate?.workRateFromAPI) {
@@ -3067,14 +3068,14 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
           // ตรวจสอบว่าพนักงานมาทำงานในวันหยุดพิเศษหรือไม่
           const hasWorkedOnSpecialDay = record.totalTime && parseFloat(record.totalTime) > 0;
           if (hasWorkedOnSpecialDay) {
-            addSalaryDaily = [...(employeeProfile[0].addSalary || [])
-              .filter(salary => salary.roundOfSalary === "daily")
-              .map(salary => ({
-                ...salary,
-                SpSalary: parseFloat(salary.SpSalary) > 100 ? (parseFloat(salary.SpSalary) / 30).toFixed(2) : salary.SpSalary
-              }))
-            ];
-            console.log(`💵 เพิ่มเงินพิเศษรายวันสำหรับวันหยุดพิเศษที่มาทำงาน: ${addSalaryDaily.length} รายการ`);
+            // addSalaryDaily = [...(employeeProfile[0].addSalary || [])
+            //   .filter(salary => salary.roundOfSalary === "daily")
+            //   .map(salary => ({
+            //     ...salary,
+            //     SpSalary: parseFloat(salary.SpSalary) > 100 ? (parseFloat(salary.SpSalary) / 30).toFixed(2) : salary.SpSalary
+            //   }))
+            // ];
+            // console.log(`💵 เพิ่มเงินพิเศษรายวันสำหรับวันหยุดพิเศษที่มาทำงาน: ${addSalaryDaily.length} รายการ`);
           } else {
             addSalaryDaily = [];
             console.log(`❌ ไม่เพิ่มเงินพิเศษรายวันสำหรับวันหยุดพิเศษที่ไม่มาทำงาน`);
