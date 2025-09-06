@@ -1209,7 +1209,7 @@ if (isSpecialWorkplace7Days) {
 for (let c = 0; c < concludeRecord.length; c++) {
   
   // ตรวจสอบว่าเป็นหน่วยงานพิเศษ 7 วัน
-  if (isSpecialWorkplace7Days && 0 == 1) { //ยกเลิกการเข้าเงื่อนไขให้เงินเพิ่มในวันหยุดที่มาทำงานหน่วยงาน 7 วัน
+  if (isSpecialWorkplace7Days ) { 
     // สำหรับหน่วยงานพิเศษ 7 วัน - ตรวจสอบว่ามี allTimes หรือไม่
     if (parseFloat(concludeRecord[c].allTimes || 0) > 0) {
       // มี allTimes (มาทำงาน) ให้เพิ่มเงินพิเศษรายวันพร้อมปรับ message เป็น totalWorkDays
@@ -1217,7 +1217,7 @@ for (let c = 0; c < concludeRecord.length; c++) {
         ...item,
         message: totalWorkDays.toString()  // อัปเดต message เป็นจำนวนวันจริงที่มา
       }));
-      await addSalaryList.push(adjustedAddSalaryDaily);
+      // await addSalaryList.push(adjustedAddSalaryDaily);
       console.log(`✅ วันที่ ${concludeRecord[c].day} - allTimes: ${concludeRecord[c].allTimes} - เพิ่มเงินพิเศษรายวัน (${totalWorkDays} วัน)`);
     } else {
       // ไม่มี allTimes (ไม่มาทำงาน) ไม่เพิ่มเงินพิเศษ
