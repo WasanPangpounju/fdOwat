@@ -3026,13 +3026,13 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
           // ตรวจสอบว่าพนักงานมาทำงานในวันหยุดหรือไม่
           const hasWorkedOnHoliday = record.totalTime && parseFloat(record.totalTime) > 0;
           if (hasWorkedOnHoliday) {
-            addSalaryDaily = [...(employeeProfile[0].addSalary || [])
-              .filter(salary => salary.roundOfSalary === "daily")
-              .map(salary => ({
-                ...salary,
-                SpSalary: parseFloat(salary.SpSalary) > 300 ? (parseFloat(salary.SpSalary) / 30).toFixed(2) : salary.SpSalary
-              }))
-            ];
+            // addSalaryDaily = [...(employeeProfile[0].addSalary || [])
+            //   .filter(salary => salary.roundOfSalary === "daily")
+            //   .map(salary => ({
+            //     ...salary,
+            //     SpSalary: parseFloat(salary.SpSalary) > 300 ? (parseFloat(salary.SpSalary) / 30).toFixed(2) : salary.SpSalary
+            //   }))
+            // ];
             console.log(`💵 เพิ่มเงินพิเศษรายวันสำหรับวันหยุดที่มาทำงาน: ${addSalaryDaily.length} รายการ`);
           } else {
             addSalaryDaily = [];
