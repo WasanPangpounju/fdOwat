@@ -2988,13 +2988,12 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
       let cashOtMul = 0;
       let dayType = '';
       let addSalaryDaily = [];
-
-      // ถ้ามีค่า workRate จาก API ให้ใช้ค่านั้น
-      if (dataRate?.workRateFromAPI) {
+        if (salaryTmp !== 0) {
+        // ใช้เงินเดือนจาก profile
+            } else if (dataRate?.workRateFromAPI) {
+                    // ถ้ามีค่า workRate จาก API ให้ใช้ค่านั้น
         salary = parseFloat(dataRate.workRateFromAPI) / 8;
         console.log(`💰 ใช้ค่าแรงจาก API สำหรับคำนวณ: ${dataRate.workRateFromAPI} (ค่าต่อชั่วโมง: ${salary})`);
-      } else if (salaryTmp !== 0) {
-        // ใช้เงินเดือนจาก profile
       } else if (dataRate?.workRate) {
         salary = parseFloat(dataRate.workRate || '0');
         console.log(`💰 ใช้ค่าแรงจากฐานข้อมูลสำหรับคำนวณ: ${dataRate.workRate}`);
@@ -3026,14 +3025,14 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
           // ตรวจสอบว่าพนักงานมาทำงานในวันหยุดหรือไม่
           const hasWorkedOnHoliday = record.totalTime && parseFloat(record.totalTime) > 0;
           if (hasWorkedOnHoliday) {
-            addSalaryDaily = [...(employeeProfile[0].addSalary || [])
-              .filter(salary => salary.roundOfSalary === "daily")
-              .map(salary => ({
-                ...salary,
-                SpSalary: parseFloat(salary.SpSalary) > 300 ? (parseFloat(salary.SpSalary) / 30).toFixed(2) : salary.SpSalary
-              }))
-            ];
-            console.log(`💵 เพิ่มเงินพิเศษรายวันสำหรับวันหยุดที่มาทำงาน: ${addSalaryDaily.length} รายการ`);
+            // addSalaryDaily = [...(employeeProfile[0].addSalary || [])
+            //   .filter(salary => salary.roundOfSalary === "daily")
+            //   .map(salary => ({
+            //     ...salary,
+            //     SpSalary: parseFloat(salary.SpSalary) > 300 ? (parseFloat(salary.SpSalary) / 30).toFixed(2) : salary.SpSalary
+            //   }))
+            // ];
+            // console.log(`💵 เพิ่มเงินพิเศษรายวันสำหรับวันหยุดที่มาทำงาน: ${addSalaryDaily.length} รายการ`);
           } else {
             addSalaryDaily = [];
             console.log(`❌ ไม่เพิ่มเงินพิเศษรายวันสำหรับวันหยุดที่ไม่มาทำงาน`);
