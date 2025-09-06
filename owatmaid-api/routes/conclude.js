@@ -2879,7 +2879,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
           .filter(salary => salary.roundOfSalary === "daily")
           .map(salary => ({
             ...salary,
-            SpSalary: parseFloat(salary.SpSalary) > 100 ? 
+            SpSalary: parseFloat(salary.SpSalary) > 300 ? 
               (parseFloat(salary.SpSalary) / 30).toFixed(2) : 
               salary.SpSalary
           }))
