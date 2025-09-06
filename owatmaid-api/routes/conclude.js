@@ -1209,7 +1209,7 @@ if (isSpecialWorkplace7Days) {
 for (let c = 0; c < concludeRecord.length; c++) {
   
   // ตรวจสอบว่าเป็นหน่วยงานพิเศษ 7 วัน
-  if (isSpecialWorkplace7Days) {
+  if (isSpecialWorkplace7Days && 0 == 1) { //ยกเลิกการเข้าเงื่อนไขให้เงินเพิ่มในวันหยุดที่มาทำงานหน่วยงาน 7 วัน
     // สำหรับหน่วยงานพิเศษ 7 วัน - ตรวจสอบว่ามี allTimes หรือไม่
     if (parseFloat(concludeRecord[c].allTimes || 0) > 0) {
       // มี allTimes (มาทำงาน) ให้เพิ่มเงินพิเศษรายวันพร้อมปรับ message เป็น totalWorkDays
@@ -3036,6 +3036,8 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
             //   }))
             // ];
             // console.log(`💵 เพิ่มเงินพิเศษรายวันสำหรับวันหยุดที่มาทำงาน: ${addSalaryDaily.length} รายการ`);
+                        addSalaryDaily = [];
+
           } else {
             addSalaryDaily = [];
             console.log(`❌ ไม่เพิ่มเงินพิเศษรายวันสำหรับวันหยุดที่ไม่มาทำงาน`);
@@ -3078,6 +3080,8 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
             //   }))
             // ];
             // console.log(`💵 เพิ่มเงินพิเศษรายวันสำหรับวันหยุดพิเศษที่มาทำงาน: ${addSalaryDaily.length} รายการ`);
+                        addSalaryDaily = [];
+
           } else {
             addSalaryDaily = [];
             console.log(`❌ ไม่เพิ่มเงินพิเศษรายวันสำหรับวันหยุดพิเศษที่ไม่มาทำงาน`);
@@ -3140,14 +3144,16 @@ const totalDecimalHour = tmpHour + (tmpMinute / 60); // 1 + 30/60 = 1.5
           // ตรวจสอบว่าพนักงานมาทำงานหรือไม่ (กรณีอื่นๆ ที่ไม่ใช่ work, stop, specialDayOff)
           const hasWorkedOther = record.totalTime && parseFloat(record.totalTime) > 0;
           if (hasWorkedOther) {
-            addSalaryDaily = [...(employeeProfile[0].addSalary || [])
-              .filter(salary => salary.roundOfSalary === "daily")
-              .map(salary => ({
-                ...salary,
-                SpSalary: parseFloat(salary.SpSalary) > 300 ? (parseFloat(salary.SpSalary) / 30).toFixed(2) : salary.SpSalary
-              }))
-            ];
-            console.log(`💵 เพิ่มเงินพิเศษรายวันสำหรับวันอื่นๆที่มาทำงาน: ${addSalaryDaily.length} รายการ`);
+            // addSalaryDaily = [...(employeeProfile[0].addSalary || [])
+            //   .filter(salary => salary.roundOfSalary === "daily")
+            //   .map(salary => ({
+            //     ...salary,
+            //     SpSalary: parseFloat(salary.SpSalary) > 300 ? (parseFloat(salary.SpSalary) / 30).toFixed(2) : salary.SpSalary
+            //   }))
+            // ];
+            // console.log(`💵 เพิ่มเงินพิเศษรายวันสำหรับวันอื่นๆที่มาทำงาน: ${addSalaryDaily.length} รายการ`);
+            addSalaryDaily = [];
+
           } else {
             addSalaryDaily = [];
             console.log(`❌ ไม่เพิ่มเงินพิเศษรายวันสำหรับวันอื่นๆที่ไม่มาทำงาน`);
