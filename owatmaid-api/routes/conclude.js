@@ -2139,7 +2139,7 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
       console.log(`💰 ใช้ค่าแรงจาก API: ${dataCal.workRateFromAPI} (ค่าต่อชั่วโมง: ${dataCal.workRate})`);
     } else {
       dataCal.workRate = await parseFloat(workplaces?.[0]?.workRate || '0') / 8 || 0;
-      console.log(`💰 ใช้ค่าแรงจากฐานข้อมูล: ${workplaces?.[0]?.workRate} (ค่าต่อชั่วโมง: ${dataCal.workRate})`);
+      console.log(`💰 ใช้ค่าแรงจากฐานข้อมูล: ${workplaces?.[0]?.workRate} (ค่าต่อชั่-วโมง: ${dataCal.workRate})`);
     }
     
     dataCal.worktTime = await parseFloat(workplaces?.[0]?.workOfHour_subHour || '0') + parseFloat(workplaces?.[0]?.workOfHour_subMinute || '0');
@@ -2500,7 +2500,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
           dayType: recordForDay.dayType || 'ไม่ระบุ',
           shift: recordForDay.shift || 'ไม่ระบุ'
         });
-        console.log(`   ✅ วันที่ ${stopDay.date}/${stopDay.month}/${stopDay.year} (${stopDay.dayName}) - มาทำงาน ${recordForDay.totalTime} ชั่วโมง (shift: ${recordForDay.shift})`);
+        console.log(`  * ✅ วันที่ ${stopDay.date}/${stopDay.month}/${stopDay.year} (${stopDay.dayName}) - มาทำงาน ${recordForDay.totalTime} ชั่วโมง (shift: ${recordForDay.shift})`);
       } else {
         notWorkedOnStopDays++;
         attendanceDetails.push({
