@@ -3030,7 +3030,7 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
               .filter(salary => salary.roundOfSalary === "daily")
               .map(salary => ({
                 ...salary,
-                SpSalary: parseFloat(salary.SpSalary) > 100 ? (parseFloat(salary.SpSalary) / 30).toFixed(2) : salary.SpSalary
+                SpSalary: parseFloat(salary.SpSalary) > 300 ? (parseFloat(salary.SpSalary) / 30).toFixed(2) : salary.SpSalary
               }))
             ];
             console.log(`💵 เพิ่มเงินพิเศษรายวันสำหรับวันหยุดที่มาทำงาน: ${addSalaryDaily.length} รายการ`);
@@ -3123,7 +3123,7 @@ const totalDecimalHour = tmpHour + (tmpMinute / 60); // 1 + 30/60 = 1.5
             .filter(salary => salary.roundOfSalary === "daily")
             .map(salary => ({
               ...salary,
-              SpSalary: parseFloat(salary.SpSalary) > 100 ? (parseFloat(salary.SpSalary) / 30).toFixed(2) : salary.SpSalary
+              SpSalary: parseFloat(salary.SpSalary) > 300 ? (parseFloat(salary.SpSalary) / 30).toFixed(2) : salary.SpSalary
             }))
           ];
         } else {
@@ -3142,7 +3142,7 @@ const totalDecimalHour = tmpHour + (tmpMinute / 60); // 1 + 30/60 = 1.5
               .filter(salary => salary.roundOfSalary === "daily")
               .map(salary => ({
                 ...salary,
-                SpSalary: parseFloat(salary.SpSalary) > 100 ? (parseFloat(salary.SpSalary) / 30).toFixed(2) : salary.SpSalary
+                SpSalary: parseFloat(salary.SpSalary) > 300 ? (parseFloat(salary.SpSalary) / 30).toFixed(2) : salary.SpSalary
               }))
             ];
             console.log(`💵 เพิ่มเงินพิเศษรายวันสำหรับวันอื่นๆที่มาทำงาน: ${addSalaryDaily.length} รายการ`);
