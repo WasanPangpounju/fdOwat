@@ -1217,7 +1217,7 @@ for (let c = 0; c < concludeRecord.length; c++) {
         ...item,
         message: totalWorkDays.toString()  // อัปเดต message เป็นจำนวนวันจริงที่มา
       }));
-      // await addSalaryList.push(adjustedAddSalaryDaily);
+      await addSalaryList.push(adjustedAddSalaryDaily);
       console.log(`✅ วันที่ ${concludeRecord[c].day} - allTimes: ${concludeRecord[c].allTimes} - เพิ่มเงินพิเศษรายวัน (${totalWorkDays} วัน)`);
     } else {
       // ไม่มี allTimes (ไม่มาทำงาน) ไม่เพิ่มเงินพิเศษ
@@ -3125,13 +3125,13 @@ const totalDecimalHour = tmpHour + (tmpMinute / 60); // 1 + 30/60 = 1.5
           cashOtMul = await dataRate?.workRateOT || 0;
           
           // เพิ่มเงินพิเศษรายวัน
-          addSalaryDaily = [...(employeeProfile[0].addSalary || [])
-            .filter(salary => salary.roundOfSalary === "daily")
-            .map(salary => ({
-              ...salary,
-              SpSalary: parseFloat(salary.SpSalary) > 300 ? (parseFloat(salary.SpSalary) / 30).toFixed(2) : salary.SpSalary
-            }))
-          ];
+          // addSalaryDaily = [...(employeeProfile[0].addSalary || [])
+          //   .filter(salary => salary.roundOfSalary === "daily")
+          //   .map(salary => ({
+          //     ...salary,
+          //     SpSalary: parseFloat(salary.SpSalary) > 300 ? (parseFloat(salary.SpSalary) / 30).toFixed(2) : salary.SpSalary
+          //   }))
+          // ];
         } else {
           cashBeforeOt = '';
           cashWork = '';
