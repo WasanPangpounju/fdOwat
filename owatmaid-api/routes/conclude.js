@@ -2885,6 +2885,8 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
         //   }))
         // ];
         // console.log(`💵 เพิ่มเงินพิเศษรายวัน: ${addSalaryDaily.length} รายการ (เพราะมี totalTime)`);
+                addSalaryDaily = [];
+
       } else {
         // ถ้าไม่มีการทำงาน ไม่เพิ่มเงินพิเศษรายวัน
         addSalaryDaily = [];
