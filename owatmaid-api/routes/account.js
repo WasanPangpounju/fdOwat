@@ -5060,33 +5060,33 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         console.log(`🎯 =============================`);
         
         // 🎯 เพิ่ม addSalaryDaily ให้กับ records ที่มี dayType: "stop" แต่ยังไม่มี addSalaryDaily
-        // if (Array.isArray(doc.employee_record)) {
-        //   doc.employee_record.forEach(record => {
-        //     if (record.dayType === 'stop' && (!record.addSalaryDaily || record.addSalaryDaily.length === 0)) {
-        //       // หาค่า addSalaryDaily ที่มี roundOfSalary = "daily" จาก addSalaryList
-        //       const dailyAllowances = calculatedValues.addSalaryList.filter(item => 
-        //         item.roundOfSalary === "daily" && parseFloat(item.SpSalary || 0) > 0
-        //       );
+        if (Array.isArray(doc.employee_record)) {
+          doc.employee_record.forEach(record => {
+            if (record.dayType === 'stop' && (!record.addSalaryDaily || record.addSalaryDaily.length === 0)) {
+              // หาค่า addSalaryDaily ที่มี roundOfSalary = "daily" จาก addSalaryList
+              const dailyAllowances = calculatedValues.addSalaryList.filter(item => 
+                item.roundOfSalary === "daily" && parseFloat(item.SpSalary || 0) > 0
+              );
               
-        //       if (dailyAllowances.length > 0) {
-        //         record.addSalaryDaily = dailyAllowances.map(item => ({
-        //           id: item.id,
-        //           name: item.name,
-        //           SpSalary: item.SpSalary,
-        //           roundOfSalary: item.roundOfSalary,
-        //           StaffType: item.StaffType || "all",
-        //           nameType: item.nameType || "",
-        //           _id: new Date().getTime().toString() // สร้าง _id ชั่วคราว
-        //         }));
+              if (dailyAllowances.length > 0) {
+                // record.addSalaryDaily = dailyAllowances.map(item => ({
+                //   id: item.id,
+                //   name: item.name,
+                //   SpSalary: item.SpSalary,
+                //   roundOfSalary: item.roundOfSalary,
+                //   StaffType: item.StaffType || "all",
+                //   nameType: item.nameType || "",
+                //   _id: new Date().getTime().toString() // สร้าง _id ชั่วคราว
+                // }));
                 
-        //         console.log(`✅ เพิ่ม addSalaryDaily ให้กับวันที่ ${record.date} (dayType=stop): ${dailyAllowances.length} รายการ`);
-        //         dailyAllowances.forEach(item => {
-        //           console.log(`   - ID ${item.id}: ${item.name} (${item.SpSalary} บาท)`);
-        //         });
-        //       }
-        //     }
-        //   });
-        // }
+                // console.log(`✅ เพิ่ม addSalaryDaily ให้กับวันที่ ${record.date} (dayType=stop): ${dailyAllowances.length} รายการ`);
+                // dailyAllowances.forEach(item => {
+                //   console.log(`   - ID ${item.id}: ${item.name} (${item.SpSalary} บาท)`);
+                // });
+              }
+            }
+          });
+        }
         
         // คำนวณ totalDeductSalary จาก deductSalaryList
         const totalDeductSalary = calculatedValues.deductSalaryList.reduce((total, item) => {
@@ -5998,38 +5998,38 @@ try {
           }
           
           // จัดการ addSalaryDaily สำหรับวันหยุด (dayType = stop)
-          // if (record.addSalaryDaily && record.addSalaryDaily.length > 0) {
-          //   console.log(`💰 ประมวลผล addSalaryDaily สำหรับวันหยุด (วันที่ ${record.date}): ${record.addSalaryDaily.length} รายการ`);
-          //   record.addSalaryDaily.forEach((salaryItem) => {
-          //     const cleanSalaryItemId = String(salaryItem.id).trim();
-          //     const amount = parseFloat(salaryItem.SpSalary || 0);
+          if (record.addSalaryDaily && record.addSalaryDaily.length > 0) {
+            console.log(`💰 ประมวลผล addSalaryDaily สำหรับวันหยุด (วันที่ ${record.date}): ${record.addSalaryDaily.length} รายการ`);
+            record.addSalaryDaily.forEach((salaryItem) => {
+              const cleanSalaryItemId = String(salaryItem.id).trim();
+              const amount = parseFloat(salaryItem.SpSalary || 0);
 
-          //     const existingItem = addSalaryList.find(
-          //       item => String(item.id).trim() === cleanSalaryItemId
-          //     );
+              const existingItem = addSalaryList.find(
+                item => String(item.id).trim() === cleanSalaryItemId
+              );
 
-          //     if (existingItem) {
-          //       const currentAmount = parseFloat(existingItem.SpSalary || 0);
-          //       const currentDays = parseFloat(existingItem.message || 0);
+              if (existingItem) {
+                const currentAmount = parseFloat(existingItem.SpSalary || 0);
+                const currentDays = parseFloat(existingItem.message || 0);
                 
-          //       existingItem.SpSalary = String(currentAmount + amount);
-          //       existingItem.message = String(currentDays + 1);
+                existingItem.SpSalary = String(currentAmount + amount);
+                existingItem.message = String(currentDays + 1);
 
-          //       const index = addSalaryList.findIndex(item => item.id === existingItem.id);
-          //       if (index !== -1) {
-          //         addSalaryList[index] = existingItem;
-          //       }
+                const index = addSalaryList.findIndex(item => item.id === existingItem.id);
+                if (index !== -1) {
+                  addSalaryList[index] = existingItem;
+                }
                 
-          //       console.log(`🔄 รวม addSalary ID ${cleanSalaryItemId}: ${currentAmount} + ${amount} = ${existingItem.SpSalary} บาท (วัน: ${currentDays} + 1 = ${existingItem.message})`);
-          //     } else {
-          //       salaryItem.message = "1"; 
-          //       addSalaryList.push(salaryItem);
-          //       console.log(`➕ เพิ่ม addSalary ID ${cleanSalaryItemId}: ${amount} บาท (1 วัน)`);
-          //     }
-          //   });
-          // }
+                console.log(`🔄 รวม addSalary ID ${cleanSalaryItemId}: ${currentAmount} + ${amount} = ${existingItem.SpSalary} บาท (วัน: ${currentDays} + 1 = ${existingItem.message})`);
+              } else {
+                salaryItem.message = "1"; 
+                addSalaryList.push(salaryItem);
+                console.log(`➕ เพิ่ม addSalary ID ${cleanSalaryItemId}: ${amount} บาท (1 วัน)`);
+              }
+            });
+          }
           
-          // console.log(`📊 วันที่ ${record.date} (dayType=stop): cashWork=${record.cashWork}, cashWorkMul=${record.cashWorkMul}, cashOt=${record.cashOt}, cashOtMul=${record.cashOtMul}`);
+          console.log(`📊 วันที่ ${record.date} (dayType=stop): cashWork=${record.cashWork}, cashWorkMul=${record.cashWorkMul}, cashOt=${record.cashOt}, cashOtMul=${record.cashOtMul}`);
 
         } else
           if (record?.dayType === 'specialDayOff') {
