@@ -5058,7 +5058,8 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           });
         }
         console.log(`🎯 =============================`);
-        
+
+          //แก้ ยกเลิกการให้เงินเพิ่มรายวันในวันหยุด โดยการ comment
         // 🎯 เพิ่ม addSalaryDaily ให้กับ records ที่มี dayType: "stop" แต่ยังไม่มี addSalaryDaily
         // if (Array.isArray(doc.employee_record)) {
           // doc.employee_record.forEach(record => {
@@ -6333,6 +6334,7 @@ console.log(`💰 รวมทั้งหมด: ${sumCashWork + sumCashOt} บ
 
   // แก้ไข message ใน addSalaryList ให้ใช้ countAllowance แทนการนับจากแต่ละวัน
   console.log(`\n🔧 === แก้ไข message และ SpSalary ใน addSalaryList ให้ใช้ countAllowance ===`);
+  //แก้ ยกเลิกการให้เงินเพิ่มรายวันในวันหยุด โดยการ comment
   // addSalaryList.forEach((item, idx) => {
   //   if (item.roundOfSalary === "daily") {
   //     const oldMessage = item.message;
