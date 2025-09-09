@@ -6023,7 +6023,7 @@ try {
                 console.log(`🔄 รวม addSalary ID ${cleanSalaryItemId}: ${currentAmount} + ${amount} = ${existingItem.SpSalary} บาท (วัน: ${currentDays} + 1 = ${existingItem.message})`);
               } else {
                 salaryItem.message = "1"; 
-                addSalaryList.push(salaryItem);
+                // addSalaryList.push(salaryItem);
                 console.log(`➕ เพิ่ม addSalary ID ${cleanSalaryItemId}: ${amount} บาท (1 วัน)`);
               }
             });
@@ -6339,7 +6339,7 @@ console.log(`💰 รวมทั้งหมด: ${sumCashWork + sumCashOt} บ
       const oldSpSalary = item.SpSalary;
       
       // แก้ไข message ให้ใช้ countAllowance
-      // item.message = String(countAllowance);
+      item.message = String(countAllowance);
       
       // คำนวณ SpSalary ใหม่โดยใช้ countAllowance
       // หา SpSalary ต่อวันจาก SpSalary เดิม ÷ message เดิม
