@@ -1,5 +1,5 @@
 const sURL = 'http://localhost:3000';
-lates
+
 //require timerecordEmployee 
 const timerecordEmployee = require('./models/periodtimerecordModel');
 //require Workplace 
