@@ -3007,9 +3007,6 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
       }
       
       if (dataRate?.dayType !== '') {
-        
-                    addSalaryDaily = [];
-
         if (dataRate?.dayType === 'stop') {
           cashBeforeOt = await (
             parseFloat(dataRate?.dayoffRateOT || '0') > 5
@@ -3039,7 +3036,7 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
           //       SpSalary: parseFloat(salary.SpSalary) > 300 ? (parseFloat(salary.SpSalary) / 30).toFixed(2) : salary.SpSalary
           //     }))
           //   ];
-          //   // console.log(`💵 เพิ่มเงินพิเศษรายวันสำหรับวันหยุดที่มาทำงาน: ${addSalaryDaily.length} รายการ`);
+            // console.log(`💵 เพิ่มเงินพิเศษรายวันสำหรับวันหยุดที่มาทำงาน: ${addSalaryDaily.length} รายการ`);
           // } else {
           //   addSalaryDaily = [];
           //   console.log(`❌ ไม่เพิ่มเงินพิเศษรายวันสำหรับวันหยุดที่ไม่มาทำงาน`);
