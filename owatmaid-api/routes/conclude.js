@@ -3007,6 +3007,9 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
       }
       
       if (dataRate?.dayType !== '') {
+        
+                    addSalaryDaily = [];
+
         if (dataRate?.dayType === 'stop') {
           cashBeforeOt = await (
             parseFloat(dataRate?.dayoffRateOT || '0') > 5
@@ -3099,7 +3102,7 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
 
           // cashOt = await (
           //   parseFloat(dataRate?.workRateOT || '0') > 5
-          //     ? parseFloat(dataRate?.workRateOT || '0') || 0
+              //     ? parseFloat(dataRate?.workRateOT || '0') || 0
           //     : ((record.totalOtTime || 0) * ((parseFloat(dataRate?.workRateOT || '0')) * salary || 0)) || 0
           // );
 //แก้ไขเวลา OT ให้คิดจากหน่วยนาที
