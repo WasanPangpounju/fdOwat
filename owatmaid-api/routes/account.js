@@ -6000,45 +6000,45 @@ try {
           // จัดการ addSalaryDaily สำหรับวันหยุด (dayType = stop)
           if (record.addSalaryDaily && record.addSalaryDaily.length > 0) {
             console.log(`💰 ประมวลผล addSalaryDaily สำหรับวันหยุด (วันที่ ${record.date}): ${record.addSalaryDaily.length} รายการ`);
-            record.addSalaryDaily.forEach((salaryItem) => {
-              const cleanSalaryItemId = String(salaryItem.id).trim();
-              const amount = parseFloat(salaryItem.SpSalary || 0);
+        //     record.addSalaryDaily.forEach((salaryItem) => {
+        //       const cleanSalaryItemId = String(salaryItem.id).trim();
+        //       const amount = parseFloat(salaryItem.SpSalary || 0);
 
-              const existingItem = addSalaryList.find(
-                item => String(item.id).trim() === cleanSalaryItemId
-              );
+        //       const existingItem = addSalaryList.find(
+        //         item => String(item.id).trim() === cleanSalaryItemId
+        //       );
 
-              if (existingItem) {
-                const currentAmount = parseFloat(existingItem.SpSalary || 0);
-                const currentDays = parseFloat(existingItem.message || 0);
+        //       if (existingItem) {
+        //         const currentAmount = parseFloat(existingItem.SpSalary || 0);
+        //         const currentDays = parseFloat(existingItem.message || 0);
                 
-                existingItem.SpSalary = String(currentAmount + amount);
-                existingItem.message = String(currentDays + 1);
+        //         existingItem.SpSalary = String(currentAmount + amount);
+        //         existingItem.message = String(currentDays + 1);
 
-                const index = addSalaryList.findIndex(item => item.id === existingItem.id);
-                if (index !== -1) {
-                  addSalaryList[index] = existingItem;
-                }
+        //         const index = addSalaryList.findIndex(item => item.id === existingItem.id);
+        //         if (index !== -1) {
+        //           addSalaryList[index] = existingItem;
+        //         }
                 
-                console.log(`🔄 รวม addSalary ID ${cleanSalaryItemId}: ${currentAmount} + ${amount} = ${existingItem.SpSalary} บาท (วัน: ${currentDays} + 1 = ${existingItem.message})`);
-              } else {
-                salaryItem.message = "1"; 
-                addSalaryList.push(salaryItem);
-                console.log(`➕ เพิ่ม addSalary ID ${cleanSalaryItemId}: ${amount} บาท (1 วัน)`);
-              }
-            });
-          }
+        //         console.log(`🔄 รวม addSalary ID ${cleanSalaryItemId}: ${currentAmount} + ${amount} = ${existingItem.SpSalary} บาท (วัน: ${currentDays} + 1 = ${existingItem.message})`);
+        //       } else {
+        //         salaryItem.message = "1"; 
+        //         addSalaryList.push(salaryItem);
+        //         console.log(`➕ เพิ่ม addSalary ID ${cleanSalaryItemId}: ${amount} บาท (1 วัน)`);
+        //       }
+        //     });
+        //   }
           
-          console.log(`📊 วันที่ ${record.date} (dayType=stop): cashWork=${record.cashWork}, cashWorkMul=${record.cashWorkMul}, cashOt=${record.cashOt}, cashOtMul=${record.cashOtMul}`);
+        //   console.log(`📊 วันที่ ${record.date} (dayType=stop): cashWork=${record.cashWork}, cashWorkMul=${record.cashWorkMul}, cashOt=${record.cashOt}, cashOtMul=${record.cashOtMul}`);
 
-        } else
-          if (record?.dayType === 'specialDayOff') {
-            specialDayOff += 1;
-            sumTimeOt += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalTime) + convertTimeToDecimal(record.totalOtTime);
-            // sumCashOt = parseFloat(sumCashOt || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0') // ลบการคำนวณแบบเก่า
+        // } else
+        //   if (record?.dayType === 'specialDayOff') {
+        //     specialDayOff += 1;
+        //     sumTimeOt += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalTime) + convertTimeToDecimal(record.totalOtTime);
+        //     // sumCashOt = parseFloat(sumCashOt || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0') // ลบการคำนวณแบบเก่า
 
 
-            timeCashWorkMul[record?.cashOtMul] += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalOtTime);
+        //     timeCashWorkMul[record?.cashOtMul] += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalOtTime);
 
           } else {
 
