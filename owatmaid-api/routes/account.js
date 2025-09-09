@@ -5060,15 +5060,15 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         console.log(`🎯 =============================`);
         
         // 🎯 เพิ่ม addSalaryDaily ให้กับ records ที่มี dayType: "stop" แต่ยังไม่มี addSalaryDaily
-        if (Array.isArray(doc.employee_record)) {
-          doc.employee_record.forEach(record => {
-            if (record.dayType === 'stop' && (!record.addSalaryDaily || record.addSalaryDaily.length === 0)) {
+        // if (Array.isArray(doc.employee_record)) {
+          // doc.employee_record.forEach(record => {
+            // if (record.dayType === 'stop' && (!record.addSalaryDaily || record.addSalaryDaily.length === 0)) {
               // หาค่า addSalaryDaily ที่มี roundOfSalary = "daily" จาก addSalaryList
-              const dailyAllowances = calculatedValues.addSalaryList.filter(item => 
-                item.roundOfSalary === "daily" && parseFloat(item.SpSalary || 0) > 0
-              );
+              // const dailyAllowances = calculatedValues.addSalaryList.filter(item => 
+              //   item.roundOfSalary === "daily" && parseFloat(item.SpSalary || 0) > 0
+              // );
               
-              if (dailyAllowances.length > 0) {
+              // if (dailyAllowances.length > 0) {
                 // record.addSalaryDaily = dailyAllowances.map(item => ({
                 //   id: item.id,
                 //   name: item.name,
@@ -5083,10 +5083,10 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                 // dailyAllowances.forEach(item => {
                 //   console.log(`   - ID ${item.id}: ${item.name} (${item.SpSalary} บาท)`);
                 // });
-              }
-            }
-          });
-        }
+              // }
+            // }
+          // });
+        // }
         
         // คำนวณ totalDeductSalary จาก deductSalaryList
         const totalDeductSalary = calculatedValues.deductSalaryList.reduce((total, item) => {
