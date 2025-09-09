@@ -389,7 +389,7 @@ function Salaryresult() {
               tmpRemainArray.push(...item.record);
             });
             setRemainArray(tmpRemainArray);
-            // alert(tmpRemainArray.length  )
+
             // setRemainArray(result.data[0].record);
           } else {
             // If no records found, set remainArray to empty
@@ -624,7 +624,7 @@ function Salaryresult() {
                 response.data[0].accountingRecord[0].countOtHourWork
               );
 
-              await setAddSalaryList(response.data[0].addSalary);
+              await setAddSalaryList(response.data[0].addSalary ?? []);
               // if (response.data[0].addSalary) {
               //   let tmp = 0;
               //   response.data[0].addSalary.map((item) => {
@@ -635,7 +635,6 @@ function Salaryresult() {
 
               if (response.data[0].addSalary) {
                 let tmp = 0;
-
                 // Calculate the sum of SpSalary from response data
                 response.data[0].addSalary.map((item) => {
                   tmp += parseFloat(item.SpSalary);

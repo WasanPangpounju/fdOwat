@@ -2202,10 +2202,10 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
       
       // ตรวจสอบ weekendAndDayOff ก่อน (วันหยุดสุดสัปดาห์และวันหยุดพิเศษ)
       if (weekendData.weekendAndDayOff && weekendData.weekendAndDayOff.length > 0) {
-        // console.log(`📅 วันใน weekendAndDayOff: ${JSON.stringify(weekendData.weekendAndDayOff)}`);
+        console.log(`📅 วันใน weekendAndDayOff: ${JSON.stringify(weekendData.weekendAndDayOff)}`);
         
         if (weekendData.weekendAndDayOff.includes(dateStr)) {
-          console.log(`*✅ พบวันที่ ${dateStr} ใน weekendAndDayOff -> กำหนด dayType = stop`);
+          console.log(`✅ พบวันที่ ${dateStr} ใน weekendAndDayOff -> กำหนด dayType = stop`);
           dataCal.dayType = 'stop';
           return dataCal;
         }
