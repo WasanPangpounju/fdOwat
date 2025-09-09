@@ -6343,9 +6343,9 @@ console.log(`💰 รวมทั้งหมด: ${sumCashWork + sumCashOt} บ
       
       // คำนวณ SpSalary ใหม่โดยใช้ countAllowance
       // หา SpSalary ต่อวันจาก SpSalary เดิม ÷ message เดิม
-      // const dailyRate = parseFloat(oldSpSalary) / parseFloat(oldMessage);
-      // const newSpSalary = dailyRate * countAllowance;
-      // item.SpSalary = String(newSpSalary);
+      const dailyRate = parseFloat(oldSpSalary) / parseFloat(oldMessage);
+      const newSpSalary = dailyRate * countAllowance;
+      item.SpSalary = String(newSpSalary);
       
       console.log(`   [${idx}] id=${item.id}:`);
       console.log(`     - message: ${oldMessage} → ${item.message} (ใช้ countAllowance)`);
