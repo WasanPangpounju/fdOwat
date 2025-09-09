@@ -5069,20 +5069,20 @@ router.post('/searchtimerecordemployee', async (req, res) => {
               );
               
               if (dailyAllowances.length > 0) {
-                record.addSalaryDaily = dailyAllowances.map(item => ({
-                  id: item.id,
-                  name: item.name,
-                  SpSalary: item.SpSalary,
-                  roundOfSalary: item.roundOfSalary,
-                  StaffType: item.StaffType || "all",
-                  nameType: item.nameType || "",
-                  _id: new Date().getTime().toString() // สร้าง _id ชั่วคราว
-                }));
+                // record.addSalaryDaily = dailyAllowances.map(item => ({
+                //   id: item.id,
+                //   name: item.name,
+                //   SpSalary: item.SpSalary,
+                //   roundOfSalary: item.roundOfSalary,
+                //   StaffType: item.StaffType || "all",
+                //   nameType: item.nameType || "",
+                //   _id: new Date().getTime().toString() // สร้าง _id ชั่วคราว
+                // }));
                 
-                console.log(`✅ เพิ่ม addSalaryDaily ให้กับวันที่ ${record.date} (dayType=stop): ${dailyAllowances.length} รายการ`);
-                dailyAllowances.forEach(item => {
-                  console.log(`   - ID ${item.id}: ${item.name} (${item.SpSalary} บาท)`);
-                });
+                // console.log(`✅ เพิ่ม addSalaryDaily ให้กับวันที่ ${record.date} (dayType=stop): ${dailyAllowances.length} รายการ`);
+                // dailyAllowances.forEach(item => {
+                //   console.log(`   - ID ${item.id}: ${item.name} (${item.SpSalary} บาท)`);
+                // });
               }
             }
           });
@@ -6023,7 +6023,7 @@ try {
                 console.log(`🔄 รวม addSalary ID ${cleanSalaryItemId}: ${currentAmount} + ${amount} = ${existingItem.SpSalary} บาท (วัน: ${currentDays} + 1 = ${existingItem.message})`);
               } else {
                 salaryItem.message = "1"; 
-                // addSalaryList.push(salaryItem);
+                addSalaryList.push(salaryItem);
                 console.log(`➕ เพิ่ม addSalary ID ${cleanSalaryItemId}: ${amount} บาท (1 วัน)`);
               }
             });
