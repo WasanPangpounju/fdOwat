@@ -2203,7 +2203,7 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
       // ตรวจสอบ weekendAndDayOff ก่อน (วันหยุดสุดสัปดาห์และวันหยุดพิเศษ)
       if (weekendData.weekendAndDayOff && weekendData.weekendAndDayOff.length > 0) {
         console.log(`📅 วันใน weekendAndDayOff: ${JSON.stringify(weekendData.weekendAndDayOff)}`);
-console.log('test' + dateStr);        
+
         if (weekendData.weekendAndDayOff.includes(dateStr)) {
           console.log(`✅ พบวันที่ ${dateStr} ใน weekendAndDayOff -> กำหนด dayType = stop`);
           dataCal.dayType = 'stop';
@@ -2228,15 +2228,15 @@ console.log('test' + dateStr);
         
         if (weekendData.weekendOnly.includes(dateStr)) {
           // ตรวจสอบว่าเป็นวันเสาร์หรือวันอาทิตย์
-          if (dayOfWeek === 6) { // วันเสาร์
-            console.log(`✅ พบวันที่ ${dateStr} เป็นวันเสาร์ใน weekendOnly -> dayType = work`);
-            dataCal.dayType = 'work';
-            return dataCal;
-          } else if (dayOfWeek === 0) { // วันอาทิตย์
-            console.log(`✅ พบวันที่ ${dateStr} เป็นวันอาทิตย์ใน weekendOnly -> dayType = stop`);
+          // if (dayOfWeek === 6) { // วันเสาร์
+          //   console.log(`✅ พบวันที่ ${dateStr} เป็นวันเสาร์ใน weekendOnly -> dayType = work`);
+          //   dataCal.dayType = 'work';
+          //   return dataCal;
+          // } else if (dayOfWeek === 0) { // วันอาทิตย์
+          //   console.log(`✅ พบวันที่ ${dateStr} เป็นวันอาทิตย์ใน weekendOnly -> dayType = stop`);
             dataCal.dayType = 'stop';
             return dataCal;
-          }
+          // }
         }
       }
       
