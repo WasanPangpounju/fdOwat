@@ -3060,8 +3060,7 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
               : ((record.totalOtTime || 0) * ((parseFloat(dataRate?.holidayOT || '0')) * salary || 0)) || 0
           );
 
-          // cashWork = await (parseFloat(record.totalTime || 0) * parseFloat(salary || 0) * parseFloat(dataRate?.holidayHour || 1)) || 0;
-          cashWork = 0;
+          cashWork = await (parseFloat(record.totalTime || 0) * parseFloat(salary || 0) * parseFloat(dataRate?.holidayHour || 1)) || 0;
           console.log('totalTime ' + parseFloat(record.totalTime || 0) + ' salary ' + parseFloat(salary || 0) + ' dataRate ' + parseFloat(dataRate?.holidayHour || 1)); 
           
           dayType = await dataRate?.dayType || 0;
@@ -3116,7 +3115,8 @@ const totalDecimalHour = tmpHour + (tmpMinute / 60); // 1 + 30/60 = 1.5
           );
 
           // คำนวณค่าแรงสำหรับวันทำงานปกติ
-          cashWork = await (record.totalTime || 0) * parseFloat(salary || 0);
+          // cashWork = await (record.totalTime || 0) * parseFloat(salary || 0);
+cashWork = 0;
           dayType = await dataRate?.dayType || '';
           cashBeforeOtMul = await dataRate?.workRateOT || 0;
           cashWorkMul = 1; // ตัวคูณค่าแรงปกติเป็น 1
