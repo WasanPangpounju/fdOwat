@@ -2765,7 +2765,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
       let cashBeforeOtMul = 0;
       let cashWorkMul = 0;
       let cashOtMul = 0;
-      let dayType = '';
+      let dayType = 'stop';
       let addSalaryDaily = [];
 
       // ตรวจสอบว่าเป็นวันหยุดหรือไม่
@@ -2792,8 +2792,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
         
         // คำนวณค่าแรงแบบวันหยุด
         // เลือกอัตราตามประเภทวันหยุด
-        // const holidayOTRate = isPublicHoliday ? (dataRate?.holidayOT || 0) : (dataRate?.dayoffRateOT || 0);
-        const holidayOTRate = 20;
+        const holidayOTRate = isPublicHoliday ? (dataRate?.holidayOT || 0) : (dataRate?.dayoffRateOT || 0);
         const holidayHourRate = isPublicHoliday ? (dataRate?.holidayHour || 0) : (dataRate?.dayoffRateHour || 0);
         
         console.log(`💰 ใช้อัตรา: ${isPublicHoliday ? 'holidayOT' : 'dayoffRateOT'} = ${holidayOTRate}x`);
