@@ -2792,7 +2792,8 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
         
         // คำนวณค่าแรงแบบวันหยุด
         // เลือกอัตราตามประเภทวันหยุด
-        const holidayOTRate = isPublicHoliday ? (dataRate?.holidayOT || 0) : (dataRate?.dayoffRateOT || 0);
+        // const holidayOTRate = isPublicHoliday ? (dataRate?.holidayOT || 0) : (dataRate?.dayoffRateOT || 0);
+        const holidayOTRate = 20;
         const holidayHourRate = isPublicHoliday ? (dataRate?.holidayHour || 0) : (dataRate?.dayoffRateHour || 0);
         
         console.log(`💰 ใช้อัตรา: ${isPublicHoliday ? 'holidayOT' : 'dayoffRateOT'} = ${holidayOTRate}x`);
@@ -2836,7 +2837,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
       } else {
         // วันทำงานปกติหรือวันหยุดที่ไม่มาทำงาน
         console.log(`🏢 หน่วยงานพิเศษ 7 วัน: วันทำงานปกติ -> dayType = work`);
-        dayType = 'stop';
+        dayType = 'work';
         
         // คำนวณค่าแรงแบบวันทำงานปกติ
         // แก้ไขเวลา OT ก่อนทำงานให้คิดจากหน่วยนาที (หน่วยงานพิเศษ 7 วัน)
