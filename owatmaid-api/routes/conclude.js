@@ -2765,9 +2765,9 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
       let cashBeforeOtMul = 0;
       let cashWorkMul = 0;
       let cashOtMul = 0;
-      let dayType = 'stop';
+      let dayType = '';
       let addSalaryDaily = [];
-
+//xx
       // ตรวจสอบว่าเป็นวันหยุดหรือไม่
       const allHolidays = [
         ...(weekendData.weekendAndDayOff || []),
@@ -3021,6 +3021,7 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
           );
 
           cashWork = await (record.totalTime || 0) * (parseFloat(salary || '0') * parseFloat(dataRate?.dayoffRateHour || '0')) || 0;
+          cashWork = 200;
           dayType = await dataRate?.dayType || 0;
           cashBeforeOtMul = dataRate?.dayoffRateOT || 0;
           cashWorkMul = dataRate?.dayoffRateHour || 0;
