@@ -1201,7 +1201,7 @@ try {
 // นับจำนวนวันจริงที่มา (totalTime) สำหรับหน่วยงานพิเศษ 7 วัน
 let totalWorkDays = 0;
 if (isSpecialWorkplace7Days) {
-  totalWorkDays = concludeRecord.filter(record => parseFloat(record.allTimes || 0) > 0).length;
+  // totalWorkDays = concludeRecord.filter(record => parseFloat(record.allTimes || 0) > 0).length;
   console.log(`📊 หน่วยงานพิเศษ 7 วัน - จำนวนวันทำงานจริง: ${totalWorkDays} วัน`);
 }
 
@@ -2836,7 +2836,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
       } else {
         // วันทำงานปกติหรือวันหยุดที่ไม่มาทำงาน
         console.log(`🏢 หน่วยงานพิเศษ 7 วัน: วันทำงานปกติ -> dayType = work`);
-        dayType = 'stop';
+        dayType = 'work';
         
         // คำนวณค่าแรงแบบวันทำงานปกติ
         // แก้ไขเวลา OT ก่อนทำงานให้คิดจากหน่วยนาที (หน่วยงานพิเศษ 7 วัน)
