@@ -3174,7 +3174,6 @@ const totalDecimalHour = tmpHour + (tmpMinute / 60); // 1 + 30/60 = 1.5
       };
     })
   );
-  console.log('test')
 };
 
 
@@ -3432,11 +3431,11 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         
         if (isSpecialWorkplace) {
           console.log(`\n🔄 ใช้ฟังก์ชันคำนวณแบบหน่วยงานพิเศษ 7 วัน`);
-          const result = await calculateCashValuesSpecial7Days(employeeId, doc.employee_record, month, year);
-          updatedRecords = result.updatedRecords;
-          cashcustomizeDayoff = result.cashcustomizeDayoff;
-          personalDayOff = result.personalDayOff || [];
-          console.log(`💎 ได้ cashcustomizeDayoff: ${cashcustomizeDayoff} บาท`);
+          // const result = await calculateCashValuesSpecial7Days(employeeId, doc.employee_record, month, year);
+          // updatedRecords = result.updatedRecords;
+          // cashcustomizeDayoff = result.cashcustomizeDayoff;
+          // personalDayOff = result.personalDayOff || [];
+          // console.log(`💎 ได้ cashcustomizeDayoff: ${cashcustomizeDayoff} บาท`);
           console.log(`🟢 ได้วันหยุดส่วนบุคคล: ${personalDayOff.length} วัน`);
         } else {
           console.log(`\n🔄 ใช้ฟังก์ชันคำนวณแบบหน่วยงานปกติ`);
