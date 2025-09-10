@@ -2787,8 +2787,10 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
           console.log(`🎯 วันหยุดนักขัตฤกษ์และพนักงานมาทำงาน -> dayType = stop (ใช้ holidayOT)`);
         } else {
           console.log(`🎯 วันหยุดสุดสัปดาห์/กำหนดเองและพนักงานมาทำงาน -> dayType = stop (ใช้ dayoffRateOT)`);
+                  dayType = 'stop';
+
         }
-        dayType = 'stop';
+        // dayType = 'stop';
         
         // คำนวณค่าแรงแบบวันหยุด
         // เลือกอัตราตามประเภทวันหยุด
