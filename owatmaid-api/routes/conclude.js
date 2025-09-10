@@ -2794,7 +2794,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
         // เลือกอัตราตามประเภทวันหยุด
         const holidayOTRate = isPublicHoliday ? (dataRate?.holidayOT || 0) : (dataRate?.dayoffRateOT || 0);
         // const holidayHourRate = isPublicHoliday ? (dataRate?.holidayHour || 0) : (dataRate?.dayoffRateHour || 0);
-        const holidayHourRate = 2;
+        const holidayHourRate = 3;
         console.log(`💰 ใช้อัตรา: ${isPublicHoliday ? 'holidayOT' : 'dayoffRateOT'} = ${holidayOTRate}x`);
         
         // แก้ไขเวลา OT ก่อนทำงานให้คิดจากหน่วยนาที (วันหยุด)
