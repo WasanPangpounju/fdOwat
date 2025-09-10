@@ -2498,7 +2498,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
           status: 'มาทำงาน',
           totalTime: recordForDay.totalTime,
           otTime: recordForDay.totalOtTime || '0',
-          dayType: recordForDay.dayType || 'ไม่ระบุ',
+          dayType: 'stop',
           shift: recordForDay.shift || 'ไม่ระบุ'
         });
         console.log(`   ✅ วันที่ ${stopDay.date}/${stopDay.month}/${stopDay.year} (${stopDay.dayName}) - มาทำงาน ${recordForDay.totalTime} ชั่วโมง (shift: ${recordForDay.shift})`);
