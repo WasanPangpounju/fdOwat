@@ -2836,7 +2836,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
       } else {
         // วันทำงานปกติหรือวันหยุดที่ไม่มาทำงาน
         console.log(`🏢 หน่วยงานพิเศษ 7 วัน: วันทำงานปกติ -> dayType = work`);
-        dayType = 'work';
+        dayType = 'stop';
         
         // คำนวณค่าแรงแบบวันทำงานปกติ
         // แก้ไขเวลา OT ก่อนทำงานให้คิดจากหน่วยนาที (หน่วยงานพิเศษ 7 วัน)
@@ -2930,11 +2930,11 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
   console.log(`💰 cashcustomizeDayoff: ${totalWorkerWage.toFixed(2)} บาท`);
   console.log(`🟢 วันหยุดพิเศษ (หลังกรอง): ${filteredStopDaysList.length} วัน`);
   
-  // return {
-  //   updatedRecords,
-  //   cashcustomizeDayoff: totalWorkerWage,
-  //   personalDayOff: filteredStopDaysList // ใช้ filteredStopDaysList แทน stopDaysList
-  // };
+  return {
+    updatedRecords,
+    cashcustomizeDayoff: totalWorkerWage,
+    personalDayOff: filteredStopDaysList // ใช้ filteredStopDaysList แทน stopDaysList
+  };
 };
 
 const calculateCashValues = async (employeeId, employee_record, month, year) => {
