@@ -2498,7 +2498,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
           status: 'มาทำงาน',
           totalTime: recordForDay.totalTime,
           otTime: recordForDay.totalOtTime || '0',
-          dayType: recordForDay.dayType || 'ไม่ระบุ',
+          dayType: 'stop',
           shift: recordForDay.shift || 'ไม่ระบุ'
         });
         console.log(`   ✅ วันที่ ${stopDay.date}/${stopDay.month}/${stopDay.year} (${stopDay.dayName}) - มาทำงาน ${recordForDay.totalTime} ชั่วโมง (shift: ${recordForDay.shift})`);
@@ -3431,11 +3431,11 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         
         if (isSpecialWorkplace) {
           console.log(`\n🔄 ใช้ฟังก์ชันคำนวณแบบหน่วยงานพิเศษ 7 วัน`);
-          // const result = await calculateCashValuesSpecial7Days(employeeId, doc.employee_record, month, year);
-          // updatedRecords = result.updatedRecords;
-          // cashcustomizeDayoff = result.cashcustomizeDayoff;
-          // personalDayOff = result.personalDayOff || [];
-          // console.log(`💎 ได้ cashcustomizeDayoff: ${cashcustomizeDayoff} บาท`);
+          const result = await calculateCashValuesSpecial7Days(employeeId, doc.employee_record, month, year);
+          updatedRecords = result.updatedRecords;
+          cashcustomizeDayoff = result.cashcustomizeDayoff;
+          personalDayOff = result.personalDayOff || [];
+          console.log(`💎 ได้ cashcustomizeDayoff: ${cashcustomizeDayoff} บาท`);
           console.log(`🟢 ได้วันหยุดส่วนบุคคล: ${personalDayOff.length} วัน`);
         } else {
           console.log(`\n🔄 ใช้ฟังก์ชันคำนวณแบบหน่วยงานปกติ`);
