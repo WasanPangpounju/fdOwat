@@ -3115,8 +3115,7 @@ const totalDecimalHour = tmpHour + (tmpMinute / 60); // 1 + 30/60 = 1.5
           );
 
           // คำนวณค่าแรงสำหรับวันทำงานปกติ
-          // cashWork = await (record.totalTime || 0) * parseFloat(salary || 0);
-cashWork = 0;
+          cashWork = await (record.totalTime || 0) * parseFloat(salary || 0);
           dayType = await dataRate?.dayType || '';
           cashBeforeOtMul = await dataRate?.workRateOT || 0;
           cashWorkMul = 1; // ตัวคูณค่าแรงปกติเป็น 1
@@ -3175,6 +3174,7 @@ cashWork = 0;
       };
     })
   );
+  console.log('test')
 };
 
 
