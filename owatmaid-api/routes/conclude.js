@@ -2781,16 +2781,14 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
       // ตรวจสอบว่าพนักงานมาทำงานหรือไม่ (มีเวลาทำงาน > 0)
       const hasWorked = record.totalTime && parseFloat(record.totalTime) > 0;
       
-      if (isHoliday && hasWorked) {
+      if (isHoliday ) {
         // ถ้าเป็นวันหยุดและพนักงานมาทำงาน
         if (isPublicHoliday) {
           console.log(`🎯 วันหยุดนักขัตฤกษ์และพนักงานมาทำงาน -> dayType = stop (ใช้ holidayOT)`);
-                  dayType = 'stop';
-
         } else {
           console.log(`🎯 วันหยุดสุดสัปดาห์/กำหนดเองและพนักงานมาทำงาน -> dayType = stop (ใช้ dayoffRateOT)`);
         }
-        // dayType = 'stop';
+        dayType = 'stop';
         
         // คำนวณค่าแรงแบบวันหยุด
         // เลือกอัตราตามประเภทวันหยุด
