@@ -2898,7 +2898,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
   let weekendData = {};
   try {
     // const apiUrl = `http://10.10.110.7:3000/conclude/getWeekendDates?yyyy=${year}&mm=${month}&workplaceId=${workplaceId}`;
-    console.log(`\n🔍 เรียก API วันหยุด: ${apiUrl}`);
+    // console.log(`\n🔍 เรียก API วันหยุด: ${apiUrl}`);
     
     // const weekendResponse = await axios.get(apiUrl);
     // weekendData = weekendResponse.data;
@@ -2910,7 +2910,7 @@ const weekendData = await computeMyWeekends(year, month, employeeProfile?.[0]?.c
     console.log(`📋 ข้อมูลวันหยุดที่ได้:`);
     console.log(`   - weekendAndDayOff: ${JSON.stringify(weekendData.weekendAndDayOff || [])}`);
     console.log(`   - dayOffOnly: ${JSON.stringify(weekendData.dayOffOnly || [])}`);
-    
+    return ;
   } catch (error) {
     console.error(`❌ ไม่สามารถดึงข้อมูลวันหยุดได้:`, error.message);
   }
