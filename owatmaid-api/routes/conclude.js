@@ -2115,14 +2115,13 @@ const getWeekendDatesEmployee = async (yyyy, mm, customizeWorkplace ) => {
     // อ่านข้อมูล workTimeDay และหาวันหยุดที่กำหนดโดยหน่วยงาน
     if (workplace.workTimeDay && Array.isArray(workplace.workTimeDay)) {
       const dayOffList = [];
-      
+      console.log(JSON.stringify(workplace.workTimeDay ))
       // หาวันหยุดจาก workTimeDay
       workplace.workTimeDay.forEach(item => {
         if (item.workOrStop === 'stop') {
           try {
             const startDayNum = getDayNumberFromName(item.startDay);
             const endDayNum = getDayNumberFromName(item.endDay);
-            console.log('เริ่มหยุด ' . startDayNum );
 
             if (startDayNum !== -1 && endDayNum !== -1) {
               if (startDayNum <= endDayNum) {
