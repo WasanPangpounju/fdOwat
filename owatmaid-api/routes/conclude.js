@@ -2430,7 +2430,7 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
       //แก้ไขตัดเงื่อนไขให้วันหยุดเสา อาทิตย์ ออก ด้วยการ comment
       // ตรวจสอบ weekendOnly (วันหยุดสุดสัปดาห์เท่านั้น)
       // if (weekendData.weekendOnly && weekendData.weekendOnly.length > 0) {
-        console.log(`📅 วันใน weekendOnly: ${JSON.stringify(weekendData.weekendOnly)}`);
+        // console.log(`📅 วันใน weekendOnly: ${JSON.stringify(weekendData.weekendOnly)}`);
         
         // if (weekendData.weekendOnly.includes(dateStr)) {
           //แก้เงื่อนไขให้หยุดเฉพาะวันอาทิตย์ comment ให้เป็นไปตามวันหยุดหน่วยงาน
