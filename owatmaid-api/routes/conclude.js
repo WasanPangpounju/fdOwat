@@ -2417,8 +2417,7 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
       
       // ตรวจสอบ dayOffOnly (วันหยุดพิเศษเท่านั้น)
       if (weekendData.dayOffOnly && weekendData.dayOffOnly.length > 0) {
-        // console.log(`📅 วันใน dayOffOnly: ${JSON.stringify(weekendData.dayOffOnly)}`);
-                console.log(`📅 วันใน dayoffWorkplace : ${JSON.stringify(weekendData.dayoffWorkplace)}`);
+        console.log(`📅 วันใน dayOffOnly: ${JSON.stringify(weekendData.dayOffOnly)}`);
 
         
         if (weekendData.dayoffWorkplace.includes(dateStr)) {
@@ -2431,8 +2430,9 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
 
       // ตรวจสอบ weekendOnly (วันหยุดสุดสัปดาห์เท่านั้น)
       if (weekendData.weekendOnly && weekendData.weekendOnly.length > 0) {
-        console.log(`📅 วันใน weekendOnly: ${JSON.stringify(weekendData.weekendOnly)}`);
-        
+        // console.log(`📅 วันใน weekendOnly: ${JSON.stringify(weekendData.weekendOnly)}`);
+                        console.log(`📅 วันใน dayoffWorkplace : ${JSON.stringify(weekendData.dayoffWorkplace)}`);
+
         if (weekendData.weekendOnly.includes(dateStr)) {
           //แก้เงื่อนไขให้หยุดเฉพาะวันอาทิตย์ comment ให้เป็นไปตามวันหยุดหน่วยงาน
           // ตรวจสอบว่าเป็นวันเสาร์หรือวันอาทิตย์
