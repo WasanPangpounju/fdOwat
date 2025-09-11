@@ -2122,8 +2122,8 @@ const getWeekendDatesEmployee = async (yyyy, mm, customizeWorkplace ) => {
           try {
             const startDayNum = getDayNumberFromName(item.startDay);
             const endDayNum = getDayNumberFromName(item.endDay);
-            console.log('เริ่มหยุด ' . item.startDay);
-            
+            console.log('เริ่มหยุด ' . startDayNum );
+
             if (startDayNum !== -1 && endDayNum !== -1) {
               if (startDayNum <= endDayNum) {
                 for (let i = startDayNum; i <= endDayNum; i++) {
