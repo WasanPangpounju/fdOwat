@@ -2301,10 +2301,8 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
 
   // เรียกใช้ API เพื่อดึงข้อมูล workRate จาก endpoint ใหม่
   try {
-    // const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${workplaceId}`);
-    // const workplaceData = workplaceResponse.data;
-//zz
-        const workplaceData = await customWorkplace;
+    const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${workplaceId}`);
+    const workplaceData = workplaceResponse.data;
 
     // ใช้ค่า workRate จาก API โดยตรง
     const workRateFromAPI = parseFloat(workplaceData.workRate || '0');
@@ -2353,7 +2351,7 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
     dataCal.worktTimeOT = await Math.floor(tmp_OT / 60) + tmp_OT % 60;
     dataCal.worktTimeStartOT = await parseFloat(workplaces?.[0]?.startWorkOfOT_subHour || '0') + parseFloat(workplaces?.[0]?.startWorkOfOT_subMinute || '0');
 
-    dataCal.dayoffRateHour = await workplaces?.[0]?.dayoffRateHour || 1;
+    dataCal.dayoffRateHour = await workplaces?.[0]?.dayoffRateHour || 2;
     dataCal.dayoffRateOT = await workplaces?.[0]?.dayoffRateOT || 1;
     dataCal.holidayHour= await workplaces?.[0]?.holidayHour|| 1;
     dataCal.holidayOT = await workplaces?.[0]?.holidayOT || 1;
