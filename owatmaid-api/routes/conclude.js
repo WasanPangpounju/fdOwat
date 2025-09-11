@@ -2996,8 +2996,8 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
       
       // ตรวจสอบว่าพนักงานมาทำงานหรือไม่ (มีเวลาทำงาน > 0)
       const hasWorked = record.totalTime && parseFloat(record.totalTime) > 0;
-      console.log(' isHoliday '+ isHoliday);
-      
+      console.log(' isHoliday '+ isHoliday + ' ' + JSON.stringify(allHolidays) );
+
       if (isHoliday && hasWorked) {
         // ถ้าเป็นวันหยุดและพนักงานมาทำงาน
         if (isPublicHoliday) {
