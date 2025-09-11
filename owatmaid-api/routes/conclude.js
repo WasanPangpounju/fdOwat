@@ -2417,7 +2417,9 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
       
       // ตรวจสอบ dayOffOnly (วันหยุดพิเศษเท่านั้น)
       if (weekendData.dayOffOnly && weekendData.dayOffOnly.length > 0) {
-        console.log(`📅 วันใน dayOffOnly: ${JSON.stringify(weekendData.dayOffOnly)}`);
+        // console.log(`📅 วันใน dayOffOnly: ${JSON.stringify(weekendData.dayOffOnly)}`);
+                console.log(`📅 วันใน dayoffWorkplace : ${JSON.stringify(weekendData.dayoffWorkplace)}`);
+
         
         if (weekendData.dayoffWorkplace.includes(dateStr)) {
           console.log(`✅ พบวันที่ ${dateStr} ใน dayOffOnly -> กำหนด dayType = stop`);
