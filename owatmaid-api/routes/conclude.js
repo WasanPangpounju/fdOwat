@@ -2454,7 +2454,7 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
             // return dataCal;
           // }
         // }
-      }
+      // }
       
       // ตรวจสอบเพิ่มเติมสำหรับวันที่ 10 มิถุนายน 2025
      
