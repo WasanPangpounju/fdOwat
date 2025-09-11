@@ -2351,7 +2351,7 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
     dataCal.worktTimeOT = await Math.floor(tmp_OT / 60) + tmp_OT % 60;
     dataCal.worktTimeStartOT = await parseFloat(workplaces?.[0]?.startWorkOfOT_subHour || '0') + parseFloat(workplaces?.[0]?.startWorkOfOT_subMinute || '0');
 
-    dataCal.dayoffRateHour = await workplaces?.[0]?.dayoffRateHour || 2;
+    dataCal.dayoffRateHour = await workplaces?.[0]?.dayoffRateHour || 1;
     dataCal.dayoffRateOT = await workplaces?.[0]?.dayoffRateOT || 1;
     dataCal.holidayHour= await workplaces?.[0]?.holidayHour|| 1;
     dataCal.holidayOT = await workplaces?.[0]?.holidayOT || 1;
@@ -2395,9 +2395,10 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
       console.log(`🔍 เรียก API: ${apiUrl}`);
       console.log(`📅 วันที่ ${dayOfMonth} เดือน ${month} ปี ${year} ใช้ข้อมูลเดือน ${apiMonth} ปี ${apiYear}`);
       
-      const weekendResponse = await axios.get(apiUrl);
-      const weekendData = weekendResponse.data;
-      
+      // const weekendResponse = await axios.get(apiUrl);
+      // const weekendData = weekendResponse.data;
+      const weekendData = getWeekendDatesEmployee(apiYear , apiMonth , customWorkplace);
+
       // แสดงข้อมูลเพื่อตรวจสอบ
       console.log(`📅 วันที่ต้องการตรวจสอบ: ${dateStr} (รูปแบบ: YYYY-MM-DD)`);
       
