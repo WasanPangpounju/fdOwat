@@ -2303,7 +2303,7 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
   try {
     // const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${workplaceId}`);
     // const workplaceData = workplaceResponse.data;
-
+//zz
         const workplaceData = await customWorkplace;
 
     // ใช้ค่า workRate จาก API โดยตรง
@@ -2904,7 +2904,6 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
     
     const weekendResponse = await axios.get(apiUrl);
     weekendData = weekendResponse.data;
-แก้ไข comment โค้ดเรียก api วันหยุด เพื่อไปใช้การดึงจากการทำงานเฉพาะบุคคล
 
     console.log(`📋 ข้อมูลวันหยุดที่ได้:`);
     console.log(`   - weekendAndDayOff: ${JSON.stringify(weekendData.weekendAndDayOff || [])}`);
