@@ -2426,14 +2426,13 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
           return dataCal;
         }
       }
-      //ZZ
 
+      //แก้ไขตัดเงื่อนไขให้วันหยุดเสา อาทิตย์ ออก ด้วยการ comment
       // ตรวจสอบ weekendOnly (วันหยุดสุดสัปดาห์เท่านั้น)
-      if (weekendData.weekendOnly && weekendData.weekendOnly.length > 0) {
-        // console.log(`📅 วันใน weekendOnly: ${JSON.stringify(weekendData.weekendOnly)}`);
-                        console.log(`📅 วันใน dayoffWorkplace : ${JSON.stringify(weekendData.dayoffWorkplace)}`);
-
-        if (weekendData.weekendOnly.includes(dateStr)) {
+      // if (weekendData.weekendOnly && weekendData.weekendOnly.length > 0) {
+        console.log(`📅 วันใน weekendOnly: ${JSON.stringify(weekendData.weekendOnly)}`);
+        
+        // if (weekendData.weekendOnly.includes(dateStr)) {
           //แก้เงื่อนไขให้หยุดเฉพาะวันอาทิตย์ comment ให้เป็นไปตามวันหยุดหน่วยงาน
           // ตรวจสอบว่าเป็นวันเสาร์หรือวันอาทิตย์
           // if (dayOfWeek === 6) { // วันเสาร์
@@ -2442,11 +2441,11 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
           //   return dataCal;
           // } else if (dayOfWeek === 0) { // วันอาทิตย์
           //   console.log(`✅ พบวันที่ ${dateStr} เป็นวันอาทิตย์ใน weekendOnly -> dayType = stop`);
-            dataCal.dayType = 'stop';
-            return dataCal;
+            // dataCal.dayType = 'stop';
+            // return dataCal;
           // }
-        }
-      }
+        // }
+      // }
       
       // ตรวจสอบเพิ่มเติมสำหรับวันที่ 10 มิถุนายน 2025
      
