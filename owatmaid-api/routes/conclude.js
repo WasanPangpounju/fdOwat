@@ -2118,11 +2118,11 @@ const getWeekendDatesEmployee = async (yyyy, mm, customizeWorkplace ) => {
 
       // หาวันหยุดจาก workTimeDay
       workplace.workTimeDay.forEach(item => {
-        console.log(JSON.stringify(item ));
         if (item.workOrStop === 'stop') {
           try {
             const startDayNum = getDayNumberFromName(item.startDay);
             const endDayNum = getDayNumberFromName(item.endDay);
+        console.log(JSON.stringify(item ));
 
             if (startDayNum !== -1 && endDayNum !== -1) {
               if (startDayNum <= endDayNum) {
