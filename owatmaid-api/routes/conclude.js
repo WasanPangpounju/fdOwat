@@ -2427,6 +2427,14 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
         }
       }
 
+
+        if (weekendData.dayoffWorkplace.includes(dateStr)) {
+          console.log(`✅ พบวันที่ ${dateStr} ใน dayoffWorkplace -> กำหนด dayType = stop`);
+          dataCal.dayType = 'stop';
+          return dataCal;
+        }
+      
+
       //แก้ไขตัดเงื่อนไขให้วันหยุดเสา อาทิตย์ ออก ด้วยการ comment
       // ตรวจสอบ weekendOnly (วันหยุดสุดสัปดาห์เท่านั้น)
       // if (weekendData.weekendOnly && weekendData.weekendOnly.length > 0) {
