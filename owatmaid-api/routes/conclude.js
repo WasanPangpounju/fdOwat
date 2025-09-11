@@ -2987,6 +2987,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
       // ตรวจสอบว่าเป็นวันหยุดหรือไม่
       const allHolidays = [
         ...(weekendData.weekendAndDayOff || []),
+        ...(weekendData.dayoffWorkplace || []),
         ...(weekendData.dayOffOnly || [])
       ];
       
