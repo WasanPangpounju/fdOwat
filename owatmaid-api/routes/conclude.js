@@ -1989,6 +1989,207 @@ function groupByWorkplaceId(records) {
 
 //========== latest code
 
+// ฟังก์ชันดึงข้อมูลวันหยุดพนักงานแบบ การทำงานเฉพาะบุคคล
+const getWeekendDatesEmployee = async (yyyy, mm, customizeWorkplace ) => {
+
+    if (!yyyy || !mm ) {
+      return;
+    }
+
+  try {
+    const workplace = await customizeWorkplace;
+    if (!workplace) {
+      return ;
+    }
+
+        // วันหยุดหน่วยงาน (daysOff)
+    const daysOff = workplace.daysOff || [];
+    // วันหยุดนักขัตฤกษ์ (publicHoliday)
+    const publicHoliday = workplace.publicHoliday || [];
+    // ✅ วันหยุดจาก workTimeDay (dayoffWorkplace)
+    const dayoffWorkplace = workplace.dayoffWorkplace || [];
+
+    // daysOff: แปลงเป็น yyyy-mm-dd string เฉพาะที่อยู่ในช่วงเวลา (local date)
+    const year = Number(yyyy);
+    const month = Number(mm);
+    
+    // ✅ แก้ไขการคำนวณช่วงวันที่ให้ถูกต้อง
+    // สำหรับเดือน 06: ต้องแสดงช่วง 21/05/2025 - 20/06/2025
+    let prevMonth = month - 1;
+    let prevYear = year;
+    
+    if (prevMonth === 0) {
+      prevMonth = 12;
+      prevYear = year - 1;
+    }
+    
+    // วันที่เริ่มต้น: วันที่ 21 ของเดือนก่อนหน้า
+    const startDate = new Date(prevYear, prevMonth - 1, 21);
+    // วันที่สิ้นสุด: วันที่ 20 ของเดือนปัจจุบัน  
+    const endDate = new Date(year, month - 1, 20);
+    
+    console.log(`📅 ช่วงเวลาที่คำนวณ: ${startDate.toISOString().slice(0,10)} ถึง ${endDate.toISOString().slice(0,10)}`);
+    console.log(`🗓️ เดือนที่เลือก: ${month}/${year} -> ช่วงเงินเดือน: ${prevMonth}/${prevYear} (21) ถึง ${month}/${year} (20)`);
+
+    // daysOff
+    const daysOffDates = daysOff.map((d, index) => {
+      try {
+        console.log(`🔍 Processing daysOff ${index + 1}:`, d);
+        const local = parseLocalDate(d);
+        if (!local || isNaN(local.getTime())) {
+          console.error(`❌ Invalid daysOff date: ${d}`);
+          return null;
+        }
+        
+        // Format เป็น YYYY-MM-DD แบบ local
+        const formattedDate = `${local.getFullYear()}-${String(local.getMonth() + 1).padStart(2, '0')}-${String(local.getDate()).padStart(2, '0')}`;
+        console.log(`✅ daysOff ${index + 1}: ${d} -> ${formattedDate}`);
+        return formattedDate;
+      } catch (err) {
+        console.error(`❌ Error processing daysOff ${index + 1}:`, err);
+        return null;
+      }
+    }).filter(dateStr => {
+      if (!dateStr) return false;
+      
+      try {
+        const d = parseLocalDate(dateStr);
+        const inRange = d && !isNaN(d.getTime()) && d >= startDate && d <= endDate;
+        console.log(`🔍 daysOff ${dateStr} in range: ${inRange}`);
+        return inRange;
+      } catch (err) {
+        console.error(`❌ Error filtering daysOff:`, err);
+        return false;
+      }
+    });
+
+    // publicHoliday
+    const publicHolidayDates = publicHoliday.map((h, index) => {
+      try {
+        const dateValue = h && h.date ? h.date : h;
+        console.log(`🔍 Processing publicHoliday ${index + 1}:`, h, `-> dateValue:`, dateValue);
+        
+        const local = parseLocalDate(dateValue);
+        if (!local || isNaN(local.getTime())) {
+          console.error(`❌ Invalid publicHoliday date: ${dateValue}`);
+          return null;
+        }
+        
+        // Format เป็น YYYY-MM-DD แบบ local
+        const formattedDate = `${local.getFullYear()}-${String(local.getMonth() + 1).padStart(2, '0')}-${String(local.getDate()).padStart(2, '0')}`;
+        console.log(`✅ publicHoliday ${index + 1}: ${dateValue} -> ${formattedDate}`);
+        return formattedDate;
+      } catch (err) {
+        console.error(`❌ Error processing publicHoliday ${index + 1}:`, err);
+        return null;
+      }
+    }).filter(dateStr => {
+      if (!dateStr) return false;
+      
+      try {
+        const d = parseLocalDate(dateStr);
+        const inRange = d && !isNaN(d.getTime()) && d >= startDate && d <= endDate;
+        console.log(`🔍 publicHoliday ${dateStr} in range [${startDate.toISOString().slice(0,10)} - ${endDate.toISOString().slice(0,10)}]: ${inRange}`);
+        return inRange;
+      } catch (err) {
+        console.error(`❌ Error filtering publicHoliday:`, err);
+        return false;
+      }
+    });
+
+    // ตรวจสอบวันเสาร์-อาทิตย์ในช่วงเวลา
+    const weekendSet = new Set();
+    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+      const day = d.getDay();
+      if (day === 0 || day === 6) {
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        weekendSet.add(`${yyyy}-${mm}-${dd}`);
+      }
+    }
+
+    // ✅ คำนวณ dayoffWorkplace ใหม่ตามช่วงเวลาที่ถูกต้อง
+    const calculatedDayoffWorkplace = [];
+    
+    // อ่านข้อมูล workTimeDay และหาวันหยุดที่กำหนดโดยหน่วยงาน
+    if (workplace.workTimeDay && Array.isArray(workplace.workTimeDay)) {
+      const dayOffList = [];
+      
+      // หาวันหยุดจาก workTimeDay
+      workplace.workTimeDay.forEach(item => {
+        if (item.workOrStop === 'stop') {
+          try {
+            const startDayNum = getDayNumberFromName(item.startDay);
+            const endDayNum = getDayNumberFromName(item.endDay);
+            
+            if (startDayNum !== -1 && endDayNum !== -1) {
+              if (startDayNum <= endDayNum) {
+                for (let i = startDayNum; i <= endDayNum; i++) {
+                  dayOffList.push(i);
+                }
+              } else {
+                // กรณีข้ามสัปดาห์ เช่น ศุกร์-อาทิตย์
+                for (let j = startDayNum; j <= 6; j++) {
+                  dayOffList.push(j);
+                }
+                for (let k = 0; k <= endDayNum; k++) {
+                  dayOffList.push(k);
+                }
+              }
+            }
+          } catch (error) {
+            console.error(`❌ Error processing workTimeDay:`, error);
+          }
+        }
+      });
+      
+      console.log(`🗓️ วันหยุดประจำที่หน่วยงานกำหนด (เลขวัน): ${dayOffList}`);
+      
+      // สร้างรายการวันที่ในช่วงเงินเดือนที่ตรงกับวันหยุด
+      for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+        const dayNumber = d.getDay();
+        if (dayOffList.includes(dayNumber)) {
+          const yyyy = d.getFullYear();
+          const mm = String(d.getMonth() + 1).padStart(2, '0');
+          const dd = String(d.getDate()).padStart(2, '0');
+          const dateStr = `${yyyy}-${mm}-${dd}`;
+          calculatedDayoffWorkplace.push(dateStr);
+        }
+      }
+    }
+    
+    console.log(`✅ คำนวณ dayoffWorkplace ใหม่ได้: ${calculatedDayoffWorkplace.length} วัน`);
+    console.log(`📋 รายการ: ${calculatedDayoffWorkplace}`);
+
+    // weekendAndDayOff: เฉพาะ daysOff ที่อยู่ในช่วงเวลา
+    const weekendAndDayOff = [...daysOffDates].sort();
+    // dayOffOnly: เฉพาะ publicHoliday ที่อยู่ในช่วงเวลา
+    const dayOffOnly = [...publicHolidayDates].sort();
+    // weekendOnly: วันเสาร์-อาทิตย์ในช่วงเวลา ที่ไม่อยู่ใน daysOff
+    const daysOffSet = new Set(daysOffDates);
+    const weekendOnly = Array.from(weekendSet).filter(dateStr => !daysOffSet.has(dateStr)).sort();
+
+    console.log('📊 getWeekendDates Final Results:');
+    console.log('   🏢 daysOff (weekendAndDayOff):', weekendAndDayOff);
+    console.log('   🎉 publicHoliday (dayOffOnly):', dayOffOnly);
+    console.log('   📅 weekendOnly:', weekendOnly);
+    console.log('   🗓️ dayoffWorkplace (คำนวณใหม่):', calculatedDayoffWorkplace);
+return {
+  weekendOnly,
+  dayOffOnly,
+  weekendAndDayOff,
+  dayoffWorkplace: calculatedDayoffWorkplace
+};
+
+  } catch (error) {
+    console.error('❌ Error in /getWeekendDates:', error);
+    return error;
+
+  }
+
+}
+
 
 function getWeekendDates(yyyy, mm, daysOff = []) {
   const year = Number(yyyy);
@@ -2696,12 +2897,16 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
   // เรียก API เพื่อดึงข้อมูลวันหยุด
   let weekendData = {};
   try {
-    const apiUrl = `http://10.10.110.7:3000/conclude/getWeekendDates?yyyy=${year}&mm=${month}&workplaceId=${workplaceId}`;
+    // const apiUrl = `http://10.10.110.7:3000/conclude/getWeekendDates?yyyy=${year}&mm=${month}&workplaceId=${workplaceId}`;
     console.log(`\n🔍 เรียก API วันหยุด: ${apiUrl}`);
     
-    const weekendResponse = await axios.get(apiUrl);
-    weekendData = weekendResponse.data;
-    
+    // const weekendResponse = await axios.get(apiUrl);
+    // weekendData = weekendResponse.data;
+// แก้ไข comment โค้ดเรียก api วันหยุด เพื่อไปใช้การดึงจากการทำงานเฉพาะบุคคล
+
+//เรียกใช้ฟังก์ชันดึงวันหยุดจากการทำงานเฉพาะบุคคล
+const weekendData = await computeMyWeekends(year, month, employeeProfile?.[0]?.customWorkplace);
+
     console.log(`📋 ข้อมูลวันหยุดที่ได้:`);
     console.log(`   - weekendAndDayOff: ${JSON.stringify(weekendData.weekendAndDayOff || [])}`);
     console.log(`   - dayOffOnly: ${JSON.stringify(weekendData.dayOffOnly || [])}`);
@@ -2781,7 +2986,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
       // ตรวจสอบว่าพนักงานมาทำงานหรือไม่ (มีเวลาทำงาน > 0)
       const hasWorked = record.totalTime && parseFloat(record.totalTime) > 0;
       
-      if (isWeekendOrCustom && hasWorked) {
+      if (isHoliday && hasWorked) {
         // ถ้าเป็นวันหยุดและพนักงานมาทำงาน
         if (isPublicHoliday) {
           console.log(`🎯 วันหยุดนักขัตฤกษ์และพนักงานมาทำงาน -> dayType = stop (ใช้ holidayOT)`);
