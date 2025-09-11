@@ -2122,7 +2122,6 @@ const getWeekendDatesEmployee = async (yyyy, mm, customizeWorkplace ) => {
           try {
             const startDayNum = getDayNumberFromName(item.startDay);
             const endDayNum = getDayNumberFromName(item.endDay);
-        console.log(startDayNum  + JSON.stringify(item.startDay));
 
             if (startDayNum !== -1 && endDayNum !== -1) {
               if (startDayNum <= endDayNum) {
@@ -2139,6 +2138,8 @@ const getWeekendDatesEmployee = async (yyyy, mm, customizeWorkplace ) => {
                 }
               }
             }
+            console.log("หยุดวัน " + dayOffList);
+            
           } catch (error) {
             console.error(`❌ Error processing workTimeDay:`, error);
           }
