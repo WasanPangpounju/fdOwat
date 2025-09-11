@@ -2122,7 +2122,7 @@ const getWeekendDatesEmployee = async (yyyy, mm, customizeWorkplace ) => {
           try {
             const startDayNum = getDayNumberFromName(item.startDay);
             const endDayNum = getDayNumberFromName(item.endDay);
-        console.log(JSON.stringify(item.startDay));
+        console.log(startDayNum  + JSON.stringify(item.startDay));
 
             if (startDayNum !== -1 && endDayNum !== -1) {
               if (startDayNum <= endDayNum) {
