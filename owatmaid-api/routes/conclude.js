@@ -2164,50 +2164,13 @@ const getWeekendDatesEmployee = async (yyyy, mm, customizeWorkplace ) => {
     console.log(`✅ คำนวณ dayoffWorkplace ใหม่ได้: ${calculatedDayoffWorkplace.length} วัน`);
     console.log(`📋 รายการ: ${calculatedDayoffWorkplace}`);
 
-    // // weekendAndDayOff: เฉพาะ daysOff ที่อยู่ในช่วงเวลา
-    // const weekendAndDayOff = [...daysOffDates].sort();
-    // // dayOffOnly: เฉพาะ publicHoliday ที่อยู่ในช่วงเวลา
-    // const dayOffOnly = [...publicHolidayDates].sort();
-    // // weekendOnly: วันเสาร์-อาทิตย์ในช่วงเวลา ที่ไม่อยู่ใน daysOff
-    // const daysOffSet = new Set(daysOffDates);
-    // const weekendOnly = Array.from(weekendSet).filter(dateStr => !daysOffSet.has(dateStr)).sort();
-
-    // เตรียม helper สำหรับ format วัน
-const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-
-// ✅ แปลง startDate/endDate เป็นสตริงเพื่อตัด timezone เพี้ยน
-const startStr = fmt(startDate);
-const endStr   = fmt(endDate);
-
-// ✅ daysOff (ในช่วงเวลา)
-const weekendAndDayOff = (daysOff || [])
-  .map(d => {
-    const local = parseLocalDate(d);  // ใช้ parseLocalDate แบบ local midnight
-    return local ? fmt(local) : null;
-  })
-  .filter(Boolean)
-  .filter(s => s >= startStr && s <= endStr)   // เทียบสตริงแทน Date
-  .sort();
-
-// ✅ publicHoliday (ในช่วงเวลา)
-const dayOffOnly = (publicHoliday || [])
-  .map(h => {
-    const dateValue = h && h.date ? h.date : h;
-    const local = parseLocalDate(dateValue);
-    return local ? fmt(local) : null;
-  })
-  .filter(Boolean)
-  .filter(s => s >= startStr && s <= endStr)
-  .sort();
-
-// ✅ weekendOnly (เสาร์–อาทิตย์ในช่วงเวลา แต่ไม่ชน daysOff/publicHoliday)
-const daysOffSet = new Set(weekendAndDayOff);
-const phSet      = new Set(dayOffOnly);
-
-const weekendOnly = Array.from(weekendSet)
-  .filter(s => s >= startStr && s <= endStr) // กันช่วงเพี้ยน
-  .filter(s => !daysOffSet.has(s) && !phSet.has(s))
-  .sort();
+    // weekendAndDayOff: เฉพาะ daysOff ที่อยู่ในช่วงเวลา
+    const weekendAndDayOff = [...daysOffDates].sort();
+    // dayOffOnly: เฉพาะ publicHoliday ที่อยู่ในช่วงเวลา
+    const dayOffOnly = [...publicHolidayDates].sort();
+    // weekendOnly: วันเสาร์-อาทิตย์ในช่วงเวลา ที่ไม่อยู่ใน daysOff
+    const daysOffSet = new Set(daysOffDates);
+    const weekendOnly = Array.from(weekendSet).filter(dateStr => !daysOffSet.has(dateStr)).sort();
 
     console.log('📊 getWeekendDates Final Results:');
     console.log('   🏢 daysOff (weekendAndDayOff):', weekendAndDayOff);
@@ -2456,7 +2419,7 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
       if (weekendData.dayOffOnly && weekendData.dayOffOnly.length > 0) {
         console.log(`📅 วันใน dayOffOnly: ${JSON.stringify(weekendData.dayOffOnly)}`);
         
-        if (weekendData.dayOffOnly.includes(dateStr)) {
+        if (weekendData.dayoffWorkplace.includes(dateStr)) {
           console.log(`✅ พบวันที่ ${dateStr} ใน dayOffOnly -> กำหนด dayType = stop`);
           dataCal.dayType = 'stop';
           return dataCal;
