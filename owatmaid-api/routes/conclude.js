@@ -2122,6 +2122,7 @@ const getWeekendDatesEmployee = async (yyyy, mm, customizeWorkplace ) => {
           try {
             const startDayNum = getDayNumberFromName(item.startDay);
             const endDayNum = getDayNumberFromName(item.endDay);
+            console.log('เริ่มหยุด ' . item.startDay);
             
             if (startDayNum !== -1 && endDayNum !== -1) {
               if (startDayNum <= endDayNum) {
@@ -2398,6 +2399,7 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
       // const weekendResponse = await axios.get(apiUrl);
       // const weekendData = weekendResponse.data;
       const weekendData = await getWeekendDatesEmployee(apiYear , apiMonth , customWorkplace);
+
       // แสดงข้อมูลเพื่อตรวจสอบ
       console.log(`📅 วันที่ต้องการตรวจสอบ: ${dateStr} (รูปแบบ: YYYY-MM-DD)`);
       
@@ -2422,7 +2424,8 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
           return dataCal;
         }
       }
-      
+      //ZZ
+
       // ตรวจสอบ weekendOnly (วันหยุดสุดสัปดาห์เท่านั้น)
       if (weekendData.weekendOnly && weekendData.weekendOnly.length > 0) {
         console.log(`📅 วันใน weekendOnly: ${JSON.stringify(weekendData.weekendOnly)}`);
