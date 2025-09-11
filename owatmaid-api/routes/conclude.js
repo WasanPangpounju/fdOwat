@@ -2301,9 +2301,11 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
 
   // เรียกใช้ API เพื่อดึงข้อมูล workRate จาก endpoint ใหม่
   try {
-    const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${workplaceId}`);
-    const workplaceData = workplaceResponse.data;
-    
+    // const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${workplaceId}`);
+    // const workplaceData = workplaceResponse.data;
+
+        const workplaceData = await customWorkplace;
+
     // ใช้ค่า workRate จาก API โดยตรง
     const workRateFromAPI = parseFloat(workplaceData.workRate || '0');
     console.log(`📊 ดึงค่าแรงจาก API สำหรับ workplace ${workplaceId}: ${workRateFromAPI}`);
@@ -2897,20 +2899,17 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
   // เรียก API เพื่อดึงข้อมูลวันหยุด
   let weekendData = {};
   try {
-    // const apiUrl = `http://10.10.110.7:3000/conclude/getWeekendDates?yyyy=${year}&mm=${month}&workplaceId=${workplaceId}`;
-    // console.log(`\n🔍 เรียก API วันหยุด: ${apiUrl}`);
+    const apiUrl = `http://10.10.110.7:3000/conclude/getWeekendDates?yyyy=${year}&mm=${month}&workplaceId=${workplaceId}`;
+    console.log(`\n🔍 เรียก API วันหยุด: ${apiUrl}`);
     
-    // const weekendResponse = await axios.get(apiUrl);
-    // weekendData = weekendResponse.data;
-// แก้ไข comment โค้ดเรียก api วันหยุด เพื่อไปใช้การดึงจากการทำงานเฉพาะบุคคล
-
-//เรียกใช้ฟังก์ชันดึงวันหยุดจากการทำงานเฉพาะบุคคล
-const weekendData = await computeMyWeekends(year, month, employeeProfile?.[0]?.customWorkplace);
+    const weekendResponse = await axios.get(apiUrl);
+    weekendData = weekendResponse.data;
+แก้ไข comment โค้ดเรียก api วันหยุด เพื่อไปใช้การดึงจากการทำงานเฉพาะบุคคล
 
     console.log(`📋 ข้อมูลวันหยุดที่ได้:`);
     console.log(`   - weekendAndDayOff: ${JSON.stringify(weekendData.weekendAndDayOff || [])}`);
     console.log(`   - dayOffOnly: ${JSON.stringify(weekendData.dayOffOnly || [])}`);
-    return ;
+    
   } catch (error) {
     console.error(`❌ ไม่สามารถดึงข้อมูลวันหยุดได้:`, error.message);
   }
@@ -2953,6 +2952,7 @@ const weekendData = await computeMyWeekends(year, month, employeeProfile?.[0]?.c
       
       console.log(`\n📅 วันที่ ${bangkokDate} (วันที่ ${record.date})`);
 
+      //yy
       // เรียกใช้ checkDayRate เพื่อดึงข้อมูลอัตราค่าแรง
       const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate, record.date, 
         employeeProfile?.[0]?.customWorkplace);
