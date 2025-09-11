@@ -2427,7 +2427,8 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
         }
       }
 
-
+      
+      //ตรวจสอบว่าตรงกับวันหยุดที่กำหนดให้ในการทำงานเฉพาะบุคคล
         if (weekendData.dayoffWorkplace.includes(dateStr)) {
           console.log(`✅ พบวันที่ ${dateStr} ใน dayoffWorkplace -> กำหนด dayType = stop`);
           dataCal.dayType = 'stop';
@@ -2453,7 +2454,7 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
             // return dataCal;
           // }
         // }
-      // }
+      }
       
       // ตรวจสอบเพิ่มเติมสำหรับวันที่ 10 มิถุนายน 2025
      
