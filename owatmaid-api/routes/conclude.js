@@ -2171,7 +2171,7 @@ const getWeekendDatesEmployee = async (yyyy, mm, customizeWorkplace ) => {
     // weekendOnly: วันเสาร์-อาทิตย์ในช่วงเวลา ที่ไม่อยู่ใน daysOff
     const daysOffSet = new Set(daysOffDates);
     const weekendOnly = Array.from(weekendSet).filter(dateStr => !daysOffSet.has(dateStr)).sort();
-  dayoffWorkplace =  await calculatedDayoffWorkplace;
+  // dayoffWorkplace =  await calculatedDayoffWorkplace;
 
     console.log('dayoffWorkplace  ' + JSON.stringify(dayoffWorkplace ));
 
