@@ -2931,7 +2931,7 @@ console.log('ข้อมูลหน่วยงานเฉพาะบุค�
 console.log('ดึงข้อมูลวันหยุดจากการทำงานเฉพาะบุคคล')
 console.log('ข้อมูลหน่วยงานเฉพาะบุคคล ' + JSON.stringify(existingEmployee[0].customWorkplace ))
 //bb
-    console.log(`📋 ข้อมูลวันหยุดที่ได้:`);
+    console.log(`📋 ** ข้อมูลวันหยุดที่ได้:`);
     console.log(`   - weekendAndDayOff: ${JSON.stringify(weekendData.weekendAndDayOff || [])}`);
     console.log(`   - dayOffOnly: ${JSON.stringify(weekendData.dayOffOnly || [])}`);
     
