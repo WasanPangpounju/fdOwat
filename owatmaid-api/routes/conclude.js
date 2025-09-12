@@ -2913,13 +2913,13 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
   // เรียก API เพื่อดึงข้อมูลวันหยุด
   let weekendData = {};
   try {
-    const apiUrl = `http://10.10.110.7:3000/conclude/getWeekendDates?yyyy=${year}&mm=${month}&workplaceId=${workplaceId}`;
+    // const apiUrl = `http://10.10.110.7:3000/conclude/getWeekendDates?yyyy=${year}&mm=${month}&workplaceId=${workplaceId}`;
     console.log(`\n🔍 เรียก API วันหยุด: ${apiUrl}`);
     console.log('******* แก้ไข ');
     // const weekendResponse = await axios.get(apiUrl);
     // weekendData = weekendResponse.data;
     weekendData = await getWeekendDatesEmployee(year, month , customWorkplace);
-    
+    //ดึงข้อมูลจากการทำงานเฉพาะบุคคล
 
     console.log(`📋  ข้อมูลวันหยุดที่ได้:`);
     console.log(`   - weekendAndDayOff: ${JSON.stringify(weekendData.weekendAndDayOff || [])}`);
@@ -2999,7 +2999,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
       const isWeekendOrCustom = (weekendData.weekendAndDayOff || []).includes(bangkokDate); // วันหยุดสุดสัปดาห์/กำหนดเอง
       const isDayOffWorkplace = (weekendData.dayoffWorkplace || []).includes(bangkokDate); //check วันหยุดประจำสัปดาห์ของหน่วยงาน
 console.log('weekendData. ' + JSON.stringify(weekendData ,null,2))
-      
+   console.log('ตรวจสอบว่าพนักงานมาทำงานหรือไม่ ')   
       // ตรวจสอบว่าพนักงานมาทำงานหรือไม่ (มีเวลาทำงาน > 0)
       const hasWorked = record.totalTime && parseFloat(record.totalTime) > 0;
 
