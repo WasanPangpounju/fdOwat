@@ -2432,7 +2432,7 @@ console.log('ดึงข้อมูลวันหยุดจากการ�
       
       //ตรวจสอบว่าตรงกับวันหยุดที่กำหนดให้ในการทำงานเฉพาะบุคคล
         if (weekendData.dayoffWorkplace.includes(dateStr)) {
-          console.log(`✅ พบวันที่ ${dateStr} ใน dayoffWorkplace -> กำหนด dayType = stop`);
+          console.log(`✅ พบวันที่ ${dateStr} ใน dayoffWorkplace -> เป็นวันหยุดประจำสัปดาห์กำหนด dayType = stop`);
           dataCal.dayType = 'stop';
           return dataCal;
         }
@@ -2916,9 +2916,12 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
     const apiUrl = `http://10.10.110.7:3000/conclude/getWeekendDates?yyyy=${year}&mm=${month}&workplaceId=${workplaceId}`;
     console.log(`\n🔍 เรียก API วันหยุด: ${apiUrl}`);
     
-    const weekendResponse = await axios.get(apiUrl);
-    weekendData = weekendResponse.data;
+    // const weekendResponse = await axios.get(apiUrl);
+    // weekendData = weekendResponse.data;
+    weekendData = await getWeekendDatesEmployee(apiYear , apiMonth , customWorkplace);
+console.log('ดึงข้อมูลวันหยุดจากการทำงานเฉพาะบุคคล')
 
+//bb
     console.log(`📋 ข้อมูลวันหยุดที่ได้:`);
     console.log(`   - weekendAndDayOff: ${JSON.stringify(weekendData.weekendAndDayOff || [])}`);
     console.log(`   - dayOffOnly: ${JSON.stringify(weekendData.dayOffOnly || [])}`);
@@ -2991,7 +2994,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
         ...(weekendData.weekendAndDayOff || []),
         ...(weekendData.dayOffOnly || [])
       ];
-      
+      //aa
       const isHoliday = allHolidays.includes(bangkokDate);
       const isPublicHoliday = (weekendData.dayOffOnly || []).includes(bangkokDate); // วันหยุดนักขัตฤกษ์
       const isWeekendOrCustom = (weekendData.weekendAndDayOff || []).includes(bangkokDate); // วันหยุดสุดสัปดาห์/กำหนดเอง
