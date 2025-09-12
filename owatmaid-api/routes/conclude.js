@@ -2401,8 +2401,8 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
       // const weekendResponse = await axios.get(apiUrl);
       // const weekendData = weekendResponse.data;
       const weekendData = await getWeekendDatesEmployee(apiYear , apiMonth , customWorkplace);
-console.log('ดึงข้อมูลวันหยุดจากการทำงานเฉพาะบุคคล')
-
+console.log('*ดึงข้อมูลวันหยุดจากการทำงานเฉพาะบุคคล')
+console.log(JSON.stringify(weekendData ))
       // แสดงข้อมูลเพื่อตรวจสอบ
       console.log(`📅 วันที่ต้องการตรวจสอบ: ${dateStr} (รูปแบบ: YYYY-MM-DD)`);
       
