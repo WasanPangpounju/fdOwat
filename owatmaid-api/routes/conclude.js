@@ -2157,6 +2157,7 @@ const getWeekendDatesEmployee = async (yyyy, mm, customizeWorkplace ) => {
           const dd = String(d.getDate()).padStart(2, '0');
           const dateStr = `${yyyy}-${mm}-${dd}`;
           calculatedDayoffWorkplace.push(dateStr);
+          dayoffWorkplace.push(dateStr);
         }
       }
     }
