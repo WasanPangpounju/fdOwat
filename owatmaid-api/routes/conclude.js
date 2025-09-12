@@ -2908,8 +2908,16 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
   console.log(`📅 จำนวนวันหยุดที่ไม่มาทำงาน: ${notWorkedOnStopDays} วัน`);
   console.log(`💸 ค่าแรงที่ต้องหัก: ${totalLostWage.toFixed(2)} บาท`);
   console.log(`💎 cashcustomizeDayoff จะถูกตั้งเป็น: ${totalWorkerWage.toFixed(2)} บาท`);
+
+  //   const employeeProfile = await getEmployeeProfile(employeeId);
+  // const salaryTmp = parseFloat(employeeProfile[0].salary || '0') || 0;
+  // const workplaceId = employeeProfile[0].workplace;
+  // let salary = 0;
   
-console.log('ข้อมูลหน่วยงานเฉพาะบุคคล ' + JSON.stringify(existingEmployee[0].customWorkplace ))
+
+  // const customWorkplace = employeeProfile[0].customWorkplace;
+
+console.log('ข้อมูลหน่วยงานเฉพาะบุคคล ' + JSON.stringify(customWorkplace ))
 
   // เรียก API เพื่อดึงข้อมูลวันหยุด
   let weekendData = {};
