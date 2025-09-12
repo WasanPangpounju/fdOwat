@@ -2110,7 +2110,7 @@ const getWeekendDatesEmployee = async (yyyy, mm, customizeWorkplace ) => {
     }
 
     // ✅ คำนวณ dayoffWorkplace ใหม่ตามช่วงเวลาที่ถูกต้อง
-    const calculatedDayoffWorkplace = [];
+    let calculatedDayoffWorkplace = [];
     
     // อ่านข้อมูล workTimeDay และหาวันหยุดที่กำหนดโดยหน่วยงาน
     if (workplace.workTimeDay && Array.isArray(workplace.workTimeDay)) {
