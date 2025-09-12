@@ -2991,10 +2991,12 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
       ];
       
       const isHoliday = allHolidays.includes(bangkokDate);
-      const isPublicHoliday = (weekendData.dayOffOnly || []).includes(bangkokDate); // วันหยุดนักขัตฤกษ์
+      // const isPublicHoliday = (weekendData.dayOffOnly || []).includes(bangkokDate); // วันหยุดนักขัตฤกษ์
       const isWeekendOrCustom = (weekendData.weekendAndDayOff || []).includes(bangkokDate); // วันหยุดสุดสัปดาห์/กำหนดเอง
 
-      
+
+      const isPublicHoliday = (weekendData.dayoffWorkplace || []).includes(bangkokDate); // วันหยุดนักขัตฤกษ์
+
       // ตรวจสอบว่าพนักงานมาทำงานหรือไม่ (มีเวลาทำงาน > 0)
       const hasWorked = record.totalTime && parseFloat(record.totalTime) > 0;
 
