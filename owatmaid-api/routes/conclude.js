@@ -2110,7 +2110,7 @@ const getWeekendDatesEmployee = async (yyyy, mm, customizeWorkplace ) => {
     }
 
     // ✅ คำนวณ dayoffWorkplace ใหม่ตามช่วงเวลาที่ถูกต้อง
-    let calculatedDayoffWorkplace = [];
+    const calculatedDayoffWorkplace = [];
     
     // อ่านข้อมูล workTimeDay และหาวันหยุดที่กำหนดโดยหน่วยงาน
     if (workplace.workTimeDay && Array.isArray(workplace.workTimeDay)) {
@@ -2171,7 +2171,7 @@ const getWeekendDatesEmployee = async (yyyy, mm, customizeWorkplace ) => {
     // weekendOnly: วันเสาร์-อาทิตย์ในช่วงเวลา ที่ไม่อยู่ใน daysOff
     const daysOffSet = new Set(daysOffDates);
     const weekendOnly = Array.from(weekendSet).filter(dateStr => !daysOffSet.has(dateStr)).sort();
-  dayoffWorkplace =  calculatedDayoffWorkplace;
+  dayoffWorkplace =  await calculatedDayoffWorkplace;
 
     console.log('dayoffWorkplace  ' + JSON.stringify(dayoffWorkplace ));
 
