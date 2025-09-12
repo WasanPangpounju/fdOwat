@@ -2997,7 +2997,8 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
       const isPublicHoliday = await (weekendData1.dayOffOnly || []).includes(bangkokDate); // วันหยุดนักขัตฤกษ์
       const isWeekendOrCustom = await (weekendData1.weekendAndDayOff || []).includes(bangkokDate); // วันหยุดสุดสัปดาห์/กำหนดเอง
       const isDayOffWorkplace = await (weekendData1.dayoffWorkplace || []).includes(bangkokDate); //check วันหยุดประจำสัปดาห์ของหน่วยงาน
-console.log('weekendData1. ' + JSON.stringify(weekendData1 ,null,2))
+// console.log('weekendData1. ' + JSON.stringify(weekendData1 ,null,2))
+
    console.log('ตรวจสอบว่าพนักงานมาทำงานหรือไม่ ')   
       // ตรวจสอบว่าพนักงานมาทำงานหรือไม่ (มีเวลาทำงาน > 0)
       const hasWorked = record.totalTime && parseFloat(record.totalTime) > 0;
