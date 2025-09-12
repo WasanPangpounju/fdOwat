@@ -2913,7 +2913,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
   // เรียก API เพื่อดึงข้อมูลวันหยุด
   let weekendData = {};
   try {
-    const apiUrl = `http://10.10.110.7:3000/conclude/getWeekendDates?yyyy=${year}&mm=${month}&workplaceId=${workplaceId}`;
+    const apiUrl = `http://10.10.110.7:3000/conclude/getWeekendDates?yyyy=${year}&mm=${month}&workplaceId=10796`;
     console.log(`\n🔍 เรียก API วันหยุด: ${apiUrl}`);
     
     const weekendResponse = await axios.get(apiUrl);
