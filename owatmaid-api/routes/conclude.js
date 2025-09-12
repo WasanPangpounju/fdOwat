@@ -2172,6 +2172,8 @@ const getWeekendDatesEmployee = async (yyyy, mm, customizeWorkplace ) => {
     const daysOffSet = new Set(daysOffDates);
     const weekendOnly = Array.from(weekendSet).filter(dateStr => !daysOffSet.has(dateStr)).sort();
 
+    console.log('calculatedDayoffWorkplace ' + JSON.stringify(calculatedDayoffWorkplace));
+    
     console.log('📊 getWeekendDates Final Results:');
     console.log('   🏢 daysOff (weekendAndDayOff):', weekendAndDayOff);
     console.log('   🎉 publicHoliday (dayOffOnly):', dayOffOnly);
@@ -2400,6 +2402,7 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
       // const weekendResponse = await axios.get(apiUrl);
       // const weekendData = weekendResponse.data;
       const weekendData = await getWeekendDatesEmployee(apiYear , apiMonth , customWorkplace);
+//ดึงข้อมูลวันหยุดจากการทำงานเฉพาะบุคคล
 
       // แสดงข้อมูลเพื่อตรวจสอบ
       console.log(`📅 วันที่ต้องการตรวจสอบ: ${dateStr} (รูปแบบ: YYYY-MM-DD)`);
