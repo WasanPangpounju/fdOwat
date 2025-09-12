@@ -2918,14 +2918,12 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
     console.log('******* แก้ไข ');
     // const weekendResponse = await axios.get(apiUrl);
     // weekendData = weekendResponse.data;
-      const weekendData = await getWeekendDatesEmployee(year , month, customWorkplace);
-      console.log('test**')
-console.log(JSON.stringify(weekendData ,null,2))
+      const weekendData1 = await getWeekendDatesEmployee(year , month, customWorkplace);
     //ดึงข้อมูลจากการทำงานเฉพาะบุคคล
-//bb
+    
     console.log(`📋  ข้อมูลวันหยุดที่ได้:`);
-    console.log(`   - weekendAndDayOff: ${JSON.stringify(weekendData.weekendAndDayOff || [])}`);
-    console.log(`   - dayOffOnly: ${JSON.stringify(weekendData.dayOffOnly || [])}`);
+    console.log(`   - weekendAndDayOff: ${JSON.stringify(weekendData1.weekendAndDayOff || [])}`);
+    console.log(`   - dayOffOnly: ${JSON.stringify(weekendData1.dayOffOnly || [])}`);
     
   } catch (error) {
     console.error(`❌ ไม่สามารถดึงข้อมูลวันหยุดได้:`, error.message);
@@ -2969,7 +2967,6 @@ console.log(JSON.stringify(weekendData ,null,2))
       
       console.log(`\n📅 วันที่ ${bangkokDate} (วันที่ ${record.date})`);
 
-      //yy
       // เรียกใช้ checkDayRate เพื่อดึงข้อมูลอัตราค่าแรง
       const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate, record.date, 
         employeeProfile?.[0]?.customWorkplace);
@@ -2992,15 +2989,15 @@ console.log(JSON.stringify(weekendData ,null,2))
 //xx
       // ตรวจสอบว่าเป็นวันหยุดหรือไม่
       const allHolidays = [
-        ...(weekendData.weekendAndDayOff || []),
-        ...(weekendData.dayOffOnly || [])
+        ...(weekendData1.weekendAndDayOff || []),
+        ...(weekendData1.dayOffOnly || [])
       ];
-      //aa
+
       const isHoliday = await allHolidays.includes(bangkokDate);
-      const isPublicHoliday = await (weekendData.dayOffOnly || []).includes(bangkokDate); // วันหยุดนักขัตฤกษ์
-      const isWeekendOrCustom = await (weekendData.weekendAndDayOff || []).includes(bangkokDate); // วันหยุดสุดสัปดาห์/กำหนดเอง
-      const isDayOffWorkplace = await (weekendData.dayoffWorkplace || []).includes(bangkokDate); //check วันหยุดประจำสัปดาห์ของหน่วยงาน
-console.log('weekendData. ' + JSON.stringify(weekendData ,null,2))
+      const isPublicHoliday = await (weekendData1.dayOffOnly || []).includes(bangkokDate); // วันหยุดนักขัตฤกษ์
+      const isWeekendOrCustom = await (weekendData1.weekendAndDayOff || []).includes(bangkokDate); // วันหยุดสุดสัปดาห์/กำหนดเอง
+      const isDayOffWorkplace = await (weekendData1.dayoffWorkplace || []).includes(bangkokDate); //check วันหยุดประจำสัปดาห์ของหน่วยงาน
+console.log('weekendData1. ' + JSON.stringify(weekendData1 ,null,2))
    console.log('ตรวจสอบว่าพนักงานมาทำงานหรือไม่ ')   
       // ตรวจสอบว่าพนักงานมาทำงานหรือไม่ (มีเวลาทำงาน > 0)
       const hasWorked = record.totalTime && parseFloat(record.totalTime) > 0;
