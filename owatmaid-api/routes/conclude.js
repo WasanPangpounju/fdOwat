@@ -2919,7 +2919,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
     const weekendResponse = await axios.get(apiUrl);
     weekendData = weekendResponse.data;
     // weekendData = await getWeekendDatesEmployee(year, month , existingEmployee[0].customWorkplace );
-console.log('ดึงข้อมูลวันหยุดจากการทำงานเฉพาะบุคคล')
+console.log('*ดึงข้อมูลวันหยุดจากการทำงานเฉพาะบุคคล')
 console.log('ข้อมูลหน่วยงานเฉพาะบุคคล ' + JSON.stringify(existingEmployee[0].customWorkplace ))
 //bb
     console.log(`📋  ข้อมูลวันหยุดที่ได้:`);
