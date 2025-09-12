@@ -2994,13 +2994,12 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
         ...(weekendData.dayOffOnly || [])
       ];
       //aa
-      const isHoliday = allHolidays.includes(bangkokDate);
-      const isPublicHoliday = (weekendData.dayOffOnly || []).includes(bangkokDate); // วันหยุดนักขัตฤกษ์
-      const isWeekendOrCustom = (weekendData.weekendAndDayOff || []).includes(bangkokDate); // วันหยุดสุดสัปดาห์/กำหนดเอง
-      const isDayOffWorkplace = (weekendData.dayoffWorkplace || []).includes(bangkokDate); //check วันหยุดประจำสัปดาห์ของหน่วยงาน
+      const isHoliday = await allHolidays.includes(bangkokDate);
+      const isPublicHoliday = await (weekendData.dayOffOnly || []).includes(bangkokDate); // วันหยุดนักขัตฤกษ์
+      const isWeekendOrCustom = await (weekendData.weekendAndDayOff || []).includes(bangkokDate); // วันหยุดสุดสัปดาห์/กำหนดเอง
+      const isDayOffWorkplace = await (weekendData.dayoffWorkplace || []).includes(bangkokDate); //check วันหยุดประจำสัปดาห์ของหน่วยงาน
 console.log('weekendData. ' + JSON.stringify(weekendData ,null,2))
-console.log(JSON.stringify(customWorkplace)
-)
+console.log(JSON.stringify(customWorkplace))
    console.log('ตรวจสอบว่าพนักงานมาทำงานหรือไม่ ')   
       // ตรวจสอบว่าพนักงานมาทำงานหรือไม่ (มีเวลาทำงาน > 0)
       const hasWorked = record.totalTime && parseFloat(record.totalTime) > 0;
