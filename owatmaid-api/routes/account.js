@@ -5049,10 +5049,25 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         console.log(`🧹 [ACCOUNTING] ลบข้อมูล welfare ที่จะมีการอัปเดตใหม่: ${originalLength} → ${record.addSalaryList.length} items`);
         
         // เพิ่ม welfare data ใหม่ที่อัปเดตแล้ว (เฉพาะที่มีอยู่จริงใน welfare database)
-        record.addSalaryList = [...record.addSalaryList, ...addSalaryFromWelfare];
-        console.log(`📝 [ACCOUNTING] เพิ่ม welfare data ใหม่จาก DB: ${addSalaryFromWelfare.length} items`);
+        const newAddSalaryList = [...record.addSalaryList, ...addSalaryFromWelfare];
         
-        console.log(`   - รวมแล้ว: ${record.addSalaryList.length} items`);
+        // 🔧 ลบข้อมูลซ้ำสำหรับ addSalaryList ก่อนบันทึกลง database
+        const uniqueAddSalaryList = [];
+        const seenKeys = new Set();
+        
+        newAddSalaryList.forEach(item => {
+          // สร้าง unique key จาก id + name + SpSalary เพื่อป้องกันรายการซ้ำ
+          const uniqueKey = `${item.id}-${item.name}-${item.SpSalary}`;
+          if (!seenKeys.has(uniqueKey)) {
+            seenKeys.add(uniqueKey);
+            uniqueAddSalaryList.push(item);
+          }
+        });
+        
+        record.addSalaryList = uniqueAddSalaryList;
+        console.log(`📝 [ACCOUNTING] เพิ่ม welfare data ใหม่จาก DB: ${addSalaryFromWelfare.length} items (ลบซ้ำแล้ว)`);
+        
+        console.log(`   - รวมแล้ว: ${record.addSalaryList.length} items (ไม่มีข้อมูลซ้ำ)`);
         
       } catch (welfareError) {
         console.error('❌ [ACCOUNTING] Error fetching welfare data for employee:', record.employeeId, welfareError);
@@ -5533,15 +5548,28 @@ let timeCashWorkMul = {
       return !isWelfareId && !hasWelfareType;
     });
     
-    console.log(`🔧 [FIX] เก็บ addSalary เดิมที่ไม่ใช่ welfare: ${nonWelfareAddSalary.length} รายการ`);
+    // 🔧 เพิ่มการลบข้อมูลซ้ำสำหรับ nonWelfareAddSalary
+    const uniqueNonWelfareAddSalary = [];
+    const seenIds = new Set();
+    
     nonWelfareAddSalary.forEach(item => {
+      // สร้าง unique key จาก id + name เพื่อป้องกันรายการซ้ำ
+      const uniqueKey = `${item.id}-${item.name}`;
+      if (!seenIds.has(uniqueKey)) {
+        seenIds.add(uniqueKey);
+        uniqueNonWelfareAddSalary.push(item);
+      }
+    });
+    
+    console.log(`🔧 [FIX] เก็บ addSalary เดิมที่ไม่ใช่ welfare: ${uniqueNonWelfareAddSalary.length} รายการ (ลบซ้ำแล้ว)`);
+    uniqueNonWelfareAddSalary.forEach(item => {
       console.log(`   - ID ${item.id}: ${item.name} (${item.SpSalary} บาท)`);
     });
     
-    // รวม addSalary เดิม + welfare data
-    addSalary = [...nonWelfareAddSalary, ...welfareAddSalaryList];
+    // รวม addSalary เดิม (ที่ลบซ้ำแล้ว) + welfare data
+    addSalary = [...uniqueNonWelfareAddSalary, ...welfareAddSalaryList];
     
-    console.log(`🎯 [FIX] รวม addSalary: ${nonWelfareAddSalary.length} เดิม + ${welfareAddSalaryList.length} welfare = ${addSalary.length} รายการ`);
+    console.log(`🎯 [FIX] รวม addSalary: ${uniqueNonWelfareAddSalary.length} เดิม + ${welfareAddSalaryList.length} welfare = ${addSalary.length} รายการ`);
     
     // แสดงรายละเอียด welfare items ที่จะใช้ในการคำนวณ
     welfareAddSalaryList.forEach((item, idx) => {
