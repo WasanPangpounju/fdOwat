@@ -978,7 +978,7 @@ await (async () => {
   await Promise.all(addSalaryList.map(async item => {
 
     // แก้ไขเงื่อนไขการตรวจสอบ ID ให้รวม 1423
-    if(item.id === '1230' || item.id === '1350' || item.id === '1520' || item.id === '1535' || item.id === '1410' || item.id === '1423') {
+    if(item.id === '1230' || item.id === '1350' || item.id === '1520' || item.id === '1535' || item.id === '1410' || item.id === '1423' || item.id === '1231') {
       if(item.id === '1230') {
           data.accountingRecord.amountPosition = await item.SpSalary || 0;
       }  else {
@@ -1008,6 +1008,11 @@ if(item.id === '1410') {
 // เพิ่มการประมวลผลสำหรับ ID 1423
 if(item.id === '1423') {
   data.accountingRecord.vacationCompensation = await item.SpSalary || 0;
+}
+
+// เพิ่มการประมวลผลสำหรับ ID 1231
+if(item.id === '1231') {
+  data.accountingRecord.sickLeaveWithCertificate = await item.SpSalary || 0;
 }
 
     } else {
@@ -1080,6 +1085,12 @@ if (data?.accountingRecord?.vacationCompensation ?? false) {
 } else {
   // The property is not set or it is falsy
     data.accountingRecord.vacationCompensation =  await 0;
+}
+if (data?.accountingRecord?.sickLeaveWithCertificate ?? false) {
+  // The property is set and truthy
+} else {
+  // The property is not set or it is falsy
+    data.accountingRecord.sickLeaveWithCertificate =  await 0;
 }
 
 // await console.log(sumSocial );
@@ -2121,7 +2132,7 @@ if(! dayW.includes( getDayNumberFromDate( responseConclude.data.recordConclude[c
     await (async () => {
       await Promise.all(addSalaryList.map(async item => {
     
-        if(item.id === '1230' || item.id === '1350' || item.id === '1520' || item.id === '1535' || item.id === '1410' || item.id === '1423') {
+        if(item.id === '1230' || item.id === '1350' || item.id === '1520' || item.id === '1535' || item.id === '1410' || item.id === '1423' || item.id === '1231') {
           if(item.id === '1230') {
               data.accountingRecord.amountPosition = await item.SpSalary || 0;
           }  else {
@@ -2149,6 +2160,9 @@ if(! dayW.includes( getDayNumberFromDate( responseConclude.data.recordConclude[c
     }
     if(item.id === '1423') {
       data.accountingRecord.vacationCompensation = await item.SpSalary || 0;
+    }
+    if(item.id === '1231') {
+      data.accountingRecord.sickLeaveWithCertificate = await item.SpSalary || 0;
     }
     
         } else {
@@ -2221,6 +2235,12 @@ if(! dayW.includes( getDayNumberFromDate( responseConclude.data.recordConclude[c
     } else {
       // The property is not set or it is falsy
         data.accountingRecord.vacationCompensation =  await 0;
+    }
+    if (data?.accountingRecord?.sickLeaveWithCertificate ?? false) {
+      // The property is set and truthy
+    } else {
+      // The property is not set or it is falsy
+        data.accountingRecord.sickLeaveWithCertificate =  await 0;
     }
     
     // await console.log(sumSocial );
@@ -4074,7 +4094,7 @@ sumAddSalary = sumAddSalary + parseFloat( item.SpSalary || 0);
 await (async () => {
   await Promise.all(addSalaryList.map(async item => {
 
-    if(item.id === '1230' || item.id === '1350' || item.id === '1520' || item.id === '1535' || item.id === '1410' || item.id === '1423') {
+    if(item.id === '1230' || item.id === '1350' || item.id === '1520' || item.id === '1535' || item.id === '1410' || item.id === '1423' || item.id === '1231') {
       if(item.id === '1230') {
           data.accountingRecord.amountPosition = await item.SpSalary || 0;
       }  else {
@@ -4102,6 +4122,9 @@ if(item.id === '1410') {
 }
 if(item.id === '1423') {
   data.accountingRecord.vacationCompensation = await item.SpSalary || 0;
+}
+if(item.id === '1231') {
+  data.accountingRecord.sickLeaveWithCertificate = await item.SpSalary || 0;
 }
 
     } else {
@@ -4174,6 +4197,12 @@ if (data?.accountingRecord?.vacationCompensation ?? false) {
 } else {
   // The property is not set or it is falsy
     data.accountingRecord.vacationCompensation =  await 0;
+}
+if (data?.accountingRecord?.sickLeaveWithCertificate ?? false) {
+  // The property is set and truthy
+} else {
+  // The property is not set or it is falsy
+    data.accountingRecord.sickLeaveWithCertificate =  await 0;
 }
 
 // await console.log(sumSocial );
