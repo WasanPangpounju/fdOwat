@@ -6725,14 +6725,39 @@ console.log(`\n💰 คำนวณ publicHolidayCash สำหรับพน�
 
   // สรุปผลการตรวจสอบวันหยุดที่กำหนดเอง
 const totalCustomDayoff = weekendData?.weekendAndDayOff?.length || 0;
+const totalDayoffWorkplace = weekendData?.dayoffWorkplace?.length || 0;
 
 // ค้นหาวันหยุดที่กำหนดเองที่พนักงานมาทำงาน พร้อมเก็บรายละเอียด
 const workedCustomDayoffRecords = employee_record.filter(record => {
   try {
-    const recordDate = record.date;
-    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(recordDate).padStart(2, '0')}`;
-    const isCustomDayoff = weekendData?.weekendAndDayOff?.includes(dateStr);
+    const recordDate = parseInt(record.date);
+    
+    // คำนวณปีและเดือนที่ถูกต้องตามรอบเงินเดือน
+    let actualYear, actualMonth;
+    
+    if (recordDate >= 21) {
+      // วันที่ 21-31 เป็นของเดือนก่อนหน้า
+      actualMonth = parseInt(month) - 1;
+      actualYear = parseInt(year);
+      
+      if (actualMonth < 1) {
+        actualMonth = 12;
+        actualYear = parseInt(year) - 1;
+      }
+    } else {
+      // วันที่ 1-20 เป็นของเดือนปัจจุบัน
+      actualMonth = parseInt(month);
+      actualYear = parseInt(year);
+    }
+
+    // สร้างวันที่ในรูปแบบ YYYY-MM-DD ด้วยเดือน/ปีที่ถูกต้อง
+    const dateStr = `${actualYear}-${String(actualMonth).padStart(2, '0')}-${String(recordDate).padStart(2, '0')}`;
+    
+    // ✅ ตรวจสอบทั้ง weekendAndDayOff และ dayoffWorkplace
+    const isCustomDayoff = (weekendData?.weekendAndDayOff?.includes(dateStr)) || 
+                          (weekendData?.dayoffWorkplace?.includes(dateStr));
     const hasWorked = record.totalTime && record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0;
+    
     return isCustomDayoff && hasWorked;
   } catch (error) {
     return false;
@@ -6741,24 +6766,45 @@ const workedCustomDayoffRecords = employee_record.filter(record => {
 
 const daysWorkedOnCustomDayoff = workedCustomDayoffRecords.length;
 
+// ✅ นับรวมทั้ง weekendAndDayOff และ dayoffWorkplace
+const totalAllCustomDayoffs = totalCustomDayoff + totalDayoffWorkplace;
+
 console.log(`\n📊 === สรุปการตรวจสอบวันหยุดที่กำหนดเอง ===`);
-console.log(`📅 จำนวนวันหยุดที่กำหนดเองทั้งหมด: ${totalCustomDayoff} วัน`);
+console.log(`📅 จำนวนวันหยุด weekendAndDayOff: ${totalCustomDayoff} วัน`);
+console.log(`📅 จำนวนวันหยุด dayoffWorkplace: ${totalDayoffWorkplace} วัน`);
+console.log(`📅 จำนวนวันหยุดที่กำหนดเองทั้งหมด: ${totalAllCustomDayoffs} วัน`);
 console.log(`🔍 พนักงานมาทำงานในวันหยุดที่กำหนดเอง: ${daysWorkedOnCustomDayoff} วัน`);
 
 // แสดงรายละเอียดวันหยุดที่กำหนดเองที่มาทำงาน
 if (daysWorkedOnCustomDayoff > 0) {
   console.log(`\n📋 === รายละเอียดวันหยุดที่กำหนดเองที่มาทำงาน ===`);
   workedCustomDayoffRecords.forEach((record, index) => {
-    const recordDate = record.date;
-    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(recordDate).padStart(2, '0')}`;
-    console.log(`  ${index + 1}. วันที่ ${recordDate}/${month}/${year} (${dateStr})`);
+    const recordDate = parseInt(record.date);
+    
+    // คำนวณปีและเดือนที่ถูกต้องตามรอบเงินเดือน
+    let actualYear, actualMonth;
+    
+    if (recordDate >= 21) {
+      actualMonth = parseInt(month) - 1;
+      actualYear = parseInt(year);
+      if (actualMonth < 1) {
+        actualMonth = 12;
+        actualYear = parseInt(year) - 1;
+      }
+    } else {
+      actualMonth = parseInt(month);
+      actualYear = parseInt(year);
+    }
+    
+    const dateStr = `${actualYear}-${String(actualMonth).padStart(2, '0')}-${String(recordDate).padStart(2, '0')}`;
+    console.log(`  ${index + 1}. วันที่ ${recordDate}/${actualMonth}/${actualYear} (${dateStr})`);
     console.log(`     - เวลาทำงาน: ${record.totalTime} ชั่วโมง`);
     console.log(`     - ประเภทวัน: ${record.dayType || 'ไม่ระบุ'}`);
-    if (record.workRate) {
-      console.log(`     - ค่าแรงวันนี้: ${record.workRate} บาท`);
+    if (record.cashWork) {
+      console.log(`     - ค่าแรงวันนี้: ${record.cashWork} บาท`);
     }
-    if (record.workRateOT) {
-      console.log(`     - ค่าแรง OT: ${record.workRateOT} บาท`);
+    if (record.cashOt) {
+      console.log(`     - ค่าแรง OT: ${record.cashOt} บาท`);
     }
   });
 } else {
@@ -6793,18 +6839,18 @@ if (customizeDayoff === 0) {
 }
 
 // แสดงผล
-console.log(`\n📊 === สรุปการตรวจสอบวันหยุดที่กำหนดเอง ===`);
-console.log(`📅 จำนวนวันหยุดที่กำหนดเองทั้งหมด: ${totalCustomDayoff} วัน`);
+console.log(`\n📊 === สรุปการตรวจสอบวันหยุดที่กำหนดเอง (รวม weekendAndDayOff + dayoffWorkplace) ===`);
+console.log(`📅 จำนวนวันหยุดที่กำหนดเองทั้งหมด: ${totalAllCustomDayoffs} วัน`);
 console.log(`🔍 พนักงานมาทำงานในวันหยุดที่กำหนดเอง: ${daysWorkedOnCustomDayoff} วัน`);
-console.log(`🔍 พนักงานมาทำงานในวันหยุดที่กำหนดเอง: ${customizeDayoff} วัน`);
 console.log(`🔍 ค่า customizeDayoff ที่จะบันทึก: ${customizeDayoff}`);
 console.log(`💰 เงินสำหรับวันหยุดที่มาทำงาน (cashcustomizeDayoff): ${cashcustomizeDayoff.toFixed(2)} บาท`);
 
 // 🔥 เพิ่ม Debug สำหรับข้อมูลการคำนวณ
 console.log(`\n🔍 === Debug การคำนวณ cashcustomizeDayoff (เงินสำหรับวันหยุดที่มาทำงาน) ===`);
-console.log(`📊 จำนวนวันหยุด dayoffWorkplace ทั้งหมด: ${totalCustomDayoff} วัน`);
+console.log(`📊 จำนวนวันหยุด weekendAndDayOff ทั้งหมด: ${totalCustomDayoff} วัน`);
+console.log(`📊 จำนวนวันหยุด dayoffWorkplace ทั้งหมด: ${totalDayoffWorkplace} วัน`);
 console.log(`📊 จำนวนวันที่มาทำงานในวันหยุด: ${daysWorkedOnCustomDayoff} วัน`);
-console.log(`📊 จำนวนวันที่ไม่มาทำงานในวันหยุด: ${totalCustomDayoff - daysWorkedOnCustomDayoff} วัน`);
+console.log(`📊 จำนวนวันที่ไม่มาทำงานในวันหยุด: ${totalAllCustomDayoffs - daysWorkedOnCustomDayoff} วัน`);
 console.log(`📊 customizeDayoff (วันที่มาทำงานในวันหยุด): ${customizeDayoff} วัน`);
 console.log(`📊 sumCashWorkMul["1"]: ${sumCashWorkMul["1"]} บาท`);
 console.log(`📊 dayWorkCount: ${dayWorkCount} วัน`);
@@ -6818,6 +6864,12 @@ if (dayWorkCount > 0 && sumCashWorkMul["1"] !== undefined) {
 }
 
 console.log(`\n🔍 === รายการวันหยุดที่กำหนดเอง ===`);
+if (weekendData?.weekendAndDayOff && weekendData.weekendAndDayOff.length > 0) {
+  console.log(`📋 weekendAndDayOff: ${JSON.stringify(weekendData.weekendAndDayOff)}`);
+}
+if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
+  console.log(`📋 dayoffWorkplace: ${JSON.stringify(weekendData.dayoffWorkplace)}`);
+}
 if (weekendData?.weekendAndDayOff && weekendData.weekendAndDayOff.length > 0) {
   console.log(`📋 weekendAndDayOff: ${JSON.stringify(weekendData.weekendAndDayOff)}`);
 }
