@@ -5017,6 +5017,13 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           const isPotentialWelfare = potentialWelfareIds.has(item.id);
           const isValidWelfare = validWelfareIds.has(item.id);
           
+          // 🗑️ ลบรายการเฉพาะที่มี _id = "68c7af2ed481b76565dded94"
+          const isSpecificItemToRemove = item._id === "68c7af2ed481b76565dded94";
+          if (isSpecificItemToRemove) {
+            console.log(`🗑️ [REMOVE SPECIFIC] ลบรายการเฉพาะ: _id=${item._id}, id=${item.id}, name=${item.name}`);
+            return false; // ลบรายการนี้
+          }
+          
           // 🎯 Logic ใหม่: เก็บทุก item ที่ไม่ได้อยู่ใน validWelfareIds (ที่จะมีการอัปเดตใหม่)
           // เก็บ item ถ้า:
           // 1. ไม่ใช่ welfare ID ที่จะมีการอัปเดตใหม่จาก database
@@ -5542,7 +5549,8 @@ let timeCashWorkMul = {
     const nonWelfareAddSalary = originalAddSalary.filter(item => {
       // เก็บเฉพาะรายการที่ไม่ใช่ welfare ID หรือไม่มี welfareType
       const isWelfareId = ['1231', '1423', '1234', '1235', '1242', '1233', '1243', 
-                           '1422', '1428', '1434', '1435', '1429', '1427', '1426', '1425'].includes(item.id);
+                           '1422', 
+                           '1428', '1434', '1435', '1429', '1427', '1426', '1425'].includes(item.id);
       const hasWelfareType = !!item.welfareType;
       
       return !isWelfareId && !hasWelfareType;
