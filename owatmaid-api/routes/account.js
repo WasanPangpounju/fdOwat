@@ -5516,14 +5516,36 @@ let timeCashWorkMul = {
 
   let addSalary = employeeProfile?.[0]?.addSalary || [];
   
-  // 🎯 ถ้ามี welfare data ส่งมา ให้ใช้แทน addSalary เดิม
+  // 🎯 ถ้ามี welfare data ส่งมา ให้รวมกับ addSalary เดิม (ไม่แทนที่)
   if (welfareAddSalaryList && Array.isArray(welfareAddSalaryList) && welfareAddSalaryList.length > 0) {
-    addSalary = welfareAddSalaryList;
-    console.log(`🎯 [calculateCashValues] ใช้ welfare addSalaryList: ${addSalary.length} items`);
+    // 🔧 แก้ไข: เก็บ addSalary เดิมที่ไม่ใช่ welfare แล้วรวมกับ welfare data
+    
+    // ดึง addSalary เดิมจาก employee profile  
+    const originalAddSalary = employeeProfile?.[0]?.addSalary || [];
+    
+    // กรองเฉพาะ addSalary ที่ไม่ใช่ welfare (ไม่มี welfareType)
+    const nonWelfareAddSalary = originalAddSalary.filter(item => {
+      // เก็บเฉพาะรายการที่ไม่ใช่ welfare ID หรือไม่มี welfareType
+      const isWelfareId = ['1231', '1423', '1234', '1235', '1242', '1233', '1243', 
+                           '1422', '1428', '1434', '1435', '1429', '1427', '1426', '1425'].includes(item.id);
+      const hasWelfareType = !!item.welfareType;
+      
+      return !isWelfareId && !hasWelfareType;
+    });
+    
+    console.log(`🔧 [FIX] เก็บ addSalary เดิมที่ไม่ใช่ welfare: ${nonWelfareAddSalary.length} รายการ`);
+    nonWelfareAddSalary.forEach(item => {
+      console.log(`   - ID ${item.id}: ${item.name} (${item.SpSalary} บาท)`);
+    });
+    
+    // รวม addSalary เดิม + welfare data
+    addSalary = [...nonWelfareAddSalary, ...welfareAddSalaryList];
+    
+    console.log(`🎯 [FIX] รวม addSalary: ${nonWelfareAddSalary.length} เดิม + ${welfareAddSalaryList.length} welfare = ${addSalary.length} รายการ`);
     
     // แสดงรายละเอียด welfare items ที่จะใช้ในการคำนวณ
-    addSalary.forEach((item, idx) => {
-      console.log(`🎯   [${idx}] ${item.name}: ${item.SpSalary} (${item.roundOfSalary})`);
+    welfareAddSalaryList.forEach((item, idx) => {
+      console.log(`🎯   [welfare ${idx}] ${item.name}: ${item.SpSalary} (${item.roundOfSalary})`);
     });
   } else {
     console.log(`🎯 [calculateCashValues] ใช้ addSalary เดิม: ${addSalary.length} items`);
