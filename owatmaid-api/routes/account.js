@@ -5017,8 +5017,9 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           const isPotentialWelfare = potentialWelfareIds.has(item.id);
           const isValidWelfare = validWelfareIds.has(item.id);
           
-          // 🗑️ ลบรายการเฉพาะที่มี _id = "68c7af2ed481b76565dded94"
-          const isSpecificItemToRemove = item._id === "68c7af2ed481b76565dded94";
+          // 🗑️ ลบรายการเฉพาะที่มี _id = "68c7af2ed481b76565dded94" หรือ "68c7af2ed481b76565dded92"
+          const specificItemsToRemove = ["68c7af2ed481b76565dded94", "68c7af2ed481b76565dded92"];
+          const isSpecificItemToRemove = specificItemsToRemove.includes(item._id);
           if (isSpecificItemToRemove) {
             console.log(`🗑️ [REMOVE SPECIFIC] ลบรายการเฉพาะ: _id=${item._id}, id=${item.id}, name=${item.name}`);
             return false; // ลบรายการนี้
@@ -7402,5 +7403,249 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
   console.log(`🔍 =============================`);
 };
 
+
+// ...existing code...
+
+// API สำหรับลบรายการเงินเพิ่มจาก addSalaryList
+router.delete('/remove-salary-item/:employeeId/:itemId', async (req, res) => {
+  try {
+    const { employeeId, itemId } = req.params;
+    const { month, year } = req.query;
+
+    console.log(`🗑️ [REMOVE SALARY ITEM] เริ่มลบรายการเงินเพิ่ม:`);
+    console.log(`   - employeeId: ${employeeId}`);
+    console.log(`   - itemId: ${itemId}`);
+    console.log(`   - month: ${month || 'ทุกเดือน'}`);
+    console.log(`   - year: ${year || 'ทุกปี'}`);
+
+    if (!employeeId || !itemId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'employeeId และ itemId เป็นข้อมูลที่จำเป็น' 
+      });
+    }
+
+    // สร้าง query สำหรับค้นหา timerecordEmployee (ไม่บังคับ month/year)
+    const query = { employeeId };
+    if (month) query.month = month;
+    if (year) query.year = year;
+
+    console.log(`🔍 [REMOVE SALARY ITEM] ค้นหาข้อมูลพนักงานด้วย query:`, JSON.stringify(query, null, 2));
+    
+    if (!month && !year) {
+      console.log(`🌟 [REMOVE SALARY ITEM] จะลบจากทุกเดือน/ปีของพนักงาน ${employeeId}`);
+    }
+
+    // ค้นหา timerecordEmployee document
+    const records = await timerecordEmployee.find(query);
+    
+    if (!records || records.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        message: month || year ? 'ไม่พบข้อมูลพนักงานสำหรับเดือน/ปีที่ระบุ' : 'ไม่พบข้อมูลพนักงาน'
+      });
+    }
+
+    let totalRemoved = 0;
+    let removedItems = [];
+
+    // วนลูปผ่าน records ทั้งหมดที่พบ
+    for (const record of records) {
+      if (!record.addSalaryList || !Array.isArray(record.addSalaryList)) {
+        console.log(`⚠️ [REMOVE SALARY ITEM] record ${record._id} ไม่มี addSalaryList`);
+        continue;
+      }
+
+      const originalLength = record.addSalaryList.length;
+      
+      // หารายการที่ต้องลบ
+      const itemToRemove = record.addSalaryList.find(item => item._id?.toString() === itemId);
+      
+      if (itemToRemove) {
+        console.log(`🎯 [REMOVE SALARY ITEM] พบรายการที่ต้องลบ:`, {
+          _id: itemToRemove._id,
+          id: itemToRemove.id,
+          name: itemToRemove.name,
+          SpSalary: itemToRemove.SpSalary
+        });
+
+        // ลบรายการออกจาก addSalaryList
+        record.addSalaryList = record.addSalaryList.filter(item => item._id?.toString() !== itemId);
+        
+        console.log(`🗑️ [REMOVE SALARY ITEM] ลบรายการเสร็จ: ${originalLength} → ${record.addSalaryList.length} items`);
+        
+        // บันทึกการเปลี่ยนแปลงลง database
+        await record.save();
+        
+        totalRemoved++;
+        removedItems.push({
+          recordId: record._id,
+          month: record.month,
+          year: record.year,
+          removedItem: {
+            _id: itemToRemove._id,
+            id: itemToRemove.id,
+            name: itemToRemove.name,
+            SpSalary: itemToRemove.SpSalary
+          }
+        });
+
+        console.log(`✅ [REMOVE SALARY ITEM] บันทึกการเปลี่ยนแปลงสำเร็จ สำหรับ record ${record._id}`);
+      } else {
+        console.log(`❌ [REMOVE SALARY ITEM] ไม่พบรายการที่มี _id = ${itemId} ใน record ${record._id}`);
+      }
+    }
+
+    if (totalRemoved === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        message: `ไม่พบรายการเงินเพิ่มที่มี _id = ${itemId}` 
+      });
+    }
+
+    console.log(`🎉 [REMOVE SALARY ITEM] ลบรายการสำเร็จ จำนวน ${totalRemoved} รายการ`);
+
+    res.status(200).json({ 
+      success: true, 
+      message: `ลบรายการเงินเพิ่มสำเร็จ จำนวน ${totalRemoved} รายการ`,
+      data: {
+        totalRemoved,
+        removedItems,
+        employeeId,
+        itemId
+      }
+    });
+
+  } catch (error) {
+    console.error("❌ [REMOVE SALARY ITEM] เกิดข้อผิดพลาด:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์',
+      error: error.message 
+    });
+  }
+});
+
+// API สำหรับลบหลายรายการเงินเพิ่มพร้อมกัน
+router.delete('/remove-multiple-salary-items', async (req, res) => {
+  try {
+    const { employeeId, itemIds, month, year } = req.body;
+
+    console.log(`🗑️ [REMOVE MULTIPLE SALARY ITEMS] เริ่มลบหลายรายการเงินเพิ่ม:`);
+    console.log(`   - employeeId: ${employeeId}`);
+    console.log(`   - itemIds: ${JSON.stringify(itemIds)}`);
+    console.log(`   - month: ${month}`);
+    console.log(`   - year: ${year}`);
+
+    if (!employeeId || !itemIds || !Array.isArray(itemIds) || itemIds.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'employeeId และ itemIds (array) เป็นข้อมูลที่จำเป็น' 
+      });
+    }
+
+    // สร้าง query สำหรับค้นหา timerecordEmployee
+    const query = { employeeId };
+    if (month) query.month = month;
+    if (year) query.year = year;
+
+    console.log(`🔍 [REMOVE MULTIPLE SALARY ITEMS] ค้นหาข้อมูลพนักงานด้วย query:`, JSON.stringify(query, null, 2));
+
+    // ค้นหา timerecordEmployee document
+    const records = await timerecordEmployee.find(query);
+    
+    if (!records || records.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'ไม่พบข้อมูลพนักงานสำหรับเดือน/ปีที่ระบุ' 
+      });
+    }
+
+    let totalRemoved = 0;
+    let removedItems = [];
+
+    // วนลูปผ่าน records ทั้งหมดที่พบ
+    for (const record of records) {
+      if (!record.addSalaryList || !Array.isArray(record.addSalaryList)) {
+        console.log(`⚠️ [REMOVE MULTIPLE SALARY ITEMS] record ${record._id} ไม่มี addSalaryList`);
+        continue;
+      }
+
+      const originalLength = record.addSalaryList.length;
+      const recordRemovedItems = [];
+      
+      // หารายการที่ต้องลบ
+      itemIds.forEach(itemId => {
+        const itemToRemove = record.addSalaryList.find(item => item._id?.toString() === itemId);
+        
+        if (itemToRemove) {
+          console.log(`🎯 [REMOVE MULTIPLE SALARY ITEMS] พบรายการที่ต้องลบ:`, {
+            _id: itemToRemove._id,
+            id: itemToRemove.id,
+            name: itemToRemove.name,
+            SpSalary: itemToRemove.SpSalary
+          });
+
+          recordRemovedItems.push({
+            _id: itemToRemove._id,
+            id: itemToRemove.id,
+            name: itemToRemove.name,
+            SpSalary: itemToRemove.SpSalary
+          });
+        }
+      });
+
+      if (recordRemovedItems.length > 0) {
+        // ลบรายการออกจาก addSalaryList
+        record.addSalaryList = record.addSalaryList.filter(item => 
+          !itemIds.includes(item._id?.toString())
+        );
+        
+        console.log(`🗑️ [REMOVE MULTIPLE SALARY ITEMS] ลบรายการเสร็จ: ${originalLength} → ${record.addSalaryList.length} items`);
+        
+        // บันทึกการเปลี่ยนแปลงลง database
+        await record.save();
+        
+        totalRemoved += recordRemovedItems.length;
+        removedItems.push({
+          recordId: record._id,
+          month: record.month,
+          year: record.year,
+          removedItems: recordRemovedItems
+        });
+
+        console.log(`✅ [REMOVE MULTIPLE SALARY ITEMS] บันทึกการเปลี่ยนแปลงสำเร็จ สำหรับ record ${record._id}`);
+      }
+    }
+
+    if (totalRemoved === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        message: `ไม่พบรายการเงินเพิ่มที่ต้องการลบ` 
+      });
+    }
+
+    console.log(`🎉 [REMOVE MULTIPLE SALARY ITEMS] ลบรายการสำเร็จ จำนวน ${totalRemoved} รายการ`);
+
+    res.status(200).json({ 
+      success: true, 
+      message: `ลบรายการเงินเพิ่มสำเร็จ จำนวน ${totalRemoved} รายการ`,
+      data: {
+        totalRemoved,
+        removedItems,
+        employeeId,
+        requestedItemIds: itemIds
+      }
+    });
+
+  } catch (error) {
+    console.error("❌ [REMOVE MULTIPLE SALARY ITEMS] เกิดข้อผิดพลาด:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์',
+      error: error.message 
+    });
+  }
+});
 
 module.exports = router;
