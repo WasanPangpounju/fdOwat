@@ -516,11 +516,11 @@ if(promise) {
 
         //push addSalary to account
         if(response.data.addSalary[k].roundOfSalary == "daily" ) {
-        //   if( response.data.addSalary[k].SpSalary !== "") {
-        //     let dailyTmp = await response.data.addSalary[k];
-        //     dailyTmp.message = await countDay;
-        //     await addSalaryList.push(dailyTmp);
-        //   }
+          if( response.data.addSalary[k].SpSalary !== "") {
+            let dailyTmp = await response.data.addSalary[k];
+            dailyTmp.message = await countDay;
+            await addSalaryList.push(dailyTmp);
+          }
 
         } else {
           if( response.data.addSalary[k].SpSalary !== "") {
@@ -1828,11 +1828,11 @@ const response = '';
     
             //push addSalary to account
             if(response.data.addSalary[k].roundOfSalary == "daily" ) {
-            //   if( response.data.addSalary[k].SpSalary !== "") {
-            //     let dailyTmp = await response.data.addSalary[k];
-            //     dailyTmp.message = await countDay;
-            //     await addSalaryList.push(dailyTmp);
-            //   }
+              if( response.data.addSalary[k].SpSalary !== "") {
+                let dailyTmp = await response.data.addSalary[k];
+                dailyTmp.message = await countDay;
+                await addSalaryList.push(dailyTmp);
+              }
     
             } else {
               if( response.data.addSalary[k].SpSalary !== "") {
@@ -3806,11 +3806,11 @@ if(promise) {
 
         //push addSalary to account
         if(response.data.addSalary[k].roundOfSalary == "daily" ) {
-        //   if( response.data.addSalary[k].SpSalary !== "") {
-        //     let dailyTmp = await response.data.addSalary[k];
-        //     dailyTmp.message = await countDay;
-        //     await addSalaryList.push(dailyTmp);
-        //   }
+          if( response.data.addSalary[k].SpSalary !== "") {
+            let dailyTmp = await response.data.addSalary[k];
+            dailyTmp.message = await countDay;
+            await addSalaryList.push(dailyTmp);
+          }
 
         } else {
           if( response.data.addSalary[k].SpSalary !== "") {
