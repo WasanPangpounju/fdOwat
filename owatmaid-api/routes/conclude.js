@@ -2229,8 +2229,8 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
         if (weekendData.weekendOnly.includes(dateStr)) {
           // ตรวจสอบว่าเป็นวันเสาร์หรือวันอาทิตย์
           if (dayOfWeek === 6) { // วันเสาร์
-            console.log(`✅ พบวันที่ ${dateStr} เป็นวันเสาร์ใน weekendOnly -> dayType = work`);
-            dataCal.dayType = 'work';
+            console.log(`✅ พบวันที่ ${dateStr} เป็นวันเสาร์ใน weekendOnly -> dayType = stop`);
+            dataCal.dayType = 'stop'; // เปลี่ยนจาก 'work' เป็น 'stop' เพื่อให้เสาร์เป็นวันหยุด
             return dataCal;
           } else if (dayOfWeek === 0) { // วันอาทิตย์
             console.log(`✅ พบวันที่ ${dateStr} เป็นวันอาทิตย์ใน weekendOnly -> dayType = stop`);
