@@ -5576,13 +5576,30 @@ let timeCashWorkMul = {
     });
     
     // รวม addSalary เดิม (ที่ลบซ้ำแล้ว) + welfare data
-    addSalary = [...uniqueNonWelfareAddSalary, ...welfareAddSalaryList];
+    const combinedSalary = [...uniqueNonWelfareAddSalary, ...welfareAddSalaryList];
     
-    console.log(`🎯 [FIX] รวม addSalary: ${uniqueNonWelfareAddSalary.length} เดิม + ${welfareAddSalaryList.length} welfare = ${addSalary.length} รายการ`);
+    // 🔧 เพิ่ม Final deduplication ก่อนใช้งาน
+    const finalUniqueAddSalary = [];
+    const finalSeenKeys = new Set();
     
-    // แสดงรายละเอียด welfare items ที่จะใช้ในการคำนวณ
-    welfareAddSalaryList.forEach((item, idx) => {
-      console.log(`🎯   [welfare ${idx}] ${item.name}: ${item.SpSalary} (${item.roundOfSalary})`);
+    combinedSalary.forEach(item => {
+      // สร้าง unique key จาก id + name + SpSalary เพื่อป้องกันรายการซ้ำ
+      const uniqueKey = `${item.id}-${item.name}-${item.SpSalary}`;
+      if (!finalSeenKeys.has(uniqueKey)) {
+        finalSeenKeys.add(uniqueKey);
+        finalUniqueAddSalary.push(item);
+      } else {
+        console.log(`🗑️ [FINAL DEDUP] ลบรายการซ้ำ: ${item.name} (${item.id})`);
+      }
+    });
+    
+    addSalary = finalUniqueAddSalary;
+    
+    console.log(`🎯 [FIX] รวม addSalary หลัง final dedup: ${finalUniqueAddSalary.length} รายการ`);
+    
+    // แสดงรายการสุดท้ายที่จะใช้ในการคำนวณ
+    finalUniqueAddSalary.forEach((item, idx) => {
+      console.log(`🎯   [final ${idx}] ${item.name}: ${item.SpSalary} (${item.roundOfSalary})`);
     });
   } else {
     console.log(`🎯 [calculateCashValues] ใช้ addSalary เดิม: ${addSalary.length} items`);
