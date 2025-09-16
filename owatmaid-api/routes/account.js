@@ -959,6 +959,15 @@ sumCalTax = await sumCalTax + amountDay;
 sumCalTax = await sumCalTax + amountOt;
 console.log(addSalaryDayArray.length);
 
+// เพิ่มสวัสดิการรายวันเข้า addSalaryList พร้อมกับ countDay ที่ถูกต้อง
+for (let k = 0; k < (response?.data?.addSalary?.length || 0); k++) {
+  if(response.data.addSalary[k].roundOfSalary == "daily" && response.data.addSalary[k].SpSalary !== "") {
+    let dailyTmp = await {...response.data.addSalary[k]};
+    dailyTmp.message = await countDay;
+    await addSalaryList.push(dailyTmp);
+  }
+}
+
 //concat addSalary
 addSalaryList  = await addSalaryList .concat(addSalaryDayArray);
 console.log(addSalaryList .length);
@@ -1554,13 +1563,13 @@ let hourTwoFive = 0;
 let hourThree = 0;
 const dayW = [];
 
-const response = '';
+let response = null;
 
     // Get employee data by employeeId
     if(responseConclude.data.recordConclude[c].employeeId === '') {
-      const response = null;
+      response = null;
     } else {
-      const response = await axios.get(sURL + '/employee/' + responseConclude.data.recordConclude[c].employeeId);
+      response = await axios.get(sURL + '/employee/' + responseConclude.data.recordConclude[c].employeeId);
     }
 
     // const response = await axios.get(sURL + '/employee/' + responseConclude.data.recordConclude[c].employeeId);
@@ -1828,18 +1837,14 @@ const response = '';
     
             //push addSalary to account
             if(response.data.addSalary[k].roundOfSalary == "daily" ) {
-              if( response.data.addSalary[k].SpSalary !== "") {
-                let dailyTmp = await response.data.addSalary[k];
-                dailyTmp.message = await countDay;
-                await addSalaryList.push(dailyTmp);
-              }
-    
+              // รายวันจะเพิ่มทีหลังหลังจากคำนวณ countDay แล้ว
+
             } else {
               if( response.data.addSalary[k].SpSalary !== "") {
                 //add addSalary monthly to list 
               await addSalaryList.push(response.data.addSalary[k]);
               }
-    
+
             }
     // console.log(response.data.addSalary[k].roundOfSalary );
         }
@@ -2113,6 +2118,15 @@ if(! dayW.includes( getDayNumberFromDate( responseConclude.data.recordConclude[c
     sumCalTax = await sumCalTax + amountDay;
     sumCalTax = await sumCalTax + amountOt;
     console.log(addSalaryDayArray.length);
+    
+    // เพิ่มสวัสดิการรายวันเข้า addSalaryList พร้อมกับ countDay ที่ถูกต้อง
+    for (let k = 0; k < response.data.addSalary.length; k++) {
+      if(response.data.addSalary[k].roundOfSalary == "daily" && response.data.addSalary[k].SpSalary !== "") {
+        let dailyTmp = await {...response.data.addSalary[k]};
+        dailyTmp.message = await countDay;
+        await addSalaryList.push(dailyTmp);
+      }
+    }
     
     //concat addSalary
     addSalaryList  = await addSalaryList .concat(addSalaryDayArray);
@@ -4075,6 +4089,15 @@ data.accountingRecord.amountOt = amountOt;
 sumCalTax = await sumCalTax + amountDay;
 sumCalTax = await sumCalTax + amountOt;
 console.log(addSalaryDayArray.length);
+
+// เพิ่มสวัสดิการรายวันเข้า addSalaryList พร้อมกับ countDay ที่ถูกต้อง
+for (let k = 0; k < response.data.addSalary.length; k++) {
+  if(response.data.addSalary[k].roundOfSalary == "daily" && response.data.addSalary[k].SpSalary !== "") {
+    let dailyTmp = await {...response.data.addSalary[k]};
+    dailyTmp.message = await countDay;
+    await addSalaryList.push(dailyTmp);
+  }
+}
 
 //concat addSalary
 addSalaryList  = await addSalaryList .concat(addSalaryDayArray);
