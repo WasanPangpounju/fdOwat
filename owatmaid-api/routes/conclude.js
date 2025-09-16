@@ -335,6 +335,14 @@ if((prevMonth  == upSalary_month ) && (year1  == upSalary_year ) ) {
           let dateParts = element.date.split('/');
           let str1 = parseInt(dateParts[0], 10);
 
+          // ตรวจสอบ dayType: ถ้าวันนั้นอยู่ในรายการวันหยุด ให้เป็น "stop" ถ้าไม่ใช่ ให้เป็น "work"
+          const isHoliday = dayOffCheck.includes(str1) || specialDayOff.some(special => {
+            let specialParts = special.split('-');
+            return parseInt(specialParts[2], 10) === str1;
+          });
+          
+          tmp.dayType = isHoliday ? "stop" : "work";
+
           if (str1 > 20 && str1 <= lastday) {
 
             tmp.day = str1 + '/' + prevMonth + '/' + year;
@@ -578,6 +586,14 @@ const         wpDataCalculator1 = await {
           let str1 = parseInt(dateParts[0], 10);
           // console.log('*str1 ' + str1);
 
+          // ตรวจสอบ dayType สำหรับส่วนที่สอง
+          const isHoliday1 = dayOffCheck1.includes(str1) || specialDayOff1.some(special => {
+            let specialParts = special.split('-');
+            return parseInt(specialParts[2], 10) === str1;
+          });
+          
+          tmp.dayType = isHoliday1 ? "stop" : "work";
+
           if (str1 > 20 && str1 <= lastday) {
 
             tmp.day = str1 + '/' + prevMonth + '/' + year1;
@@ -797,6 +813,16 @@ const         wpDataCalculator1 = await {
           let x = concludeRecord.some(record => record.day === d);
     
           if (!x) {
+            // ตรวจสอบว่าวันนี้เป็นวันหยุดหรือไม่สำหรับข้อมูลที่ขาดหายในเดือนก่อนหน้า
+            let isHoliday = false;
+            
+            // ตรวจสอบ specialDayOff1 และ dayOffCheck1 ถ้ามีข้อมูล
+            if (typeof specialDayOff1 !== 'undefined' && specialDayOff1.includes(Number(i))) {
+              isHoliday = true;
+            } else if (typeof dayOffCheck1 !== 'undefined' && dayOffCheck1.includes(i)) {
+              isHoliday = true;
+            }
+            
             await concludeRecord.push({
               'day': d,
               'workplaceId': '',
@@ -804,7 +830,8 @@ const         wpDataCalculator1 = await {
               'workRate': '0',
               'otTimes': '0',
               'workRateOT': '0',
-              'addSalaryDay': '0'
+              'addSalaryDay': '0',
+              'dayType': isHoliday ? "stop" : "work"
             });
           }
         }
@@ -1126,6 +1153,11 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
 
               }
             }
+            
+            // กำหนด dayType สำหรับ multi workplace ช่วงเดือนก่อนหน้า (วันที่ 21-สิ้นเดือน)
+            let isHoliday2 = specialDayOff.includes(Number(str1)) || dayOffCheck.includes(str1);
+            tmp.dayType = isHoliday2 ? "stop" : "work";
+            
             tmp.addSalaryDay = '';
             tmp.shift = element.shift || 0;
 
@@ -1146,6 +1178,16 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
       let x = concludeRecord.some(record => record.day === d);
 
       if (!x) {
+        // ตรวจสอบว่าวันนี้เป็นวันหยุดหรือไม่สำหรับข้อมูลที่ขาดหาย
+        let isHoliday = false;
+        
+        // ตรวจสอบ specialDayOff1 และ dayOffCheck1 ถ้ามีข้อมูล
+        if (typeof specialDayOff1 !== 'undefined' && specialDayOff1.includes(Number(i))) {
+          isHoliday = true;
+        } else if (typeof dayOffCheck1 !== 'undefined' && dayOffCheck1.includes(i)) {
+          isHoliday = true;
+        }
+        
         concludeRecord.push({
           'day': d,
           'workplaceId': '',
@@ -1153,7 +1195,8 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
           'workRate': '0',
           'otTimes': '0',
           'workRateOT': '0',
-          'addSalaryDay': '0'
+          'addSalaryDay': '0',
+          'dayType': isHoliday ? "stop" : "work"
         });
       }
     }
@@ -1307,6 +1350,19 @@ let addSalaryDailyx = await addSalaryDaily.filter(item1 => item1.id !== '1210');
     }
     
     dataConclude.addSalary = await addSalaryList;
+
+    // คำนวณจำนวนวันทำงานที่ถูกต้อง (ไม่รวมวันที่ dayType เป็น "stop")
+    const actualWorkDays = concludeRecord.filter(record => {
+      // นับเฉพาะวันที่ไม่ใช่วันหยุด (dayType ไม่เป็น "stop")
+      return record.dayType !== "stop";
+    }).length;
+    
+    console.log(`📊 จำนวนวันทำงานทั้งหมด: ${concludeRecord.length} วัน`);
+    console.log(`🔴 จำนวนวันหยุด (dayType = "stop"): ${concludeRecord.filter(r => r.dayType === "stop").length} วัน`);
+    console.log(`✅ จำนวนวันทำงานจริง: ${actualWorkDays} วัน`);
+    
+    // เพิ่ม dayWorkCount ที่ถูกต้องลงใน dataConclude
+    dataConclude.dayWorkCount = actualWorkDays;
 
     dataConclude.sumWorkHour = sumWorkHour || 0;
     dataConclude.sumWorkRate = sumWorkRate || 0;
