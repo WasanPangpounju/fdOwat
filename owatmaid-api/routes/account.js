@@ -7424,6 +7424,17 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
   console.log(`📅 รวมทั้งหมด: ${sumCashWork1_20 + sumCashWork21_30_31} บาท (ตรวจสอบ: ${sumCashWork})`);
   console.log(`📅 =========================================`);
 
+  // 🔧 ปรับ dayWorkCount โดยลบ customizeDayoff
+  const originalDayWorkCount = dayWorkCount;
+  dayWorkCount = dayWorkCount - customizeDayoff;
+  
+  console.log(`\n🔧 === การปรับ dayWorkCount ===`);
+  console.log(`📊 dayWorkCount เดิม: ${originalDayWorkCount} วัน`);
+  console.log(`📊 customizeDayoff: ${customizeDayoff} วัน`);
+  console.log(`📊 dayWorkCount ใหม่: ${dayWorkCount} วัน`);
+  console.log(`📝 สูตร: ${originalDayWorkCount} - ${customizeDayoff} = ${dayWorkCount}`);
+  console.log(`🔧 =============================`);
+
   return await {
     dayWorkCount,
     dayOffCount,
