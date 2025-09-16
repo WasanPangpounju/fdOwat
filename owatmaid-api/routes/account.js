@@ -6148,10 +6148,35 @@ try {
             console.log(`⏭️ ข้าม cash_holiday ไม่รวมใน sumOt1p5/sumOt3 (วันที่ ${record.date})`);
           }
           
-          // เพิ่ม sumOtPublicHoliday เฉพาะกรณีที่ไม่ใช่ shift: "cash_holiday"
+          // เพิ่ม sumOtPublicHoliday เฉพาะกรณีที่ไม่ใช่ shift: "cash_holiday" และเป็นวันหยุดนักขัตฤกษ์
           if (record.shift !== "cash_holiday") {
-            sumOtPublicHoliday += convertTimeToDecimal(record.totalTime); 
-            console.log(`➕ เพิ่ม OT วันหยุดนักขัตฤกษ์: ${convertTimeToDecimal(record.totalTime)} ชม. (วันที่ ${record.date}, shift: ${record.shift})`);
+            // ตรวจสอบว่าวันนี้เป็นวันหยุดนักขัตฤกษ์หรือไม่
+            const recordDate = parseInt(record.date);
+            
+            // คำนวณปีและเดือนที่ถูกต้องตามรอบเงินเดือน
+            let actualYear, actualMonth;
+            
+            if (recordDate >= 21) {
+              actualMonth = parseInt(month) - 1;
+              actualYear = parseInt(year);
+              if (actualMonth < 1) {
+                actualMonth = 12;
+                actualYear = parseInt(year) - 1;
+              }
+            } else {
+              actualMonth = parseInt(month);
+              actualYear = parseInt(year);
+            }
+            
+            const dateStr = `${actualYear}-${String(actualMonth).padStart(2, '0')}-${String(recordDate).padStart(2, '0')}`;
+            const isPublicHoliday = dayOffOnlyDates.includes(dateStr);
+            
+            if (isPublicHoliday) {
+              sumOtPublicHoliday += convertTimeToDecimal(record.totalTime); 
+              console.log(`➕ เพิ่ม OT วันหยุดนักขัตฤกษ์: ${convertTimeToDecimal(record.totalTime)} ชม. (วันที่ ${record.date}, เป็นวันหยุดนักขัตฤกษ์: ✅)`);
+            } else {
+              console.log(`⏭️ ไม่เพิ่ม OT วันหยุดนักขัตฤกษ์: วันที่ ${record.date} ไม่ใช่วันหยุดนักขัตฤกษ์ (❌)`);
+            }
           } else {
             console.log(`⏭️ ข้าม cash_holiday ไม่รวมใน sumOtPublicHoliday (วันที่ ${record.date})`);
           }
