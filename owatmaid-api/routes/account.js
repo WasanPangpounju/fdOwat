@@ -5812,7 +5812,7 @@ let timeCashWorkMul = {
         // สำหรับหน่วยงาน 7 วัน: ปรับ dayWorkCount โดยหัก workedOnStopDays
         if (workOfWeek === "7") {
           const originalDayWorkCount = dayWorkCount;
-          dayWorkCount = dayWorkCount - workedOnStopDays;
+          dayWorkCount = dayWorkCount 
           console.log(`\n🔄 === ปรับ dayWorkCount สำหรับหน่วยงาน 7 วัน ===`);
           console.log(`📊 dayWorkCount เดิม: ${originalDayWorkCount} วัน`);
           console.log(`📊 workedOnStopDays: ${workedOnStopDays} วัน`);
