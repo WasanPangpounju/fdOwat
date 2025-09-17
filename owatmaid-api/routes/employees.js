@@ -962,4 +962,74 @@ router.post("/updateemployees", async (req, res) => {
   }
 });
 
+// ✅ GET /api/employees/filter-by-jobtype/:jobtype
+// 🔍 กรองพนักงานตาม jobtype และแสดง workplace ในวงเล็บ
+router.get("/filter-by-jobtype/:jobtype", async (req, res) => {
+  try {
+    const { jobtype } = req.params;
+    
+    if (!jobtype) {
+      return res.status(400).json({ error: "jobtype is required" });
+    }
+
+    // Query employees by jobtype
+    const employees = await Employee.find({ jobtype: jobtype });
+
+    if (employees.length === 0) {
+      return res.status(404).json({ 
+        message: `ไม่พบพนักงานที่มี jobtype: ${jobtype}`,
+        count: 0,
+        employees: []
+      });
+    }
+
+    // Format employee data with workplace in parentheses
+    const formattedEmployees = employees.map(employee => {
+      // Format dates
+      let formattedEmployee = { ...employee.toObject() };
+      
+      if (formattedEmployee.startjob) {
+        const [day, month, year] = formattedEmployee.startjob.split('/');
+        formattedEmployee.startjob = `${month}/${day}/${year}`;
+      }
+      
+      if (formattedEmployee.exceptjob) {
+        const [day, month, year] = formattedEmployee.exceptjob.split('/');
+        formattedEmployee.exceptjob = `${month}/${day}/${year}`;
+      }
+
+      // Ensure arrays exist
+      if (!formattedEmployee.addSalary) {
+        formattedEmployee.addSalary = [];
+      }
+      if (!formattedEmployee.deductSalary) {
+        formattedEmployee.deductSalary = [];
+      }
+      if (!formattedEmployee.department) {
+        formattedEmployee.department = '';
+      }
+
+      // Add formatted display name with workplace in parentheses
+      const workplace = formattedEmployee.workplace || 'ไม่ระบุสถานที่ทำงาน';
+      formattedEmployee.displayName = `${formattedEmployee.name} (${workplace})`;
+
+      return formattedEmployee;
+    });
+
+    res.status(200).json({
+      message: `พบพนักงาน jobtype: ${jobtype} จำนวน ${employees.length} คน`,
+      jobtype: jobtype,
+      count: employees.length,
+      employees: formattedEmployees
+    });
+
+  } catch (error) {
+    console.error('Error filtering employees by jobtype:', error);
+    res.status(500).json({ 
+      error: "Internal server error", 
+      details: error.message 
+    });
+  }
+});
+
 module.exports = router;
