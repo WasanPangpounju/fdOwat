@@ -5849,12 +5849,27 @@ let timeCashWorkMul = {
         // สำหรับหน่วยงาน 7 วัน: ปรับ dayWorkCount โดยหัก workedOnStopDays
         if (workOfWeek === "7") {
           const originalDayWorkCount = dayWorkCount;
-          dayWorkCount = dayWorkCount 
+          dayWorkCount = dayWorkCount - workedOnStopDays; // 🔧 แก้ไข: หัก workedOnStopDays
           console.log(`\n🔄 === ปรับ dayWorkCount สำหรับหน่วยงาน 7 วัน ===`);
           console.log(`📊 dayWorkCount เดิม: ${originalDayWorkCount} วัน`);
           console.log(`📊 workedOnStopDays: ${workedOnStopDays} วัน`);
           console.log(`📊 dayWorkCount ใหม่: ${dayWorkCount} วัน`);
           console.log(`📝 สูตร: dayWorkCount - workedOnStopDays = ${originalDayWorkCount} - ${workedOnStopDays} = ${dayWorkCount}`);
+        } else {
+          // 🔧 แก้ไข: สำหรับหน่วยงานปกติ ให้ใช้วิธีการคำนวณ customizeDayoff จากจำนวนวันที่มาทำงานใน dayType: "stop"
+          console.log(`\n🔄 === คำนวณ customizeDayoff สำหรับหน่วยงานปกติ ===`);
+          let stopDayWorkCount = 0;
+          
+          employee_record.forEach(record => {
+            if (record.dayType === "stop" && record.totalTime && 
+                record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0) {
+              stopDayWorkCount++;
+              console.log(`✅ วันที่ ${record.date} - dayType: "stop" มีการทำงาน (${record.totalTime} ชม.)`);
+            }
+          });
+          
+          customizeDayoff = stopDayWorkCount;
+          console.log(`🔢 หน่วยงานปกติ - กำหนดค่า customizeDayoff = ${customizeDayoff} (จากการนับ dayType: "stop" ที่มีการทำงาน)`);
         }
         
         // คำนวณค่าแรงสำหรับวันหยุดที่มาทำงาน (ถ้าต้องการ)
