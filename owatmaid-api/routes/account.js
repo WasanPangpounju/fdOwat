@@ -5098,16 +5098,45 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         
         // 🔧 ลบข้อมูลซ้ำสำหรับ addSalaryList ก่อนบันทึกลง database
         const uniqueAddSalaryList = [];
-        const seenKeys = new Set();
+        const seenKeys = new Map(); // ใช้ Map เพื่อเก็บรายการและสามารถแทนที่ได้
         
         newAddSalaryList.forEach(item => {
-          // สร้าง unique key จาก id + name + SpSalary เพื่อป้องกันรายการซ้ำ
-          const uniqueKey = `${item.id}-${item.name}-${item.SpSalary}`;
-          if (!seenKeys.has(uniqueKey)) {
-            seenKeys.add(uniqueKey);
-            uniqueAddSalaryList.push(item);
+          let uniqueKey;
+          
+          // สำหรับรายการชดเชยวันลา ใช้ key พิเศษเพื่อแทนที่รายการเก่าของเดือนเดียวกัน
+          if (item.welfareType && item.welfareMonth && item.welfareYear) {
+            uniqueKey = `${item.id}-${item.welfareType}-${item.welfareMonth}-${item.welfareYear}`;
+            
+            // ถ้ามีรายการเดียวกันอยู่แล้ว ให้เปรียบเทียบและเก็บรายการที่ดีกว่า
+            if (seenKeys.has(uniqueKey)) {
+              const existingItem = seenKeys.get(uniqueKey);
+              
+              // เก็บรายการที่มี date field (รายการที่รวมแล้ว) หรือมี SpSalary มากกว่า
+              if (item.date || parseFloat(item.SpSalary || 0) > parseFloat(existingItem.SpSalary || 0)) {
+                seenKeys.set(uniqueKey, item);
+                console.log(`🔄 [WELFARE] Replaced existing item with better one: ${uniqueKey}, SpSalary: ${existingItem.SpSalary} -> ${item.SpSalary}`);
+              } else {
+                console.log(`⚠️ [WELFARE] Kept existing item: ${uniqueKey}, SpSalary: ${existingItem.SpSalary}`);
+              }
+            } else {
+              seenKeys.set(uniqueKey, item);
+              console.log(`✅ [WELFARE] Added new welfare item: ${uniqueKey}, SpSalary: ${item.SpSalary}`);
+            }
+          } else {
+            // สำหรับรายการทั่วไป ใช้ key เดิม
+            uniqueKey = `${item.id}-${item.name}-${item.SpSalary}`;
+            
+            if (!seenKeys.has(uniqueKey)) {
+              seenKeys.set(uniqueKey, item);
+              console.log(`✅ [REGULAR] Added regular item: ${uniqueKey}`);
+            } else {
+              console.log(`❌ [DUPLICATE] Skipped duplicate regular item: ${uniqueKey}`);
+            }
           }
         });
+        
+        // แปลง Map กลับเป็น Array
+        uniqueAddSalaryList.push(...seenKeys.values());
         
         record.addSalaryList = uniqueAddSalaryList;
         console.log(`📝 [ACCOUNTING] เพิ่ม welfare data ใหม่จาก DB: ${addSalaryFromWelfare.length} items (ลบซ้ำแล้ว)`);
