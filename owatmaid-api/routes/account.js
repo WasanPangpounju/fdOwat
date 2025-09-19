@@ -6839,7 +6839,7 @@ console.log(`\n💰 คำนวณ publicHolidayCash สำหรับพน�
     // สำหรับพนักงานเงินเดือน: ได้เงินเฉพาะวันหยุดนักขัตฤกษ์ที่มาทำงาน
     console.log(`💰 ✅ พนักงานเงินเดือน - คำนวณ publicHolidayCash`);
     
-    if (daysWorkedOnPublicHolidays < 0) {
+    if (daysWorkedOnPublicHolidays > 0) {
       const dailyRateFromSalary = salaryMonth / 30; // เงินเดือนต่อวัน
       publicHolidayCash = (dailyRateFromSalary * daysWorkedOnPublicHolidays)/2; // จ่ายครึ่งหนึ่งของเงินเดือนต่อวัน
       publicHolidayCount = daysWorkedOnPublicHolidays; // นับเฉพาะวันที่มาทำงาน
