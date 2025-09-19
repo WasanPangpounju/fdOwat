@@ -6841,7 +6841,7 @@ console.log(`\n💰 คำนวณ publicHolidayCash สำหรับพน�
     
     if (daysWorkedOnPublicHolidays > 0) {
       const dailyRateFromSalary = salaryMonth / 30; // เงินเดือนต่อวัน
-      publicHolidayCash = (dailyRateFromSalary * daysWorkedOnPublicHolidays)/2; // จ่ายครึ่งหนึ่งของเงินเดือนต่อวัน
+      publicHolidayCash = (dailyRateFromSalary * daysWorkedOnPublicHolidays) // จ่ายครึ่งหนึ่งของเงินเดือนต่อวัน
       publicHolidayCount = daysWorkedOnPublicHolidays; // นับเฉพาะวันที่มาทำงาน
       
       console.log(`💰 เงินเดือนต่อวัน (${salaryMonth} / 30): ${dailyRateFromSalary.toFixed(2)} บาท`);
