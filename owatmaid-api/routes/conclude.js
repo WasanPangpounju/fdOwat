@@ -3782,7 +3782,14 @@ router.post('/searchtimerecordemployee', async (req, res) => {
 
 router.put('/update1/:id', async (req, res) => {
   try {
-    const updated = await timerecordEmployee.findByIdAndUpdate(
+    console.log('🔍 Update request received:', {
+      id: req.params.id,
+      concludeRecord: req.body.concludeRecord?.length || 0,
+      hasAddSalaryDaily: req.body.concludeRecord?.[0]?.addSalaryDaily?.length || 0
+    });
+
+    // ใช้ model conclude แทน timerecordEmployee
+    const updated = await conclude.findByIdAndUpdate(
       req.params.id,
       req.body,
       { new: true } // ให้คืนค่าหลังอัปเดต
@@ -3792,9 +3799,14 @@ router.put('/update1/:id', async (req, res) => {
       return res.status(404).json({ message: 'ไม่พบข้อมูลที่ต้องการอัปเดต' });
     }
 
+    console.log('✅ Update successful:', {
+      id: updated._id,
+      addSalaryDaily: updated.concludeRecord?.[0]?.addSalaryDaily?.[0]?.SpSalary || 'N/A'
+    });
+
     res.status(200).json({ message: 'อัปเดตสำเร็จ', data: updated });
   } catch (err) {
-    console.error('❌ PUT /conclude/update Error:', err);
+    console.error('❌ PUT /conclude/update1 Error:', err);
     res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: err.message });
   }
 });
