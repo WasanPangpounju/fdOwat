@@ -3784,24 +3784,56 @@ router.put('/update1/:id', async (req, res) => {
   try {
     console.log('🔍 Update request received:', {
       id: req.params.id,
+      idLength: req.params.id.length,
+      isValidObjectId: mongoose.Types.ObjectId.isValid(req.params.id),
       concludeRecord: req.body.concludeRecord?.length || 0,
       hasAddSalaryDaily: req.body.concludeRecord?.[0]?.addSalaryDaily?.length || 0
     });
 
-    // ใช้ model conclude แทน timerecordEmployee
-    const updated = await conclude.findByIdAndUpdate(
+    // ตรวจสอบความถูกต้องของ ObjectId ก่อน
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      console.log('❌ Invalid ObjectId:', req.params.id);
+      return res.status(400).json({ message: 'รูปแบบ ID ไม่ถูกต้อง' });
+    }
+
+    // ลองค้นหาข้อมูลก่อนเพื่อตรวจสอบว่ามีจริงหรือไม่
+    const existingRecord = await timerecordEmployee.findById(req.params.id);
+    
+    if (!existingRecord) {
+      console.log('❌ Record not found with ID:', req.params.id);
+      
+      // ลองค้นหาด้วยเงื่อนไขอื่น
+      const searchAlternative = await timerecordEmployee.findOne({
+        employeeId: req.body.employeeId,
+        month: req.body.month,
+        year: req.body.year
+      });
+      
+      if (searchAlternative) {
+        console.log('✅ Found record with alternative search:', searchAlternative._id);
+        return res.status(200).json({ 
+          message: 'พบข้อมูลด้วยเงื่อนไขอื่น', 
+          correctId: searchAlternative._id,
+          data: searchAlternative 
+        });
+      }
+      
+      return res.status(404).json({ message: 'ไม่พบข้อมูลที่ต้องการอัปเดต' });
+    }
+
+    console.log('📝 Existing record found, proceeding with update...');
+
+    // ใช้ model timerecordEmployee เพราะข้อมูลเก็บอยู่ใน collection นี้
+    const updated = await timerecordEmployee.findByIdAndUpdate(
       req.params.id,
       req.body,
       { new: true } // ให้คืนค่าหลังอัปเดต
     );
 
-    if (!updated) {
-      return res.status(404).json({ message: 'ไม่พบข้อมูลที่ต้องการอัปเดต' });
-    }
-
     console.log('✅ Update successful:', {
       id: updated._id,
-      addSalaryDaily: updated.concludeRecord?.[0]?.addSalaryDaily?.[0]?.SpSalary || 'N/A'
+      concludeRecordLength: updated.concludeRecord?.length || 0,
+      firstRecordAddSalary: updated.concludeRecord?.[0]?.addSalaryDaily?.[0]?.SpSalary || 'N/A'
     });
 
     res.status(200).json({ message: 'อัปเดตสำเร็จ', data: updated });
