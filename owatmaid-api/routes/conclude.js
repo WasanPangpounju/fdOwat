@@ -3838,8 +3838,11 @@ router.put('/update1/:id', async (req, res) => {
     
     // อัพเดทข้อมูลแบบ manual เพื่อให้ Mongoose รู้ว่ามีการเปลี่ยนแปลง
     if (req.body.concludeRecord) {
-      recordToUpdate.concludeRecord = req.body.concludeRecord;
-      recordToUpdate.markModified('concludeRecord');
+      // ใช้ employee_record แทน concludeRecord ตาม schema
+      recordToUpdate.employee_record = req.body.concludeRecord;
+      recordToUpdate.markModified('employee_record');
+      console.log('🔄 Updated employee_record with concludeRecord data');
+      console.log('📝 First record addSalaryDaily:', req.body.concludeRecord[0]?.addSalaryDaily?.[0]?.SpSalary);
     }
     
     // อัพเดทฟิลด์อื่นๆ
