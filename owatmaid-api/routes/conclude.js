@@ -3822,13 +3822,34 @@ router.put('/update1/:id', async (req, res) => {
     }
 
     console.log('📝 Existing record found, proceeding with update...');
+    console.log('📝 Request body keys:', Object.keys(req.body));
+    console.log('📝 ConcludeRecord data:', req.body.concludeRecord?.length || 0, 'records');
+    
+    if (req.body.concludeRecord) {
+      req.body.concludeRecord.forEach((record, index) => {
+        if (record.addSalaryDaily) {
+          console.log(`📝 Record ${index} addSalaryDaily being sent:`, record.addSalaryDaily);
+        }
+      });
+    }
 
-    // ใช้ model timerecordEmployee เพราะข้อมูลเก็บอยู่ใน collection นี้
-    const updated = await timerecordEmployee.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true } // ให้คืนค่าหลังอัปเดต
-    );
+    // อัพเดทข้อมูลด้วย Mongoose แบบ explicit
+    const recordToUpdate = await timerecordEmployee.findById(req.params.id);
+    
+    // อัพเดทข้อมูลแบบ manual เพื่อให้ Mongoose รู้ว่ามีการเปลี่ยนแปลง
+    if (req.body.concludeRecord) {
+      recordToUpdate.concludeRecord = req.body.concludeRecord;
+      recordToUpdate.markModified('concludeRecord');
+    }
+    
+    // อัพเดทฟิลด์อื่นๆ
+    Object.keys(req.body).forEach(key => {
+      if (key !== 'concludeRecord') {
+        recordToUpdate[key] = req.body[key];
+      }
+    });
+
+    const updated = await recordToUpdate.save();
 
     console.log('✅ Update successful:', {
       id: updated._id,
