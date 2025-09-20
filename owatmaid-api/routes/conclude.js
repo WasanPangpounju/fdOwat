@@ -3945,4 +3945,64 @@ router.post('/add-publicholiday', async (req, res) => {
   }
 });
 
+// PUT endpoint สำหรับรีเฟรชข้อมูลหลังบันทึก
+router.put('/searchtimerecordemployee', async (req, res) => {
+  try {
+    const { employeeId, month, year, _timestamp } = req.body;
+    
+    console.log(`\n🔄 === PUT Refresh Data Request ===`);
+    console.log(`👤 EmployeeId: ${employeeId}`);
+    console.log(`📅 Month: ${month}, Year: ${year}`);
+    console.log(`⏰ Timestamp: ${_timestamp}`);
+    
+    // ใช้โค้ดเดียวกับ POST endpoint แต่บังคับ refresh
+    const query = {};
+    if (employeeId) query.employeeId = employeeId;
+    if (month) query.month = month;
+    if (year) query.year = year;
+
+    console.log(`🔍 Query conditions:`, query);
+
+    // เพิ่ม sort เพื่อให้ได้ข้อมูลล่าสุด
+    const result = await concludeRecord.find(query)
+      .sort({ updatedAt: -1, createdAt: -1 }) // เรียงจากใหม่ไปเก่า
+      .lean(); // ใช้ lean() เพื่อให้ได้ plain object
+
+    console.log(`📊 Found ${result.length} records`);
+    
+    if (result.length > 0) {
+      console.log(`✅ ส่งข้อมูลที่รีเฟรชแล้ว (timestamp: ${_timestamp})`);
+      
+      // Log ข้อมูล addSalaryDaily เพื่อ debug
+      if (result[0]?.employee_record?.[0]?.addSalaryDaily) {
+        console.log(`🎯 addSalaryDaily in first record:`, 
+          JSON.stringify(result[0].employee_record[0].addSalaryDaily, null, 2));
+      }
+      
+      res.json({ 
+        result,
+        refreshed: true,
+        timestamp: _timestamp,
+        message: 'Data refreshed successfully'
+      });
+    } else {
+      console.log(`❌ ไม่พบข้อมูล`);
+      res.json({ 
+        result: [],
+        refreshed: true,
+        timestamp: _timestamp,
+        message: 'No data found'
+      });
+    }
+
+  } catch (error) {
+    console.error(`❌ PUT Refresh Error:`, error);
+    res.status(500).json({ 
+      error: error.message,
+      refreshed: false,
+      message: 'Failed to refresh data'
+    });
+  }
+});
+
 module.exports = router;
