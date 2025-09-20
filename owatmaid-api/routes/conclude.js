@@ -82,8 +82,11 @@ const concludeSchema = new mongoose.Schema({
   concludeDate: String,
   employeeId: String,
   concludeRecord: [{
+    date: String, // เพิ่ม date field
     day: String,
     workplaceId: String,
+    workplaceName: String, // เพิ่ม workplaceName
+    wGroup: String, // เพิ่ม wGroup
     allTimes: String,
     workRate: String,
     workRateMultiply: String,
@@ -92,7 +95,23 @@ const concludeSchema = new mongoose.Schema({
     workRateOTMultiply: String,
     addSalaryDay: String,
     shift: String,
-    workType: String
+    workType: String,
+    // เพิ่ม fields ใหม่สำหรับระบบปัจจุบัน
+    beforeTotalOtTime: String,
+    cashBeforeOt: String,
+    totalTime: String,
+    cashWork: String,
+    totalOtTime: String,
+    cashOt: String,
+    addSalaryDaily: [{ // เพิ่ม addSalaryDaily array
+      id: String,
+      name: String,
+      SpSalary: String,
+      roundOfSalary: String,
+      StaffType: String,
+      nameType: String,
+      _id: String
+    }]
   }],
   addSalary: [
   ],
@@ -100,7 +119,8 @@ const concludeSchema = new mongoose.Schema({
   sumWorkHour: String,
   sumWorkRate: String,
   sumWorkHourOt: String,
-  sumWorkRateOt: String
+  sumWorkRateOt: String,
+  status: String // เพิ่ม status field
 });
 
 // Create the conclude record time model based on the schema
