@@ -5161,12 +5161,20 @@ router.post('/searchtimerecordemployee', async (req, res) => {
       }
 
       try {
-        // เงื่อนไขพิเศษ: ถ้า shift เป็น "cash_holiday" ให้กำหนด cashWork เป็น 0
+        // เงื่อนไขพิเศษ: ถ้า shift เป็น "cash_holiday" ให้กำหนด cashWork, cashWorkMul, cashBeforeOtMul, cashOt, cashOtMul เป็น 0
+        console.log(`🔍 [DEBUG] เริ่มตรวจสอบ cash_holiday สำหรับพนักงาน ${doc.employeeId}`);
         if (doc.employee_record && Array.isArray(doc.employee_record)) {
           doc.employee_record.forEach(record => {
             if (record.shift === "cash_holiday") {
-              console.log(`🎯 [CASH_HOLIDAY] พบ shift cash_holiday สำหรับวันที่ ${record.date} - กำหนด cashWork เป็น 0`);
+              console.log(`🎯 [CASH_HOLIDAY] *** ก่อนแก้ไข *** วันที่ ${record.date}: cashWork=${record.cashWork}, cashWorkMul=${record.cashWorkMul}, cashOt=${record.cashOt}, cashOtMul=${record.cashOtMul}`);
               record.cashWork = "0";
+              record.cashWorkMul = "0";
+              record.cashBeforeOtMul = "0";
+              record.cashOt = "0";
+              record.cashOtMul = "0";
+              console.log(`🎯 [CASH_HOLIDAY] *** หลังแก้ไข *** วันที่ ${record.date}: cashWork=${record.cashWork}, cashWorkMul=${record.cashWorkMul}, cashOt=${record.cashOt}, cashOtMul=${record.cashOtMul}`);
+            } else {
+              console.log(`⚪ [NORMAL] วันที่ ${record.date}: shift=${record.shift} (ไม่ใช่ cash_holiday)`);
             }
           });
         }
@@ -6252,9 +6260,12 @@ try {
             const dateStr = `${actualYear}-${String(actualMonth).padStart(2, '0')}-${String(recordDate).padStart(2, '0')}`;
             const isPublicHoliday = dayOffOnlyDates.includes(dateStr);
             
-            if (isPublicHoliday) {
+            // ⚠️ สำหรับพนักงานเงินเดือน: ไม่นับวันหยุดนักขัตฤกษ์เป็น OT (sumOtPublicHoliday = 0)
+            if (isPublicHoliday && typeOfemployee !== 'รายเดือน') {
               sumOtPublicHoliday += convertTimeToDecimal(record.totalTime); 
-              console.log(`➕ เพิ่ม OT วันหยุดนักขัตฤกษ์: ${convertTimeToDecimal(record.totalTime)} ชม. (วันที่ ${record.date}, เป็นวันหยุดนักขัตฤกษ์: ✅)`);
+              console.log(`➕ เพิ่ม OT วันหยุดนักขัตฤกษ์: ${convertTimeToDecimal(record.totalTime)} ชม. (วันที่ ${record.date}, เป็นวันหยุดนักขัตฤกษ์: ✅, พนักงาน: ${typeOfemployee})`);
+            } else if (isPublicHoliday && typeOfemployee === 'รายเดือน') {
+              console.log(`⏭️ ข้าม OT วันหยุดนักขัตฤกษ์: พนักงานเงินเดือนไม่นับ OT วันหยุดนักขัตฤกษ์ (วันที่ ${record.date})`);
             } else {
               console.log(`⏭️ ไม่เพิ่ม OT วันหยุดนักขัตฤกษ์: วันที่ ${record.date} ไม่ใช่วันหยุดนักขัตฤกษ์ (❌)`);
             }
@@ -6264,21 +6275,129 @@ try {
           
           // คำนวณ sumCashWorkMul และ timeCashWorkMul โดยใช้ค่าที่ปรับแล้ว
           if (record?.cashWorkMul && sumCashWorkMul[record.cashWorkMul] !== undefined) {
-            const cashWorkAmount = parseFloat(record?.cashWork || '0');
-            sumCashWorkMul[record.cashWorkMul] += cashWorkAmount;
-            console.log(`   - เพิ่ม cashWork ${cashWorkAmount} ไปยัง sumCashWorkMul[${record.cashWorkMul}] (รวม: ${sumCashWorkMul[record.cashWorkMul]})`);
+            // ⚠️ ตรวจสอบวันหยุดนักขัตฤกษ์สำหรับพนักงานเงินเดือน
+            const recordDate = parseInt(record.date);
+            let actualYear, actualMonth;
+            
+            if (recordDate >= 21) {
+              actualMonth = parseInt(month) - 1;
+              actualYear = parseInt(year);
+              if (actualMonth < 1) {
+                actualMonth = 12;
+                actualYear = parseInt(year) - 1;
+              }
+            } else {
+              actualMonth = parseInt(month);
+              actualYear = parseInt(year);
+            }
+            
+            const dateStr = `${actualYear}-${String(actualMonth).padStart(2, '0')}-${String(recordDate).padStart(2, '0')}`;
+            const isPublicHoliday = dayOffOnlyDates.includes(dateStr);
+            
+            // สำหรับพนักงานเงินเดือน: ถ้าเป็นวันหยุดนักขัตฤกษ์ ให้ cashWorkMul = 0
+            let effectiveCashWorkMul = record.cashWorkMul;
+            if (isPublicHoliday && typeOfemployee === 'รายเดือน') {
+              effectiveCashWorkMul = "0";
+              console.log(`🚫 วันหยุดนักขัตฤกษ์ (วันที่ ${record.date}): บังคับ cashWorkMul เป็น 0 สำหรับพนักงานเงินเดือน`);
+            }
+            
+            if (effectiveCashWorkMul !== "0" && sumCashWorkMul[effectiveCashWorkMul] !== undefined) {
+              const cashWorkAmount = parseFloat(record?.cashWork || '0');
+              sumCashWorkMul[effectiveCashWorkMul] += cashWorkAmount;
+              console.log(`   - เพิ่ม cashWork ${cashWorkAmount} ไปยัง sumCashWorkMul[${effectiveCashWorkMul}] (รวม: ${sumCashWorkMul[effectiveCashWorkMul]})`);
+            } else if (effectiveCashWorkMul === "0") {
+              console.log(`   - ข้าม cashWork ${record?.cashWork || '0'} เพราะ effectiveCashWorkMul = 0`);
+            }
           }
           if (record?.cashOtMul && sumCashWorkMul[record.cashOtMul] !== undefined) {
-            const cashOtAmount = parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0');
-            sumCashWorkMul[record.cashOtMul] += cashOtAmount;
-            console.log(`   - เพิ่ม cashOt ${cashOtAmount} ไปยัง sumCashWorkMul[${record.cashOtMul}] (รวม: ${sumCashWorkMul[record.cashOtMul]})`);
+            // ⚠️ ตรวจสอบวันหยุดนักขัตฤกษ์สำหรับพนักงานเงินเดือน (OT)
+            const recordDate = parseInt(record.date);
+            let actualYear, actualMonth;
+            
+            if (recordDate >= 21) {
+              actualMonth = parseInt(month) - 1;
+              actualYear = parseInt(year);
+              if (actualMonth < 1) {
+                actualMonth = 12;
+                actualYear = parseInt(year) - 1;
+              }
+            } else {
+              actualMonth = parseInt(month);
+              actualYear = parseInt(year);
+            }
+            
+            const dateStr = `${actualYear}-${String(actualMonth).padStart(2, '0')}-${String(recordDate).padStart(2, '0')}`;
+            const isPublicHoliday = dayOffOnlyDates.includes(dateStr);
+            
+            // สำหรับพนักงานเงินเดือน: ถ้าเป็นวันหยุดนักขัตฤกษ์ ให้ cashOtMul = 0
+            let effectiveCashOtMul = record.cashOtMul;
+            if (isPublicHoliday && typeOfemployee === 'รายเดือน') {
+              effectiveCashOtMul = "0";
+              console.log(`🚫 วันหยุดนักขัตฤกษ์ (วันที่ ${record.date}): บังคับ cashOtMul เป็น 0 สำหรับพนักงานเงินเดือน`);
+            }
+            
+            if (effectiveCashOtMul !== "0" && sumCashWorkMul[effectiveCashOtMul] !== undefined) {
+              const cashOtAmount = parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0');
+              sumCashWorkMul[effectiveCashOtMul] += cashOtAmount;
+              console.log(`   - เพิ่ม cashOt ${cashOtAmount} ไปยัง sumCashWorkMul[${effectiveCashOtMul}] (รวม: ${sumCashWorkMul[effectiveCashOtMul]})`);
+            } else if (effectiveCashOtMul === "0") {
+              console.log(`   - ข้าม cashOt ${parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0')} เพราะ effectiveCashOtMul = 0`);
+            }
           }
 
           if (record?.cashWorkMul && timeCashWorkMul[record.cashWorkMul] !== undefined) {
-            timeCashWorkMul[record.cashWorkMul] += convertTimeToDecimal(record.totalTime);
+            // ⚠️ ตรวจสอบวันหยุดนักขัตฤกษ์สำหรับพนักงานเงินเดือน (time)
+            const recordDate = parseInt(record.date);
+            let actualYear, actualMonth;
+            
+            if (recordDate >= 21) {
+              actualMonth = parseInt(month) - 1;
+              actualYear = parseInt(year);
+              if (actualMonth < 1) {
+                actualMonth = 12;
+                actualYear = parseInt(year) - 1;
+              }
+            } else {
+              actualMonth = parseInt(month);
+              actualYear = parseInt(year);
+            }
+            
+            const dateStr = `${actualYear}-${String(actualMonth).padStart(2, '0')}-${String(recordDate).padStart(2, '0')}`;
+            const isPublicHoliday = dayOffOnlyDates.includes(dateStr);
+            
+            // สำหรับพนักงานเงินเดือน: ถ้าเป็นวันหยุดนักขัตฤกษ์ ข้าม timeCashWorkMul
+            if (!(isPublicHoliday && typeOfemployee === 'รายเดือน')) {
+              timeCashWorkMul[record.cashWorkMul] += convertTimeToDecimal(record.totalTime);
+            } else {
+              console.log(`🚫 วันหยุดนักขัตฤกษ์ (วันที่ ${record.date}): ข้าม timeCashWorkMul สำหรับพนักงานเงินเดือน`);
+            }
           }
           if (record?.cashOtMul && timeCashWorkMul[record.cashOtMul] !== undefined) {
-            timeCashWorkMul[record.cashOtMul] += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalOtTime);
+            // ⚠️ ตรวจสอบวันหยุดนักขัตฤกษ์สำหรับพนักงานเงินเดือน (OT time)
+            const recordDate = parseInt(record.date);
+            let actualYear, actualMonth;
+            
+            if (recordDate >= 21) {
+              actualMonth = parseInt(month) - 1;
+              actualYear = parseInt(year);
+              if (actualMonth < 1) {
+                actualMonth = 12;
+                actualYear = parseInt(year) - 1;
+              }
+            } else {
+              actualMonth = parseInt(month);
+              actualYear = parseInt(year);
+            }
+            
+            const dateStr = `${actualYear}-${String(actualMonth).padStart(2, '0')}-${String(recordDate).padStart(2, '0')}`;
+            const isPublicHoliday = dayOffOnlyDates.includes(dateStr);
+            
+            // สำหรับพนักงานเงินเดือน: ถ้าเป็นวันหยุดนักขัตฤกษ์ ข้าม timeCashWorkMul (OT)
+            if (!(isPublicHoliday && typeOfemployee === 'รายเดือน')) {
+              timeCashWorkMul[record.cashOtMul] += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalOtTime);
+            } else {
+              console.log(`🚫 วันหยุดนักขัตฤกษ์ (วันที่ ${record.date}): ข้าม timeCashWorkMul (OT) สำหรับพนักงานเงินเดือน`);
+            }
           }
           
           // จัดการ addSalaryDaily สำหรับวันหยุด (dayType = stop)
@@ -7193,12 +7312,15 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
     const dayPerHour2 = dayPerHour * 2;
     const dayPerHour3 = dayPerHour * 3; 
     sumCashWorkMul["1.5"] = (dayPerHour1p5 * sumOt1p5).toFixed(2)
-    sumCashWorkMul["2"] = (dayPerHour2 * sumOtPublicHoliday).toFixed(2)
+    // ⚠️ สำหรับพนักงานเงินเดือน: เก็บค่าเดิมจาก records (วันหยุดพิเศษ) แต่ไม่เพิ่ม OT วันหยุดนักขัตฤกษ์
+    // sumCashWorkMul["2"] จะมีค่าจาก records อยู่แล้ว ไม่ต้องเปลี่ยน
     sumCashWorkMul["3"] = (dayPerHour3 * sumOt3).toFixed(2)
     
 
 
     console.log(`💰 - คำนวณค่าแรงต่อชั่วโมงจากเงินเดือน: ${dayPerHour} บาท/ชม.`);
+    console.log(`💰 - sumOtPublicHoliday (พนักงานเงินเดือน): 0 ชม. (ไม่นับ OT วันหยุดนักขัตฤกษ์)`);
+    console.log(`💰 - sumCashWorkMul["2"]: ${sumCashWorkMul["2"]} บาท (เก็บค่าจาก records เฉพาะวันหยุดพิเศษ)`);
     
     console.log(`\n💰 STEP 3: คำนวณรายได้รวมสำหรับประกันสังคม`);
     const totalIncome = parseFloat(salaryMonth || 0) + 
