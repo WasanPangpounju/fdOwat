@@ -6528,6 +6528,7 @@ if (record?.dayType === "work") {
       record.totalTime = "0"; 
       console.log(`   - totalTime ถูกปรับเป็น: ${record.totalTime}`);
     } else if (record.shift === "cash_holiday") {
+      record.cashWork = "0";
       console.log(`🚫 พบ cash_holiday ในวันที่ ${record.date} - ไม่นับเป็นวันทำงานปกติ`);
       console.log(`   - cashWork เดิม: ${cashWorkAmount}, cashOt เดิม: ${record.cashOt}, shift: ${record.shift}`);
       // สำหรับ cash_holiday ไม่ต้องเปลี่ยน cashWork เพราะเป็นค่าแรงวันหยุด
