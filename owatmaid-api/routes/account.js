@@ -5162,10 +5162,18 @@ router.post('/searchtimerecordemployee', async (req, res) => {
 
       try {
         // เงื่อนไขพิเศษ: ถ้า shift เป็น "cash_holiday" ให้กำหนด cashWork, cashWorkMul, cashBeforeOtMul, cashOt, cashOtMul เป็น 0
+        // *** ย้ายมาไว้ก่อน calculateCashValues เพื่อให้การคำนวณใช้ค่าที่แก้ไขแล้ว ***
         console.log(`🔍 [DEBUG] เริ่มตรวจสอบ cash_holiday สำหรับพนักงาน ${doc.employeeId}`);
+        console.log(`🔍 [DEBUG] จำนวน employee_record: ${doc.employee_record ? doc.employee_record.length : 0}`);
+        
+        // ตรวจสอบว่า doc.employee_record มีค่าและมี cash_holiday หรือไม่
+        let foundCashHoliday = false;
         if (doc.employee_record && Array.isArray(doc.employee_record)) {
-          doc.employee_record.forEach(record => {
+          doc.employee_record.forEach((record, index) => {
+            console.log(`🔍 [DEBUG] Record ${index}: date=${record.date}, shift=${record.shift}, cashWork=${record.cashWork}, cashWorkMul=${record.cashWorkMul}`);
+            
             if (record.shift === "cash_holiday") {
+              foundCashHoliday = true;
               console.log(`🎯 [CASH_HOLIDAY] *** ก่อนแก้ไข *** วันที่ ${record.date}: cashWork=${record.cashWork}, cashWorkMul=${record.cashWorkMul}, cashOt=${record.cashOt}, cashOtMul=${record.cashOtMul}`);
               record.cashWork = "0";
               record.cashWorkMul = "0";
@@ -5173,11 +5181,11 @@ router.post('/searchtimerecordemployee', async (req, res) => {
               record.cashOt = "0";
               record.cashOtMul = "0";
               console.log(`🎯 [CASH_HOLIDAY] *** หลังแก้ไข *** วันที่ ${record.date}: cashWork=${record.cashWork}, cashWorkMul=${record.cashWorkMul}, cashOt=${record.cashOt}, cashOtMul=${record.cashOtMul}`);
-            } else {
-              console.log(`⚪ [NORMAL] วันที่ ${record.date}: shift=${record.shift} (ไม่ใช่ cash_holiday)`);
             }
           });
         }
+        
+        console.log(`🔍 [DEBUG] พบ cash_holiday หรือไม่: ${foundCashHoliday}`);
 
         // ดึงข้อมูล prefix และ employeeName จาก Employee model
         let employeePrefix = '';
@@ -5205,6 +5213,17 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         console.log(`🎯 calculatedValues.countAllowance: ${calculatedValues.countAllowance}`);
         console.log(`🎯 calculatedValues.dayWorkCount: ${calculatedValues.dayWorkCount}`);
         console.log(`🎯 calculatedValues.addSalaryList.length: ${calculatedValues.addSalaryList?.length || 0}`);
+        
+        // แสดงข้อมูล sumCashWorkMul
+        console.log(`🎯 === sumCashWorkMul หลัง calculateCashValues ===`);
+        if (calculatedValues.sumCashWorkMul) {
+          Object.keys(calculatedValues.sumCashWorkMul).forEach(key => {
+            console.log(`🎯 sumCashWorkMul["${key}"] = ${calculatedValues.sumCashWorkMul[key]}`);
+          });
+        } else {
+          console.log(`🎯 sumCashWorkMul: ไม่มีข้อมูล`);
+        }
+        console.log(`🎯 =============================`);
         
         // แสดงรายละเอียด addSalaryList ที่ได้รับมา
         if (Array.isArray(calculatedValues.addSalaryList) && calculatedValues.addSalaryList.length > 0) {
