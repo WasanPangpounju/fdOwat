@@ -5196,6 +5196,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           });
         }
         
+        
         console.log(`🔍 [DEBUG] พบ cash_holiday หรือไม่: ${foundCashHoliday}`);
 
         // ดึงข้อมูล prefix และ employeeName จาก Employee model
