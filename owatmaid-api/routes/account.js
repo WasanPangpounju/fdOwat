@@ -5196,7 +5196,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           });
         }
         
-        
+
         console.log(`🔍 [DEBUG] พบ cash_holiday หรือไม่: ${foundCashHoliday}`);
 
         // ดึงข้อมูล prefix และ employeeName จาก Employee model
@@ -6551,11 +6551,11 @@ if (record?.dayType === "work") {
     } else {
       // กรณีปกติค่อยรวม
       sumTimeWork += convertTimeToDecimal(record.totalTime);
-      const cashWorkAmount = parseFloat(record?.cashWork || '0');
-      sumCashWork += cashWorkAmount;
+      sumCashWork += parseFloat(record?.cashWork || '0');
       
       // 🔢 แบ่งเงินเดือนตามช่วงวันที่
       const dateNumber = parseInt(record.date);
+      const cashWorkAmount = parseFloat(record?.cashWork || '0');
       if (dateNumber >= 1 && dateNumber <= 20) {
         sumCashWork1_20 += cashWorkAmount;
         console.log(`   📅 วันที่ ${record.date}: เพิ่ม ${cashWorkAmount} บาท ไปยัง sumCashWork1_20 (รวม: ${sumCashWork1_20})`);
@@ -6565,12 +6565,15 @@ if (record?.dayType === "work") {
       }
     }
     
-    // อัปเดต sumCashWorkMul สำหรับเวลาทำงานปกติ
-    if (record?.cashWorkMul && sumCashWorkMul[record.cashWorkMul] !== undefined) {
-      sumCashWorkMul[record.cashWorkMul] += cashWorkAmount;
-    }
-    if (record?.cashWorkMul && timeCashWorkMul[record.cashWorkMul] !== undefined) {
-      timeCashWorkMul[record.cashWorkMul] += convertTimeToDecimal(record.totalTime);
+    // อัปเดต sumCashWorkMul สำหรับเวลาทำงานปกติ (only for non-cash_holiday/specialt_shift records)
+    if (record?.shift !== "cash_holiday" && record?.shift !== "specialt_shift") {
+      const cashWorkAmount = parseFloat(record?.cashWork || '0');
+      if (record?.cashWorkMul && sumCashWorkMul[record.cashWorkMul] !== undefined) {
+        sumCashWorkMul[record.cashWorkMul] += cashWorkAmount;
+      }
+      if (record?.cashWorkMul && timeCashWorkMul[record.cashWorkMul] !== undefined) {
+        timeCashWorkMul[record.cashWorkMul] += convertTimeToDecimal(record.totalTime);
+      }
     }
   }
   
