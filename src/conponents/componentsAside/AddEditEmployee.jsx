@@ -1648,7 +1648,7 @@ function AddEditEmployee() {
                               <div class="col-md-12">
                                 <div class="form-group">
                                   <label role="address">
-                                    ที่อยู่ตามบัตรประชาชน
+                                    ที่อยู่ปัจจุบัน
                                   </label>
                                   <textarea
                                     required
@@ -1832,6 +1832,21 @@ function AddEditEmployee() {
                                   />
                                 </div>
                               </div>
+                               <div class="col-md-3">
+                                <div class="form-group">
+                                  <label role="idLine">ไอดีไลน์</label>
+                                  <input
+                                    type="text"
+                                    name="idLine"
+                                    class="form-control"
+                                    id="idLine"
+                                    placeholder="ไอดีไลน์"
+                                    value={idLine}
+                                    onChange={(e) => setIdLine(e.target.value)}
+                                  />
+                                </div>
+                              </div>
+                              <br />
                               <div class="col-md-3">
                                 <div class="form-group">
                                   <label role="emergencyContactNumber">
@@ -1851,20 +1866,7 @@ function AddEditEmployee() {
                                   />
                                 </div>
                               </div>
-                              <div class="col-md-3">
-                                <div class="form-group">
-                                  <label role="idLine">ไอดีไลน์</label>
-                                  <input
-                                    type="text"
-                                    name="idLine"
-                                    class="form-control"
-                                    id="idLine"
-                                    placeholder="ไอดีไลน์"
-                                    value={idLine}
-                                    onChange={(e) => setIdLine(e.target.value)}
-                                  />
-                                </div>
-                              </div>
+                             
                             </div>
                           </div>
                           {/* <!--col-md-12--> */}

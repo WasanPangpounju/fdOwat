@@ -3515,17 +3515,32 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                 <th>{groupOptions[parseInt(rowData2.wGroup) -1 ] || ""}</th> 
                 <th>{rowData2.date}</th>
                 <th>
-                  {rowData2.shift === "morning_shift"
-                    ? "กะเช้า"
-                    : rowData2.shift === "afternoon_shift"
-                    ? "กะบ่าย"
-                    : rowData2.shift === "night_shift"
-                    ? "กะดึก"
-                    : rowData2.shift === "specialt_shift"
-                    ? "กะพิเศษ"
-                    : rowData2.shift === "cash_holiday"
-                    ? "เงินสด"
-                    : ""}
+                  {editMode[index] ? (
+                    <select
+                      className="form-control form-control-sm"
+                      value={editData[index]?.shift || rowData2.shift}
+                      onChange={(e) => handleEditFieldChange(index, 'shift', e.target.value)}
+                      style={{ width: "100px", fontSize: "12px" }}
+                    >
+                      <option value="morning_shift">กะเช้า</option>
+                      <option value="afternoon_shift">กะบ่าย</option>
+                      <option value="night_shift">กะดึก</option>
+                      <option value="specialt_shift">กะพิเศษ</option>
+                      <option value="cash_holiday">เงินสด</option>
+                    </select>
+                  ) : (
+                    rowData2.shift === "morning_shift"
+                      ? "กะเช้า"
+                      : rowData2.shift === "afternoon_shift"
+                      ? "กะบ่าย"
+                      : rowData2.shift === "night_shift"
+                      ? "กะดึก"
+                      : rowData2.shift === "specialt_shift"
+                      ? "กะพิเศษ"
+                      : rowData2.shift === "cash_holiday"
+                      ? "เงินสด"
+                      : ""
+                  )}
                 </th>
                 
                 {/* OT Before Work */}
@@ -3655,17 +3670,17 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                 <th>
                   {editMode[index] ? (
                     <div className="d-flex flex-column" style={{ gap: "2px" }}>
-                      {(rowData2.shift === "specialt_shift" || rowData2.shift === "cash_holiday") && (
+                      {((editData[index]?.shift || rowData2.shift) === "specialt_shift" || (editData[index]?.shift || rowData2.shift) === "cash_holiday") && (
                         <>
                           <input
                             type="number"
                             className="form-control form-control-sm"
                             placeholder="เงินหลัก"
-                            value={rowData2.shift === "specialt_shift" ? 
+                            value={(editData[index]?.shift || rowData2.shift) === "specialt_shift" ? 
                               (editData[index]?.specialtSalary || '') : 
                               (editData[index]?.cashOfHoliday || '')}
                             onChange={(e) => handleEditFieldChange(index, 
-                              rowData2.shift === "specialt_shift" ? 'specialtSalary' : 'cashOfHoliday', 
+                              (editData[index]?.shift || rowData2.shift) === "specialt_shift" ? 'specialtSalary' : 'cashOfHoliday', 
                               e.target.value)}
                             style={{ width: "80px", fontSize: "11px" }}
                           />
@@ -3673,11 +3688,11 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                             type="number"
                             className="form-control form-control-sm"
                             placeholder="เงิน OT"
-                            value={rowData2.shift === "specialt_shift" ? 
+                            value={(editData[index]?.shift || rowData2.shift) === "specialt_shift" ? 
                               (editData[index]?.specialtSalaryOT || '') : 
                               (editData[index]?.cashOfHolidayOt || '')}
                             onChange={(e) => handleEditFieldChange(index, 
-                              rowData2.shift === "specialt_shift" ? 'specialtSalaryOT' : 'cashOfHolidayOt', 
+                              (editData[index]?.shift || rowData2.shift) === "specialt_shift" ? 'specialtSalaryOT' : 'cashOfHolidayOt', 
                               e.target.value)}
                             style={{ width: "80px", fontSize: "11px" }}
                           />

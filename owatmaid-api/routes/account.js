@@ -5175,11 +5175,22 @@ router.post('/searchtimerecordemployee', async (req, res) => {
             if (record.shift === "cash_holiday") {
               foundCashHoliday = true;
               console.log(`🎯 [CASH_HOLIDAY] *** ก่อนแก้ไข *** วันที่ ${record.date}: cashWork=${record.cashWork}, cashWorkMul=${record.cashWorkMul}, cashOt=${record.cashOt}, cashOtMul=${record.cashOtMul}`);
+              // Zero all cash and related time fields for cash_holiday shifts
+              record.cashBeforeOt = "0";
+              record.cashBeforeOtMul = "0";
               record.cashWork = "0";
               record.cashWorkMul = "0";
-              record.cashBeforeOtMul = "0";
               record.cashOt = "0";
               record.cashOtMul = "0";
+              record.cashSalary = "0";
+              record.cashOfHoliday = "0";
+              record.cashOfHolidayOt = "0";
+              record.specialtSalary = "0";
+              record.specialtSalaryOT = "0";
+              record.messageSalary = record.messageSalary || "";
+              record.beforeTotalOtTime = "0";
+              record.totalTime = "0";
+              record.totalOtTime = "0";
               console.log(`🎯 [CASH_HOLIDAY] *** หลังแก้ไข *** วันที่ ${record.date}: cashWork=${record.cashWork}, cashWorkMul=${record.cashWorkMul}, cashOt=${record.cashOt}, cashOtMul=${record.cashOtMul}`);
             }
           });
@@ -6238,9 +6249,19 @@ try {
             }
           }
           
-          sumcashDayOffCount = parseFloat(sumcashDayOffCount || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0')
+          // ปรับไม่ให้รวมยอดเงินในวันหยุดสำหรับ cash_holiday
+          if (record.shift !== "cash_holiday") {
+            sumcashDayOffCount = parseFloat(sumcashDayOffCount || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0');
+          } else {
+            console.log(`⏭️ ข้าม cash_holiday ไม่รวมใน sumcashDayOffCount (วันที่ ${record.date})`);
+          }
 
-          sumTimeOt += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalTime) + convertTimeToDecimal(record.totalOtTime);
+          // ปรับไม่ให้นับเวลา OT/ทำงานใด ๆ สำหรับ cash_holiday ในตัวแปรรวมหลัก
+          if (record.shift !== "cash_holiday") {
+            sumTimeOt += convertTimeToDecimal(record.beforeTotalOtTime) + convertTimeToDecimal(record.totalTime) + convertTimeToDecimal(record.totalOtTime);
+          } else {
+            console.log(`⏭️ ข้าม cash_holiday ไม่รวมใน sumTimeOt (วันที่ ${record.date})`);
+          }
           // sumCashOt = parseFloat(sumCashOt || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0') // ลบการคำนวณแบบเก่า
           
           // คำนวณ OT time โดยใช้ค่าที่ปรับแล้ว (ยกเว้น cash_holiday)
@@ -6511,41 +6532,36 @@ if (record?.dayType === "work") {
     console.log(`⚠️ วันที่ ${record.date} ไม่มีเวลาทำงานปกติ (มีแค่ OT) ไม่นับเป็นวันทำงาน`);
   }
 
-  // คำนวณเวลาทำงานปกติ
+  // คำนวณเวลาทำงานปกติและยอดเงิน เฉพาะกรณีไม่ใช่ shift พิเศษ
   if (hasRegularWork) {
-    sumTimeWork += convertTimeToDecimal(record.totalTime);
-    
-    // ตรวจสอบ shift พิเศษ - ถ้าเป็น specialt_shift หรือ cash_holiday ให้ปรับค่าต่างๆ
-    let cashWorkAmount = parseFloat(record?.cashWork || '0');
-    if (record.shift === "specialt_shift") {
-      console.log(`🚫 พบ specialt_shift ในวันที่ ${record.date} - บังคับ cashWork, cashOt, cashOtMul เป็น 0`);
-      console.log(`   - cashWork เดิม: ${cashWorkAmount}, cashOt เดิม: ${record.cashOt}, cashOtMul เดิม: ${record.cashOtMul}`);
-      cashWorkAmount = 0;
+    // จัดการ shift พิเศษก่อน เพื่อไม่ให้นับเวลา/เงินผิดพลาด
+    if (record.shift === "specialt_shift" || record.shift === "cash_holiday") {
+      const typeLabel = record.shift === "specialt_shift" ? "specialt_shift" : "cash_holiday";
+      console.log(`🚫 พบ ${typeLabel} ในวันที่ ${record.date} - บังคับค่าเงิน/เวลาเป็น 0 และไม่รวมในการคำนวณ`);
+      record.cashBeforeOt = "0";
+      record.cashBeforeOtMul = "0";
       record.cashWork = "0";
+      record.cashWorkMul = "0";
       record.cashOt = "0";
       record.cashOtMul = "0";
+      record.totalTime = "0";
       record.totalOtTime = "0";
-      record.totalTime = "0"; 
-      console.log(`   - totalTime ถูกปรับเป็น: ${record.totalTime}`);
-    } else if (record.shift === "cash_holiday") {
-      record.cashWork = "0";
-      console.log(`🚫 พบ cash_holiday ในวันที่ ${record.date} - ไม่นับเป็นวันทำงานปกติ`);
-      console.log(`   - cashWork เดิม: ${cashWorkAmount}, cashOt เดิม: ${record.cashOt}, shift: ${record.shift}`);
-      // สำหรับ cash_holiday ไม่ต้องเปลี่ยน cashWork เพราะเป็นค่าแรงวันหยุด
-      // แต่ไม่นับเป็นวันทำงานปกติ
-      console.log(`   - เก็บค่าแรงวันหยุด: ${cashWorkAmount} บาท`);
-    }
-    
-    sumCashWork += cashWorkAmount;
-    
-    // 🔢 แบ่งเงินเดือนตามช่วงวันที่
-    const dateNumber = parseInt(record.date);
-    if (dateNumber >= 1 && dateNumber <= 20) {
-      sumCashWork1_20 += cashWorkAmount;
-      console.log(`   📅 วันที่ ${record.date}: เพิ่ม ${cashWorkAmount} บาท ไปยัง sumCashWork1_20 (รวม: ${sumCashWork1_20})`);
-    } else if (dateNumber >= 21 && dateNumber <= 31) {
-      sumCashWork21_30_31 += cashWorkAmount;
-      console.log(`   📅 วันที่ ${record.date}: เพิ่ม ${cashWorkAmount} บาท ไปยัง sumCashWork21_30_31 (รวม: ${sumCashWork21_30_31})`);
+      // ไม่รวมใน sumTimeWork/sumCashWork
+    } else {
+      // กรณีปกติค่อยรวม
+      sumTimeWork += convertTimeToDecimal(record.totalTime);
+      const cashWorkAmount = parseFloat(record?.cashWork || '0');
+      sumCashWork += cashWorkAmount;
+      
+      // 🔢 แบ่งเงินเดือนตามช่วงวันที่
+      const dateNumber = parseInt(record.date);
+      if (dateNumber >= 1 && dateNumber <= 20) {
+        sumCashWork1_20 += cashWorkAmount;
+        console.log(`   📅 วันที่ ${record.date}: เพิ่ม ${cashWorkAmount} บาท ไปยัง sumCashWork1_20 (รวม: ${sumCashWork1_20})`);
+      } else if (dateNumber >= 21 && dateNumber <= 31) {
+        sumCashWork21_30_31 += cashWorkAmount;
+        console.log(`   📅 วันที่ ${record.date}: เพิ่ม ${cashWorkAmount} บาท ไปยัง sumCashWork21_30_31 (รวม: ${sumCashWork21_30_31})`);
+      }
     }
     
     // อัปเดต sumCashWorkMul สำหรับเวลาทำงานปกติ

@@ -7422,6 +7422,300 @@ const getDateStyle = (day) => {
       setSearchWorkplaceName("");
     }
   };
+
+  // ฟังก์ชันสำหรับปุ่ม Force Reload
+  const handleForceReload = async () => {
+    // 🎨 เอฟเฟคการลบและเติมตัวอักษรในช่องรหัสหน่วยงาน
+    const originalWorkplaceId = searchWorkplaceId;
+    
+    if (originalWorkplaceId && originalWorkplaceId.length > 0) {
+      // ลบตัวอักษรสุดท้าย
+      const trimmedId = originalWorkplaceId.slice(0, -1);
+      const lastChar = originalWorkplaceId.slice(-1);
+      
+      setSearchWorkplaceId(trimmedId);
+      
+      // รอ 0.3 วินาที แล้วเติมตัวอักษรสุดท้ายกลับมา
+      setTimeout(() => {
+        setSearchWorkplaceId(originalWorkplaceId);
+      }, 3000);
+    }
+
+    // ตรวจสอบว่ามีข้อมูลที่จำเป็นหรือไม่
+    if (!searchWorkplaceId || !month || !year) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'ข้อมูลไม่ครบถ้วน',
+        html: `กรุณากรอกข้อมูลให้ครบถ้วน:<br>
+               • รหัสหน่วยงาน<br>
+               • เดือน<br>
+               • ปี`,
+        confirmButtonText: 'ตกลง',
+        confirmButtonColor: '#f0ad4e'
+      });
+      return;
+    }
+
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'ไม่พบข้อมูลพนักงาน',
+        text: 'ไม่พบข้อมูลพนักงานในหน่วยงาน กรุณาค้นหาข้อมูลก่อน',
+        confirmButtonText: 'ตกลง',
+        confirmButtonColor: '#f0ad4e'
+      });
+      return;
+    }
+
+    const result = await Swal.fire({
+      icon: 'question',
+      title: 'ยืนยันการ Force Reload',
+      html: `คุณต้องการ Force Reload ข้อมูลพนักงานทั้งหมดในหน่วยงาน <b>${searchWorkplaceId}</b> หรือไม่?<br><br>
+             📊 จำนวนพนักงาน: <b>${data.length}</b> คน<br>
+             📅 เดือน: <b>${month}/${year}</b><br><br>
+             <small>⚠️ การดำเนินการนี้จะใช้เวลาในการประมวลผล</small>`,
+      showCancelButton: true,
+      confirmButtonText: 'ดำเนินการ',
+      cancelButtonText: 'ยกเลิก',
+      confirmButtonColor: '#28a745',
+      cancelButtonColor: '#6c757d',
+      allowOutsideClick: false
+    });
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    try {
+      console.log('🔄 Starting Force Reload for all employees...');
+      
+      // แสดง loading ด้วย SweetAlert
+      Swal.fire({
+        title: 'กำลังประมวลผล...',
+        html: `<div style="text-align: center;">
+                 <div style="margin: 20px 0;">
+                   <i class="fas fa-spinner fa-spin fa-2x"></i>
+                 </div>
+                 <p>กำลัง Force Reload ข้อมูลพนักงาน <strong>${data.length}</strong> คน</p>
+                 <p style="font-size: 12px; color: #666;">กรุณารอสักครู่...</p>
+               </div>`,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+      
+      // แสดง loading
+      setLoading(true);
+      
+      let successCount = 0;
+      let errorCount = 0;
+      const errors = [];
+
+      // วนลูปยิง API ทุกพนักงาน
+      for (let i = 0; i < data.length; i++) {
+        const employee = data[i];
+        const employeeId = employee.employeeId;
+        
+        try {
+          console.log(`📡 Processing employee ${i + 1}/${data.length}: ${employeeId}`);
+          
+          const requestData = {
+            employeeId: employeeId,
+            month: month,
+            year: year
+          };
+
+          // ยิง API เส้นแรก: conclude/searchtimerecordemployee
+          const response1 = await axios.post(
+            'http://10.10.110.7:3000/conclude/searchtimerecordemployee',
+            requestData,
+            {
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              timeout: 30000 // 30 seconds timeout
+            }
+          );
+
+          // ยิง API เส้นที่สอง: accounting/searchtimerecordemployee รายคน
+          const accountingRequestData = {
+            employeeId: employeeId,
+            month: month,
+            year: year
+          };
+
+          const response2 = await axios.post(
+            'http://10.10.110.7:3000/accounting/searchtimerecordemployee',
+            accountingRequestData,
+            {
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              timeout: 30000 // 30 seconds timeout
+            }
+          );
+
+          if (response1.status === 200 && response2.status === 200) {
+            successCount++;
+            console.log(`✅ Employee ${employeeId} - Both APIs processed successfully`);
+          } else {
+            errorCount++;
+            errors.push(`Employee ${employeeId}: API1 status ${response1.status}, API2 status ${response2.status}`);
+            console.warn(`⚠️ Employee ${employeeId} - API1: ${response1.status}, API2: ${response2.status}`);
+          }
+
+        } catch (error) {
+          errorCount++;
+          const errorMessage = error.response?.data?.message || error.message || 'Unknown error';
+          errors.push(`Employee ${employeeId}: ${errorMessage}`);
+          console.error(`❌ Error processing employee ${employeeId}:`, error);
+        }
+
+        // เพิ่ม delay เล็กน้อยเพื่อไม่ให้ server overwhelm
+        if (i < data.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 100)); // 100ms delay
+        }
+      }
+
+      // ปิด loading SweetAlert
+      Swal.close();
+
+      // แสดงผลลัพธ์ด้วย SweetAlert
+      const iconType = errorCount === 0 ? 'success' : (successCount > 0 ? 'warning' : 'error');
+      const titleText = errorCount === 0 ? 'Force Reload สำเร็จ!' : (successCount > 0 ? 'Force Reload เสร็จสิ้น (มีข้อผิดพลาดบางส่วน)' : 'Force Reload ผิดพลาด');
+      
+      let htmlContent = `
+        <div style="text-align: left; font-size: 14px;">
+          <p><strong>📊 สรุปผลการดำเนินการ:</strong></p>
+          <p>✅ สำเร็จ: <strong>${successCount}</strong> คน</p>
+          <p>❌ ผิดพลาด: <strong>${errorCount}</strong> คน</p>
+          <p>รวมทั้งหมด: <strong>${data.length}</strong> คน</p>
+      `;
+
+      if (errors.length > 0 && errors.length <= 5) {
+        htmlContent += `
+          <hr style="margin: 15px 0;">
+          <p><strong>🔍 รายการผิดพลาด:</strong></p>
+          <ul style="margin: 5px 0; padding-left: 20px;">
+            ${errors.map(error => `<li style="margin: 2px 0;">${error}</li>`).join('')}
+          </ul>
+        `;
+      } else if (errors.length > 5) {
+        htmlContent += `
+          <hr style="margin: 15px 0;">
+          <p><strong>🔍 รายการผิดพลาด (5 รายการแรก):</strong></p>
+          <ul style="margin: 5px 0; padding-left: 20px;">
+            ${errors.slice(0, 5).map(error => `<li style="margin: 2px 0;">${error}</li>`).join('')}
+          </ul>
+          <p><small>...และอีก <strong>${errors.length - 5}</strong> รายการ</small></p>
+        `;
+      }
+
+      htmlContent += `</div>`;
+
+      await Swal.fire({
+        icon: iconType,
+        title: titleText,
+        html: htmlContent,
+        confirmButtonText: 'ตกลง',
+        confirmButtonColor: '#28a745',
+        width: '500px',
+        allowOutsideClick: false
+      });
+
+      if (successCount > 0) {
+        // เรียก API เส้นที่สองหลังจาก Force Reload เสร็จ
+        console.log('🔄 Calling additional API after Force Reload...');
+        try {
+          const additionalApiData = {
+            workplaceId: searchWorkplaceId,
+            month: month,
+            year: year
+          };
+
+          const additionalResponse = await axios.post(
+            'http://10.10.110.7:3000/accounting/searchtimerecordbyworkplace',
+            additionalApiData,
+            {
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              timeout: 30000
+            }
+          );
+
+          if (additionalResponse.status === 200) {
+            console.log('✅ Additional API call successful:', additionalResponse.data);
+          } else {
+            console.warn('⚠️ Additional API returned status:', additionalResponse.status);
+          }
+        } catch (additionalError) {
+          console.error('❌ Error calling additional API:', additionalError);
+        }
+
+        // ถ้ามีการประมวลผลสำเร็จ ให้ refresh ข้อมูลใหม่
+        console.log('🔄 Refreshing data after Force Reload...');
+        
+        // เพิ่ม delay เล็กน้อยก่อน refresh
+        setTimeout(async () => {
+          try {
+            // Force refresh โดยการเรียก API ตรงๆ
+            console.log('🔄 Force refreshing data with direct API call...');
+            const dataSearch = {
+              workplaceId: searchWorkplaceId,
+              month: month,
+              year: year
+            };
+            
+            const response = await axios.post(endpoint + "/accounting/searchtimerecordemployee", dataSearch);
+            
+            if (response.data && response.data.length > 0) {
+              setData(response.data);
+              console.log('✅ Direct API refresh successful - Data updated:', response.data.length, 'employees');
+              
+              // อัปเดตข้อมูลที่เกี่ยวข้องทั้งหมด
+              setSearchResults(response.data);
+              
+              // Force re-render component
+              setLoading(false);
+              setTimeout(() => setLoading(true), 100);
+              setTimeout(() => setLoading(false), 200);
+              
+              console.log('✅ Component refresh completed');
+            } else {
+              console.warn('⚠️ API returned empty data after Force Reload');
+              
+            }
+          } catch (refreshError) {
+            console.error('❌ Error refreshing data:', refreshError);
+            Swal.fire({
+              icon: 'error',
+              title: 'เกิดข้อผิดพลาดในการรีเฟรช',
+              text: 'Force Reload สำเร็จแล้ว แต่เกิดข้อผิดพลาดในการดึงข้อมูลใหม่ กรุณากดค้นหาใหม่เพื่อดูข้อมูลที่อัปเดต',
+              confirmButtonText: 'ตกลง',
+              confirmButtonColor: '#dc3545'
+            });
+          }
+        }, 2000); // เพิ่มเวลารอเป็น 2 วินาทีเพื่อให้ API ประมวลผลเสร็จ
+      }
+
+    } catch (error) {
+      console.error('❌ Force Reload failed:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: `เกิดข้อผิดพลาดในการ Force Reload: ${error.message}`,
+        confirmButtonText: 'ตกลง',
+        confirmButtonColor: '#dc3545'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
     const generateExcel = async () => {
     console.log('🚀 Starting Excel generation...');
     
@@ -8152,7 +8446,54 @@ const socialSecurityColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount;
           // Row 2: Night shift data (ดึก) - Use same values as web table
           const empRow2 = ['', 'ดึก'];
           dayNumbers.forEach(day => {
-            // 🆕 ตรวจสอบการลาเหมือนกับแถวเช้า
+            // หา record ทั้งหมดของวันนี้
+            const allRecordsForDay = record?.employee_record?.filter(itemx => itemx.date === day) || [];
+            
+            // หา record ที่มี totalTime ก่อน ถ้าไม่มีก็เอา record แรก
+            const found = allRecordsForDay.find(itemx => itemx.totalTime && itemx.totalTime.trim() !== '') || allRecordsForDay[0];
+            
+            // ตรวจสอบว่าเป็นการทำงานกะดึกหรือไม่
+            const isNightShiftWork = found?.dayType === "work" && found?.shift === "night_shift";
+            
+            // ตรวจสอบว่าวันนี้อยู่ใน stopDaysList หรือไม่
+            const isInStopDaysList = record?.stopDaysList?.some(stopDay => {
+              const stopDayDate = parseInt(stopDay.date);
+              const currentDay = parseInt(day);
+              return stopDayDate === currentDay;
+            });
+
+            // ตรวจสอบทั้ง specialt_shift และ stopDaysList สำหรับกะดึก
+            const specialIndividualNight = (found?.dayType === "work" && found?.shift === "specialt_shift") || isInStopDaysList;
+            const dayNum = parseInt(day);
+            let actualMonth, actualYear;
+            
+            // ตรวจสอบว่าเป็นวันไหนจากเดือนไหน (ตารางแสดงข้ามเดือน 21-31 เดือนก่อน และ 1-20 เดือนปัจจุบัน)
+            if (dayNum >= 21) {
+              // วันที่ 21-31 เป็นของเดือนก่อนหน้า
+              if (parseInt(month) === 1) {
+                actualMonth = 12;
+                actualYear = parseInt(year) - 1;
+              } else {
+                actualMonth = parseInt(month) - 1;
+                actualYear = parseInt(year);
+              }
+            } else {
+              // วันที่ 1-20 เป็นของเดือนปัจจุบัน
+              actualMonth = parseInt(month);
+              actualYear = parseInt(year);
+            }
+            
+            // ตรวจสอบว่าวันที่นี้มีอยู่จริงในเดือนนั้นหรือไม่
+            const daysInActualMonth = new Date(actualYear, actualMonth, 0).getDate();
+            const isInvalidDate = dayNum > daysInActualMonth;
+
+            // สร้างวันที่ในรูปแบบ YYYY-MM-DD เพื่อเปรียบเทียบกับข้อมูลจาก API
+            const targetDateStr = `${actualYear}-${actualMonth.toString().padStart(2, '0')}-${dayNum.toString().padStart(2, '0')}`;
+            
+            // ตรวจสอบจาก dayoffWorkplace
+            const isDayoffWorkplace = weekendData && weekendData.dayoffWorkplace && Array.isArray(weekendData.dayoffWorkplace) && weekendData.dayoffWorkplace.includes(targetDateStr);
+            
+            // ตรวจสอบการลาป่วย
             const isSickLeave = record?.addSalaryList?.some(salaryItem => {
               // เช็คเฉพาะ welfare ที่เป็นการลาป่วย หรือ ลาพักร้อน
               if (salaryItem.welfareType === "ลาป่วย" || 
@@ -8160,7 +8501,8 @@ const socialSecurityColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount;
                   salaryItem.name?.includes("ลาป่วย") || 
                   salaryItem.name?.includes("ป่วย") ||
                   salaryItem.name?.includes("ลาพักร้อน") ||
-                  salaryItem.name?.includes("ชดเชย")) {
+                  salaryItem.name?.includes("ชดเชย") ||
+                  salaryItem.name?.includes("ลากิจ")) {
                 
                 // แปลง date string เป็น array ของวันที่
                 const dates = salaryItem.date ? salaryItem.date.split(',').map(d => d.trim()) : [];
@@ -8172,8 +8514,61 @@ const socialSecurityColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount;
               return false;
             });
             
-            // empRow2 (ดึก) ไม่แสดงสัญลักษณ์การลา
-            empRow2.push(''); // ช่องว่าง
+            // ตรวจสอบจาก dayOffOnly
+            const isDayOffOnly = weekendData && Array.isArray(weekendData) && weekendData.find(item => item.date === targetDateStr && item.type === 'dayOffOnly');
+            
+            // ตรวจสอบว่าเป็นวันหยุดพิเศษหรือไม่
+            const isSpecialHoliday = record?.personalDayOff?.some(personalDay => {
+              const personalDayDate = parseInt(personalDay.date);
+              const currentDay = parseInt(day);
+              return personalDayDate === currentDay;
+            }) || record?.stopDaysList?.some(stopDay => {
+              const stopDayDate = parseInt(stopDay.date);
+              const currentDay = parseInt(day);
+              return stopDayDate === currentDay;
+            });
+            
+            // กำหนดค่าที่จะแสดง
+            let displayValue = '';
+            
+            if (isSpecialHoliday) {
+              // วันหยุดพิเศษ
+              displayValue = '';
+            } else if (isDayOffOnly) {
+              // วันหยุดนักขัตฤกษ์ - แสดงเลข 1 ถ้ามี totalTime และเป็น night_shift
+              if (found?.totalTime && found.totalTime.trim() !== '' && found?.shift === "night_shift") {
+                displayValue = '1';
+              } else if (found?.shift === "cash_holiday" && found?.startTime) {
+                // แสดงเลข 1 ถ้าเป็น cash_holiday และ startTime หลัง 18:00 หรือ 00:00-05:00
+                const startTimeHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
+                if (startTimeHour >= 18 || (startTimeHour >= 0 && startTimeHour <= 5)) {
+                  displayValue = '1';
+                }
+              }
+            } else if (isDayoffWorkplace || isInvalidDate) {
+              // วันหยุดหรือวันที่ไม่มีอยู่จริง
+              displayValue = '';
+            } else if (isNightShiftWork) {
+              displayValue = '1'; // แสดงเลข 1 เมื่อมาทำงานกะดึก
+            } else if (found?.shift === "cash_holiday" && found?.startTime) {
+              // ถ้าเป็น cash_holiday และ startTime หลัง 18:00 หรือ 00:00-05:00 (ไม่ใช่วันหยุด)
+              const startTimeHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
+              if (startTimeHour >= 18 || (startTimeHour >= 0 && startTimeHour <= 5)) {
+                displayValue = '1';
+              }
+            }
+            
+            if (isSickLeave) {
+              // วันลาป่วย
+              displayValue = '';
+            }
+
+            if (specialIndividualNight) {
+              // วันหยุดพิเศษ
+              displayValue = '';
+            }
+            
+            empRow2.push(displayValue);
           });
           
           // Use exact same calculations as the web table to ensure consistency
@@ -8290,8 +8685,9 @@ for (let i = 0; i < remainingCols4; i++) {
                   salaryItem.name?.includes("ลาป่วย") || 
                   salaryItem.name?.includes("ป่วย") ||
                   salaryItem.name?.includes("ลาพักร้อน") ||
-                  salaryItem.name?.includes("ชดเชย")) {
-                
+                  salaryItem.name?.includes("ชดเชย") ||
+                  salaryItem.name?.includes("ลากิจ")) {
+
                 // แปลง date string เป็น array ของวันที่
                 const dates = salaryItem.date ? salaryItem.date.split(',').map(d => d.trim()) : [];
                 const currentDay = parseInt(day);
@@ -8311,7 +8707,8 @@ for (let i = 0; i < remainingCols4; i++) {
                     salaryItem.name?.includes("ลาป่วย") || 
                     salaryItem.name?.includes("ป่วย") ||
                     salaryItem.name?.includes("ลาพักร้อน") ||
-                    salaryItem.name?.includes("ชดเชย")) {
+                    salaryItem.name?.includes("ชดเชย") ||
+                  salaryItem.name?.includes("ลากิจ")) {
                   
                   const dates = salaryItem.date ? salaryItem.date.split(',').map(d => d.trim()) : [];
                   const currentDay = parseInt(day);
@@ -8494,7 +8891,8 @@ for (let colIdx = 1; colIdx <= actualTotalColumns; colIdx++) {
                     salaryItem.name?.includes("ลาป่วย") || 
                     salaryItem.name?.includes("ป่วย") ||
                     salaryItem.name?.includes("ลาพักร้อน") ||
-                    salaryItem.name?.includes("ชดเชย")) {
+                    salaryItem.name?.includes("ชดเชย") ||
+                  salaryItem.name?.includes("ลากิจ")) {
                   
                   // แปลง date string เป็น array ของวันที่
                   const dates = salaryItem.date ? salaryItem.date.split(',').map(d => d.trim()) : [];
@@ -8506,6 +8904,12 @@ for (let colIdx = 1; colIdx <= actualTotalColumns; colIdx++) {
                 return false;
               });
               
+              // ตรวจสอบ cash_holiday ก่อนเพื่อให้สีแดงในกรณีวันหยุด
+              const isCashHolidayWithRedText = rowIdx === 1 && cellValue === '1' && foundRecord?.shift === "cash_holiday" && foundRecord?.startTime && (() => {
+                const startTimeHour = parseFloat(foundRecord.startTime.replace('.', ':').split(':')[0]);
+                return startTimeHour >= 18 || (startTimeHour >= 0 && startTimeHour <= 5);
+              })();
+
               // Apply specific styling based on row type and cell content (ใช้ลำดับความสำคัญเหมือน HTML)
               if (isSickLeave) {
                 // 🖤 วันลา - สีฟ้าอ่อน (ความสำคัญสูงสุด)
@@ -8546,6 +8950,19 @@ for (let colIdx = 1; colIdx <= actualTotalColumns; colIdx++) {
                   color: { argb: 'FF000000' }
                 };
                 console.log(`Applied green to personal day off cell in ${rowNames[rowIdx]} row, day ${day} (${actualRowNumber}, ${colNumber})`);
+              } else if (isCashHolidayWithRedText) {
+                // 🔴 cash_holiday ในช่วงเวลากะดึก - ตัวอักษรสีแดงบนพื้นหลังเทา (สำหรับแถวกะดึก)
+                cell.fill = {
+                  type: 'pattern',
+                  pattern: 'solid',
+                  fgColor: { argb: 'FF9E9E9E' } // สีเทา #9e9e9e (เหมือนวันหยุด)
+                };
+                cell.font = {
+                  bold: false,
+                  size: rowIdx <= 1 ? 14 : 9,
+                  color: { argb: 'FFFF0000' } // ตัวอักษรสีแดง
+                };
+                console.log(`Applied gray background with RED text to cash_holiday cell in ${rowNames[rowIdx]} row, day ${day} (${actualRowNumber}, ${colNumber})`);
               } else if (rowIdx === 3) { // โอที 2 (empRow4) - ตรวจสอบก่อนวันหยุดหน่วยงาน
                 if (cellValue && cellValue !== '' && cellValue !== null && cellValue !== undefined) {
                   // โอที 2 มีค่า - สีเหลือง
@@ -10865,8 +11282,8 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                                   locale={th}
                                 />
                               </div> */}
-                              <label role="datetime">วันที่</label>
-                              <div
+                              {/* <label role="datetime">วันที่</label> */}
+                              {/* <div
                                 onClick={toggleDatePicker}
                                 style={{
                                   position: "relative",
@@ -10880,9 +11297,9 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                                     ? formattedDate321
                                     : "Select Date"}
                                 </span>
-                              </div>
+                              </div> */}
 
-                              {showDatePicker && (
+                              {/* {showDatePicker && (
                                 <div
                                   style={{ position: "absolute", zIndex: 1000 }}
                                 >
@@ -10892,7 +11309,7 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                                     onChange={handleDatePickerChange}
                                   />
                                 </div>
-                              )}
+                              )} */}
                             </div>
                           </div>
                         </div>
@@ -10945,8 +11362,17 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                         <i class="fas fa-file-excel m-1"></i>ดาวน์โหลด Excel
                      
                       </button>
+                       <button
+                        onClick={handleForceReload}
+                        style={{ marginLeft: "1rem", width: "10rem", backgroundColor: "", color: "white" }}
+                        class="btn b_save bg-warning p-2"
+                      > 
+                       <i class="fas fa-sync-alt m-1"></i>Force Reload
+                     
+                      </button>
+
                       <div className="pt-3">
-                          <div className="table table-responsive" >
+                          <div className="table " >
                           <table
                       className="excel-style-table  "
                       style={{
@@ -11123,7 +11549,8 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
         salaryItem.name?.includes("ลาป่วย") || 
         salaryItem.name?.includes("ป่วย") ||
         salaryItem.name?.includes("ลาพักร้อน") ||
-        salaryItem.name?.includes("ชดเชย")) {
+       salaryItem.name?.includes("ชดเชย") ||
+                  salaryItem.name?.includes("ลากิจ")){
       
       // แปลง date string เป็น array ของวันที่
       const dates = salaryItem.date ? salaryItem.date.split(',').map(d => d.trim()) : [];
@@ -11354,7 +11781,8 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
           salaryItem.name?.includes("ลาป่วย") || 
           salaryItem.name?.includes("ป่วย") ||
           salaryItem.name?.includes("ลาพักร้อน") ||
-          salaryItem.name?.includes("ชดเชย")) {
+          salaryItem.name?.includes("ชดเชย") ||
+                  salaryItem.name?.includes("ลากิจ")) {
         
         const dates = salaryItem.date ? salaryItem.date.split(',').map(d => d.trim()) : [];
         const currentDay = parseInt(day);
@@ -11381,17 +11809,20 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
       // ถ้าไม่ตรงกับ searchWorkplaceId = ไม่แสดงอะไร (วันที่ไม่ได้มาทำงานที่หน่วยงานนี้)
     } else {
       // พนักงานปกติที่สังกัดหน่วยงานนี้
-      if (isMatchSearchWorkplace) {
+      if (isMatchSearchWorkplace && (found?.shift === "morning_shift" || found?.shift === "cash_holiday")) {
         // ถ้าตรงกับ searchWorkplaceId ให้แสดงแค่ 1
         displayValue = '1';
-      } else {
-        // ถ้าไม่ตรงกับ searchWorkplaceId ให้แสดง 1 และ workplaceId (กรณีไปทำงานหน่วยงานอื่น)
+      } else if (found?.shift === "cash_holiday") {
+        // ถ้าไม่ตรงกับ searchWorkplaceId ให้แสดง 1 และ workplaceId (กรณีไปทำงานหน่วยงานอื่น - เฉพาะ cash_holiday)
         displayValue = (
           <>
             1<br />
             {recordWorkplaceId || ''}
           </>
         );
+      } else if (found?.shift === "morning_shift") {
+        // ถ้าไม่ตรงกับ searchWorkplaceId ให้แสดงแค่ 1 สำหรับ morning_shift
+        displayValue = '1';
       }
     }
   }
@@ -11556,7 +11987,8 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
         salaryItem.name?.includes("ลาป่วย") || 
         salaryItem.name?.includes("ป่วย") ||
         salaryItem.name?.includes("ลาพักร้อน") ||
-        salaryItem.name?.includes("ชดเชย")) {
+        salaryItem.name?.includes("ชดเชย") ||
+                  salaryItem.name?.includes("ลากิจ")) {
       
       // แปลง date string เป็น array ของวันที่
       const dates = salaryItem.date ? salaryItem.date.split(',').map(d => d.trim()) : [];
@@ -11591,10 +12023,29 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                         backgroundColor = { backgroundColor: "#00ff00" }; // สีเขียวสำหรับวันหยุดพิเศษ
                       } else if (isDayOffOnly) {
                         backgroundColor = { backgroundColor: "#9e9e9e" }; // สีขาวสำหรับวันหยุดนักขัตฤกษ์
+                        // แสดงเลข 1 ถ้ามี totalTime และเป็น night_shift
+                        if (found?.totalTime && found.totalTime.trim() !== '' && found?.shift === "night_shift") {
+                          displayValue = '1';
+                        }
+                        // แสดงเลข 1 ถ้าเป็น cash_holiday และ startTime หลัง 18:00 หรือ 00:00-05:00
+                        if (found?.shift === "cash_holiday" && found?.startTime) {
+                          const startHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
+                          if (startHour >= 18 || (startHour >= 0 && startHour <= 5)) {
+                            displayValue = '1';
+                            backgroundColor = { ...backgroundColor, color: "red" }; // ตัวอักษรสีแดง
+                          }
+                        }
                       } else if (isDayoffWorkplace || isInvalidDate ) {
                         backgroundColor = { backgroundColor: "#9e9e9e" }; // สีเทาสำหรับวันหยุดหรือวันที่ไม่มีอยู่จริง
                       } else if (isNightShiftWork) {
                         displayValue = '1'; // แสดงเลข 1 เมื่อมาทำงานกะดึก
+                      } else if (found?.shift === "cash_holiday" && found?.startTime) {
+                        // ถ้าเป็น cash_holiday และ startTime หลัง 18:00 หรือ 00:00-05:00 (ไม่ใช่วันหยุด)
+                        const startHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
+                        if (startHour >= 18 || (startHour >= 0 && startHour <= 5)) {
+                          displayValue = '1';
+                          backgroundColor = { color: "red" }; // ตัวอักษรสีแดง
+                        }
                       }
                       if(isSickLeave) {
                         backgroundColor = { backgroundColor: "#c5eaebff", color: "black" }; // สีดำสำหรับวันลาป่วย
@@ -11718,7 +12169,8 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
         salaryItem.name?.includes("ลาป่วย") || 
         salaryItem.name?.includes("ป่วย") ||
         salaryItem.name?.includes("ลาพักร้อน") ||
-        salaryItem.name?.includes("ชดเชย")) {
+       salaryItem.name?.includes("ชดเชย") ||
+                  salaryItem.name?.includes("ลากิจ")) {
       
       // แปลง date string เป็น array ของวันที่
       const dates = salaryItem.date ? salaryItem.date.split(',').map(d => d.trim()) : [];
@@ -11789,7 +12241,8 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
         salaryItem.name?.includes("ลาป่วย") || 
         salaryItem.name?.includes("ป่วย") ||
         salaryItem.name?.includes("ลาพักร้อน") ||
-        salaryItem.name?.includes("ชดเชย")) {
+        salaryItem.name?.includes("ชดเชย") ||
+                  salaryItem.name?.includes("ลากิจ")) {
       
       // แปลง date string เป็น array ของวันที่
       const dates = salaryItem.date ? salaryItem.date.split(',').map(d => d.trim()) : [];
@@ -11870,7 +12323,8 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
         salaryItem.name?.includes("ลาป่วย") || 
         salaryItem.name?.includes("ป่วย") ||
         salaryItem.name?.includes("ลาพักร้อน") ||
-        salaryItem.name?.includes("ชดเชย")) {
+       salaryItem.name?.includes("ชดเชย") ||
+                  salaryItem.name?.includes("ลากิจ")) {
       
       // แปลง date string เป็น array ของวันที่
       const dates = salaryItem.date ? salaryItem.date.split(',').map(d => d.trim()) : [];
@@ -11950,8 +12404,30 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
       backgroundColor = { backgroundColor: "#9e9e9e" };
     }
   } else {
-    // ถ้ามีข้อมูลให้แสดง ใช้สีเหลืองตามเดิม
-    backgroundColor = { backgroundColor: "yellow" };
+    // ตรวจสอบ isDayOffOnly ก่อนกำหนดสีเหลือง
+    const dayNum = parseInt(day);
+    let actualMonth, actualYear;
+    
+    if (dayNum >= 21) {
+      if (parseInt(month) === 1) {
+        actualMonth = 12;
+        actualYear = parseInt(year) - 1;
+      } else {
+        actualMonth = parseInt(month) - 1;
+        actualYear = parseInt(year);
+      }
+    } else {
+      actualMonth = parseInt(month);
+      actualYear = parseInt(year);
+    }
+    
+    const targetDateStr = `${actualYear}-${actualMonth.toString().padStart(2, '0')}-${dayNum.toString().padStart(2, '0')}`;
+    const isDayOffOnlyForYellow = weekendData && Array.isArray(weekendData) && weekendData.find(item => item.date === targetDateStr && item.type === 'dayOffOnly');
+    
+    // ถ้ามีข้อมูลให้แสดงและเป็น dayOffOnly ใช้สีเหลืองตามเดิม
+    if (isDayOffOnlyForYellow) {
+      backgroundColor = { backgroundColor: "yellow" };
+    }
   }
   if (isSickLeave) {
     backgroundColor = { backgroundColor: "#c5eaebff" }; // สีฟ้าอ่อนสำหรับวันลาป่วย
@@ -11960,7 +12436,30 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
     backgroundColor = { backgroundColor: "#9e9e9e" , color: "red" }; // สีเทาพื้นหลังและตัวอักษรสีแดงสำหรับวันหยุดพิเศษ
   }
 
+  // ตรวจสอบ isDayOffOnly สำหรับการแสดงข้อมูล
+  const dayNum = parseInt(day);
+  let actualMonth, actualYear;
   
+  if (dayNum >= 21) {
+    if (parseInt(month) === 1) {
+      actualMonth = 12;
+      actualYear = parseInt(year) - 1;
+    } else {
+      actualMonth = parseInt(month) - 1;
+      actualYear = parseInt(year);
+    }
+  } else {
+    actualMonth = parseInt(month);
+    actualYear = parseInt(year);
+  }
+  
+  const targetDateStr = `${actualYear}-${actualMonth.toString().padStart(2, '0')}-${dayNum.toString().padStart(2, '0')}`;
+  const isDayOffOnly = weekendData && Array.isArray(weekendData) && weekendData.find(item => item.date === targetDateStr && item.type === 'dayOffOnly');
+
+  // เพิ่มเงื่อนไขให้ช่องที่เหมือนกันแต่ไม่ใช่ dayOffOnly เป็นสีเทา
+  if (shouldShowData && !isDayOffOnly) {
+    backgroundColor = { backgroundColor: "#9e9e9e" }; // สีเทาอ่อน
+  }
 
   return (
     <td 
@@ -11968,8 +12467,8 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
       className="text-red align-middle text-center"
       style={backgroundColor}
     >
-      {shouldShowData ? formatTimeValue(found.totalTime) : 
-       (specialIndividual && found?.dayType === "stop" && found.totalTime) ? 
+      {(shouldShowData && isDayOffOnly) ? formatTimeValue(found.totalTime) : 
+       (specialIndividual && found?.dayType === "stop" && found.totalTime && isDayOffOnly) ? 
        formatTimeValue(found.totalTime) : ''}
     </td>
   );
@@ -12011,7 +12510,8 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
         salaryItem.name?.includes("ลาป่วย") || 
         salaryItem.name?.includes("ป่วย") ||
         salaryItem.name?.includes("ลาพักร้อน") ||
-        salaryItem.name?.includes("ชดเชย")) {
+        salaryItem.name?.includes("ชดเชย") ||
+                  salaryItem.name?.includes("ลากิจ")){
       
       // แปลง date string เป็น array ของวันที่
       const dates = salaryItem.date ? salaryItem.date.split(',').map(d => d.trim()) : [];
@@ -12032,7 +12532,8 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
           salaryItem.name?.includes("ลาป่วย") || 
           salaryItem.name?.includes("ป่วย") ||
           salaryItem.name?.includes("ลาพักร้อน") ||
-          salaryItem.name?.includes("ชดเชย")) {
+          salaryItem.name?.includes("ชดเชย") ||
+                  salaryItem.name?.includes("ลากิจ")) {
         
         const dates = salaryItem.date ? salaryItem.date.split(',').map(d => d.trim()) : [];
         const currentDay = parseInt(day);

@@ -3,6 +3,7 @@ import endpoint from "../../config";
 import axios from "axios";
 import React, { useEffect, useState } from "react";
 import { jsPDF } from "jspdf";
+import Swal from "sweetalert2";
 
 import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
@@ -707,11 +708,22 @@ const [isGeneratingExcel, setIsGeneratingExcel] = useState(false);
       // เบี้ยขยัน
       const hardWorkingItems = addSalaryList.filter((item) => item.id === "1410");
       const sumAmountHardWorking = hardWorkingItems.reduce((sum, item) => sum + parseFloat(item.SpSalary || 0), 0);
+
+      // ค่าเดินทาง(คิดประกัน)
+      const trasportationSocialItems = addSalaryList.filter((item) => item.id === "1520");
+      const sumTrasportationSocial = trasportationSocialItems.reduce((sum, item) => sum + parseFloat(item.SpSalary || 0), 0);
       
       if (sumAmountHardWorking > 0) {
         textArray.push("เบี้ยขยัน");
         countArray.push("");
         valueArray.push(sumAmountHardWorking.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","));
+      }
+
+      // ค่าเดินทาง(คิดประกัน)
+      if (sumTrasportationSocial > 0) {
+        textArray.push("ค่าเดินทาง(คิดประกัน)");
+        countArray.push("");
+        valueArray.push(sumTrasportationSocial.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","));
       }
 
       // ค่าเดินทาง
@@ -1113,6 +1125,26 @@ const [isGeneratingExcel, setIsGeneratingExcel] = useState(false);
 
   const handleSelectChange = (e) => {
     const value = e.target.value;
+    
+    // ตรวจสอบถ้าเลือก option1 (แบบหน่วยงาน)
+    if (value === "option1") {
+      // แสดง SweetAlert แจ้งเตือน
+      Swal.fire({
+        icon: 'info',
+        title: 'ระบบกำลังปรับปรุง',
+        text: 'ระบบกำลังปรับปรุงการออกแบบหน่วยงาน ให้ใช้การออกแบบรายบุคคลก่อน',
+        confirmButtonText: 'ตกลง',
+        confirmButtonColor: '#3085d6'
+      }).then(() => {
+        // หลังจากกด OK ให้เปลี่ยนเป็น option2 (แบบพนักงาน)
+        setSelectedOption("option2");
+        // Clear ข้อมูลของแบบหน่วยงาน
+        setWorkplacrId("");
+        setWorkplacrName("");
+      });
+      return; // ไม่ต้องเซ็ต selectedOption เป็น option1
+    }
+    
     setSelectedOption(value);
 
     // ไม่ clear ข้อมูลอัตโนมัติ รอให้กดปุ่มค้นหาแทน
@@ -1179,26 +1211,105 @@ const [isGeneratingExcel, setIsGeneratingExcel] = useState(false);
 const handleSearchData = async () => {
   setIsLoadingData(true); // เริ่ม loading
   
-  const dataTest = {
-    year: year.toString(),
-    month: month.toString().padStart(2, '0'),
-  };
-
-  console.log("🚀 Sending POST request to API:", "http://10.10.110.7:3000/accounting/searchtimerecordemployee");
-  console.log("📅 Request data:", dataTest);
-  console.log("🔍 Selected option:", selectedOption);
-  console.log("🏢 Search workplace ID:", searchWorkplaceId);
-  console.log("👤 Search employee ID:", searchEmployeeId);
-
-  // เปลี่ยนเป็น POST http://10.10.110.7:3000/accounting/searchtimerecordemployee
   try {
-      const response = await axios.post("http://10.10.110.7:3000/accounting/searchtimerecordemployee", dataTest);
+    console.log("🚀 Starting comprehensive data search...");
+    console.log("🔍 Selected option:", selectedOption);
+    console.log("🏢 Search workplace ID:", searchWorkplaceId);
+    console.log("👤 Search employee ID:", searchEmployeeId);
+    console.log("📅 Year:", year, "Month:", month);
+
+    const dataTest = {
+      year: year.toString(),
+      month: month.toString().padStart(2, '0'),
+    };
+
+    // Step 1: เรียก API accounting/searchtimerecordemployee (API หลัก)
+    console.log("� Step 1: Calling main API - accounting/searchtimerecordemployee");
+    const mainResponse = await axios.post("http://10.10.110.7:3000/accounting/searchtimerecordemployee", dataTest);
+    console.log("✅ Main API Response received:", mainResponse.data);
+
+    // Step 2: ถ้าเป็น option1 (หน่วยงาน) ให้เรียก API เพิ่มเติม
+    if (selectedOption == "option1" && searchWorkplaceId) {
+      console.log("� Step 2: Calling workplace API - accounting/searchtimerecordbyworkplace");
+      const workplaceApiData = {
+        workplaceId: searchWorkplaceId,
+        month: month.toString().padStart(2, '0'),
+        year: year.toString()
+      };
+
+      try {
+        const workplaceResponse = await axios.post(
+          'http://10.10.110.7:3000/accounting/searchtimerecordbyworkplace',
+          workplaceApiData,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            timeout: 30000
+          }
+        );
+        console.log("✅ Workplace API Response:", workplaceResponse.data);
+      } catch (workplaceError) {
+        console.warn("⚠️ Workplace API Error:", workplaceError);
+      }
+
+      // Step 3: เรียก conclude/searchtimerecordemployee สำหรับพนักงานในหน่วยงาน
+      console.log("� Step 3: Calling conclude API for all employees in workplace");
+      const responseData = mainResponse.data.result || [];
       
-      console.log("✅ API Response received:", response.data);
-      console.log("📊 Total records from API:", response.data?.result?.length || 0);
-      
-      if (selectedOption == "option1") {
-        const responseData = response.data.result; // แก้ไข: เข้าถึง result array
+      // กรองพนักงานในหน่วยงานที่เลือก
+      const workplaceEmployees = responseData.filter((item) => {
+        return item.employee_record && item.employee_record.some(
+          (record) => record.workplaceId === searchWorkplaceId
+        );
+      });
+
+      console.log(`🔄 Found ${workplaceEmployees.length} employees in workplace ${searchWorkplaceId}`);
+
+      // วนยิง conclude API สำหรับแต่ละพนักงาน
+      let concludeSuccessCount = 0;
+      for (let i = 0; i < workplaceEmployees.length; i++) {
+        const employee = workplaceEmployees[i];
+        try {
+          const concludeData = {
+            employeeId: employee.employeeId,
+            month: month.toString().padStart(2, '0'),
+            year: year.toString()
+          };
+
+          const concludeResponse = await axios.post(
+            'http://10.10.110.7:3000/conclude/searchtimerecordemployee',
+            concludeData,
+            {
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              timeout: 30000
+            }
+          );
+
+          if (concludeResponse.status === 200) {
+            concludeSuccessCount++;
+            console.log(`✅ Conclude API success for employee ${employee.employeeId}`);
+          }
+        } catch (concludeError) {
+          console.warn(`⚠️ Conclude API error for employee ${employee.employeeId}:`, concludeError);
+        }
+
+        // เพิ่ม delay เล็กน้อย
+        if (i < workplaceEmployees.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
+
+      console.log(`✅ Conclude API completed: ${concludeSuccessCount}/${workplaceEmployees.length} employees processed`);
+    }
+
+    // Step 4: ประมวลผลข้อมูลตามเดิม
+    console.log("🔄 Processing main data response...");
+    
+    if (selectedOption == "option1") {
+      const responseData = mainResponse.data.result; // แก้ไข: เข้าถึง result array
         console.log("🔄 Processing Option 1 (Workplace filter)");
 
         // Filter data based on searchWorkplaceId if provided
@@ -1289,8 +1400,35 @@ const handleSearchData = async () => {
           console.log("📋 Final filtered data:", dateFilteredData);
           setResponseDataAll(dateFilteredData);
         } else if (selectedOption == "option2") {
-          const responseData = response.data.result; // แก้ไข: เข้าถึง result array
+          const responseData = mainResponse.data.result; // แก้ไข: เข้าถึง result array
           console.log("🔄 Processing Option 2 (Employee filter)");
+
+          // ถ้าเป็น option2 และมี employeeId ให้เรียก conclude API สำหรับพนักงานคนนั้น
+          if (searchEmployeeId) {
+            console.log("📡 Step 3: Calling conclude API for specific employee");
+            try {
+              const concludeData = {
+                employeeId: searchEmployeeId,
+                month: month.toString().padStart(2, '0'),
+                year: year.toString()
+              };
+
+              const concludeResponse = await axios.post(
+                'http://10.10.110.7:3000/conclude/searchtimerecordemployee',
+                concludeData,
+                {
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  timeout: 30000
+                }
+              );
+
+              console.log(`✅ Conclude API success for employee ${searchEmployeeId}`);
+            } catch (concludeError) {
+              console.warn(`⚠️ Conclude API error for employee ${searchEmployeeId}:`, concludeError);
+            }
+          }
 
           // Filter data based on searchEmployeeId if provided
           const filteredData = searchEmployeeId
@@ -1539,11 +1677,14 @@ const generatePDF = async () => {
   pdf.setFont("THSarabunNew Bold");
 
   // ฟังก์ชันคำนวณเงินรับสุทธิ
-  const calculateNetSalary = (employee) => {
+  const calculateNetSalary = (employee, accountingRecord = null) => {
+    // ใช้ข้อมูลจาก accountingRecord หรือ employee
+    const specialDayAmount = accountingRecord?.amountSpecialDay || employee?.cashSpecialDay || 0;
+    
     const incomeTotal = 
       parseFloat(employee?.sumCashWork || '0') + 
       parseFloat(employee?.sumCashOt || '0') +
-      parseFloat(employee?.cashSpecialDay || '0') + 
+      parseFloat(specialDayAmount || '0') + 
       parseFloat(
         employee?.addSalaryList?.reduce(
           (total, item) => total + parseFloat(item.SpSalary || '0'),
@@ -1579,7 +1720,8 @@ const generatePDF = async () => {
     const addSalaryList = currentEmployee.addSalaryList || [];
 
     // คำนวณเงินรับสุทธิสำหรับพนักงานคนแรก
-    const netSalary1 = calculateNetSalary(currentEmployee);
+    // คำนวณเงินรับสุทธิสำหรับพนักงานคนแรก
+    const netSalary1 = calculateNetSalary(currentEmployee, responseDataAll[i]?.accountingRecord?.[0]);
 
     // คำนวณจำนวนวันทำงาน (ใช้ข้อมูลที่แก้ไขแล้ว)
     const workDays = editableData && editableData.length > i && editableData[i]?.editableFields?.workDays ||
@@ -1622,6 +1764,12 @@ const generatePDF = async () => {
       (item) => item.id === "1410"
     );
 
+    // ค่าเดินทาง(คิดประกัน)
+    const trasportationSocial = addSalaryList.filter(
+      (item) => item.id === "1520"
+    );
+
+
     // ค่าเดินทาง(ไม่คิดประกัน)
     const formattedAddSalaryTavel = addSalaryList.filter(
       (item) => item.id === "1535"
@@ -1637,6 +1785,11 @@ const generatePDF = async () => {
 
     // Calculate the sum of SpSalary values in the filtered array
     const sumAmountHardWorking = formattedAmountHardWorking.reduce(
+      (total, item) => total + parseFloat(item.SpSalary || 0),
+      0
+    );
+
+    const sumTrasportationSocial = trasportationSocial.reduce(
       (total, item) => total + parseFloat(item.SpSalary || 0),
       0
     );
@@ -1800,6 +1953,16 @@ if (ot2Hours > 0 && ot2Cash > 0) {
   textArray.push("ค่าล่วงเวลา 2 เท่า");
   countArray.push(ot2Hours.toFixed(2));
   valueArray.push(ot2Cash); // เก็บเป็น number
+
+}
+
+const workonDayoff = parseFloat(currentEmployee.customizeDayoff || 0);
+const cashWorkOnDayOff = parseFloat(currentEmployee.cashcustomizeDayoff || 0);
+
+if(workonDayoff > 0){
+  textArray.push("ทำงานในวันหยุด");
+  countArray.push(workonDayoff.toString());
+  valueArray.push(cashWorkOnDayOff); 
 }
 
 // ค่าล่วงเวลา 3 เท่า
@@ -1835,6 +1998,12 @@ if (ot3Hours > 0 && ot3Cash > 0) {
       valueArray.push(sumAmountHardWorking); // เก็บเป็น number
     }
 
+    // ค่าเดินทาง(คิดประกัน)
+    if (sumTrasportationSocial > 0) {
+      textArray.push("ค่าเดินทาง(คิดประกันสังคม)");
+      countArray.push("");
+      valueArray.push(sumTrasportationSocial); // เก็บเป็น number
+    }
 
 
     // รวมเงินพิเศษ
@@ -2040,7 +2209,7 @@ if (ot3Hours > 0 && ot3Cash > 0) {
       const addSalaryList2 = currentEmployee2.addSalaryList || [];
 
       // คำนวณเงินรับสุทธิสำหรับพนักงานคนที่ 2
-      const netSalary2 = calculateNetSalary(currentEmployee2);
+      const netSalary2 = calculateNetSalary(currentEmployee2, responseDataAll[i + 1]?.accountingRecord?.[0]);
 
       // คำนวณข้อมูลสำหรับพนักงานคนที่ 2 (ใช้ข้อมูลที่แก้ไขแล้ว)
       const workDays2 = editableData && editableData.length > (i + 1) && editableData[i + 1]?.editableFields?.workDays ||
@@ -2156,6 +2325,7 @@ if (ot3Hours > 0 && ot3Cash > 0) {
       pdf.rect(162 + 9, head2 + 3, 25, 15);
       pdf.text(`วันที่จ่าย`, 179, head2 + 9);
       pdf.text(`Payroll Date`, 176, head2 + 12);
+      pdf.text(`${paymentDate || "N/A"}`, 176, head2 + 23);
 
       pdf.rect(162 + 9, head2 + 52, 25, 25);
       pdf.rect(162 + 9, head2 + 52, 25, 15);
@@ -2191,19 +2361,33 @@ if (ot3Hours > 0 && ot3Cash > 0) {
       if (totalCashWork2 > 0) {
         textArray2.push("เงินเดือน");
         countArray2.push(displayWorkDays2.toString());
-        valueArray2.push(
-          parseFloat(totalCashWork2 || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-        );
+        valueArray2.push(totalCashWork2); // เก็บเป็น number
       }
-      const pubDayCount2 = parseFloat(currentEmployee2.publicHolidayCount || 0);
-      const pubDayCash2 = parseFloat(currentEmployee2.publicHolidayCash || 0);
+      const pubDayCount2 = parseFloat(
+        responseDataAll[i + 1]?.accountingRecord?.[0]?.publicHolidayCount || 
+        currentEmployee2.publicHolidayCount || 
+        currentEmployee2.specialDayOff || 
+        0
+      );
+      const pubDayCash2 = parseFloat(
+        responseDataAll[i + 1]?.accountingRecord?.[0]?.publicHolidayCash || 
+        responseDataAll[i + 1]?.accountingRecord?.[0]?.amountSpecialDay || 
+        currentEmployee2.publicHolidayCash ||
+        currentEmployee2.cashSpecialDay ||
+        0
+      );
 
-      if (pubDayCount2 > 0) {
+      console.log("🔍 Employee 2 - pubDayCount2:", pubDayCount2, "pubDayCash2:", pubDayCash2);
+      console.log("🔍 Employee 2 accountingRecord:", responseDataAll[i + 1]?.accountingRecord?.[0]);
+      console.log("🔍 Employee 2 currentEmployee2 keys:", Object.keys(currentEmployee2));
+
+      if (pubDayCash2 > 0 || pubDayCount2 > 0) { // แสดงถ้ามีเงินหรือมีจำนวนวัน
         textArray2.push("วันหยุดนักขัตฤกษ์");
         countArray2.push(pubDayCount2.toFixed(2));
-        valueArray2.push(
-          pubDayCash2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-        );
+        valueArray2.push(pubDayCash2); // เก็บเป็น number
+        console.log("✅ Added วันหยุดนักขัตฤกษ์ for employee 2");
+      } else {
+        console.log("❌ No วันหยุดนักขัตฤกษ์ data for employee 2");
       }
       
       if (totalCashOt1p5 > 0) {
@@ -2211,9 +2395,7 @@ if (ot3Hours > 0 && ot3Cash > 0) {
 
         textArray2.push("ค่าล่วงเวลา 1.5 เท่า");
         countArray2.push(otHours1p5.toFixed(2));
-        valueArray2.push(
-          totalCashOt1p5.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-        );
+        valueArray2.push(totalCashOt1p5); // เก็บเป็น number
       }
 
       if (totalCashOt2x > 0) {
@@ -2221,72 +2403,75 @@ if (ot3Hours > 0 && ot3Cash > 0) {
 
         textArray2.push("ค่าล่วงเวลา 2 เท่า (ตัวคูณ)");
         countArray2.push(otHours2x.toFixed(2));
-        valueArray2.push(
-          totalCashOt2x.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-        );
+        valueArray2.push(totalCashOt2x); // เก็บเป็น number
       }
 
-      if (totalCashOt2 > 0) {
-        const otHours2 = parseFloat(currentEmployee2.sumOtPublicHoliday || 0);
-
-        textArray2.push("ค่าล่วงเวลา 2 เท่า");
-        countArray2.push(otHours2.toFixed(2));
-        valueArray2.push(
-          totalCashOt2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-        );
-      }
+     
 
       if (totalCashOt3x > 0) {
         const otHours3 = parseFloat(currentEmployee2.sumOt3 || 0);
 
         textArray2.push("ค่าล่วงเวลา 3 เท่า");
         countArray2.push(otHours3.toFixed(2));
-        valueArray2.push(
-          totalCashOt3x.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-        );
+        valueArray2.push(totalCashOt3x); // เก็บเป็น number
       }
 
       if (result2.sumSpSalary > 0) {
         textArray2.push(concatenatedNames2);
         countArray2.push("");
-        valueArray2.push(
-          result2.sumSpSalary.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-        );
+        valueArray2.push(result2.sumSpSalary); // เก็บเป็น number
       }
 
       if (sumAddSalaryTavel2 > 0) {
         textArray2.push("ค่าเดินทาง");
         countArray2.push("");
-        valueArray2.push(
-          sumAddSalaryTavel2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-        );
+        valueArray2.push(sumAddSalaryTavel2); // เก็บเป็น number
       }
 
       if (sumAmountHardWorking2 > 0) {
         textArray2.push("เบี้ยขยัน");
         countArray2.push("");
-        valueArray2.push(
-          sumAmountHardWorking2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-        );
+        valueArray2.push(sumAmountHardWorking2); // เก็บเป็น number
       }
 
        if (sumAddSalaryFood > 0) {
           // Push the text to textArray and the value to valueArray
           textArray2.push("ค่าอาหาร");
           countArray2.push("");
-          valueArray2.push(
-            sumAddSalaryFood.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-          );
+          valueArray2.push(sumAddSalaryFood); // เก็บเป็น number
           console.log("77.1");
         }
        if (sumAddSpecialCash > 0) {
           // Push the text to textArray and the value to valueArray
           textArray2.push("ค่าเงินพิเศษ");
           countArray2.push("");
-          valueArray2.push(
-            sumAddSpecialCash.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-          );
+          valueArray2.push(sumAddSpecialCash); // เก็บเป็น number
           console.log("77.1");
+        }
+
+        // จ่ายชดเชยวันลาสำหรับพนักงานคนที่ 2
+        const excludedIdsPayCompensation2 = [
+          "1231", "1233", "1422", "1423", "1428", "1434", 
+          "1435", "1429", "1427", "1234", "1426", "1425", "1442",
+        ];
+
+        const addSalaryPayCompensationFiltered2 = addSalaryList2
+          .filter((salary) => excludedIdsPayCompensation2.includes(salary.id))
+          .map((salary) => ({
+            name: salary.name,
+            SpSalary: Number(salary.SpSalary) || 0,
+          }));
+
+        const totalSpSalaryCompensation2 = addSalaryPayCompensationFiltered2.reduce(
+          (sum, salary) => sum + salary.SpSalary,
+          0
+        );
+
+        if (totalSpSalaryCompensation2 > 0) {
+          textArray2.push("จ่ายชดเชยวันลา");
+          countArray2.push("");
+          valueArray2.push(totalSpSalaryCompensation2); // เก็บเป็น number
+          console.log("Added compensation for employee 2:", totalSpSalaryCompensation2);
         }
         
 
@@ -2337,8 +2522,11 @@ if (ot3Hours > 0 && ot3Cash > 0) {
       });
 
       let y2_3 = 174;
-      valueArray2.forEach((text) => {
-        pdf.text(`${text}`, 92, y2_3, { align: "right" });
+      valueArray2.forEach((value) => {
+        const formattedValue = typeof value === 'number' ? 
+          value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",") : 
+          value;
+        pdf.text(`${formattedValue}`, 92, y2_3, { align: "right" });
         y2_3 += 4.1;
       });
 
@@ -2359,17 +2547,11 @@ if (ot3Hours > 0 && ot3Cash > 0) {
         y2_5 += 4.1;
       });
 
-      // รวมรายได้ทั้งหมดสำหรับพนักงานคนที่ 2
-      const incomeTotal2 = 
-        parseFloat(currentEmployee2?.sumCashWork || '0') + 
-        parseFloat(currentEmployee2?.sumCashOt || '0') +
-        parseFloat(currentEmployee2?.publicHolidayCash || '0') + 
-        parseFloat(
-          currentEmployee2?.addSalaryList?.reduce(
-            (total, item) => total + parseFloat(item.SpSalary || '0'),
-            0
-          ) || '0'
-        );
+      // รวมรายได้ทั้งหมดสำหรับพนักงานคนที่ 2 - ใช้ valueArray2 เหมือนพนักงานคนแรก
+      const incomeTotal2 = valueArray2.reduce((sum, val) => {
+        const numVal = parseFloat(typeof val === 'string' ? val.replace(/,/g, '') : val);
+        return sum + (isNaN(numVal) ? 0 : numVal);
+      }, 0);
 
       pdf.text(
         `${incomeTotal2.toLocaleString('th-TH', {
@@ -2381,8 +2563,11 @@ if (ot3Hours > 0 && ot3Cash > 0) {
         { align: "right" }
       );
 
-      // รวมเงินหักสำหรับพนักงานคนที่ 2
-      const totalDeductions2 = tax2 + socialSecurity2;
+      // รวมเงินหักสำหรับพนักงานคนที่ 2 - ใช้ valueDedustArray2 เหมือนพนักงานคนแรก
+      const totalDeductions2 = valueDedustArray2.reduce((sum, val) => {
+        const numVal = parseFloat(typeof val === 'number' ? val : (typeof val === 'string' ? val.replace(/,/g, '') : val));
+        return sum + (isNaN(numVal) ? 0 : numVal);
+      }, 0);
       
       pdf.text(
         `${totalDeductions2.toLocaleString('th-TH', {
@@ -2394,9 +2579,10 @@ if (ot3Hours > 0 && ot3Cash > 0) {
         { align: "right" }
       );
 
-      // เงินรับสุทธิสำหรับพนักงานคนที่ 2 (ใช้สูตรคำนวณใหม่)
+      // เงินรับสุทธิสำหรับพนักงานคนที่ 2 - คำนวณจาก incomeTotal2 - totalDeductions2
+      const totalNet2 = incomeTotal2 - totalDeductions2;
       pdf.text(
-        `${netSalary2.toLocaleString('th-TH', {
+        `${totalNet2.toLocaleString('th-TH', {
           minimumFractionDigits: 2,
           maximumFractionDigits: 2
         })}`,
@@ -3889,6 +4075,11 @@ const generateExcel = async () => {
         (item) => item.id === "1410"
       );
 
+      // ค่าเดินทาง(คิดประกัน)
+      const trasportationSocial = (responseDataAll[i].addSalary || []).filter(
+        (item) => item.id === "1520"
+      );
+
       // ค่าเดินทาง(ไม่คิดประกัน)
       const formattedAddSalaryTavel = (responseDataAll[i].addSalary || []).filter(
         (item) => item.id === "1535"
@@ -3899,6 +4090,10 @@ const generateExcel = async () => {
         0
       );
 
+      const sumTrasportationSocial = trasportationSocial.reduce(
+        (total, item) => total + parseFloat(item.SpSalary || 0),
+        0
+      );
 
       // Calculate the sum of SpSalary values in the filtered array
       const sumAddSalaryTavel = formattedAddSalaryTavel.reduce(
