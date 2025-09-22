@@ -2960,6 +2960,46 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
 
   const updatedRecords = await Promise.all(
     employee_record.map(async (record) => {
+      // 🎯 ตรวจสอบ cash_holiday ก่อนการคำนวณใด ๆ ใน Special7Days
+      if (record.shift === "cash_holiday") {
+        console.log(`🎯 [CASH_HOLIDAY SPECIAL7] พบ cash_holiday วันที่ ${record.date} - บังคับค่าเงิน/เวลาเป็น 0`);
+        
+        // บังคับให้ทุกค่าเป็น 0 และ return ทันที
+        const resultData = {
+          workplaceId: record.workplaceId,
+          workplaceName: record.workplaceName,
+          wGroup: record.wGroup,
+          date: record.date,
+          shift: record.shift,
+          startTime: record.startTime,
+          endTime: record.endTime,
+          totalTime: "0", // บังคับเป็น 0
+          beforeStartOtTime: record.beforeStartOtTime,
+          beforeEndOtTime: record.beforeEndOtTime,
+          beforeTotalOtTime: "0", // บังคับเป็น 0
+          startOtTime: record.startOtTime,
+          endOtTime: record.endOtTime,
+          totalOtTime: "0", // บังคับเป็น 0
+          cashBeforeOt: "0",
+          cashBeforeOtMul: "0",
+          cashWork: "0",
+          cashWorkMul: "0",
+          cashOt: "0",
+          cashOtMul: "0",
+          cashSalary: "",
+          cashOfHoliday: "0", // บังคับเป็น 0
+          cashOfHolidayOt: "0", // บังคับเป็น 0
+          specialtSalary: "0", // บังคับเป็น 0
+          specialtSalaryOT: "0", // บังคับเป็น 0
+          messageSalary: "",
+          dayType: "stop", // กำหนดเป็น stop เพราะเป็นวันหยุด
+          addSalaryDaily: record.addSalaryDaily || []
+        };
+        
+        console.log(`🎯 [CASH_HOLIDAY SPECIAL7] คืนค่า cash_holiday ทั้งหมดเป็น 0 สำหรับวันที่ ${record.date}`);
+        return resultData;
+      }
+
       // จัดการกรณีข้ามปี
       if((record.date >= 21 && record.date <= 31) && month == 1) {
         year = year - 1;
@@ -3295,6 +3335,46 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
 
   return Promise.all(
     employee_record.map(async (record) => {
+      // 🎯 ตรวจสอบ cash_holiday ก่อนการคำนวณใด ๆ ใน calculateCashValues
+      if (record.shift === "cash_holiday") {
+        console.log(`🎯 [CASH_HOLIDAY NORMAL] พบ cash_holiday วันที่ ${record.date} - บังคับค่าเงิน/เวลาเป็น 0`);
+        
+        // บังคับให้ทุกค่าเป็น 0 และ return ทันที
+        const resultData = {
+          workplaceId: record.workplaceId,
+          workplaceName: record.workplaceName,
+          wGroup: record.wGroup,
+          date: record.date,
+          shift: record.shift,
+          startTime: record.startTime,
+          endTime: record.endTime,
+          totalTime: "0", // บังคับเป็น 0
+          beforeStartOtTime: record.beforeStartOtTime,
+          beforeEndOtTime: record.beforeEndOtTime,
+          beforeTotalOtTime: "0", // บังคับเป็น 0
+          startOtTime: record.startOtTime,
+          endOtTime: record.endOtTime,
+          totalOtTime: "0", // บังคับเป็น 0
+          cashBeforeOt: "0",
+          cashBeforeOtMul: "0",
+          cashWork: "0",
+          cashWorkMul: "0",
+          cashOt: "0",
+          cashOtMul: "0",
+          cashSalary: "",
+          cashOfHoliday: "0", // บังคับเป็น 0
+          cashOfHolidayOt: "0", // บังคับเป็น 0
+          specialtSalary: "0", // บังคับเป็น 0
+          specialtSalaryOT: "0", // บังคับเป็น 0
+          messageSalary: "",
+          dayType: "stop", // กำหนดเป็น stop เพราะเป็นวันหยุด
+          addSalaryDaily: record.addSalaryDaily || []
+        };
+        
+        console.log(`🎯 [CASH_HOLIDAY NORMAL] คืนค่า cash_holiday ทั้งหมดเป็น 0 สำหรับวันที่ ${record.date}`);
+        return resultData;
+      }
+
       if((record.date >= 21 && record.date <= 31) && month == 1) {
         year = year - 1;
         month = 12;
