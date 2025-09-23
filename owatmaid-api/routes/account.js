@@ -5721,6 +5721,7 @@ let timeCashWorkMul = {
   let dayOffCount = 0;
   let specialDayOff = 0;
   let cashHolidayCount = 0; // เพิ่มตัวแปรนับจำนวนวัน cash_holiday
+  let countedCashHolidayDates = new Set(); // เพิ่ม Set เพื่อป้องกันการนับซ้ำ
 
   let sumTimeWork = 0;
   let sumTimeOt = 0;
@@ -6545,10 +6546,15 @@ if (record?.dayType === "work") {
       const typeLabel = record.shift === "specialt_shift" ? "specialt_shift" : "cash_holiday";
       console.log(`🚫 พบ ${typeLabel} ในวันที่ ${record.date} - บังคับค่าเงิน/เวลาเป็น 0 และไม่รวมในการคำนวณ`);
       
-      // นับ cash_holiday เฉพาะใน dayType = "work"
+      // นับ cash_holiday เฉพาะใน dayType = "work" และยังไม่เคยนับวันนี้
       if (record.shift === "cash_holiday") {
-        cashHolidayCount += 1;
-        console.log(`📝 นับ cash_holiday วันที่ ${record.date} (dayType=work, รวม: ${cashHolidayCount} วัน)`);
+        if (!countedCashHolidayDates.has(record.date)) {
+          cashHolidayCount += 1;
+          countedCashHolidayDates.add(record.date);
+          console.log(`📝 นับ cash_holiday วันที่ ${record.date} (dayType=work, รวม: ${cashHolidayCount} วัน)`);
+        } else {
+          console.log(`⚠️ ข้าม cash_holiday วันที่ ${record.date} (dayType=work, นับแล้ว)`);
+        }
       }
       
       record.cashBeforeOt = "0";
@@ -6727,8 +6733,14 @@ console.log(`💰 รวมทั้งหมด: ${sumCashWork + sumCashOt} บ
     } else if (record.shift === "cash_holiday") {
       shouldCount = false;
       reason = "เป็น cash_holiday";
-      cashHolidayCount += 1; // นับจำนวนวัน cash_holiday
-      console.log(`📝 นับ cash_holiday วันที่ ${record.date} (รวม: ${cashHolidayCount} วัน)`);
+      // นับ cash_holiday เฉพาะครั้งแรกที่พบในแต่ละวัน
+      if (!countedCashHolidayDates.has(record.date)) {
+        cashHolidayCount += 1;
+        countedCashHolidayDates.add(record.date);
+        console.log(`📝 นับ cash_holiday วันที่ ${record.date} (รวม: ${cashHolidayCount} วัน)`);
+      } else {
+        console.log(`⚠️ ข้าม cash_holiday วันที่ ${record.date} (นับแล้ว)`);
+      }
     }
     
     const hasTotalTime = effectiveTotalTime && effectiveTotalTime.trim() !== '' && parseFloat(effectiveTotalTime) > 0;
