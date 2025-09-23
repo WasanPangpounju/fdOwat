@@ -2973,13 +2973,12 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
           shift: record.shift,
           startTime: record.startTime,
           endTime: record.endTime,
-          totalTime: "0", // บังคับเป็น 0
+    
           beforeStartOtTime: record.beforeStartOtTime,
           beforeEndOtTime: record.beforeEndOtTime,
           beforeTotalOtTime: "0", // บังคับเป็น 0
           startOtTime: record.startOtTime,
-          endOtTime: record.endOtTime,
-          totalOtTime: "0", // บังคับเป็น 0
+
           cashBeforeOt: "0",
           cashBeforeOtMul: "0",
           cashWork: "0",
