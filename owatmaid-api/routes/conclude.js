@@ -3080,10 +3080,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
           cashOt: String(cashOt),
           cashOtMul: String(cashOtMul),
           cashSalary: "",
-          cashOfHoliday: "0", // บังคับเป็น 0
-          cashOfHolidayOt: "0", // บังคับเป็น 0
-          specialtSalary: "0", // บังคับเป็น 0
-          specialtSalaryOT: "0", // บังคับเป็น 0
+
           messageSalary: "",
           dayType: dayType,
           addSalaryDaily: addSalaryDaily
@@ -3359,10 +3356,7 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
           cashOt: "0",
           cashOtMul: "0",
           cashSalary: "",
-          cashOfHoliday: "0", // บังคับเป็น 0
-          cashOfHolidayOt: "0", // บังคับเป็น 0
-          specialtSalary: "0", // บังคับเป็น 0
-          specialtSalaryOT: "0", // บังคับเป็น 0
+
           messageSalary: "",
           dayType: "stop", // กำหนดเป็น stop เพราะเป็นวันหยุด
           addSalaryDaily: record.addSalaryDaily || []
