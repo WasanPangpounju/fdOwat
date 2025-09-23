@@ -6258,8 +6258,14 @@ try {
           if (record.shift !== "cash_holiday") {
             sumcashDayOffCount = parseFloat(sumcashDayOffCount || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0');
           } else {
-            cashHolidayCount += 1; // นับจำนวนวัน cash_holiday ในส่วน dayType=stop
-            console.log(`📝 นับ cash_holiday วันที่ ${record.date} (dayType=stop, รวม: ${cashHolidayCount} วัน)`);
+            // นับ cash_holiday เฉพาะครั้งแรกที่พบในแต่ละวัน (dayType=stop)
+            if (!countedCashHolidayDates.has(record.date)) {
+              cashHolidayCount += 1;
+              countedCashHolidayDates.add(record.date);
+              console.log(`📝 นับ cash_holiday วันที่ ${record.date} (dayType=stop, รวม: ${cashHolidayCount} วัน)`);
+            } else {
+              console.log(`⚠️ ข้าม cash_holiday วันที่ ${record.date} (dayType=stop, นับแล้ว)`);
+            }
             console.log(`⏭️ ข้าม cash_holiday ไม่รวมใน sumcashDayOffCount (วันที่ ${record.date})`);
           }
 
