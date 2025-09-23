@@ -2973,12 +2973,13 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
           shift: record.shift,
           startTime: record.startTime,
           endTime: record.endTime,
-    
+          totalTime: record.totalTime || "0", 
           beforeStartOtTime: record.beforeStartOtTime,
           beforeEndOtTime: record.beforeEndOtTime,
           beforeTotalOtTime: "0", // บังคับเป็น 0
           startOtTime: record.startOtTime,
-
+          endOtTime: record.endOtTime,
+          totalOtTime: record.totalOtTime || "0",
           cashBeforeOt: "0",
           cashBeforeOtMul: "0",
           cashWork: "0",
@@ -2986,7 +2987,10 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
           cashOt: "0",
           cashOtMul: "0",
           cashSalary: "",
-
+          cashOfHoliday: record.cashOfHoliday || "0", // อาจมีค่าได้
+          cashOfHolidayOt: record.cashOfHolidayOt || "0", // OT อาจมีค่าได้
+          specialtSalary: record.specialtSalary, 
+          specialtSalaryOT: record.specialtSalaryOT,
           messageSalary: "",
           dayType: "stop", // กำหนดเป็น stop เพราะเป็นวันหยุด
           addSalaryDaily: record.addSalaryDaily || []
@@ -3058,31 +3062,34 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
         
         // ข้ามการคำนวณทั้งหมด โดยกำหนดค่าที่จำเป็นและ return
         const resultData = await {
-          workplaceId: record.workplaceId,
+           workplaceId: record.workplaceId,
           workplaceName: record.workplaceName,
           wGroup: record.wGroup,
           date: record.date,
           shift: record.shift,
           startTime: record.startTime,
           endTime: record.endTime,
-          totalTime: "0", // บังคับเป็น 0
+          totalTime: record.totalTime || "0", 
           beforeStartOtTime: record.beforeStartOtTime,
           beforeEndOtTime: record.beforeEndOtTime,
           beforeTotalOtTime: "0", // บังคับเป็น 0
           startOtTime: record.startOtTime,
           endOtTime: record.endOtTime,
-          totalOtTime: "0", // บังคับเป็น 0
-          cashBeforeOt: String(cashBeforeOt),
-          cashBeforeOtMul: String(cashBeforeOtMul),
-          cashWork: String(cashWork),
-          cashWorkMul: String(cashWorkMul),
-          cashOt: String(cashOt),
-          cashOtMul: String(cashOtMul),
+          totalOtTime: record.totalOtTime || "0",
+          cashBeforeOt: "0",
+          cashBeforeOtMul: "0",
+          cashWork: "0",
+          cashWorkMul: "0",
+          cashOt: "0",
+          cashOtMul: "0",
           cashSalary: "",
-
+          cashOfHoliday: record.cashOfHoliday || "0", // อาจมีค่าได้
+          cashOfHolidayOt: record.cashOfHolidayOt || "0", // OT อาจมีค่าได้
+          specialtSalary: record.specialtSalary, 
+          specialtSalaryOT: record.specialtSalaryOT,
           messageSalary: "",
-          dayType: dayType,
-          addSalaryDaily: addSalaryDaily
+          dayType: "stop", // กำหนดเป็น stop เพราะเป็นวันหยุด
+          addSalaryDaily: record.addSalaryDaily || []
         };
         
         console.log(`🎯 [CASH_HOLIDAY] คืนค่า cash_holiday ทั้งหมดเป็น 0 สำหรับวันที่ ${record.date}`);
@@ -3341,13 +3348,13 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
           shift: record.shift,
           startTime: record.startTime,
           endTime: record.endTime,
-          totalTime: "0", // บังคับเป็น 0
+          totalTime: record.totalTime || "0", 
           beforeStartOtTime: record.beforeStartOtTime,
           beforeEndOtTime: record.beforeEndOtTime,
           beforeTotalOtTime: "0", // บังคับเป็น 0
           startOtTime: record.startOtTime,
           endOtTime: record.endOtTime,
-          totalOtTime: "0", // บังคับเป็น 0
+          totalOtTime: record.totalOtTime || "0",
           cashBeforeOt: "0",
           cashBeforeOtMul: "0",
           cashWork: "0",
@@ -3355,7 +3362,10 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
           cashOt: "0",
           cashOtMul: "0",
           cashSalary: "",
-
+          cashOfHoliday: record.cashOfHoliday || "0", // อาจมีค่าได้
+          cashOfHolidayOt: record.cashOfHolidayOt || "0", // OT อาจมีค่าได้
+          specialtSalary: record.specialtSalary, 
+          specialtSalaryOT: record.specialtSalaryOT,
           messageSalary: "",
           dayType: "stop", // กำหนดเป็น stop เพราะเป็นวันหยุด
           addSalaryDaily: record.addSalaryDaily || []
