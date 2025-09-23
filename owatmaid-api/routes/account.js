@@ -5348,6 +5348,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           cashcustomizeDayoff: String(finalCashcustomizeDayoff || 0), // ใช้ค่าที่คำนวณจาก totalWorkerWage สำหรับหน่วยงาน 7 วัน
           publicHolidayCount: String(calculatedValues.publicHolidayCount || 0), // เพิ่มบรรทัดนี้
           publicHolidayCash: String(calculatedValues.publicHolidayCash || 0), // เพิ่มบรรทัดนี้
+          cash: String(calculatedValues.cashHolidayCount || 0), // เพิ่มฟิลด์ cash (จำนวนวัน cash_holiday)
           sumTimeWork: String(calculatedValues.sumTimeWork),
           sumTimeOt: String(calculatedValues.sumTimeOt),
           sumCashWork: String(calculatedValues.sumCashWork),
@@ -5409,6 +5410,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         console.log(`🔍 dayWorkCount: ${updateData.dayWorkCount}`);
         console.log(`🔍 customizeDayoff: ${updateData.customizeDayoff}`);
         console.log(`💰 cashcustomizeDayoff: ${updateData.cashcustomizeDayoff}`);
+        console.log(`💵 cash (cash_holiday count): ${updateData.cash}`); // เพิ่ม log สำหรับ cash field
         console.log(`⏱️ sumOt1p5: ${updateData.sumOt1p5}`); 
         console.log(`🟢 stopDaysList: ${updateData.stopDaysList ? `${updateData.stopDaysList.length} วัน` : 'ไม่มี'}`);
         if (updateData.stopDaysList && updateData.stopDaysList.length > 0) {
@@ -5718,6 +5720,7 @@ let timeCashWorkMul = {
   let dayWorkCount = 0;
   let dayOffCount = 0;
   let specialDayOff = 0;
+  let cashHolidayCount = 0; // เพิ่มตัวแปรนับจำนวนวัน cash_holiday
 
   let sumTimeWork = 0;
   let sumTimeOt = 0;
@@ -6254,6 +6257,8 @@ try {
           if (record.shift !== "cash_holiday") {
             sumcashDayOffCount = parseFloat(sumcashDayOffCount || 0) + parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashWork || '0') + parseFloat(record?.cashOt || '0');
           } else {
+            cashHolidayCount += 1; // นับจำนวนวัน cash_holiday ในส่วน dayType=stop
+            console.log(`📝 นับ cash_holiday วันที่ ${record.date} (dayType=stop, รวม: ${cashHolidayCount} วัน)`);
             console.log(`⏭️ ข้าม cash_holiday ไม่รวมใน sumcashDayOffCount (วันที่ ${record.date})`);
           }
 
@@ -6539,6 +6544,13 @@ if (record?.dayType === "work") {
     if (record.shift === "specialt_shift" || record.shift === "cash_holiday") {
       const typeLabel = record.shift === "specialt_shift" ? "specialt_shift" : "cash_holiday";
       console.log(`🚫 พบ ${typeLabel} ในวันที่ ${record.date} - บังคับค่าเงิน/เวลาเป็น 0 และไม่รวมในการคำนวณ`);
+      
+      // นับ cash_holiday เฉพาะใน dayType = "work"
+      if (record.shift === "cash_holiday") {
+        cashHolidayCount += 1;
+        console.log(`📝 นับ cash_holiday วันที่ ${record.date} (dayType=work, รวม: ${cashHolidayCount} วัน)`);
+      }
+      
       record.cashBeforeOt = "0";
       record.cashBeforeOtMul = "0";
       record.cashWork = "0";
@@ -6715,6 +6727,8 @@ console.log(`💰 รวมทั้งหมด: ${sumCashWork + sumCashOt} บ
     } else if (record.shift === "cash_holiday") {
       shouldCount = false;
       reason = "เป็น cash_holiday";
+      cashHolidayCount += 1; // นับจำนวนวัน cash_holiday
+      console.log(`📝 นับ cash_holiday วันที่ ${record.date} (รวม: ${cashHolidayCount} วัน)`);
     }
     
     const hasTotalTime = effectiveTotalTime && effectiveTotalTime.trim() !== '' && parseFloat(effectiveTotalTime) > 0;
@@ -7652,6 +7666,7 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
     cashcustomizeDayoff, // เพิ่มฟิลด์ cashcustomizeDayoff
     publicHolidayCount, // เพิ่มฟิลด์ publicHolidayCount
     publicHolidayCash, // เพิ่มฟิลด์ publicHolidayCash
+    cashHolidayCount, // เพิ่มฟิลด์ cashHolidayCount (จำนวนวัน cash_holiday)
     sumTimeWork,
     sumTimeOt,
     sumCashWork,
@@ -7681,6 +7696,7 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
   console.log(`🔍 countAllowance: ${countAllowance}`);
   console.log(`🔍 dayWorkCount: ${dayWorkCount}`);
   console.log(`🔍 dayOffCount: ${dayOffCount}`);
+  console.log(`🔍 cashHolidayCount: ${cashHolidayCount}`); // เพิ่ม log สำหรับ cash_holiday
   console.log(`🔍 addSalaryList.length: ${addSalaryList.length}`);
   console.log(`🔍 socialSecurity: ${socialSecurity}`);
   console.log(`🔍 tax: ${tax}`);

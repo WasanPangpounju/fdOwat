@@ -95,6 +95,7 @@ totalDeductSalary: String, // เพิ่มฟิลด์สำหรับ�
 socialSecurity: String,
 tax: String,
 fund: String,
+cash: String,
 cashSpecialDay: String,
 typeOfemployee: String,
 
