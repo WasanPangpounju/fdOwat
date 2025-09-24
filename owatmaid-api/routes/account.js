@@ -6471,7 +6471,17 @@ try {
           // จัดการ addSalaryDaily สำหรับวันหยุด (dayType = stop)
           if (record.addSalaryDaily && record.addSalaryDaily.length > 0) {
             console.log(`💰 ประมวลผล addSalaryDaily สำหรับวันหยุด (วันที่ ${record.date}): ${record.addSalaryDaily.length} รายการ`);
-            record.addSalaryDaily.forEach((salaryItem) => {
+            
+            // 🎯 Filter id 1210 based on shift - เพิ่มเฉพาะ night_shift
+            let filteredAddSalaryDaily = record.addSalaryDaily;
+            if (record.shift === 'morning_shift') {
+              filteredAddSalaryDaily = record.addSalaryDaily.filter(item => item.id !== '1210');
+              console.log(`🌅 Morning shift - ลบ id 1210 (ค่ากะ) ออก: ${record.addSalaryDaily.length} -> ${filteredAddSalaryDaily.length} รายการ`);
+            } else if (record.shift === 'night_shift') {
+              console.log(`🌙 Night shift - เก็บ id 1210 (ค่ากะ) ไว้: ${filteredAddSalaryDaily.length} รายการ`);
+            }
+            
+            filteredAddSalaryDaily.forEach((salaryItem) => {
               const cleanSalaryItemId = String(salaryItem.id).trim();
               const amount = parseFloat(salaryItem.SpSalary || 0);
 
@@ -6680,7 +6690,16 @@ if (record?.dayType === "work") {
 
   // จัดการ addSalaryDaily (เหมือนเดิม)
   if (record.addSalaryDaily && record.addSalaryDaily.length > 0) {
-    record.addSalaryDaily.forEach((salaryItem) => {
+    // 🎯 Filter id 1210 based on shift - เพิ่มเฉพาะ night_shift
+    let filteredAddSalaryDaily = record.addSalaryDaily;
+    if (record.shift === 'morning_shift') {
+      filteredAddSalaryDaily = record.addSalaryDaily.filter(item => item.id !== '1210');
+      console.log(`🌅 Morning shift - ลบ id 1210 (ค่ากะ) ออก: ${record.addSalaryDaily.length} -> ${filteredAddSalaryDaily.length} รายการ`);
+    } else if (record.shift === 'night_shift') {
+      console.log(`🌙 Night shift - เก็บ id 1210 (ค่ากะ) ไว้: ${filteredAddSalaryDaily.length} รายการ`);
+    }
+    
+    filteredAddSalaryDaily.forEach((salaryItem) => {
       const cleanSalaryItemId = String(salaryItem.id).trim();
       const amount = parseFloat(salaryItem.SpSalary || 0);
 
