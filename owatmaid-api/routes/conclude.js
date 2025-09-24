@@ -2722,12 +2722,15 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
     });
     
     if (recordForDay) {
-      // ตรวจสอบว่ามีการทำงานหรือไม่จาก totalTime
+      // ตรวจสอบว่ามีการทำงานหรือไม่จาก totalTime และไม่ใช่ cash_holiday
       const hasWorked = recordForDay.totalTime && 
                        recordForDay.totalTime.trim() !== '' && 
                        parseFloat(recordForDay.totalTime) > 0;
       
-      if (hasWorked) {
+      // ตรวจสอบว่า shift ไม่ใช่ cash_holiday
+      const isCashHoliday = recordForDay.shift === 'cash_holiday';
+      
+      if (hasWorked && !isCashHoliday) {
         workedOnStopDays++;
         attendanceDetails.push({
           date: `${stopDay.date}/${stopDay.month}/${stopDay.year}`,
@@ -2739,6 +2742,18 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
           shift: recordForDay.shift || 'ไม่ระบุ'
         });
         console.log(`   ✅ วันที่ ${stopDay.date}/${stopDay.month}/${stopDay.year} (${stopDay.dayName}) - มาทำงาน ${recordForDay.totalTime} ชั่วโมง (shift: ${recordForDay.shift})`);
+      } else if (hasWorked && isCashHoliday) {
+        notWorkedOnStopDays++;
+        attendanceDetails.push({
+          date: `${stopDay.date}/${stopDay.month}/${stopDay.year}`,
+          dayName: stopDay.dayName,
+          status: 'มาทำงานแต่เป็น cash_holiday ไม่นับ',
+          totalTime: recordForDay.totalTime,
+          otTime: recordForDay.totalOtTime || '0',
+          dayType: recordForDay.dayType || 'ไม่ระบุ',
+          shift: recordForDay.shift || 'ไม่ระบุ'
+        });
+        console.log(`   ⚠️ วันที่ ${stopDay.date}/${stopDay.month}/${stopDay.year} (${stopDay.dayName}) - มาทำงานแต่เป็น cash_holiday ไม่นับ ${recordForDay.totalTime} ชั่วโมง (shift: ${recordForDay.shift})`);
       } else {
         notWorkedOnStopDays++;
         attendanceDetails.push({
@@ -2769,20 +2784,21 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
   });
   
   // แสดงสรุปผล
-  console.log(`\n📊 === สรุปการมาทำงานในวันหยุด (หลังกรอง specialt_shift) ===`);
+  console.log(`\n📊 === สรุปการมาทำงานในวันหยุด (หลังกรอง specialt_shift และ cash_holiday) ===`);
   console.log(`📅 จำนวนวันหยุดที่ใช้ในการคำนวณ: ${filteredStopDaysList.length} วัน`);
-  console.log(`✅ มาทำงาน: ${workedOnStopDays} วัน`);
-  console.log(`❌ ไม่มาทำงาน: ${notWorkedOnStopDays} วัน`);
+  console.log(`✅ มาทำงาน (นับได้): ${workedOnStopDays} วัน`);
+  console.log(`❌ ไม่มาทำงาน/cash_holiday: ${notWorkedOnStopDays} วัน`);
+  console.log(`ℹ️ หมายเหตุ: วันที่มี shift = "cash_holiday" จะไม่นับในการคำนวณ customizeDayoff`);
   console.log(`\n📋 รายละเอียดการมาทำงาน:`);
-  console.log(`┌─────────────────┬──────────┬─────────────┬────────────┬──────────┬──────────┬──────────────┐`);
-  console.log(`│ วันที่          │ วัน      │ สถานะ      │ ชั่วโมงงาน │ OT       │ ประเภท   │ Shift        │`);
-  console.log(`├─────────────────┼──────────┼─────────────┼────────────┼──────────┼──────────┼──────────────┤`);
+  console.log(`┌─────────────────┬──────────┬─────────────────────────────┬────────────┬──────────┬──────────┬──────────────┐`);
+  console.log(`│ วันที่          │ วัน      │ สถานะ                     │ ชั่วโมงงาน │ OT       │ ประเภท   │ Shift        │`);
+  console.log(`├─────────────────┼──────────┼─────────────────────────────┼────────────┼──────────┼──────────┼──────────────┤`);
   
   attendanceDetails.forEach(detail => {
-    console.log(`│ ${detail.date.padEnd(15)} │ ${detail.dayName.padEnd(8)} │ ${detail.status.padEnd(11)} │ ${detail.totalTime.padEnd(10)} │ ${detail.otTime.padEnd(8)} │ ${detail.dayType.padEnd(8)} │ ${(detail.shift || '').padEnd(12)} │`);
+    console.log(`│ ${detail.date.padEnd(15)} │ ${detail.dayName.padEnd(8)} │ ${detail.status.padEnd(27)} │ ${detail.totalTime.padEnd(10)} │ ${detail.otTime.padEnd(8)} │ ${detail.dayType.padEnd(8)} │ ${(detail.shift || '').padEnd(12)} │`);
   });
   
-  console.log(`└─────────────────┴──────────┴─────────────┴────────────┴──────────┴──────────┴──────────────┘`);
+  console.log(`└─────────────────┴──────────┴─────────────────────────────┴────────────┴──────────┴──────────┴──────────────┘`);
   
   // อัปเดตค่า customizeDayoff ใน database ให้เท่ากับ workedOnStopDays
   try {
