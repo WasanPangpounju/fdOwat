@@ -191,10 +191,17 @@ const employeeSchema = new mongoose.Schema({
       type: String,
       // match: /^[0-9]{10}$/, // Regular expression for 10-digit phone number
     },
+    emergencyName: {
+      type: String,
+    },
+    emergencyRelationship: {
+      type: String,
+    },
     emergencyContactNumber: {
       type: String,
       // match: /^[0-9]{10}$/, // Regular expression for 10-digit phone number
     },
+
     statusEmergencyContact: {
       type: String,
     },
@@ -276,6 +283,7 @@ const employeeSchema = new mongoose.Schema({
     Fml_motherID: {
       type: String,
     },
+
     ssoEntryDate: { // วันเข้างานปกส
       type: String,
     },
