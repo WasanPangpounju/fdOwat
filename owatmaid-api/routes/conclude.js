@@ -3974,7 +3974,10 @@ router.put('/update1/:id', async (req, res) => {
     if (req.body.concludeRecord) {
       req.body.concludeRecord.forEach((record, index) => {
         if (record.addSalaryDaily) {
-          console.log(`📝 Record ${index} addSalaryDaily being sent:`, record.addSalaryDaily);
+          console.log(`📝 Record ${index} (date: ${record.date}) addSalaryDaily being sent:`, {
+            count: record.addSalaryDaily.length,
+            data: record.addSalaryDaily
+          });
         }
       });
     }
@@ -3988,7 +3991,15 @@ router.put('/update1/:id', async (req, res) => {
       recordToUpdate.employee_record = req.body.concludeRecord;
       recordToUpdate.markModified('employee_record');
       console.log('🔄 Updated employee_record with concludeRecord data');
-      console.log('📝 First record addSalaryDaily:', req.body.concludeRecord[0]?.addSalaryDaily?.[0]?.SpSalary);
+      console.log('📝 First record addSalaryDaily after assignment:', recordToUpdate.employee_record[0]?.addSalaryDaily?.length || 0, 'items');
+      
+      // Debug: ตรวจสอบทุก record
+      recordToUpdate.employee_record.forEach((record, index) => {
+        console.log(`📝 Record ${index} after assignment (date: ${record.date}):`, {
+          addSalaryDailyCount: record.addSalaryDaily?.length || 0,
+          isEmptyArray: Array.isArray(record.addSalaryDaily) && record.addSalaryDaily.length === 0
+        });
+      });
     }
     
     // อัพเดทฟิลด์อื่นๆ
@@ -4002,11 +4013,28 @@ router.put('/update1/:id', async (req, res) => {
 
     console.log('✅ Update successful:', {
       id: updated._id,
-      concludeRecordLength: updated.concludeRecord?.length || 0,
-      firstRecordAddSalary: updated.concludeRecord?.[0]?.addSalaryDaily?.[0]?.SpSalary || 'N/A'
+      employeeRecordLength: updated.employee_record?.length || 0,
+      firstRecordAddSalary: updated.employee_record?.[0]?.addSalaryDaily?.length || 0,
+      firstSalaryValue: updated.employee_record?.[0]?.addSalaryDaily?.[0]?.SpSalary || 'N/A'
+    });
+    
+    // Debug: ตรวจสอบข้อมูลทุก record หลัง save
+    console.log('🔍 Post-save verification:');
+    updated.employee_record?.forEach((record, index) => {
+      console.log(`📝 Saved Record ${index} (date: ${record.date}):`, {
+        addSalaryDailyCount: record.addSalaryDaily?.length || 0,
+        isEmpty: Array.isArray(record.addSalaryDaily) && record.addSalaryDaily.length === 0,
+        firstItem: record.addSalaryDaily?.[0]?.SpSalary || 'N/A'
+      });
     });
 
-    res.status(200).json({ message: 'อัปเดตสำเร็จ', data: updated });
+    // ส่งข้อมูลกลับโดยใช้ employee_record เป็น concludeRecord สำหรับ frontend
+    const responseData = {
+      ...updated.toObject(),
+      concludeRecord: updated.employee_record  // Map employee_record เป็น concludeRecord สำหรับ frontend
+    };
+
+    res.status(200).json({ message: 'อัปเดตสำเร็จ', data: responseData });
   } catch (err) {
     console.error('❌ PUT /conclude/update1 Error:', err);
     res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: err.message });
