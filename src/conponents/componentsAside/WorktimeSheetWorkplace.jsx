@@ -7874,7 +7874,7 @@ const getDateStyle = (day) => {
       
       // Calculate column counts for proper layout
       const totalDayColumns = dayNumbers.length;
-      const summaryColumnsCount = 5; // วันหยุด, วันนักขัต, ทำงานวันหยุด/นักขัต, โอที 1.5 เท่า, โอที 3 เท่า
+      const summaryColumnsCount = 6; // วันหยุด, วันนักขัต, ทำงานวันหยุด/นักขัต, โอที 1.5 เท่า, โอที 3 เท่า, cash_holiday
       const welfareColumnsCount = workplaceAddsalary ? mergeWorkplaceAddsalary(workplaceAddsalary).length : 0;
       
       console.log(`Layout: Day columns: ${totalDayColumns}, Welfare columns: ${welfareColumnsCount}`);
@@ -7883,7 +7883,7 @@ const getDateStyle = (day) => {
       const row1 = ['ลำดับ', 'ชื่อ - สกุล'];
       dayNumbers.forEach(day => row1.push(day));
       row1.push('รวมวันทำงาน');
-      row1.push('วันหยุด', 'วันนักขัต', 'ทำงานวันหยุด/นักขัต', 'โอที 1.5 เท่า', 'โอที 3 เท่า');
+      row1.push('วันหยุด', 'วันนักขัต', 'ทำงานวันหยุด/นักขัต', 'โอที 1.5 เท่า', 'โอที 3 เท่า', 'วัน Cash Holiday');
       if (workplaceAddsalary && workplaceAddsalary.length > 0) {
         mergeWorkplaceAddsalary(workplaceAddsalary).forEach(item => row1.push('สวัสดิการ'));
       }
@@ -7893,7 +7893,7 @@ const getDateStyle = (day) => {
       const row2 = ['', ''];
       dayNumbers.forEach(() => row2.push(''));
       row2.push('');
-      row2.push('1441', '1434', '1130', '1120', '1140');
+      row2.push('1441', '1434', '1130', '1120', '1140', '');
       if (workplaceAddsalary && workplaceAddsalary.length > 0) {
         mergeWorkplaceAddsalary(workplaceAddsalary).forEach(item => row2.push(item.codeSpSalary));
       }
@@ -7903,8 +7903,8 @@ const getDateStyle = (day) => {
       const row3 = ['', ''];
       dayNumbers.forEach(() => row3.push(''));
       row3.push('');
-      // กำหนดหน่วยสำหรับคอลัมน์สรุป: วันหยุด, วันนักขัต, ทำงานวันหยุด/นักขัต, โอที 1.5 เท่า, โอที 3 เท่า
-      row3.push('วัน', 'วัน', 'ชม', 'ชม', 'ชม');
+      // กำหนดหน่วยสำหรับคอลัมน์สรุป: วันหยุด, วันนักขัต, ทำงานวันหยุด/นักขัต, โอที 1.5 เท่า, โอที 3 เท่า, cash_holiday
+      row3.push('วัน', 'วัน', 'ชม', 'ชม', 'ชม', 'วัน');
       if (workplaceAddsalary && workplaceAddsalary.length > 0) {
         mergeWorkplaceAddsalary(workplaceAddsalary).forEach(() => row3.push(''));
       }
@@ -8377,12 +8377,39 @@ const socialSecurityColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount;
             // หา record ทั้งหมดของวันนี้
             const allRecordsForDay = record?.employee_record?.filter(itemx => itemx.date === day) || [];
             
+            // 🔥 แก้ไข: สำหรับแถวเช้า ให้หา cash_holiday record ก่อน (สำหรับกะเช้า 06:00-15:00)
+            const cashHolidayRecord = allRecordsForDay.find(itemx => {
+              if (itemx.shift === "cash_holiday" && itemx.startTime) {
+                const startHour = parseFloat(itemx.startTime.replace('.', ':').split(':')[0]);
+                return startHour >= 6 && startHour <= 15; // เฉพาะกะเช้า 06:00-15:00 เท่านั้น
+              }
+              return false;
+            });
+            
+            // หา morning_shift record
+            const morningShiftRecord = allRecordsForDay.find(itemx => itemx.shift === "morning_shift");
+            
             // หา record ที่มี totalTime ก่อน ถ้าไม่มีก็เอา record แรก
-            const found = allRecordsForDay.find(itemx => itemx.totalTime && itemx.totalTime.trim() !== '') || allRecordsForDay[0];
+            const found = cashHolidayRecord || morningShiftRecord || allRecordsForDay.find(itemx => itemx.totalTime && itemx.totalTime.trim() !== '') || allRecordsForDay[0];
             
-            const isWork = found?.dayType === "work" || found?.dayType === "stop" || found?.shift === "cash_holiday"; // แสดงข้อมูลการทำงานทุกกะ รวมถึงวันหยุด และ stop
+            const isWork = found?.dayType === "work" || 
+                           (found?.dayType === "stop" && found?.shift === "morning_shift") ||
+                           (found?.shift === "cash_holiday" && found?.startTime && (() => {
+                             const startHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
+                             return startHour >= 6 && startHour <= 15; // เฉพาะกะเช้า 06:00-15:00 เท่านั้น
+                           })()); // แสดงข้อมูล cash_holiday เฉพาะกะเช้าในแถวเช้า 
+
+            // ตรวจสอบว่าวันนี้อยู่ใน stopDaysList หรือไม่
+            const isInStopDaysList = record?.stopDaysList?.some(stopDay => {
+              const stopDayDate = parseInt(stopDay.date);
+              const currentDay = parseInt(day);
+              return stopDayDate === currentDay;
+            });
+
+            // ตรวจสอบทั้ง specialt_shift และ stopDaysList
+            const specialIndividual = (found?.dayType === "work" && found?.shift === "specialt_shift") || isInStopDaysList;
             
-            // กำหนดค่าที่จะแสดง (ใช้ logic เดียวกันกับตาราง)
+            // กำหนดค่าที่จะแสดง
             let displayValue = '';
             if (isWork) {
               // เปรียบเทียบ workplaceId ของ record กับ searchWorkplaceId ที่เลือก
@@ -8400,13 +8427,38 @@ const socialSecurityColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount;
                 // ถ้าไม่ตรงกับ searchWorkplaceId = ไม่แสดงอะไร (วันที่ไม่ได้มาทำงานที่หน่วยงานนี้)
               } else {
                 // พนักงานปกติที่สังกัดหน่วยงานนี้
-                if (isMatchSearchWorkplace) {
-                  // ถ้าตรงกับ searchWorkplaceId ให้แสดงแค่ 1
-                  displayValue = '1';
-                } else {
-                  // ถ้าไม่ตรงกับ searchWorkplaceId ให้แสดง 1 และ workplaceId (สำหรับ Excel ใช้ newline)
-                  displayValue = `1\n${recordWorkplaceId || ''}`;
+                if (found?.shift === "cash_holiday" && found?.startTime) {
+                  // 🔥 ปรับปรุง: ตรวจสอบเวลาเริ่มงานสำหรับ cash_holiday
+                  const startHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
+                  if (startHour >= 6 && startHour <= 15) {
+                    // กะเช้า (06:00-15:00) - แสดงเลข 1
+                    displayValue = '1';
+                  }
+                  // ถ้าไม่อยู่ในช่วงเวลาเช้า (06:00-15:00) ไม่แสดงอะไรในแถวเช้า
+                } else if (found?.shift === "morning_shift") {
+                  // เฉพาะ morning_shift เท่านั้น
+                  if (isMatchSearchWorkplace) {
+                    displayValue = '1';
+                  } else {
+                    displayValue = `1\n${found?.workplaceId || ''}`;
+                  }
                 }
+              }
+            }
+
+            // เพิ่มเงื่อนไขพิเศษ: ถ้าเป็นวันหยุดส่วนบุคคลแต่มี totalTime ให้แสดงเลข 1
+            // แต่ไม่แสดงถ้าเป็น cash_holiday กะดึก (startTime 18:00-03:00)
+            if (specialIndividual && found?.totalTime && found.totalTime.trim() !== '') {
+              // ตรวจสอบว่าเป็น cash_holiday กะดึกหรือไม่
+              if (found?.shift === "cash_holiday" && found?.startTime) {
+                const startHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
+                // ถ้าเป็นกะดึก (18:00-03:00) ไม่แสดงในแถวเช้า
+                if (!(startHour >= 18 || (startHour >= 0 && startHour <= 3))) {
+                  displayValue = "1";
+                }
+              } else {
+                // ไม่ใช่ cash_holiday ให้แสดงปกติ
+                displayValue = "1";
               }
             }
             
@@ -8449,12 +8501,26 @@ const socialSecurityColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount;
             // หา record ทั้งหมดของวันนี้
             const allRecordsForDay = record?.employee_record?.filter(itemx => itemx.date === day) || [];
             
+            // 🔥 แก้ไข: สำหรับแถวดึก ให้หา night_shift record ก่อน แล้วค่อยหา cash_holiday (สำหรับกะดึก 18:00-03:00)
+            const nightShiftRecord = allRecordsForDay.find(itemx => itemx.shift === "night_shift");
+            const cashHolidayRecord = allRecordsForDay.find(itemx => {
+              if (itemx.shift === "cash_holiday" && itemx.startTime) {
+                const startHour = parseFloat(itemx.startTime.replace('.', ':').split(':')[0]);
+                return startHour >= 18 || (startHour >= 0 && startHour <= 3); // เฉพาะกะดึก 18:00-03:00 เท่านั้น
+              }
+              return false;
+            });
+            
             // หา record ที่มี totalTime ก่อน ถ้าไม่มีก็เอา record แรก
-            const found = allRecordsForDay.find(itemx => itemx.totalTime && itemx.totalTime.trim() !== '') || allRecordsForDay[0];
+            const found = nightShiftRecord || cashHolidayRecord || allRecordsForDay.find(itemx => itemx.totalTime && itemx.totalTime.trim() !== '') || allRecordsForDay[0];
             
-            // ตรวจสอบว่าเป็นการทำงานกะดึกหรือไม่
-            const isNightShiftWork = found?.dayType === "work" && found?.shift === "night_shift";
-            
+            const isWork = found?.dayType === "work" || 
+                           (found?.dayType === "stop" && found?.shift === "night_shift") ||
+                           (found?.shift === "cash_holiday" && found?.startTime && (() => {
+                             const startHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
+                             return startHour >= 18 || (startHour >= 0 && startHour <= 3); // เฉพาะกะดึก 18:00-03:00 เท่านั้น
+                           })()); // แสดงข้อมูล cash_holiday เฉพาะกะดึกในแถวดึก
+
             // ตรวจสอบว่าวันนี้อยู่ใน stopDaysList หรือไม่
             const isInStopDaysList = record?.stopDaysList?.some(stopDay => {
               const stopDayDate = parseInt(stopDay.date);
@@ -8462,110 +8528,60 @@ const socialSecurityColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount;
               return stopDayDate === currentDay;
             });
 
-            // ตรวจสอบทั้ง specialt_shift และ stopDaysList สำหรับกะดึก
-            const specialIndividualNight = (found?.dayType === "work" && found?.shift === "specialt_shift") || isInStopDaysList;
-            const dayNum = parseInt(day);
-            let actualMonth, actualYear;
-            
-            // ตรวจสอบว่าเป็นวันไหนจากเดือนไหน (ตารางแสดงข้ามเดือน 21-31 เดือนก่อน และ 1-20 เดือนปัจจุบัน)
-            if (dayNum >= 21) {
-              // วันที่ 21-31 เป็นของเดือนก่อนหน้า
-              if (parseInt(month) === 1) {
-                actualMonth = 12;
-                actualYear = parseInt(year) - 1;
-              } else {
-                actualMonth = parseInt(month) - 1;
-                actualYear = parseInt(year);
-              }
-            } else {
-              // วันที่ 1-20 เป็นของเดือนปัจจุบัน
-              actualMonth = parseInt(month);
-              actualYear = parseInt(year);
-            }
-            
-            // ตรวจสอบว่าวันที่นี้มีอยู่จริงในเดือนนั้นหรือไม่
-            const daysInActualMonth = new Date(actualYear, actualMonth, 0).getDate();
-            const isInvalidDate = dayNum > daysInActualMonth;
-
-            // สร้างวันที่ในรูปแบบ YYYY-MM-DD เพื่อเปรียบเทียบกับข้อมูลจาก API
-            const targetDateStr = `${actualYear}-${actualMonth.toString().padStart(2, '0')}-${dayNum.toString().padStart(2, '0')}`;
-            
-            // ตรวจสอบจาก dayoffWorkplace
-            const isDayoffWorkplace = weekendData && weekendData.dayoffWorkplace && Array.isArray(weekendData.dayoffWorkplace) && weekendData.dayoffWorkplace.includes(targetDateStr);
-            
-            // ตรวจสอบการลาป่วย
-            const isSickLeave = record?.addSalaryList?.some(salaryItem => {
-              // เช็คเฉพาะ welfare ที่เป็นการลาป่วย หรือ ลาพักร้อน
-              if (salaryItem.welfareType === "ลาป่วย" || 
-                  salaryItem.welfareType === "ลาคลอด" ||
-                  salaryItem.name?.includes("ลาป่วย") || 
-                  salaryItem.name?.includes("ป่วย") ||
-                  salaryItem.name?.includes("ลาพักร้อน") ||
-                  salaryItem.name?.includes("ชดเชย") ||
-                  salaryItem.name?.includes("ลากิจ")) {
-                
-                // แปลง date string เป็น array ของวันที่
-                const dates = salaryItem.date ? salaryItem.date.split(',').map(d => d.trim()) : [];
-                const currentDay = parseInt(day);
-                
-                const isMatch = dates.some(dateStr => parseInt(dateStr) === currentDay);
-                return isMatch;
-              }
-              return false;
-            });
-            
-            // ตรวจสอบจาก dayOffOnly
-            const isDayOffOnly = weekendData && Array.isArray(weekendData) && weekendData.find(item => item.date === targetDateStr && item.type === 'dayOffOnly');
-            
-            // ตรวจสอบว่าเป็นวันหยุดพิเศษหรือไม่
-            const isSpecialHoliday = record?.personalDayOff?.some(personalDay => {
-              const personalDayDate = parseInt(personalDay.date);
-              const currentDay = parseInt(day);
-              return personalDayDate === currentDay;
-            }) || record?.stopDaysList?.some(stopDay => {
-              const stopDayDate = parseInt(stopDay.date);
-              const currentDay = parseInt(day);
-              return stopDayDate === currentDay;
-            });
+            // ตรวจสอบทั้ง specialt_shift และ stopDaysList
+            const specialIndividual = (found?.dayType === "work" && found?.shift === "specialt_shift") || isInStopDaysList;
             
             // กำหนดค่าที่จะแสดง
             let displayValue = '';
-            
-            if (isSpecialHoliday) {
-              // วันหยุดพิเศษ
-              displayValue = '';
-            } else if (isDayOffOnly) {
-              // วันหยุดนักขัตฤกษ์ - แสดงเลข 1 ถ้ามี totalTime และเป็น night_shift
-              if (found?.totalTime && found.totalTime.trim() !== '' && found?.shift === "night_shift") {
-                displayValue = '1';
-              } else if (found?.shift === "cash_holiday" && found?.startTime) {
-                // แสดงเลข 1 ถ้าเป็น cash_holiday และ startTime หลัง 18:00 หรือ 00:00-05:00
-                const startTimeHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
-                if (startTimeHour >= 18 || (startTimeHour >= 0 && startTimeHour <= 5)) {
+            if (isWork) {
+              // เปรียบเทียบ workplaceId ของ record กับ searchWorkplaceId ที่เลือก
+              const recordWorkplaceId = found?.workplaceId;
+              const isMatchSearchWorkplace = recordWorkplaceId === searchWorkplaceId;
+              
+              // ตรวจสอบว่าพนักงานคนนี้เป็นพนักงานข้ามหน่วยงานหรือไม่
+              const isCrossWorkplaceEmployee = record?.isCrossWorkplace || false;
+              
+              if (isCrossWorkplaceEmployee) {
+                // ถ้าเป็นพนักงานข้ามหน่วยงาน ให้แสดง "1" เฉพาะวันที่มาทำงานที่หน่วยงานที่เลือกเท่านั้น
+                if (isMatchSearchWorkplace) {
                   displayValue = '1';
                 }
+                // ถ้าไม่ตรงกับ searchWorkplaceId = ไม่แสดงอะไร (วันที่ไม่ได้มาทำงานที่หน่วยงานนี้)
+              } else {
+                // พนักงานปกติที่สังกัดหน่วยงานนี้
+                if (found?.shift === "cash_holiday" && found?.startTime) {
+                  // 🔥 ปรับปรุง: ตรวจสอบเวลาเริ่มงานสำหรับ cash_holiday
+                  const startHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
+                  if (startHour >= 18 || (startHour >= 0 && startHour <= 3)) {
+                    // กะดึก (18:00-03:00) - แสดงเลข 1
+                    displayValue = '1';
+                  }
+                  // ถ้าไม่อยู่ในช่วงเวลาดึก (18:00-03:00) ไม่แสดงอะไรในแถวดึก
+                } else if (found?.shift === "night_shift") {
+                  // เฉพาะ night_shift เท่านั้น
+                  if (isMatchSearchWorkplace) {
+                    displayValue = '1';
+                  } else {
+                    displayValue = `1\n${found?.workplaceId || ''}`;
+                  }
+                }
               }
-            } else if (isDayoffWorkplace || isInvalidDate) {
-              // วันหยุดหรือวันที่ไม่มีอยู่จริง
-              displayValue = '';
-            } else if (isNightShiftWork) {
-              displayValue = '1'; // แสดงเลข 1 เมื่อมาทำงานกะดึก
-            } else if (found?.shift === "cash_holiday" && found?.startTime) {
-              // ถ้าเป็น cash_holiday และ startTime หลัง 18:00 หรือ 00:00-05:00 (ไม่ใช่วันหยุด)
-              const startTimeHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
-              if (startTimeHour >= 18 || (startTimeHour >= 0 && startTimeHour <= 5)) {
-                displayValue = '1';
-              }
-            }
-            
-            if (isSickLeave) {
-              // วันลาป่วย
-              displayValue = '';
             }
 
-            if (specialIndividualNight) {
-              // วันหยุดพิเศษ
-              displayValue = '';
+            // เพิ่มเงื่อนไขพิเศษ: ถ้าเป็นวันหยุดส่วนบุคคลแต่มี totalTime ให้แสดงเลข 1
+            // แต่ไม่แสดงถ้าเป็น cash_holiday กะเช้า (startTime 06:00-15:00)
+            if (specialIndividual && found?.totalTime && found.totalTime.trim() !== '') {
+              // ตรวจสอบว่าเป็น cash_holiday กะเช้าหรือไม่
+              if (found?.shift === "cash_holiday" && found?.startTime) {
+                const startHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
+                // ถ้าเป็นกะเช้า (06:00-15:00) ไม่แสดงในแถวดึก
+                if (!(startHour >= 6 && startHour <= 15)) {
+                  displayValue = "1";
+                }
+              } else {
+                // ไม่ใช่ cash_holiday ให้แสดงปกติ
+                displayValue = "1";
+              }
             }
             
             empRow2.push(displayValue);
@@ -11372,7 +11388,7 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                       </button>
 
                       <div className="pt-3">
-                          <div className="table " >
+                          <div className="table table-responsive" >
                           <table
                       className="excel-style-table  "
                       style={{
@@ -11509,10 +11525,27 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
   // หา record ทั้งหมดของวันนี้
   const allRecordsForDay = record?.employee_record?.filter(itemx => itemx.date === day) || [];
   
+  // 🔥 แก้ไข: สำหรับแถวเช้า ให้หา cash_holiday record ก่อน (สำหรับกะเช้า 06:00-15:00)
+  const cashHolidayRecord = allRecordsForDay.find(itemx => {
+    if (itemx.shift === "cash_holiday" && itemx.startTime) {
+      const startHour = parseFloat(itemx.startTime.replace('.', ':').split(':')[0]);
+      return startHour >= 6 && startHour <= 15; // เฉพาะกะเช้า 06:00-15:00 เท่านั้น
+    }
+    return false;
+  });
+  
+  // หา morning_shift record
+  const morningShiftRecord = allRecordsForDay.find(itemx => itemx.shift === "morning_shift");
+  
   // หา record ที่มี totalTime ก่อน ถ้าไม่มีก็เอา record แรก
-  const found = allRecordsForDay.find(itemx => itemx.totalTime && itemx.totalTime.trim() !== '') || allRecordsForDay[0];
+  const found = cashHolidayRecord || morningShiftRecord || allRecordsForDay.find(itemx => itemx.totalTime && itemx.totalTime.trim() !== '') || allRecordsForDay[0];
 
-  const isWork = found?.dayType === "work" || found?.dayType === "stop" || found?.shift === "cash_holiday" // แสดงข้อมูลการทำงานทุกกะ รวมถึงวันหยุด และ stop 
+  const isWork = found?.dayType === "work" || 
+                 (found?.dayType === "stop" && found?.shift === "morning_shift") ||
+                 (found?.shift === "cash_holiday" && found?.startTime && (() => {
+                   const startHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
+                   return startHour >= 6 && startHour <= 15; // เฉพาะกะเช้า 06:00-15:00 เท่านั้น
+                 })()); // แสดงข้อมูล cash_holiday เฉพาะกะเช้าในแถวเช้า 
 
   // ตรวจสอบว่าวันนี้อยู่ใน stopDaysList หรือไม่
   const isInStopDaysList = record?.stopDaysList?.some(stopDay => {
@@ -11809,27 +11842,35 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
       // ถ้าไม่ตรงกับ searchWorkplaceId = ไม่แสดงอะไร (วันที่ไม่ได้มาทำงานที่หน่วยงานนี้)
     } else {
       // พนักงานปกติที่สังกัดหน่วยงานนี้
-      if (isMatchSearchWorkplace && (found?.shift === "morning_shift" || found?.shift === "cash_holiday")) {
-        // ถ้าตรงกับ searchWorkplaceId ให้แสดงแค่ 1
-        displayValue = '1';
-      } else if (found?.shift === "cash_holiday") {
-        // ถ้าไม่ตรงกับ searchWorkplaceId ให้แสดง 1 และ workplaceId (กรณีไปทำงานหน่วยงานอื่น - เฉพาะ cash_holiday)
-        displayValue = (
-          <>
-            1<br />
-            {recordWorkplaceId || ''}
-          </>
-        );
+      if (found?.shift === "cash_holiday" && found?.startTime) {
+        // 🔥 ปรับปรุง: ตรวจสอบเวลาเริ่มงานสำหรับ cash_holiday
+        const startHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
+        if (startHour >= 6 && startHour <= 15) {
+          // กะเช้า (06:00-15:00) - แสดงเลข 1 สีแดง
+          displayValue = <span style={{ color: 'red' }}>1</span>;
+        }
+        // ถ้าไม่อยู่ในช่วงเวลาเช้า (06:00-15:00) ไม่แสดงอะไรในแถวเช้า
       } else if (found?.shift === "morning_shift") {
-        // ถ้าไม่ตรงกับ searchWorkplaceId ให้แสดงแค่ 1 สำหรับ morning_shift
+        // เฉพาะ morning_shift เท่านั้น
         displayValue = '1';
       }
     }
   }
 
   // เพิ่มเงื่อนไขพิเศษ: ถ้าเป็นวันหยุดส่วนบุคคลแต่มี totalTime ให้แสดงเลข 1
+  // แต่ไม่แสดงถ้าเป็น cash_holiday กะดึก (startTime 18:00-03:00)
   if (specialIndividual && found?.totalTime && found.totalTime.trim() !== '') {
-    displayValue = "1";
+    // ตรวจสอบว่าเป็น cash_holiday กะดึกหรือไม่
+    if (found?.shift === "cash_holiday" && found?.startTime) {
+      const startHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
+      // ถ้าเป็นกะดึก (18:00-03:00) ไม่แสดงในแถวเช้า
+      if (!(startHour >= 18 || (startHour >= 0 && startHour <= 3))) {
+        displayValue = "1";
+      }
+    } else {
+      // ไม่ใช่ cash_holiday ให้แสดงปกติ
+      displayValue = "1";
+    }
   }
 
   
@@ -11869,7 +11910,7 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                     </td>
 
                    <td className="text-center text-red align-middle p-1">
-    {(() => {
+    {(() => { 
       const originalValue = record.sumOt1p5;
       console.log('=== DEBUG OT 1.5 ===');
       console.log('employeeId:', record.employeeId);
@@ -11915,9 +11956,10 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                         );
                       });
                     })()}
+                      <td className="text-center text-red align-middle">{record.cash || ''}</td>
                       <td></td>
                       <td></td>
-                      <td></td>
+                      
 
 
                     
@@ -11937,8 +11979,19 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                       // หา record ทั้งหมดของวันนี้
                       const allRecordsForDay = record?.employee_record?.filter(itemx => itemx.date === day) || [];
                       
-                      // หา record ที่มี totalTime ก่อน ถ้าไม่มีก็เอา record แรก
-                      const found = allRecordsForDay.find(itemx => itemx.totalTime && itemx.totalTime.trim() !== '') || allRecordsForDay[0];
+                      // 🔥 แก้ไข: สำหรับแถวดึก ให้หา night_shift record ก่อน และ cash_holiday กะดึก
+                      const nightShiftRecord = allRecordsForDay.find(itemx => itemx.shift === "night_shift");
+                      
+                      // หา cash_holiday record สำหรับกะดึก (18:00-03:00)
+                      const cashHolidayNightRecord = allRecordsForDay.find(itemx => {
+                        if (itemx.shift === "cash_holiday" && itemx.startTime) {
+                          const startHour = parseFloat(itemx.startTime.replace('.', ':').split(':')[0]);
+                          return startHour >= 18 || (startHour >= 0 && startHour <= 3); // กะดึก 18:00-03:00
+                        }
+                        return false;
+                      });
+                      
+                      const found = nightShiftRecord || cashHolidayNightRecord || allRecordsForDay.find(itemx => itemx.totalTime && itemx.totalTime.trim() !== '') || allRecordsForDay[0];
                       
                       // ตรวจสอบว่าเป็นการทำงานกะดึกหรือไม่
                       const isNightShiftWork = found?.dayType === "work" && found?.shift === "night_shift";
@@ -12021,18 +12074,24 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                       
                       if (isSpecialHoliday) {
                         backgroundColor = { backgroundColor: "#00ff00" }; // สีเขียวสำหรับวันหยุดพิเศษ
+                        // ตรวจสอบเพิ่มเติม: ถ้าเป็น cash_holiday กะดึกให้แสดงเลข 1 สีแดง
+                        if (found?.shift === "cash_holiday" && found?.startTime) {
+                          const startHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
+                          if (startHour >= 18 || (startHour >= 0 && startHour <= 3)) {
+                            displayValue = <span style={{ color: 'red' }}>1</span>; // เลข 1 สีแดงสำหรับ cash_holiday กะดึก
+                          }
+                        }
                       } else if (isDayOffOnly) {
                         backgroundColor = { backgroundColor: "#9e9e9e" }; // สีขาวสำหรับวันหยุดนักขัตฤกษ์
                         // แสดงเลข 1 ถ้ามี totalTime และเป็น night_shift
                         if (found?.totalTime && found.totalTime.trim() !== '' && found?.shift === "night_shift") {
                           displayValue = '1';
                         }
-                        // แสดงเลข 1 ถ้าเป็น cash_holiday และ startTime หลัง 18:00 หรือ 00:00-05:00
+                        // แสดงเลข 1 ถ้าเป็น cash_holiday และ startTime อยู่ในช่วงกะดึก (18:00-03:00)
                         if (found?.shift === "cash_holiday" && found?.startTime) {
                           const startHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
-                          if (startHour >= 18 || (startHour >= 0 && startHour <= 5)) {
-                            displayValue = '1';
-                            backgroundColor = { ...backgroundColor, color: "red" }; // ตัวอักษรสีแดง
+                          if (startHour >= 18 || (startHour >= 0 )) {
+                            displayValue = <span style={{ color: 'red' }}>1</span>; // เลข 1 สีแดงสำหรับ cash_holiday กะดึก
                           }
                         }
                       } else if (isDayoffWorkplace || isInvalidDate ) {
@@ -12040,11 +12099,10 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                       } else if (isNightShiftWork) {
                         displayValue = '1'; // แสดงเลข 1 เมื่อมาทำงานกะดึก
                       } else if (found?.shift === "cash_holiday" && found?.startTime) {
-                        // ถ้าเป็น cash_holiday และ startTime หลัง 18:00 หรือ 00:00-05:00 (ไม่ใช่วันหยุด)
+                        // ถ้าเป็น cash_holiday และ startTime อยู่ในช่วงกะดึก (18:00-03:00) - ไม่ใช่วันหยุด
                         const startHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
-                        if (startHour >= 18 || (startHour >= 0 && startHour <= 5)) {
-                          displayValue = '1';
-                          backgroundColor = { color: "red" }; // ตัวอักษรสีแดง
+                        if (startHour >= 18 || (startHour >= 0 && startHour <= 3)) {
+                          displayValue = <span style={{ color: 'red' }}>1</span>; // เลข 1 สีแดงสำหรับ cash_holiday กะดึก
                         }
                       }
                       if(isSickLeave) {
@@ -12153,7 +12211,19 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                     
 
                 {dayNumbers.map((day, i) => {
-                    const found = record?.employee_record?.find(itemx => itemx.date === day);
+                    // 🔧 แก้ไข: หา record ที่มี OT data ก่อน ไม่ใช่ record แรกที่เจอ
+                    const allRecordsForDay = record?.employee_record?.filter(itemx => itemx.date === day) || [];
+                    
+                    // หา record ที่มี OT data ก่อน (cashOtMul = "1.5" และมี totalOtTime > 0)
+                    const foundWithOT = allRecordsForDay.find(itemx => 
+                      itemx.cashOtMul === "1.5" && 
+                      itemx.totalOtTime && 
+                      parseFloat(itemx.totalOtTime) > 0
+                    );
+                    
+                    // ถ้าไม่มี OT record ให้ใช้ record แรก
+                    const found = foundWithOT || allRecordsForDay[0];
+                    
                     const hasData = found && found.date; // ตรวจสอบว่ามีข้อมูลหรือไม่
                     
                     // ตรวจสอบว่าวันนี้อยู่ใน stopDaysList หรือไม่
@@ -12310,7 +12380,21 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
 
                     <td className="text-right"><span >โอที 2</span></td>
                     {dayNumbers.map((day, i) => {
-const found = record?.employee_record?.find(itemx => itemx.date === day);
+                    // 🔧 แก้ไข: หา record ที่มี data จริง ไม่ใช่ cash_holiday
+                    const allRecordsForDay = record?.employee_record?.filter(itemx => itemx.date === day) || [];
+                    
+                    // หา record ที่ไม่ใช่ cash_holiday และมี totalTime ก่อน
+                    const foundWithData = allRecordsForDay.find(itemx => 
+                      itemx.shift !== "cash_holiday" && 
+                      itemx.totalTime && 
+                      itemx.totalTime.trim() !== ''
+                    );
+                    
+                    // ถ้าไม่มี record ที่มีข้อมูล ให้ใช้ record แรกที่ไม่ใช่ cash_holiday
+                    const foundNonCashHoliday = allRecordsForDay.find(itemx => itemx.shift !== "cash_holiday");
+                    
+                    // ใช้ record ที่มีข้อมูลก่อน ถ้าไม่มีก็ใช้ non-cash_holiday ถ้าไม่มีก็ใช้ record แรก
+                    const found = foundWithData || foundNonCashHoliday || allRecordsForDay[0];
 
   // ตรวจสอบว่าเป็นพนักงานข้ามหน่วยงานหรือไม่
   const isCrossWorkplaceEmployee = record?.isCrossWorkplace || false;

@@ -302,6 +302,8 @@ function AddEditEmployee() {
 
   const [phoneNumber, setPhoneNumber] = useState(""); //เบอร์โทรศัพท์
   const [emergencyContactNumber, setEmergencyContactNumber] = useState(""); //เบอร์ติดต่อกรณีฉุกเฉิน
+  const [emergencyRelationship, setEmergencyRelationship] = useState(""); //ความสัมพันธ์
+  const [emergencyName, setEmergencyName] = useState(""); //ผู้ติดต่อฉุกเฉิน
   const [idLine, setIdLine] = useState(""); //ไอดีไลน์
   const [vaccination, setVaccination] = useState([]); //การรับวัคซีน
   const [treatmentRights, setTreatmentRights] = useState(""); //สิทธิการรักษาพยาบาล
@@ -445,7 +447,9 @@ function AddEditEmployee() {
       religion: religion,
       maritalStatus: maritalStatus,
       militaryStatus: militaryStatus,
-      // address: address,
+      address: address,
+      
+
 
       province: province,
       district: district,
@@ -462,6 +466,9 @@ function AddEditEmployee() {
       currentAddress: currentAddress,
       phoneNumber: phoneNumber,
       emergencyContactNumber: emergencyContactNumber,
+      emergencyName: emergencyName,
+      emergencyRelationship: emergencyRelationship,
+
       idLine: idLine,
       // vaccination: vaccination,
       // treatmentRights: treatmentRights,
@@ -641,6 +648,8 @@ function AddEditEmployee() {
         setEmergencyContactNumber(
           response.data.employees[0].emergencyContactNumber
         );
+        setEmergencyRelationship(response.data.employees[0].emergencyRelationship);
+        setEmergencyName(response.data.employees[0].emergencyName);
         setIdLine(response.data.employees[0].idLine);
 
         setNewEmp(false);
@@ -1848,7 +1857,30 @@ function AddEditEmployee() {
                               </div>
                               <br />
                               <div class="col-md-3">
-                                <div class="form-group">
+                               
+                              </div>
+                               
+                             
+                            </div>
+                            <div className="row">
+                              <div class="form-group col-md-3">
+                                  <label role="emergencyName">
+                                    ผู้ติดต่อฉุกเฉิน
+                                  </label>
+                                  <input
+                                    // required
+                                    type="text"
+                                    name="emergencyName"
+                                    class="form-control"
+                                    id="emergencyName"
+                                    placeholder="ผู้ติดต่อฉุกเฉิน"
+                                    value={emergencyName}
+                                    onChange={(e) =>
+                                      setEmergencyName(e.target.value)
+                                    }
+                                  />
+                                </div>
+                            <div class="form-group col-md-3">
                                   <label role="emergencyContactNumber">
                                     เบอร์ติดต่อกรณีฉุกเฉิน
                                   </label>
@@ -1865,9 +1897,33 @@ function AddEditEmployee() {
                                     }
                                   />
                                 </div>
-                              </div>
-                             
-                            </div>
+                                <div class="form-group col-md-3">
+                                  <label role="emergencyRelationship">
+                                    ความสัมพันธ์
+                                  </label>
+                                  <select
+                                    // required
+                                    name="emergencyRelationship"
+                                    class="form-control"
+                                    id="emergencyRelationship"
+                                    value={emergencyRelationship}
+                                    onChange={(e) =>
+                                      setEmergencyRelationship(e.target.value)
+                                    }
+                                  >
+                                    <option value="">เลือกความสัมพันธ์</option>
+                                    <option value="คู่สมรส">คู่สมรส</option>
+                                    <option value="บิดา">บิดา</option>
+                                    <option value="มารดา">มารดา</option>
+                                    <option value="บุตร">บุตร</option>
+                                    <option value="เพื่อน">เพื่อน</option>
+                                    <option value="พี่น้อง">พี่น้อง</option>
+                                  </select>
+                                </div>
+                                
+                                
+
+                                </div>
                           </div>
                           {/* <!--col-md-12--> */}
                         </section>
