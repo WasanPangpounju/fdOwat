@@ -5896,6 +5896,7 @@ let timeCashWorkMul = {
           if (recordForDay) {
             // ตรวจสอบว่ามีการทำงานหรือไม่
             const hasWorked = recordForDay.totalTime && 
+                              recordForDay.shift !== 'cash_holiday' &&
                              recordForDay.totalTime.trim() !== '' && 
                              parseFloat(recordForDay.totalTime) > 0;
             
