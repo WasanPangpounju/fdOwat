@@ -359,22 +359,7 @@ if((prevMonth  == upSalary_month ) && (year1  == upSalary_year ) ) {
             let scaledMinutes1 = minutes1;
             let otTime = `${parseFloat(hours1 || 0)}.${parseFloat(scaledMinutes1 || 0 ) } `;
 
-            // ตรวจสอบเงื่อนไขพิเศษสำหรับ shift: "cash_holiday"
-            if (element.shift === 'cash_holiday') {
-              tmp.workRate = '0';
-              tmp.workRateMultiply = '0';
-              tmp.otTimes = otTime || 0;
-              tmp.workRateOT = element.specialtSalaryOT || '0';
-              tmp.workRateOTMultiply = '0';
-              tmp.workType = 'cash_holiday';
-              
-              // ไม่บวกค่าเงินเดือนสำหรับ cash_holiday
-              sumWorkHour += parseFloat(allTime) || 0;
-              sumWorkRate += 0; // workRate = 0 สำหรับ cash_holiday
-              sumWorkHourOt += parseFloat(otTime) || 0;
-              sumWorkRateOt += parseFloat(element.specialtSalaryOT) || 0;
-              
-            } else if (element.specialtSalary !== '' || element.specialtSalaryOT !== '') {
+            if (element.specialtSalary !== '' || element.specialtSalaryOT !== '') {
               tmp.workRate = element.specialtSalary || '';
               tmp.workRateMultiply = Number(element.specialtSalary || 0) / Number(tmpWP.data.workRate || 0);
 
@@ -623,21 +608,7 @@ const         wpDataCalculator1 = await {
             tmp.otTimes = `${hours1}.${scaledMinutes1}` || 0;
 
 
-            // ตรวจสอบเงื่อนไขพิเศษสำหรับ shift: "cash_holiday"
-            if (element.shift === 'cash_holiday') {
-              tmp.workRate = '0';
-              tmp.workRateMultiply = '0';
-              tmp.workRateOT = element.specialtSalaryOT || '0';
-              tmp.workRateOTMultiply = '0';
-              tmp.workType = 'cash_holiday';
-              
-              // ไม่บวกค่าเงินเดือนสำหรับ cash_holiday
-              sumWorkHour += parseFloat(allTime) || 0;
-              sumWorkRate += 0; // workRate = 0 สำหรับ cash_holiday
-              sumWorkHourOt += parseFloat(otTime) || 0;
-              sumWorkRateOt += parseFloat(element.specialtSalaryOT) || 0;
-              
-            } else if (element.specialtSalary !== '' || element.specialtSalaryOT !== '') {
+            if (element.specialtSalary !== '' || element.specialtSalaryOT !== '') {
               // console.log('special rate')
               tmp.workRate = element.specialtSalary || '';
               tmp.workRateMultiply = Number(element.specialtSalary || 0) / Number(wpResponse1.data.workRate || 0);
@@ -986,21 +957,7 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
             tmp.otTimes = `${hours1}.${scaledMinutes1}` || 0;
 
 
-            // ตรวจสอบเงื่อนไขพิเศษสำหรับ shift: "cash_holiday"
-            if (element.shift === 'cash_holiday') {
-              tmp.workRate = '0';
-              tmp.workRateMultiply = '0';
-              tmp.workRateOT = element.specialtSalaryOT || '0';
-              tmp.workRateOTMultiply = '0';
-              tmp.workType = 'cash_holiday';
-              
-              // ไม่บวกค่าเงินเดือนสำหรับ cash_holiday
-              sumWorkHour += parseFloat(allTime) || 0;
-              sumWorkRate += 0; // workRate = 0 สำหรับ cash_holiday
-              sumWorkHourOt += parseFloat(otTime) || 0;
-              sumWorkRateOt += parseFloat(element.specialtSalaryOT) || 0;
-              
-            } else if (element.specialtSalary !== '' || element.specialtSalaryOT !== '') {
+            if (element.specialtSalary !== '' || element.specialtSalaryOT !== '') {
               tmp.workRate = element.specialtSalary || '';
               tmp.workRateMultiply = Number(element.specialtSalary || 0) / Number(tmpWP.data.workRate || 0);
 
@@ -2863,8 +2820,14 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
             : ((totalDecimalHour || 0) * ((parseFloat(holidayOTRate)) * salary || 0)) || 0
         );
 
-        // คำนวณค่าแรงปกติแบบวันหยุด
-        cashWork = await (record.totalTime || 0) * (parseFloat(salary || '0') * parseFloat(holidayHourRate)) || 0;
+        // ตรวจสอบเงื่อนไขพิเศษสำหรับ shift: "cash_holiday"
+        if (record.shift === 'cash_holiday') {
+          cashWork = 0; // ตั้งค่า cashWork เป็น 0 สำหรับ cash_holiday
+          console.log(`🎯 พบ shift: "cash_holiday" - กำหนด cashWork = 0`);
+        } else {
+          // คำนวณค่าแรงปกติแบบวันหยุด
+          cashWork = await (record.totalTime || 0) * (parseFloat(salary || '0') * parseFloat(holidayHourRate)) || 0;
+        }
         
         // กำหนดตัวคูณแบบวันหยุด
         cashBeforeOtMul = holidayOTRate;
@@ -2905,8 +2868,14 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
             : ((totalDecimalHour || 0) * ((parseFloat(dataRate?.workRateOT || '1.5')) * salary || 0)) || 0
         );
 
-        // คำนวณค่าแรงปกติ
-        cashWork = await (record.totalTime || 0) * parseFloat(salary || 0);
+        // ตรวจสอบเงื่อนไขพิเศษสำหรับ shift: "cash_holiday"
+        if (record.shift === 'cash_holiday') {
+          cashWork = 0; // ตั้งค่า cashWork เป็น 0 สำหรับ cash_holiday
+          console.log(`🎯 พบ shift: "cash_holiday" - กำหนด cashWork = 0`);
+        } else {
+          // คำนวณค่าแรงปกติ
+          cashWork = await (record.totalTime || 0) * parseFloat(salary || 0);
+        }
         
         // กำหนดตัวคูณ
         cashBeforeOtMul = dataRate?.workRateOT || 1.5;
@@ -3060,7 +3029,13 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
               : ((record.totalOtTime || 0) * ((parseFloat(dataRate?.dayoffRateOT || '0')) * salary || 0)) || 0
           );
 
-          cashWork = await (record.totalTime || 0) * (parseFloat(salary || '0') * parseFloat(dataRate?.dayoffRateHour || '0')) || 0;
+          // ตรวจสอบเงื่อนไขพิเศษสำหรับ shift: "cash_holiday"
+          if (record.shift === 'cash_holiday') {
+            cashWork = 0; // ตั้งค่า cashWork เป็น 0 สำหรับ cash_holiday
+            console.log(`🎯 พบ shift: "cash_holiday" - กำหนด cashWork = 0`);
+          } else {
+            cashWork = await (record.totalTime || 0) * (parseFloat(salary || '0') * parseFloat(dataRate?.dayoffRateHour || '0')) || 0;
+          }
           dayType = await dataRate?.dayType || 0;
           cashBeforeOtMul = dataRate?.dayoffRateOT || 0;
           cashWorkMul = dataRate?.dayoffRateHour || 0;
@@ -3085,7 +3060,13 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
               : ((record.totalOtTime || 0) * ((parseFloat(dataRate?.holidayOT || '0')) * salary || 0)) || 0
           );
 
-          cashWork = await (parseFloat(record.totalTime || 0) * parseFloat(salary || 0) * parseFloat(dataRate?.holidayHour || 1)) || 0;
+          // ตรวจสอบเงื่อนไขพิเศษสำหรับ shift: "cash_holiday"
+          if (record.shift === 'cash_holiday') {
+            cashWork = 0; // ตั้งค่า cashWork เป็น 0 สำหรับ cash_holiday
+            console.log(`🎯 พบ shift: "cash_holiday" - กำหนด cashWork = 0`);
+          } else {
+            cashWork = await (parseFloat(record.totalTime || 0) * parseFloat(salary || 0) * parseFloat(dataRate?.holidayHour || 1)) || 0;
+          }
           console.log('totalTime ' + parseFloat(record.totalTime || 0) + ' salary ' + parseFloat(salary || 0) + ' dataRate ' + parseFloat(dataRate?.holidayHour || 1)); 
           
           dayType = await dataRate?.dayType || 0;
@@ -3124,8 +3105,14 @@ const totalDecimalHour = tmpHour + (tmpMinute / 60); // 1 + 30/60 = 1.5
               : ((totalDecimalHour || 0 ) * ((parseFloat(dataRate?.workRateOT || '0')) * salary || 0)) || 0 //คำนวนจากเวลาที่แปลงแล้ว
           );
 
-          // คำนวณค่าแรงสำหรับวันทำงานปกติ
-          cashWork = await (record.totalTime || 0) * parseFloat(salary || 0);
+          // ตรวจสอบเงื่อนไขพิเศษสำหรับ shift: "cash_holiday"
+          if (record.shift === 'cash_holiday') {
+            cashWork = 0; // ตั้งค่า cashWork เป็น 0 สำหรับ cash_holiday
+            console.log(`🎯 พบ shift: "cash_holiday" - กำหนด cashWork = 0`);
+          } else {
+            // คำนวณค่าแรงสำหรับวันทำงานปกติ
+            cashWork = await (record.totalTime || 0) * parseFloat(salary || 0);
+          }
           dayType = await dataRate?.dayType || '';
           cashBeforeOtMul = await dataRate?.workRateOT || 0;
           cashWorkMul = 1; // ตัวคูณค่าแรงปกติเป็น 1
