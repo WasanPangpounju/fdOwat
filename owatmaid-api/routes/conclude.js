@@ -82,11 +82,8 @@ const concludeSchema = new mongoose.Schema({
   concludeDate: String,
   employeeId: String,
   concludeRecord: [{
-    date: String, // เพิ่ม date field
     day: String,
     workplaceId: String,
-    workplaceName: String, // เพิ่ม workplaceName
-    wGroup: String, // เพิ่ม wGroup
     allTimes: String,
     workRate: String,
     workRateMultiply: String,
@@ -95,23 +92,7 @@ const concludeSchema = new mongoose.Schema({
     workRateOTMultiply: String,
     addSalaryDay: String,
     shift: String,
-    workType: String,
-    // เพิ่ม fields ใหม่สำหรับระบบปัจจุบัน
-    beforeTotalOtTime: String,
-    cashBeforeOt: String,
-    totalTime: String,
-    cashWork: String,
-    totalOtTime: String,
-    cashOt: String,
-    addSalaryDaily: [{ // เพิ่ม addSalaryDaily array
-      id: String,
-      name: String,
-      SpSalary: String,
-      roundOfSalary: String,
-      StaffType: String,
-      nameType: String,
-      _id: String
-    }]
+    workType: String
   }],
   addSalary: [
   ],
@@ -119,8 +100,7 @@ const concludeSchema = new mongoose.Schema({
   sumWorkHour: String,
   sumWorkRate: String,
   sumWorkHourOt: String,
-  sumWorkRateOt: String,
-  status: String // เพิ่ม status field
+  sumWorkRateOt: String
 });
 
 // Create the conclude record time model based on the schema
@@ -3782,87 +3762,19 @@ router.post('/searchtimerecordemployee', async (req, res) => {
 
 router.put('/update1/:id', async (req, res) => {
   try {
-    console.log('🔍 Update request received:', {
-      id: req.params.id,
-      idLength: req.params.id.length,
-      isValidObjectId: mongoose.Types.ObjectId.isValid(req.params.id),
-      concludeRecord: req.body.concludeRecord?.length || 0,
-      hasAddSalaryDaily: req.body.concludeRecord?.[0]?.addSalaryDaily?.length || 0
-    });
+    const updated = await timerecordEmployee.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true } // ให้คืนค่าหลังอัปเดต
+    );
 
-    // ตรวจสอบความถูกต้องของ ObjectId ก่อน
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      console.log('❌ Invalid ObjectId:', req.params.id);
-      return res.status(400).json({ message: 'รูปแบบ ID ไม่ถูกต้อง' });
-    }
-
-    // ลองค้นหาข้อมูลก่อนเพื่อตรวจสอบว่ามีจริงหรือไม่
-    const existingRecord = await timerecordEmployee.findById(req.params.id);
-    
-    if (!existingRecord) {
-      console.log('❌ Record not found with ID:', req.params.id);
-      
-      // ลองค้นหาด้วยเงื่อนไขอื่น
-      const searchAlternative = await timerecordEmployee.findOne({
-        employeeId: req.body.employeeId,
-        month: req.body.month,
-        year: req.body.year
-      });
-      
-      if (searchAlternative) {
-        console.log('✅ Found record with alternative search:', searchAlternative._id);
-        return res.status(200).json({ 
-          message: 'พบข้อมูลด้วยเงื่อนไขอื่น', 
-          correctId: searchAlternative._id,
-          data: searchAlternative 
-        });
-      }
-      
+    if (!updated) {
       return res.status(404).json({ message: 'ไม่พบข้อมูลที่ต้องการอัปเดต' });
     }
 
-    console.log('📝 Existing record found, proceeding with update...');
-    console.log('📝 Request body keys:', Object.keys(req.body));
-    console.log('📝 ConcludeRecord data:', req.body.concludeRecord?.length || 0, 'records');
-    
-    if (req.body.concludeRecord) {
-      req.body.concludeRecord.forEach((record, index) => {
-        if (record.addSalaryDaily) {
-          console.log(`📝 Record ${index} addSalaryDaily being sent:`, record.addSalaryDaily);
-        }
-      });
-    }
-
-    // อัพเดทข้อมูลด้วย Mongoose แบบ explicit
-    const recordToUpdate = await timerecordEmployee.findById(req.params.id);
-    
-    // อัพเดทข้อมูลแบบ manual เพื่อให้ Mongoose รู้ว่ามีการเปลี่ยนแปลง
-    if (req.body.concludeRecord) {
-      // ใช้ employee_record แทน concludeRecord ตาม schema
-      recordToUpdate.employee_record = req.body.concludeRecord;
-      recordToUpdate.markModified('employee_record');
-      console.log('🔄 Updated employee_record with concludeRecord data');
-      console.log('📝 First record addSalaryDaily:', req.body.concludeRecord[0]?.addSalaryDaily?.[0]?.SpSalary);
-    }
-    
-    // อัพเดทฟิลด์อื่นๆ
-    Object.keys(req.body).forEach(key => {
-      if (key !== 'concludeRecord') {
-        recordToUpdate[key] = req.body[key];
-      }
-    });
-
-    const updated = await recordToUpdate.save();
-
-    console.log('✅ Update successful:', {
-      id: updated._id,
-      concludeRecordLength: updated.concludeRecord?.length || 0,
-      firstRecordAddSalary: updated.concludeRecord?.[0]?.addSalaryDaily?.[0]?.SpSalary || 'N/A'
-    });
-
     res.status(200).json({ message: 'อัปเดตสำเร็จ', data: updated });
   } catch (err) {
-    console.error('❌ PUT /conclude/update1 Error:', err);
+    console.error('❌ PUT /conclude/update Error:', err);
     res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: err.message });
   }
 });
@@ -4030,66 +3942,6 @@ router.post('/add-publicholiday', async (req, res) => {
     res.json({ success: true, publicHoliday });
   } catch (error) {
     res.status(500).json({ error: error.message });
-  }
-});
-
-// PUT endpoint สำหรับรีเฟรชข้อมูลหลังบันทึก
-router.put('/searchtimerecordemployee', async (req, res) => {
-  try {
-    const { employeeId, month, year, _timestamp } = req.body;
-    
-    console.log(`\n🔄 === PUT Refresh Data Request ===`);
-    console.log(`👤 EmployeeId: ${employeeId}`);
-    console.log(`📅 Month: ${month}, Year: ${year}`);
-    console.log(`⏰ Timestamp: ${_timestamp}`);
-    
-    // ใช้โค้ดเดียวกับ POST endpoint แต่บังคับ refresh
-    const query = {};
-    if (employeeId) query.employeeId = employeeId;
-    if (month) query.month = month;
-    if (year) query.year = year;
-
-    console.log(`🔍 Query conditions:`, query);
-
-    // เพิ่ม sort เพื่อให้ได้ข้อมูลล่าสุด
-    const result = await concludeRecord.find(query)
-      .sort({ updatedAt: -1, createdAt: -1 }) // เรียงจากใหม่ไปเก่า
-      .lean(); // ใช้ lean() เพื่อให้ได้ plain object
-
-    console.log(`📊 Found ${result.length} records`);
-    
-    if (result.length > 0) {
-      console.log(`✅ ส่งข้อมูลที่รีเฟรชแล้ว (timestamp: ${_timestamp})`);
-      
-      // Log ข้อมูล addSalaryDaily เพื่อ debug
-      if (result[0]?.employee_record?.[0]?.addSalaryDaily) {
-        console.log(`🎯 addSalaryDaily in first record:`, 
-          JSON.stringify(result[0].employee_record[0].addSalaryDaily, null, 2));
-      }
-      
-      res.json({ 
-        result,
-        refreshed: true,
-        timestamp: _timestamp,
-        message: 'Data refreshed successfully'
-      });
-    } else {
-      console.log(`❌ ไม่พบข้อมูล`);
-      res.json({ 
-        result: [],
-        refreshed: true,
-        timestamp: _timestamp,
-        message: 'No data found'
-      });
-    }
-
-  } catch (error) {
-    console.error(`❌ PUT Refresh Error:`, error);
-    res.status(500).json({ 
-      error: error.message,
-      refreshed: false,
-      message: 'Failed to refresh data'
-    });
   }
 });
 
