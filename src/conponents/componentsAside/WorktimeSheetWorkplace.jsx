@@ -15,7 +15,6 @@ import ExcelJS from 'exceljs';
 import { jsPDF } from "jspdf";
 import "jspdf-autotable";
 import html2pdf from "html2pdf.js";
-import html2canvas from "html2canvas";
 import { useTable } from "react-table";
 
 import th from "date-fns/locale/th"; // Import Thai locale data from date-fns
@@ -1491,186 +1490,6 @@ const getDateStyle = (day) => {
 
   const [workMonth, setWorkMonth] = useState([]);
 
-  // ฟังก์ชันสำหรับสร้าง PDF แนวนอนโดยตรง
-  const generatePDFLandscape = async () => {
-    try {
-      // ตรวจสอบว่ามีข้อมูลหรือไม่
-      if (loading) {
-        Swal.fire({
-          icon: 'info',
-          title: 'กำลังโหลดข้อมูล!',
-          text: 'กรุณารอจนกว่าข้อมูลจะโหลดเสร็จ',
-          confirmButtonText: 'ตกลง'
-        });
-        return;
-      }
-
-      if (!data || data.length === 0) {
-        Swal.fire({
-          icon: 'warning',
-          title: 'ไม่มีข้อมูล!',
-          text: 'กรุณาค้นหาข้อมูลก่อนสร้าง PDF',
-          confirmButtonText: 'ตกลง'
-        });
-        return;
-      }
-
-      // ตรวจสอบค่าพารามิเตอร์ที่จำเป็น
-      if (!month || !year) {
-        Swal.fire({
-          icon: 'warning',
-          title: 'ข้อมูลไม่ครบ!',
-          text: 'กรุณาเลือกเดือนและปีก่อนสร้าง PDF',
-          confirmButtonText: 'ตกลง'
-        });
-        return;
-      }
-
-      // แสดง loading indicator
-      Swal.fire({
-        title: 'กำลังสร้าง PDF แนวนอน...',
-        text: 'กรุณารอสักครู่',
-        allowOutsideClick: false,
-        didOpen: () => {
-          Swal.showLoading();
-        }
-      });
-
-      // หาตาราง element
-      const element = document.querySelector('#pdfExportContainer');
-      if (!element) {
-        throw new Error('ไม่พบตารางข้อมูล');
-      }
-
-      // ตั้งค่า html2pdf สำหรับแนวนอนโดยเฉพาะ
-      const opt = {
-        margin: [8, 3, 8, 3], 
-        filename: `ตารางเวลาทำงาน_${searchWorkplaceName || searchWorkplaceId}_${getThaiMonthName(month)}_${parseInt(year) + 543}_แนวนอน.pdf`,
-        image: { 
-          type: 'jpeg', 
-          quality: 0.98 
-        },
-        html2canvas: { 
-          scale: 1.8,
-          useCORS: true,
-          letterRendering: true,
-          allowTaint: false,
-          scrollX: 0,
-          scrollY: 0,
-          width: element.scrollWidth,
-          height: element.scrollHeight,
-          backgroundColor: '#ffffff',
-          removeContainer: true,
-          foreignObjectRendering: false,
-          windowWidth: element.scrollWidth + 100,
-          windowHeight: element.scrollHeight + 100
-        },
-        jsPDF: { 
-          unit: 'mm', 
-          format: 'a0',
-          orientation: 'landscape',
-          putOnlyUsedFonts: true,
-          floatPrecision: 16,
-          compress: true
-        },
-        pagebreak: { 
-          mode: ['avoid-all'],
-          avoid: '.page-break-avoid'
-        }
-      };
-
-      // เพิ่มการจัดการ CSS สำหรับ print แนวนอนพิเศษ
-      const printStyles = document.createElement('style');
-      printStyles.innerHTML = `
-        @media print, screen {
-          #pdfExportContainer {
-            background-color: #ffffff !important;
-            padding: 20px !important;
-            box-shadow: none !important;
-            border: none !important;
-            width: 100% !important;
-            max-width: none !important;
-            overflow: visible !important;
-          }
-          #worktimeTable {
-            font-size: 10px !important;
-            width: 100% !important;
-            border-collapse: collapse !important;
-            page-break-inside: avoid !important;
-            table-layout: auto !important;
-            min-width: 100% !important;
-          }
-          #worktimeTable th,
-          #worktimeTable td {
-            border: 1px solid #000 !important;
-            padding: 3px !important;
-            font-size: 10px !important;
-            line-height: 1.2 !important;
-            word-wrap: break-word !important;
-            white-space: nowrap !important;
-            overflow: visible !important;
-            text-overflow: clip !important;
-            max-width: none !important;
-          }
-          .vertical-text {
-            writing-mode: vertical-rl !important;
-            text-orientation: mixed !important;
-            white-space: nowrap !important;
-            font-size: 9px !important;
-            transform: rotate(180deg) !important;
-            height: auto !important;
-            width: 25px !important;
-            min-width: 25px !important;
-          }
-          .text-center { text-align: center !important; }
-          .text-left { text-align: left !important; }
-          .text-right { text-align: right !important; }
-          body, html {
-            margin: 0 !important;
-            padding: 0 !important;
-            overflow: visible !important;
-          }
-        }
-      `;
-      document.head.appendChild(printStyles);
-
-      // สร้าง PDF
-      await html2pdf()
-        .set(opt)
-        .from(element)
-        .toPdf()
-        .get('pdf')
-        .then((pdf) => {
-          const width = pdf.internal.pageSize.getWidth();
-          const height = pdf.internal.pageSize.getHeight();
-          console.log(`PDF แนวนอน:`, width, 'x', height, 'mm');
-        })
-        .save();
-
-      // ลบ print styles
-      document.head.removeChild(printStyles);
-
-      // แสดงข้อความสำเร็จ
-      Swal.fire({
-        icon: 'success',
-        title: 'สำเร็จ!',
-        text: 'ดาวน์โหลด PDF แนวนอนเรียบร้อยแล้ว',
-        timer: 3000,
-        showConfirmButton: false
-      });
-
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      
-      Swal.fire({
-        icon: 'error',
-        title: 'เกิดข้อผิดพลาด!',
-        text: 'ไม่สามารถสร้าง PDF ได้: ' + error.message,
-        confirmButtonText: 'ตกลง'
-      });
-    }
-  };
-
   const generateText = () => {
     return searchResult
       .map(
@@ -1693,215 +1512,7 @@ const getDateStyle = (day) => {
     setWorkMonth(text);
   }, [searchResult]);
 
-  // ฟังก์ชันสำหรับสร้าง PDF จากตารางเวลาทำงาน (แนวนอน)
   const generatePDF = async () => {
-    try {
-      // ตรวจสอบว่ามีข้อมูลหรือไม่
-      if (loading) {
-        Swal.fire({
-          icon: 'info',
-          title: 'กำลังโหลดข้อมูล!',
-          text: 'กรุณารอจนกว่าข้อมูลจะโหลดเสร็จ',
-          confirmButtonText: 'ตกลง'
-        });
-        return;
-      }
-
-      if (!data || data.length === 0) {
-        Swal.fire({
-          icon: 'warning',
-          title: 'ไม่มีข้อมูล!',
-          text: 'กรุณาค้นหาข้อมูลก่อนสร้าง PDF',
-          confirmButtonText: 'ตกลง'
-        });
-        return;
-      }
-
-      // ตรวจสอบค่าพารามิเตอร์ที่จำเป็น
-      if (!month || !year) {
-        Swal.fire({
-          icon: 'warning',
-          title: 'ข้อมูลไม่ครบ!',
-          text: 'กรุณาเลือกเดือนและปีก่อนสร้าง PDF',
-          confirmButtonText: 'ตกลง'
-        });
-        return;
-      }
-
-      // ให้ผู้ใช้เลือกแนวกระดาษ
-      const result = await Swal.fire({
-        title: 'เลือกแนวกระดาษ',
-        text: 'คุณต้องการ PDF แนวไหน?',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'แนวนอน (แนะนำ)',
-        cancelButtonText: 'แนวตั้ง',
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33'
-      });
-
-      const isLandscape = result.isConfirmed;
-
-      // แสดง loading indicator
-      Swal.fire({
-        title: `กำลังสร้าง PDF แนว${isLandscape ? 'นอน' : 'ตั้ง'}...`,
-        text: 'กรุณารอสักครู่',
-        allowOutsideClick: false,
-        didOpen: () => {
-          Swal.showLoading();
-        }
-      });
-
-      // หาตาราง element
-      const element = document.querySelector('#pdfExportContainer');
-      if (!element) {
-        throw new Error('ไม่พบตารางข้อมูล');
-      }
-
-      // ตั้งค่า html2pdf ตามแนวที่เลือก
-      const opt = {
-        margin: isLandscape ? [10, 5, 10, 5] : [15, 10, 15, 10],
-        filename: `ตารางเวลาทำงาน_${searchWorkplaceName || searchWorkplaceId}_${getThaiMonthName(month)}_${parseInt(year) + 543}_${isLandscape ? 'แนวนอน' : 'แนวตั้ง'}.pdf`,
-        image: { 
-          type: 'jpeg', 
-          quality: 0.98 
-        },
-        html2canvas: { 
-          scale: isLandscape ? 1.5 : 1.2,
-          useCORS: true,
-          letterRendering: true,
-          allowTaint: false,
-          scrollX: 0,
-          scrollY: 0,
-          width: element.scrollWidth,
-          height: element.scrollHeight,
-          backgroundColor: '#ffffff',
-          removeContainer: true,
-          foreignObjectRendering: false,
-          windowWidth: element.scrollWidth,
-          windowHeight: element.scrollHeight
-        },
-        jsPDF: { 
-          unit: 'mm', 
-          format: isLandscape ? 'a1' : 'a0', 
-          orientation: isLandscape ? 'landscape' : 'portrait',
-          putOnlyUsedFonts: true,
-          floatPrecision: 16,
-          compress: true
-        },
-        pagebreak: { 
-          mode: ['avoid-all'],
-          before: '.page-break-before',
-          after: '.page-break-after', 
-          avoid: '.page-break-avoid'
-        }
-      };
-
-      // เพิ่มการจัดการ CSS สำหรับ print ตามแนวที่เลือก
-      const printStyles = document.createElement('style');
-      printStyles.innerHTML = `
-        @media print, screen {
-          #pdfExportContainer {
-            background-color: #ffffff !important;
-            padding: 15px !important;
-            box-shadow: none !important;
-            border: none !important;
-            width: 100% !important;
-            max-width: none !important;
-          }
-          #worktimeTable {
-            font-size: ${isLandscape ? '9px' : '8px'} !important;
-            width: 100% !important;
-            border-collapse: collapse !important;
-            page-break-inside: avoid !important;
-            table-layout: auto !important;
-            min-width: 100% !important;
-          }
-          #worktimeTable th,
-          #worktimeTable td {
-            border: 1px solid #000 !important;
-            padding: ${isLandscape ? '2px' : '1px'} !important;
-            font-size: ${isLandscape ? '9px' : '8px'} !important;
-            line-height: 1.1 !important;
-            word-wrap: break-word !important;
-            white-space: ${isLandscape ? 'nowrap' : 'normal'} !important;
-            overflow: hidden !important;
-            text-overflow: ellipsis !important;
-          }
-          .vertical-text {
-            writing-mode: vertical-rl !important;
-            text-orientation: mixed !important;
-            white-space: nowrap !important;
-            font-size: ${isLandscape ? '8px' : '7px'} !important;
-            transform: rotate(180deg) !important;
-            height: auto !important;
-            width: ${isLandscape ? '20px' : '15px'} !important;
-          }
-          .text-center {
-            text-align: center !important;
-          }
-          .text-left {
-            text-align: left !important;
-          }
-          .text-right {
-            text-align: right !important;
-          }
-          /* ปรับสีพื้นหลัง */
-          .bg-success, .bg-danger, .bg-warning {
-            background-color: transparent !important;
-            -webkit-print-color-adjust: exact !important;
-            color-adjust: exact !important;
-          }
-          /* ลบ margin/padding ที่ไม่จำเป็น */
-          body, html {
-            margin: 0 !important;
-            padding: 0 !important;
-          }
-        }
-      `;
-      document.head.appendChild(printStyles);
-
-      // สร้าง PDF ตามแนวที่เลือก
-      await html2pdf()
-        .set(opt)
-        .from(element)
-        .toPdf()
-        .get('pdf')
-        .then((pdf) => {
-          // ตรวจสอบ orientation
-          const width = pdf.internal.pageSize.getWidth();
-          const height = pdf.internal.pageSize.getHeight();
-          console.log(`PDF สร้างเป็นแนว${isLandscape ? 'นอน' : 'ตั้ง'}:`, width, 'x', height, 'mm');
-        })
-        .save();
-
-      // ลบ print styles
-      document.head.removeChild(printStyles);
-
-      // ปิด loading และแสดงข้อความสำเร็จ
-      Swal.fire({
-        icon: 'success',
-        title: 'สำเร็จ!',
-        text: `ดาวน์โหลด PDF แนว${isLandscape ? 'นอน' : 'ตั้ง'}เรียบร้อยแล้ว`,
-        timer: 3000,
-        showConfirmButton: false
-      });
-
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      
-      // แสดงข้อความ error
-      Swal.fire({
-        icon: 'error',
-        title: 'เกิดข้อผิดพลาด!',
-        text: 'ไม่สามารถสร้าง PDF ได้: ' + error.message,
-        confirmButtonText: 'ตกลง'
-      });
-    }
-  };
-
-  // ฟังก์ชัน generatePDF แบบเก่า (สำรอง)
-  const generatePDFOld = async () => {
     try {
       const doc = new jsPDF("landscape");
 
@@ -8106,7 +7717,25 @@ const getDateStyle = (day) => {
   };
 
     const generateExcel = async () => {
-    console.log('🚀 Starting Excel generation...');
+      // แสดง popup ปิดปรับปรุงชั่วคราว
+      Swal.fire({
+        icon: 'info',
+        title: 'ปิดปรับปรุงชั่วคราว',
+        text: 'ขณะนี้ระบบกำลังปรับปรุงฟีเจอร์ดาวน์โหลด Excel กรุณาใช้ฟีเจอร์อื่นในขณะนี้',
+        confirmButtonText: 'ตกลง',
+        confirmButtonColor: '#f0ad4e',
+        showClass: {
+          popup: 'animate__animated animate__fadeInDown'
+        },
+        hideClass: {
+          popup: 'animate__animated animate__fadeOutUp'
+        }
+      });
+      return; // ออกจากฟังก์ชันทันที
+      
+      /* 
+      // โค้ดเดิมถูกคอมเมนต์ออกชั่วคราว
+      console.log('🚀 Starting Excel generation...');
     
     try {
       // Check if required data exists
@@ -10964,6 +10593,7 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
         width: '500px'
       });
     }
+    */
   };
 
 
@@ -11767,22 +11397,6 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                         <i class="fas fa-file-excel m-1"></i>ดาวน์โหลด Excel
                      
                       </button>
-                      <button
-                        onClick={generatePDF}
-                        style={{ marginLeft: "1rem", width: "10rem", backgroundColor: "", color: "white" }}
-                        class="btn b_save bg-danger p-2"
-                      > 
-                        <i class="fas fa-file-pdf m-1"></i>PDF (เลือกแนว)
-                     
-                      </button>
-                      <button
-                        onClick={generatePDFLandscape}
-                        style={{ marginLeft: "0.5rem", width: "10rem", backgroundColor: "", color: "white" }}
-                        class="btn b_save bg-primary p-2"
-                      > 
-                        <i class="fas fa-file-pdf m-1"></i>PDF แนวนอน
-                     
-                      </button>
                        <button
                         onClick={handleForceReload}
                         style={{ marginLeft: "1rem", width: "10rem", backgroundColor: "", color: "white" }}
@@ -11793,31 +11407,8 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                       </button>
 
                       <div className="pt-3">
-                          <div className="table table-responsive">
-                          {/* PDF Export Container - Landscape Optimized */}
-                          <div id="pdfExportContainer" style={{ 
-                            backgroundColor: '#ffffff', 
-                            padding: '15px',
-                            width: '100%',
-                            overflowX: 'auto',
-                            minWidth: 'fit-content'
-                          }}>
-                            {/* Header for PDF */}
-                            <div style={{ 
-                              textAlign: 'center', 
-                              marginBottom: '20px', 
-                              fontSize: '18px', 
-                              fontWeight: 'bold',
-                              pageBreakBefore: 'avoid'
-                            }}>
-                              ตารางเวลาทำงานพนักงาน
-                              <br />
-                              <span style={{ fontSize: '16px', fontWeight: 'normal' }}>
-                                {searchWorkplaceName || searchWorkplaceId} - {getThaiMonthName(month)} {parseInt(year) + 543}
-                              </span>
-                            </div>
+                          <div className="table table-responsive" >
                           <table
-                      id="worktimeTable"
                       className="excel-style-table  "
                       style={{
                         fontSize: "8px",
@@ -11825,8 +11416,6 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                         margin: "0 auto",
                         borderCollapse: "collapse",
                         border: "1px solid #000",
-                        tableLayout: "auto",
-                        minWidth: "fit-content"
                       }}
                     >
 
@@ -12511,8 +12100,8 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                             displayValue = <span style={{ color: 'red' }}>1</span>; // เลข 1 สีแดงสำหรับ cash_holiday กะดึก
                           }
                         }
-                      } else if (isDayOffOnly) {
-                        backgroundColor = { backgroundColor: "#9e9e9e" }; // สีขาวสำหรับวันหยุดนักขัตฤกษ์
+                      } else if (isDayOffOnly ) {
+                        backgroundColor = { backgroundColor: "#9e9e9e" }; 
                         // แสดงเลข 1 ถ้ามี totalTime และเป็น night_shift
                         if (found?.totalTime && found.totalTime.trim() !== '' && found?.shift === "night_shift") {
                           displayValue = '1';
@@ -12759,8 +12348,10 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                     if (specialIndividualOT15) {
                       // ให้ความสำคัญกับ specialt_shift และ stopDaysList ก่อน
                       backgroundColor = { backgroundColor: "#9e9e9e" , color: "red" }; // สีเทาพื้นหลังและตัวอักษรสีแดงสำหรับวันหยุดพิเศษ
-                    } else if (isHoliday ) {
-                      backgroundColor = { backgroundColor: "#9e9e9e" };
+                    } else if (isHoliday) {
+                      // ตรวจสอบว่ามี totalOtTime และ cashOtMul = "1.5" หรือไม่ - ถ้าไม่มีให้เป็นสีเทา
+                      const hasTotalOtTime = found?.totalOtTime && parseFloat(found.totalOtTime) > 0 && found?.cashOtMul === "1.5";
+                      backgroundColor = hasTotalOtTime ? { backgroundColor: "" } : { backgroundColor: "#9e9e9e" };
                     } else {
                       backgroundColor = {};
                     }
@@ -12939,8 +12530,11 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
     const isDayOffOnlyForYellow = weekendData && Array.isArray(weekendData) && weekendData.find(item => item.date === targetDateStr && item.type === 'dayOffOnly');
     
     // ถ้ามีข้อมูลให้แสดงและเป็น dayOffOnly ใช้สีเหลืองตามเดิม
-    if (isDayOffOnlyForYellow) {
+    if (isDayOffOnlyForYellow  && found?.cashOtMul ==="2") {
       backgroundColor = { backgroundColor: "yellow" };
+    }
+    else {
+      backgroundColor = { backgroundColor: "#9e9e9e"};
     }
   }
   if (isSickLeave) {
@@ -12981,7 +12575,7 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
       className="text-red align-middle text-center"
       style={backgroundColor}
     >
-      {(shouldShowData && isDayOffOnly) ? formatTimeValue(found.totalTime) : 
+      {(shouldShowData && isDayOffOnly && found?.cashOtMul ==="2") ? formatTimeValue(found.totalTime) : 
        (specialIndividual && found?.dayType === "stop" && found.totalTime && isDayOffOnly) ? 
        formatTimeValue(found.totalTime) : ''}
     </td>
@@ -13167,8 +12761,7 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
         backgroundColor = { backgroundColor: "#9e9e9e" };
       }
     }
-  } else {
-    // ถ้ามีข้อมูลให้แสดง ใช้สีชมพูตามเดิม
+  } else if( found?.cashOtMul ==="3") {
     backgroundColor = { backgroundColor: "#fae0f1" };
   }
 
@@ -13463,8 +13056,7 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
 
                               </tbody>
                             </table>
-                          </div> {/* ปิด PDF Export Container */}
-                        </div>
+                          </div>
                         </div>
 
                       

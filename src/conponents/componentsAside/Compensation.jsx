@@ -2633,8 +2633,8 @@ const handleSave_back = (index, subIndex, idx) => {
               <th>ค่าจ้าง</th>
               <th>OT หลัง</th>
               <th>ค่าจ้าง</th>
-              {/* <th>เงินเพิ่ม</th>  */}
-              {/* <th>แก้ไข</th>  */}
+              <th>เงินเพิ่ม</th>
+              <th>แก้ไข</th>
             </tr>
           </thead>
           <tbody className="">
@@ -2770,8 +2770,7 @@ const handleSave_back = (index, subIndex, idx) => {
                           )}
 
                           {/* เงินเพิ่ม (Show sum or detailed list) */}
-                          {/* ช่องนี้แสดงรายการเงินเพิ่มรายวัน สามารถแก้ไขเพิ่ม/ลบรายการได้ */}
-                          {/* <th className="fw-normal">
+                          <th className="fw-normal">
                           {matchedRecord.shift === 'cash_holiday' ? (
                             <span>รวมแล้ว</span>
                           ) : (
@@ -2863,11 +2862,10 @@ const handleSave_back = (index, subIndex, idx) => {
                               })()
                             )
                           )}
-                          </th> */}
+                          </th>
 
                           {/* แก้ไข / บันทึก */}
-                          {/* ปุ่มสำหรับเข้าสู่โหมดแก้ไข (ดินสอ) หรือบันทึกการแก้ไข (✅) */}
-                          {/* <th className="fw-normal">
+                          <th className="fw-normal">
                             {isEditing ? (
                               <>
                                 <button className="btn btn-success btn-sm"  style={{ padding: "0.3rem", width: "3rem" }} onClick={() => handleSave(index, subIndex, idx)}>
@@ -2897,232 +2895,33 @@ const handleSave_back = (index, subIndex, idx) => {
                                <i className="bi bi-pencil-square"></i>
                               </button>
                             )}
-                          </th> */}
+                          </th>
                         </tr>
                       );
                     })
                   ) : (
                     <tr key={`${index}-${subIndex}-no-record`}>
                       <th className="fw-normal">{day}</th>
-                      
-                  
-                      <th className="fw-normal">
-                        <input
-                          type="text"
-                          className="form-control"
-                          style={{ width: "4rem", margin: "0 auto" }}
-                          placeholder="รหัส"
-                          value={editedData[`${index}-${subIndex}-no-record_workplaceId_table`] || ""}
-                          onChange={(e) => setEditedData(prev => ({
-                            ...prev,
-                            [`${index}-${subIndex}-no-record_workplaceId_table`]: e.target.value
-                          }))}
-                        />
-                      </th>
-                      
-                      <th className="fw-normal">
-                        <input
-                          type="text"
-                          className="form-control"
-                          style={{ width: "6rem", margin: "0 auto" }}
-                          placeholder="ชื่อ"
-                          value={editedData[`${index}-${subIndex}-no-record_workplaceName_table`] || ""}
-                          onChange={(e) => setEditedData(prev => ({
-                            ...prev,
-                            [`${index}-${subIndex}-no-record_workplaceName_table`]: e.target.value
-                          }))}
-                        />
-                      </th>
-                      
-                      <th className="fw-normal">
-                        <input
-                          type="text"
-                          className="form-control"
-                          style={{ width: "4rem", margin: "0 auto" }}
-                          placeholder="กลุ่ม"
-                          value={editedData[`${index}-${subIndex}-no-record_wGroup_table`] || ""}
-                          onChange={(e) => setEditedData(prev => ({
-                            ...prev,
-                            [`${index}-${subIndex}-no-record_wGroup_table`]: e.target.value
-                          }))}
-                        />
-                      </th>
-                      
-                      <th className="fw-normal">
-                        <select
-                          className="form-control"
-                          style={{ width: "6rem", margin: "0 auto" }}
-                          value={editedData[`${index}-${subIndex}-no-record_shift_table`] || ""}
-                          onChange={(e) => setEditedData(prev => ({
-                            ...prev,
-                            [`${index}-${subIndex}-no-record_shift_table`]: e.target.value
-                          }))}
-                        >
-                          <option value="">เลือกกะ</option>
-                          <option value="morning_shift">กะเช้า</option>
-                          <option value="afternoon_shift">กะบ่าย</option>
-                          <option value="night_shift">กะดึก</option>
-                          <option value="special_shift">กะพิเศษ</option>
-                        </select>
-                      </th>
-                      
-                      {/* OT ก่อน */}
-                      <th className="fw-normal">
-                        <input
-                          type="number"
-                          step="0.01"
-                          className="form-control"
-                          style={{ width: "6rem", margin: "0 auto" }}
-                          placeholder="0.00"
-                          value={editedData[`${index}-${subIndex}-no-record_beforeTotalOtTime_table`] || ""}
-                          onChange={(e) => setEditedData(prev => ({
-                            ...prev,
-                            [`${index}-${subIndex}-no-record_beforeTotalOtTime_table`]: e.target.value
-                          }))}
-                        />
-                      </th>
-                      
-                      {/* ค่าจ้าง OT ก่อน */}
-                      <th className="fw-normal">
-                        <input
-                          type="number"
-                          step="0.01"
-                          className="form-control"
-                          style={{ width: "6rem", margin: "0 auto" }}
-                          placeholder="0.00"
-                          value={editedData[`${index}-${subIndex}-no-record_cashBeforeOt_table`] || ""}
-                          onChange={(e) => setEditedData(prev => ({
-                            ...prev,
-                            [`${index}-${subIndex}-no-record_cashBeforeOt_table`]: e.target.value
-                          }))}
-                        />
-                      </th>
-                      
-                      {/* เวลาทำงาน */}
-                      <th className="fw-normal">
-                        <input
-                          type="number"
-                          step="0.01"
-                          className="form-control"
-                          style={{ width: "6rem", margin: "0 auto" }}
-                          placeholder="0.00"
-                          value={editedData[`${index}-${subIndex}-no-record_totalTime_table`] || ""}
-                          onChange={(e) => setEditedData(prev => ({
-                            ...prev,
-                            [`${index}-${subIndex}-no-record_totalTime_table`]: e.target.value
-                          }))}
-                        />
-                      </th>
-                      
-                      {/* ค่าจ้างทำงาน */}
-                      <th className="fw-normal">
-                        <input
-                          type="number"
-                          step="0.01"
-                          className="form-control"
-                          style={{ width: "6rem", margin: "0 auto" }}
-                          placeholder="0.00"
-                          value={editedData[`${index}-${subIndex}-no-record_cashWork_table`] || ""}
-                          onChange={(e) => setEditedData(prev => ({
-                            ...prev,
-                            [`${index}-${subIndex}-no-record_cashWork_table`]: e.target.value
-                          }))}
-                        />
-                      </th>
-                      
-                      {/* OT หลัง */}
-                      <th className="fw-normal">
-                        <input
-                          type="number"
-                          step="0.01"
-                          className="form-control"
-                          style={{ width: "6rem", margin: "0 auto" }}
-                          placeholder="0.00"
-                          value={editedData[`${index}-${subIndex}-no-record_totalOtTime_table`] || ""}
-                          onChange={(e) => setEditedData(prev => ({
-                            ...prev,
-                            [`${index}-${subIndex}-no-record_totalOtTime_table`]: e.target.value
-                          }))}
-                        />
-                      </th>
-                      
-                      {/* ค่าจ้าง OT หลัง */}
-                      <th className="fw-normal">
-                        <input
-                          type="number"
-                          step="0.01"
-                          className="form-control"
-                          style={{ width: "6rem", margin: "0 auto" }}
-                          placeholder="0.00"
-                          value={editedData[`${index}-${subIndex}-no-record_cashOt_table`] || ""}
-                          onChange={(e) => setEditedData(prev => ({
-                            ...prev,
-                            [`${index}-${subIndex}-no-record_cashOt_table`]: e.target.value
-                          }))}
-                        />
-                      </th>
-                      
-                      {/* เงินเพิ่ม */}
-                      <th className="fw-normal">
-                        <input
-                          type="number"
-                          step="0.01"
-                          className="form-control"
-                          style={{ width: "6rem", margin: "0 auto" }}
-                          placeholder="0.00"
-                          value={editedData[`${index}-${subIndex}-no-record_addSalaryDaily_table`] || ""}
-                          onChange={(e) => setEditedData(prev => ({
-                            ...prev,
-                            [`${index}-${subIndex}-no-record_addSalaryDaily_table`]: e.target.value
-                          }))}
-                        />
-                      </th>
-                      
+                      <th className="fw-normal">-</th>
+                      <th className="fw-normal">-</th>
+                      <th className="fw-normal">-</th>
+                      <th className="fw-normal">-</th>
+                      <th className="fw-normal">0.00</th>
+                      <th className="fw-normal">0.00</th>
+                      <th className="fw-normal">0.00</th>
+                      <th className="fw-normal">0.00</th>
+                      <th className="fw-normal">0.00</th>
+                      <th className="fw-normal">0.00</th>
+                      <th className="fw-normal">0.00</th>
                       <th className="fw-normal">
                         <button
-                          className="btn btn-success btn-sm"
+                          className="btn btn-warning btn-sm"
                           style={{ padding: "0.3rem", width: "3rem" }}
                           onClick={() => {
-                            // สร้างข้อมูลใหม่สำหรับวันที่ไม่มีข้อมูล
-                            const newRecord = {
-                              date: day,
-                              workplaceId: editedData[`${index}-${subIndex}-no-record_workplaceId_table`] || "",
-                              workplaceName: editedData[`${index}-${subIndex}-no-record_workplaceName_table`] || "",
-                              wGroup: editedData[`${index}-${subIndex}-no-record_wGroup_table`] || "",
-                              shift: editedData[`${index}-${subIndex}-no-record_shift_table`] || "",
-                              beforeTotalOtTime: editedData[`${index}-${subIndex}-no-record_beforeTotalOtTime_table`] || "0",
-                              cashBeforeOt: editedData[`${index}-${subIndex}-no-record_cashBeforeOt_table`] || "0",
-                              totalTime: editedData[`${index}-${subIndex}-no-record_totalTime_table`] || "0",
-                              cashWork: editedData[`${index}-${subIndex}-no-record_cashWork_table`] || "0",
-                              totalOtTime: editedData[`${index}-${subIndex}-no-record_totalOtTime_table`] || "0",
-                              cashOt: editedData[`${index}-${subIndex}-no-record_cashOt_table`] || "0",
-                              addSalaryDaily: []
-                            };
-                            
-                            // เพิ่มข้อมูลใหม่เข้าไปใน concludeResultx
-                            setConcludeResultx(prevData => {
-                              const updatedData = JSON.parse(JSON.stringify(prevData));
-                              if (updatedData[index]) {
-                                updatedData[index].employee_record.push(newRecord);
-                              }
-                              return updatedData;
-                            });
-                            
-                            // ล้างข้อมูลในฟอร์ม
-                            setEditedData(prev => {
-                              const newData = { ...prev };
-                              Object.keys(newData).forEach(key => {
-                                if (key.includes(`${index}-${subIndex}-no-record`)) {
-                                  delete newData[key];
-                                }
-                              });
-                              return newData;
-                            });
-                            
-                            setEditStatus("update");
+                            alert("ไม่อนุญาตให้แก้ไขเนื่องจากอาจเกิดความผิดพลาด กรุณาไปแก้ไขที่ระบบลงเวลา");
                           }}
                         >
-                          ✅
+                         <i className="bi bi-pencil-square"></i>
                         </button>
                       </th>
                     </tr>
