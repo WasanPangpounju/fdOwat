@@ -359,7 +359,22 @@ if((prevMonth  == upSalary_month ) && (year1  == upSalary_year ) ) {
             let scaledMinutes1 = minutes1;
             let otTime = `${parseFloat(hours1 || 0)}.${parseFloat(scaledMinutes1 || 0 ) } `;
 
-            if (element.specialtSalary !== '' || element.specialtSalaryOT !== '') {
+            // ตรวจสอบเงื่อนไขพิเศษสำหรับ shift: "cash_holiday"
+            if (element.shift === 'cash_holiday') {
+              tmp.workRate = '0';
+              tmp.workRateMultiply = '0';
+              tmp.otTimes = otTime || 0;
+              tmp.workRateOT = element.specialtSalaryOT || '0';
+              tmp.workRateOTMultiply = '0';
+              tmp.workType = 'cash_holiday';
+              
+              // ไม่บวกค่าเงินเดือนสำหรับ cash_holiday
+              sumWorkHour += parseFloat(allTime) || 0;
+              sumWorkRate += 0; // workRate = 0 สำหรับ cash_holiday
+              sumWorkHourOt += parseFloat(otTime) || 0;
+              sumWorkRateOt += parseFloat(element.specialtSalaryOT) || 0;
+              
+            } else if (element.specialtSalary !== '' || element.specialtSalaryOT !== '') {
               tmp.workRate = element.specialtSalary || '';
               tmp.workRateMultiply = Number(element.specialtSalary || 0) / Number(tmpWP.data.workRate || 0);
 
@@ -608,7 +623,21 @@ const         wpDataCalculator1 = await {
             tmp.otTimes = `${hours1}.${scaledMinutes1}` || 0;
 
 
-            if (element.specialtSalary !== '' || element.specialtSalaryOT !== '') {
+            // ตรวจสอบเงื่อนไขพิเศษสำหรับ shift: "cash_holiday"
+            if (element.shift === 'cash_holiday') {
+              tmp.workRate = '0';
+              tmp.workRateMultiply = '0';
+              tmp.workRateOT = element.specialtSalaryOT || '0';
+              tmp.workRateOTMultiply = '0';
+              tmp.workType = 'cash_holiday';
+              
+              // ไม่บวกค่าเงินเดือนสำหรับ cash_holiday
+              sumWorkHour += parseFloat(allTime) || 0;
+              sumWorkRate += 0; // workRate = 0 สำหรับ cash_holiday
+              sumWorkHourOt += parseFloat(otTime) || 0;
+              sumWorkRateOt += parseFloat(element.specialtSalaryOT) || 0;
+              
+            } else if (element.specialtSalary !== '' || element.specialtSalaryOT !== '') {
               // console.log('special rate')
               tmp.workRate = element.specialtSalary || '';
               tmp.workRateMultiply = Number(element.specialtSalary || 0) / Number(wpResponse1.data.workRate || 0);
@@ -957,7 +986,21 @@ if((month == upSalary_month ) && (year == upSalary_year ) ) {
             tmp.otTimes = `${hours1}.${scaledMinutes1}` || 0;
 
 
-            if (element.specialtSalary !== '' || element.specialtSalaryOT !== '') {
+            // ตรวจสอบเงื่อนไขพิเศษสำหรับ shift: "cash_holiday"
+            if (element.shift === 'cash_holiday') {
+              tmp.workRate = '0';
+              tmp.workRateMultiply = '0';
+              tmp.workRateOT = element.specialtSalaryOT || '0';
+              tmp.workRateOTMultiply = '0';
+              tmp.workType = 'cash_holiday';
+              
+              // ไม่บวกค่าเงินเดือนสำหรับ cash_holiday
+              sumWorkHour += parseFloat(allTime) || 0;
+              sumWorkRate += 0; // workRate = 0 สำหรับ cash_holiday
+              sumWorkHourOt += parseFloat(otTime) || 0;
+              sumWorkRateOt += parseFloat(element.specialtSalaryOT) || 0;
+              
+            } else if (element.specialtSalary !== '' || element.specialtSalaryOT !== '') {
               tmp.workRate = element.specialtSalary || '';
               tmp.workRateMultiply = Number(element.specialtSalary || 0) / Number(tmpWP.data.workRate || 0);
 
