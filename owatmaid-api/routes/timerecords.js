@@ -293,6 +293,70 @@ router.get('/listdelete', async (req, res) => {
   }
 });
 
+// Delete timerecord by ID
+router.delete('/deletetimerecordbyid/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Validate if ID is a valid MongoDB ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid ID format. Please provide a valid MongoDB ObjectId.'
+      });
+    }
+
+    // Try to find and delete from timerecordEmployee first
+    let deletedRecord = await timerecordEmployee.findByIdAndDelete(id);
+    let deletedFrom = 'timerecordEmployee';
+
+    // If not found in timerecordEmployee, try workplaceTimerecord
+    if (!deletedRecord) {
+      deletedRecord = await workplaceTimerecord.findByIdAndDelete(id);
+      deletedFrom = 'workplaceTimerecord';
+    }
+
+    // If not found in workplaceTimerecord, try workplaceTimerecords
+    if (!deletedRecord) {
+      deletedRecord = await workplaceTimerecords.findByIdAndDelete(id);
+      deletedFrom = 'workplaceTimerecords';
+    }
+
+    // If still not found, return error
+    if (!deletedRecord) {
+      return res.status(404).json({
+        success: false,
+        message: `Timerecord with ID ${id} not found in any collection.`
+      });
+    }
+
+    // Log the deletion
+    console.log(`✅ Deleted timerecord ${id} from ${deletedFrom} collection`);
+
+    // Return success response
+    res.status(200).json({
+      success: true,
+      message: `Timerecord deleted successfully from ${deletedFrom} collection.`,
+      deletedRecord: {
+        _id: deletedRecord._id,
+        employeeId: deletedRecord.employeeId || deletedRecord.workplaceId,
+        employeeName: deletedRecord.employeeName || deletedRecord.workplaceName,
+        month: deletedRecord.month || 'N/A',
+        year: deletedRecord.year || deletedRecord.timerecordId,
+        deletedFrom: deletedFrom
+      }
+    });
+
+  } catch (err) {
+    console.error('❌ Error deleting timerecord:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Internal Server Error',
+      error: err.message
+    });
+  }
+});
+
 
 
 // Get  workplace time record by WorkplaceTimeRecord Id

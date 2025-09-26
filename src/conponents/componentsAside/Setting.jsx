@@ -1148,6 +1148,103 @@ const handleRemovePublicHoliday = async (holidayToRemove) => {
   }
   // console.log("EmployeeListResult", employeeListResult);
 
+  // Function to send workRate to employees
+  const sendWorkRate = async () => {
+    try {
+      // Show loading alert
+      Swal.fire({
+        title: 'กำลังส่งค่าแรง...',
+        text: 'กรุณารอสักครู่',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
+      // Get all employees from the current workplace
+      const searchData = {
+        employeeId: "",
+        name: "",
+        idCard: "",
+        workPlace: workplaceId,
+      };
+
+      const employeeResponse = await axios.post(endpoint + "/employee/search", searchData);
+      const employees = employeeResponse.data.employees;
+
+      if (!employees || employees.length === 0) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'ไม่พบพนักงาน',
+          text: 'ไม่พบพนักงานในหน่วยงานนี้'
+        });
+        return;
+      }
+
+      // Filter employees with jobtype "รายวัน" and salary < workRate
+      const targetEmployees = employees.filter(employee => {
+        const currentSalary = parseFloat(employee.salary || '0');
+        const newWorkRate = parseFloat(workRate || '0');
+        return employee.jobtype === "รายวัน" && currentSalary < newWorkRate;
+      });
+
+      if (targetEmployees.length === 0) {
+        Swal.fire({
+          icon: 'info',
+          title: 'ไม่มีการเปลี่ยนแปลง',
+          text: 'ไม่พบพนักงานรายวันที่มีค่าแรงต่ำกว่าค่าแรงที่ต้องการส่ง'
+        });
+        return;
+      }
+
+      // Prepare updates
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const employee of targetEmployees) {
+        try {
+          // Update employee salary
+          const updateData = {
+            employeeId: employee.employeeId,
+            salary: workRate
+          };
+
+          await axios.post(endpoint + "/employee/updateemployees", updateData);
+          successCount++;
+        } catch (error) {
+          console.error(`Error updating employee ${employee.employeeId}:`, error);
+          errorCount++;
+        }
+      }
+
+      // Show result
+      if (errorCount === 0) {
+        Swal.fire({
+          icon: 'success',
+          title: 'ส่งค่าแรงสำเร็จ',
+          text: `อัพเดตค่าแรงของพนักงาน ${successCount} คน เป็น ${parseFloat(workRate).toLocaleString()} บาท`
+        });
+      } else {
+        Swal.fire({
+          icon: 'warning',
+          title: 'ส่งค่าแรงบางส่วน',
+          html: `
+            <p>สำเร็จ: ${successCount} คน</p>
+            <p>ไม่สำเร็จ: ${errorCount} คน</p>
+          `
+        });
+      }
+
+    } catch (error) {
+      console.error('Error sending work rate:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: 'ไม่สามารถส่งค่าแรงได้ กรุณาลองใหม่อีกครั้ง'
+      });
+    }
+  };
+
   //set data to form
   function handleClickResult(workplace) {
     setNewWorkplace(false);
@@ -2862,15 +2959,46 @@ if (newWorkplace) {
                       </div>
                     </div>
                  </div>
+                 <label>ส่งค่าแรงไปยังพนักงานในหน่วยงาน</label>
+                    <div className="row">
+                       <div className="col-md-3">
+                           <input
+                          type="text"
+                          class="form-control"
+                          id="newWorkRate"
+                          placeholder="บาท"
+                          value={parseFloat(workRate || '0')}
+                          readOnly
+                        />
+                        </div>
+                        <div className="col-md-3">
+                          
+                          <button className="btn btn-primary" 
+                          onClick={() => sendWorkRate()}> <i className="fas fa-paper-plane"></i>  ส่งค่าแรง
+                           
+                          </button>
+                        </div>
+                    </div>
+                  <div>
+                    
+                  </div>
 
-<div class="col-md-6">
+<div class="col-md-4">
 
 <div>
-                    <label>วันเริ่มต้นคำนวณ:</label>
 
-                    <div>
+
+                      
+                    {/* <label>วันเริ่มต้นคำนวณ:</label> */}
+                    
+
+                    <div class="form-control-static">
+                      
                       <div className="row">
-                        <div className="col-md-3">
+                        
+                       
+                        
+                        {/* <div className="col-md-3">
                           <select
                             className="form-control"
                             value={workRateDayChange}
@@ -2885,8 +3013,8 @@ if (newWorkplace) {
                               )
                             )}
                           </select>
-                        </div>
-                        <div className="col-md-3">
+                        </div> */}
+                        {/* <div className="col-md-3">
                           <select
                             className="form-control"
                             value={workRateMonthChange}
@@ -2901,9 +3029,9 @@ if (newWorkplace) {
                               )
                             )}
                           </select>
-                        </div>
+                        </div> */}
 
-                        <div className="col-md-3">
+                        {/* <div className="col-md-3">
                           <select
                             className="form-control"
                             value={workRateYearChange}
@@ -2919,7 +3047,7 @@ if (newWorkplace) {
                               </option>
                             ))}
                           </select>
-                        </div>
+                        </div> */}
                       </div></div>
                       </div>
                       </div>

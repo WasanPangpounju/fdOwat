@@ -2633,8 +2633,8 @@ const handleSave_back = (index, subIndex, idx) => {
               <th>ค่าจ้าง</th>
               <th>OT หลัง</th>
               <th>ค่าจ้าง</th>
-              <th>เงินเพิ่ม</th>
-              <th>แก้ไข</th>
+              {/* <th>เงินเพิ่ม</th>  */}
+              {/* <th>แก้ไข</th>  */}
             </tr>
           </thead>
           <tbody className="">
@@ -2770,7 +2770,8 @@ const handleSave_back = (index, subIndex, idx) => {
                           )}
 
                           {/* เงินเพิ่ม (Show sum or detailed list) */}
-                          <th className="fw-normal">
+                          {/* ช่องนี้แสดงรายการเงินเพิ่มรายวัน สามารถแก้ไขเพิ่ม/ลบรายการได้ */}
+                          {/* <th className="fw-normal">
                           {matchedRecord.shift === 'cash_holiday' ? (
                             <span>รวมแล้ว</span>
                           ) : (
@@ -2862,10 +2863,11 @@ const handleSave_back = (index, subIndex, idx) => {
                               })()
                             )
                           )}
-                          </th>
+                          </th> */}
 
                           {/* แก้ไข / บันทึก */}
-                          <th className="fw-normal">
+                          {/* ปุ่มสำหรับเข้าสู่โหมดแก้ไข (ดินสอ) หรือบันทึกการแก้ไข (✅) */}
+                          {/* <th className="fw-normal">
                             {isEditing ? (
                               <>
                                 <button className="btn btn-success btn-sm"  style={{ padding: "0.3rem", width: "3rem" }} onClick={() => handleSave(index, subIndex, idx)}>
@@ -2895,7 +2897,7 @@ const handleSave_back = (index, subIndex, idx) => {
                                <i className="bi bi-pencil-square"></i>
                               </button>
                             )}
-                          </th>
+                          </th> */}
                         </tr>
                       );
                     })
@@ -2903,7 +2905,7 @@ const handleSave_back = (index, subIndex, idx) => {
                     <tr key={`${index}-${subIndex}-no-record`}>
                       <th className="fw-normal">{day}</th>
                       
-                      {/* แสดงฟิลด์ที่สามารถแก้ไขได้เลย */}
+                  
                       <th className="fw-normal">
                         <input
                           type="text"
