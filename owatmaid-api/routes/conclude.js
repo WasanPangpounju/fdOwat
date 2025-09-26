@@ -3079,8 +3079,9 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
           } else {
             cashWork = await (record.totalTime || 0) * (parseFloat(salary || '0') * parseFloat(dataRate?.dayoffRateHour || '0')) || 0;
             addSalaryDaily = [];
-            cashBeforeOtMul = dataRate?.dayoffRateOT || 0;
-            cashOtMul = dataRate?.dayoffRateOT || 0;
+            cashBeforeOtMul = parseFloat(dataRate?.dayoffRateOT || 1.5); // แปลงเป็นตัวเลขก่อน
+            cashOtMul = parseFloat(dataRate?.dayoffRateOT || 1.5); // แปลงเป็นตัวเลขก่อน
+            console.log(`🎯 [DAYOFF OT] dayType=dayOff, shift="${record.shift}": dayoffRateOT="${dataRate?.dayoffRateOT}" → cashOtMul=${cashOtMul}`);
           }
           dayType = await dataRate?.dayType || 0;
           cashWorkMul = dataRate?.dayoffRateHour || 0;
@@ -3116,8 +3117,9 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
           } else {
             cashWork = await (parseFloat(record.totalTime || 0) * parseFloat(salary || 0) * parseFloat(dataRate?.holidayHour || 1)) || 0;
             addSalaryDaily = [];
-            cashBeforeOtMul = dataRate?.holidayOT || 0;
-            cashOtMul = dataRate?.holidayOT || 0;
+            cashBeforeOtMul = parseFloat(dataRate?.holidayOT || 3); // แปลงเป็นตัวเลขก่อน
+            cashOtMul = parseFloat(dataRate?.holidayOT || 3); // แปลงเป็นตัวเลขก่อน
+            console.log(`🎯 [HOLIDAY OT] dayType=stop, shift="${record.shift}": holidayOT="${dataRate?.holidayOT}" → cashOtMul=${cashOtMul}`);
           }
           console.log('totalTime ' + parseFloat(record.totalTime || 0) + ' salary ' + parseFloat(salary || 0) + ' dataRate ' + parseFloat(dataRate?.holidayHour || 1)); 
           
@@ -3188,8 +3190,9 @@ const totalDecimalHour = tmpHour + (tmpMinute / 60); // 1 + 30/60 = 1.5
               console.log(`💵 ${record.shift || 'default'} - ไม่รวม id 1210: ${addSalaryDaily.length} รายการ`);
             }
             
-            cashBeforeOtMul = await dataRate?.workRateOT || 0;
-            cashOtMul = await dataRate?.workRateOT || 0;
+            cashBeforeOtMul = parseFloat(dataRate?.workRateOT || 1.5); // แปลงเป็นตัวเลขก่อน
+            cashOtMul = parseFloat(dataRate?.workRateOT || 1.5); // แปลงเป็นตัวเลขก่อน
+            console.log(`🎯 [WORK OT] dayType=work, shift="${record.shift}": workRateOT="${dataRate?.workRateOT}" → cashOtMul=${cashOtMul}`);
           }
           dayType = await dataRate?.dayType || '';
           cashWorkMul = 1; // ตัวคูณค่าแรงปกติเป็น 1
