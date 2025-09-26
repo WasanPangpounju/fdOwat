@@ -2502,12 +2502,15 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
     });
     
     if (recordForDay) {
-      // ตรวจสอบว่ามีการทำงานหรือไม่จาก totalTime
+      // ตรวจสอบว่ามีการทำงานหรือไม่จาก totalTime และ shift ที่ถูกต้อง
       const hasWorked = recordForDay.totalTime && 
                        recordForDay.totalTime.trim() !== '' && 
                        parseFloat(recordForDay.totalTime) > 0;
       
-      if (hasWorked) {
+      // เพิ่มการกรอง shift: นับเฉพาะ morning_shift และ night_shift
+      const isValidShift = recordForDay.shift === 'morning_shift' || recordForDay.shift === 'night_shift';
+      
+      if (hasWorked && isValidShift) {
         workedOnStopDays++;
         attendanceDetails.push({
           date: `${stopDay.date}/${stopDay.month}/${stopDay.year}`,
@@ -2518,7 +2521,19 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
           dayType: recordForDay.dayType || 'ไม่ระบุ',
           shift: recordForDay.shift || 'ไม่ระบุ'
         });
-        console.log(`   ✅ วันที่ ${stopDay.date}/${stopDay.month}/${stopDay.year} (${stopDay.dayName}) - มาทำงาน ${recordForDay.totalTime} ชั่วโมง (shift: ${recordForDay.shift})`);
+        console.log(`   ✅ วันที่ ${stopDay.date}/${stopDay.month}/${stopDay.year} (${stopDay.dayName}) - มาทำงาน ${recordForDay.totalTime} ชั่วโมง (shift: ${recordForDay.shift}) - นับใน customizeDayoff`);
+      } else if (hasWorked && !isValidShift) {
+        // มาทำงานแต่ shift ไม่ใช่ morning_shift หรือ night_shift - ไม่นับใน customizeDayoff
+        attendanceDetails.push({
+          date: `${stopDay.date}/${stopDay.month}/${stopDay.year}`,
+          dayName: stopDay.dayName,
+          status: `มาทำงาน (${recordForDay.shift})`,
+          totalTime: recordForDay.totalTime,
+          otTime: recordForDay.totalOtTime || '0',
+          dayType: recordForDay.dayType || 'ไม่ระบุ',
+          shift: recordForDay.shift || 'ไม่ระบุ'
+        });
+        console.log(`   ⚠️ วันที่ ${stopDay.date}/${stopDay.month}/${stopDay.year} (${stopDay.dayName}) - มาทำงาน ${recordForDay.totalTime} ชั่วโมง (shift: ${recordForDay.shift}) - ไม่นับใน customizeDayoff (shift ไม่ถูกต้อง)`);
       } else {
         notWorkedOnStopDays++;
         attendanceDetails.push({
@@ -2778,6 +2793,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
       // กำหนดตัวแปรสำหรับเก็บค่าต่างๆ
       let cashBeforeOt = 0;
       let cashWork = 0;
+      let totalTime = 0;
       let cashOt = 0;
       let cashBeforeOtMul = 0;
       let cashWorkMul = 0;
@@ -2841,7 +2857,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
         // ตรวจสอบเงื่อนไขพิเศษสำหรับ shift: "cash_holiday"
         if (record.shift === 'cash_holiday') {
           cashWork = 0; // ตั้งค่า cashWork เป็น 0 สำหรับ cash_holiday
-          totalTime=0;
+          totalTime = 0; // ตั้งค่า totalTime เป็น 0 สำหรับ cash_holiday
           addSalaryDaily = []; // ไม่เพิ่มเงินพิเศษรายวันสำหรับ cash_holiday
           cashOt = 0; // ไม่คิดค่า OT สำหรับ cash_holiday
           cashBeforeOt = 0; // ไม่คิดค่า OT ก่อนเวลาสำหรับ cash_holiday
@@ -2897,7 +2913,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
         // ตรวจสอบเงื่อนไขพิเศษสำหรับ shift: "cash_holiday"
         if (record.shift === 'cash_holiday') {
           cashWork = 0; // ตั้งค่า cashWork เป็น 0 สำหรับ cash_holiday
-          totalTime=0;
+          totalTime = 0; // ตั้งค่า totalTime เป็น 0 สำหรับ cash_holiday
           addSalaryDaily = []; // ไม่เพิ่มเงินพิเศษรายวันสำหรับ cash_holiday
           cashOt = 0; // ไม่คิดค่า OT สำหรับ cash_holiday
           cashBeforeOt = 0; // ไม่คิดค่า OT ก่อนเวลาสำหรับ cash_holiday
@@ -3040,6 +3056,7 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
 
       let cashBeforeOt = 0;
       let cashWork = 0;
+      let totalTime = 0;
       let cashOt = 0;
       let cashBeforeOtMul = 0;
       let cashWorkMul = 0;
