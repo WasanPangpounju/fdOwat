@@ -7664,6 +7664,14 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
   // 🔧 ใช้ข้อมูลจาก welfareAddSalaryList (ที่อัปเดตแล้ว) แทนการรวมจาก addSalaryDaily
   const finalAddSalaryList = welfareAddSalaryList && welfareAddSalaryList.length > 0 ? welfareAddSalaryList : addSalaryList;
   console.log(`🔍 ใช้ข้อมูลจาก: ${welfareAddSalaryList && welfareAddSalaryList.length > 0 ? 'welfareAddSalaryList (อัปเดตแล้ว)' : 'addSalaryList (รวมจาก daily)'}`);
+  console.log(`🔍 จำนวนรายการสุดท้าย: ${finalAddSalaryList.length} รายการ`);
+  
+  // แสดงรายการทั้งหมดก่อน
+  console.log(`🔍 === รายการเงินพิเศษทั้งหมด ===`);
+  finalAddSalaryList.forEach((item, index) => {
+    console.log(`🔍 [${index + 1}] ID: ${item.id}, ชื่อ: ${item.name}, จำนวน: ${item.SpSalary} บาท, ประเภท: ${item.roundOfSalary}`);
+  });
+  console.log(`🔍 ========================================`);
   
   for (const element of finalAddSalaryList) {
     console.log(`\n🔍 ตรวจสอบรายการ:`);
@@ -7974,7 +7982,7 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
 
   // 🎯 คำนวณ employeeCompensation (เงินสงเคราะห์ลูกจ้าง) ด้วยหลักการใหม่
   let employeeCompensation = 0;
-  
+
   // ตรวจสอบว่าใช้โครงสร้างใหม่หรือเก่า
   if (employeeCompensationRate1_20 > 0 || employeeCompensationRate21_30_31 > 0) {
     // หลักการใหม่: คำนวณแยกตามช่วงวันที่
