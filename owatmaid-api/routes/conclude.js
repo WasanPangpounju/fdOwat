@@ -2441,8 +2441,7 @@ console.log(JSON.stringify(weekendData ))
       if (weekendData.dayOffOnly && weekendData.dayOffOnly.length > 0) {
         console.log(`📅 วันใน dayOffOnly: ${JSON.stringify(weekendData.dayOffOnly)}`);
 
-        
-        if (weekendData.dayoffWorkplace.includes(dateStr)) {
+        if (weekendData.dayOffOnly.includes(dateStr)) {
           console.log(`✅ พบวันที่ ${dateStr} ใน dayOffOnly -> กำหนด dayType = stop`);
           dataCal.dayType = 'stop';
           return dataCal;

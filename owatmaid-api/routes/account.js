@@ -28,6 +28,157 @@ const getDayNumberFromName = (dayName) => {
   return daysMap[dayName] !== undefined ? daysMap[dayName] : -1;
 };
 
+// ฟังก์ชันตรวจสอบว่าวันที่ระบุตรงกับช่วงวันหยุดหรือไม่
+const isDateInStopRange = (dayOfWeek, workTimeDay) => {
+  if (!workTimeDay || workTimeDay.length === 0) return false;
+  
+  return workTimeDay.some(schedule => {
+    if (schedule.workOrStop !== 'stop') return false;
+    
+    const startDayNum = getDayNumberFromName(schedule.startDay);
+    const endDayNum = getDayNumberFromName(schedule.endDay);
+    
+    if (startDayNum === -1 || endDayNum === -1) return false;
+    
+    // ตรวจสอบช่วงวัน
+    if (startDayNum <= endDayNum) {
+      return dayOfWeek >= startDayNum && dayOfWeek <= endDayNum;
+    } else {
+      // กรณีข้ามสัปดาห์ เช่น ศุกร์ - อาทิตย์
+      return dayOfWeek >= startDayNum || dayOfWeek <= endDayNum;
+    }
+  });
+};
+
+// ฟังก์ชันสร้าง personalDayOff สำหรับหน่วยงานปกติ
+const createPersonalDayOffForRegularWorkplace = async (employeeId, employee_record, month, year) => {
+  console.log(`\n📋 === สร้าง personalDayOff สำหรับหน่วยงานปกติ ===`);
+  console.log(`👤 EmployeeId: ${employeeId}`);
+  console.log(`📅 Month: ${month}, Year: ${year}`);
+  
+  try {
+    // ดึงข้อมูลพนักงานและหน่วยงาน
+    const employeeResponse = await axios.get(sURL + '/employee/' + employeeId);
+    if (!employeeResponse || !employeeResponse.data) {
+      console.log(`❌ ไม่พบข้อมูลพนักงาน ${employeeId}`);
+      return [];
+    }
+    
+    const workplaceId = employeeResponse.data.workplace;
+    console.log(`🏢 WorkplaceId: ${workplaceId}`);
+    
+    // ดึงข้อมูลหน่วยงาน
+    const workplaceResponse = await axios.get(sURL + '/workplace/' + workplaceId);
+    if (!workplaceResponse || !workplaceResponse.data) {
+      console.log(`❌ ไม่พบข้อมูลหน่วยงาน ${workplaceId}`);
+      return [];
+    }
+    
+    const workplace = workplaceResponse.data;
+    const workTimeDay = workplace.workTimeDay || [];
+    
+    console.log(`📋 จำนวนกฎการทำงาน: ${workTimeDay.length} รายการ`);
+    
+    // หาวันหยุดตามกฎของหน่วยงาน
+    const stopDays = [];
+    workTimeDay.forEach((schedule, index) => {
+      console.log(`📌 กฎที่ ${index + 1}: ${schedule.startDay} ถึง ${schedule.endDay} (${schedule.workOrStop})`);
+      
+      if (schedule.workOrStop === 'stop') {
+        stopDays.push({
+          startDay: schedule.startDay,
+          endDay: schedule.endDay,
+          startDayNum: getDayNumberFromName(schedule.startDay),
+          endDayNum: getDayNumberFromName(schedule.endDay)
+        });
+      }
+    });
+    
+    if (stopDays.length === 0) {
+      console.log(`ℹ️ ไม่มีกฎวันหยุดที่กำหนด`);
+      return [];
+    }
+    
+    console.log(`🚫 วันหยุดที่กำหนด: ${stopDays.length} ช่วง`);
+    
+    // นับจำนวนวันหยุดในรอบเงินเดือน (21 เดือนก่อน - 20 เดือนปัจจุบัน)
+    const monthInt = parseInt(month);
+    const yearInt = parseInt(year);
+    const personalDayOffList = [];
+    
+    // ตรวจสอบวันที่ 21-31 ของเดือนก่อนหน้า
+    let prevMonth = monthInt - 1;
+    let prevYear = yearInt;
+    if (prevMonth === 0) {
+      prevMonth = 12;
+      prevYear = yearInt - 1;
+    }
+    
+    const lastDayOfPrevMonth = new Date(prevYear, prevMonth, 0).getDate();
+    
+    // ตรวจสอบเดือนก่อน (21-สิ้นเดือน)
+    for (let day = 21; day <= lastDayOfPrevMonth; day++) {
+      const date = new Date(prevYear, prevMonth - 1, day);
+      const dayOfWeek = date.getDay();
+      const dayName = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์', 'เสาร์'][dayOfWeek];
+      
+      if (isDateInStopRange(dayOfWeek, workTimeDay)) {
+        // ตรวจสอบว่าพนักงานมาทำงานในวันหยุดหรือไม่
+        const workRecord = employee_record.find(record => {
+          const recordDate = parseInt(record.date);
+          return recordDate === day && recordDate >= 21; // วันที่ 21+ เป็นของเดือนก่อน
+        });
+        
+        // ถ้าไม่มาทำงานในวันหยุด ให้เพิ่มเข้า personalDayOff
+        if (!workRecord || !workRecord.totalTime || parseFloat(workRecord.totalTime) === 0) {
+          personalDayOffList.push({
+            date: day,
+            month: prevMonth,
+            year: prevYear,
+            dayName: dayName,
+            reason: 'วันหยุดตามกำหนด'
+          });
+          console.log(`✅ เพิ่ม personalDayOff: วันที่ ${day}/${prevMonth}/${prevYear} (${dayName})`);
+        }
+      }
+    }
+    
+    // ตรวจสอบเดือนปัจจุบัน (1-20)
+    for (let day = 1; day <= 20; day++) {
+      const date = new Date(yearInt, monthInt - 1, day);
+      const dayOfWeek = date.getDay();
+      const dayName = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์', 'เสาร์'][dayOfWeek];
+      
+      if (isDateInStopRange(dayOfWeek, workTimeDay)) {
+        // ตรวจสอบว่าพนักงานมาทำงานในวันหยุดหรือไม่
+        const workRecord = employee_record.find(record => {
+          const recordDate = parseInt(record.date);
+          return recordDate === day && recordDate <= 20; // วันที่ 1-20 เป็นของเดือนปัจจุบัน
+        });
+        
+        // ถ้าไม่มาทำงานในวันหยุด ให้เพิ่มเข้า personalDayOff
+        if (!workRecord || !workRecord.totalTime || parseFloat(workRecord.totalTime) === 0) {
+          personalDayOffList.push({
+            date: day,
+            month: monthInt,
+            year: yearInt,
+            dayName: dayName,
+            reason: 'วันหยุดตามกำหนด'
+          });
+          console.log(`✅ เพิ่ม personalDayOff: วันที่ ${day}/${monthInt}/${yearInt} (${dayName})`);
+        }
+      }
+    }
+    
+    console.log(`📊 สรุป personalDayOff ที่สร้าง: ${personalDayOffList.length} วัน`);
+    return personalDayOffList;
+    
+  } catch (error) {
+    console.error(`❌ เกิดข้อผิดพลาดในการสร้าง personalDayOff:`, error);
+    return [];
+  }
+};
+
 var express = require('express');
 var router = express.Router();
 const cors = require('cors');
@@ -4540,6 +4691,30 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
               console.log(`  - stopDaysList: ${record.stopDaysList ? 'มี' : 'ไม่มี'}`);
       
               try {
+                // สร้าง personalDayOff สำหรับหน่วยงานปกติ
+                if (!record.personalDayOff || record.personalDayOff.length === 0) {
+                  console.log(`🔄 สร้าง personalDayOff สำหรับหน่วยงานปกติ employeeId=${record.employeeId}`);
+                  const personalDayOff = await createPersonalDayOffForRegularWorkplace(
+                    record.employeeId, 
+                    record.employee_record, 
+                    record.month, 
+                    record.year
+                  );
+                  
+                  if (personalDayOff && personalDayOff.length > 0) {
+                    record.personalDayOff = personalDayOff;
+                    record.stopDaysList = personalDayOff; // ความเข้ากันได้ย้อนหลัง
+                    
+                    // บันทึกลง database
+                    await timerecordEmployee.findByIdAndUpdate(record._id, {
+                      personalDayOff: personalDayOff,
+                      stopDaysList: personalDayOff
+                    });
+                    
+                    console.log(`✅ สร้าง personalDayOff สำเร็จ: ${personalDayOff.length} วัน`);
+                  }
+                }
+                
                 const apiRes = await axios.post(sURL + '/conclude/searchtimerecordemployee', {
                   employeeId: record.employeeId,
                   month: record.month,
