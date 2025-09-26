@@ -170,6 +170,38 @@ const createPersonalDayOffForRegularWorkplace = async (employeeId, employee_reco
       }
     }
     
+    // ตรวจสอบเดือนปัจจุบัน (21-31) - ส่วนที่สำคัญที่ขาดหายไป!
+    const lastDayOfCurrentMonth = new Date(yearInt, monthInt, 0).getDate();
+    for (let day = 21; day <= lastDayOfCurrentMonth; day++) {
+      const date = new Date(yearInt, monthInt - 1, day);
+      const dayOfWeek = date.getDay();
+      const dayName = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์', 'เสาร์'][dayOfWeek];
+      
+      if (isDateInStopRange(dayOfWeek, workTimeDay)) {
+        // ตรวจสอบว่าพนักงานมาทำงานในวันหยุดหรือไม่
+        const workRecord = employee_record.find(record => {
+          const recordDate = parseInt(record.date);
+          return recordDate === day && recordDate >= 21; // วันที่ 21+ เป็นของเดือนปัจจุบัน
+        });
+        
+        // ถ้าไม่มาทำงานในวันหยุด ให้เพิ่มเข้า personalDayOff
+        if (!workRecord || !workRecord.totalTime || parseFloat(workRecord.totalTime) === 0) {
+          personalDayOffList.push({
+            date: day,
+            month: monthInt,
+            year: yearInt,
+            dayName: dayName,
+            reason: 'วันหยุดตามกำหนด'
+          });
+          console.log(`✅ เพิ่ม personalDayOff: วันที่ ${day}/${monthInt}/${yearInt} (${dayName})`);
+        } else {
+          // ถ้าพนักงานมาทำงานในวันหยุด ให้อัปเดต dayType เป็น "stop"
+          console.log(`🔄 พนักงานมาทำงานในวันหยุด วันที่ ${day} - อัปเดต dayType เป็น "stop"`);
+          workRecord.dayType = "stop";
+        }
+      }
+    }
+    
     console.log(`📊 สรุป personalDayOff ที่สร้าง: ${personalDayOffList.length} วัน`);
     return personalDayOffList;
     
@@ -4705,13 +4737,14 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
                     record.personalDayOff = personalDayOff;
                     record.stopDaysList = personalDayOff; // ความเข้ากันได้ย้อนหลัง
                     
-                    // บันทึกลง database
+                    // บันทึกลง database รวมทั้ง employee_record ที่อาจมีการอัปเดต dayType
                     await timerecordEmployee.findByIdAndUpdate(record._id, {
                       personalDayOff: personalDayOff,
-                      stopDaysList: personalDayOff
+                      stopDaysList: personalDayOff,
+                      employee_record: record.employee_record // อัปเดต employee_record ด้วย
                     });
                     
-                    console.log(`✅ สร้าง personalDayOff สำเร็จ: ${personalDayOff.length} วัน`);
+                    console.log(`✅ สร้าง personalDayOff สำเร็จ: ${personalDayOff.length} วัน และอัปเดต employee_record`);
                   }
                 }
                 
@@ -4735,11 +4768,61 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
                     record.personalDayOff = concludeData.personalDayOff;
                     record.stopDaysList = concludeData.personalDayOff; // ความเข้ากันได้ย้อนหลัง
                     console.log(`🟢 ได้ personalDayOff สำหรับ ${record.employeeId}: ${record.personalDayOff.length} วัน`);
+                    
+                    // อัปเดต dayType ใน employee_record ตาม personalDayOff 
+                    if (record.personalDayOff && Array.isArray(record.personalDayOff) && record.personalDayOff.length > 0) {
+                      record.personalDayOff.forEach(dayOffItem => {
+                        if (record.employee_record && Array.isArray(record.employee_record)) {
+                          record.employee_record.forEach(workRecord => {
+                            const recordDate = parseInt(workRecord.date);
+                            const dayOffDate = parseInt(dayOffItem.date);
+                            
+                            // เช็คว่าวันที่ตรงกันหรือไม่
+                            const recordMonth = parseInt(record.month);
+                            const dayOffMonth = parseInt(dayOffItem.month);
+                            
+                            let isMatchingDate = false;
+                            
+                            if (dayOffDate <= 20) {
+                              // วันที่ 1-20 ของเดือนปัจจุบัน
+                              isMatchingDate = (recordDate === dayOffDate && dayOffMonth === recordMonth);
+                            } else {
+                              // วันที่ 21+ สามารถเป็นของเดือนก่อนหรือเดือนปัจจุบัน
+                              isMatchingDate = (recordDate === dayOffDate && 
+                                              (dayOffMonth === recordMonth || dayOffMonth === recordMonth - 1));
+                            }
+                            
+                            if (isMatchingDate) {
+                              console.log(`🔄 [CONCLUDE] อัปเดต dayType จาก "${workRecord.dayType}" เป็น "stop" สำหรับวันที่ ${recordDate}`);
+                              workRecord.dayType = "stop";
+                            }
+                          });
+                        }
+                      });
+                    }
+                    
                   } else if (concludeData.stopDaysList) {
                     // fallback ถ้าไม่มี personalDayOff แต่มี stopDaysList
                     record.personalDayOff = concludeData.stopDaysList;
                     record.stopDaysList = concludeData.stopDaysList;
                     console.log(`🟢 ได้ stopDaysList สำหรับ ${record.employeeId}: ${record.stopDaysList.length} วัน`);
+                    
+                    // อัปเดต dayType ตาม stopDaysList
+                    if (record.stopDaysList && Array.isArray(record.stopDaysList) && record.stopDaysList.length > 0) {
+                      record.stopDaysList.forEach(dayOffItem => {
+                        if (record.employee_record && Array.isArray(record.employee_record)) {
+                          record.employee_record.forEach(workRecord => {
+                            const recordDate = parseInt(workRecord.date);
+                            const dayOffDate = parseInt(dayOffItem.date);
+                            
+                            if (recordDate === dayOffDate) {
+                              console.log(`🔄 [STOPLIST] อัปเดต dayType จาก "${workRecord.dayType}" เป็น "stop" สำหรับวันที่ ${recordDate}`);
+                              workRecord.dayType = "stop";
+                            }
+                          });
+                        }
+                      });
+                    }
                   }
                   if (concludeData.cashcustomizeDayoff) {
                     record.cashcustomizeDayoff = concludeData.cashcustomizeDayoff;
