@@ -6490,6 +6490,7 @@ try {
           console.error(`❌ เกิดข้อผิดพลาดในการตรวจสอบวันหยุดที่กำหนดเอง:`, error.message);
         }
         if (record?.dayType === 'stop') {
+          console.log(`🔍 DEBUG: วันที่ ${record.date} - dayType=stop, shift=${record.shift}, cashOtMul=${record.cashOtMul}, holidayOT=${holidayOT}`);
           console.log(record?.dayType);
           dayOffCount += 1;
           
@@ -6501,29 +6502,34 @@ try {
             record.cashOt = "0";
             record.cashOtMul = "0";
             record.totalOtTime = "0";
-            record.cashOtMul = "0";
             record.beforeTotalOtTime = "0";
             record.totalTime = "0";
             console.log(`   - totalTime ปรับเป็น: ${record.totalTime}, cashOt ปรับเป็น: ${record.totalTime}, cashOtMul ปรับเป็น: ${record.cashOtMul}`);
-           
- 
-
-          }
-          
-          // เก็บค่าเดิมก่อนที่จะเปลี่ยนแปลง
-          const originalCashOtMul = record.cashOtMul;
-          const originalCashWorkMul = record.cashWorkMul;
-          
-          if (holidayOT === "1.5") {
-            if (record.cashOtMul === "3") {
-              console.log(`🔄 ปรับ cashOtMul จาก "3" เป็น "1.5" สำหรับวันที่ ${record.date} (dayType=stop)`);
-              console.log(`   - cashOt ที่จะถูกโอนไปยัง multiplier 1.5: ${record.cashOt} บาท`);
-              record.cashOtMul = "1.5";
-            }
-            if (record.cashWorkMul === "3") {
-              console.log(`🔄 ปรับ cashWorkMul จาก "3" เป็น "1.5" สำหรับวันที่ ${record.date} (dayType=stop)`);
-              console.log(`   - cashWork ที่จะถูกโอนไปยัง multiplier 1.5: ${record.cashWork} บาท`);
-              record.cashWorkMul = "1.5";
+          } else {
+            // ปรับค่า cashOtMul ตามค่า holidayOT ที่ได้จาก workplace API
+            console.log(`✅ DEBUG: ไม่ใช่ specialt_shift - ตรวจสอบการปรับค่าตาม holidayOT`);
+            console.log(`🎯 holidayOT จาก API: "${holidayOT}"`);
+            
+            if (holidayOT === "1.5") {
+              console.log(`🔄 holidayOT = "1.5" - ปรับ cashOtMul และ cashWorkMul สำหรับวันหยุดนักขัตฤกษ์`);
+              
+              // ปรับ cashOtMul
+              if (record.cashOtMul === "3") {
+                console.log(`🔄 ปรับ cashOtMul จาก "3" เป็น "1.5" สำหรับวันที่ ${record.date} (dayType=stop)`);
+                console.log(`   - cashOt ที่จะใช้ multiplier 1.5: ${record.cashOt} บาท`);
+                record.cashOtMul = "1.5";
+              } else {
+                console.log(`⚠️ cashOtMul = "${record.cashOtMul}" ไม่ใช่ "3" จึงไม่ปรับ`);
+              }
+              
+              // ปรับ cashWorkMul
+              if (record.cashWorkMul === "3") {
+                console.log(`🔄 ปรับ cashWorkMul จาก "3" เป็น "1.5" สำหรับวันที่ ${record.date} (dayType=stop)`);
+                console.log(`   - cashWork ที่จะใช้ multiplier 1.5: ${record.cashWork} บาท`);
+                record.cashWorkMul = "1.5";
+              }
+            } else {
+              console.log(`✅ holidayOT = "${holidayOT}" - คงค่า cashOtMul="${record.cashOtMul}" ตามเดิม`);
             }
           }
           
@@ -7887,6 +7893,7 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
     if (wpId) {
       const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${wpId}`);
       holidayOT = workplaceResponse.data.holidayOT || "3";
+      
       
       console.log(`\n🔍 === ตรวจสอบค่า holidayOT ===`);
       console.log(`🏢 Workplace ID: ${wpId}`);
