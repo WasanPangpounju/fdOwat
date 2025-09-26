@@ -2823,16 +2823,23 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
         // ตรวจสอบเงื่อนไขพิเศษสำหรับ shift: "cash_holiday"
         if (record.shift === 'cash_holiday') {
           cashWork = 0; // ตั้งค่า cashWork เป็น 0 สำหรับ cash_holiday
-          console.log(`🎯 พบ shift: "cash_holiday" - กำหนด cashWork = 0`);
+          addSalaryDaily = []; // ไม่เพิ่มเงินพิเศษรายวันสำหรับ cash_holiday
+          cashOt = 0; // ไม่คิดค่า OT สำหรับ cash_holiday
+          cashBeforeOt = 0; // ไม่คิดค่า OT ก่อนเวลาสำหรับ cash_holiday
+          cashOtMul = 0; // ตั้งตัวคูณ OT เป็น 0 สำหรับ cash_holiday
+          cashBeforeOtMul = 0; // ตั้งตัวคูณ OT ก่อนเวลาเป็น 0 สำหรับ cash_holiday
+          cashWorkMul = 0; // ตั้งตัวคูณค่าแรงเป็น 0 สำหรับ cash_holiday
+          
+          console.log(`🎯 พบ shift: "cash_holiday" - กำหนดทุกค่าเป็น 0`);
         } else {
           // คำนวณค่าแรงปกติแบบวันหยุด
           cashWork = await (record.totalTime || 0) * (parseFloat(salary || '0') * parseFloat(holidayHourRate)) || 0;
+          
+          // กำหนดตัวคูณแบบวันหยุด
+          cashBeforeOtMul = holidayOTRate;
+          cashWorkMul = holidayHourRate;
+          cashOtMul = holidayOTRate;
         }
-        
-        // กำหนดตัวคูณแบบวันหยุด
-        cashBeforeOtMul = holidayOTRate;
-        cashWorkMul = holidayHourRate;
-        cashOtMul = holidayOTRate;
         
         console.log(`💰 คำนวณแบบวันหยุด:`);
         console.log(`   - อัตราค่าแรง: ${cashWorkMul}x`);
@@ -2871,22 +2878,30 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
         // ตรวจสอบเงื่อนไขพิเศษสำหรับ shift: "cash_holiday"
         if (record.shift === 'cash_holiday') {
           cashWork = 0; // ตั้งค่า cashWork เป็น 0 สำหรับ cash_holiday
-          console.log(`🎯 พบ shift: "cash_holiday" - กำหนด cashWork = 0`);
+          addSalaryDaily = []; // ไม่เพิ่มเงินพิเศษรายวันสำหรับ cash_holiday
+          cashOt = 0; // ไม่คิดค่า OT สำหรับ cash_holiday
+          cashBeforeOt = 0; // ไม่คิดค่า OT ก่อนเวลาสำหรับ cash_holiday
+          cashOtMul = 0; // ตั้งตัวคูณ OT เป็น 0 สำหรับ cash_holiday
+          cashBeforeOtMul = 0; // ตั้งตัวคูณ OT ก่อนเวลาเป็น 0 สำหรับ cash_holiday
+          
+          console.log(`🎯 พบ shift: "cash_holiday" - กำหนดทุกค่าเป็น 0`);
         } else {
           // คำนวณค่าแรงปกติ
           cashWork = await (record.totalTime || 0) * parseFloat(salary || 0);
+          
+          // กำหนดตัวคูณ
+          cashBeforeOtMul = dataRate?.workRateOT || 1.5;
+          cashOtMul = dataRate?.workRateOT || 1.5;
         }
         
-        // กำหนดตัวคูณ
-        cashBeforeOtMul = dataRate?.workRateOT || 1.5;
         cashWorkMul = 1;
-        cashOtMul = dataRate?.workRateOT || 1.5;
       }
       
       // *** แก้ไขส่วน addSalaryDaily ***
       // เงินเพิ่มพิเศษรายวัน - คิดทุกวันที่มี totalTime (ไม่ว่า dayType จะเป็นอะไร)
-      if (hasWorked) {
-        // ถ้ามีการทำงาน (totalTime > 0) ให้เพิ่มเงินพิเศษรายวัน
+      // แต่ยกเว้น shift: "cash_holiday"
+      if (hasWorked && record.shift !== 'cash_holiday') {
+        // ถ้ามีการทำงาน (totalTime > 0) และไม่ใช่ cash_holiday ให้เพิ่มเงินพิเศษรายวัน
         addSalaryDaily = [...(employeeProfile[0].addSalary || [])
           .filter(salary => salary.roundOfSalary === "daily")
           .map(salary => ({
@@ -2896,11 +2911,12 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
               salary.SpSalary
           }))
         ];
-        console.log(`💵 เพิ่มเงินพิเศษรายวัน: ${addSalaryDaily.length} รายการ (เพราะมี totalTime)`);
+        console.log(`💵 เพิ่มเงินพิเศษรายวัน: ${addSalaryDaily.length} รายการ (เพราะมี totalTime และไม่ใช่ cash_holiday)`);
       } else {
-        // ถ้าไม่มีการทำงาน ไม่เพิ่มเงินพิเศษรายวัน
+        // ถ้าไม่มีการทำงาน หรือเป็น cash_holiday ไม่เพิ่มเงินพิเศษรายวัน
         addSalaryDaily = [];
-        console.log(`❌ ไม่เพิ่มเงินพิเศษรายวัน (เพราะไม่มี totalTime)`);
+        const reason = record.shift === 'cash_holiday' ? 'เป็น cash_holiday' : 'ไม่มี totalTime';
+        console.log(`❌ ไม่เพิ่มเงินพิเศษรายวัน (เพราะ${reason})`);
       }
 
       // แสดงผลการคำนวณ
@@ -3032,15 +3048,21 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
           // ตรวจสอบเงื่อนไขพิเศษสำหรับ shift: "cash_holiday"
           if (record.shift === 'cash_holiday') {
             cashWork = 0; // ตั้งค่า cashWork เป็น 0 สำหรับ cash_holiday
-            console.log(`🎯 พบ shift: "cash_holiday" - กำหนด cashWork = 0`);
+            addSalaryDaily = []; // ไม่เพิ่มเงินพิเศษรายวันสำหรับ cash_holiday
+            cashOt = 0; // ไม่คิดค่า OT สำหรับ cash_holiday
+            cashBeforeOt = 0; // ไม่คิดค่า OT ก่อนเวลาสำหรับ cash_holiday
+            cashOtMul = 0; // ตั้งตัวคูณ OT เป็น 0 สำหรับ cash_holiday
+            cashBeforeOtMul = 0; // ตั้งตัวคูณ OT ก่อนเวลาเป็น 0 สำหรับ cash_holiday
+            
+            console.log(`🎯 พบ shift: "cash_holiday" - กำหนดทุกค่าเป็น 0`);
           } else {
             cashWork = await (record.totalTime || 0) * (parseFloat(salary || '0') * parseFloat(dataRate?.dayoffRateHour || '0')) || 0;
+            addSalaryDaily = [];
+            cashBeforeOtMul = dataRate?.dayoffRateOT || 0;
+            cashOtMul = dataRate?.dayoffRateOT || 0;
           }
           dayType = await dataRate?.dayType || 0;
-          cashBeforeOtMul = dataRate?.dayoffRateOT || 0;
           cashWorkMul = dataRate?.dayoffRateHour || 0;
-          cashOtMul = dataRate?.dayoffRateOT || 0;
-          addSalaryDaily = [];
         } else if(dataRate?.dayType === 'specialDayOff') {
           // แก้ไขเวลา OT ก่อนทำงานให้คิดจากหน่วยนาที (วันหยุดพิเศษ)
           const beforeTmpHour_special = Math.floor(record.beforeTotalOtTime || 0);
@@ -3063,17 +3085,23 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
           // ตรวจสอบเงื่อนไขพิเศษสำหรับ shift: "cash_holiday"
           if (record.shift === 'cash_holiday') {
             cashWork = 0; // ตั้งค่า cashWork เป็น 0 สำหรับ cash_holiday
-            console.log(`🎯 พบ shift: "cash_holiday" - กำหนด cashWork = 0`);
+            addSalaryDaily = []; // ไม่เพิ่มเงินพิเศษรายวันสำหรับ cash_holiday
+            cashOt = 0; // ไม่คิดค่า OT สำหรับ cash_holiday
+            cashBeforeOt = 0; // ไม่คิดค่า OT ก่อนเวลาสำหรับ cash_holiday
+            cashOtMul = 0; // ตั้งตัวคูณ OT เป็น 0 สำหรับ cash_holiday
+            cashBeforeOtMul = 0; // ตั้งตัวคูณ OT ก่อนเวลาเป็น 0 สำหรับ cash_holiday
+            
+            console.log(`🎯 พบ shift: "cash_holiday" - กำหนดทุกค่าเป็น 0`);
           } else {
             cashWork = await (parseFloat(record.totalTime || 0) * parseFloat(salary || 0) * parseFloat(dataRate?.holidayHour || 1)) || 0;
+            addSalaryDaily = [];
+            cashBeforeOtMul = dataRate?.holidayOT || 0;
+            cashOtMul = dataRate?.holidayOT || 0;
           }
           console.log('totalTime ' + parseFloat(record.totalTime || 0) + ' salary ' + parseFloat(salary || 0) + ' dataRate ' + parseFloat(dataRate?.holidayHour || 1)); 
           
           dayType = await dataRate?.dayType || 0;
-          cashBeforeOtMul = dataRate?.holidayOT || 0;
           cashWorkMul = dataRate?.holidayHour || 0;
-          cashOtMul = dataRate?.holidayOT || 0;
-          addSalaryDaily = [];
         } else if(dataRate?.dayType === "work") {
           // เพิ่มเงื่อนไขสำหรับวันทำงานปกติ (work)
           // แก้ไขเวลา OT ก่อนทำงานให้คิดจากหน่วยนาที (ใช้วิธีเดียวกันกับ cashOt)
@@ -3108,24 +3136,31 @@ const totalDecimalHour = tmpHour + (tmpMinute / 60); // 1 + 30/60 = 1.5
           // ตรวจสอบเงื่อนไขพิเศษสำหรับ shift: "cash_holiday"
           if (record.shift === 'cash_holiday') {
             cashWork = 0; // ตั้งค่า cashWork เป็น 0 สำหรับ cash_holiday
-            console.log(`🎯 พบ shift: "cash_holiday" - กำหนด cashWork = 0`);
+            addSalaryDaily = []; // ไม่เพิ่มเงินพิเศษรายวันสำหรับ cash_holiday
+            cashOt = 0; // ไม่คิดค่า OT สำหรับ cash_holiday
+            cashBeforeOt = 0; // ไม่คิดค่า OT ก่อนเวลาสำหรับ cash_holiday
+            cashOtMul = 0; // ตั้งตัวคูณ OT เป็น 0 สำหรับ cash_holiday
+            cashBeforeOtMul = 0; // ตั้งตัวคูณ OT ก่อนเวลาเป็น 0 สำหรับ cash_holiday
+            
+            console.log(`🎯 พบ shift: "cash_holiday" - กำหนดทุกค่าเป็น 0`);
           } else {
             // คำนวณค่าแรงสำหรับวันทำงานปกติ
             cashWork = await (record.totalTime || 0) * parseFloat(salary || 0);
+            
+            // เพิ่มเงินพิเศษรายวัน
+            addSalaryDaily = [...(employeeProfile[0].addSalary || [])
+              .filter(salary => salary.roundOfSalary === "daily")
+              .map(salary => ({
+                ...salary,
+                SpSalary: parseFloat(salary.SpSalary) > 100 ? (parseFloat(salary.SpSalary) / 30).toFixed(2) : salary.SpSalary
+              }))
+            ];
+            
+            cashBeforeOtMul = await dataRate?.workRateOT || 0;
+            cashOtMul = await dataRate?.workRateOT || 0;
           }
           dayType = await dataRate?.dayType || '';
-          cashBeforeOtMul = await dataRate?.workRateOT || 0;
           cashWorkMul = 1; // ตัวคูณค่าแรงปกติเป็น 1
-          cashOtMul = await dataRate?.workRateOT || 0;
-          
-          // เพิ่มเงินพิเศษรายวัน
-          addSalaryDaily = [...(employeeProfile[0].addSalary || [])
-            .filter(salary => salary.roundOfSalary === "daily")
-            .map(salary => ({
-              ...salary,
-              SpSalary: parseFloat(salary.SpSalary) > 100 ? (parseFloat(salary.SpSalary) / 30).toFixed(2) : salary.SpSalary
-            }))
-          ];
         } else {
           cashBeforeOt = '';
           cashWork = '';
