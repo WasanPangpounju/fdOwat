@@ -1235,12 +1235,18 @@ for (let c = 0; c < concludeRecord.length; c++) {
           await addSalaryList.push(addSalaryDaily);
         }
       } else {
-        // remove 1012 when shift is morning_shift
+        // กรองเงินพิเศษตาม shift
         if(concludeRecord[c].shift === 'morning_shift') {
+          // morning_shift: ไม่รวม id 1210
           let addSalaryDailyx = await addSalaryDaily.filter(item1 => item1.id !== '1210');
           await addSalaryList.push(addSalaryDailyx);
-        } else {
+        } else if(concludeRecord[c].shift === 'night_shift') {
+          // night_shift: รวมทั้งหมด (รวม id 1210)
           await addSalaryList.push(addSalaryDaily);
+        } else {
+          // shift อื่นๆ: ไม่รวม id 1210
+          let addSalaryDailyx = await addSalaryDaily.filter(item1 => item1.id !== '1210');
+          await addSalaryList.push(addSalaryDailyx);
         }
       }
     } else {
@@ -1284,17 +1290,22 @@ if(testx ) {
 }
 
 } else {
-
-  // remove 1012 when shift is morning_shift
-if(concludeRecord [c].shift === 'morning_shift') {
-let addSalaryDailyx = await addSalaryDaily.filter(item1 => item1.id !== '1210');
-  await addSalaryList.push(addSalaryDailyx);
-  // console.log(JSON.stringify(addSalaryDailyx) )
-} else {
-  await addSalaryList.push(addSalaryDaily);
-  // console.log('*any xxx ' + concludeRecord [c].shift + ' ' + JSON.stringify(addSalaryDaily,null,2) );
-}
-
+  // กรองเงินพิเศษตาม shift
+  if(concludeRecord[c].shift === 'morning_shift') {
+    // morning_shift: ไม่รวม id 1210
+    let addSalaryDailyx = await addSalaryDaily.filter(item1 => item1.id !== '1210');
+    await addSalaryList.push(addSalaryDailyx);
+    // console.log(JSON.stringify(addSalaryDailyx) )
+  } else if(concludeRecord[c].shift === 'night_shift') {
+    // night_shift: รวมทั้งหมด (รวม id 1210)
+    await addSalaryList.push(addSalaryDaily);
+    // console.log('*night_shift รวม id 1210: ' + JSON.stringify(addSalaryDaily,null,2) );
+  } else {
+    // shift อื่นๆ: ไม่รวม id 1210
+    let addSalaryDailyx = await addSalaryDaily.filter(item1 => item1.id !== '1210');
+    await addSalaryList.push(addSalaryDailyx);
+    // console.log('*other shift ไม่รวม id 1210: ' + concludeRecord[c].shift);
+  }
 }
 
       } else{
@@ -2902,7 +2913,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
       // แต่ยกเว้น shift: "cash_holiday"
       if (hasWorked && record.shift !== 'cash_holiday') {
         // ถ้ามีการทำงาน (totalTime > 0) และไม่ใช่ cash_holiday ให้เพิ่มเงินพิเศษรายวัน
-        addSalaryDaily = [...(employeeProfile[0].addSalary || [])
+        let baseAddSalary = [...(employeeProfile[0].addSalary || [])
           .filter(salary => salary.roundOfSalary === "daily")
           .map(salary => ({
             ...salary,
@@ -2911,7 +2922,17 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
               salary.SpSalary
           }))
         ];
-        console.log(`💵 เพิ่มเงินพิเศษรายวัน: ${addSalaryDaily.length} รายการ (เพราะมี totalTime และไม่ใช่ cash_holiday)`);
+        
+        // กรองเงินพิเศษตาม shift สำหรับ id 1210
+        if (record.shift === 'night_shift') {
+          // night_shift: รวม id 1210 ทั้งหมด
+          addSalaryDaily = baseAddSalary;
+          console.log(`💵 night_shift - เพิ่มเงินพิเศษรายวัน: ${addSalaryDaily.length} รายการ (รวม id 1210)`);
+        } else {
+          // shift อื่นๆ: ไม่รวม id 1210
+          addSalaryDaily = baseAddSalary.filter(item => item.id !== '1210');
+          console.log(`💵 ${record.shift || 'default'} - เพิ่มเงินพิเศษรายวัน: ${addSalaryDaily.length} รายการ (ไม่รวม id 1210)`);
+        }
       } else {
         // ถ้าไม่มีการทำงาน หรือเป็น cash_holiday ไม่เพิ่มเงินพิเศษรายวัน
         addSalaryDaily = [];
@@ -3147,14 +3168,25 @@ const totalDecimalHour = tmpHour + (tmpMinute / 60); // 1 + 30/60 = 1.5
             // คำนวณค่าแรงสำหรับวันทำงานปกติ
             cashWork = await (record.totalTime || 0) * parseFloat(salary || 0);
             
-            // เพิ่มเงินพิเศษรายวัน
-            addSalaryDaily = [...(employeeProfile[0].addSalary || [])
+            // เพิ่มเงินพิเศษรายวันตาม shift
+            let baseAddSalary = [...(employeeProfile[0].addSalary || [])
               .filter(salary => salary.roundOfSalary === "daily")
               .map(salary => ({
                 ...salary,
                 SpSalary: parseFloat(salary.SpSalary) > 100 ? (parseFloat(salary.SpSalary) / 30).toFixed(2) : salary.SpSalary
               }))
             ];
+            
+            // กรองเงินพิเศษตาม shift สำหรับ id 1210
+            if (record.shift === 'night_shift') {
+              // night_shift: รวม id 1210 ทั้งหมด
+              addSalaryDaily = baseAddSalary;
+              console.log(`💵 night_shift - รวม id 1210: ${addSalaryDaily.length} รายการ`);
+            } else {
+              // shift อื่นๆ: ไม่รวม id 1210
+              addSalaryDaily = baseAddSalary.filter(item => item.id !== '1210');
+              console.log(`💵 ${record.shift || 'default'} - ไม่รวม id 1210: ${addSalaryDaily.length} รายการ`);
+            }
             
             cashBeforeOtMul = await dataRate?.workRateOT || 0;
             cashOtMul = await dataRate?.workRateOT || 0;
