@@ -7661,10 +7661,18 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
   console.log(`\n🔍 === การตรวจสอบเงินพิเศษที่คิดประกันสังคม ===`);
   console.log(`🔍 จำนวนรายการเงินพิเศษทั้งหมด: ${addSalaryList.length} รายการ`);
   
-  // 🔧 ใช้ข้อมูลจาก welfareAddSalaryList (ที่อัปเดตแล้ว) แทนการรวมจาก addSalaryDaily
-  const finalAddSalaryList = welfareAddSalaryList && welfareAddSalaryList.length > 0 ? welfareAddSalaryList : addSalaryList;
-  console.log(`🔍 ใช้ข้อมูลจาก: ${welfareAddSalaryList && welfareAddSalaryList.length > 0 ? 'welfareAddSalaryList (อัปเดตแล้ว)' : 'addSalaryList (รวมจาก daily)'}`);
+  // 🔧 ใช้ข้อมูลจาก addSalaryList (รายการทั้งหมด) แทน welfareAddSalaryList (ที่อาจถูกกรอง)
+  const finalAddSalaryList = addSalaryList;
+  console.log(`🔍 ใช้ข้อมูลจาก: addSalaryList (รายการทั้งหมด)`);
   console.log(`🔍 จำนวนรายการสุดท้าย: ${finalAddSalaryList.length} รายการ`);
+  
+  // Debug: แสดงข้อมูล welfareAddSalaryList ด้วย
+  if (welfareAddSalaryList && welfareAddSalaryList.length > 0) {
+    console.log(`🔍 welfareAddSalaryList มี: ${welfareAddSalaryList.length} รายการ`);
+    welfareAddSalaryList.forEach((item, index) => {
+      console.log(`🔍 welfare[${index + 1}] ID: ${item.id}, ชื่อ: ${item.name}`);
+    });
+  }
   
   // แสดงรายการทั้งหมดก่อน
   console.log(`🔍 === รายการเงินพิเศษทั้งหมด ===`);
