@@ -2154,7 +2154,8 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
     }
     
     dataCal.worktTime = await parseFloat(workplaces?.[0]?.workOfHour_subHour || '0') + parseFloat(workplaces?.[0]?.workOfHour_subMinute || '0');
-    dataCal.workRateOT = await workplaces?.[0]?.workRateOT || 0;
+    dataCal.workRateOT = parseFloat(workplaces?.[0]?.workRateOT) || 1.5;
+    console.log(`   - workplaces?.[0]?.workRateOT = "${workplaces?.[0]?.workRateOT}" → dataCal.workRateOT = ${dataCal.workRateOT}`);
     let tmp_OT = await (parseFloat(workplaces?.[0]?.workOfOT_subHour || '0')* 60 + parseFloat(workplaces?.[0]?.workOfOT_subMinute || '0')) -
     (parseFloat(workplaces?.[0]?.workOfOT_breakHour || '0')* 60 + parseFloat(workplaces?.[0]?.workOfOT_breakMinute || '0'));
 
@@ -2162,9 +2163,15 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
     dataCal.worktTimeStartOT = await parseFloat(workplaces?.[0]?.startWorkOfOT_subHour || '0') + parseFloat(workplaces?.[0]?.startWorkOfOT_subMinute || '0');
 
     dataCal.dayoffRateHour = await workplaces?.[0]?.dayoffRateHour || 1;
-    dataCal.dayoffRateOT = await workplaces?.[0]?.dayoffRateOT || 1;
-    dataCal.holidayHour= await workplaces?.[0]?.holidayHour|| 1;
-    dataCal.holidayOT = await workplaces?.[0]?.holidayOT || 1;
+    dataCal.dayoffRateOT = parseFloat(workplaces?.[0]?.dayoffRateOT) || 1.5;
+    dataCal.holidayHour= parseFloat(workplaces?.[0]?.holidayHour) || 1;
+    dataCal.holidayOT = parseFloat(workplaces?.[0]?.holidayOT) || 1.5;
+    
+    console.log(`🔍 [checkDayRate DEBUG] workplaceId=${workplaceId}:`);
+    console.log(`   - workplaces?.[0]?.holidayOT = "${workplaces?.[0]?.holidayOT}" (type: ${typeof workplaces?.[0]?.holidayOT})`);
+    console.log(`   - dataCal.holidayOT = ${dataCal.holidayOT}`);
+    console.log(`   - workplaces?.[0]?.dayoffRateOT = "${workplaces?.[0]?.dayoffRateOT}"`);
+    console.log(`   - dataCal.dayoffRateOT = ${dataCal.dayoffRateOT}`);
 
     // ตรวจสอบจาก API getWeekendDates
     try {
@@ -3115,10 +3122,15 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
             
             console.log(`🎯 พบ shift: "cash_holiday" - กำหนดทุกค่าเป็น 0`);
           } else {
+            console.log(`🔍 [DEBUG] วิเคราะห์ค่า holidayOT:`);
+            console.log(`   - dataRate?.holidayOT = "${dataRate?.holidayOT}" (type: ${typeof dataRate?.holidayOT})`);
+            console.log(`   - dataRate?.holidayOT || 3 = ${dataRate?.holidayOT || 3}`);
+            console.log(`   - parseFloat(dataRate?.holidayOT || 3) = ${parseFloat(dataRate?.holidayOT || 3)}`);
+            
             cashWork = await (parseFloat(record.totalTime || 0) * parseFloat(salary || 0) * parseFloat(dataRate?.holidayHour || 1)) || 0;
             addSalaryDaily = [];
-            cashBeforeOtMul = parseFloat(dataRate?.holidayOT || 3); // แปลงเป็นตัวเลขก่อน
-            cashOtMul = parseFloat(dataRate?.holidayOT || 3); // แปลงเป็นตัวเลขก่อน
+            cashBeforeOtMul = parseFloat(dataRate?.holidayOT || 1.5); // เปลี่ยนจาก 3 เป็น 1.5 เพื่อให้ตรงกับค่าจาก API
+            cashOtMul = parseFloat(dataRate?.holidayOT || 1.5); // เปลี่ยนจาก 3 เป็น 1.5 เพื่อให้ตรงกับค่าจาก API
             console.log(`🎯 [HOLIDAY OT] dayType=stop, shift="${record.shift}": holidayOT="${dataRate?.holidayOT}" → cashOtMul=${cashOtMul}`);
           }
           console.log('totalTime ' + parseFloat(record.totalTime || 0) + ' salary ' + parseFloat(salary || 0) + ' dataRate ' + parseFloat(dataRate?.holidayHour || 1)); 
