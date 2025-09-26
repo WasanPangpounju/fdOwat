@@ -2521,6 +2521,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
           dayType: recordForDay.dayType || 'ไม่ระบุ',
           shift: recordForDay.shift || 'ไม่ระบุ'
         });
+        
         console.log(`   ✅ วันที่ ${stopDay.date}/${stopDay.month}/${stopDay.year} (${stopDay.dayName}) - มาทำงาน ${recordForDay.totalTime} ชั่วโมง (shift: ${recordForDay.shift}) - นับใน customizeDayoff`);
       } else if (hasWorked && !isValidShift) {
         // มาทำงานแต่ shift ไม่ใช่ morning_shift หรือ night_shift - ไม่นับใน customizeDayoff
