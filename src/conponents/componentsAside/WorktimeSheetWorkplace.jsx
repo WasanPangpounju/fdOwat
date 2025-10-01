@@ -4290,6 +4290,43 @@ const getDateStyle = (day) => {
   };
 
     const generateExcel = async () => {
+      // Show temporary maintenance alert
+      Swal.fire({
+        icon: 'info',
+        title: 'ปิดปรับปรุงชั่วคราว',
+        html: `
+          <div style="text-align: center; margin: 20px 0;">
+            <div style="font-size: 18px; margin-bottom: 15px;">
+              <i class="fas fa-tools" style="color: #ffc107; margin-right: 8px;"></i>
+              ขณะนี้ฟีเจอร์ Export Excel กำลังปรับปรุง
+            </div>
+            
+            <div style="text-align: left; background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
+              <strong style="color: #495057;">🔧 กรุณาใช้ฟีเจอร์อื่นๆ ในระบบ:</strong><br><br>
+              
+              ✅ ดูตารางเวลาทำงานบนหน้าเว็บ<br>
+             
+            </div>
+            
+            <div style="color: #6c757d; font-size: 14px;">
+              <i class="fas fa-clock" style="margin-right: 5px;"></i>
+              คาดว่าจะกลับมาใช้งานได้ภายในไม่กี่วัน
+            </div>
+          </div>
+        `,
+        confirmButtonText: 'เข้าใจแล้ว',
+        confirmButtonColor: '#007bff',
+        width: '500px',
+        showClass: {
+          popup: 'animate__animated animate__fadeInDown'
+        },
+        hideClass: {
+          popup: 'animate__animated animate__fadeOutUp'
+        }
+      });
+      
+      return; // Exit early to prevent Excel generation
+      
       console.log('🚀 Starting Excel generation...');
     
     try {
@@ -8051,14 +8088,14 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                         <i class="fas fa-file-excel m-1"></i>ดาวน์โหลด Excel
                      
                       </button>
-                       <button
+                       {/* <button
                         onClick={handleForceReload}
                         style={{ marginLeft: "1rem", width: "10rem", backgroundColor: "", color: "white" }}
                         class="btn b_save bg-warning p-2"
                       > 
                        <i class="fas fa-sync-alt m-1"></i>Force Reload
                      
-                      </button>
+                      </button> */}
 
                       <div className="pt-3">
                           <div className="table " >
