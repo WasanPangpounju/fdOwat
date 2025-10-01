@@ -2229,7 +2229,14 @@ try {
                             {(() => {
                               const overtimeAmount = parseFloat(accountingResult?.[0]?.sumCashOt || 0);
                               const specialShiftAmount = parseFloat(accountingResult?.[0]?.specialShiftTotalSalary || 0);
-                              const total = overtimeAmount + specialShiftAmount;
+                              
+                              // ถ้าเป็นพนักงานรายเดือนให้เพิ่ม publicHolidayCash ด้วย
+                              const employee = employeeList.find(emp => emp.employeeId === staffId);
+                              const publicHolidayAmount = employee?.jobtype === "รายเดือน" 
+                                ? parseFloat(accountingResult?.[0]?.publicHolidayCash || 0) 
+                                : 0;
+                              
+                              const total = overtimeAmount + specialShiftAmount + publicHolidayAmount;
                               return total.toLocaleString('th-TH', {
                                 minimumFractionDigits: 2,
                                 maximumFractionDigits: 2
@@ -2258,6 +2265,21 @@ try {
                                      parseFloat(accountingResult[0].specialShiftTotalSalary) > 0 && (
                                       <li>ค่าทำงานในวันหยุดสด -  {accountingResult[0].specialShiftTotalSalary} บาท</li>
                                     )}
+                                    {(() => {
+                                      // ถ้าเป็นพนักงานรายเดือนและมีค่า publicHolidayCash ให้แสดงรายการทำงานวันนักขัตฤกษ์
+                                      const employee = employeeList.find(emp => emp.employeeId === staffId);
+                                      if (employee?.jobtype === "รายเดือน" && 
+                                          accountingResult?.[0]?.publicHolidayCash && 
+                                          parseFloat(accountingResult[0].publicHolidayCash) > 0) {
+                                        return (
+                                          <li>ทำงานวันนักขัตฤกษ์ - {Number(accountingResult[0].publicHolidayCash).toLocaleString('th-TH', {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2
+                                          })} บาท</li>
+                                        );
+                                      }
+                                      return null;
+                                    })()}
                               </ul>
                               <button className="btn btn-danger" onClick={togglePopup}>Close</button>
                             </div>
@@ -2330,11 +2352,18 @@ try {
 
                          <th style={cellStyle}>
                          {(() => {
+  // ตรวจสอบประเภทพนักงาน ถ้าเป็นรายเดือนให้รวม publicHolidayCash ด้วย
+  const employee = employeeList.find(emp => emp.employeeId === staffId);
+  const publicHolidayAmount = employee?.jobtype === "รายเดือน" 
+    ? parseFloat(accountingResult?.[0]?.publicHolidayCash || '0') 
+    : 0;
+
   const total = 
     parseFloat(accountingResult?.[0]?.sumCashWork || '0') + 
     parseFloat(accountingResult?.[0]?.sumCashOt || '0') + 
     parseFloat(accountingResult?.[0]?.specialShiftTotalSalary || '0') + 
-    parseFloat(totalAddSalary || '0'); // ใช้ totalAddSalary แทน
+    parseFloat(totalAddSalary || '0') + 
+    publicHolidayAmount; // เพิ่ม publicHolidayCash สำหรับพนักงานรายเดือน
 
   return isNaN(total)
     ? ''
@@ -2512,9 +2541,24 @@ try {
   placeholder="0.00"
   step="0.01"
   min="0"
-  value={localPublicHolidayCash} // เปลี่ยนเป็น localPublicHolidayCash
+  value={(() => {
+    // ตรวจสอบประเภทพนักงาน ถ้าเป็นรายเดือนให้แสดง 0 เสมอ
+    const employee = employeeList.find(emp => emp.employeeId === staffId);
+    return employee?.jobtype === "รายเดือน" ? "0" : localPublicHolidayCash;
+  })()}
+  disabled={(() => {
+    // ปิดการแก้ไขสำหรับพนักงานรายเดือน
+    const employee = employeeList.find(emp => emp.employeeId === staffId);
+    return employee?.jobtype === "รายเดือน";
+  })()}
   onChange={(e) => {
     const newValue = e.target.value;
+    
+    // ตรวจสอบประเภทพนักงาน ถ้าเป็นรายเดือนให้ค่าเป็น 0
+    const employee = employeeList.find(emp => emp.employeeId === staffId);
+    if (employee?.jobtype === "รายเดือน") {
+      return; // ไม่ให้แก้ไขถ้าเป็นรายเดือน
+    }
 
     setLocalPublicHolidayCash(newValue); // เปลี่ยนเป็น setLocalPublicHolidayCash
 
@@ -2537,7 +2581,14 @@ try {
                           
                           <th style={cellStyle}></th>
                           <th style={cellStyle}>
-                            {accountingResult?.[0]?.publicHolidayCash || '0'}
+                            {(() => {
+                              // ตรวจสอบประเภทพนักงาน ถ้าเป็นรายเดือนให้แสดง 0
+                              const employee = employeeList.find(emp => emp.employeeId === staffId);
+                              if (employee?.jobtype === "รายเดือน") {
+                                return '0';
+                              }
+                              return accountingResult?.[0]?.publicHolidayCash || '0';
+                            })()}
                           </th>
 
                         </tr>

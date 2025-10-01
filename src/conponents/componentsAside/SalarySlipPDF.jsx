@@ -637,7 +637,9 @@ const [isGeneratingExcel, setIsGeneratingExcel] = useState(false);
       const valueArray = [];
 
       // เงินเดือนพื้นฐาน - ใช้ข้อมูลที่แก้ไขแล้ว
-      const workDays = currentEmployee.employee_record?.filter(record => record.dayType === "work").length || 0;
+      const workDays = currentEmployee.typeOfemployee === 'รายเดือน' ? 
+                       30 : 
+                       currentEmployee.dayWorkCount;
       const displayWorkDays = currentEmployee.typeOfemployee === 'รายเดือน' ? '30' : workDays.toString();
       const totalCashWork = parseFloat(accountingRecord.amountDay || accountingRecord.sumCashWork || 0);
       
@@ -697,7 +699,7 @@ const [isGeneratingExcel, setIsGeneratingExcel] = useState(false);
       // });
 
       // กรองรายการตาม ID เหมือนในฟังก์ชันเดิม
-      const excludedIds = ["1350", "1230", "1410", "1535", "1520"];
+      const excludedIds = ["1350", "1230", "1410", "1535", "1520", "1531", "1210", "1251", "1440", "1441", "1444", "1446", "1525", "1526", "1528", "1540", "1541", "1550", "1610", "1611", "1612", "1447", "1613", "1561", "1542", "1536", "1529", "1533", "1534", "1412", "1159"];
       const addSalaryFiltered = addSalaryList
         .filter((salary) => !excludedIds.includes(salary.id))
         .map((salary) => ({
@@ -765,7 +767,7 @@ const [isGeneratingExcel, setIsGeneratingExcel] = useState(false);
       }
 
       // เพิ่มรายการเงินพิเศษอื่นๆ ที่ไม่ได้ถูกระบุใน specific categories
-      const specificIds = ["1350", "1230", "1410", "1535", "1520", "1231", "1233", "1422", "1423", "1428", "1434", "1435", "1429", "1427", "1234", "1426", "1425", "1442"];
+      const specificIds = ["1350", "1230", "1410", "1535", "1520", "1231", "1233", "1422", "1423", "1428", "1434", "1435", "1429", "1427", "1234", "1426", "1425", "1442", "1525", "1526", "1528", "1540", "1541", "1550", "1610", "1611", "1612", "1447", "1613", "1561", "1542", "1536", "1529", "1533", "1534", "1412", "1159"];
       const otherSalaryItems = addSalaryList.filter((item) => !specificIds.includes(item.id));
       
       otherSalaryItems.forEach(item => {
@@ -813,6 +815,58 @@ const [isGeneratingExcel, setIsGeneratingExcel] = useState(false);
       if (advance > 0) {
         textDedustArray.push("คืนเงินเบิกล่วงหน้า");
         valueDedustArray.push(advance.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","));
+      }
+
+      // เพิ่มรายการหัก ID 2330-2430 จาก deductSalaryList
+      if (currentEmployee.deductSalaryList && Array.isArray(currentEmployee.deductSalaryList)) {
+        const textDedustMap = {
+          "2330": "หักเงินเบิกล่วงหน้า",
+          "2331": "หักคืนค่าทำงานวันหยุด", 
+          "2333": "หักคืนค่าเบิกล่วงหน้า(รับล่วงหน้า)",
+          "2334": "หักคืนค่าเบิกอุปกรณ์ PPE",
+          "2335": "หักคืนข้าวปลากับข้าว",
+          "2336": "หักเงินค่าห้อง",
+          "2337": "หักเงินค่าห้อง(เหมาจ่าย)",
+          "2338": "หักค่าใช้จ่ายเดินทาง",
+          "2339": "หักค่าใช้จ่ายอื่นๆ",
+          "2340": "หักกรมธรรม์",
+          "2341": "หักเงินคืนล่วงหน้า",
+          "2410": "หักเข้าวันหยุด",
+          "2420": "หักทำลายสิ่งของ",
+          "2430": "หักกลับก่อนเวลา อันนี้รายการหัก"
+        };
+
+        currentEmployee.deductSalaryList.forEach(deductItem => {
+          const idStr = String(deductItem.id).trim(); // เพิ่ม trim()
+          console.log(`🔍 Checking deductItem:`, {
+            id: deductItem.id,
+            idStr: idStr,
+            name: deductItem.name,
+            amount: deductItem.amount,
+            hasTextMap: !!textDedustMap[idStr],
+            amountFloat: parseFloat(deductItem.amount),
+            amountCheck: deductItem.amount && parseFloat(deductItem.amount) > 0,
+            idNotEmpty: idStr !== '' && idStr !== 'undefined' && idStr !== 'null'
+          });
+          
+          // เพิ่มการตรวจสอบ ID ว่าไม่เป็นค่าว่าง
+          if (idStr && idStr !== '' && idStr !== 'undefined' && idStr !== 'null' && 
+              textDedustMap[idStr] && deductItem.amount && 
+              !isNaN(parseFloat(deductItem.amount)) && parseFloat(deductItem.amount) > 0) {
+            console.log(`✅ Adding deduction: ${textDedustMap[idStr]} = ${deductItem.amount}`);
+            textDedustArray.push(textDedustMap[idStr]);
+            valueDedustArray.push(parseFloat(deductItem.amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","));
+          } else {
+            console.log(`❌ Skipping deduction:`, {
+              idNotEmpty: idStr !== '' && idStr !== 'undefined' && idStr !== 'null',
+              hasTextMap: !!textDedustMap[idStr],
+              hasAmount: !!deductItem.amount,
+              amountValue: deductItem.amount,
+              amountIsNumber: !isNaN(parseFloat(deductItem.amount)),
+              amountGreaterThanZero: parseFloat(deductItem.amount) > 0
+            });
+          }
+        });
       }
 
       // แสดงรายการหัก
@@ -929,6 +983,58 @@ const [isGeneratingExcel, setIsGeneratingExcel] = useState(false);
           totalDeduction2 += providentFund2;
         }
 
+        // เพิ่มรายการหัก ID 2330-2430 จาก deductSalaryList สำหรับพนักงานคนที่สอง
+        if (nextEmployee.deductSalaryList && Array.isArray(nextEmployee.deductSalaryList)) {
+          const textDedustMap = {
+            "2330": "หักเงินเบิกล่วงหน้า",
+            "2331": "หักคืนค่าทำงานวันหยุด", 
+            "2333": "หักคืนค่าเบิกล่วงหน้า(รับล่วงหน้า)",
+            "2334": "หักคืนค่าเบิกอุปกรณ์ PPE",
+            "2335": "หักคืนข้าวปลากับข้าว",
+            "2336": "หักเงินค่าห้อง",
+            "2337": "หักเงินค่าห้อง(เหมาจ่าย)",
+            "2338": "หักค่าใช้จ่ายเดินทาง",
+            "2339": "หักค่าใช้จ่ายอื่นๆ",
+            "2340": "หักกรมธรรม์",
+            "2341": "หักเงินคืนล่วงหน้า",
+            "2410": "หักเข้าวันหยุด",
+            "2420": "หักทำลายสิ่งของ",
+            "2430": "หักกลับก่อนเวลา อันนี้รายการหัก"
+          };
+
+          nextEmployee.deductSalaryList.forEach(deductItem => {
+            const idStr = String(deductItem.id).trim(); // เพิ่ม trim()
+            console.log(`🔍 [Employee 2] Checking deductItem:`, {
+              id: deductItem.id,
+              idStr: idStr,
+              name: deductItem.name,
+              amount: deductItem.amount,
+              hasTextMap: !!textDedustMap[idStr],
+              amountFloat: parseFloat(deductItem.amount),
+              amountCheck: deductItem.amount && parseFloat(deductItem.amount) > 0,
+              idNotEmpty: idStr !== '' && idStr !== 'undefined' && idStr !== 'null'
+            });
+            
+            // เพิ่มการตรวจสอบ ID ว่าไม่เป็นค่าว่าง
+            if (idStr && idStr !== '' && idStr !== 'undefined' && idStr !== 'null' && 
+                textDedustMap[idStr] && deductItem.amount && 
+                !isNaN(parseFloat(deductItem.amount)) && parseFloat(deductItem.amount) > 0) {
+              console.log(`✅ [Employee 2] Adding deduction: ${textDedustMap[idStr]} = ${deductItem.amount}`);
+              deductionItems2.push([textDedustMap[idStr], parseFloat(deductItem.amount)]);
+              totalDeduction2 += parseFloat(deductItem.amount);
+            } else {
+              console.log(`❌ [Employee 2] Skipping deduction:`, {
+                idNotEmpty: idStr !== '' && idStr !== 'undefined' && idStr !== 'null',
+                hasTextMap: !!textDedustMap[idStr],
+                hasAmount: !!deductItem.amount,
+                amountValue: deductItem.amount,
+                amountIsNumber: !isNaN(parseFloat(deductItem.amount)),
+                amountGreaterThanZero: parseFloat(deductItem.amount) > 0
+              });
+            }
+          });
+        }
+
         // คำนวณเงินสุทธิสำหรับพนักงานคนที่สอง
         const netSalary2 = totalIncome2 - totalDeduction2;
 
@@ -937,7 +1043,9 @@ const [isGeneratingExcel, setIsGeneratingExcel] = useState(false);
         const empId2 = nextEmployee.employeeid || 'ไม่ระบุ';
         const position2 = nextEmployee.position_name || 'ไม่ระบุ';
         const workPlace2 = nextEmployee.workplace_name || 'ไม่ระบุ';
-        const workdays2 = nextEmployee.workdays || 0;
+        const workdays2 = nextEmployee.typeOfemployee === 'รายเดือน' ? 
+                          30 : 
+                          nextEmployee.dayWorkCount;
         const displayWorkDays2 = nextEmployee.typeOfemployee === 'รายเดือน' ? '30' : workdays2;
 
         // แสดงข้อมูลพนักงานคนที่สอง
@@ -1725,7 +1833,9 @@ const generatePDF = async () => {
 
     // คำนวณจำนวนวันทำงาน (ใช้ข้อมูลที่แก้ไขแล้ว)
     const workDays = editableData && editableData.length > i && editableData[i]?.editableFields?.workDays ||
-                     employeeRecords.filter(record => record.dayType === "work").length;
+                     (currentEmployee.typeOfemployee === 'รายเดือน' ? 
+                      30 : 
+                      currentEmployee.dayWorkCount);
     const displayWorkDays = currentEmployee.typeOfemployee === 'รายเดือน' ? 30 : workDays;
 
       // รวมเงินจาก cashWork (ใช้ข้อมูลที่แก้ไขแล้ว)
@@ -1738,7 +1848,7 @@ const generatePDF = async () => {
       return sum + parseFloat(record.cashOt || 0);
     }, 0);
     // กรองเงินพิเศษตาม ID
-    const excludedIds = ["1350", "1230", "1410", "1535", "1520","1560", "1563", "1330", "1232", "1235", "1236", "1237", "1238", "1239", "1240", "1241", "1242", "1243", "1244", "1245", "1246", "1247", "1248", "1249"];
+    const excludedIds = ["1350", "1230", "1410", "1535", "1520","1560", "1563", "1330", "1232", "1235", "1236", "1237", "1238", "1239", "1240", "1241", "1242", "1243", "1244", "1245", "1246", "1247", "1248", "1249", "1531", "1210", "1251", "1440", "1441", "1444", "1446", "1525", "1526", "1528", "1540", "1541", "1550", "1610", "1611", "1612", "1447", "1613", "1561", "1542", "1536", "1529", "1533", "1534", "1412", "1159"];
     const addSalaryFiltered = addSalaryList
       .filter((salary) => !excludedIds.includes(salary.id))
       .map((salary) => ({
@@ -1749,7 +1859,7 @@ const generatePDF = async () => {
     // จ่างชดเชย
     const excludedIdsPayCompensation = [
       "1231", "1233", "1422", "1423", "1428", "1434", 
-      "1435", "1429", "1427", "1234", "1426", "1425", "1442",
+      "1435", "1429", "1427", "1234", "1426", "1425", "1442", "1525", "1526", "1528", "1540", "1541", "1550", "1610", "1611", "1612", "1447", "1613", "1561", "1542", "1536", "1529", "1533", "1534", "1412", "1159",
     ];
 
     const addSalaryPayCompensationFiltered = addSalaryList
@@ -1853,12 +1963,14 @@ const generatePDF = async () => {
 
     // สวัสดิการหลัก
    const namesWithSpecificIds = addSalaryList
-  .filter((item) => ["1230", "1350", "1535"].includes(item.id))
+  .filter((item) => ["1230", "1350", "1535", "1210"].includes(item.id))
   .map((item) => {
     if (item.id === "1350") {
       return "โทรศัพท์";
     } else if (item.id === "1535") {
       return "ค่าเดินทาง";
+    } else if (item.id === "1210") {
+      return "ค่ากะ";
     } else {
       return item.name;
     }
@@ -1878,7 +1990,7 @@ const generatePDF = async () => {
 
 
 
-   const specificIds = ["1230", "1350", "1535"];
+   const specificIds = ["1230", "1350", "1535", "1210"];
 const result = addSalaryList
   .filter((item) => specificIds.includes(item.id))
   .reduce(
@@ -2029,6 +2141,34 @@ if (ot3Hours > 0 && ot3Cash > 0) {
       textArray.push("จ่ายชดเชยวันลา");
       countArray.push("");
       valueArray.push(totalSpSalaryCompensation); // เก็บเป็น number
+    }
+
+    // ปรับปรุงค่าแรงขาด (รับล่วงหน้า) - เพิ่ม ID 1531 เป็นรายการเงินได้
+    const advanceWageAdjustment = addSalaryList.filter(item => item.id === "1531")
+      .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+    
+    if (advanceWageAdjustment > 0) {
+      textArray.push("ปรับปรุงค่าแรงขาด (รับล่วงหน้า)");
+      countArray.push("");
+      valueArray.push(advanceWageAdjustment);
+    }
+
+    // ค่ากะ - เพิ่ม ID 1210 เป็นรายการเงินได้
+    const shiftAllowance = addSalaryList.filter(item => item.id === "1210")
+      .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+    if (shiftAllowance > 0) {
+      textArray.push("ค่ากะ");
+      countArray.push("");
+      valueArray.push(shiftAllowance);
+    }
+
+    // ค่าวิชาชีพ - เพิ่ม ID 1241 เป็นรายการเงินได้
+    const professionalAllowance = addSalaryList.filter(item => item.id === "1241")
+      .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+    if (professionalAllowance > 0) {
+      textArray.push("ค่าวิชาชีพ");
+      countArray.push("");
+      valueArray.push(professionalAllowance);
     }
 
     // รายการหัก (ใช้ข้อมูลที่แก้ไขแล้ว)
@@ -2213,7 +2353,9 @@ if (ot3Hours > 0 && ot3Cash > 0) {
 
       // คำนวณข้อมูลสำหรับพนักงานคนที่ 2 (ใช้ข้อมูลที่แก้ไขแล้ว)
       const workDays2 = editableData && editableData.length > (i + 1) && editableData[i + 1]?.editableFields?.workDays ||
-                        employeeRecords2.filter(record => record.dayType === "work").length;
+                        (currentEmployee2.typeOfemployee === 'รายเดือน' ? 
+                         30 : 
+                         currentEmployee2.dayWorkCount);
       const displayWorkDays2 = currentEmployee2.typeOfemployee === 'รายเดือน' ? 30 : workDays2;
       
       // รวมเงินจาก cashWork (ใช้ข้อมูลที่แก้ไขแล้ว)
@@ -2232,10 +2374,18 @@ if (ot3Hours > 0 && ot3Cash > 0) {
       const totalCashOt3x = parseFloat(currentEmployee2.sumCashWorkMul["3"] || 0);
       // สวัสดิการหลักสำหรับพนักงานคนที่ 2
       const result2 = addSalaryList2
-        .filter((item) => ["1230", "1350", "1241"].includes(item.id))
+        .filter((item) => ["1230", "1350", "1241", "1210"].includes(item.id))
         .reduce(
           (acc, item) => {
-            acc.names.push(item.id === "1350" ? "โทรศัพท์" : item.name);
+            if (item.id === "1350") {
+              acc.names.push("โทรศัพท์");
+            } else if (item.id === "1241") {
+              acc.names.push("ค่าวิชาชีพ");
+            } else if (item.id === "1210") {
+              acc.names.push("ค่ากะ");
+            } else {
+              acc.names.push(item.name);
+            }
             acc.sumSpSalary += Number(item.SpSalary) || 0;
             return acc;
           },
@@ -2399,9 +2549,9 @@ if (ot3Hours > 0 && ot3Cash > 0) {
       }
 
       if (totalCashOt2x > 0) {
-        const otHours2x = parseFloat(currentEmployee2.sumOt2 || 0);
+        const otHours2x = parseFloat(currentEmployee.sumOtPublicHoliday || 0);
 
-        textArray2.push("ค่าล่วงเวลา 2 เท่า (ตัวคูณ)");
+        textArray2.push("ค่าล่วงเวลา 2 เท่า");
         countArray2.push(otHours2x.toFixed(2));
         valueArray2.push(totalCashOt2x); // เก็บเป็น number
       }
@@ -2473,9 +2623,120 @@ if (ot3Hours > 0 && ot3Cash > 0) {
           valueArray2.push(totalSpSalaryCompensation2); // เก็บเป็น number
           console.log("Added compensation for employee 2:", totalSpSalaryCompensation2);
         }
-        
 
-      
+        // ปรับปรุงค่าแรงขาด (รับล่วงหน้า) สำหรับพนักงานคนที่ 2 - เพิ่ม ID 1531 เป็นรายการเงินได้
+        const advanceWageAdjustment2 = addSalaryList2.filter(item => item.id === "1531")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        
+        if (advanceWageAdjustment2 > 0) {
+          textArray2.push("ปรับปรุงค่าแรงขาด (รับล่วงหน้า)");
+          countArray2.push("");
+          valueArray2.push(advanceWageAdjustment2); // เก็บเป็น number
+        }
+
+        // ค่ากะ สำหรับพนักงานคนที่ 2 - เพิ่ม ID 1210 เป็นรายการเงินได้
+        const shiftAllowance2 = addSalaryList2.filter(item => item.id === "1210")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        if (shiftAllowance2 > 0) {
+          textArray2.push("ค่ากะ");
+          countArray2.push("");
+          valueArray2.push(shiftAllowance2);
+        }
+
+    // ค่าวิชาชีพ สำหรับพนักงานคนที่ 2 - เพิ่ม ID 1241 เป็นรายการเงินได้
+        const professionalAllowance2 = addSalaryList2.filter(item => item.id === "1241")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        if (professionalAllowance2 > 0) {
+          textArray2.push("ค่าวิชาชีพ");
+          countArray2.push("");
+          valueArray2.push(professionalAllowance2);
+        }
+
+        // ค่าโรยตัว/ค่าขับรถ - เพิ่ม ID 1251 เป็นรายการเงินได้
+        const transportationAllowance = addSalaryList.filter(item => item.id === "1251")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        if (transportationAllowance > 0) {
+          textArray.push("ค่าโรยตัว/ค่าขับรถ");
+          countArray.push("");
+          valueArray.push(transportationAllowance);
+        }
+
+        // โบนัส - เพิ่ม ID 1440 เป็นรายการเงินได้
+        const bonus = addSalaryList.filter(item => item.id === "1440")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        if (bonus > 0) {
+          textArray.push("โบนัส");
+          countArray.push("");
+          valueArray.push(bonus);
+        }
+
+        // ค่าทำงานวันหยุด - เพิ่ม ID 1441 เป็นรายการเงินได้
+        const holidayWork = addSalaryList.filter(item => item.id === "1441")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        if (holidayWork > 0) {
+          textArray.push("ค่าทำงานวันหยุด");
+          countArray.push("");
+          valueArray.push(holidayWork);
+        }
+
+        // ค่าทำงานในวันหยุดตามประเพณี - เพิ่ม ID 1444 เป็นรายการเงินได้
+        const traditionalHolidayWork = addSalaryList.filter(item => item.id === "1444")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        if (traditionalHolidayWork > 0) {
+          textArray.push("ค่าทำงานในวันหยุดตามประเพณี");
+          countArray.push("");
+          valueArray.push(traditionalHolidayWork);
+        }
+
+        // ค่าทำงานวันหยุด (1446) - เพิ่ม ID 1446 เป็นรายการเงินได้
+        const holidayWork1446 = addSalaryList.filter(item => item.id === "1446")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        if (holidayWork1446 > 0) {
+          textArray.push("ค่าทำงานวันหยุด");
+          countArray.push("");
+          valueArray.push(holidayWork1446);
+        }
+
+        // รายการสำหรับพนักงานคนที่ 2
+        const transportationAllowance2 = addSalaryList2.filter(item => item.id === "1251")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        if (transportationAllowance2 > 0) {
+          textArray2.push("ค่าโรยตัว/ค่าขับรถ");
+          countArray2.push("");
+          valueArray2.push(transportationAllowance2);
+        }
+
+        const bonus2 = addSalaryList2.filter(item => item.id === "1440")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        if (bonus2 > 0) {
+          textArray2.push("โบนัส");
+          countArray2.push("");
+          valueArray2.push(bonus2);
+        }
+
+        const holidayWork2 = addSalaryList2.filter(item => item.id === "1441")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        if (holidayWork2 > 0) {
+          textArray2.push("ค่าทำงานวันหยุด");
+          countArray2.push("");
+          valueArray2.push(holidayWork2);
+        }
+
+        const traditionalHolidayWork2 = addSalaryList2.filter(item => item.id === "1444")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        if (traditionalHolidayWork2 > 0) {
+          textArray2.push("ค่าทำงานในวันหยุดตามประเพณี");
+          countArray2.push("");
+          valueArray2.push(traditionalHolidayWork2);
+        }
+
+        const holidayWork14462 = addSalaryList2.filter(item => item.id === "1446")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        if (holidayWork14462 > 0) {
+          textArray2.push("ค่าทำงานวันหยุด");
+          countArray2.push("");
+          valueArray2.push(holidayWork14462);
+        }
 
       // รายการหักสำหรับพนักงานคนที่ 2 (ใช้ข้อมูลที่แก้ไขแล้ว)
       const textDedustArray2 = [];
@@ -2668,7 +2929,9 @@ const generateExcel = async () => {
       
       // คำนวณข้อมูลต่างๆ (ใช้ข้อมูลที่แก้ไขแล้ว)
       const workDays = editableData && editableData.length > i && editableData[i]?.editableFields?.workDays ||
-                       employeeRecords.filter(record => record.dayType === "work").length;
+                       (currentEmployee.typeOfemployee === 'รายเดือน' ? 
+                        30 : 
+                        currentEmployee.dayWorkCount);
       const displayWorkDays = currentEmployee.typeOfemployee === 'รายเดือน' ? 30 : workDays;
       const currentWorkplaceId = employeeRecords[0]?.workplaceId;
       const workplace = workplaceList.find(item => item.workplaceId === currentWorkplaceId);
@@ -2678,14 +2941,14 @@ const generateExcel = async () => {
       const banknumber = await getEmployeeBankNumber(currentEmployee.employeeId);
       
       // กรองรายการเงินพิเศษ
-      const excludedIds = ["1350", "1230", "1410", "1535", "1520"];
+      const excludedIds = ["1350", "1230", "1410", "1535", "1520","1560", "1563", "1330", "1232", "1235", "1236", "1237", "1238", "1239", "1240", "1241", "1242", "1243", "1244", "1245", "1246", "1247", "1248", "1249", "1531", "1210", "1251", "1440", "1441", "1444", "1446", "1525", "1526", "1528", "1540", "1541", "1550", "1610", "1611", "1612", "1447", "1613", "1561", "1542", "1536", "1529", "1533", "1534", "1412", "1159"];
       const addSalaryFiltered = addSalaryList
         .filter((salary) => !excludedIds.includes(salary.id));
       
       // จ่ายชดเชย
       const excludedIdsPayCompensation = [
         "1231", "1233", "1422", "1423", "1428", "1434", 
-        "1435", "1429", "1427", "1234", "1426", "1425", "1442",
+        "1435", "1429", "1427", "1234", "1426", "1425", "1442", "1525", "1526", "1528", "1540", "1541", "1550", "1610", "1611", "1612", "1447", "1613", "1561", "1542", "1536", "1529", "1533", "1534", "1412", "1159",
       ];
       
       const addSalaryPayCompensationFiltered = addSalaryList
@@ -2709,12 +2972,20 @@ const generateExcel = async () => {
         .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
       
       // สวัสดิการหลัก
-      const specificIds = ["1230", "1350", "1535"];
+      const specificIds = ["1230", "1350", "1535", "1210"];
       const result = addSalaryList
         .filter((item) => specificIds.includes(item.id))
         .reduce(
           (acc, item) => {
-            acc.names.push(item.id === "1350" ? "โทรศัพท์" : (item.id === "1535" ? "ค่าเดินทาง" : item.name));
+            if (item.id === "1350") {
+              acc.names.push("โทรศัพท์");
+            } else if (item.id === "1535") {
+              acc.names.push("ค่าเดินทาง");
+            } else if (item.id === "1210") {
+              acc.names.push("ค่ากะ");
+            } else {
+              acc.names.push(item.name);
+            }
             acc.sumSpSalary += Number(item.SpSalary) || 0;
             return acc;
           },
@@ -2749,6 +3020,117 @@ const generateExcel = async () => {
       const socialSecurity = parseFloat(currentEmployee.socialSecurity || 0);
       const advance = parseFloat(currentEmployee.deductSalaryList?.[0]?.amount || 0);
       
+      // เพิ่มรายการหักใหม่ทั้งหมด - แก้ไขให้ใช้ deductSalaryList สำหรับ ID 2330-2430
+      const deduction2333 = (currentEmployee.deductSalaryList || [])
+        .filter(item => item.id === "2333")
+        .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+      
+      const deduction2334 = (currentEmployee.deductSalaryList || [])
+        .filter(item => item.id === "2334")
+        .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+      
+      const deduction2335 = (currentEmployee.deductSalaryList || [])
+        .filter(item => item.id === "2335")
+        .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+      
+      const deduction2336 = (currentEmployee.deductSalaryList || [])
+        .filter(item => item.id === "2336")
+        .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+      
+      const deduction2337 = (currentEmployee.deductSalaryList || [])
+        .filter(item => item.id === "2337")
+        .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+      
+      const deduction2338 = (currentEmployee.deductSalaryList || [])
+        .filter(item => item.id === "2338")
+        .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+      
+      const deduction2339 = (currentEmployee.deductSalaryList || [])
+        .filter(item => item.id === "2339")
+        .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+      
+      const deduction2340 = (currentEmployee.deductSalaryList || [])
+        .filter(item => item.id === "2340")
+        .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+      
+      const deduction2341 = (currentEmployee.deductSalaryList || [])
+        .filter(item => item.id === "2341")
+        .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+      
+      const deduction2410 = (currentEmployee.deductSalaryList || [])
+        .filter(item => item.id === "2410")
+        .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+      
+      const deduction2420 = (currentEmployee.deductSalaryList || [])
+        .filter(item => item.id === "2420")
+        .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+      
+      const deduction2430 = (currentEmployee.deductSalaryList || [])
+        .filter(item => item.id === "2430")
+        .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+      
+      // รายการหักที่ยังคงใช้ addSalaryList (ID อื่นๆ ที่ไม่ใช่ 2330-2430)
+      const deduction2111 = addSalaryList
+        .filter(item => item.id === "2111")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      const deduction2116 = addSalaryList
+        .filter(item => item.id === "2116")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      const deduction2117 = addSalaryList
+        .filter(item => item.id === "2117")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      const deduction2120 = addSalaryList
+        .filter(item => item.id === "2120")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      const deduction2124 = addSalaryList
+        .filter(item => item.id === "2124")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      const deduction2160 = addSalaryList
+        .filter(item => item.id === "2160")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      const deduction2250 = addSalaryList
+        .filter(item => item.id === "2250")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      const deduction2261 = addSalaryList
+        .filter(item => item.id === "2261")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      const deduction2310 = addSalaryList
+        .filter(item => item.id === "2310")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      const deduction2311 = addSalaryList
+        .filter(item => item.id === "2311")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      const deduction2312 = addSalaryList
+        .filter(item => item.id === "2312")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      const deduction2330 = (currentEmployee.deductSalaryList || [])
+        .filter(item => item.id === "2330")
+        .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+      
+      const deduction2331 = (currentEmployee.deductSalaryList || [])
+        .filter(item => item.id === "2331")
+        .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+      
+      // รวมรายการหักเพิ่มเติม (รวม ID ใหม่ที่เพิ่มเข้ามา)
+      const additionalDeductions = deduction2333 + deduction2334 + deduction2335 + deduction2336 + 
+                                    deduction2337 + deduction2338 + deduction2339 + deduction2340 + 
+                                    deduction2341 + deduction2410 + deduction2420 + deduction2430 +
+                                    deduction2111 + deduction2116 + deduction2117 + 
+                                    deduction2120 + deduction2124 + deduction2160 + deduction2250 + 
+                                    deduction2261 + deduction2310 + deduction2311 + deduction2312 + 
+                                    deduction2330 + deduction2331;
+      
       // คำนวณยอดรวม
       const incomeTotal = 
         parseFloat(currentEmployee?.sumCashWork || '0') + 
@@ -2761,7 +3143,7 @@ const generateExcel = async () => {
           ) || '0'
         );
       
-      const totalDeductions = tax + socialSecurity + advance;
+      const totalDeductions = tax + socialSecurity + advance + additionalDeductions;
       const netSalary = incomeTotal - totalDeductions;
       
       // สร้าง worksheet ใหม่สำหรับพนักงานแต่ละคน
@@ -3461,7 +3843,9 @@ const generateExcel = async () => {
         
         // คำนวณข้อมูลต่างๆ (ใช้ข้อมูลที่แก้ไขแล้ว)
         const workDays = editableData && editableData.length > i && editableData[i]?.editableFields?.workDays ||
-                         employeeRecords.filter(record => record.dayType === "work").length;
+                         (currentEmployee.typeOfemployee === 'รายเดือน' ? 
+                          30 : 
+                          currentEmployee.dayWorkCount);
         const displayWorkDays = currentEmployee.typeOfemployee === 'รายเดือน' ? 30 : workDays;
         const currentWorkplaceId = employeeRecords[0]?.workplaceId;
         const workplace = workplaceList.find(item => item.workplaceId === currentWorkplaceId);
@@ -3471,7 +3855,7 @@ const generateExcel = async () => {
         const banknumber = await getEmployeeBankNumber(currentEmployee.employeeId);
         
         // กรองรายการเงินพิเศษ
-        const excludedIds = ["1350", "1230", "1410", "1535", "1520"];
+        const excludedIds = ["1350", "1230", "1410", "1535", "1520", "1531", "1210", "1251", "1440", "1441", "1444", "1446", "1525", "1526", "1528", "1540", "1541", "1550", "1610", "1611", "1612", "1447", "1613", "1561", "1542", "1536", "1529", "1533", "1534", "1412", "1159"];
         const addSalaryFiltered = addSalaryList
           .filter((salary) => !excludedIds.includes(salary.id));
         
@@ -3502,12 +3886,20 @@ const generateExcel = async () => {
           .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
         
         // สวัสดิการหลัก
-        const specificIds = ["1230", "1350", "1535"];
+        const specificIds = ["1230", "1350", "1535", "1210"];
         const result = addSalaryList
           .filter((item) => specificIds.includes(item.id))
           .reduce(
             (acc, item) => {
-              acc.names.push(item.id === "1350" ? "โทรศัพท์" : (item.id === "1535" ? "ค่าเดินทาง" : item.name));
+              if (item.id === "1350") {
+                acc.names.push("โทรศัพท์");
+              } else if (item.id === "1535") {
+                acc.names.push("ค่าเดินทาง");
+              } else if (item.id === "1210") {
+                acc.names.push("ค่ากะ");
+              } else {
+                acc.names.push(item.name);
+              }
               acc.sumSpSalary += Number(item.SpSalary) || 0;
               return acc;
             },
@@ -3542,6 +3934,84 @@ const generateExcel = async () => {
         const socialSecurity = parseFloat(currentEmployee.socialSecurity || 0);
         const advance = parseFloat(currentEmployee.deductSalaryList?.[0]?.amount || 0);
         
+        // รายการหัก ID 2330-2430 จาก deductSalaryList
+        const deduction2330 = (currentEmployee.deductSalaryList || [])
+          .filter(item => item.id === "2330")
+          .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+        
+        const deduction2331 = (currentEmployee.deductSalaryList || [])
+          .filter(item => item.id === "2331")
+          .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+        
+        const deduction2333 = (currentEmployee.deductSalaryList || [])
+          .filter(item => item.id === "2333")
+          .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+        
+        const deduction2334 = (currentEmployee.deductSalaryList || [])
+          .filter(item => item.id === "2334")
+          .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+        
+        const deduction2335 = (currentEmployee.deductSalaryList || [])
+          .filter(item => item.id === "2335")
+          .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+        
+        const deduction2336 = (currentEmployee.deductSalaryList || [])
+          .filter(item => item.id === "2336")
+          .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+        
+        const deduction2337 = (currentEmployee.deductSalaryList || [])
+          .filter(item => item.id === "2337")
+          .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+        
+        const deduction2338 = (currentEmployee.deductSalaryList || [])
+          .filter(item => item.id === "2338")
+          .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+        
+        const deduction2339 = (currentEmployee.deductSalaryList || [])
+          .filter(item => item.id === "2339")
+          .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+        
+        const deduction2340 = (currentEmployee.deductSalaryList || [])
+          .filter(item => item.id === "2340")
+          .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+        
+        const deduction2341 = (currentEmployee.deductSalaryList || [])
+          .filter(item => item.id === "2341")
+          .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+        
+        const deduction2410 = (currentEmployee.deductSalaryList || [])
+          .filter(item => item.id === "2410")
+          .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+        
+        const deduction2420 = (currentEmployee.deductSalaryList || [])
+          .filter(item => item.id === "2420")
+          .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+        
+        const deduction2430 = (currentEmployee.deductSalaryList || [])
+          .filter(item => item.id === "2430")
+          .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+        
+        // รายการหักอื่นๆ จาก addSalaryList (ID ที่ไม่ใช่ 2330-2430)
+        const deduction2111 = addSalaryList
+          .filter(item => item.id === "2111")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        
+        const deduction2116 = addSalaryList
+          .filter(item => item.id === "2116")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        
+        const deduction2117 = addSalaryList
+          .filter(item => item.id === "2117")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        
+        const deduction2120 = addSalaryList
+          .filter(item => item.id === "2120")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        
+        const deduction2124 = addSalaryList
+          .filter(item => item.id === "2124")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        
         // คำนวณยอดรวม
         const incomeTotal = 
           parseFloat(currentEmployee?.sumCashWork || '0') + 
@@ -3554,7 +4024,12 @@ const generateExcel = async () => {
             ) || '0'
           );
         
-        const totalDeductions = tax + socialSecurity + advance;
+        const totalDeductions = tax + socialSecurity + advance + 
+                               deduction2330 + deduction2331 + deduction2333 + deduction2334 + 
+                               deduction2335 + deduction2336 + deduction2337 + deduction2338 + 
+                               deduction2339 + deduction2340 + deduction2341 + deduction2410 + 
+                               deduction2420 + deduction2430 + deduction2111 + deduction2116 + 
+                               deduction2117 + deduction2120 + deduction2124;
         const netSalary = incomeTotal - totalDeductions;
         
         // สร้าง worksheet ใหม่สำหรับพนักงานแต่ละคน
@@ -3726,101 +4201,452 @@ const generateExcel = async () => {
           );
         }
         
-        // ค่าล่วงเวลา 1.5 เท่า
+        // ค่าล่วงเวลา 1.5 เท่า - พร้อมรายการหัก
         const ot15Hours = parseFloat(currentEmployee.sumOt1p5 || 0);
+        let deductionRowCount = 0; // ตัวนับแถวรายการหัก
+        
         if (ot15Hours > 0 && currentEmployee.sumCashWorkMul?.["1.5"] > 0) {
+          // เริ่มแสดงรายการหักตั้งแต่แถวนี้
+          let currentDeductionText = '';
+          let currentDeductionAmount = '';
+          
+          // ตรวจสอบรายการหักตามลำดับ
+          if (deductionRowCount === 0 && socialSecurity > 0) {
+            currentDeductionText = 'สมทบประกันสังคม';
+            currentDeductionAmount = formatNumber(socialSecurity);
+            deductionRowCount++;
+          } else if (deductionRowCount === 1 && tax > 0) {
+            currentDeductionText = 'ภาษีเงินได้';
+            currentDeductionAmount = formatNumber(tax);
+            deductionRowCount++;
+          } else if (deductionRowCount === 2 && advance > 0) {
+            currentDeductionText = 'เงินเบิกล่วงหน้า';
+            currentDeductionAmount = formatNumber(advance);
+            deductionRowCount++;
+          } else if (deductionRowCount === 3 && deduction2333 > 0) {
+            currentDeductionText = 'หักคืนค่าเบิกล่วงหน้า(รับล่วงหน้า)';
+            currentDeductionAmount = formatNumber(deduction2333);
+            deductionRowCount++;
+          } else if (deductionRowCount === 4 && deduction2111 > 0) {
+            currentDeductionText = 'หักค่าแรงต่างอัตรา';
+            currentDeductionAmount = formatNumber(deduction2111);
+            deductionRowCount++;
+          }
+          
           addIncomeRow(
             'ค่าล่วงเวลา 1.5 เท่า', 
             ot15Hours.toFixed(2), 
             formatNumber(currentEmployee.sumCashWorkMul["1.5"]), 
-            'สมทบประกันสังคม', 
-            formatNumber(socialSecurity), 
+            currentDeductionText, 
+            currentDeductionAmount, 
             ''
           );
         }
         
-        // ค่าล่วงเวลา 2 เท่า
+        // ค่าล่วงเวลา 2 เท่า - ต่อรายการหัก
         const ot2Hours = parseFloat(currentEmployee.sumOtPublicHoliday || 0);
         if (ot2Hours > 0 && currentEmployee.sumCashWorkMul?.["2"] > 0) {
+          let currentDeductionText = '';
+          let currentDeductionAmount = '';
+          
+          // ตรวจสอบรายการหักตามลำดับ
+          if (deductionRowCount === 0 && socialSecurity > 0) {
+            currentDeductionText = 'สมทบประกันสังคม';
+            currentDeductionAmount = formatNumber(socialSecurity);
+            deductionRowCount++;
+          } else if (deductionRowCount === 1 && tax > 0) {
+            currentDeductionText = 'ภาษีเงินได้';
+            currentDeductionAmount = formatNumber(tax);
+            deductionRowCount++;
+          } else if (deductionRowCount === 2 && advance > 0) {
+            currentDeductionText = 'เงินเบิกล่วงหน้า';
+            currentDeductionAmount = formatNumber(advance);
+            deductionRowCount++;
+          } else if (deductionRowCount === 3 && deduction2333 > 0) {
+            currentDeductionText = 'หักคืนค่าเบิกล่วงหน้า(รับล่วงหน้า)';
+            currentDeductionAmount = formatNumber(deduction2333);
+            deductionRowCount++;
+          } else if (deductionRowCount === 4 && deduction2111 > 0) {
+            currentDeductionText = 'หักค่าแรงต่างอัตรา';
+            currentDeductionAmount = formatNumber(deduction2111);
+            deductionRowCount++;
+          } else if (deductionRowCount === 5 && deduction2116 > 0) {
+            currentDeductionText = 'หักคืนอื่นๆ (คำนวณ ปกส)';
+            currentDeductionAmount = formatNumber(deduction2116);
+            deductionRowCount++;
+          }
+          
           addIncomeRow(
             'ค่าล่วงเวลา 2 เท่า', 
             ot2Hours.toFixed(2), 
             formatNumber(currentEmployee.sumCashWorkMul["2"]), 
-            '', 
-            '', 
+            currentDeductionText, 
+            currentDeductionAmount, 
             ''
           );
         }
         
-        // ค่าล่วงเวลา 3 เท่า
+        // ค่าล่วงเวลา 3 เท่า - ต่อรายการหัก
         const ot3Hours = parseFloat(currentEmployee.sumOt3 || 0);
         if (ot3Hours > 0 && currentEmployee.sumCashWorkMul?.["3"] > 0) {
+          let currentDeductionText = '';
+          let currentDeductionAmount = '';
+          
+          // ตรวจสอบรายการหักตามลำดับ
+          if (deductionRowCount === 0 && socialSecurity > 0) {
+            currentDeductionText = 'สมทบประกันสังคม';
+            currentDeductionAmount = formatNumber(socialSecurity);
+            deductionRowCount++;
+          } else if (deductionRowCount === 1 && tax > 0) {
+            currentDeductionText = 'ภาษีเงินได้';
+            currentDeductionAmount = formatNumber(tax);
+            deductionRowCount++;
+          } else if (deductionRowCount === 2 && advance > 0) {
+            currentDeductionText = 'เงินเบิกล่วงหน้า';
+            currentDeductionAmount = formatNumber(advance);
+            deductionRowCount++;
+          } else if (deductionRowCount === 3 && deduction2333 > 0) {
+            currentDeductionText = 'หักคืนค่าเบิกล่วงหน้า(รับล่วงหน้า)';
+            currentDeductionAmount = formatNumber(deduction2333);
+            deductionRowCount++;
+          } else if (deductionRowCount === 4 && deduction2111 > 0) {
+            currentDeductionText = 'หักค่าแรงต่างอัตรา';
+            currentDeductionAmount = formatNumber(deduction2111);
+            deductionRowCount++;
+          } else if (deductionRowCount === 5 && deduction2116 > 0) {
+            currentDeductionText = 'หักคืนอื่นๆ (คำนวณ ปกส)';
+            currentDeductionAmount = formatNumber(deduction2116);
+            deductionRowCount++;
+          } else if (deductionRowCount === 6 && deduction2117 > 0) {
+            currentDeductionText = 'หักคืนอื่นๆ (ไม่คำนวณ ปกส)';
+            currentDeductionAmount = formatNumber(deduction2117);
+            deductionRowCount++;
+          }
+          
           addIncomeRow(
             'ค่าล่วงเวลา 3 เท่า', 
             ot3Hours.toFixed(2), 
             formatNumber(currentEmployee.sumCashWorkMul["3"]), 
-            '', 
-            '', 
+            currentDeductionText, 
+            currentDeductionAmount, 
             ''
           );
         }
         
-        // คาคิงทาง
+        // คาคิงทาง - ต่อรายการหัก
         if (result.sumSpSalary > 0) {
+          let currentDeductionText = '';
+          let currentDeductionAmount = '';
+          
+          // ตรวจสอบรายการหักตามลำดับ
+          if (deductionRowCount === 0 && socialSecurity > 0) {
+            currentDeductionText = 'สมทบประกันสังคม';
+            currentDeductionAmount = formatNumber(socialSecurity);
+            deductionRowCount++;
+          } else if (deductionRowCount === 1 && tax > 0) {
+            currentDeductionText = 'ภาษีเงินได้';
+            currentDeductionAmount = formatNumber(tax);
+            deductionRowCount++;
+          } else if (deductionRowCount === 2 && advance > 0) {
+            currentDeductionText = 'เงินเบิกล่วงหน้า';
+            currentDeductionAmount = formatNumber(advance);
+            deductionRowCount++;
+          } else if (deductionRowCount === 3 && deduction2333 > 0) {
+            currentDeductionText = 'หักคืนค่าเบิกล่วงหน้า(รับล่วงหน้า)';
+            currentDeductionAmount = formatNumber(deduction2333);
+            deductionRowCount++;
+          } else if (deductionRowCount === 4 && deduction2111 > 0) {
+            currentDeductionText = 'หักค่าแรงต่างอัตรา';
+            currentDeductionAmount = formatNumber(deduction2111);
+            deductionRowCount++;
+          } else if (deductionRowCount === 5 && deduction2116 > 0) {
+            currentDeductionText = 'หักคืนอื่นๆ (คำนวณ ปกส)';
+            currentDeductionAmount = formatNumber(deduction2116);
+            deductionRowCount++;
+          } else if (deductionRowCount === 6 && deduction2117 > 0) {
+            currentDeductionText = 'หักคืนอื่นๆ (ไม่คำนวณ ปกส)';
+            currentDeductionAmount = formatNumber(deduction2117);
+            deductionRowCount++;
+          } else if (deductionRowCount === 7 && deduction2120 > 0) {
+            currentDeductionText = 'หักมาสาย';
+            currentDeductionAmount = formatNumber(deduction2120);
+            deductionRowCount++;
+          }
+          
           addIncomeRow(
             'คาคิงทาง', 
             '', 
             formatNumber(result.sumSpSalary), 
-            '', 
-            '', 
+            currentDeductionText, 
+            currentDeductionAmount, 
             ''
           );
         }
         
-        // เบี้ยขยัน
+        // เบี้ยขยัน - ต่อรายการหัก
         if (sumAmountHardWorking > 0) {
+          let currentDeductionText = '';
+          let currentDeductionAmount = '';
+          
+          // ตรวจสอบรายการหักตามลำดับ
+          if (deductionRowCount === 0 && socialSecurity > 0) {
+            currentDeductionText = 'สมทบประกันสังคม';
+            currentDeductionAmount = formatNumber(socialSecurity);
+            deductionRowCount++;
+          } else if (deductionRowCount === 1 && tax > 0) {
+            currentDeductionText = 'ภาษีเงินได้';
+            currentDeductionAmount = formatNumber(tax);
+            deductionRowCount++;
+          } else if (deductionRowCount === 2 && advance > 0) {
+            currentDeductionText = 'เงินเบิกล่วงหน้า';
+            currentDeductionAmount = formatNumber(advance);
+            deductionRowCount++;
+          } else if (deductionRowCount === 3 && deduction2333 > 0) {
+            currentDeductionText = 'หักคืนค่าเบิกล่วงหน้า(รับล่วงหน้า)';
+            currentDeductionAmount = formatNumber(deduction2333);
+            deductionRowCount++;
+          } else if (deductionRowCount === 4 && deduction2111 > 0) {
+            currentDeductionText = 'หักค่าแรงต่างอัตรา';
+            currentDeductionAmount = formatNumber(deduction2111);
+            deductionRowCount++;
+          } else if (deductionRowCount === 5 && deduction2116 > 0) {
+            currentDeductionText = 'หักคืนอื่นๆ (คำนวณ ปกส)';
+            currentDeductionAmount = formatNumber(deduction2116);
+            deductionRowCount++;
+          } else if (deductionRowCount === 6 && deduction2117 > 0) {
+            currentDeductionText = 'หักคืนอื่นๆ (ไม่คำนวณ ปกส)';
+            currentDeductionAmount = formatNumber(deduction2117);
+            deductionRowCount++;
+          } else if (deductionRowCount === 7 && deduction2120 > 0) {
+            currentDeductionText = 'หักมาสาย';
+            currentDeductionAmount = formatNumber(deduction2120);
+            deductionRowCount++;
+          } else if (deductionRowCount === 8 && deduction2124 > 0) {
+            currentDeductionText = 'หักค่ารถ';
+            currentDeductionAmount = formatNumber(deduction2124);
+            deductionRowCount++;
+          }
+          
           addIncomeRow(
             'เบี้ยขยัน', 
             '', 
             formatNumber(sumAmountHardWorking), 
-            '', 
-            '', 
+            currentDeductionText, 
+            currentDeductionAmount, 
             ''
           );
         }
         
-        // ค่าอาหาร
+        // ค่าอาหาร - ต่อรายการหัก
         if (sumAddSalaryFood > 0) {
+          let currentDeductionText = '';
+          let currentDeductionAmount = '';
+          
+          // ตรวจสอบรายการหักตามลำดับ
+          if (deductionRowCount === 0 && socialSecurity > 0) {
+            currentDeductionText = 'สมทบประกันสังคม';
+            currentDeductionAmount = formatNumber(socialSecurity);
+            deductionRowCount++;
+          } else if (deductionRowCount === 1 && tax > 0) {
+            currentDeductionText = 'ภาษีเงินได้';
+            currentDeductionAmount = formatNumber(tax);
+            deductionRowCount++;
+          } else if (deductionRowCount === 2 && advance > 0) {
+            currentDeductionText = 'เงินเบิกล่วงหน้า';
+            currentDeductionAmount = formatNumber(advance);
+            deductionRowCount++;
+          } else if (deductionRowCount === 3 && deduction2333 > 0) {
+            currentDeductionText = 'หักคืนค่าเบิกล่วงหน้า(รับล่วงหน้า)';
+            currentDeductionAmount = formatNumber(deduction2333);
+            deductionRowCount++;
+          } else if (deductionRowCount === 4 && deduction2111 > 0) {
+            currentDeductionText = 'หักค่าแรงต่างอัตรา';
+            currentDeductionAmount = formatNumber(deduction2111);
+            deductionRowCount++;
+          } else if (deductionRowCount === 5 && deduction2116 > 0) {
+            currentDeductionText = 'หักคืนอื่นๆ (คำนวณ ปกส)';
+            currentDeductionAmount = formatNumber(deduction2116);
+            deductionRowCount++;
+          } else if (deductionRowCount === 6 && deduction2117 > 0) {
+            currentDeductionText = 'หักคืนอื่นๆ (ไม่คำนวณ ปกส)';
+            currentDeductionAmount = formatNumber(deduction2117);
+            deductionRowCount++;
+          } else if (deductionRowCount === 7 && deduction2120 > 0) {
+            currentDeductionText = 'หักมาสาย';
+            currentDeductionAmount = formatNumber(deduction2120);
+            deductionRowCount++;
+          } else if (deductionRowCount === 8 && deduction2124 > 0) {
+            currentDeductionText = 'หักค่ารถ';
+            currentDeductionAmount = formatNumber(deduction2124);
+            deductionRowCount++;
+          } else if (deductionRowCount === 9 && deduction2160 > 0) {
+            currentDeductionText = 'หักลาพักร้อนจ่ายเกิน';
+            currentDeductionAmount = formatNumber(deduction2160);
+            deductionRowCount++;
+          }
+          
           addIncomeRow(
             'ค่าอาหาร', 
             '', 
             formatNumber(sumAddSalaryFood), 
-            '', 
-            '', 
+            currentDeductionText, 
+            currentDeductionAmount, 
             ''
           );
         }
         
-        // ค่าเงินพิเศษ
+        // ค่าเงินพิเศษ - ต่อรายการหัก
         if (sumAddSpecialCash > 0) {
+          let currentDeductionText = '';
+          let currentDeductionAmount = '';
+          
+          // ตรวจสอบรายการหักตามลำดับ
+          if (deductionRowCount === 0 && socialSecurity > 0) {
+            currentDeductionText = 'สมทบประกันสังคม';
+            currentDeductionAmount = formatNumber(socialSecurity);
+            deductionRowCount++;
+          } else if (deductionRowCount === 1 && tax > 0) {
+            currentDeductionText = 'ภาษีเงินได้';
+            currentDeductionAmount = formatNumber(tax);
+            deductionRowCount++;
+          } else if (deductionRowCount === 2 && advance > 0) {
+            currentDeductionText = 'เงินเบิกล่วงหน้า';
+            currentDeductionAmount = formatNumber(advance);
+            deductionRowCount++;
+          } else if (deductionRowCount === 3 && deduction2333 > 0) {
+            currentDeductionText = 'หักคืนค่าเบิกล่วงหน้า(รับล่วงหน้า)';
+            currentDeductionAmount = formatNumber(deduction2333);
+            deductionRowCount++;
+          } else if (deductionRowCount === 4 && deduction2111 > 0) {
+            currentDeductionText = 'หักค่าแรงต่างอัตรา';
+            currentDeductionAmount = formatNumber(deduction2111);
+            deductionRowCount++;
+          } else if (deductionRowCount === 5 && deduction2116 > 0) {
+            currentDeductionText = 'หักคืนอื่นๆ (คำนวณ ปกส)';
+            currentDeductionAmount = formatNumber(deduction2116);
+            deductionRowCount++;
+          } else if (deductionRowCount === 6 && deduction2117 > 0) {
+            currentDeductionText = 'หักคืนอื่นๆ (ไม่คำนวณ ปกส)';
+            currentDeductionAmount = formatNumber(deduction2117);
+            deductionRowCount++;
+          } else if (deductionRowCount === 7 && deduction2120 > 0) {
+            currentDeductionText = 'หักมาสาย';
+            currentDeductionAmount = formatNumber(deduction2120);
+            deductionRowCount++;
+          } else if (deductionRowCount === 8 && deduction2124 > 0) {
+            currentDeductionText = 'หักค่ารถ';
+            currentDeductionAmount = formatNumber(deduction2124);
+            deductionRowCount++;
+          } else if (deductionRowCount === 9 && deduction2160 > 0) {
+            currentDeductionText = 'หักลาพักร้อนจ่ายเกิน';
+            currentDeductionAmount = formatNumber(deduction2160);
+            deductionRowCount++;
+          } else if (deductionRowCount === 10 && deduction2250 > 0) {
+            currentDeductionText = 'หักน้ำ/ไฟ/โทรศัพท์';
+            currentDeductionAmount = formatNumber(deduction2250);
+            deductionRowCount++;
+          }
+          
           addIncomeRow(
             'ค่าเงินพิเศษ', 
             '', 
             formatNumber(sumAddSpecialCash), 
-            '', 
-            '', 
+            currentDeductionText, 
+            currentDeductionAmount, 
             ''
           );
         }
         
-        // จ่ายชดเชยวันลา
+        // จ่ายชดเชยวันลา - ต่อรายการหัก
         if (totalSpSalaryCompensation > 0) {
+          let currentDeductionText = '';
+          let currentDeductionAmount = '';
+          
+          // ตรวจสอบรายการหักตามลำดับ
+          if (deductionRowCount === 0 && socialSecurity > 0) {
+            currentDeductionText = 'สมทบประกันสังคม';
+            currentDeductionAmount = formatNumber(socialSecurity);
+            deductionRowCount++;
+          } else if (deductionRowCount === 1 && tax > 0) {
+            currentDeductionText = 'ภาษีเงินได้';
+            currentDeductionAmount = formatNumber(tax);
+            deductionRowCount++;
+          } else if (deductionRowCount === 2 && advance > 0) {
+            currentDeductionText = 'เงินเบิกล่วงหน้า';
+            currentDeductionAmount = formatNumber(advance);
+            deductionRowCount++;
+          } else if (deductionRowCount === 3 && deduction2333 > 0) {
+            currentDeductionText = 'หักคืนค่าเบิกล่วงหน้า(รับล่วงหน้า)';
+            currentDeductionAmount = formatNumber(deduction2333);
+            deductionRowCount++;
+          } else if (deductionRowCount === 4 && deduction2111 > 0) {
+            currentDeductionText = 'หักค่าแรงต่างอัตรา';
+            currentDeductionAmount = formatNumber(deduction2111);
+            deductionRowCount++;
+          } else if (deductionRowCount === 5 && deduction2116 > 0) {
+            currentDeductionText = 'หักคืนอื่นๆ (คำนวณ ปกส)';
+            currentDeductionAmount = formatNumber(deduction2116);
+            deductionRowCount++;
+          } else if (deductionRowCount === 6 && deduction2117 > 0) {
+            currentDeductionText = 'หักคืนอื่นๆ (ไม่คำนวณ ปกส)';
+            currentDeductionAmount = formatNumber(deduction2117);
+            deductionRowCount++;
+          } else if (deductionRowCount === 7 && deduction2120 > 0) {
+            currentDeductionText = 'หักมาสาย';
+            currentDeductionAmount = formatNumber(deduction2120);
+            deductionRowCount++;
+          } else if (deductionRowCount === 8 && deduction2124 > 0) {
+            currentDeductionText = 'หักค่ารถ';
+            currentDeductionAmount = formatNumber(deduction2124);
+            deductionRowCount++;
+          } else if (deductionRowCount === 9 && deduction2160 > 0) {
+            currentDeductionText = 'หักลาพักร้อนจ่ายเกิน';
+            currentDeductionAmount = formatNumber(deduction2160);
+            deductionRowCount++;
+          } else if (deductionRowCount === 10 && deduction2250 > 0) {
+            currentDeductionText = 'หักน้ำ/ไฟ/โทรศัพท์';
+            currentDeductionAmount = formatNumber(deduction2250);
+            deductionRowCount++;
+          } else if (deductionRowCount === 11 && deduction2261 > 0) {
+            currentDeductionText = 'ค่าบัตร';
+            currentDeductionAmount = formatNumber(deduction2261);
+            deductionRowCount++;
+          } else if (deductionRowCount === 12 && deduction2310 > 0) {
+            currentDeductionText = 'หักค่าของเสียหาย';
+            currentDeductionAmount = formatNumber(deduction2310);
+            deductionRowCount++;
+          } else if (deductionRowCount === 13 && deduction2311 > 0) {
+            currentDeductionText = 'หักค่าแรงคืน (จ่ายเกิน)';
+            currentDeductionAmount = formatNumber(deduction2311);
+            deductionRowCount++;
+          } else if (deductionRowCount === 14 && deduction2312 > 0) {
+            currentDeductionText = 'หักผิดกฎระเบียบ';
+            currentDeductionAmount = formatNumber(deduction2312);
+            deductionRowCount++;
+          } else if (deductionRowCount === 15 && deduction2330 > 0) {
+            currentDeductionText = 'หักเงินเบิกล่วงหน้า';
+            currentDeductionAmount = formatNumber(deduction2330);
+            deductionRowCount++;
+          } else if (deductionRowCount === 16 && deduction2331 > 0) {
+            currentDeductionText = 'หักคืนค่าทำงานวันหยุด';
+            currentDeductionAmount = formatNumber(deduction2331);
+            deductionRowCount++;
+          } else if (deductionRowCount === 17 && deduction2340 > 0) {
+            currentDeductionText = 'หักอื่นๆ (ไม่คิดปกส)';
+            currentDeductionAmount = formatNumber(deduction2340);
+            deductionRowCount++;
+          } else if (deductionRowCount === 18 && deduction2430 > 0) {
+            currentDeductionText = 'หักกลับก่อนเวลา';
+            currentDeductionAmount = formatNumber(deduction2430);
+            deductionRowCount++;
+          }
+          
           addIncomeRow(
             'จ่ายชดเชยวันลา', 
             '', 
             formatNumber(totalSpSalaryCompensation), 
-            '', 
-            '', 
+            currentDeductionText, 
+            currentDeductionAmount, 
             ''
           );
         }
@@ -4031,10 +4857,8 @@ const generateExcel = async () => {
         responseDataAll[i].accountingRecord?.[0]?.travel || 0
       );
 
-      // The IDs you want to exclude
-      const excludedIds = ["1350", "1230", "1410", "1535", "1520"];
-
-      // Assuming responseDataAll[i].addSalary is an array of salary objects
+        // The IDs you want to exclude
+        const excludedIds = ["1350", "1230", "1410", "1535", "1520", "1531", "1210", "1251", "1440", "1441", "1444", "1446", "1525", "1526", "1528", "1540", "1541", "1550", "1610", "1611", "1612", "1447", "1613", "1561", "1542", "1536", "1529", "1533", "1534", "1412", "1159"];      // Assuming responseDataAll[i].addSalary is an array of salary objects
       const addSalaryFiltered = (responseDataAll[i].addSalary || [])
         .filter((salary) => !excludedIds.includes(salary.id)) // Filter out the objects with excluded IDs
         .map((salary) => ({
@@ -4154,24 +4978,36 @@ const generateExcel = async () => {
       pdf.text(`เลขที่บัญชี ${banknumber}`, 155, head);
 
       const namesWithSpecificIds = responseDataAll[i].addSalary
-        .filter((item) => ["1230", "1350", "1241"].includes(item.id)) // Filter based on specific IDs
+        .filter((item) => ["1230", "1350", "1241", "1210"].includes(item.id)) // Filter based on specific IDs
         .map((item) => {
           // Check if the item.id is 1350 and modify item.name
           if (item.id === "1350") {
             return "โทรศัพท์"; // Set to "โทรศัพท์" when item.id is 1350
+          } else if (item.id === "1241") {
+            return "ค่าวิชาชีพ"; // Set to "ค่าวิชาชีพ" when item.id is 1241
+          } else if (item.id === "1210") {
+            return "ค่ากะ"; // Set to "ค่ากะ" when item.id is 1210
           }
           return item.name; // Otherwise, keep the original name
         });
 
 
-      const specificIds = ["1230", "1350", "1241"]; // ID ที่ต้องการกรอง
+      const specificIds = ["1230", "1350", "1241", "1210"]; // ID ที่ต้องการกรอง
 
       const result = responseDataAll[i].addSalary
         .filter((item) => specificIds.includes(item.id)) // กรองเฉพาะ ID ที่ต้องการ
         .reduce(
           (acc, item) => {
             // คำนวณผลรวม SpSalary
-            acc.names.push(item.id === "1350" ? "โทรศัพท์" : item.name); // เปลี่ยนชื่อสำหรับ ID 1350
+            if (item.id === "1350") {
+              acc.names.push("โทรศัพท์");
+            } else if (item.id === "1241") {
+              acc.names.push("ค่าวิชาชีพ");
+            } else if (item.id === "1210") {
+              acc.names.push("ค่ากะ");
+            } else {
+              acc.names.push(item.name);
+            }
             acc.sumSpSalary += Number(item.SpSalary) || 0; // รวมค่า SpSalary (กรณีไม่มีค่าให้ใช้ 0)
             return acc;
           },
@@ -4458,6 +5294,366 @@ const generateExcel = async () => {
         console.log("11");
       }
 
+      // ปรับปรุงค่าแรงขาด (รับล่วงหน้า) - เพิ่ม ID 1531 สำหรับ generatePDFAudit เป็นรายการเงินได้
+      const advanceWageAdjustmentAuditIncome = (responseDataAll[i].addSalary || [])
+        .filter(item => item.id === "1531")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      if (advanceWageAdjustmentAuditIncome > 0) {
+        textArray.push("ปรับปรุงค่าแรงขาด (รับล่วงหน้า)");
+        countArray.push("");
+        valueArray.push(
+          advanceWageAdjustmentAuditIncome.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+        console.log("advance wage adjustment income added");
+      }
+
+      // ค่าโรยตัว/ค่าขับรถ - เพิ่ม ID 1251 สำหรับ generatePDFAudit เป็นรายการเงินได้
+      const transportationAllowanceAuditIncome = (responseDataAll[i].addSalary || [])
+        .filter(item => item.id === "1251")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      if (transportationAllowanceAuditIncome > 0) {
+        textArray.push("ค่าโรยตัว/ค่าขับรถ");
+        countArray.push("");
+        valueArray.push(
+          transportationAllowanceAuditIncome.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+        console.log("transportation allowance income added");
+      }
+
+      // โบนัส - เพิ่ม ID 1440 สำหรับ generatePDFAudit เป็นรายการเงินได้
+      const bonusAuditIncome = (responseDataAll[i].addSalary || [])
+        .filter(item => item.id === "1440")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      if (bonusAuditIncome > 0) {
+        textArray.push("โบนัส");
+        countArray.push("");
+        valueArray.push(
+          bonusAuditIncome.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+        console.log("bonus income added");
+      }
+
+      // ค่าทำงานวันหยุด - เพิ่ม ID 1441 สำหรับ generatePDFAudit เป็นรายการเงินได้
+      const holidayWorkAuditIncome = (responseDataAll[i].addSalary || [])
+        .filter(item => item.id === "1441")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      if (holidayWorkAuditIncome > 0) {
+        textArray.push("ค่าทำงานวันหยุด");
+        countArray.push("");
+        valueArray.push(
+          holidayWorkAuditIncome.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+        console.log("holiday work income added");
+      }
+
+      // ค่าทำงานในวันหยุดตามประเพณี - เพิ่ม ID 1444 สำหรับ generatePDFAudit เป็นรายการเงินได้
+      const traditionalHolidayWorkAuditIncome = (responseDataAll[i].addSalary || [])
+        .filter(item => item.id === "1444")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      if (traditionalHolidayWorkAuditIncome > 0) {
+        textArray.push("ค่าทำงานในวันหยุดตามประเพณี");
+        countArray.push("");
+        valueArray.push(
+          traditionalHolidayWorkAuditIncome.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+        console.log("traditional holiday work income added");
+      }
+
+      // ค่าทำงานวันหยุด (1446) - เพิ่ม ID 1446 สำหรับ generatePDFAudit เป็นรายการเงินได้
+      const holidayWork1446AuditIncome = (responseDataAll[i].addSalary || [])
+        .filter(item => item.id === "1446")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      if (holidayWork1446AuditIncome > 0) {
+        textArray.push("ค่าทำงานวันหยุด");
+        countArray.push("");
+        valueArray.push(
+          holidayWork1446AuditIncome.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+        console.log("holiday work 1446 income added");
+      }
+
+      // ค่ากะ - เพิ่ม ID 1210 สำหรับ generatePDFAudit เป็นรายการเงินได้
+      const shiftAllowanceAuditIncome = (responseDataAll[i].addSalary || [])
+        .filter(item => item.id === "1210")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      if (shiftAllowanceAuditIncome > 0) {
+        textArray.push("ค่ากะ");
+        countArray.push("");
+        valueArray.push(
+          shiftAllowanceAuditIncome.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+        console.log("shift allowance income added");
+      }
+
+      // ค่าวิชาชีพ - เพิ่ม ID 1241 สำหรับ generatePDFAudit เป็นรายการเงินได้
+      const professionalAllowanceAuditIncome = (responseDataAll[i].addSalary || [])
+        .filter(item => item.id === "1241")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      if (professionalAllowanceAuditIncome > 0) {
+        textArray.push("ค่าวิชาชีพ");
+        countArray.push("");
+        valueArray.push(
+          professionalAllowanceAuditIncome.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+        console.log("professional allowance income added");
+      }
+
+      // เพิ่มรายได้ใหม่ทั้งหมด
+      // ปรับปรุงค่าแรงขาดงวดก่อน - ID 1525
+      const prevWageAdjustmentIncome = (responseDataAll[i].addSalary || [])
+        .filter(item => item.id === "1525")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      if (prevWageAdjustmentIncome > 0) {
+        textArray.push("ปรับปรุงค่าแรงขาดงวดก่อน");
+        countArray.push("");
+        valueArray.push(
+          prevWageAdjustmentIncome.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
+      // ปรับปรุงเพิ่มค่าแรงต่างอัตรา - ID 1526
+      const wageRateAdjustmentIncome = (responseDataAll[i].addSalary || [])
+        .filter(item => item.id === "1526")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      if (wageRateAdjustmentIncome > 0) {
+        textArray.push("ปรับปรุงเพิ่มค่าแรงต่างอัตรา");
+        countArray.push("");
+        valueArray.push(
+          wageRateAdjustmentIncome.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
+      // ปรับปรุงค่าทำงานวันหยุดเพิ่ม - ID 1528
+      const holidayWorkExtraIncome = (responseDataAll[i].addSalary || [])
+        .filter(item => item.id === "1528")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      if (holidayWorkExtraIncome > 0) {
+        textArray.push("ปรับปรุงค่าทำงานวันหยุดเพิ่ม");
+        countArray.push("");
+        valueArray.push(
+          holidayWorkExtraIncome.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
+      // ค่าคอมมิชชั่น - ID 1540
+      const commissionIncome = (responseDataAll[i].addSalary || [])
+        .filter(item => item.id === "1540")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      if (commissionIncome > 0) {
+        textArray.push("ค่าคอมมิชชั่น");
+        countArray.push("");
+        valueArray.push(
+          commissionIncome.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
+      // ค่าสรรหา - ID 1541
+      const recruitmentFeeIncome = (responseDataAll[i].addSalary || [])
+        .filter(item => item.id === "1541")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      if (recruitmentFeeIncome > 0) {
+        textArray.push("ค่าสรรหา");
+        countArray.push("");
+        valueArray.push(
+          recruitmentFeeIncome.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
+      // เงินได้อื่นๆ - ID 1550
+      const otherIncomeIncome = (responseDataAll[i].addSalary || [])
+        .filter(item => item.id === "1550")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      if (otherIncomeIncome > 0) {
+        textArray.push("เงินได้อื่นๆ");
+        countArray.push("");
+        valueArray.push(
+          otherIncomeIncome.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
+      // ปรับปรุงคืนอื่น ๆ (ไม่คิดปกส) - ID 1610
+      const refundOtherNoSocSecIncome = (responseDataAll[i].addSalary || [])
+        .filter(item => item.id === "1610")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      if (refundOtherNoSocSecIncome > 0) {
+        textArray.push("ปรับปรุงคืนอื่น ๆ (ไม่คิดปกส)");
+        countArray.push("");
+        valueArray.push(
+          refundOtherNoSocSecIncome.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
+      // เงินได้อื่น (ไม่หัก ปกส) - ID 1611
+      const incomeOtherNoSocSecIncome = (responseDataAll[i].addSalary || [])
+        .filter(item => item.id === "1611")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      if (incomeOtherNoSocSecIncome > 0) {
+        textArray.push("เงินได้อื่น (ไม่หัก ปกส)");
+        countArray.push("");
+        valueArray.push(
+          incomeOtherNoSocSecIncome.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
+      // ปรับปรุงคืนค่าเครื่องแบบจ่ายเกิน - ID 1612
+      const uniformRefundIncome = (responseDataAll[i].addSalary || [])
+        .filter(item => item.id === "1612")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      if (uniformRefundIncome > 0) {
+        textArray.push("ปรับปรุงคืนค่าเครื่องแบบจ่ายเกิน");
+        countArray.push("");
+        valueArray.push(
+          uniformRefundIncome.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
+      // โบนัสรับล่วงหน้า - ID 1447
+      const advanceBonusIncome = (responseDataAll[i].addSalary || [])
+        .filter(item => item.id === "1447")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      if (advanceBonusIncome > 0) {
+        textArray.push("โบนัสรับล่วงหน้า");
+        countArray.push("");
+        valueArray.push(
+          advanceBonusIncome.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
+      // ปรับปรุงคืนค่าเครื่องแบบจ่ายเกิน/อื่นๆ(รับล่วงหน้า) - ID 1613
+      const uniformRefundAdvanceIncome = (responseDataAll[i].addSalary || [])
+        .filter(item => item.id === "1613")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      if (uniformRefundAdvanceIncome > 0) {
+        textArray.push("ปรับปรุงคืนค่าเครื่องแบบจ่ายเกิน/อื่นๆ(รับล่วงหน้า)");
+        countArray.push("");
+        valueArray.push(
+          uniformRefundAdvanceIncome.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
+      // เงินเพิ่มพิเศษ(รับล่วงหน้า) - ID 1561
+      const extraMoneyAdvanceIncome = (responseDataAll[i].addSalary || [])
+        .filter(item => item.id === "1561")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      if (extraMoneyAdvanceIncome > 0) {
+        textArray.push("เงินเพิ่มพิเศษ(รับล่วงหน้า)");
+        countArray.push("");
+        valueArray.push(
+          extraMoneyAdvanceIncome.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
+      // ค่าสรรหา(รับล่วงหน้า) - ID 1542
+      const recruitmentAdvanceIncome = (responseDataAll[i].addSalary || [])
+        .filter(item => item.id === "1542")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      if (recruitmentAdvanceIncome > 0) {
+        textArray.push("ค่าสรรหา(รับล่วงหน้า)");
+        countArray.push("");
+        valueArray.push(
+          recruitmentAdvanceIncome.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
+      // ค่าเดินทาง(ไม่คิดปกส.)รับล่วงหน้า - ID 1536
+      const travelAdvanceIncome = (responseDataAll[i].addSalary || [])
+        .filter(item => item.id === "1536")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      if (travelAdvanceIncome > 0) {
+        textArray.push("ค่าเดินทาง(ไม่คิดปกส.)รับล่วงหน้า");
+        countArray.push("");
+        valueArray.push(
+          travelAdvanceIncome.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
+      // ปรับปรุค่าพาหนะ(รับล่วงหน้า) - ID 1529
+      const vehicleAdvanceIncome = (responseDataAll[i].addSalary || [])
+        .filter(item => item.id === "1529")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      if (vehicleAdvanceIncome > 0) {
+        textArray.push("ปรับปรุค่าพาหนะ(รับล่วงหน้า)");
+        countArray.push("");
+        valueArray.push(
+          vehicleAdvanceIncome.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
+      // ปรับปรุงวันนักขัติฤกษ์(รับล่วงหน้า)ปกส - ID 1533
+      const holidayAdvanceIncome = (responseDataAll[i].addSalary || [])
+        .filter(item => item.id === "1533")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      if (holidayAdvanceIncome > 0) {
+        textArray.push("ปรับปรุงวันนักขัติฤกษ์(รับล่วงหน้า)ปกส");
+        countArray.push("");
+        valueArray.push(
+          holidayAdvanceIncome.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
+      // ปรับปรุงค่าตำแหน่ง(รับล่วงหน้า) - ID 1534
+      const positionAdvanceIncome = (responseDataAll[i].addSalary || [])
+        .filter(item => item.id === "1534")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      if (positionAdvanceIncome > 0) {
+        textArray.push("ปรับปรุงค่าตำแหน่ง(รับล่วงหน้า)");
+        countArray.push("");
+        valueArray.push(
+          positionAdvanceIncome.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
+      // ปรับปรุงเบี้ยขยัน(รับล่วงหน้า) - ID 1412
+      const diligenceAdvanceIncome = (responseDataAll[i].addSalary || [])
+        .filter(item => item.id === "1412")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      if (diligenceAdvanceIncome > 0) {
+        textArray.push("ปรับปรุงเบี้ยขยัน(รับล่วงหน้า)");
+        countArray.push("");
+        valueArray.push(
+          diligenceAdvanceIncome.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
+      // ปรับปรุงค่าล่วงเวลา(รับล่วงหน้า) - ID 1159
+      const overtimeAdvanceIncome = (responseDataAll[i].addSalary || [])
+        .filter(item => item.id === "1159")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      if (overtimeAdvanceIncome > 0) {
+        textArray.push("ปรับปรุงค่าล่วงเวลา(รับล่วงหน้า)");
+        countArray.push("");
+        valueArray.push(
+          overtimeAdvanceIncome.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
       const textDedustArray = [];
       const valueDedustArray = [];
 
@@ -4505,6 +5701,307 @@ const generateExcel = async () => {
           }
         }
         console.log("de3");
+      }
+
+      // เพิ่มรายการหักใหม่ทั้งหมด
+      // หักคืนค่าเบิกล่วงหน้า(รับล่วงหน้า) - ID 2333
+      const deduction2333 = (responseDataAll[i].deductSalaryList || [])
+        .filter(item => item.id === "2333")
+        .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+      
+      if (deduction2333 > 0) {
+        textDedustArray.push("หักคืนค่าเบิกล่วงหน้า(รับล่วงหน้า)");
+        valueDedustArray.push(
+          deduction2333.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
+      // หักค่าแรงต่างอัตรา - ID 2111
+      const deduction2111 = (responseDataAll[i].addSalary || [])
+        .filter(item => item.id === "2111")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      if (deduction2111 > 0) {
+        textDedustArray.push("หักค่าแรงต่างอัตรา");
+        valueDedustArray.push(
+          deduction2111.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
+      // หักคืนอื่นๆ (คำนวณ ปกส) - ID 2116
+      const deduction2116 = (responseDataAll[i].addSalary || [])
+        .filter(item => item.id === "2116")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      if (deduction2116 > 0) {
+        textDedustArray.push("หักคืนอื่นๆ (คำนวณ ปกส)");
+        valueDedustArray.push(
+          deduction2116.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
+      // หักคืนอื่นๆ (ไม่คำนวณ ปกส) - ID 2117
+      const deduction2117 = (responseDataAll[i].addSalary || [])
+        .filter(item => item.id === "2117")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      if (deduction2117 > 0) {
+        textDedustArray.push("หักคืนอื่นๆ (ไม่คำนวณ ปกส)");
+        valueDedustArray.push(
+          deduction2117.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
+      // หักมาสาย - ID 2120
+      const deduction2120 = (responseDataAll[i].addSalary || [])
+        .filter(item => item.id === "2120")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      if (deduction2120 > 0) {
+        textDedustArray.push("หักมาสาย");
+        valueDedustArray.push(
+          deduction2120.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
+      // หักค่ารถ - ID 2124
+      const deduction2124 = (responseDataAll[i].addSalary || [])
+        .filter(item => item.id === "2124")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      if (deduction2124 > 0) {
+        textDedustArray.push("หักค่ารถ");
+        valueDedustArray.push(
+          deduction2124.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
+      // หักลาพักร้อนจ่ายเกิน - ID 2160
+      const deduction2160 = (responseDataAll[i].addSalary || [])
+        .filter(item => item.id === "2160")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      if (deduction2160 > 0) {
+        textDedustArray.push("หักลาพักร้อนจ่ายเกิน");
+        valueDedustArray.push(
+          deduction2160.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
+      // หักน้ำ/ไฟ/โทรศัพท์ - ID 2250
+      const deduction2250 = (responseDataAll[i].addSalary || [])
+        .filter(item => item.id === "2250")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      if (deduction2250 > 0) {
+        textDedustArray.push("หักน้ำ/ไฟ/โทรศัพท์");
+        valueDedustArray.push(
+          deduction2250.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
+      // ค่าบัตร - ID 2261
+      const deduction2261 = (responseDataAll[i].addSalary || [])
+        .filter(item => item.id === "2261")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      if (deduction2261 > 0) {
+        textDedustArray.push("ค่าบัตร");
+        valueDedustArray.push(
+          deduction2261.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
+      // หักค่าของเสียหาย - ID 2310
+      const deduction2310 = (responseDataAll[i].addSalary || [])
+        .filter(item => item.id === "2310")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      if (deduction2310 > 0) {
+        textDedustArray.push("หักค่าของเสียหาย");
+        valueDedustArray.push(
+          deduction2310.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
+      // หักค่าแรงคืน (จ่ายเกิน) - ID 2311
+      const deduction2311 = (responseDataAll[i].addSalary || [])
+        .filter(item => item.id === "2311")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      if (deduction2311 > 0) {
+        textDedustArray.push("หักค่าแรงคืน (จ่ายเกิน)");
+        valueDedustArray.push(
+          deduction2311.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
+      // หักผิดกฎระเบียบ - ID 2312
+      const deduction2312 = (responseDataAll[i].addSalary || [])
+        .filter(item => item.id === "2312")
+        .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+      
+      if (deduction2312 > 0) {
+        textDedustArray.push("หักผิดกฎระเบียบ");
+        valueDedustArray.push(
+          deduction2312.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
+      // หักเงินเบิกล่วงหน้า - ID 2330
+      const deduction2330 = (responseDataAll[i].deductSalaryList || [])
+        .filter(item => item.id === "2330")
+        .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+      
+      if (deduction2330 > 0) {
+        textDedustArray.push("หักเงินเบิกล่วงหน้า");
+        valueDedustArray.push(
+          deduction2330.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
+      // หักคืนค่าทำงานวันหยุด - ID 2331
+      const deduction2331 = (responseDataAll[i].deductSalaryList || [])
+        .filter(item => item.id === "2331")
+        .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+      
+      if (deduction2331 > 0) {
+        textDedustArray.push("หักคืนค่าทำงานวันหยุด");
+        valueDedustArray.push(
+          deduction2331.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
+      // หักคืนค่าเบิกอุปกรณ์ PPE - ID 2334
+      const deduction2334 = (responseDataAll[i].deductSalaryList || [])
+        .filter(item => item.id === "2334")
+        .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+      
+      if (deduction2334 > 0) {
+        textDedustArray.push("หักคืนค่าเบิกอุปกรณ์ PPE");
+        valueDedustArray.push(
+          deduction2334.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
+      // หักคืนข้าวปลากับข้าว - ID 2335
+      const deduction2335 = (responseDataAll[i].deductSalaryList || [])
+        .filter(item => item.id === "2335")
+        .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+      
+      if (deduction2335 > 0) {
+        textDedustArray.push("หักคืนข้าวปลากับข้าว");
+        valueDedustArray.push(
+          deduction2335.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
+      // หักเงินค่าห้อง - ID 2336
+      const deduction2336 = (responseDataAll[i].deductSalaryList || [])
+        .filter(item => item.id === "2336")
+        .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+      
+      if (deduction2336 > 0) {
+        textDedustArray.push("หักเงินค่าห้อง");
+        valueDedustArray.push(
+          deduction2336.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
+      // หักเงินค่าห้อง(เหมาจ่าย) - ID 2337
+      const deduction2337 = (responseDataAll[i].deductSalaryList || [])
+        .filter(item => item.id === "2337")
+        .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+      
+      if (deduction2337 > 0) {
+        textDedustArray.push("หักเงินค่าห้อง(เหมาจ่าย)");
+        valueDedustArray.push(
+          deduction2337.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
+      // หักค่าใช้จ่ายเดินทาง - ID 2338
+      const deduction2338 = (responseDataAll[i].deductSalaryList || [])
+        .filter(item => item.id === "2338")
+        .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+      
+      if (deduction2338 > 0) {
+        textDedustArray.push("หักค่าใช้จ่ายเดินทาง");
+        valueDedustArray.push(
+          deduction2338.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
+      // หักค่าใช้จ่ายอื่นๆ - ID 2339
+      const deduction2339 = (responseDataAll[i].deductSalaryList || [])
+        .filter(item => item.id === "2339")
+        .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+      
+      if (deduction2339 > 0) {
+        textDedustArray.push("หักค่าใช้จ่ายอื่นๆ");
+        valueDedustArray.push(
+          deduction2339.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
+      // หักกรมธรรม์ - ID 2340 (แก้ไขให้ใช้ deductSalaryList)
+      const deduction2340 = (responseDataAll[i].deductSalaryList || [])
+        .filter(item => item.id === "2340")
+        .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+      
+      if (deduction2340 > 0) {
+        textDedustArray.push("หักกรมธรรม์");
+        valueDedustArray.push(
+          deduction2340.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
+      // หักเงินคืนล่วงหน้า - ID 2341
+      const deduction2341 = (responseDataAll[i].deductSalaryList || [])
+        .filter(item => item.id === "2341")
+        .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+      
+      if (deduction2341 > 0) {
+        textDedustArray.push("หักเงินคืนล่วงหน้า");
+        valueDedustArray.push(
+          deduction2341.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
+      // หักเข้าวันหยุด - ID 2410
+      const deduction2410 = (responseDataAll[i].deductSalaryList || [])
+        .filter(item => item.id === "2410")
+        .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+      
+      if (deduction2410 > 0) {
+        textDedustArray.push("หักเข้าวันหยุด");
+        valueDedustArray.push(
+          deduction2410.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
+      // หักทำลายสิ่งของ - ID 2420
+      const deduction2420 = (responseDataAll[i].deductSalaryList || [])
+        .filter(item => item.id === "2420")
+        .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+      
+      if (deduction2420 > 0) {
+        textDedustArray.push("หักทำลายสิ่งของ");
+        valueDedustArray.push(
+          deduction2420.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
+      }
+
+      // หักกลับก่อนเวลา อันนี้รายการหัก - ID 2430 (แก้ไขให้ใช้ deductSalaryList)
+      const deduction2430 = (responseDataAll[i].deductSalaryList || [])
+        .filter(item => item.id === "2430")
+        .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+      
+      if (deduction2430 > 0) {
+        textDedustArray.push("หักกลับก่อนเวลา อันนี้รายการหัก");
+        valueDedustArray.push(
+          deduction2430.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        );
       }
 
       pdf.rect(7, 28, 62, 63); //ตารางหลัก บน ซ้าย ช่อง1 จำนวน
@@ -4740,7 +6237,7 @@ const generateExcel = async () => {
 
 
         // //เงินพิเศษ
-        const excludedIds = ["1350", "1230", "1410", "1535", "1520"];
+        const excludedIds = ["1350", "1230", "1410", "1535", "1520", "1531", "1210", "1251", "1440", "1441", "1444", "1446", "1525", "1526", "1528", "1540", "1541", "1550", "1610", "1611", "1612", "1447", "1613", "1561", "1542", "1536", "1529", "1533", "1534", "1412", "1159"];
 
         // Assuming responseDataAll[i].addSalary is an array of salary objects
         const addSalaryFiltered = responseDataAll[i + 1].addSalary
@@ -5109,6 +6606,366 @@ const generateExcel = async () => {
           console.log("1111");
         }
 
+        // ปรับปรุงค่าแรงขาด (รับล่วงหน้า) สำหรับพนักงานคนที่ 2 - เพิ่ม ID 1531 เป็นรายการเงินได้
+        const advanceWageAdjustmentAuditIncome2 = (responseDataAll[i + 1].addSalary || [])
+          .filter(item => item.id === "1531")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        
+        if (advanceWageAdjustmentAuditIncome2 > 0) {
+          textArray.push("ปรับปรุงค่าแรงขาด (รับล่วงหน้า)");
+          countArray.push("");
+          valueArray.push(
+            advanceWageAdjustmentAuditIncome2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+          );
+          console.log("advance wage adjustment income 2 added");
+        }
+
+        // ค่ากะ สำหรับพนักงานคนที่ 2 - เพิ่ม ID 1210 เป็นรายการเงินได้
+        const shiftAllowanceAuditIncome2 = (responseDataAll[i + 1].addSalary || [])
+          .filter(item => item.id === "1210")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        
+        if (shiftAllowanceAuditIncome2 > 0) {
+          textArray.push("ค่ากะ");
+          countArray.push("");
+          valueArray.push(
+            shiftAllowanceAuditIncome2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+          );
+          console.log("shift allowance income 2 added");
+        }
+
+        // ค่าวิชาชีพ สำหรับพนักงานคนที่ 2 - เพิ่ม ID 1241 เป็นรายการเงินได้
+        const professionalAllowanceAuditIncome2 = (responseDataAll[i + 1].addSalary || [])
+          .filter(item => item.id === "1241")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        
+        if (professionalAllowanceAuditIncome2 > 0) {
+          textArray.push("ค่าวิชาชีพ");
+          countArray.push("");
+          valueArray.push(
+            professionalAllowanceAuditIncome2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+          );
+          console.log("professional allowance income 2 added");
+        }
+
+        // ค่าโรยตัว/ค่าขับรถ สำหรับพนักงานคนที่ 2 - เพิ่ม ID 1251 เป็นรายการเงินได้
+        const transportationAllowanceAuditIncome2 = (responseDataAll[i + 1].addSalary || [])
+          .filter(item => item.id === "1251")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        
+        if (transportationAllowanceAuditIncome2 > 0) {
+          textArray.push("ค่าโรยตัว/ค่าขับรถ");
+          countArray.push("");
+          valueArray.push(
+            transportationAllowanceAuditIncome2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+          );
+          console.log("transportation allowance income 2 added");
+        }
+
+        // โบนัส สำหรับพนักงานคนที่ 2 - เพิ่ม ID 1440 เป็นรายการเงินได้
+        const bonusAuditIncome2 = (responseDataAll[i + 1].addSalary || [])
+          .filter(item => item.id === "1440")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        
+        if (bonusAuditIncome2 > 0) {
+          textArray.push("โบนัส");
+          countArray.push("");
+          valueArray.push(
+            bonusAuditIncome2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+          );
+          console.log("bonus income 2 added");
+        }
+
+        // ค่าทำงานวันหยุด สำหรับพนักงานคนที่ 2 - เพิ่ม ID 1441 เป็นรายการเงินได้
+        const holidayWorkAuditIncome2 = (responseDataAll[i + 1].addSalary || [])
+          .filter(item => item.id === "1441")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        
+        if (holidayWorkAuditIncome2 > 0) {
+          textArray.push("ค่าทำงานวันหยุด");
+          countArray.push("");
+          valueArray.push(
+            holidayWorkAuditIncome2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+          );
+          console.log("holiday work income 2 added");
+        }
+
+        // ค่าทำงานในวันหยุดตามประเพณี สำหรับพนักงานคนที่ 2 - เพิ่ม ID 1444 เป็นรายการเงินได้
+        const traditionalHolidayWorkAuditIncome2 = (responseDataAll[i + 1].addSalary || [])
+          .filter(item => item.id === "1444")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        
+        if (traditionalHolidayWorkAuditIncome2 > 0) {
+          textArray.push("ค่าทำงานในวันหยุดตามประเพณี");
+          countArray.push("");
+          valueArray.push(
+            traditionalHolidayWorkAuditIncome2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+          );
+          console.log("traditional holiday work income 2 added");
+        }
+
+        // ค่าทำงานวันหยุด (1446) สำหรับพนักงานคนที่ 2 - เพิ่ม ID 1446 เป็นรายการเงินได้
+        const holidayWork1446AuditIncome2 = (responseDataAll[i + 1].addSalary || [])
+          .filter(item => item.id === "1446")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        
+        if (holidayWork1446AuditIncome2 > 0) {
+          textArray.push("ค่าทำงานวันหยุด");
+          countArray.push("");
+          valueArray.push(
+            holidayWork1446AuditIncome2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+          );
+          console.log("holiday work 1446 income 2 added");
+        }
+
+        // เพิ่มรายได้ใหม่ทั้งหมดสำหรับพนักงานคนที่ 2
+        // ปรับปรุงค่าแรงขาดงวดก่อน - ID 1525
+        const prevWageAdjustmentIncome2 = (responseDataAll[i + 1].addSalary || [])
+          .filter(item => item.id === "1525")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        
+        if (prevWageAdjustmentIncome2 > 0) {
+          textArray.push("ปรับปรุงค่าแรงขาดงวดก่อน");
+          countArray.push("");
+          valueArray.push(
+            prevWageAdjustmentIncome2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+          );
+        }
+
+        // ปรับปรุงเพิ่มค่าแรงต่างอัตรา - ID 1526
+        const wageRateAdjustmentIncome2 = (responseDataAll[i + 1].addSalary || [])
+          .filter(item => item.id === "1526")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        
+        if (wageRateAdjustmentIncome2 > 0) {
+          textArray.push("ปรับปรุงเพิ่มค่าแรงต่างอัตรา");
+          countArray.push("");
+          valueArray.push(
+            wageRateAdjustmentIncome2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+          );
+        }
+
+        // ปรับปรุงค่าทำงานวันหยุดเพิ่ม - ID 1528
+        const holidayWorkExtraIncome2 = (responseDataAll[i + 1].addSalary || [])
+          .filter(item => item.id === "1528")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        
+        if (holidayWorkExtraIncome2 > 0) {
+          textArray.push("ปรับปรุงค่าทำงานวันหยุดเพิ่ม");
+          countArray.push("");
+          valueArray.push(
+            holidayWorkExtraIncome2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+          );
+        }
+
+        // ค่าคอมมิชชั่น - ID 1540
+        const commissionIncome2 = (responseDataAll[i + 1].addSalary || [])
+          .filter(item => item.id === "1540")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        
+        if (commissionIncome2 > 0) {
+          textArray.push("ค่าคอมมิชชั่น");
+          countArray.push("");
+          valueArray.push(
+            commissionIncome2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+          );
+        }
+
+        // ค่าสรรหา - ID 1541
+        const recruitmentFeeIncome2 = (responseDataAll[i + 1].addSalary || [])
+          .filter(item => item.id === "1541")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        
+        if (recruitmentFeeIncome2 > 0) {
+          textArray.push("ค่าสรรหา");
+          countArray.push("");
+          valueArray.push(
+            recruitmentFeeIncome2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+          );
+        }
+
+        // เงินได้อื่นๆ - ID 1550
+        const otherIncomeIncome2 = (responseDataAll[i + 1].addSalary || [])
+          .filter(item => item.id === "1550")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        
+        if (otherIncomeIncome2 > 0) {
+          textArray.push("เงินได้อื่นๆ");
+          countArray.push("");
+          valueArray.push(
+            otherIncomeIncome2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+          );
+        }
+
+        // ปรับปรุงคืนอื่น ๆ (ไม่คิดปกส) - ID 1610
+        const refundOtherNoSocSecIncome2 = (responseDataAll[i + 1].addSalary || [])
+          .filter(item => item.id === "1610")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        
+        if (refundOtherNoSocSecIncome2 > 0) {
+          textArray.push("ปรับปรุงคืนอื่น ๆ (ไม่คิดปกส)");
+          countArray.push("");
+          valueArray.push(
+            refundOtherNoSocSecIncome2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+          );
+        }
+
+        // เงินได้อื่น (ไม่หัก ปกส) - ID 1611
+        const incomeOtherNoSocSecIncome2 = (responseDataAll[i + 1].addSalary || [])
+          .filter(item => item.id === "1611")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        
+        if (incomeOtherNoSocSecIncome2 > 0) {
+          textArray.push("เงินได้อื่น (ไม่หัก ปกส)");
+          countArray.push("");
+          valueArray.push(
+            incomeOtherNoSocSecIncome2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+          );
+        }
+
+        // ปรับปรุงคืนค่าเครื่องแบบจ่ายเกิน - ID 1612
+        const uniformRefundIncome2 = (responseDataAll[i + 1].addSalary || [])
+          .filter(item => item.id === "1612")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        
+        if (uniformRefundIncome2 > 0) {
+          textArray.push("ปรับปรุงคืนค่าเครื่องแบบจ่ายเกิน");
+          countArray.push("");
+          valueArray.push(
+            uniformRefundIncome2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+          );
+        }
+
+        // โบนัสรับล่วงหน้า - ID 1447
+        const advanceBonusIncome2 = (responseDataAll[i + 1].addSalary || [])
+          .filter(item => item.id === "1447")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        
+        if (advanceBonusIncome2 > 0) {
+          textArray.push("โบนัสรับล่วงหน้า");
+          countArray.push("");
+          valueArray.push(
+            advanceBonusIncome2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+          );
+        }
+
+        // ปรับปรุงคืนค่าเครื่องแบบจ่ายเกิน/อื่นๆ(รับล่วงหน้า) - ID 1613
+        const uniformRefundAdvanceIncome2 = (responseDataAll[i + 1].addSalary || [])
+          .filter(item => item.id === "1613")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        
+        if (uniformRefundAdvanceIncome2 > 0) {
+          textArray.push("ปรับปรุงคืนค่าเครื่องแบบจ่ายเกิน/อื่นๆ(รับล่วงหน้า)");
+          countArray.push("");
+          valueArray.push(
+            uniformRefundAdvanceIncome2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+          );
+        }
+
+        // เงินเพิ่มพิเศษ(รับล่วงหน้า) - ID 1561
+        const extraMoneyAdvanceIncome2 = (responseDataAll[i + 1].addSalary || [])
+          .filter(item => item.id === "1561")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        
+        if (extraMoneyAdvanceIncome2 > 0) {
+          textArray.push("เงินเพิ่มพิเศษ(รับล่วงหน้า)");
+          countArray.push("");
+          valueArray.push(
+            extraMoneyAdvanceIncome2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+          );
+        }
+
+        // ค่าสรรหา(รับล่วงหน้า) - ID 1542
+        const recruitmentAdvanceIncome2 = (responseDataAll[i + 1].addSalary || [])
+          .filter(item => item.id === "1542")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        
+        if (recruitmentAdvanceIncome2 > 0) {
+          textArray.push("ค่าสรรหา(รับล่วงหน้า)");
+          countArray.push("");
+          valueArray.push(
+            recruitmentAdvanceIncome2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+          );
+        }
+
+        // ค่าเดินทาง(ไม่คิดปกส.)รับล่วงหน้า - ID 1536
+        const travelAdvanceIncome2 = (responseDataAll[i + 1].addSalary || [])
+          .filter(item => item.id === "1536")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        
+        if (travelAdvanceIncome2 > 0) {
+          textArray.push("ค่าเดินทาง(ไม่คิดปกส.)รับล่วงหน้า");
+          countArray.push("");
+          valueArray.push(
+            travelAdvanceIncome2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+          );
+        }
+
+        // ปรับปรุค่าพาหนะ(รับล่วงหน้า) - ID 1529
+        const vehicleAdvanceIncome2 = (responseDataAll[i + 1].addSalary || [])
+          .filter(item => item.id === "1529")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        
+        if (vehicleAdvanceIncome2 > 0) {
+          textArray.push("ปรับปรุค่าพาหนะ(รับล่วงหน้า)");
+          countArray.push("");
+          valueArray.push(
+            vehicleAdvanceIncome2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+          );
+        }
+
+        // ปรับปรุงวันนักขัติฤกษ์(รับล่วงหน้า)ปกส - ID 1533
+        const holidayAdvanceIncome2 = (responseDataAll[i + 1].addSalary || [])
+          .filter(item => item.id === "1533")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        
+        if (holidayAdvanceIncome2 > 0) {
+          textArray.push("ปรับปรุงวันนักขัติฤกษ์(รับล่วงหน้า)ปกส");
+          countArray.push("");
+          valueArray.push(
+            holidayAdvanceIncome2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+          );
+        }
+
+        // ปรับปรุงค่าตำแหน่ง(รับล่วงหน้า) - ID 1534
+        const positionAdvanceIncome2 = (responseDataAll[i + 1].addSalary || [])
+          .filter(item => item.id === "1534")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        
+        if (positionAdvanceIncome2 > 0) {
+          textArray.push("ปรับปรุงค่าตำแหน่ง(รับล่วงหน้า)");
+          countArray.push("");
+          valueArray.push(
+            positionAdvanceIncome2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+          );
+        }
+
+        // ปรับปรุงเบี้ยขยัน(รับล่วงหน้า) - ID 1412
+        const diligenceAdvanceIncome2 = (responseDataAll[i + 1].addSalary || [])
+          .filter(item => item.id === "1412")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        
+        if (diligenceAdvanceIncome2 > 0) {
+          textArray.push("ปรับปรุงเบี้ยขยัน(รับล่วงหน้า)");
+          countArray.push("");
+          valueArray.push(
+            diligenceAdvanceIncome2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+          );
+        }
+
+        // ปรับปรุงค่าล่วงเวลา(รับล่วงหน้า) - ID 1159
+        const overtimeAdvanceIncome2 = (responseDataAll[i + 1].addSalary || [])
+          .filter(item => item.id === "1159")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        
+        if (overtimeAdvanceIncome2 > 0) {
+          textArray.push("ปรับปรุงค่าล่วงเวลา(รับล่วงหน้า)");
+          countArray.push("");
+          valueArray.push(
+            overtimeAdvanceIncome2.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+          );
+        }
+
         const textDedustArray = [];
         const valueDedustArray = [];
 
@@ -5147,8 +7004,6 @@ const generateExcel = async () => {
           }
           console.log("22");
         }
-
-
 
         pdf.text(`ใบจ่ายเงินเดือน`, 73, 142);
         pdf.text(`บริษัท โอวาท โปร แอนด์ ควิก จำกัด`, 55, 148);
@@ -5889,7 +7744,9 @@ const generateExcel = async () => {
                                 className="form-control"
                                 value={(() => {
                                   const val = editableData[editingEmployeeIndex]?.editableFields?.workDays ?? 
-                                             responseDataAll[editingEmployeeIndex]?.employee_record?.filter(record => record.dayType === "work").length;
+                                             (responseDataAll[editingEmployeeIndex]?.typeOfemployee === 'รายเดือน' ? 
+                                              30 : 
+                                              responseDataAll[editingEmployeeIndex]?.dayWorkCount);
                                   return val || val === 0 ? val : '';
                                 })()}
                                 onChange={(e) => updateEditableField('workDays', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)}
@@ -6031,6 +7888,69 @@ const generateExcel = async () => {
                                 step="1"
                               />
                             </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-hand-holding-usd me-1"></i>ปรับปรุงค่าแรงขาด (รับล่วงหน้า)</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const advanceWageItem = currentList.find(item => item.id === "1531");
+                                  return advanceWageItem?.SpSalary || 0;
+                                })()}
+                                onChange={(e) => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const itemIndex = currentList.findIndex(item => item.id === "1531");
+                                  if (itemIndex >= 0) {
+                                    updateAddSalaryField(itemIndex, 'SpSalary', parseFloat(e.target.value) || 0);
+                                  }
+                                }}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-clock me-1"></i>ค่ากะ</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const shiftItem = currentList.find(item => item.id === "1210");
+                                  return shiftItem?.SpSalary || 0;
+                                })()}
+                                onChange={(e) => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const itemIndex = currentList.findIndex(item => item.id === "1210");
+                                  if (itemIndex >= 0) {
+                                    updateAddSalaryField(itemIndex, 'SpSalary', parseFloat(e.target.value) || 0);
+                                  }
+                                }}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-certificate me-1"></i>ค่าวิชาชีพ</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const professionalItem = currentList.find(item => item.id === "1241");
+                                  return professionalItem?.SpSalary || 0;
+                                })()}
+                                onChange={(e) => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const itemIndex = currentList.findIndex(item => item.id === "1241");
+                                  if (itemIndex >= 0) {
+                                    updateAddSalaryField(itemIndex, 'SpSalary', parseFloat(e.target.value) || 0);
+                                  }
+                                }}
+                                step="0.01"
+                              />
+                            </div>
                           </div>
 
                           {/* รายการหัก */}
@@ -6072,6 +7992,510 @@ const generateExcel = async () => {
                             </div>
 
                             <div className="form-group mb-3">
+                              <label><i className="fas fa-car me-1"></i>ค่าโรยตัว/ค่าขับรถ</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const transportationItem = currentList.find(item => item.id === "1251");
+                                  return transportationItem?.SpSalary || 0;
+                                })()}
+                                onChange={(e) => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const itemIndex = currentList.findIndex(item => item.id === "1251");
+                                  if (itemIndex >= 0) {
+                                    updateAddSalaryField(itemIndex, 'SpSalary', parseFloat(e.target.value) || 0);
+                                  }
+                                }}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-gift me-1"></i>โบนัส</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const bonusItem = currentList.find(item => item.id === "1440");
+                                  return bonusItem?.SpSalary || 0;
+                                })()}
+                                onChange={(e) => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const itemIndex = currentList.findIndex(item => item.id === "1440");
+                                  if (itemIndex >= 0) {
+                                    updateAddSalaryField(itemIndex, 'SpSalary', parseFloat(e.target.value) || 0);
+                                  }
+                                }}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-calendar-day me-1"></i>ค่าทำงานวันหยุด</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const holidayWorkItem = currentList.find(item => item.id === "1441");
+                                  return holidayWorkItem?.SpSalary || 0;
+                                })()}
+                                onChange={(e) => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const itemIndex = currentList.findIndex(item => item.id === "1441");
+                                  if (itemIndex >= 0) {
+                                    updateAddSalaryField(itemIndex, 'SpSalary', parseFloat(e.target.value) || 0);
+                                  }
+                                }}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-calendar-times me-1"></i>ค่าทำงานในวันหยุดตามประเพณี</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const traditionalHolidayWorkItem = currentList.find(item => item.id === "1444");
+                                  return traditionalHolidayWorkItem?.SpSalary || 0;
+                                })()}
+                                onChange={(e) => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const itemIndex = currentList.findIndex(item => item.id === "1444");
+                                  if (itemIndex >= 0) {
+                                    updateAddSalaryField(itemIndex, 'SpSalary', parseFloat(e.target.value) || 0);
+                                  }
+                                }}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-calendar-alt me-1"></i>ค่าทำงานวันหยุด (1446)</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const holidayWork1446Item = currentList.find(item => item.id === "1446");
+                                  return holidayWork1446Item?.SpSalary || 0;
+                                })()}
+                                onChange={(e) => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const itemIndex = currentList.findIndex(item => item.id === "1446");
+                                  if (itemIndex >= 0) {
+                                    updateAddSalaryField(itemIndex, 'SpSalary', parseFloat(e.target.value) || 0);
+                                  }
+                                }}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-money-bill me-1"></i>ปรับปรุงค่าแรงขาดงวดก่อน</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const item1525 = currentList.find(item => item.id === "1525");
+                                  return item1525?.SpSalary || 0;
+                                })()}
+                                onChange={(e) => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const itemIndex = currentList.findIndex(item => item.id === "1525");
+                                  if (itemIndex >= 0) {
+                                    updateAddSalaryField(itemIndex, 'SpSalary', parseFloat(e.target.value) || 0);
+                                  }
+                                }}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-money-bill me-1"></i>ปรับปรุงเพิ่มค่าแรงต่างอัตรา</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const item1526 = currentList.find(item => item.id === "1526");
+                                  return item1526?.SpSalary || 0;
+                                })()}
+                                onChange={(e) => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const itemIndex = currentList.findIndex(item => item.id === "1526");
+                                  if (itemIndex >= 0) {
+                                    updateAddSalaryField(itemIndex, 'SpSalary', parseFloat(e.target.value) || 0);
+                                  }
+                                }}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-money-bill me-1"></i>ปรับปรุงค่าทำงานวันหยุดเพิ่ม</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const item1528 = currentList.find(item => item.id === "1528");
+                                  return item1528?.SpSalary || 0;
+                                })()}
+                                onChange={(e) => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const itemIndex = currentList.findIndex(item => item.id === "1528");
+                                  if (itemIndex >= 0) {
+                                    updateAddSalaryField(itemIndex, 'SpSalary', parseFloat(e.target.value) || 0);
+                                  }
+                                }}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-percent me-1"></i>ค่าคอมมิชชั่น</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const item1540 = currentList.find(item => item.id === "1540");
+                                  return item1540?.SpSalary || 0;
+                                })()}
+                                onChange={(e) => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const itemIndex = currentList.findIndex(item => item.id === "1540");
+                                  if (itemIndex >= 0) {
+                                    updateAddSalaryField(itemIndex, 'SpSalary', parseFloat(e.target.value) || 0);
+                                  }
+                                }}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-search me-1"></i>ค่าสรรหา</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const item1541 = currentList.find(item => item.id === "1541");
+                                  return item1541?.SpSalary || 0;
+                                })()}
+                                onChange={(e) => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const itemIndex = currentList.findIndex(item => item.id === "1541");
+                                  if (itemIndex >= 0) {
+                                    updateAddSalaryField(itemIndex, 'SpSalary', parseFloat(e.target.value) || 0);
+                                  }
+                                }}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-money-bill-alt me-1"></i>เงินได้อื่นๆ</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const item1550 = currentList.find(item => item.id === "1550");
+                                  return item1550?.SpSalary || 0;
+                                })()}
+                                onChange={(e) => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const itemIndex = currentList.findIndex(item => item.id === "1550");
+                                  if (itemIndex >= 0) {
+                                    updateAddSalaryField(itemIndex, 'SpSalary', parseFloat(e.target.value) || 0);
+                                  }
+                                }}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-undo me-1"></i>ปรับปรุงคืนอื่น ๆ (ไม่คิดปกส)</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const item1610 = currentList.find(item => item.id === "1610");
+                                  return item1610?.SpSalary || 0;
+                                })()}
+                                onChange={(e) => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const itemIndex = currentList.findIndex(item => item.id === "1610");
+                                  if (itemIndex >= 0) {
+                                    updateAddSalaryField(itemIndex, 'SpSalary', parseFloat(e.target.value) || 0);
+                                  }
+                                }}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-money-check me-1"></i>เงินได้อื่น (ไม่หัก ปกส)</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const item1611 = currentList.find(item => item.id === "1611");
+                                  return item1611?.SpSalary || 0;
+                                })()}
+                                onChange={(e) => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const itemIndex = currentList.findIndex(item => item.id === "1611");
+                                  if (itemIndex >= 0) {
+                                    updateAddSalaryField(itemIndex, 'SpSalary', parseFloat(e.target.value) || 0);
+                                  }
+                                }}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-tshirt me-1"></i>ปรับปรุงคืนค่าเครื่องแบบจ่ายเกิน</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const item1612 = currentList.find(item => item.id === "1612");
+                                  return item1612?.SpSalary || 0;
+                                })()}
+                                onChange={(e) => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const itemIndex = currentList.findIndex(item => item.id === "1612");
+                                  if (itemIndex >= 0) {
+                                    updateAddSalaryField(itemIndex, 'SpSalary', parseFloat(e.target.value) || 0);
+                                  }
+                                }}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-gift me-1"></i>โบนัสรับล่วงหน้า</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const item1447 = currentList.find(item => item.id === "1447");
+                                  return item1447?.SpSalary || 0;
+                                })()}
+                                onChange={(e) => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const itemIndex = currentList.findIndex(item => item.id === "1447");
+                                  if (itemIndex >= 0) {
+                                    updateAddSalaryField(itemIndex, 'SpSalary', parseFloat(e.target.value) || 0);
+                                  }
+                                }}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-tshirt me-1"></i>ปรับปรุงคืนค่าเครื่องแบบจ่ายเกิน/อื่นๆ (รับล่วงหน้า)</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const item1613 = currentList.find(item => item.id === "1613");
+                                  return item1613?.SpSalary || 0;
+                                })()}
+                                onChange={(e) => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const itemIndex = currentList.findIndex(item => item.id === "1613");
+                                  if (itemIndex >= 0) {
+                                    updateAddSalaryField(itemIndex, 'SpSalary', parseFloat(e.target.value) || 0);
+                                  }
+                                }}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-plus-circle me-1"></i>เงินเพิ่มพิเศษ (รับล่วงหน้า)</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const item1561 = currentList.find(item => item.id === "1561");
+                                  return item1561?.SpSalary || 0;
+                                })()}
+                                onChange={(e) => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const itemIndex = currentList.findIndex(item => item.id === "1561");
+                                  if (itemIndex >= 0) {
+                                    updateAddSalaryField(itemIndex, 'SpSalary', parseFloat(e.target.value) || 0);
+                                  }
+                                }}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-search me-1"></i>ค่าสรรหา (รับล่วงหน้า)</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const item1542 = currentList.find(item => item.id === "1542");
+                                  return item1542?.SpSalary || 0;
+                                })()}
+                                onChange={(e) => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const itemIndex = currentList.findIndex(item => item.id === "1542");
+                                  if (itemIndex >= 0) {
+                                    updateAddSalaryField(itemIndex, 'SpSalary', parseFloat(e.target.value) || 0);
+                                  }
+                                }}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-route me-1"></i>ค่าเดินทาง (ไม่คิดปกส) รับล่วงหน้า</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const item1536 = currentList.find(item => item.id === "1536");
+                                  return item1536?.SpSalary || 0;
+                                })()}
+                                onChange={(e) => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const itemIndex = currentList.findIndex(item => item.id === "1536");
+                                  if (itemIndex >= 0) {
+                                    updateAddSalaryField(itemIndex, 'SpSalary', parseFloat(e.target.value) || 0);
+                                  }
+                                }}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-car me-1"></i>ปรับปรุค่าพาหนะ (รับล่วงหน้า)</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const item1529 = currentList.find(item => item.id === "1529");
+                                  return item1529?.SpSalary || 0;
+                                })()}
+                                onChange={(e) => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const itemIndex = currentList.findIndex(item => item.id === "1529");
+                                  if (itemIndex >= 0) {
+                                    updateAddSalaryField(itemIndex, 'SpSalary', parseFloat(e.target.value) || 0);
+                                  }
+                                }}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-calendar me-1"></i>ปรับปรุงวันนักขัติฤกษ์ (รับล่วงหน้า) ปกส</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const item1533 = currentList.find(item => item.id === "1533");
+                                  return item1533?.SpSalary || 0;
+                                })()}
+                                onChange={(e) => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const itemIndex = currentList.findIndex(item => item.id === "1533");
+                                  if (itemIndex >= 0) {
+                                    updateAddSalaryField(itemIndex, 'SpSalary', parseFloat(e.target.value) || 0);
+                                  }
+                                }}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-crown me-1"></i>ปรับปรุงค่าตำแหน่ง (รับล่วงหน้า)</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const item1534 = currentList.find(item => item.id === "1534");
+                                  return item1534?.SpSalary || 0;
+                                })()}
+                                onChange={(e) => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const itemIndex = currentList.findIndex(item => item.id === "1534");
+                                  if (itemIndex >= 0) {
+                                    updateAddSalaryField(itemIndex, 'SpSalary', parseFloat(e.target.value) || 0);
+                                  }
+                                }}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-star me-1"></i>ปรับปรุงเบี้ยขยัน (รับล่วงหน้า)</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const item1412 = currentList.find(item => item.id === "1412");
+                                  return item1412?.SpSalary || 0;
+                                })()}
+                                onChange={(e) => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const itemIndex = currentList.findIndex(item => item.id === "1412");
+                                  if (itemIndex >= 0) {
+                                    updateAddSalaryField(itemIndex, 'SpSalary', parseFloat(e.target.value) || 0);
+                                  }
+                                }}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-clock me-1"></i>ปรับปรุงค่าล่วงเวลา (รับล่วงหน้า)</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const item1159 = currentList.find(item => item.id === "1159");
+                                  return item1159?.SpSalary || 0;
+                                })()}
+                                onChange={(e) => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const itemIndex = currentList.findIndex(item => item.id === "1159");
+                                  if (itemIndex >= 0) {
+                                    updateAddSalaryField(itemIndex, 'SpSalary', parseFloat(e.target.value) || 0);
+                                  }
+                                }}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
                               <label><i className="fas fa-hand-holding-usd me-1"></i>คืนเงินเบิกล่วงหน้า</label>
                               <input
                                 type="number"
@@ -6082,6 +8506,343 @@ const generateExcel = async () => {
                                   return val || val === 0 ? val : '';
                                 })()}
                                 onChange={(e) => updateEditableField('advance', e.target.value === '' ? '' : parseFloat(e.target.value) || 0)}
+                                step="0.01"
+                              />
+                            </div>
+
+                            {/* เพิ่มรายการหักใหม่ */}
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-hand-holding-usd me-1"></i>หักคืนค่าเบิกล่วงหน้า(รับล่วงหน้า)</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const item2333 = currentList.find(item => item.id === "2333");
+                                  return item2333?.SpSalary || 0;
+                                })()}
+                                onChange={(e) => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const itemIndex = currentList.findIndex(item => item.id === "2333");
+                                  if (itemIndex >= 0) {
+                                    updateAddSalaryField(itemIndex, 'SpSalary', parseFloat(e.target.value) || 0);
+                                  }
+                                }}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-money-bill-wave me-1"></i>หักค่าแรงต่างอัตรา</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const item2111 = currentList.find(item => item.id === "2111");
+                                  return item2111?.SpSalary || 0;
+                                })()}
+                                onChange={(e) => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const itemIndex = currentList.findIndex(item => item.id === "2111");
+                                  if (itemIndex >= 0) {
+                                    updateAddSalaryField(itemIndex, 'SpSalary', parseFloat(e.target.value) || 0);
+                                  }
+                                }}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-undo me-1"></i>หักคืนอื่นๆ (คำนวณ ปกส)</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const item2116 = currentList.find(item => item.id === "2116");
+                                  return item2116?.SpSalary || 0;
+                                })()}
+                                onChange={(e) => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const itemIndex = currentList.findIndex(item => item.id === "2116");
+                                  if (itemIndex >= 0) {
+                                    updateAddSalaryField(itemIndex, 'SpSalary', parseFloat(e.target.value) || 0);
+                                  }
+                                }}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-undo me-1"></i>หักคืนอื่นๆ (ไม่คำนวณ ปกส)</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const item2117 = currentList.find(item => item.id === "2117");
+                                  return item2117?.SpSalary || 0;
+                                })()}
+                                onChange={(e) => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const itemIndex = currentList.findIndex(item => item.id === "2117");
+                                  if (itemIndex >= 0) {
+                                    updateAddSalaryField(itemIndex, 'SpSalary', parseFloat(e.target.value) || 0);
+                                  }
+                                }}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-clock me-1"></i>หักมาสาย</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const item2120 = currentList.find(item => item.id === "2120");
+                                  return item2120?.SpSalary || 0;
+                                })()}
+                                onChange={(e) => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const itemIndex = currentList.findIndex(item => item.id === "2120");
+                                  if (itemIndex >= 0) {
+                                    updateAddSalaryField(itemIndex, 'SpSalary', parseFloat(e.target.value) || 0);
+                                  }
+                                }}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-car me-1"></i>หักค่ารถ</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const item2124 = currentList.find(item => item.id === "2124");
+                                  return item2124?.SpSalary || 0;
+                                })()}
+                                onChange={(e) => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const itemIndex = currentList.findIndex(item => item.id === "2124");
+                                  if (itemIndex >= 0) {
+                                    updateAddSalaryField(itemIndex, 'SpSalary', parseFloat(e.target.value) || 0);
+                                  }
+                                }}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-calendar-times me-1"></i>หักลาพักร้อนจ่ายเกิน</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const item2160 = currentList.find(item => item.id === "2160");
+                                  return item2160?.SpSalary || 0;
+                                })()}
+                                onChange={(e) => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const itemIndex = currentList.findIndex(item => item.id === "2160");
+                                  if (itemIndex >= 0) {
+                                    updateAddSalaryField(itemIndex, 'SpSalary', parseFloat(e.target.value) || 0);
+                                  }
+                                }}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-home me-1"></i>หักน้ำ/ไฟ/โทรศัพท์</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const item2250 = currentList.find(item => item.id === "2250");
+                                  return item2250?.SpSalary || 0;
+                                })()}
+                                onChange={(e) => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const itemIndex = currentList.findIndex(item => item.id === "2250");
+                                  if (itemIndex >= 0) {
+                                    updateAddSalaryField(itemIndex, 'SpSalary', parseFloat(e.target.value) || 0);
+                                  }
+                                }}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-id-card me-1"></i>ค่าบัตร</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const item2261 = currentList.find(item => item.id === "2261");
+                                  return item2261?.SpSalary || 0;
+                                })()}
+                                onChange={(e) => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const itemIndex = currentList.findIndex(item => item.id === "2261");
+                                  if (itemIndex >= 0) {
+                                    updateAddSalaryField(itemIndex, 'SpSalary', parseFloat(e.target.value) || 0);
+                                  }
+                                }}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-exclamation-triangle me-1"></i>หักค่าของเสียหาย</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const item2310 = currentList.find(item => item.id === "2310");
+                                  return item2310?.SpSalary || 0;
+                                })()}
+                                onChange={(e) => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const itemIndex = currentList.findIndex(item => item.id === "2310");
+                                  if (itemIndex >= 0) {
+                                    updateAddSalaryField(itemIndex, 'SpSalary', parseFloat(e.target.value) || 0);
+                                  }
+                                }}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-money-bill-wave me-1"></i>หักค่าแรงคืน (จ่ายเกิน)</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const item2311 = currentList.find(item => item.id === "2311");
+                                  return item2311?.SpSalary || 0;
+                                })()}
+                                onChange={(e) => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const itemIndex = currentList.findIndex(item => item.id === "2311");
+                                  if (itemIndex >= 0) {
+                                    updateAddSalaryField(itemIndex, 'SpSalary', parseFloat(e.target.value) || 0);
+                                  }
+                                }}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-ban me-1"></i>หักผิดกฎระเบียบ</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const item2312 = currentList.find(item => item.id === "2312");
+                                  return item2312?.SpSalary || 0;
+                                })()}
+                                onChange={(e) => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const itemIndex = currentList.findIndex(item => item.id === "2312");
+                                  if (itemIndex >= 0) {
+                                    updateAddSalaryField(itemIndex, 'SpSalary', parseFloat(e.target.value) || 0);
+                                  }
+                                }}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-money-check-alt me-1"></i>หักเงินเบิกล่วงหน้า</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.deductSalaryList || [];
+                                  const item2330 = currentList.find(item => item.id === "2330");
+                                  return item2330?.amount || 0;
+                                })()}
+                                onChange={(e) => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.deductSalaryList || [];
+                                  const itemIndex = currentList.findIndex(item => item.id === "2330");
+                                  if (itemIndex >= 0) {
+                                    updateDeductSalaryField(itemIndex, 'amount', parseFloat(e.target.value) || 0);
+                                  }
+                                }}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-calendar-day me-1"></i>หักคืนค่าทำงานวันหยุด</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.deductSalaryList || [];
+                                  const item2331 = currentList.find(item => item.id === "2331");
+                                  return item2331?.amount || 0;
+                                })()}
+                                onChange={(e) => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.deductSalaryList || [];
+                                  const itemIndex = currentList.findIndex(item => item.id === "2331");
+                                  if (itemIndex >= 0) {
+                                    updateDeductSalaryField(itemIndex, 'amount', parseFloat(e.target.value) || 0);
+                                  }
+                                }}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-minus-circle me-1"></i>หักอื่นๆ (ไม่คิดปกส)</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const item2340 = currentList.find(item => item.id === "2340");
+                                  return item2340?.SpSalary || 0;
+                                })()}
+                                onChange={(e) => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const itemIndex = currentList.findIndex(item => item.id === "2340");
+                                  if (itemIndex >= 0) {
+                                    updateAddSalaryField(itemIndex, 'SpSalary', parseFloat(e.target.value) || 0);
+                                  }
+                                }}
+                                step="0.01"
+                              />
+                            </div>
+
+                            <div className="form-group mb-3">
+                              <label><i className="fas fa-clock me-1"></i>หักกลับก่อนเวลา</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={(() => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const item2430 = currentList.find(item => item.id === "2430");
+                                  return item2430?.SpSalary || 0;
+                                })()}
+                                onChange={(e) => {
+                                  const currentList = editableData[editingEmployeeIndex]?.editableFields?.addSalaryList || [];
+                                  const itemIndex = currentList.findIndex(item => item.id === "2430");
+                                  if (itemIndex >= 0) {
+                                    updateAddSalaryField(itemIndex, 'SpSalary', parseFloat(e.target.value) || 0);
+                                  }
+                                }}
                                 step="0.01"
                               />
                             </div>
@@ -6166,9 +8927,9 @@ const generateExcel = async () => {
                                       return item.name;
                                     }).join("/");
 
-                                    // รายการอื่นๆ ที่ไม่อยู่ในกลุ่มข้างต้น
+                                    // รายการอื่นๆ ที่ไม่อยู่ในกลุ่มข้างต้น (ไม่รวม ID 1531 เพราะมีฟิลด์แยกแล้ว)
                                     const otherItems = currentList.filter(item => 
-                                      !["1230", "1350", "1535", "1560", "1563"].includes(item.id)
+                                      !["1230", "1350", "1535", "1560", "1563", "1531"].includes(item.id)
                                     );
 
                                     return (
