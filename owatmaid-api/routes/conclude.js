@@ -3524,19 +3524,30 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           console.log(`🟢 ได้วันหยุดส่วนบุคคล: ${personalDayOff.length} วัน`);
         } else {
           console.log(`\n🔄 ใช้ฟังก์ชันคำนวณแบบหน่วยงานปกติ`);
-          updatedRecords = await calculateCashValues(employeeId, doc.employee_record, month, year);
+          const result = await calculateCashValues(employeeId, doc.employee_record, month, year);
+          updatedRecords = result;
+          
+          // 🎯 สำหรับหน่วยงานปกติ ให้ใช้ค่า cashcustomizeDayoff จาก calculateCashValues ด้วย
+          if (result.cashcustomizeDayoff !== undefined) {
+            cashcustomizeDayoff = parseFloat(result.cashcustomizeDayoff) || 0;
+            console.log(`💎 หน่วยงานปกติ - ได้ cashcustomizeDayoff: ${cashcustomizeDayoff} บาท`);
+          }
         }
         
         if (JSON.stringify(updatedRecords) !== JSON.stringify(doc.employee_record)) {
           doc.employee_record = updatedRecords;
           
-          // สำหรับหน่วยงานพิเศษ 7 วัน ให้เพิ่ม cashcustomizeDayoff และ personalDayOff ในเอกสาร
-          if (isSpecialWorkplace) {
+          // เซต cashcustomizeDayoff สำหรับทั้งหน่วยงานพิเศษและหน่วยงานปกติ
+          if (cashcustomizeDayoff !== undefined && cashcustomizeDayoff !== null) {
             doc.cashcustomizeDayoff = cashcustomizeDayoff;
+            console.log(`💎 เซต cashcustomizeDayoff ในเอกสาร: ${cashcustomizeDayoff} บาท`);
+          }
+          
+          // สำหรับหน่วยงานพิเศษ 7 วัน ให้เพิ่ม personalDayOff ในเอกสาร
+          if (isSpecialWorkplace) {
             doc.personalDayOff = personalDayOff;
             // เก็บข้อมูลใน stopDaysList ด้วยเพื่อความเข้ากันได้ย้อนหลัง
             doc.stopDaysList = personalDayOff;
-            console.log(`💎 เซต cashcustomizeDayoff ในเอกสาร: ${cashcustomizeDayoff} บาท`);
             console.log(`🟢 เซต personalDayOff ในเอกสาร: ${personalDayOff.length} วัน`);
           }
           
