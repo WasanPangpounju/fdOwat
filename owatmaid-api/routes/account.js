@@ -7588,9 +7588,30 @@ if (daysWorkedOnCustomDayoff > 0) {
 customizeDayoff = daysWorkedOnCustomDayoff;
 console.log(`🔍 พนักงานมาทำงานในวันหยุดที่กำหนดเอง: ${customizeDayoff} วัน`);
 
-// 🔄 เลื่อนการคำนวณ cashcustomizeDayoff ไปคำนวณหลังจากที่ sumCashWorkMul["1"] ถูกปรับแล้ว
-// เซ็ตค่าเริ่มต้นไว้ก่อน
-cashcustomizeDayoff = 0;
+// 🎯 คำนวณ cashcustomizeDayoff ใหม่ด้วยข้อมูลที่ถูกต้อง
+console.log(`\n🎯 === คำนวณ cashcustomizeDayoff (ใหม่) ===`);
+console.log(`🎯 customizeDayoff: ${customizeDayoff} วัน`);
+console.log(`🎯 sumCashWorkMul["1"]: ${sumCashWorkMul["1"]} บาท`);
+console.log(`🎯 dayWorkCount: ${dayWorkCount} วัน`);
+console.log(`🎯 dailyWage: ${dailyWage} บาท`);
+
+if (customizeDayoff === 0) {
+  cashcustomizeDayoff = 0;
+  console.log(`🎯 พนักงานไม่ได้มาทำงานในวันหยุดที่กำหนดเอง → ไม่ได้เงิน`);
+} else {
+  // ตรวจสอบว่ามีค่า dayWorkCount และ sumCashWorkMul["1"] หรือไม่
+  if (dayWorkCount > 0 && sumCashWorkMul["1"] !== undefined && sumCashWorkMul["1"] > 0) {
+    // คำนวณค่าแรงเฉลี่ยต่อวัน
+    const avgDailyWage = sumCashWorkMul["1"] / dayWorkCount;
+    cashcustomizeDayoff = avgDailyWage * customizeDayoff;
+    console.log(`🎯 💰 คำนวณ cashcustomizeDayoff = ค่าแรงเฉลี่ยต่อวัน (${avgDailyWage.toFixed(2)}) × จำนวนวันหยุดที่มาทำงาน (${customizeDayoff}) = ${cashcustomizeDayoff.toFixed(2)} บาท`);
+  } else {
+    // กรณีไม่มีข้อมูลพอสำหรับการคำนวณ ใช้ dailyWage ที่คำนวณไว้ก่อนหน้า
+    cashcustomizeDayoff = dailyWage * customizeDayoff;
+    console.log(`🎯 ⚠️ ไม่พบข้อมูล sumCashWorkMul["1"] หรือ dayWorkCount = 0 ใช้ dailyWage แทน: ${dailyWage.toFixed(2)} × ${customizeDayoff} = ${cashcustomizeDayoff.toFixed(2)} บาท`);
+  }
+  console.log(`🎯 💰 พนักงานมาทำงานในวันหยุดที่กำหนดเอง → ได้เงินพิเศษ ${cashcustomizeDayoff.toFixed(2)} บาท`);
+}
 
 // แสดงผล
 console.log(`\n📊 === สรุปการตรวจสอบวันหยุดที่กำหนดเอง (รวม weekendAndDayOff + dayoffWorkplace) ===`);
@@ -7993,11 +8014,11 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
       console.log(`🎯 ⚠️ ไม่พบข้อมูล sumCashWorkMul["1"] หรือ dayWorkCount = 0 ใช้ dailyWage แทน: ${dailyWage.toFixed(2)} × ${customizeDayoff} = ${cashcustomizeDayoff.toFixed(2)} บาท`);
     }
     console.log(`🎯 💰 พนักงานมาทำงานในวันหยุดที่กำหนดเอง → ได้เงินพิเศษ ${cashcustomizeDayoff.toFixed(2)} บาท`);
-  }
-  
-  // 🎯 Format cashcustomizeDayoff เป็น string หลังจากคำนวณเสร็จ
-  cashcustomizeDayoff = (cashcustomizeDayoff || 0).toFixed(2);
-  console.log(`🎯 💰 cashcustomizeDayoff สุดท้าย: ${cashcustomizeDayoff} บาท`);
+}
+
+// 🎯 Format cashcustomizeDayoff เป็น string หลังจากคำนวณเสร็จ
+cashcustomizeDayoff = (cashcustomizeDayoff || 0).toFixed(2);
+console.log(`🎯 💰 cashcustomizeDayoff สุดท้าย: ${cashcustomizeDayoff} บาท`);
 
   // 🎯 คำนวณ employeeCompensation (เงินสงเคราะห์ลูกจ้าง) ด้วยหลักการใหม่
   let employeeCompensation = 0;
