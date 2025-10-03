@@ -7889,7 +7889,7 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
   cashSpecialDay = (cashSpecialDay || 0).toFixed(2);
 
   // 🎯 คำนวณ sumCashWorkMul["1"] ใหม่จาก workRate * dayWorkCount
-  if (workRate > 0 && dayWorkCount > 0) {
+  if (workRate > 0 && dayWorkCount > 0 && typeOfemployee === 'รายวัน') {
     const newSumCashWorkMul1 = workRate * dayWorkCount;
     console.log(`\n🎯 === การคำนวณ sumCashWorkMul["1"] ใหม่ ===`);
     console.log(`🎯 workRate: ${workRate} บาท`);
@@ -7898,6 +7898,7 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
     console.log(`🎯 sumCashWorkMul["1"] ใหม่: ${newSumCashWorkMul1} (${workRate} × ${dayWorkCount})`);
     
     sumCashWorkMul["1"] = newSumCashWorkMul1;
+    sumCashWork = newSumCashWorkMul1;
     
   } else {
     console.log(`\n⚠️ ไม่สามารถคำนวณ sumCashWorkMul["1"] ใหม่ได้:`);
