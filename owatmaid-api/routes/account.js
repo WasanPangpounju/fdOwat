@@ -7898,11 +7898,12 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
     console.log(`🎯 sumCashWorkMul["1"] ใหม่: ${newSumCashWorkMul1} (${workRate} × ${dayWorkCount})`);
     
     sumCashWorkMul["1"] = newSumCashWorkMul1;
-    sumCashWork = newSumCashWorkMul1
+    
   } else {
     console.log(`\n⚠️ ไม่สามารถคำนวณ sumCashWorkMul["1"] ใหม่ได้:`);
     console.log(`   workRate: ${workRate}, dayWorkCount: ${dayWorkCount}`);
   }
+
   try {
     const employee = await Employee.findOne({ employeeId: employeeId });
     const wpId = employee?.workplace || '';
