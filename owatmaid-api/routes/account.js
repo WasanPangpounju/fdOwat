@@ -7615,7 +7615,7 @@ if (customizeDayoff === 0) {
       console.log(`⚠️ ไม่สามารถดึงข้อมูล dayoffRateHour ได้: ${error.message}, ใช้ค่าเริ่มต้น: 1`);
     }
     
-    cashcustomizeDayoff = avgDailyWage * customizeDayoff * dayoffRateHour;
+    cashcustomizeDayoff = avgDailyWage * 30 * dayoffRateHour;
     console.log(`💰 คำนวณ cashcustomizeDayoff = ค่าแรงเฉลี่ยต่อวัน (${avgDailyWage.toFixed(2)}) × จำนวนวันหยุดที่มาทำงาน (${customizeDayoff}) × อัตราวันหยุด (${dayoffRateHour}) = ${cashcustomizeDayoff.toFixed(2)} บาท`);
   } else {
     // กรณีไม่มีข้อมูลพอสำหรับการคำนวณ ใช้ dailyWage ที่คำนวณไว้ก่อนหน้า
@@ -7635,7 +7635,7 @@ if (customizeDayoff === 0) {
       console.log(`⚠️ ไม่สามารถดึงข้อมูล dayoffRateHour ได้: ${error.message}, ใช้ค่าเริ่มต้น: 1`);
     }
     
-    cashcustomizeDayoff = dailyWage * customizeDayoff * dayoffRateHour;
+    cashcustomizeDayoff = dailyWage * 30 * dayoffRateHour;
     console.log(`⚠️ ไม่พบข้อมูล sumCashWorkMul["1"] หรือ dayWorkCount = 0 ใช้ dailyWage แทน: ${dailyWage.toFixed(2)} บาท × ${customizeDayoff} × ${dayoffRateHour} = ${cashcustomizeDayoff.toFixed(2)} บาท`);
   }
   console.log(`💰 พนักงานมาทำงานในวันหยุดที่กำหนดเอง → ได้เงินพิเศษ ${cashcustomizeDayoff.toFixed(2)} บาท`);
