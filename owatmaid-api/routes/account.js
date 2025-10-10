@@ -7599,44 +7599,12 @@ if (customizeDayoff === 0) {
   if (dayWorkCount > 0 && sumCashWorkMul["1"] !== undefined) {
     // คำนวณค่าแรงเฉลี่ยต่อวัน
     const avgDailyWage = sumCashWorkMul["1"] / dayWorkCount;
-    
-    // ดึงข้อมูล dayoffRateHour จาก workplace ที่ดึงมาแล้วตั้งแต่ต้นฟังก์ชัน
-    let dayoffRateHour = 1; // ค่าเริ่มต้นถ้าไม่มีข้อมูล
-    try {
-      const employeeResponse = await axios.get(sURL + '/employee/' + employeeId);
-      const workplaceId = employeeResponse?.data?.workplace;
-      
-      if (workplaceId) {
-        const workplaceResponse = await axios.get(sURL + '/workplace/' + workplaceId);
-        dayoffRateHour = parseFloat(workplaceResponse.data.dayoffRateHour) || 1;
-        console.log(`🔍 ดึงข้อมูล dayoffRateHour จาก workplace ${workplaceId}: ${dayoffRateHour}`);
-      }
-    } catch (error) {
-      console.log(`⚠️ ไม่สามารถดึงข้อมูล dayoffRateHour ได้: ${error.message}, ใช้ค่าเริ่มต้น: 1`);
-    }
-    
-    cashcustomizeDayoff = avgDailyWage * 30 * dayoffRateHour;
-    console.log(`💰 คำนวณ cashcustomizeDayoff = ค่าแรงเฉลี่ยต่อวัน (${avgDailyWage.toFixed(2)}) × จำนวนวันหยุดที่มาทำงาน (${customizeDayoff}) × อัตราวันหยุด (${dayoffRateHour}) = ${cashcustomizeDayoff.toFixed(2)} บาท`);
+    cashcustomizeDayoff = avgDailyWage * customizeDayoff;
+    console.log(`💰 คำนวณ cashcustomizeDayoff = ค่าแรงเฉลี่ยต่อวัน (${avgDailyWage.toFixed(2)}) × จำนวนวันหยุดที่มาทำงาน (${customizeDayoff})`);
   } else {
     // กรณีไม่มีข้อมูลพอสำหรับการคำนวณ ใช้ dailyWage ที่คำนวณไว้ก่อนหน้า
-    
-    // ดึงข้อมูล dayoffRateHour จาก workplace ที่ดึงมาแล้วตั้งแต่ต้นฟังก์ชัน
-    let dayoffRateHour = 1; // ค่าเริ่มต้นถ้าไม่มีข้อมูล
-    try {
-      const employeeResponse = await axios.get(sURL + '/employee/' + employeeId);
-      const workplaceId = employeeResponse?.data?.workplace;
-      
-      if (workplaceId) {
-        const workplaceResponse = await axios.get(sURL + '/workplace/' + workplaceId);
-        dayoffRateHour = parseFloat(workplaceResponse.data.dayoffRateHour) || 1;
-        console.log(`🔍 ดึงข้อมูล dayoffRateHour จาก workplace ${workplaceId}: ${dayoffRateHour}`);
-      }
-    } catch (error) {
-      console.log(`⚠️ ไม่สามารถดึงข้อมูล dayoffRateHour ได้: ${error.message}, ใช้ค่าเริ่มต้น: 1`);
-    }
-    
-    cashcustomizeDayoff = dailyWage * 30 * dayoffRateHour;
-    console.log(`⚠️ ไม่พบข้อมูล sumCashWorkMul["1"] หรือ dayWorkCount = 0 ใช้ dailyWage แทน: ${dailyWage.toFixed(2)} บาท × ${customizeDayoff} × ${dayoffRateHour} = ${cashcustomizeDayoff.toFixed(2)} บาท`);
+    cashcustomizeDayoff = dailyWage * customizeDayoff;
+    console.log(`⚠️ ไม่พบข้อมูล sumCashWorkMul["1"] หรือ dayWorkCount = 0 ใช้ dailyWage แทน: ${dailyWage.toFixed(2)} บาท`);
   }
   console.log(`💰 พนักงานมาทำงานในวันหยุดที่กำหนดเอง → ได้เงินพิเศษ ${cashcustomizeDayoff.toFixed(2)} บาท`);
 }
@@ -7916,8 +7884,7 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
   sumOt1p5 = sumOt1p5.toFixed(2);
   sumOt3 = sumOt3.toFixed(2);
   sumOtPublicHoliday = sumOtPublicHoliday.toFixed(2);
-  // cashcustomizeDayoff = (cashcustomizeDayoff || 0).toFixed(2); // ❌ แสดงความคิดเห็นเพื่อไม่ให้เขียนทับค่าที่คำนวณใหม่
-  cashcustomizeDayoff = parseFloat(cashcustomizeDayoff || 0).toFixed(2); // ✅ ใช้ parseFloat เพื่อแปลงค่าที่คำนวณใหม่ให้เป็น string
+  cashcustomizeDayoff = (cashcustomizeDayoff || 0).toFixed(2);
   publicHolidayCash = (publicHolidayCash || 0).toFixed(2);
   cashSpecialDay = (cashSpecialDay || 0).toFixed(2);
 
