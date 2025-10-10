@@ -2716,11 +2716,23 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
     console.log(`🔄 ใช้การคำนวณเดิม (fallback): ${dailyWage} บาท/วัน`);
   }
   
+  // 🔧 ดึงข้อมูล dayoffRateHour จาก workplace
+  let dayoffRateHour = 1; // ค่าเริ่มต้น
+  try {
+    const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${workplaceId}`);
+    dayoffRateHour = parseFloat(workplaceResponse.data.dayoffRateHour) || 1;
+    console.log(`🔍 ดึงข้อมูล dayoffRateHour จาก workplace ${workplaceId}: ${dayoffRateHour}`);
+  } catch (error) {
+    console.log(`⚠️ ไม่สามารถดึงข้อมูล dayoffRateHour ได้: ${error.message}, ใช้ค่าเริ่มต้น: 1`);
+  }
+  
   const totalLostWage = notWorkedOnStopDays * dailyWage;
-  const totalWorkerWage = workedOnStopDays * dailyWage;
+  const totalWorkerWage = workedOnStopDays * dailyWage * dayoffRateHour; // ✅ เพิ่ม dayoffRateHour
    console.log(`\n💰 === การคำนวณค่าแรง ===`);
   console.log(`💵 ค่าแรงต่อวัน: ${dailyWage.toFixed(2)} บาท`);
-  console.log(`📅 จำนวนเงินที่ได้customizeDayoff ${totalWorkerWage} วัน`);
+  console.log(`� อัตราเพิ่มวันหยุด (dayoffRateHour): ${dayoffRateHour}`);
+  console.log(`�📅 จำนวนวันที่มาทำงานในวันหยุด: ${workedOnStopDays} วัน`);
+  console.log(`💰 สูตรคำนวณ: ${dailyWage.toFixed(2)} × ${workedOnStopDays} × ${dayoffRateHour} = ${totalWorkerWage.toFixed(2)} บาท`);
   console.log(`📅 จำนวนวันหยุดที่ไม่มาทำงาน: ${notWorkedOnStopDays} วัน`);
   console.log(`💸 ค่าแรงที่ต้องหัก: ${totalLostWage.toFixed(2)} บาท`);
   console.log(`💎 cashcustomizeDayoff จะถูกตั้งเป็น: ${totalWorkerWage.toFixed(2)} บาท`);
@@ -3526,6 +3538,10 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           console.log(`\n🔄 ใช้ฟังก์ชันคำนวณแบบหน่วยงานปกติ`);
           const result = await calculateCashValues(employeeId, doc.employee_record, month, year);
           
+          console.log(`🔍 DEBUG: result type = ${typeof result}`);
+          console.log(`🔍 DEBUG: result.cashcustomizeDayoff = ${result?.cashcustomizeDayoff}`);
+          console.log(`🔍 DEBUG: result keys = ${Object.keys(result || {}).join(', ')}`);
+          
           // ✅ รับค่า cashcustomizeDayoff จากฟังก์ชัน calculateCashValues
           if (typeof result === 'object' && result.cashcustomizeDayoff !== undefined) {
             updatedRecords = doc.employee_record; // เก็บข้อมูลเดิม
@@ -3534,6 +3550,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
             
             // อัปเดตค่าในเอกสาร
             doc.cashcustomizeDayoff = cashcustomizeDayoff;
+            console.log(`💎 เซต cashcustomizeDayoff ในเอกสารทันที: ${doc.cashcustomizeDayoff} บาท`);
           } else {
             // กรณีที่ฟังก์ชันยังคืนค่าแบบเดิม (เป็น array)
             updatedRecords = result;
