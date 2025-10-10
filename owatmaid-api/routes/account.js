@@ -7916,7 +7916,8 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
   sumOt1p5 = sumOt1p5.toFixed(2);
   sumOt3 = sumOt3.toFixed(2);
   sumOtPublicHoliday = sumOtPublicHoliday.toFixed(2);
-  cashcustomizeDayoff = (cashcustomizeDayoff || 0).toFixed(2);
+  // cashcustomizeDayoff = (cashcustomizeDayoff || 0).toFixed(2); // ❌ แสดงความคิดเห็นเพื่อไม่ให้เขียนทับค่าที่คำนวณใหม่
+  cashcustomizeDayoff = parseFloat(cashcustomizeDayoff || 0).toFixed(2); // ✅ ใช้ parseFloat เพื่อแปลงค่าที่คำนวณใหม่ให้เป็น string
   publicHolidayCash = (publicHolidayCash || 0).toFixed(2);
   cashSpecialDay = (cashSpecialDay || 0).toFixed(2);
 

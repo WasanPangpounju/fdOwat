@@ -3524,19 +3524,36 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           console.log(`🟢 ได้วันหยุดส่วนบุคคล: ${personalDayOff.length} วัน`);
         } else {
           console.log(`\n🔄 ใช้ฟังก์ชันคำนวณแบบหน่วยงานปกติ`);
-          updatedRecords = await calculateCashValues(employeeId, doc.employee_record, month, year);
+          const result = await calculateCashValues(employeeId, doc.employee_record, month, year);
+          
+          // ✅ รับค่า cashcustomizeDayoff จากฟังก์ชัน calculateCashValues
+          if (typeof result === 'object' && result.cashcustomizeDayoff !== undefined) {
+            updatedRecords = doc.employee_record; // เก็บข้อมูลเดิม
+            cashcustomizeDayoff = result.cashcustomizeDayoff;
+            console.log(`💎 ได้ cashcustomizeDayoff จากหน่วยงานปกติ: ${cashcustomizeDayoff} บาท`);
+            
+            // อัปเดตค่าในเอกสาร
+            doc.cashcustomizeDayoff = cashcustomizeDayoff;
+          } else {
+            // กรณีที่ฟังก์ชันยังคืนค่าแบบเดิม (เป็น array)
+            updatedRecords = result;
+            console.log(`⚠️ ได้ข้อมูลแบบเดิม (ไม่มี cashcustomizeDayoff)`);
+          }
         }
         
-        if (JSON.stringify(updatedRecords) !== JSON.stringify(doc.employee_record)) {
-          doc.employee_record = updatedRecords;
-          
-          // สำหรับหน่วยงานพิเศษ 7 วัน ให้เพิ่ม cashcustomizeDayoff และ personalDayOff ในเอกสาร
-          if (isSpecialWorkplace) {
+        if (isSpecialWorkplace || (cashcustomizeDayoff !== undefined && cashcustomizeDayoff !== null)) {
+          // ✅ เซต cashcustomizeDayoff สำหรับทุกประเภทหน่วยงาน
+          if (cashcustomizeDayoff !== undefined && cashcustomizeDayoff !== null) {
             doc.cashcustomizeDayoff = cashcustomizeDayoff;
+            console.log(`💎 เซต cashcustomizeDayoff ในเอกสาร: ${cashcustomizeDayoff} บาท`);
+          }
+          
+          // สำหรับหน่วยงานพิเศษ 7 วัน ให้เพิ่ม personalDayOff เพิ่มเติม
+          if (isSpecialWorkplace) {
+            doc.employee_record = updatedRecords; // อัปเดต employee_record สำหรับหน่วยงานพิเศษ
             doc.personalDayOff = personalDayOff;
             // เก็บข้อมูลใน stopDaysList ด้วยเพื่อความเข้ากันได้ย้อนหลัง
             doc.stopDaysList = personalDayOff;
-            console.log(`💎 เซต cashcustomizeDayoff ในเอกสาร: ${cashcustomizeDayoff} บาท`);
             console.log(`🟢 เซต personalDayOff ในเอกสาร: ${personalDayOff.length} วัน`);
           }
           
