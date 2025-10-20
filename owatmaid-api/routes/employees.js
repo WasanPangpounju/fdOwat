@@ -1032,4 +1032,48 @@ router.get("/filter-by-jobtype/:jobtype", async (req, res) => {
   }
 });
 
+// ✅ GET /api/employees/check-idcard/:idCard
+// 🔍 ตรวจสอบว่าเลขบัตรประชาชนมีอยู่ในระบบแล้วหรือไม่
+router.get("/check-idcard/:idCard", async (req, res) => {
+  try {
+    const { idCard } = req.params;
+    
+    if (!idCard) {
+      return res.status(400).json({ error: "idCard is required" });
+    }
+
+    // Query employee by idCard
+    const employee = await Employee.findOne({ idCard: idCard });
+
+    if (!employee) {
+      return res.status(404).json({ 
+        exists: false,
+        message: "เลขบัตรประชาชนนี้ยังไม่มีในระบบ"
+      });
+    }
+
+    res.status(200).json({
+      exists: true,
+      message: `เลขบัตรประจำตัวประชาชน "${idCard}" มีอยู่ในระบบแล้ว`,
+      employee: {
+        _id: employee._id,
+        employeeId: employee.employeeId,
+        prefix: employee.prefix,
+        name: employee.name,
+        lastName: employee.lastName,
+        workplace: employee.workplace,
+        position: employee.position,
+        idCard: employee.idCard
+      }
+    });
+
+  } catch (error) {
+    console.error('Error checking idCard:', error);
+    res.status(500).json({ 
+      error: "Internal server error", 
+      details: error.message 
+    });
+  }
+});
+
 module.exports = router;
