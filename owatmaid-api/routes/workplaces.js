@@ -711,20 +711,33 @@ router.post("/add-work-schedule/:workplaceId", async (req, res) => {
     try {
       const workplace = await Workplace.findOne({ workplaceId: req.params.workplaceId });
       if (!workplace) return res.status(404).json({ message: "Workplace Not Found" });
-  
+
       const { name, codeSpSalary, SpSalary, roundOfSalary, StaffType, nameType } = req.body;
-  
+
       // Validate required fields
       if (!name || !codeSpSalary) {
         return res.status(400).json({ message: "Name and codeSpSalary are required" });
       }
-  
+
       // Check if codeSpSalary already exists
       const existingWelfare = workplace.addSalary.find(item => item.codeSpSalary === codeSpSalary);
       if (existingWelfare) {
         return res.status(400).json({ message: "Code already exists in this workplace" });
       }
-  
+
+      // ✅ Fix validation issue: Clean up specialWorkTimeDay null values
+      if (workplace.specialWorkTimeDay && workplace.specialWorkTimeDay.length > 0) {
+        workplace.specialWorkTimeDay = workplace.specialWorkTimeDay.map(schedule => {
+          if (schedule.payment_specialwork === null || schedule.payment_specialwork === undefined) {
+            schedule.payment_specialwork = 0;
+          }
+          if (schedule.paymentOT_specialwork === null || schedule.paymentOT_specialwork === undefined) {
+            schedule.paymentOT_specialwork = 0;
+          }
+          return schedule;
+        });
+      }
+
       // Create new welfare object
       const newWelfare = {
         name: name || "",
@@ -734,12 +747,10 @@ router.post("/add-work-schedule/:workplaceId", async (req, res) => {
         StaffType: StaffType || "",
         nameType: nameType || ""
       };
-  
+
       // Add to workplace
       workplace.addSalary.push(newWelfare);
-      await workplace.save();
-  
-      res.status(201).json({ 
+      await workplace.save();      res.status(201).json({ 
         message: "Welfare Added Successfully", 
         data: newWelfare,
         workplace: workplace 
@@ -815,6 +826,44 @@ router.post("/add-work-schedule/:workplaceId", async (req, res) => {
         workplaceId: workplace.workplaceId,
         workplaceName: workplace.workplaceName,
         addSalary: workplace.addSalary
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // ✅ Fix Validation Issues for Existing Data
+  router.post("/fix-validation/:workplaceId", async (req, res) => {
+    try {
+      const workplace = await Workplace.findOne({ workplaceId: req.params.workplaceId });
+      if (!workplace) return res.status(404).json({ message: "Workplace Not Found" });
+
+      let fixedCount = 0;
+
+      // Fix specialWorkTimeDay validation issues
+      if (workplace.specialWorkTimeDay && workplace.specialWorkTimeDay.length > 0) {
+        workplace.specialWorkTimeDay = workplace.specialWorkTimeDay.map(schedule => {
+          let isFixed = false;
+          
+          if (schedule.payment_specialwork === null || schedule.payment_specialwork === undefined) {
+            schedule.payment_specialwork = 0;
+            isFixed = true;
+          }
+          
+          if (schedule.paymentOT_specialwork === null || schedule.paymentOT_specialwork === undefined) {
+            schedule.paymentOT_specialwork = 0;
+            isFixed = true;
+          }
+          
+          if (isFixed) fixedCount++;
+          return schedule;
+        });
+      }
+
+      await workplace.save();
+      res.status(200).json({ 
+        message: `Fixed ${fixedCount} validation issues`, 
+        workplace: workplace 
       });
     } catch (error) {
       res.status(500).json({ error: error.message });
