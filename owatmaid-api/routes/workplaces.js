@@ -706,4 +706,119 @@ router.post("/add-work-schedule/:workplaceId", async (req, res) => {
     }
   });
 
+  // ✅ Add Welfare/AddSalary to a Workplace
+  router.post("/add-welfare/:workplaceId", async (req, res) => {
+    try {
+      const workplace = await Workplace.findOne({ workplaceId: req.params.workplaceId });
+      if (!workplace) return res.status(404).json({ message: "Workplace Not Found" });
+  
+      const { name, codeSpSalary, SpSalary, roundOfSalary, StaffType, nameType } = req.body;
+  
+      // Validate required fields
+      if (!name || !codeSpSalary) {
+        return res.status(400).json({ message: "Name and codeSpSalary are required" });
+      }
+  
+      // Check if codeSpSalary already exists
+      const existingWelfare = workplace.addSalary.find(item => item.codeSpSalary === codeSpSalary);
+      if (existingWelfare) {
+        return res.status(400).json({ message: "Code already exists in this workplace" });
+      }
+  
+      // Create new welfare object
+      const newWelfare = {
+        name: name || "",
+        codeSpSalary: codeSpSalary || "",
+        SpSalary: SpSalary || "",
+        roundOfSalary: roundOfSalary || "",
+        StaffType: StaffType || "",
+        nameType: nameType || ""
+      };
+  
+      // Add to workplace
+      workplace.addSalary.push(newWelfare);
+      await workplace.save();
+  
+      res.status(201).json({ 
+        message: "Welfare Added Successfully", 
+        data: newWelfare,
+        workplace: workplace 
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // ✅ Update Welfare/AddSalary in a Workplace
+  router.put("/update-welfare/:workplaceId/:welfareId", async (req, res) => {
+    try {
+      const workplace = await Workplace.findOne({ workplaceId: req.params.workplaceId });
+      if (!workplace) return res.status(404).json({ message: "Workplace Not Found" });
+  
+      const { name, codeSpSalary, SpSalary, roundOfSalary, StaffType, nameType } = req.body;
+  
+      // Find the welfare item to update
+      const welfareIndex = workplace.addSalary.findIndex(
+        item => item._id.toString() === req.params.welfareId
+      );
+  
+      if (welfareIndex === -1) {
+        return res.status(404).json({ message: "Welfare item not found" });
+      }
+  
+      // Update the welfare item
+      if (name !== undefined) workplace.addSalary[welfareIndex].name = name;
+      if (codeSpSalary !== undefined) workplace.addSalary[welfareIndex].codeSpSalary = codeSpSalary;
+      if (SpSalary !== undefined) workplace.addSalary[welfareIndex].SpSalary = SpSalary;
+      if (roundOfSalary !== undefined) workplace.addSalary[welfareIndex].roundOfSalary = roundOfSalary;
+      if (StaffType !== undefined) workplace.addSalary[welfareIndex].StaffType = StaffType;
+      if (nameType !== undefined) workplace.addSalary[welfareIndex].nameType = nameType;
+  
+      await workplace.save();
+      res.status(200).json({ 
+        message: "Welfare Updated Successfully", 
+        data: workplace.addSalary[welfareIndex],
+        workplace: workplace 
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // ✅ Delete Welfare/AddSalary from a Workplace
+  router.delete("/delete-welfare/:workplaceId/:welfareId", async (req, res) => {
+    try {
+      const workplace = await Workplace.findOne({ workplaceId: req.params.workplaceId });
+      if (!workplace) return res.status(404).json({ message: "Workplace Not Found" });
+  
+      workplace.addSalary = workplace.addSalary.filter(
+        item => item._id.toString() !== req.params.welfareId
+      );
+  
+      await workplace.save();
+      res.status(200).json({ 
+        message: "Welfare Deleted Successfully",
+        workplace: workplace 
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // ✅ Get All Welfare/AddSalary for a Workplace
+  router.get("/welfare/:workplaceId", async (req, res) => {
+    try {
+      const workplace = await Workplace.findOne({ workplaceId: req.params.workplaceId });
+      if (!workplace) return res.status(404).json({ message: "Workplace Not Found" });
+  
+      res.status(200).json({
+        workplaceId: workplace.workplaceId,
+        workplaceName: workplace.workplaceName,
+        addSalary: workplace.addSalary
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
 module.exports = router;
