@@ -3989,6 +3989,7 @@ if (newWorkplace) {
                         <th style={headerCellStyle}>ชม.OT</th>
                         <th style={headerCellStyle}>จำนวนคน</th>
                         <th style={headerCellStyle}>หมายเหตุ</th>
+                        <th style={headerCellStyle}>แก้ไข</th>
                         <th style={headerCellStyle}>ลบ</th>
                       </tr>
                     </thead>
@@ -4031,7 +4032,22 @@ if (newWorkplace) {
                             <td style={cellStyle}>{item1.resultTimeOT}</td>
                             <td style={cellStyle}>{item1.numberOfPeople}</td>
                             <td style={cellStyle}>{item1.Remark}</td>
-                            
+                            {index1 > 0 ? (
+                              <>
+                                <td style={cellStyle}></td>
+                              </>
+                            ) : (
+                              <>
+                                <td style={cellStyle}>
+                                  <button
+                                    type="button"
+                                    className="btn btn-warning ml-auto"
+                                  >
+                                    แก้ไข
+                                  </button>
+                                </td>
+                              </>
+                            )}
                             {index1 > 0 ? (
                               <>
                                 <td style={cellStyle}></td>
