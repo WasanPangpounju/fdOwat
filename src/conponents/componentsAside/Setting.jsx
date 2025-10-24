@@ -130,6 +130,8 @@ function Setting({ workplaceList, employeeList }) {
   });
 
   const [workTimeDayList, setWorkTimeDayList] = useState([]);
+  const [editingRow, setEditingRow] = useState(null);
+  const [editingItem, setEditingItem] = useState(null);
 
   // const daysOfWeekThai = ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์', 'อาทิตย์'];
   const shiftWork = ["กะเช้า", "กะบ่าย", "กะดึก"];
@@ -200,8 +202,132 @@ function Setting({ workplaceList, employeeList }) {
   const handleRemoveTimeList = (index) => {
     setWorkTimeDayList((prevList) => {
       const updatedList = [...prevList];
+      // ลบรายการที่ต้องการ
       updatedList.splice(index, 1);
-      return updatedList;
+      // ถ้าไม่มีรายการเหลือ ให้ return array ว่าง
+      if (updatedList.length === 0) return [];
+      
+      // ล้างค่าเก่าออกจากรายการที่เหลือ
+      return updatedList.map(item => ({
+        ...item,
+        startDay: item.startDay || "",
+        endDay: item.endDay || "",
+        workOrStop: item.workOrStop || "",
+        allTimes: item.allTimes.map(time => ({
+          shift: time.shift || "",
+          startTime: "",
+          endTime: "",
+          resultTime: "",
+          startTimeOT: "",
+          endTimeOT: "",
+          resultTimeOT: "",
+          numberOfPeople: "",
+          Remark: ""
+        }))
+      }));
+    });
+    
+    // Reset editing state
+    if (editingRow === index) {
+      setEditingRow(null);
+      setEditingItem(null);
+    }
+  };
+
+  const handleEditClick = (index, item1) => {
+    setEditingRow(index);
+    setEditingItem({
+      ...item1,
+      startDay: workTimeDayList[index].startDay,
+      endDay: workTimeDayList[index].endDay,
+      workOrStop: workTimeDayList[index].workOrStop
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingRow(null);
+    setEditingItem(null);
+  };
+
+  const handleSaveEdit = (index, rowIndex) => {
+    setWorkTimeDayList(prevList => {
+      const newList = [...prevList];
+      // อัพเดทข้อมูลของวันและสถานะ
+      newList[index] = {
+        ...newList[index],
+        startDay: editingItem.startDay || "",
+        endDay: editingItem.endDay || "",
+        workOrStop: editingItem.workOrStop || ""
+      };
+
+      // คำนวณเวลาทำงานและ OT
+      let resultTime = "";
+      if (editingItem.startTime && editingItem.endTime) {
+        const start = parseFloat(editingItem.startTime);
+        const end = parseFloat(editingItem.endTime);
+        if (!isNaN(start) && !isNaN(end)) {
+          resultTime = (end - start).toFixed(2);
+        }
+      }
+
+      let resultTimeOT = "";
+      if (editingItem.startTimeOT && editingItem.endTimeOT) {
+        const startOT = parseFloat(editingItem.startTimeOT);
+        const endOT = parseFloat(editingItem.endTimeOT);
+        if (!isNaN(startOT) && !isNaN(endOT)) {
+          resultTimeOT = (endOT - startOT).toFixed(2);
+        }
+      }
+
+      // อัพเดทข้อมูลของเวลาทำงาน
+      newList[index].allTimes[rowIndex] = {
+        shift: editingItem.shift || "",
+        startTime: editingItem.startTime || "",
+        endTime: editingItem.endTime || "",
+        resultTime: resultTime,
+        startTimeOT: editingItem.startTimeOT || "",
+        endTimeOT: editingItem.endTimeOT || "",
+        resultTimeOT: resultTimeOT,
+        numberOfPeople: editingItem.numberOfPeople || "",
+        Remark: editingItem.Remark || ""
+      };
+      return newList;
+    });
+    setEditingRow(null);
+    setEditingItem(null);
+  };
+
+  const handleEditChange = (field, value) => {
+    setEditingItem(prev => {
+      const updated = { ...prev, [field]: value };
+      
+      // คำนวณ resultTime เมื่อมีการเปลี่ยนแปลงเวลาเข้าหรือออก
+      if (field === 'startTime' || field === 'endTime') {
+        if (updated.startTime && updated.endTime) {
+          const startHour = parseFloat(updated.startTime);
+          const endHour = parseFloat(updated.endTime);
+          if (!isNaN(startHour) && !isNaN(endHour)) {
+            let diff = endHour - startHour;
+            if (diff < 0) diff += 24; // กรณีข้ามวัน
+            updated.resultTime = diff.toFixed(2);
+          }
+        }
+      }
+      
+      // คำนวณ resultTimeOT เมื่อมีการเปลี่ยนแปลงเวลา OT
+      if (field === 'startTimeOT' || field === 'endTimeOT') {
+        if (updated.startTimeOT && updated.endTimeOT) {
+          const startHour = parseFloat(updated.startTimeOT);
+          const endHour = parseFloat(updated.endTimeOT);
+          if (!isNaN(startHour) && !isNaN(endHour)) {
+            let diff = endHour - startHour;
+            if (diff < 0) diff += 24; // กรณีข้ามวัน
+            updated.resultTimeOT = diff.toFixed(2);
+          }
+        }
+      }
+
+      return updated;
     });
   };
 
@@ -3891,6 +4017,7 @@ if (newWorkplace) {
                                 type="text"
                                 class="form-control"
                                 placeholder="จำนวนคน"
+
                                 value={time.numberOfPeople || ""}
                                 onChange={(e) =>
                                   handleTimeChange(
@@ -4012,26 +4139,156 @@ if (newWorkplace) {
                                                                         ลบ
                                                                     </button>
                                                                 </td> */}
-                                <td style={cellStyle}>{item.startDay}</td>
-                                <td style={cellStyle}>{item.endDay}</td>
+                                <td style={cellStyle}>
+                                  {editingRow === index ? (
+                                    <select
+                                      className="form-control mx-auto "
+                                      value={editingItem?.startDay || item.startDay}
+                                      onChange={(e) => handleEditChange('startDay', e.target.value)}
+                                      style={{ width: '50px', height: '35px', padding: '2px',  textAlign: 'center' }}
+                                    >
+                                      <option value="">เลือก</option>
+                                      {daysOfWeek.map((day, idx) => (
+                                        <option key={idx} value={day}>{day}</option>
+                                      ))}
+                                    </select>
+                                  ) : (
+                                    item.startDay
+                                  )}
+                                </td>
+                                <td style={cellStyle}>
+                                  {editingRow === index ? (
+                                    <select
+                                      className="form-control mx-auto "
+                                      value={editingItem?.endDay || item.endDay}
+                                      onChange={(e) => handleEditChange('endDay', e.target.value)}
+                                    >
+                                      <option value="">เลือก</option>
+                                      {daysOfWeek.map((day, idx) => (
+                                        <option key={idx} value={day}>{day}</option>
+                                      ))}
+                                    </select>
+                                  ) : (
+                                    item.endDay
+                                  )}
+                                </td>
                               </>
                             )}
 
-                            {item.workOrStop == "work" ? (
-                              <td style={cellStyle}>ทำงาน</td>
-                            ) : (
-                              <td style={cellStyle}>หยุด</td>
-                            )}
+                            <td style={cellStyle}>
+                              {editingRow === index ? (
+                                <select
+                                  className="form-control mx-auto "
+                                  value={editingItem?.workOrStop || item.workOrStop}
+                                  onChange={(e) => handleEditChange('workOrStop', e.target.value)}
+                                >
+                                  <option value="">เลือก</option>
+                                  <option value="work">ทำงาน</option>
+                                  <option value="stop">หยุด</option>
+                                </select>
+                              ) : (
+                                item.workOrStop === "work" ? "ทำงาน" : "หยุด"
+                              )}
+                            </td>
 
-                            <td style={cellStyle}>{item1.shift}</td>
-                            <td style={cellStyle}>{item1.startTime}</td>
-                            <td style={cellStyle}>{item1.endTime}</td>
+                            <td style={cellStyle}>
+                              {editingRow === index && editingItem ? (
+                                <select
+                                  className="form-control mx-auto "
+                                  value={editingItem.shift}
+                                  onChange={(e) => handleEditChange('shift', e.target.value)}
+                                >
+                                  <option value="">เลือกกะ</option>
+                                  {shiftWork.map((shift, idx) => (
+                                    <option key={idx} value={shift}>{shift}</option>
+                                  ))}
+                                </select>
+                              ) : (
+                                item1.shift
+                              )}
+                            </td>
+                            <td style={cellStyle}>
+                              {editingRow === index && editingItem ? (
+                                <input
+                                  type="text"
+                                  className="form-control mx-auto "
+                                  value={editingItem.startTime}
+                                  onChange={(e) => handleEditChange('startTime', e.target.value)}
+                                  style={{ width: '50px', height: '35px', padding: '2px',  textAlign: 'center' }}
+                                />
+                              ) : (
+                                item1.startTime
+                              )}
+                            </td>
+                            <td style={cellStyle}>
+                              {editingRow === index && editingItem ? (
+                                <input
+                                  type="text"
+                                  className="form-control mx-auto "
+                                  value={editingItem.endTime}
+                                  onChange={(e) => handleEditChange('endTime', e.target.value)}
+                                  style={{ width: '55px', height: '35px', padding: '2px',  textAlign: 'center' }}
+                                />
+                              ) : (
+                                item1.endTime
+                              )}
+                            </td>
                             <td style={cellStyle}>{item1.resultTime}</td>
-                            <td style={cellStyle}>{item1.startTimeOT}</td>
-                            <td style={cellStyle}>{item1.endTimeOT}</td>
+                            <td style={cellStyle}>
+                              {editingRow === index && editingItem ? (
+                                <input
+                                  type="text"
+                                  className="form-control mx-auto "
+                                  value={editingItem.startTimeOT}
+                                  onChange={(e) => handleEditChange('startTimeOT', e.target.value)}
+                                  style={{ width: '70px', height: '35px', padding: '2px',  textAlign: 'center' }}
+                                />
+                              ) : (
+                                item1.startTimeOT
+                              )}
+                            </td>
+                            <td style={cellStyle}>
+                              {editingRow === index && editingItem ? (
+                                <input
+                                  type="text"
+                                  className="form-control mx-auto "
+                                  value={editingItem.endTimeOT}
+                                  onChange={(e) => handleEditChange('endTimeOT', e.target.value)}
+                                  style={{ width: '80px', height: '35px', padding: '2px',  textAlign: 'center' }}
+                                />
+                              ) : (
+                                item1.endTimeOT
+                              )}
+                            </td>
                             <td style={cellStyle}>{item1.resultTimeOT}</td>
-                            <td style={cellStyle}>{item1.numberOfPeople}</td>
-                            <td style={cellStyle}>{item1.Remark}</td>
+                            <td style={cellStyle}>
+                              {editingRow === index && editingItem ? (
+                                <input
+                                  type="text"
+                                  className="form-control mx-auto "
+                                  value={editingItem.numberOfPeople}
+                                  style={{ width: '50px', height: '35px', padding: '2px',  textAlign: 'center' }}
+                                  onChange={(e) => handleEditChange('numberOfPeople', e.target.value)}
+                                  onInput={(e) => {
+                                    e.target.value = e.target.value.replace(/[^0-9]/g, "");
+                                  }}
+                                />
+                              ) : (
+                                item1.numberOfPeople
+                              )}
+                            </td>
+                            <td style={cellStyle}>
+                              {editingRow === index && editingItem ? (
+                                <input
+                                  type="text"
+                                  className="form-control"
+                                  value={editingItem.Remark}
+                                  onChange={(e) => handleEditChange('Remark', e.target.value)}
+                                />
+                              ) : (
+                                item1.Remark
+                              )}
+                            </td>
                             {index1 > 0 ? (
                               <>
                                 <td style={cellStyle}></td>
@@ -4039,12 +4296,34 @@ if (newWorkplace) {
                             ) : (
                               <>
                                 <td style={cellStyle}>
-                                  <button
-                                    type="button"
-                                    className="btn btn-warning ml-auto"
-                                  >
-                                    แก้ไข
-                                  </button>
+                                  {editingRow === index ? (
+                                    <div className="btn-group">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleSaveEdit(index, index1)}
+                                        className="btn btn-success" style={{ fontSize: '12px', padding: '2px 8px', width: '55px' }}
+                                      >
+                                        แก้
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={handleCancelEdit}
+                                        className="btn btn-secondary"
+                                        style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem', width: '50px', height: '24px', marginLeft: '4px' }}
+                                      >
+                                        ยกเลิก
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleEditClick(index, {...item1})}
+                                      className="btn btn-warning"
+                                      style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem', width: '50px', height: '24px' }}
+                                    >
+                                      แก้ไข
+                                    </button>
+                                  )}
                                 </td>
                               </>
                             )}
@@ -4058,7 +4337,9 @@ if (newWorkplace) {
                                   <button
                                     type="button"
                                     onClick={() => handleRemoveTimeList(index)}
-                                    className="btn btn-danger ml-auto"
+                                    className="btn btn-danger ml-auto" 
+                                    style={{ fontSize: '14px', padding: '2px 8px', width: '50px' }}
+                                    disabled={editingRow === index}
                                   >
                                     ลบ
                                   </button>
@@ -4282,7 +4563,7 @@ if (newWorkplace) {
                                 type="button"
                                 onClick={() => handleRemoveTimePerson(index)}
                                 style={{ width: "2.5rem" }}
-                                className="btn btn-danger ml-auto"
+                                className="btn btn-danger"
                               >
                                 ลบ
                               </button>
@@ -4370,19 +4651,18 @@ if (newWorkplace) {
                                       handleRemoveTimePersonList(index)
                                     }
                                
-                                    className="btn btn-danger mb-2"
+                                    className="btn btn-danger" style={{ fontSize: '14px', padding: '2px 8px', width: '50px' }}
                                   >
                                     ลบ
                                   </button>
-                                  <button
-                                    className="btn btn-warning"
-                                    type="button"
-                                    onClick={() => handleEditTimePersonList(index)}
-                                  >
-                                    แก้ไข
-                                  </button>
- 
-                                </td>
+                                <button
+                                  className="btn btn-warning"
+                                  type="button"
+                                  onClick={() => handleEditTimePersonList(index)}
+                                  style={{ fontSize: '14px', padding: '2px 8px', marginLeft: '4px' }}
+                                >
+                                  แก้ไข
+                                </button>                                </td>
                               </>
                             )}
                           </tr>
@@ -4806,7 +5086,7 @@ if (newWorkplace) {
       {/* ✅ Employees Input Section */}
       <h5 className="mt-4">ตำแหน่งและจำนวนคน</h5>
       <div className="d-flex justify-content-start mt-3 mb-4">
-      <button type="button" className="btn btn-success mb-2" onClick={handleAddTimePerson_specialwork}>
+      <button type="button" className="btn btn-success" style={{ fontSize: '14px', padding: '2px 8px' }} onClick={handleAddTimePerson_specialwork}>
         + เพิ่มตำแหน่ง
       </button>
       </div>
