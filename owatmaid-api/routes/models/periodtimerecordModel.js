@@ -96,6 +96,7 @@ socialSecurity: String,
 tax: String,
 fund: String,
 cash: String,
+payFullDay: { type: Boolean, default: false },
 cashSpecialDay: String,
 typeOfemployee: String,
 
