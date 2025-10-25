@@ -436,91 +436,98 @@ function AddEditEmployee() {
   async function handleManageEmployee(event) {
     event.preventDefault();
     
-    // ตรวจสอบข้อมูลที่จำเป็นก่อนส่ง
-    const requiredFields = [
-      { field: employeeId, name: 'รหัสพนักงาน' },
-      { field: workplace, name: 'หน่วยงาน' },
-      { field: position, name: 'ตำแหน่ง' },
-      { field: jobtype, name: 'ประเภทการจ้าง' },
-      { field: prefix, name: 'คำนำหน้าชื่อ' },
-      { field: name, name: 'ชื่อ' },
-      { field: lastName, name: 'นามสกุล' },
-      { field: gender, name: 'เพศ' },
-      { field: dateOfBirth, name: 'วันเดือนปีเกิด' },
-      { field: idCard, name: 'เลขบัตรประจำตัวประชาชน' },
-      { field: ethnicity, name: 'เชื้อชาติ' },
-      { field: religion, name: 'ศาสนา' },
-      { field: maritalStatus, name: 'สถานภาพการสมรส' },
-      { field: address, name: 'ที่อยู่ตามบัตรประชาชน' },
-      { field: currentAddress, name: 'ที่อยู่ปัจจุบัน' }
-    ];
-
-    const missingFields = requiredFields.filter(item => !item.field || item.field.trim() === '');
+    // ป้องกันการ submit ซ้ำ
+    if (isLoading) {
+      return;
+    }
     
-    if (missingFields.length > 0) {
-      const fieldNames = missingFields.map(item => item.name).join(', ');
-      alert(`กรุณากรอกข้อมูลในช่องต่อไปนี้: ${fieldNames}`);
-      return;
-    }
-
-    // ตรวจสอบรูปแบบเลขบัตรประชาชน
-    if (idCard && idCard.length !== 13) {
-      alert('เลขบัตรประจำตัวประชาชนต้องมี 13 หลัก');
-      return;
-    }
-
-    // ตรวจสอบรูปแบบเบอร์โทรศัพท์
-    if (phoneNumber && phoneNumber.length < 9) {
-      alert('เบอร์โทรศัพท์ไม่ถูกต้อง');
-      return;
-    }
-
-    const data = {
-      employeeId: employeeId.trim(),
-      position: position.trim(),
-      department: department.trim(),
-      workplace: workplace.trim(),
-      jobtype: jobtype,
-      salary: salary.trim(),
-      startjob: startjob,
-      endjob: endjob,
-      exceptjob: exceptjob,
-      prefix: prefix,
-      name: name.trim(),
-      lastName: lastName.trim(),
-      nickName: nickName.trim(),
-      gender: gender,
-      dateOfBirth: dateOfBirth,
-      age: age,
-      idCard: idCard.trim(),
-      ethnicity: ethnicity,
-      religion: religion,
-      maritalStatus: maritalStatus,
-      militaryStatus: militaryStatus,
-      address: address.trim(),
-      province: province,
-      district: district,
-      subDistrict: subDistrict,
-      postalCode: postalCode.trim(),
-      houseNumber: houseNumber.trim(),
-      province2: province2,
-      district2: district2,
-      subDistrict2: subDistrict2,
-      postalCode2: postalCode2.trim(),
-      houseNumber2: houseNumber2.trim(),
-      currentAddress: currentAddress.trim(),
-      phoneNumber: phoneNumber.trim(),
-      emergencyContactNumber: emergencyContactNumber.trim(),
-      emergencyName: emergencyName.trim(),
-      emergencyRelationship: emergencyRelationship,
-      idLine: idLine.trim(),
-    };
+    setIsLoading(true);
     
-    console.log('ข้อมูลที่จะส่ง:', data);
+    try {
+      // ตรวจสอบข้อมูลที่จำเป็นก่อนส่ง
+      const requiredFields = [
+        { field: employeeId, name: 'รหัสพนักงาน' },
+        { field: workplace, name: 'หน่วยงาน' },
+        { field: position, name: 'ตำแหน่ง' },
+        { field: jobtype, name: 'ประเภทการจ้าง' },
+        { field: prefix, name: 'คำนำหน้าชื่อ' },
+        { field: name, name: 'ชื่อ' },
+        { field: lastName, name: 'นามสกุล' },
+        { field: gender, name: 'เพศ' },
+        { field: dateOfBirth, name: 'วันเดือนปีเกิด' },
+        { field: idCard, name: 'เลขบัตรประจำตัวประชาชน' },
+        { field: ethnicity, name: 'เชื้อชาติ' },
+        { field: religion, name: 'ศาสนา' },
+        { field: maritalStatus, name: 'สถานภาพการสมรส' },
+        { field: address, name: 'ที่อยู่ตามบัตรประชาชน' },
+        { field: currentAddress, name: 'ที่อยู่ปัจจุบัน' }
+      ];
 
-    //check create or update Employee
-    if (newEmp) {
-      try {
+      const missingFields = requiredFields.filter(item => !item.field || item.field.trim() === '');
+      
+      if (missingFields.length > 0) {
+        const fieldNames = missingFields.map(item => item.name).join(', ');
+        alert(`กรุณากรอกข้อมูลในช่องต่อไปนี้: ${fieldNames}`);
+        return;
+      }
+
+      // ตรวจสอบรูปแบบเลขบัตรประชาชน
+      if (idCard && idCard.length !== 13) {
+        alert('เลขบัตรประจำตัวประชาชนต้องมี 13 หลัก');
+        return;
+      }
+
+      // ตรวจสอบรูปแบบเบอร์โทรศัพท์
+      if (phoneNumber && phoneNumber.length < 9) {
+        alert('เบอร์โทรศัพท์ไม่ถูกต้อง');
+        return;
+      }
+
+      const data = {
+        employeeId: employeeId.trim(),
+        position: position.trim(),
+        department: department.trim(),
+        workplace: workplace.trim(),
+        jobtype: jobtype,
+        salary: salary.trim(),
+        startjob: startjob,
+        endjob: endjob,
+        exceptjob: exceptjob,
+        prefix: prefix,
+        name: name.trim(),
+        lastName: lastName.trim(),
+        nickName: nickName.trim(),
+        gender: gender,
+        dateOfBirth: dateOfBirth,
+        age: age,
+        idCard: idCard.trim(),
+        ethnicity: ethnicity,
+        religion: religion,
+        maritalStatus: maritalStatus,
+        militaryStatus: militaryStatus,
+        address: address.trim(),
+        province: province,
+        district: district,
+        subDistrict: subDistrict,
+        postalCode: postalCode.trim(),
+        houseNumber: houseNumber.trim(),
+        province2: province2,
+        district2: district2,
+        subDistrict2: subDistrict2,
+        postalCode2: postalCode2.trim(),
+        houseNumber2: houseNumber2.trim(),
+        currentAddress: currentAddress.trim(),
+        phoneNumber: phoneNumber.trim(),
+        emergencyContactNumber: emergencyContactNumber.trim(),
+        emergencyName: emergencyName.trim(),
+        emergencyRelationship: emergencyRelationship,
+        idLine: idLine.trim(),
+      };
+      
+      console.log('ข้อมูลที่จะส่ง:', data);
+
+      //check create or update Employee
+      if (newEmp) {
         console.log('กำลังสร้างพนักงานใหม่...');
         const response = await axios.post(endpoint + "/employee/create", data, {
           headers: {
@@ -533,37 +540,8 @@ function AddEditEmployee() {
         alert("บันทึกสำเร็จ");
         window.location.reload();
         
-      } catch (error) {
-        console.error("Error สร้างพนักงาน:", error);
-        
-        let errorMessage = "เกิดข้อผิดพลาดในการสร้างพนักงาน: ";
-        
-        if (error.response) {
-          // Server ตอบกลับมาแต่มี error status
-          console.error("Error Response Data:", error.response.data);
-          console.error("Error Status:", error.response.status);
-          
-          if (error.response.status === 400) {
-            errorMessage += "ข้อมูลไม่ถูกต้อง - " + (error.response.data.message || "กรุณาตรวจสอบข้อมูลที่กรอก");
-          } else if (error.response.status === 409) {
-            errorMessage += "รหัสพนักงานหรือเลขบัตรประชาชนซ้ำ";
-          } else if (error.response.status === 500) {
-            errorMessage += "เกิดข้อผิดพลาดจากเซิร์ฟเวอร์";
-          } else {
-            errorMessage += error.response.data.message || "ไม่สามารถบันทึกข้อมูลได้";
-          }
-        } else if (error.request) {
-          // ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้
-          errorMessage += "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต";
-        } else {
-          errorMessage += error.message || "เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ";
-        }
-        
-        alert(errorMessage);
-      }
-    } else {
-      if (buttonValue === "save") {
-        try {
+      } else {
+        if (buttonValue === "save") {
           console.log('กำลังอัพเดตพนักงาน ID:', _id);
           const response = await axios.put(
             endpoint + "/employee/update/" + _id,
@@ -579,36 +557,45 @@ function AddEditEmployee() {
           console.log('Response อัพเดตสำเร็จ:', response.data);
           alert("บันทึกสำเร็จ");
           window.location.reload();
-          
-        } catch (error) {
-          console.error("Error อัพเดตพนักงาน:", error);
-          
-          let errorMessage = "เกิดข้อผิดพลาดในการอัพเดตข้อมูล: ";
-          
-          if (error.response) {
-            console.error("Error Response Data:", error.response.data);
-            console.error("Error Status:", error.response.status);
-            
-            if (error.response.status === 400) {
-              errorMessage += "ข้อมูลไม่ถูกต้อง - " + (error.response.data.message || "กรุณาตรวจสอบข้อมูลที่กรอก");
-            } else if (error.response.status === 404) {
-              errorMessage += "ไม่พบข้อมูลพนักงานที่ต้องการแก้ไข";
-            } else if (error.response.status === 409) {
-              errorMessage += "รหัสพนักงานหรือเลขบัตรประชาชนซ้ำ";
-            } else if (error.response.status === 500) {
-              errorMessage += "เกิดข้อผิดพลาดจากเซิร์ฟเวอร์";
-            } else {
-              errorMessage += error.response.data.message || "ไม่สามารถบันทึกข้อมูลได้";
-            }
-          } else if (error.request) {
-            errorMessage += "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต";
-          } else {
-            errorMessage += error.message || "เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ";
-          }
-          
-          alert(errorMessage);
         }
       }
+      
+    } catch (error) {
+      console.error("Error managing employee:", error);
+      
+      let errorMessage = newEmp ? "เกิดข้อผิดพลาดในการสร้างพนักงาน: " : "เกิดข้อผิดพลาดในการอัพเดตข้อมูล: ";
+      
+      if (error.response) {
+        // Server ตอบกลับมาแต่มี error status
+        console.error("Error Response Data:", error.response.data);
+        console.error("Error Status:", error.response.status);
+        
+        switch (error.response.status) {
+          case 400:
+            errorMessage += "ข้อมูลไม่ถูกต้อง - " + (error.response.data.message || "กรุณาตรวจสอบข้อมูลที่กรอก");
+            break;
+          case 409:
+            errorMessage += "รหัสพนักงานหรือเลขบัตรประชาชนซ้ำ";
+            break;
+          case 404:
+            errorMessage += "ไม่พบข้อมูลพนักงานที่ต้องการแก้ไข";
+            break;
+          case 500:
+            errorMessage += "เกิดข้อผิดพลาดจากเซิร์ฟเวอร์";
+            break;
+          default:
+            errorMessage += error.response.data.message || "ไม่สามารถบันทึกข้อมูลได้";
+        }
+      } else if (error.request) {
+        // ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้
+        errorMessage += "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต";
+      } else {
+        errorMessage += error.message || "เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ";
+      }
+      
+      alert(errorMessage);
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -2068,9 +2055,10 @@ function AddEditEmployee() {
                           value="create"
                           onClick={() => setButtonValue("create")}
                           class="btn b_save"
+                          disabled={isLoading}
                         >
                           <i class="nav-icon fas fa-save"></i>{" "}
-                          &nbsp;สร้างพนักงานใหม่
+                          &nbsp;{isLoading ? "กำลังบันทึก..." : "สร้างพนักงานใหม่"}
                         </button>
                       ) : (
                         <button
@@ -2079,11 +2067,13 @@ function AddEditEmployee() {
                           value="save"
                           onClick={() => setButtonValue("save")}
                           class="btn b_save"
+                          disabled={isLoading}
                         >
-                          <i class="nav-icon fas fa-save"></i> &nbsp;บันทึก
+                          <i class="nav-icon fas fa-save"></i> 
+                          &nbsp;{isLoading ? "กำลังบันทึก..." : "บันทึก"}
                         </button>
                       )}
-                      <button class="btn clean">
+                      <button class="btn clean" disabled={isLoading}>
                         <i class="far fa-window-close"></i> &nbsp;ยกเลิก
                       </button>{" "}
                     </div>
