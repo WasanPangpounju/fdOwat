@@ -2920,6 +2920,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
           cashBeforeOt = 0; // ไม่คิดค่า OT ก่อนเวลาสำหรับ cash_holiday
           cashOtMul = 0; // ตั้งตัวคูณ OT เป็น 0 สำหรับ cash_holiday
           cashBeforeOtMul = 0; // ตั้งตัวคูณ OT ก่อนเวลาเป็น 0 สำหรับ cash_holiday
+           cashWorkMul = 0; // ตั้งตัวคูณค่าแรงเป็น 0 สำหรับ cash_holiday
           
           console.log(`🎯 พบ shift: "cash_holiday" - กำหนดทุกค่าเป็น 0`);
         } else {
@@ -3102,6 +3103,7 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
             cashBeforeOt = 0; // ไม่คิดค่า OT ก่อนเวลาสำหรับ cash_holiday
             cashOtMul = 0; // ตั้งตัวคูณ OT เป็น 0 สำหรับ cash_holiday
             cashBeforeOtMul = 0; // ตั้งตัวคูณ OT ก่อนเวลาเป็น 0 สำหรับ cash_holiday
+             cashWorkMul = 0; // ตั้งตัวคูณค่าแรงเป็น 0 สำหรับ cash_holiday
             
             console.log(`🎯 พบ shift: "cash_holiday" - กำหนดทุกค่าเป็น 0`);
           } else {
@@ -3141,6 +3143,7 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
             cashBeforeOt = 0; // ไม่คิดค่า OT ก่อนเวลาสำหรับ cash_holiday
             cashOtMul = 0; // ตั้งตัวคูณ OT เป็น 0 สำหรับ cash_holiday
             cashBeforeOtMul = 0; // ตั้งตัวคูณ OT ก่อนเวลาเป็น 0 สำหรับ cash_holiday
+             cashWorkMul = 0; // ตั้งตัวคูณค่าแรงเป็น 0 สำหรับ cash_holiday
             
             console.log(`🎯 พบ shift: "cash_holiday" - กำหนดทุกค่าเป็น 0`);
           } else {
@@ -3199,6 +3202,7 @@ const totalDecimalHour = tmpHour + (tmpMinute / 60); // 1 + 30/60 = 1.5
             cashBeforeOt = 0; // ไม่คิดค่า OT ก่อนเวลาสำหรับ cash_holiday
             cashOtMul = 0; // ตั้งตัวคูณ OT เป็น 0 สำหรับ cash_holiday
             cashBeforeOtMul = 0; // ตั้งตัวคูณ OT ก่อนเวลาเป็น 0 สำหรับ cash_holiday
+             cashWorkMul = 0; // ตั้งตัวคูณค่าแรงเป็น 0 สำหรับ cash_holiday
             
             console.log(`🎯 พบ shift: "cash_holiday" - กำหนดทุกค่าเป็น 0`);
           } else {
