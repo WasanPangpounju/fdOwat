@@ -7890,7 +7890,8 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
 
   // 🎯 คำนวณ sumCashWorkMul["1"] ใหม่จาก workRate * dayWorkCount
   if (workRate > 0 && dayWorkCount > 0 && typeOfemployee === 'รายวัน') {
-    const newSumCashWorkMul1 = workRate * dayWorkCount;
+    const newsumCashperHour = workRate / 8;
+    const newSumCashWorkMul1 = newsumCashperHour * sumTimeWork;
     console.log(`\n🎯 === การคำนวณ sumCashWorkMul["1"] ใหม่ ===`);
     console.log(`🎯 workRate: ${workRate} บาท`);
     console.log(`🎯 dayWorkCount: ${dayWorkCount} วัน`);

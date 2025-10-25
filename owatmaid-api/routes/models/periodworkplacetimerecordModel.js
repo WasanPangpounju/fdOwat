@@ -21,6 +21,7 @@ const periodWorkplaceTimerecordSchema = new mongoose.Schema({
     endOtTime: String,
     totalOtTime: String,
     cashSalary: String,
+    payFullDay: { type: Boolean, default: false },
     specialtSalary: String,
     specialtSalaryOT: String,
             messageSalary: String,
