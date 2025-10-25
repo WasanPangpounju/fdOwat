@@ -7,7 +7,8 @@ import Swal from 'sweetalert2';
 
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import EmployeesSelected from "./EmployeesSelected";
 
 // Helper function to safely get the first element from a filtered array
@@ -30,6 +31,326 @@ function AddsettimeEmployee() {
   const bordertable = {
     borderLeft: "2px solid #000",
   };
+
+  // Function to generate PDF report
+const generatePDFReport = async () => {
+  try {
+    setLoading(true);
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    let tableElement = null;
+    const allTables = document.querySelectorAll('table');
+    console.log('Found tables:', allTables.length);
+    
+    // เลือกตารางที่สอง (ตารางล่าง) ซึ่งมีปุ่มจัดการ
+    for (let i = 0; i < allTables.length; i++) {
+      const table = allTables[i];
+      const hasActionButtons = table.querySelector('button[title="แก้ไข"], button[title="ลบ"]');
+      const hasManageColumn = table.textContent.includes('จัดการ');
+      
+      if (hasActionButtons || hasManageColumn) {
+        tableElement = table;
+        console.log('Found data table at index:', i);
+        break;
+      }
+    }
+
+    if (!tableElement && allTables.length >= 2) {
+      tableElement = allTables[1];
+    }
+
+    if (!tableElement) {
+      Swal.fire({
+        icon: 'error',
+        title: 'ไม่พบตารางข้อมูล',
+        text: 'กรุณาตรวจสอบว่ามีข้อมูลในตารางหรือไม่',
+      });
+      return;
+    }
+
+    // สร้าง container ชั่วคราวสำหรับรายงาน PDF
+    const reportContainer = document.createElement('div');
+    reportContainer.style.position = 'absolute';
+    reportContainer.style.left = '-9999px';
+    reportContainer.style.top = '0';
+    reportContainer.style.width = '190mm';
+    reportContainer.style.padding = '20px';
+    reportContainer.style.backgroundColor = 'white';
+    reportContainer.style.fontFamily = "'Sarabun', 'TH Sarabun New', Arial, sans-serif";
+
+    // สร้างหัวเอกสารตามรูปแบบที่ต้องการ
+    const documentHeader = document.createElement('div');
+    documentHeader.style.marginBottom = '20px';
+    documentHeader.style.position = 'relative';
+
+    // ส่วนหัวด้านขวาบน (วันที่ออกเอกสาร) - เพิ่มกรอบสี่เหลี่ยม
+    const dateSection = document.createElement('div');
+    dateSection.style.position = 'absolute';
+    dateSection.style.top = '0';
+    dateSection.style.right = '0';
+    dateSection.style.textAlign = 'center';
+    dateSection.style.fontSize = '12px';
+    dateSection.style.border = '1px solid #000';
+    dateSection.style.padding = '10px';
+    dateSection.style.width = '150px';
+    dateSection.style.backgroundColor = '#f8f9fa';
+    dateSection.style.top = '-60px';
+    
+    const generatedDate = new Date().toLocaleDateString('th-TH', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    
+    const dateLabel = document.createElement('div');
+    dateLabel.textContent = 'วันที่ออกเอกสาร';
+    dateLabel.style.marginBottom = '5px';
+    
+    const dateValue = document.createElement('div');
+    dateValue.textContent = generatedDate;
+    
+    dateSection.appendChild(dateLabel);
+    dateSection.appendChild(dateValue);
+    documentHeader.appendChild(dateSection);
+
+   // ส่วนโลโก้และข้อมูลบริษัท (ตรงกลางทั้งหมด)
+    const companySection = document.createElement('div');
+    companySection.style.marginTop = '40px';
+    companySection.style.display = 'flex';
+    companySection.style.flexDirection = 'column'; // ✅ เรียงแนวตั้ง
+    companySection.style.alignItems = 'center';    // ✅ จัดทุกอย่างให้อยู่ตรงกลาง
+    companySection.style.textAlign = 'center';     // ✅ ข้อความกลาง
+
+    // เพิ่มโลโก้บริษัท
+    const logoContainer = document.createElement('div');
+    logoContainer.style.marginBottom = '10px'; // ✅ เพิ่มช่องว่างระหว่างโลโก้กับข้อความ
+
+    const logoImg = document.createElement('img');
+    logoImg.src = '/src/assets/images/OwatIcon.png';
+    logoImg.alt = 'Owat Maid Logo';
+    logoImg.style.width = '150px';
+    logoImg.style.height = '70px';
+    logoImg.style.objectFit = 'contain';
+
+    // ถ้ารูปไม่โหลด ให้ใช้ fallback
+    logoImg.onerror = function() {
+      console.log('Logo not found, using fallback');
+      this.style.display = 'none';
+      const fallbackDiv = document.createElement('div');
+      fallbackDiv.style.width = '80px';
+      fallbackDiv.style.height = '80px';
+      fallbackDiv.style.backgroundColor = '#e9ecef';
+      fallbackDiv.style.border = '1px solid #dee2e6';
+      fallbackDiv.style.display = 'flex';
+      fallbackDiv.style.alignItems = 'center';
+      fallbackDiv.style.justifyContent = 'center';
+      fallbackDiv.style.fontSize = '10px';
+      fallbackDiv.style.color = '#6c757d';
+      fallbackDiv.textContent = 'โลโก้';
+      logoContainer.appendChild(fallbackDiv);
+    };
+
+    logoContainer.appendChild(logoImg);
+
+    // ข้อมูลบริษัท
+    const companyInfo = document.createElement('div');
+    companyInfo.style.maxWidth = '600px'; // ✅ จำกัดความกว้างให้อ่านง่าย
+
+    const companyName = document.createElement('div');
+    companyName.textContent = 'บริษัท โอวาทเมด จํากัด (OWAT PRO AND QUICK COMPANY LIMITED)';
+    companyName.style.fontWeight = 'bold';
+    companyName.style.fontSize = '14px';
+    companyName.style.marginBottom = '5px';
+
+    const companyAddress = document.createElement('div');
+    companyAddress.textContent = '20,22,24,26 ซอยสีหบุรานุกิจ 4 ถนนสีหบุรานุกิจ แขวงมีนบุรี เขตมีนบุรี กรุงเทพมหานคร 10510';
+    companyAddress.style.fontSize = '12px';
+    companyAddress.style.marginBottom = '10px';
+
+    const reportTitle = document.createElement('div');
+    reportTitle.textContent = `รายงานระบบลงเวลาของพนักงาน ${name} ${lastName} รหัสพนักงาน ${employeeId}`;
+    reportTitle.style.fontWeight = 'bold';
+    reportTitle.style.fontSize = '14px';
+    reportTitle.style.marginBottom = '5px';
+
+    const periodInfo = document.createElement('div');
+
+    companyInfo.appendChild(companyName);
+    companyInfo.appendChild(companyAddress);
+    companyInfo.appendChild(reportTitle);
+    companyInfo.appendChild(periodInfo);
+
+    companySection.appendChild(logoContainer);
+    companySection.appendChild(companyInfo);
+    documentHeader.appendChild(companySection);
+
+    reportContainer.appendChild(documentHeader);
+
+
+        // สร้างตารางใหม่สำหรับ PDF โดยทำการ merge เซลล์ให้ถูกต้อง
+        const pdfTable = document.createElement('table');
+        pdfTable.style.width = '100%';
+        pdfTable.style.borderCollapse = 'collapse';
+        pdfTable.style.fontSize = '10px';
+        pdfTable.style.border = '1px solid #000';
+        pdfTable.style.textAlign = 'center';
+        pdfTable.style.marginTop = '20px';
+
+        // สร้าง thead สำหรับ PDF
+        const pdfThead = document.createElement('thead');
+        
+        // แถวแรกของหัวตาราง (merge เซลล์)
+        const firstHeaderRow = document.createElement('tr');
+        
+        const headers = [
+          { text: 'หน่วยงาน', rowSpan: 2, colSpan: 1 },
+          { text: 'ชื่อหน่วยงาน', rowSpan: 2, colSpan: 1 },
+          { text: 'กลุ่มงาน', rowSpan: 2, colSpan: 1 },
+          { text: 'วันที่', rowSpan: 2, colSpan: 1 },
+          { text: 'กะ', rowSpan: 2, colSpan: 1 },
+          { text: 'OT (ก่อนเวลาทำงาน)', rowSpan: 1, colSpan: 3 },
+          { text: 'เวลาทำงาน', rowSpan: 1, colSpan: 3 },
+          { text: 'OT (หลังเวลาทำงาน)', rowSpan: 1, colSpan: 3 },
+          { text: 'เงินจ้าง', rowSpan: 2, colSpan: 1 }
+        ];
+
+        headers.forEach(header => {
+          const th = document.createElement('th');
+          th.textContent = header.text;
+          th.style.border = '1px solid #000';
+          th.style.padding = '8px';
+          th.style.backgroundColor = '#f8f9fa';
+          th.style.fontWeight = 'bold';
+          th.style.textAlign = 'center';
+          th.style.verticalAlign = 'middle';
+          
+          if (header.rowSpan > 1) th.rowSpan = header.rowSpan;
+          if (header.colSpan > 1) th.colSpan = header.colSpan;
+          
+          firstHeaderRow.appendChild(th);
+        });
+        
+        pdfThead.appendChild(firstHeaderRow);
+
+        // แถวที่สองของหัวตาราง
+        const secondHeaderRow = document.createElement('tr');
+        const subHeaders = [
+          'เข้า OT', 'ออก OT', 'ชั่วโมง OT',
+          'เข้างาน', 'ออกงาน', 'ชั่วโมงทำงาน',
+          'เข้า OT', 'ออก OT', 'ชั่วโมง OT'
+        ];
+
+        subHeaders.forEach(subHeader => {
+          const th = document.createElement('th');
+          th.textContent = subHeader;
+          th.style.border = '1px solid #000';
+          th.style.padding = '8px';
+          th.style.backgroundColor = '#f8f9fa';
+          th.style.fontWeight = 'bold';
+          th.style.textAlign = 'center';
+          th.style.verticalAlign = 'middle';
+          secondHeaderRow.appendChild(th);
+        });
+
+        pdfThead.appendChild(secondHeaderRow);
+        pdfTable.appendChild(pdfThead);
+
+        // สร้าง tbody สำหรับ PDF
+        const pdfTbody = document.createElement('tbody');
+        
+        // คัดลอกข้อมูลจากตารางเดิม (ยกเว้นคอลัมน์จัดการ)
+        const bodyRows = tableElement.querySelectorAll('tbody tr');
+        bodyRows.forEach(row => {
+          if (row.children.length > 0) {
+            const newRow = document.createElement('tr');
+            const cells = row.querySelectorAll('td, th');
+            
+            cells.forEach((cell, cellIndex) => {
+              // ข้ามคอลัมน์ "จัดการ" (คอลัมน์สุดท้าย)
+              if (cellIndex < cells.length - 1) {
+                const newCell = document.createElement('td');
+                newCell.textContent = cell.textContent.trim();
+                newCell.style.border = '1px solid #000';
+                newCell.style.padding = '6px';
+                newCell.style.textAlign = 'center';
+                newCell.style.verticalAlign = 'middle';
+                
+                // ถ้าเป็นคอลัมล์เงินจ้าง ให้จัดรูปแบบ
+                if (cellIndex === cells.length - 2) {
+                  const salaryText = cell.textContent.trim();
+                  if (salaryText.includes('บาท')) {
+                    newCell.style.fontWeight = 'bold';
+                    newCell.style.color = '#d9534f';
+                  }
+                }
+                
+                newRow.appendChild(newCell);
+              }
+            });
+            
+            pdfTbody.appendChild(newRow);
+          }
+        });
+
+        pdfTable.appendChild(pdfTbody);
+        reportContainer.appendChild(pdfTable);
+        // เพิ่ม container ลงใน body ชั่วคราว
+        document.body.appendChild(reportContainer);
+
+        // ใช้ html2canvas เพื่อแปลง HTML เป็น canvas
+        const canvas = await html2canvas(reportContainer, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          scrollY: -window.scrollY,
+          backgroundColor: '#ffffff'
+        });
+
+        // ลบ container ชั่วคราว
+        document.body.removeChild(reportContainer);
+
+        // สร้าง PDF
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const imgWidth = 190;
+        const pageHeight = 280;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        let heightLeft = imgHeight;
+        let position = 0;
+
+        // เพิ่มรูปภาพจาก canvas
+        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 10, 10, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+
+        // เพิ่มหน้าต่อไปหากเนื้อหายาว
+        while (heightLeft >= 0) {
+          position = heightLeft - imgHeight + 10;
+          pdf.addPage();
+          pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 10, position, imgWidth, imgHeight);
+          heightLeft -= pageHeight;
+        }
+
+        // บันทึก PDF
+        pdf.save(`รายงานการทำงาน_${employeeId}_${month}_${year}.pdf`);
+        
+        Swal.fire({
+          icon: 'success',
+          title: 'สร้างเอกสารสำเร็จ',
+          text: 'ไฟล์ PDF ได้ถูกดาวน์โหลดแล้ว',
+          timer: 2000,
+          showConfirmButton: false
+        });
+        
+      } catch (error) {
+        console.error('Error generating PDF:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'เกิดข้อผิดพลาด',
+          text: 'ไม่สามารถสร้างเอกสาร PDF ได้: ' + error.message,
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
 
   const [cashSalary, setCashSalary] = useState(false);
   const [specialtSalary, setSpecialtSalary] = useState("");
@@ -3165,7 +3486,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
               <div class="row">
                 <div class="col-md-2">
                   <div class="form-group">
-                    <label role="agencynumber">รหัสพนักกกกงาน</label>
+                    <label role="agencynumber">รหัสพนักงาน</label>
                     <input
                       type="text"
                       class="form-control"
@@ -3929,20 +4250,33 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
 </section>
 
               <div class="form-group">
-                {/* <button class="btn b_save" onClick={handleCreateWorkplaceTimerecord}><i class="nav-icon fas fa-save"></i> &nbsp; บันทึก</button> */}
                 {updateButton ? (
-                  <button
-                    class="btn b_save"
-                    onClick={handleUpdateWorkplaceTimerecord}
-                    disabled={loading} // Disable the button if loading is true
-                  >
-                    <i class="nav-icon fas fa-save"></i> &nbsp; อัพเดท
-                  </button>
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <button
+                      class="btn b_save"
+                      onClick={handleUpdateWorkplaceTimerecord}
+                      disabled={loading}
+                    >
+                      <i class="nav-icon fas fa-save"></i> &nbsp; อัพเดท
+                    </button>
+                    <button
+                      class="btn btn-info"
+                      onClick={generatePDFReport}
+                      disabled={loading || rowDataList2.length === 0}
+                      style={{
+                        backgroundColor: '#17a2b8',
+                        borderColor: '#17a2b8',
+                        color: 'white'
+                      }}
+                    >
+                      <i class="nav-icon fas fa-file-pdf"></i> &nbsp; ออกเอกสาร
+                    </button>
+                  </div>
                 ) : (
                   <button
                     class="btn b_save"
                     onClick={handleCreateWorkplaceTimerecord}
-                    disabled={loading} // Disable the button if loading is true
+                    disabled={loading}
                   >
                     <i class="nav-icon fas fa-save"></i> &nbsp; บันทึก
                   </button>
