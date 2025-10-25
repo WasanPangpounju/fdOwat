@@ -2171,6 +2171,42 @@ if (ot3Hours > 0 && ot3Cash > 0) {
       valueArray.push(professionalAllowance);
     }
 
+    // โบนัสรับล่วงหน้า - ID 1447 เป็นรายการเงินได้
+    const bonusAdvance = addSalaryList.filter(item => item.id === "1447")
+      .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+    if (bonusAdvance > 0) {
+      textArray.push("โบนัสรับล่วงหน้า");
+      countArray.push("");
+      valueArray.push(bonusAdvance);
+    }
+
+    // ค่าคอมมิชชั่น - ID 1540 เป็นรายการเงินได้
+    const commission = addSalaryList.filter(item => item.id === "1540")
+      .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+    if (commission > 0) {
+      textArray.push("ค่าคอมมิชชั่น");
+      countArray.push("");
+      valueArray.push(commission);
+    }
+
+    // ค่าสรรหา - ID 1541 เป็นรายการเงินได้
+    const recruitmentFee = addSalaryList.filter(item => item.id === "1541")
+      .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+    if (recruitmentFee > 0) {
+      textArray.push("ค่าสรรหา");
+      countArray.push("");
+      valueArray.push(recruitmentFee);
+    }
+
+    // เงินได้อื่นๆ - ID 1550 เป็นรายการเงินได้
+    const otherIncome = addSalaryList.filter(item => item.id === "1550")
+      .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+    if (otherIncome > 0) {
+      textArray.push("เงินได้อื่นๆ");
+      countArray.push("");
+      valueArray.push(otherIncome);
+    }
+
     // รายการหัก (ใช้ข้อมูลที่แก้ไขแล้ว)
     const textDedustArray = [];
     const valueDedustArray = [];
@@ -2190,15 +2226,79 @@ if (ot3Hours > 0 && ot3Cash > 0) {
     }
     
     // คืนเงินเบิกล่วงหน้า (ใช้ข้อมูลที่แก้ไขแล้ว)
-    const advance = parseFloat(currentEmployee.advance || 
-      (currentEmployee.deductSalaryList && 
-       currentEmployee.deductSalaryList[0] && 
-       currentEmployee.deductSalaryList[0].amount) || 0);
+
+const advance2330 = (currentEmployee.deductSalaryList || [])
+  .filter(item => item.id === "2330")
+  .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+
+const advance = parseFloat(currentEmployee.advance || advance2330 || 0);
     
     if (advance > 0) {
-      textDedustArray.push("คืนเงินเบิกล่วงหน้า");
+      textDedustArray.push("เบิกล่วงหน้า");
       valueDedustArray.push(advance);
     }
+
+    // หักค่าของเสียหาย - ID 2310
+    const deduction2310 = (currentEmployee.deductSalaryList || [])
+      .filter(item => item.id === "2310")
+      .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+    
+    if (deduction2310 > 0) {
+      textDedustArray.push("หักค่าของเสียหาย");
+      valueDedustArray.push(deduction2310);
+    }
+
+    // หักกลับก่อนเวลา - ID 2430
+    const deduction2430 = (currentEmployee.deductSalaryList || [])
+      .filter(item => item.id === "2430")
+      .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+    
+    if (deduction2430 > 0) {
+      textDedustArray.push("หักกลับก่อนเวลา");
+      valueDedustArray.push(deduction2430);
+    }
+
+    // หักค่าแรงคืน (จ่ายเกิน) - ID 2311
+    const deduction2311 = (currentEmployee.deductSalaryList || [])
+      .filter(item => item.id === "2311")
+      .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+    
+    if (deduction2311 > 0) {
+      textDedustArray.push("หักค่าแรงคืน (จ่ายเกิน)");
+      valueDedustArray.push(deduction2311);
+    }
+
+    // หักผิดกฎระเบียบ - ID 2312
+    const deduction2312 = (currentEmployee.deductSalaryList || [])
+      .filter(item => item.id === "2312")
+      .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+    
+    if (deduction2312 > 0) {
+      textDedustArray.push("หักผิดกฎระเบียบ");
+      valueDedustArray.push(deduction2312);
+    }
+
+    // หักอื่นๆ (ไม่คิดปกส) - ID 2340
+    const deduction2340 = (currentEmployee.deductSalaryList || [])
+      .filter(item => item.id === "2340")
+      .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+    
+    if (deduction2340 > 0) {
+      textDedustArray.push("หักอื่นๆ (ไม่คิดปกส)");
+      valueDedustArray.push(deduction2340);
+    }
+
+// const advance2331 = (currentEmployee.deductSalaryList || [])
+//   .filter(item => item.id === "2331")
+//   .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+
+// const advance2 = parseFloat(currentEmployee.advance || advance2331 || 0);
+    
+//     if (advance2 > 0) {
+//       textDedustArray.push("คืนเงินเบิกล่วงหน้า");
+//       valueDedustArray.push(advance);
+//     }
+
 
     // Draw table headers and content
     pdf.rect(7, 28, 62, 63);
@@ -2652,6 +2752,42 @@ if (ot3Hours > 0 && ot3Cash > 0) {
           valueArray2.push(professionalAllowance2);
         }
 
+        // โบนัสรับล่วงหน้า สำหรับพนักงานคนที่ 2 - ID 1447 เป็นรายการเงินได้
+        const bonusAdvance2 = addSalaryList2.filter(item => item.id === "1447")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        if (bonusAdvance2 > 0) {
+          textArray2.push("โบนัสรับล่วงหน้า");
+          countArray2.push("");
+          valueArray2.push(bonusAdvance2);
+        }
+
+        // ค่าคอมมิชชั่น สำหรับพนักงานคนที่ 2 - ID 1540 เป็นรายการเงินได้
+        const commission2 = addSalaryList2.filter(item => item.id === "1540")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        if (commission2 > 0) {
+          textArray2.push("ค่าคอมมิชชั่น");
+          countArray2.push("");
+          valueArray2.push(commission2);
+        }
+
+        // ค่าสรรหา สำหรับพนักงานคนที่ 2 - ID 1541 เป็นรายการเงินได้
+        const recruitmentFee2 = addSalaryList2.filter(item => item.id === "1541")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        if (recruitmentFee2 > 0) {
+          textArray2.push("ค่าสรรหา");
+          countArray2.push("");
+          valueArray2.push(recruitmentFee2);
+        }
+
+        // เงินได้อื่นๆ สำหรับพนักงานคนที่ 2 - ID 1550 เป็นรายการเงินได้
+        const otherIncome2 = addSalaryList2.filter(item => item.id === "1550")
+          .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
+        if (otherIncome2 > 0) {
+          textArray2.push("เงินได้อื่นๆ");
+          countArray2.push("");
+          valueArray2.push(otherIncome2);
+        }
+
         // ค่าโรยตัว/ค่าขับรถ - เพิ่ม ID 1251 เป็นรายการเงินได้
         const transportationAllowance = addSalaryList.filter(item => item.id === "1251")
           .reduce((total, item) => total + parseFloat(item.SpSalary || 0), 0);
@@ -2759,14 +2895,65 @@ if (ot3Hours > 0 && ot3Cash > 0) {
       }
 
       // คืนเงินเบิกล่วงหน้า (ใช้ข้อมูลที่แก้ไขแล้ว)
-      const advance2 = parseFloat(currentEmployee2.advance || 
-        (currentEmployee2.deductSalaryList && 
-         currentEmployee2.deductSalaryList[0] && 
-         currentEmployee2.deductSalaryList[0].amount) || 0);
+      const advance2330_2 = (currentEmployee2.deductSalaryList || [])
+        .filter(item => item.id === "2330")
+        .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+      
+      const advance2 = parseFloat(currentEmployee2.advance || advance2330_2 || 0);
       
       if (advance2 > 0) {
-        textDedustArray2.push("คืนเงินเบิกล่วงหน้า");
+        textDedustArray2.push("เบิกล่วงหน้า");
         valueDedustArray2.push(advance2);
+      }
+
+      // หักค่าของเสียหาย - ID 2310 สำหรับพนักงานคนที่ 2
+      const deduction2310_2 = (currentEmployee2.deductSalaryList || [])
+        .filter(item => item.id === "2310")
+        .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+      
+      if (deduction2310_2 > 0) {
+        textDedustArray2.push("หักค่าของเสียหาย");
+        valueDedustArray2.push(deduction2310_2);
+      }
+
+      // หักกลับก่อนเวลา - ID 2430 สำหรับพนักงานคนที่ 2
+      const deduction2430_2 = (currentEmployee2.deductSalaryList || [])
+        .filter(item => item.id === "2430")
+        .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+      
+      if (deduction2430_2 > 0) {
+        textDedustArray2.push("หักกลับก่อนเวลา");
+        valueDedustArray2.push(deduction2430_2);
+      }
+
+      // หักค่าแรงคืน (จ่ายเกิน) - ID 2311 สำหรับพนักงานคนที่ 2
+      const deduction2311_2 = (currentEmployee2.deductSalaryList || [])
+        .filter(item => item.id === "2311")
+        .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+      
+      if (deduction2311_2 > 0) {
+        textDedustArray2.push("หักค่าแรงคืน (จ่ายเกิน)");
+        valueDedustArray2.push(deduction2311_2);
+      }
+
+      // หักผิดกฎระเบียบ - ID 2312 สำหรับพนักงานคนที่ 2
+      const deduction2312_2 = (currentEmployee2.deductSalaryList || [])
+        .filter(item => item.id === "2312")
+        .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+      
+      if (deduction2312_2 > 0) {
+        textDedustArray2.push("หักผิดกฎระเบียบ");
+        valueDedustArray2.push(deduction2312_2);
+      }
+
+      // หักอื่นๆ (ไม่คิดปกส) - ID 2340 สำหรับพนักงานคนที่ 2
+      const deduction2340_2 = (currentEmployee2.deductSalaryList || [])
+        .filter(item => item.id === "2340")
+        .reduce((total, item) => total + parseFloat(item.amount || 0), 0);
+      
+      if (deduction2340_2 > 0) {
+        textDedustArray2.push("หักอื่นๆ (ไม่คิดปกส)");
+        valueDedustArray2.push(deduction2340_2);
       }
 
       // แสดงรายการสำหรับพนักงานคนที่ 2
@@ -4024,12 +4211,7 @@ const generateExcel = async () => {
             ) || '0'
           );
         
-        const totalDeductions = tax + socialSecurity + advance + 
-                               deduction2330 + deduction2331 + deduction2333 + deduction2334 + 
-                               deduction2335 + deduction2336 + deduction2337 + deduction2338 + 
-                               deduction2339 + deduction2340 + deduction2341 + deduction2410 + 
-                               deduction2420 + deduction2430 + deduction2111 + deduction2116 + 
-                               deduction2117 + deduction2120 + deduction2124;
+        const totalDeductions = tax + socialSecurity + advance;
         const netSalary = incomeTotal - totalDeductions;
         
         // สร้าง worksheet ใหม่สำหรับพนักงานแต่ละคน

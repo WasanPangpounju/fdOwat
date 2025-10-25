@@ -225,12 +225,35 @@ function Compensation() {
       });
   }, []); // The empty array [] ensures that the effect runs only once after the initial render
 
+  // Fetch workplace data based on employee's workplace
+  const fetchWorkplaceData = useCallback(async (workplaceId) => {
+    if (!workplaceId) return;
+    
+    try {
+      const response = await fetch(endpoint + `/workplace/${workplaceId}`);
+      const data = await response.json();
+      
+      // Set the workplace data as an array to maintain compatibility
+      setWorkplaceList([data]);
+    } catch (error) {
+      console.error("Error fetching workplace data:", error);
+      // Fallback to list endpoint if specific workplace fails
+      fetch(endpoint + "/workplace/list")
+        .then((response) => response.json())
+        .then((data) => {
+          setWorkplaceList(data);
+        })
+        .catch((error) => {
+          console.error("Error fetching workplace list:", error);
+        });
+    }
+  }, []);
+
   useEffect(() => {
-    // Fetch data from the API when the component mounts
+    // Initial fetch of all workplaces for compatibility
     fetch(endpoint + "/workplace/list")
       .then((response) => response.json())
       .then((data) => {
-        // Update the state with the fetched data
         setWorkplaceList(data);
       })
       .catch((error) => {
@@ -984,6 +1007,9 @@ function Compensation() {
       // setStaffLastname(selectedEmployee.lastName);
       setStaffFullName(selectedEmployee.name + " " + selectedEmployee.lastName);
       setWorkplaceIdEMP(selectedEmployee.workplace);
+      
+      // Fetch workplace data for this specific employee
+      fetchWorkplaceData(selectedEmployee.workplace);
     } else {
       setStaffName("");
       setStaffFullName("");
@@ -1020,6 +1046,9 @@ function Compensation() {
       setStaffId(selectedEmployee.employeeId);
       setSearchEmployeeId(selectedEmployee.employeeId);
       setWorkplaceIdEMP(selectedEmployee.workplace);
+      
+      // Fetch workplace data for this specific employee
+      fetchWorkplaceData(selectedEmployee.workplace);
     } else {
       setStaffId("");
       // searchEmployeeId('');

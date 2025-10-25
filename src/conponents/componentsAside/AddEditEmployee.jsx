@@ -54,6 +54,8 @@ function AddEditEmployee() {
   const [formattedDate, setFormattedDate] = useState("");
   const popupRef = useRef(null);
   const [dateOfBirth, setDateOfBirth] = useState(""); //วดป เกิด
+  const [isLoading, setIsLoading] = useState(false); // เพิ่ม loading state
+  const [deleted, setDeleted] = useState(false); // เพิ่ม deleted state ที่หายไป
 
   const handleDateChange = () => {
     if (day && month && year) {
@@ -319,12 +321,20 @@ function AddEditEmployee() {
 
     //get all Workplace from API
     fetch(endpoint + "/workplace/listselect") // Update with your API endpoint
-      .then((response) => response.json())
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
       .then((data) => {
         setWorkplaceSelection(data);
-        console.log(data);
+        console.log('Workplace data loaded:', data);
       })
-      .catch((error) => console.error("Error fetching employees:", error));
+      .catch((error) => {
+        console.error("Error fetching workplaces:", error);
+        alert("ไม่สามารถโหลดข้อมูลหน่วยงานได้ กรุณาตรวจสอบการเชื่อมต่อ");
+      });
   }, []);
 
   //   const handleDateOfBirth = (date) => {
@@ -425,90 +435,178 @@ function AddEditEmployee() {
 
   async function handleManageEmployee(event) {
     event.preventDefault();
+    
+    // ตรวจสอบข้อมูลที่จำเป็นก่อนส่ง
+    const requiredFields = [
+      { field: employeeId, name: 'รหัสพนักงาน' },
+      { field: workplace, name: 'หน่วยงาน' },
+      { field: position, name: 'ตำแหน่ง' },
+      { field: jobtype, name: 'ประเภทการจ้าง' },
+      { field: prefix, name: 'คำนำหน้าชื่อ' },
+      { field: name, name: 'ชื่อ' },
+      { field: lastName, name: 'นามสกุล' },
+      { field: gender, name: 'เพศ' },
+      { field: dateOfBirth, name: 'วันเดือนปีเกิด' },
+      { field: idCard, name: 'เลขบัตรประจำตัวประชาชน' },
+      { field: ethnicity, name: 'เชื้อชาติ' },
+      { field: religion, name: 'ศาสนา' },
+      { field: maritalStatus, name: 'สถานภาพการสมรส' },
+      { field: address, name: 'ที่อยู่ตามบัตรประชาชน' },
+      { field: currentAddress, name: 'ที่อยู่ปัจจุบัน' }
+    ];
+
+    const missingFields = requiredFields.filter(item => !item.field || item.field.trim() === '');
+    
+    if (missingFields.length > 0) {
+      const fieldNames = missingFields.map(item => item.name).join(', ');
+      alert(`กรุณากรอกข้อมูลในช่องต่อไปนี้: ${fieldNames}`);
+      return;
+    }
+
+    // ตรวจสอบรูปแบบเลขบัตรประชาชน
+    if (idCard && idCard.length !== 13) {
+      alert('เลขบัตรประจำตัวประชาชนต้องมี 13 หลัก');
+      return;
+    }
+
+    // ตรวจสอบรูปแบบเบอร์โทรศัพท์
+    if (phoneNumber && phoneNumber.length < 9) {
+      alert('เบอร์โทรศัพท์ไม่ถูกต้อง');
+      return;
+    }
+
     const data = {
-      employeeId: employeeId,
-      position: position,
-      department: department,
-      workplace: workplace,
+      employeeId: employeeId.trim(),
+      position: position.trim(),
+      department: department.trim(),
+      workplace: workplace.trim(),
       jobtype: jobtype,
-      salary: salary,
+      salary: salary.trim(),
       startjob: startjob,
       endjob: endjob,
       exceptjob: exceptjob,
       prefix: prefix,
-      name: name,
-      lastName: lastName,
-      nickName: nickName,
+      name: name.trim(),
+      lastName: lastName.trim(),
+      nickName: nickName.trim(),
       gender: gender,
       dateOfBirth: dateOfBirth,
       age: age,
-      idCard: idCard,
+      idCard: idCard.trim(),
       ethnicity: ethnicity,
       religion: religion,
       maritalStatus: maritalStatus,
       militaryStatus: militaryStatus,
-      address: address,
-      
-
-
+      address: address.trim(),
       province: province,
       district: district,
       subDistrict: subDistrict,
-      postalCode: postalCode,
-      houseNumber: houseNumber,
-
+      postalCode: postalCode.trim(),
+      houseNumber: houseNumber.trim(),
       province2: province2,
       district2: district2,
       subDistrict2: subDistrict2,
-      postalCode2: postalCode2,
-      houseNumber2: houseNumber2,
-
-      currentAddress: currentAddress,
-      phoneNumber: phoneNumber,
-      emergencyContactNumber: emergencyContactNumber,
-      emergencyName: emergencyName,
+      postalCode2: postalCode2.trim(),
+      houseNumber2: houseNumber2.trim(),
+      currentAddress: currentAddress.trim(),
+      phoneNumber: phoneNumber.trim(),
+      emergencyContactNumber: emergencyContactNumber.trim(),
+      emergencyName: emergencyName.trim(),
       emergencyRelationship: emergencyRelationship,
-
-      idLine: idLine,
-      // vaccination: vaccination,
-      // treatmentRights: treatmentRights,
+      idLine: idLine.trim(),
     };
-    console.log(data);
+    
+    console.log('ข้อมูลที่จะส่ง:', data);
 
     //check create or update Employee
     if (newEmp) {
-      // alert('create employee');
-
       try {
-        const response = await axios.post(endpoint + "/employee/create", data);
-        // setEmployeesResult(response.data.employees);
+        console.log('กำลังสร้างพนักงานใหม่...');
+        const response = await axios.post(endpoint + "/employee/create", data, {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          timeout: 10000 // 10 วินาที
+        });
+        
+        console.log('Response สำเร็จ:', response.data);
         alert("บันทึกสำเร็จ");
-
         window.location.reload();
+        
       } catch (error) {
-        alert("กรุณาตรวจสอบข้อมูลในช่องกรอกข้อมูล", error);
-        console.error("Error:", error);
-        console.error("Response Data:", error.response.data);
-
-        // window.location.reload();
+        console.error("Error สร้างพนักงาน:", error);
+        
+        let errorMessage = "เกิดข้อผิดพลาดในการสร้างพนักงาน: ";
+        
+        if (error.response) {
+          // Server ตอบกลับมาแต่มี error status
+          console.error("Error Response Data:", error.response.data);
+          console.error("Error Status:", error.response.status);
+          
+          if (error.response.status === 400) {
+            errorMessage += "ข้อมูลไม่ถูกต้อง - " + (error.response.data.message || "กรุณาตรวจสอบข้อมูลที่กรอก");
+          } else if (error.response.status === 409) {
+            errorMessage += "รหัสพนักงานหรือเลขบัตรประชาชนซ้ำ";
+          } else if (error.response.status === 500) {
+            errorMessage += "เกิดข้อผิดพลาดจากเซิร์ฟเวอร์";
+          } else {
+            errorMessage += error.response.data.message || "ไม่สามารถบันทึกข้อมูลได้";
+          }
+        } else if (error.request) {
+          // ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้
+          errorMessage += "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต";
+        } else {
+          errorMessage += error.message || "เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ";
+        }
+        
+        alert(errorMessage);
       }
     } else {
-      if (buttonValue == "save") {
-        // Make the API call to update the resource by ID
+      if (buttonValue === "save") {
         try {
+          console.log('กำลังอัพเดตพนักงาน ID:', _id);
           const response = await axios.put(
             endpoint + "/employee/update/" + _id,
-            data
+            data,
+            {
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              timeout: 10000 // 10 วินาที
+            }
           );
-          // setEmployeesResult(response.data.employees);
-          if (response) {
-            alert("บันทึกสำเร็จ");
-            window.location.reload();
-          }
-        } catch (error) {
-          alert("กรุณาตรวจสอบข้อมูลในช่องกรอกข้อมูล");
-          alert(error);
+          
+          console.log('Response อัพเดตสำเร็จ:', response.data);
+          alert("บันทึกสำเร็จ");
           window.location.reload();
+          
+        } catch (error) {
+          console.error("Error อัพเดตพนักงาน:", error);
+          
+          let errorMessage = "เกิดข้อผิดพลาดในการอัพเดตข้อมูล: ";
+          
+          if (error.response) {
+            console.error("Error Response Data:", error.response.data);
+            console.error("Error Status:", error.response.status);
+            
+            if (error.response.status === 400) {
+              errorMessage += "ข้อมูลไม่ถูกต้อง - " + (error.response.data.message || "กรุณาตรวจสอบข้อมูลที่กรอก");
+            } else if (error.response.status === 404) {
+              errorMessage += "ไม่พบข้อมูลพนักงานที่ต้องการแก้ไข";
+            } else if (error.response.status === 409) {
+              errorMessage += "รหัสพนักงานหรือเลขบัตรประชาชนซ้ำ";
+            } else if (error.response.status === 500) {
+              errorMessage += "เกิดข้อผิดพลาดจากเซิร์ฟเวอร์";
+            } else {
+              errorMessage += error.response.data.message || "ไม่สามารถบันทึกข้อมูลได้";
+            }
+          } else if (error.request) {
+            errorMessage += "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต";
+          } else {
+            errorMessage += error.message || "เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ";
+          }
+          
+          alert(errorMessage);
         }
       }
     }
@@ -570,99 +668,113 @@ function AddEditEmployee() {
   async function handleSearch(event) {
     event.preventDefault();
 
+    // ตรวจสอบว่ามีข้อมูลค้นหาหรือไม่
+    if (!searchEmployeeId.trim() && !searchEmployeeName.trim()) {
+      alert("กรุณาระบุรหัสพนักงานหรือชื่อพนักงานที่ต้องการค้นหา");
+      return;
+    }
+
     // get value from form search
     const data = {
-      employeeId: searchEmployeeId,
-      name: searchEmployeeName,
+      employeeId: searchEmployeeId.trim(),
+      name: searchEmployeeName.trim(),
       idCard: "",
       workPlace: "",
     };
 
     try {
-      const response = await axios.post(endpoint + "/employee/search", data);
+      console.log('กำลังค้นหาพนักงาน:', data);
+      const response = await axios.post(endpoint + "/employee/search", data, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        timeout: 10000
+      });
+      
       setSearchResult(response.data.employees);
-      // alert(response.data.employees.length);
+      console.log('ผลการค้นหา:', response.data.employees);
+      
       if (response.data.employees.length < 1) {
-        // window.location.reload();
         setEmployeeId("");
         setName("");
-        alert("ไม่พบข้อมูล");
+        alert("ไม่พบข้อมูลพนักงานที่ค้นหา");
       } else {
-        // alert(response.data.employees.length);
-
         //clean form
         setSearchEmployeeId("");
         setSearchEmployeeName("");
         set_id(response.data.employees[0]._id);
 
         // Set search values
-        setEmployeeId(response.data.employees[0].employeeId);
-        setWorkplace(response.data.employees[0].workplace);
+        setEmployeeId(response.data.employees[0].employeeId || "");
+        setWorkplace(response.data.employees[0].workplace || "");
+        setPosition(response.data.employees[0].position || "");
+        setSalary(response.data.employees[0].salary || "");
+        setJobtype(response.data.employees[0].jobtype || "");
+        setPrefix(response.data.employees[0].prefix || "");
+        setName(response.data.employees[0].name || "");
+        setLastName(response.data.employees[0].lastName || "");
+        setNickName(response.data.employees[0].nickName || "");
+        
+        // ปรับการแสดงผลเพศ
+        if (response.data.employees[0].gender) {
+          const genderValue = response.data.employees[0].gender === "male" ? "ชาย" : 
+                             response.data.employees[0].gender === "female" ? "หญิง" : 
+                             response.data.employees[0].gender;
+          setGender(genderValue);
+        }
 
-        setPosition(response.data.employees[0].position);
-        setSalary(response.data.employees[0].salary);
-        setJobtype(response.data.employees[0].jobtype);
-        setPrefix(response.data.employees[0].prefix);
+        setFormattedDate(response.data.employees[0].dateOfBirth || "");
+        setDateOfBirth(response.data.employees[0].dateOfBirth || "");
+        setAge(response.data.employees[0].age || "");
+        setIdCard(response.data.employees[0].idCard || "");
+        setEthnicity(response.data.employees[0].ethnicity || "");
+        setReligion(response.data.employees[0].religion || "");
+        setMaritalStatus(response.data.employees[0].maritalStatus || "");
+        setMilitaryStatus(response.data.employees[0].militaryStatus || "");
+        setAddress(response.data.employees[0].address || "");
 
-        setName(response.data.employees[0].name);
-        setLastName(response.data.employees[0].lastName);
-        setNickName(response.data.employees[0].nickName);
-        // setGender(response.data.employees[0].gender);
-        setGender(
-          response.data.employees[0].gender === "male" ? "ชาย" : "หญิง"
-        );
+        setProvince(response.data.employees[0].province || "");
+        setDistrict(response.data.employees[0].district || "");
+        setSubDistrict(response.data.employees[0].subDistrict || "");
+        setPostalCode(response.data.employees[0].postalCode || "");
+        setHouseNumber(response.data.employees[0].houseNumber || "");
 
-        // setDateOfBirth(response.data.employees[0].dateOfBirth);
-        // const isoDate = response.data.employees[0].dateOfBirth;
-        // Convert ISO date to JavaScript Date object
-        // const dateObject = new Date(isoDate);
-        // Set the formatted date to the state
+        setProvince2(response.data.employees[0].province2 || "");
+        setDistrict2(response.data.employees[0].district2 || "");
+        setSubDistrict2(response.data.employees[0].subDistrict2 || "");
+        setPostalCode2(response.data.employees[0].postalCode2 || "");
+        setHouseNumber2(response.data.employees[0].houseNumber2 || "");
 
-        // setDateOfBirth(response.data.employees[0].dateObject);
-        setFormattedDate(response.data.employees[0].dateOfBirth);
-        // console.log("321",response.data.employees[0].dateObject);
-        setAge(response.data.employees[0].age);
-        setIdCard(response.data.employees[0].idCard);
-        setEthnicity(response.data.employees[0].ethnicity);
-        setReligion(response.data.employees[0].religion);
-        setMaritalStatus(response.data.employees[0].maritalStatus);
-
-        setMilitaryStatus(response.data.employees[0].militaryStatus);
-        setAddress(response.data.employees[0].address);
-
-        setProvince(response.data.employees[0].province);
-        setDistrict(response.data.employees[0].district);
-        setSubDistrict(response.data.employees[0].subDistrict);
-        setPostalCode(response.data.employees[0].postalCode);
-        setHouseNumber(response.data.employees[0].houseNumber);
-
-        setProvince2(response.data.employees[0].province2);
-        setDistrict2(response.data.employees[0].district2);
-        setSubDistrict2(response.data.employees[0].subDistrict2);
-        setPostalCode2(response.data.employees[0].postalCode2);
-        setHouseNumber2(response.data.employees[0].houseNumber2);
-
-        setCopyAddress(response.data.employees[0].copyAddress);
-        setCurrentAddress(response.data.employees[0].currentAddress);
-        setPhoneNumber(response.data.employees[0].phoneNumber);
-        setEmergencyContactNumber(
-          response.data.employees[0].emergencyContactNumber
-        );
-        setEmergencyRelationship(response.data.employees[0].emergencyRelationship);
-        setEmergencyName(response.data.employees[0].emergencyName);
-        setIdLine(response.data.employees[0].idLine);
+        setCopyAddress(response.data.employees[0].copyAddress || false);
+        setCurrentAddress(response.data.employees[0].currentAddress || "");
+        setPhoneNumber(response.data.employees[0].phoneNumber || "");
+        setEmergencyContactNumber(response.data.employees[0].emergencyContactNumber || "");
+        setEmergencyRelationship(response.data.employees[0].emergencyRelationship || "");
+        setEmergencyName(response.data.employees[0].emergencyName || "");
+        setIdLine(response.data.employees[0].idLine || "");
 
         setNewEmp(false);
-
-        // setSearchEmployeeId(response.data.employees[0].employeeId);
-        // setSearchEmployeeName(response.data.employees[0].name);
-
-        // console.log('workOfOT:', response.data.workplaces[0].workOfOT);
-        // console.log('workOfOT:', endTime);
       }
     } catch (error) {
-      alert("กรุณาตรวจสอบข้อมูลในช่องค้นหา");
-      // window.location.reload();
+      console.error("Error searching employee:", error);
+      
+      let errorMessage = "เกิดข้อผิดพลาดในการค้นหา: ";
+      
+      if (error.response) {
+        if (error.response.status === 404) {
+          errorMessage += "ไม่พบข้อมูลพนักงาน";
+        } else if (error.response.status === 500) {
+          errorMessage += "เกิดข้อผิดพลาดจากเซิร์ฟเวอร์";
+        } else {
+          errorMessage += error.response.data?.message || "กรุณาตรวจสอบข้อมูลในช่องค้นหา";
+        }
+      } else if (error.request) {
+        errorMessage += "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้";
+      } else {
+        errorMessage += error.message || "เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ";
+      }
+      
+      alert(errorMessage);
     }
   }
 
@@ -1315,7 +1427,14 @@ function AddEditEmployee() {
                                     id="idCard"
                                     placeholder="เลขบัตรประจำตัวประชาชน"
                                     value={idCard}
-                                    onChange={(e) => setIdCard(e.target.value)}
+                                    onChange={(e) => {
+                                      // อนุญาตเฉพาะตัวเลข
+                                      const value = e.target.value.replace(/\D/g, '');
+                                      if (value.length <= 13) {
+                                        setIdCard(value);
+                                      }
+                                    }}
+                                    maxLength="13"
                                   />
                                 </div>
                               </div>
@@ -1835,9 +1954,14 @@ function AddEditEmployee() {
                                     id="phoneNumber"
                                     placeholder="เบอร์โทรศัพท์"
                                     value={phoneNumber}
-                                    onChange={(e) =>
-                                      setPhoneNumber(e.target.value)
-                                    }
+                                    onChange={(e) => {
+                                      // อนุญาตเฉพาะตัวเลขและขีด
+                                      const value = e.target.value.replace(/[^\d-]/g, '');
+                                      if (value.length <= 15) {
+                                        setPhoneNumber(value);
+                                      }
+                                    }}
+                                    maxLength="15"
                                   />
                                 </div>
                               </div>
@@ -1892,9 +2016,14 @@ function AddEditEmployee() {
                                     id="emergencyContactNumber"
                                     placeholder="เบอร์ติดต่อกรณีฉุกเฉิน"
                                     value={emergencyContactNumber}
-                                    onChange={(e) =>
-                                      setEmergencyContactNumber(e.target.value)
-                                    }
+                                    onChange={(e) => {
+                                      // อนุญาตเฉพาะตัวเลขและขีด
+                                      const value = e.target.value.replace(/[^\d-]/g, '');
+                                      if (value.length <= 15) {
+                                        setEmergencyContactNumber(value);
+                                      }
+                                    }}
+                                    maxLength="15"
                                   />
                                 </div>
                                 <div class="form-group col-md-3">

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { pdf } from '@react-pdf/renderer';
-// import WorkplacePDFReport from '../PDF/WorkplacePDFReport';
+import WorkplacePDFReport from '../PDF/WorkplacePDFReport';
 
 function WorkplaceSpecialShiftDetail() {
   const location = useLocation();

@@ -2229,6 +2229,7 @@ try {
                             {(() => {
                               const overtimeAmount = parseFloat(accountingResult?.[0]?.sumCashOt || 0);
                               const specialShiftAmount = parseFloat(accountingResult?.[0]?.specialShiftTotalSalary || 0);
+                              const customDayoffAmount = parseFloat(accountingResult?.[0]?.cashcustomizeDayoff || 0);
                               
                               // ถ้าเป็นพนักงานรายเดือนให้เพิ่ม publicHolidayCash ด้วย
                               const employee = employeeList.find(emp => emp.employeeId === staffId);
@@ -2236,7 +2237,7 @@ try {
                                 ? parseFloat(accountingResult?.[0]?.publicHolidayCash || 0) 
                                 : 0;
                               
-                              const total = overtimeAmount + specialShiftAmount + publicHolidayAmount;
+                              const total = overtimeAmount + specialShiftAmount + customDayoffAmount + publicHolidayAmount;
                               return total.toLocaleString('th-TH', {
                                 minimumFractionDigits: 2,
                                 maximumFractionDigits: 2
@@ -2264,6 +2265,13 @@ try {
                                     {accountingResult?.[0]?.specialShiftTotalSalary && 
                                      parseFloat(accountingResult[0].specialShiftTotalSalary) > 0 && (
                                       <li>ค่าทำงานในวันหยุดสด -  {accountingResult[0].specialShiftTotalSalary} บาท</li>
+                                    )}
+                                    {accountingResult?.[0]?.cashcustomizeDayoff && 
+                                     parseFloat(accountingResult[0].cashcustomizeDayoff) > 0 && (
+                                      <li>ค่าทำงานในวันหยุด - {Number(accountingResult[0].cashcustomizeDayoff).toLocaleString('th-TH', {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2
+                                      })} บาท</li>
                                     )}
                                     {(() => {
                                       // ถ้าเป็นพนักงานรายเดือนและมีค่า publicHolidayCash ให้แสดงรายการทำงานวันนักขัตฤกษ์
@@ -2362,6 +2370,7 @@ try {
     parseFloat(accountingResult?.[0]?.sumCashWork || '0') + 
     parseFloat(accountingResult?.[0]?.sumCashOt || '0') + 
     parseFloat(accountingResult?.[0]?.specialShiftTotalSalary || '0') + 
+    parseFloat(accountingResult?.[0]?.cashcustomizeDayoff || '0') + 
     parseFloat(totalAddSalary || '0') + 
     publicHolidayAmount; // เพิ่ม publicHolidayCash สำหรับพนักงานรายเดือน
 
@@ -2625,6 +2634,7 @@ try {
     parseFloat(accountingResult?.[0]?.sumCashOt || '0') +
     parseFloat(accountingResult?.[0]?.publicHolidayCash || '0') + 
     parseFloat(accountingResult?.[0]?.specialShiftTotalSalary || '0') + 
+    parseFloat(accountingResult?.[0]?.cashcustomizeDayoff || '0') + 
     parseFloat(totalAddSalary || '0'); // ใช้ totalAddSalary แทน
 
   return isNaN(total)
@@ -2662,6 +2672,7 @@ try {
     parseFloat(accountingResult?.[0]?.sumCashOt || '0') +
     parseFloat(accountingResult?.[0]?.publicHolidayCash || '0') + 
     parseFloat(accountingResult?.[0]?.specialShiftTotalSalary || '0') + 
+    parseFloat(accountingResult?.[0]?.cashcustomizeDayoff || '0') + 
     parseFloat(totalAddSalary || '0'); // ใช้ totalAddSalary แทน
 
   const deductionTotal =

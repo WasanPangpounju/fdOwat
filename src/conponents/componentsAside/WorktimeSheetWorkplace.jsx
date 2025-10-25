@@ -637,6 +637,62 @@ useEffect(() => {
   const [loading, setLoading] = useState(true);
   const [workplaceAddsalary , setWorkplaceAddsalary ] = useState([]);
 
+  // ฟังก์ชันสำหรับรวมสวัสดิการจากหน่วยงานและพนักงาน (ไม่ซ้ำกัน)
+  const mergeWorkplaceAndEmployeeAddSalary = (workplaceAddSalary, employeeData) => {
+    const uniqueMap = new Map();
+
+    // 1. เพิ่มสวัสดิการจากหน่วยงานก่อน
+    if (workplaceAddSalary && Array.isArray(workplaceAddSalary)) {
+      workplaceAddSalary.forEach(salary => {
+        const key = salary.codeSpSalary || salary.id;
+        if (key && !uniqueMap.has(key)) {
+          uniqueMap.set(key, {
+            codeSpSalary: key,
+            name: salary.name,
+            SpSalary: salary.SpSalary,
+            roundOfSalary: salary.roundOfSalary,
+            StaffType: salary.StaffType,
+            nameType: salary.nameType || '',
+            source: 'workplace'
+          });
+        }
+      });
+    }
+
+    // 2. เพิ่มสวัสดิการจากพนักงาน (เฉพาะที่ยังไม่มีในหน่วยงาน)
+    if (employeeData && employeeData.length > 0) {
+      employeeData.forEach(employee => {
+        if (employee.addSalaryList && Array.isArray(employee.addSalaryList)) {
+          employee.addSalaryList.forEach(salary => {
+            const key = salary.id || salary.codeSpSalary;
+            
+            // ถ้ายังไม่มีใน Map (หน่วยงานไม่มี แต่พนักงานมี)
+            if (key && !uniqueMap.has(key)) {
+              uniqueMap.set(key, {
+                codeSpSalary: key,
+                name: salary.name,
+                SpSalary: salary.SpSalary,
+                roundOfSalary: salary.roundOfSalary,
+                StaffType: salary.StaffType,
+                nameType: salary.nameType || '',
+                source: 'employee'
+              });
+            }
+          });
+        }
+      });
+    }
+
+    // แปลง Map กลับเป็น Array
+    const mergedAddSalary = Array.from(uniqueMap.values());
+    
+    console.log('🎯 Merged addSalary (workplace + employees):', mergedAddSalary);
+    console.log('  - From workplace:', mergedAddSalary.filter(item => item.source === 'workplace').length);
+    console.log('  - From employees only:', mergedAddSalary.filter(item => item.source === 'employee').length);
+    
+    return mergedAddSalary;
+  };
+
   // ฟังก์ชันสำหรับรวม ID ตาม config
   const mergeWorkplaceAddsalary = (items) => {
     const mergedItems = [];
@@ -802,11 +858,14 @@ useEffect(() => {
 
   useEffect(() => {
     const fetchData = async () => {
+      let workplaceAddSalaryData = [];
+      
       try {
         setWorkplaceAddsalary([])
         const response = await axios.get(`http://10.10.110.7:3000/workplace/${searchWorkplaceId}`);
         setWorkplaceData(response.data); // เพิ่มบรรทัดนี้เพื่อให้ workplaceData มีข้อมูลจาก API
-        await setWorkplaceAddsalary(response.data.addSalary)
+        workplaceAddSalaryData = response.data.addSalary || [];
+        // เก็บไว้ก่อน จะรวมกับข้อมูลพนักงานทีหลัง
         // await alert(response.data.addSalary.length);
          if (year && month && searchWorkplaceId) {
         await fetchWeekendData(year, month, searchWorkplaceId);
@@ -834,6 +893,11 @@ useEffect(() => {
       const sortedData = allRecords.sort((a, b) =>
         a.employeeId.localeCompare(b.employeeId)
       );
+
+      // 🆕 รวมสวัสดิการจากหน่วยงานและพนักงาน
+      const mergedAddSalary = mergeWorkplaceAndEmployeeAddSalary(workplaceAddSalaryData, sortedData);
+      setWorkplaceAddsalary(mergedAddSalary);
+      console.log('✅ Set merged workplaceAddsalary:', mergedAddSalary);
 
       // setResponseDataAll(sortedData);
       setData(sortedData);
@@ -905,6 +969,17 @@ if(sortedData.length > 0) {
     }
 
     try {
+      // 🆕 ดึงข้อมูล workplace addSalary ก่อน
+      let workplaceAddSalaryData = [];
+      try {
+        const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${searchWorkplaceId}`);
+        workplaceAddSalaryData = workplaceResponse.data.addSalary || [];
+        console.log('📦 Workplace addSalary:', workplaceAddSalaryData);
+      } catch (error) {
+        console.error('Error fetching workplace addSalary:', error);
+      }
+
+      // ดึงข้อมูลพนักงาน
       const response = await axios.post(endpoint + "/accounting/searchtimerecordemployee", dataSearch);
       const groupedResult = response.data.groupedResult;
       // รวมข้อมูลทั้งหมดจากทุก workplace ให้กลายเป็น array เดียว
@@ -924,9 +999,15 @@ if(sortedData.length > 0) {
         console.log(`  - personalDayOff:`, sortedData[0].personalDayOff);
         console.log(`  - stopDaysList:`, sortedData[0].stopDaysList);
         console.log(`  - cashcustomizeDayoff:`, sortedData[0].cashcustomizeDayoff);
+        console.log(`  - addSalaryList:`, sortedData[0].addSalaryList);
         console.log(`  - ข้อมูลทั้งหมด:`, sortedData[0]);
       }
       console.log(`=================================\n`);
+
+      // 🆕 รวมสวัสดิการจากหน่วยงานและพนักงาน
+      const mergedAddSalary = mergeWorkplaceAndEmployeeAddSalary(workplaceAddSalaryData, sortedData);
+      setWorkplaceAddsalary(mergedAddSalary);
+      console.log('✅ Set merged workplaceAddsalary in handleSearch:', mergedAddSalary);
 
       setData(sortedData);
 
@@ -7883,9 +7964,14 @@ const getDateStyle = (day) => {
       const row1 = ['ลำดับ', 'ชื่อ - สกุล'];
       dayNumbers.forEach(day => row1.push(day));
       row1.push('รวมวันทำงาน');
-      row1.push('วันหยุด/นักขัต', 'วันนักขัต', 'ทำงานวันหยุด/นักขัต', 'โอที 1.5 เท่า', 'โอที 3 เท่า');
+      row1.push('ค่าล่วงเวลา', '', '', '', ''); // ค่าล่วงเวลา จะ merge 5 คอลัมน์
+      // 🆕 แทนที่จะใส่ "สวัสดิการ" หลายครั้ง ใส่ครั้งเดียวแล้ว merge
       if (workplaceAddsalary && workplaceAddsalary.length > 0) {
-        mergeWorkplaceAddsalary(workplaceAddsalary).forEach(item => row1.push('สวัสดิการ'));
+        row1.push('สวัสดิการ'); // ครั้งแรก
+        // ใส่ค่าว่างสำหรับคอลัมน์ที่เหลือ (จะถูก merge)
+        for (let i = 1; i < mergeWorkplaceAddsalary(workplaceAddsalary).length; i++) {
+          row1.push('');
+        }
       }
       row1.push('วัน Cash Holiday', 'หักประกันสังคม %', 'เงินสงเคราะห์ลูกจ้าง', 'หมายเหตุ');
       
@@ -8040,12 +8126,28 @@ const getDateStyle = (day) => {
       const totalWorkDaysCol = String.fromCharCode(67 + dayNumbers.length);
       safeMergeCell(`${totalWorkDaysCol}5:${totalWorkDaysCol}8`);
       
+      // 🆕 Merge "ค่าล่วงเวลา" (Row 5 only - ครอบคลุม 5 คอลัมน์)
+      console.log('Merging "ค่าล่วงเวลา" header...');
+      const overtimeStartCol = String.fromCharCode(67 + dayNumbers.length + 1);
+      const overtimeEndCol = String.fromCharCode(67 + dayNumbers.length + 5);
+      safeMergeCell(`${overtimeStartCol}5:${overtimeEndCol}5`);
+      // ตั้งค่าสีพื้นหลังเหลืองสำหรับ "ค่าล่วงเวลา"
+      const overtimeHeaderCell = worksheet.getCell(`${overtimeStartCol}5`);
+      overtimeHeaderCell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFFFF7C2' } // สีเหลือง #fff7c2
+      };
+      overtimeHeaderCell.font = { bold: true, size: 25 };
+      overtimeHeaderCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      
       // Merge summary columns (วันหยุด, วันนักขัต, ทำงานวันหยุด/นักขัต, โอที 1.5 เท่า, โอที 3 เท่า)
-      console.log('Merging summary columns (โอที and holidays)...');
+      // ⚠️ Merge เฉพาะ Row 6-8 เท่านั้น (ไม่รวม Row 5 เพราะถูก merge เป็น "ค่าล่วงเวลา" แล้ว)
+      console.log('Merging summary columns (โอที and holidays) for rows 6-8...');
       const summaryStartCol = String.fromCharCode(67 + dayNumbers.length + 1); // เริ่มจากคอลัมน์หลัง "รวมวันทำงาน"
       for (let i = 0; i < 5; i++) { // 5 คอลัมน์: วันหยุด, วันนักขัต, ทำงานวันหยุด/นักขัต, โอที 1.5 เท่า, โอที 3 เท่า
         const colLetter = String.fromCharCode(summaryStartCol.charCodeAt(0) + i);
-        safeMergeCell(`${colLetter}5:${colLetter}8`);
+        safeMergeCell(`${colLetter}6:${colLetter}8`); // เปลี่ยนจาก 5:8 เป็น 6:8
       }
       
       // Add text rotation to summary columns (โอที and holidays)
@@ -8053,14 +8155,14 @@ const getDateStyle = (day) => {
       for (let i = 0; i < 5; i++) {
         try {
           const colLetter = String.fromCharCode(summaryStartCol.charCodeAt(0) + i);
-          const summaryCell = worksheet.getCell(`${colLetter}5`);
+          const summaryCell = worksheet.getCell(`${colLetter}6`); // เปลี่ยนจาก row 5 เป็น row 6
           if (summaryCell) {
             summaryCell.alignment = {
               horizontal: 'center',
               vertical: 'middle',
               textRotation: 90
             };
-            console.log(`Text rotation applied to summary cell ${colLetter}5`);
+            console.log(`Text rotation applied to summary cell ${colLetter}6`);
           }
         } catch (rotationError) {
           console.warn(`Error applying text rotation to summary column ${i}:`, rotationError.message);
@@ -8087,24 +8189,40 @@ const getDateStyle = (day) => {
       if (workplaceAddsalary && workplaceAddsalary.length > 0) {
         console.log('Merging welfare columns...');
         const welfareStartCol = String.fromCharCode(67 + dayNumbers.length + 1 + 5); // หลังโอที 5 คอลัมน์
-        for (let i = 0; i < workplaceAddsalary.length; i++) {
+        const welfareCount = mergeWorkplaceAddsalary(workplaceAddsalary).length;
+        
+        // 🆕 Merge "สวัสดิการ" header (Row 5 only - ครอบคลุมทุกคอลัมน์สวัสดิการ)
+        const welfareEndCol = String.fromCharCode(welfareStartCol.charCodeAt(0) + welfareCount - 1);
+        safeMergeCell(`${welfareStartCol}5:${welfareEndCol}5`);
+        // ตั้งค่าสีพื้นหลังเหลืองสำหรับ "สวัสดิการ"
+        const welfareHeaderCell = worksheet.getCell(`${welfareStartCol}5`);
+        welfareHeaderCell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFFFF7C2' } // สีเหลือง #fff7c2
+        };
+        welfareHeaderCell.font = { bold: true, size: 25 };
+        welfareHeaderCell.alignment = { horizontal: 'center', vertical: 'middle' };
+        
+        // Merge แต่ละคอลัมน์สวัสดิการสำหรับ Row 6-8 (ไม่รวม Row 5)
+        for (let i = 0; i < welfareCount; i++) {
           const colLetter = String.fromCharCode(welfareStartCol.charCodeAt(0) + i);
-          safeMergeCell(`${colLetter}5:${colLetter}8`);
+          safeMergeCell(`${colLetter}6:${colLetter}8`); // เปลี่ยนจาก 5:8 เป็น 6:8
         }
         
         // Add text rotation to welfare columns
         console.log('Adding text rotation to welfare columns...');
-        for (let i = 0; i < workplaceAddsalary.length; i++) {
+        for (let i = 0; i < welfareCount; i++) {
           try {
             const colLetter = String.fromCharCode(welfareStartCol.charCodeAt(0) + i);
-            const welfareCell = worksheet.getCell(`${colLetter}5`);
+            const welfareCell = worksheet.getCell(`${colLetter}6`); // เปลี่ยนจาก row 5 เป็น row 6
             if (welfareCell) {
               welfareCell.alignment = {
                 horizontal: 'center',
                 vertical: 'middle',
                 textRotation: 90
               };
-              console.log(`Text rotation applied to welfare cell ${colLetter}5`);
+              console.log(`Text rotation applied to welfare cell ${colLetter}6`);
             }
           } catch (rotationError) {
             console.warn(`Error applying text rotation to welfare column ${i}:`, rotationError.message);
@@ -10198,28 +10316,36 @@ else if(dataArray.length === 5) {
                       fgColor: { argb: 'FFFFF7C2' } // สีเหลือง #fff7c2
                     };
                   } else if (colIndex >= overtimeStartCol && colIndex <= overtimeEndCol) {
-                    // คอลัมน์ค่าล่วงเวลา (วันหยุด, วันนักขัต, ทำงานวันหยุด/นักขัต, โอที 1.5 เท่า, โอที 3 เท่า) - สีเหลือง
-                    cell.fill = {
-                      type: 'pattern',
-                      pattern: 'solid',
-                      fgColor: { argb: 'FFFFF7C2' } // สีเหลือง #fff7c2
-                    };
-                  } else if (welfareColumnsCount > 0 && colIndex >= welfareStartCol && colIndex <= welfareEndCol) {
-                    // คอลัมน์สวัสดิการทั้งหมด (ค่าอาหาร, ค่าน้ำ/ไฟ/โทรศัพท์, ค่าตำแหน่ง, เบี้ยขยัน, ค่าเดินทาง)
-                    // ตรวจสอบค่าในเซลล์ ถ้าเป็น "NO" ให้ใช้สีเทา ถ้าไม่ใช่ให้ใช้สีเหลือง
-                    const cellValue = cell.value;
-                    if (cellValue === "NO" || cellValue === "no" || cellValue === "No") {
-                      cell.fill = {
-                        type: 'pattern',
-                        pattern: 'solid',
-                        fgColor: { argb: 'FF9E9E9E' } // สีเทา สำหรับค่า NO
-                      };
-                    } else {
+                    // 🆕 คอลัมน์ค่าล่วงเวลา - ถ้าเป็น row 5 จะถูก merge แล้ว (ไม่ต้องทำซ้ำ)
+                    // สำหรับ row 6-8 ให้ใส่สีเหลือง
+                    if (rowIndex !== 5) {
                       cell.fill = {
                         type: 'pattern',
                         pattern: 'solid',
                         fgColor: { argb: 'FFFFF7C2' } // สีเหลือง #fff7c2
                       };
+                    }
+                  } else if (welfareColumnsCount > 0 && colIndex >= welfareStartCol && colIndex <= welfareEndCol) {
+                    // 🆕 คอลัมน์สวัสดิการ - ถ้าเป็น row 5 จะถูก merge แล้ว (ไม่ต้องทำซ้ำ)
+                    // สำหรับ row 6-8 ให้ตรวจสอบค่าในเซลล์
+                    if (rowIndex === 5) {
+                      // Row 5 ถูก merge แล้ว ไม่ต้องทำอะไร
+                    } else {
+                      // Row 6-8 ตรวจสอบค่าในเซลล์ ถ้าเป็น "NO" ให้ใช้สีเทา ถ้าไม่ใช่ให้ใช้สีเหลือง
+                      const cellValue = cell.value;
+                      if (cellValue === "NO" || cellValue === "no" || cellValue === "No") {
+                        cell.fill = {
+                          type: 'pattern',
+                          pattern: 'solid',
+                          fgColor: { argb: 'FF9E9E9E' } // สีเทา สำหรับค่า NO
+                        };
+                      } else {
+                        cell.fill = {
+                          type: 'pattern',
+                          pattern: 'solid',
+                          fgColor: { argb: 'FFFFF7C2' } // สีเหลือง #fff7c2
+                        };
+                      }
                     }
                   } else if (colIndex === cashHolidayColIndex) {
                     // คอลัมน์วัน Cash Holiday - สีเหลือง
@@ -10346,7 +10472,9 @@ else if(dataArray.length === 5) {
                     'เงินช่วยเหลือบุตร',
                     'ค่าวิชาชีพ',
                     'หักประกันสังคม %',
-                    'หักประกันสังคม %'
+                    'หักประกันสังคม %',
+                    'ลากิจธุระจำเป็น(ประกันสังคม)'
+
                   ];
                   
                   isWelfareWithRotation = rotationKeywords.some(keyword => 

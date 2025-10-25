@@ -983,7 +983,7 @@ const handleRemovePublicHoliday = async (holidayToRemove) => {
     setFormData({
       ...formData,
       addSalary: [
-        ...formData.addSalary,
+        ...(formData.addSalary || []),
         {
           codeSpSalary: "",
           name: "",
@@ -3131,7 +3131,13 @@ if (newWorkplace) {
                 <section class="Frame">
                   {formData.addSalary &&
                     formData.addSalary.length > 0 &&
-                    formData.addSalary.map((data, index) => (
+                    formData.addSalary.map((data, index) => {
+                      // ซ่อน item ที่มี codeSpSalary เป็น "1234"
+                      if (data.codeSpSalary === "2") {
+                        return null;
+                      }
+                      
+                      return (
                       <div key={index}>
                         <div className="row">
                           <div className="col-md-1">
@@ -3362,12 +3368,13 @@ if (newWorkplace) {
                                                 </div>
                                             </div> */}
                       </div>
-                    ))}
+                      );
+                    })}
                   <br />
                   <button
                     type="button"
                     onClick={handleAddInput}
-                    class="btn btn-primary"
+                    className="btn btn-primary"
                   >
                     เพิ่ม
                   </button>

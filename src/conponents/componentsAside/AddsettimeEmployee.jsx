@@ -3,6 +3,7 @@ import { Await, json, Link } from "react-router-dom";
 
 import axios from "axios";
 import React, { useEffect, useRef, useState } from "react";
+import Swal from 'sweetalert2';
 
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -2527,17 +2528,51 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
     }
 
     await setTmpIndex(tmpIndex + 1);
+    
+    // เก็บค่า OT ที่ผู้ใช้กรอกไว้ก่อนที่ useEffect จะ reset
+    const preservedOtValues = {
+      wSelectOtTime: wSelectOtTime,
+      wSelectOtTimeout: wSelectOtTimeout,
+      wOtTime: wOtTime,
+      wBeforeSelectOtTime: wBeforeSelectOtTime,
+      wBeforeSelectOtTimeout: wBeforeSelectOtTimeout,
+      wBeforeOtTime: wBeforeOtTime
+    };
+    
+    // รอให้ useEffect ทำงานเสร็จแล้วค่อยเซ็ตค่า OT กลับ
+    setTimeout(() => {
+      setWSelectOtTime(preservedOtValues.wSelectOtTime);
+      setWSelectOtTimeout(preservedOtValues.wSelectOtTimeout);
+      setWOtTime(preservedOtValues.wOtTime);
+      setWBeforeSelectOtTime(preservedOtValues.wBeforeSelectOtTime);
+      setWBeforeSelectOtTimeout(preservedOtValues.wBeforeSelectOtTimeout);
+      setWBeforeOtTime(preservedOtValues.wBeforeOtTime);
+    }, 100);
+    
+    // ไม่ล้างค่าในฟิลด์เพื่อให้ผู้ใช้สามารถเพิ่มข้อมูลต่อเนื่องได้โดยไม่ต้องกรอกซ้ำ
+    // เพียงแค่เปลี่ยนวันที่ไปวันถัดไป แต่จำค่าอื่นๆ ไว้ทั้งหมด รวมถึง OT
     // await setWId('');
     // await setWName('');
+    // await setWGroup('');
     // await setWStartTime('');
     // await setWEndTime('');
     // await setWAllTime('');
+    // 
+    // OT (หลังเวลาทำงาน) - จำค่าไว้
     // await setWOtTime('');
     // await setWSelectOtTime('');
     // await setWSelectOtTimeout('');
+    //
+    // OT (ก่อนเวลาทำงาน) - จำค่าไว้
+    // await setWBeforeSelectOtTime('');
+    // await setWBeforeSelectOtTimeout('');
+    // await setWBeforeOtTime('');
+    //
     // await setCashSalary("");
     // await setSpecialtSalary("");
     // await setSpecialtSalaryOT("");
+    // await setCashOfHoliday("");
+    // await setCashOfHolidayOt("");
     // await setMessageSalary("");
   }
 
@@ -2656,9 +2691,59 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
     setEditData(newEditData);
   };
 
-  const handleSaveEdit = (index) => {
+  const handleSaveEdit = async (index) => {
+    // Ask user if they want to apply changes to all days using SweetAlert2
+    const result = await Swal.fire({
+      title: 'เลือกการปรับเปลี่ยนข้อมูล',
+      text: 'คุณต้องการปรับเปลี่ยนข้อมูลนี้อย่างไร?',
+      icon: 'question',
+      showCancelButton: true,
+      showDenyButton: true,
+      confirmButtonText: 'เปลี่ยนทุกวัน',
+      denyButtonText: 'เปลี่ยนแค่วันนี้',
+      cancelButtonText: 'ยกเลิก',
+      confirmButtonColor: '#3085d6',
+      denyButtonColor: '#28a745',
+      cancelButtonColor: '#6c757d'
+    });
+    
+    // If user clicks X, ESC, or Cancel button, do nothing
+    if (result.isDismissed || result.dismiss === 'cancel') {
+      return;
+    }
+    
+    const applyToAllDays = result.isConfirmed; // true if "เปลี่ยนทุกวัน", false if "เปลี่ยนแค่วันนี้"
     const newDataList = [...rowDataList2];
-    newDataList[index] = { ...newDataList[index], ...editData[index] };
+    const editedData = editData[index];
+    
+    if (applyToAllDays) {
+      // Apply changes to all days with same employee
+      const currentEmployeeId = newDataList[index].employeeId;
+      
+      for (let i = 0; i < newDataList.length; i++) {
+        if (newDataList[i].employeeId === currentEmployeeId) {
+          // เก็บข้อมูลที่ไม่ควรเปลี่ยนแปลงไว้
+          const preservedData = {
+            date: newDataList[i].date, // เก็บวันที่เดิม
+            recordDate: newDataList[i].recordDate,
+            tmpIndex: newDataList[i].tmpIndex,
+            workplaceId: newDataList[i].workplaceId, // เก็บรหัสหน่วยงานเดิม
+            workplaceName: newDataList[i].workplaceName, // เก็บชื่อหน่วยงานเดิม
+            employeeId: newDataList[i].employeeId // เก็บรหัสพนักงานเดิม
+          };
+          
+          newDataList[i] = { 
+            ...newDataList[i], 
+            ...editedData,
+            ...preservedData // ใช้ข้อมูลที่เก็บไว้ทับข้อมูลที่แก้ไข
+          };
+        }
+      }
+    } else {
+      // Apply changes only to current row (when isDenied = true)
+      newDataList[index] = { ...newDataList[index], ...editedData };
+    }
+    
     setRowDataList2(newDataList);
     setEditMode({ ...editMode, [index]: false });
     const newEditData = { ...editData };
@@ -3080,7 +3165,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
               <div class="row">
                 <div class="col-md-2">
                   <div class="form-group">
-                    <label role="agencynumber">รหัสพนักงาน</label>
+                    <label role="agencynumber">รหัสพนักกกกงาน</label>
                     <input
                       type="text"
                       class="form-control"
