@@ -9386,71 +9386,171 @@ for (let i = 0; i < remainingColsContract; i++) {
         }
       });
       
+//       // Absent employees per day
+//       const absentEmpRow = ['พนักงานขาดงาน', ''];
+//       dayNumbers.forEach((day, i) => {
+//         const absentCount = absentEmployeesPerDay[i] || 0;
+//         absentEmpRow.push(absentCount === 0 ? '' : absentCount);
+//       });
+//       absentEmpRow.push(absentEmployeesPerDay.reduce((total, count) => total + (count || 0), 0));
+//       absentEmpRow.push('', '');
+//       absentEmpRow.push(
+//         formatTimeValueForExcel(totalOtPublicHoliday), 
+//         formatTimeValueForExcel(totalOtWithOvertime1_5), 
+//         formatTimeValueForExcel(totalOtWithOvertime3)
+//       );
+      
+//       // Mark special styling for empty days (gray background) and holiday work columns
+//       absentEmpRow.specialStyles = {
+//         [absentEmpRow.length - 3]: { // ทำงานวันหยุด/นักขัต
+//           backgroundColor: 'FFFFF7C2',
+//           fontColor: 'FF1654A6',
+//           fontWeight: 'bold'
+//         },
+//         [absentEmpRow.length - 2]: { // โอที 1.5 เท่า  
+//           backgroundColor: 'FFFFF7C2',
+//           fontColor: 'FF008000',
+//           fontWeight: 'bold'
+//         },
+//         [absentEmpRow.length - 1]: { // โอที 3 เท่า
+//           backgroundColor: 'FFFFF7C2', 
+//           fontColor: 'FF1654A6',
+//           fontWeight: 'bold'
+//         } 
+//       };
+      
+//       // Add gray styling for days with no absent employees and red text for days with absent employees
+//       dayNumbers.forEach((day, i) => {
+//         const absentCount = absentEmployeesPerDay[i] || 0;
+//         if (absentCount === 0) {
+//           absentEmpRow.specialStyles[i + 2] = { // +2 เพราะ column A,B เป็น "พนักงานขาดงาน" และ ""
+//             backgroundColor: '', // สีเทา
+//             fontColor: 'FF000000',      // ตัวอักษรสีดำ
+//             fontWeight: 'bold'
+//           };
+//         } else {
+//           // ช่องที่มีค่าขาดงาน ให้ตัวอักษรสีแดง
+//           absentEmpRow.specialStyles[i + 2] = { // +2 เพราะ column A,B เป็น "พนักงานขาดงาน" และ ""
+//             fontColor: 'FFFF0000',      // ตัวอักษรสีแดง (แก้ไขให้ถูกต้อง)
+//             fontWeight: 'bold'
+//           };
+//         }
+//       });
+      
+//       // Apply red text color to total absent column if there are absent employees
+//       const totalAbsent = absentEmployeesPerDay.reduce((total, count) => total + (count || 0), 0);
+//       if (totalAbsent > 0) {
+//         const totalColumnIndex = dayNumbers.length + 2; // +2 เพราะมี column A,B ก่อนหน้า
+//         absentEmpRow.specialStyles[totalColumnIndex] = {
+//           fontColor: 'FFFF0000',      // ตัวอักษรสีแดง
+//           fontWeight: 'bold'
+//         };
+//       }
+      
+//       const remainingColsAbsent = row1.length - absentEmpRow.length;
+// for (let i = 0; i < remainingColsAbsent; i++) {
+//     absentEmpRow.push('');
+// }
       // Absent employees per day
-      const absentEmpRow = ['พนักงานขาดงาน', ''];
-      dayNumbers.forEach((day, i) => {
-        const absentCount = absentEmployeesPerDay[i] || 0;
-        absentEmpRow.push(absentCount === 0 ? '' : absentCount);
-      });
-      absentEmpRow.push(absentEmployeesPerDay.reduce((total, count) => total + (count || 0), 0));
-      absentEmpRow.push('', '');
-      absentEmpRow.push(
-        formatTimeValueForExcel(totalOtPublicHoliday), 
-        formatTimeValueForExcel(totalOtWithOvertime1_5), 
-        formatTimeValueForExcel(totalOtWithOvertime3)
-      );
-      
-      // Mark special styling for empty days (gray background) and holiday work columns
-      absentEmpRow.specialStyles = {
-        [absentEmpRow.length - 3]: { // ทำงานวันหยุด/นักขัต
-          backgroundColor: 'FFFFF7C2',
-          fontColor: 'FF1654A6',
-          fontWeight: 'bold'
-        },
-        [absentEmpRow.length - 2]: { // โอที 1.5 เท่า  
-          backgroundColor: 'FFFFF7C2',
-          fontColor: 'FF008000',
-          fontWeight: 'bold'
-        },
-        [absentEmpRow.length - 1]: { // โอที 3 เท่า
-          backgroundColor: 'FFFFF7C2', 
-          fontColor: 'FF1654A6',
-          fontWeight: 'bold'
-        } 
-      };
-      
-      // Add gray styling for days with no absent employees and red text for days with absent employees
-      dayNumbers.forEach((day, i) => {
-        const absentCount = absentEmployeesPerDay[i] || 0;
-        if (absentCount === 0) {
-          absentEmpRow.specialStyles[i + 2] = { // +2 เพราะ column A,B เป็น "พนักงานขาดงาน" และ ""
-            backgroundColor: '', // สีเทา
-            fontColor: 'FF000000',      // ตัวอักษรสีดำ
-            fontWeight: 'bold'
-          };
-        } else {
-          // ช่องที่มีค่าขาดงาน ให้ตัวอักษรสีแดง
-          absentEmpRow.specialStyles[i + 2] = { // +2 เพราะ column A,B เป็น "พนักงานขาดงาน" และ ""
-            fontColor: 'FFFF0000',      // ตัวอักษรสีแดง (แก้ไขให้ถูกต้อง)
-            fontWeight: 'bold'
-          };
-        }
-      });
-      
-      // Apply red text color to total absent column if there are absent employees
-      const totalAbsent = absentEmployeesPerDay.reduce((total, count) => total + (count || 0), 0);
-      if (totalAbsent > 0) {
-        const totalColumnIndex = dayNumbers.length + 2; // +2 เพราะมี column A,B ก่อนหน้า
-        absentEmpRow.specialStyles[totalColumnIndex] = {
-          fontColor: 'FFFF0000',      // ตัวอักษรสีแดง
-          fontWeight: 'bold'
-        };
+// ลบฟังก์ชันเก่าทิ้งทั้งหมด แล้วใช้แค่นี้:
+
+// Absent employees per day - ฟังก์ชันเดียวที่ใช้งาน
+const absentEmployeesPerDay = dayNumbers.map((day, dayIndex) => {
+  let absentCount = 0;
+  const dayNum = parseInt(day);
+  
+  if (!data || !Array.isArray(data)) {
+    return 0;
+  }
+
+  // 1. นับพนักงานสัญญาจาก data
+  const contractEmployees = data.filter(record => 
+    record.employeeType === 'พนักงานประจำ' || 
+    record.employeeType === 'รายเดือน'
+  );
+
+  console.log(`🔍 Total contract employees: ${contractEmployees.length}`);
+
+  if (contractEmployees.length === 0) {
+    return 0;
+  }
+
+  // 2. ตรวจสอบวันหยุด
+  let actualMonth, actualYear;
+  
+  if (dayNum >= 21) {
+    actualMonth = parseInt(month) === 1 ? 12 : parseInt(month) - 1;
+    actualYear = parseInt(month) === 1 ? parseInt(year) - 1 : parseInt(year);
+  } else {
+    actualMonth = parseInt(month);
+    actualYear = parseInt(year);
+  }
+  
+  const daysInActualMonth = new Date(actualYear, actualMonth, 0).getDate();
+  const isInvalidDate = dayNum > daysInActualMonth;
+  
+  const targetDateStr = `${actualYear}-${actualMonth.toString().padStart(2, '0')}-${dayNum.toString().padStart(2, '0')}`;
+  
+  // ตรวจสอบว่าเป็นวันหยุดหรือไม่
+  const isHoliday = 
+    isInvalidDate ||
+    (weekendData?.dayoffWorkplace?.includes(targetDateStr)) ||
+    (weekendData && Array.isArray(weekendData) && weekendData.find(item => item.date === targetDateStr && (item.type === 'dayOffOnly' || item.type === 'weekend')));
+
+  if (isHoliday) {
+    console.log(`🎯 Day ${day} - Holiday, no absence count`);
+    return 0;
+  }
+
+  // 3. นับพนักงานสัญญาที่มาทำงาน
+  let presentCount = 0;
+  
+  contractEmployees.forEach(record => {
+    // หา record ของพนักงานในวันนี้
+    const dayRecord = record?.employee_record?.find(item => item.date === day);
+    
+    // ตรวจสอบว่าพนักงานลาหรือไม่
+    const isOnLeave = record?.addSalaryList?.some(salaryItem => {
+      if (salaryItem.welfareType === "ลาป่วย" || 
+          salaryItem.welfareType === "ลาคลอด" ||
+          salaryItem.name?.includes("ลาป่วย") || 
+          salaryItem.name?.includes("ป่วย") ||
+          salaryItem.name?.includes("ลาพักร้อน") ||
+          salaryItem.name?.includes("ชดเชย") ||
+          salaryItem.name?.includes("ลากิจ")) {
+        
+        const dates = salaryItem.date ? salaryItem.date.split(',').map(d => d.trim()) : [];
+        return dates.some(dateStr => parseInt(dateStr) === dayNum);
       }
-      
-      const remainingColsAbsent = row1.length - absentEmpRow.length;
-for (let i = 0; i < remainingColsAbsent; i++) {
-    absentEmpRow.push('');
-}
+      return false;
+    });
+    
+    // ตรวจสอบว่าพนักงานมีวันหยุดส่วนบุคคลหรือไม่
+    const isPersonalDayOff = record?.personalDayOff?.some(personalDay => 
+      parseInt(personalDay.date) === dayNum
+    ) || record?.stopDaysList?.some(stopDay => 
+      parseInt(stopDay.date) === dayNum
+    );
+    
+    // ตรวจสอบว่าพนักงานนี้เกี่ยวข้องกับหน่วยงานที่เลือก
+    const isRelevantEmployee = !searchWorkplaceId || 
+      record?.employee_record?.some(item => item.workplaceId === searchWorkplaceId);
+    
+    // ถ้ามี record การทำงาน + ไม่ลา + ไม่หยุดส่วนบุคคล + เป็นพนักงานที่เกี่ยวข้อง = มาทำงาน
+    if (dayRecord && !isOnLeave && !isPersonalDayOff && isRelevantEmployee) {
+      presentCount++;
+    }
+  });
+
+  // 4. คำนวณขาดงาน
+  absentCount = Math.max(0, contractEmployees.length - presentCount);
+  
+  console.log(`📊 Day ${day}: ${presentCount}/${contractEmployees.length} present, ${absentCount} absent`);
+  
+  return absentCount;
+});
+
+console.log('🎯 Final absent counts:', absentEmployeesPerDay);
       
       // OT 1.5 summary
       const ot15Row = ['โอที 1.5 เท่า', ''];
@@ -11210,29 +11310,75 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
     
     return total;
   };
-
-  // เพิ่ม function สำหรับคำนวณพนักงานขาดงานในแต่ละวัน
   const calculateAbsentEmployeesPerDay = () => {
-    const absentCounts = Array(dayNumbers.length).fill(0);
-    const totalEmployees = data.length; // จำนวนพนักงานทั้งหมด
+  const absentCounts = Array(dayNumbers.length).fill(0);
+  
+  if (!data || data.length === 0) return absentCounts;
+
+  // นับพนักงานสัญญา
+  const contractEmployees = data.filter(emp => 
+    emp.employeeType === 'พนักงานประจำ' || emp.employeeType === 'รายเดือน'
+  );
+  
+  console.log('🔍 Contract employees:', contractEmployees.length);
+  
+  // Debug: ดูข้อมูลพนักงานแต่ละคน
+  contractEmployees.forEach(emp => {
+    console.log(`Employee ${emp.employeeId}:`, {
+      name: emp.employeeName,
+      type: emp.employeeType,
+      records: emp.employee_record?.length || 0,
+      workdays: emp.workdays || 'No workdays'
+    });
+  });
+
+  dayNumbers.forEach((day, dayIndex) => {
+    // ตรวจสอบวันหยุดแบบง่ายๆ
+    const dayNum = parseInt(day);
+    let actualMonth, actualYear;
     
-    if (data && data.length > 0) {
-      dayNumbers.forEach((day, dayIndex) => {
-        const presentCount = employeeCountPerDay[dayIndex] || 0; // จำนวนที่มาทำงาน
-        
-        // ถ้าไม่มีคนมาทำงานเลย (วันหยุด) ให้ไม่แสดงค่าขาดงาน
-        if (presentCount === 0) {
-          absentCounts[dayIndex] = 0; // ไม่แสดงค่า
-        } else {
-          const absentCount = totalEmployees - presentCount; // จำนวนที่ขาด
-          absentCounts[dayIndex] = absentCount > 0 ? -absentCount : 0; // แสดงเป็นเลขลบ
-        }
-      });
+    if (dayNum >= 21) {
+      actualMonth = parseInt(month) === 1 ? 12 : parseInt(month) - 1;
+      actualYear = parseInt(month) === 1 ? parseInt(year) - 1 : parseInt(year);
+    } else {
+      actualMonth = parseInt(month);
+      actualYear = parseInt(year);
     }
     
-    return absentCounts;
-  };
+    const targetDateStr = `${actualYear}-${actualMonth.toString().padStart(2, '0')}-${dayNum.toString().padStart(2, '0')}`;
+    
+    // ตรวจสอบวันหยุด
+    const isWeekend = weekendData?.dayoffWorkplace?.includes(targetDateStr);
+    if (isWeekend) {
+      absentCounts[dayIndex] = 0;
+      return;
+    }
 
+    // นับคนที่มาทำงาน (วิธีง่ายๆ - ดูว่ามี record ในวันนั้น)
+    let presentCount = 0;
+    
+    contractEmployees.forEach(employee => {
+      const dayRecord = employee?.employee_record?.find(item => item.date === day);
+      
+      // ถ้ามี record และมีข้อมูลการทำงาน = มาทำงาน
+      if (dayRecord && (
+        dayRecord.dayType === "work" ||
+        dayRecord.startTime ||
+        dayRecord.endTime ||
+        dayRecord.totalTime
+      )) {
+        presentCount++;
+      }
+    });
+
+    const absentCount = contractEmployees.length - presentCount;
+    absentCounts[dayIndex] = absentCount;
+
+    console.log(`📊 Day ${day}: ${presentCount} present, ${absentCount} absent`);
+  });
+  
+  return absentCounts;
+};
   // ฟังก์ชันสำหรับเรียก API ข้อมูล workplace และคำนวณจำนวนพนักงานตามสัญญา
   const [contractEmployeeCount, setContractEmployeeCount] = useState(0);
 
