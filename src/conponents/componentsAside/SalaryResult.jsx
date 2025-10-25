@@ -214,14 +214,24 @@ function Salaryresult() {
     setRemainComment(event.target.value);
   };
 
+  const [usedLeaveCounts, setUsedLeaveCounts] = useState({});
+
+  useEffect(() => {
+  const counts = {};
+  options.forEach(option => {
+    counts[option.id] = remainArray.filter(item => item.welfareType === option.id).length;
+  });
+  setUsedLeaveCounts(counts);
+}, [remainArray]);
+
   const handleAddData = () => {
     // alert(selectedName2.name )
     // Create a new object with the input values
     const newData = {
       startDay: selectedThaiDate || "",
       endDay: selectedThaiDate || "",
-      welfareType: selectedName2.id || "",
-      welfareTypeEn: selectedName2.name || "",
+      welfareType: selectedLeaveType || "",
+      welfareTypeEn: selectedLeaveType || "",
       id: remainCode || "",
       name: remainName || "",
       SpSalary: remainSalary || "",
@@ -249,6 +259,7 @@ function Salaryresult() {
     setRemainName("");
     setRemainSalary("");
     setRemainComment("");
+    setSelectedLeaveType("");
   };
 
   const handleDeleteData = (index) => {
@@ -930,6 +941,78 @@ function Salaryresult() {
   };
 
   // console.error('workplaceList', workplaceList);
+    
+    // เพิ่ม state ใหม่สำหรับจัดการ dropdown
+  const [leaveOptions, setLeaveOptions] = useState({
+    'ลากิจ': [
+      { id: '1428', name: 'ลากิจธุระจำเป็น(ประกันสังคม)' },
+      { id: '1429', name: 'ลากิจธุระจำเป็น(ปกส)รับล่วงหน้า' }
+    ],
+    'ลาป่วย': [
+      { id: '1231', name: 'จ่ายลาป่วยมีใบแพทย์' },
+      { id: '1234', name: 'จ่ายลาป่วยมีใบรับรองแพทย์(รับล่วงหน้า)' },
+      { id: '1235', name: 'ค่าจ้างวันลาป่วย' }
+    ],
+    'ลาพักร้อน': [
+      { id: '1422', name: 'จ่ายคืนพักร้อน(ครบปี/ใช้สิทธิไม่หมด)' },
+      { id: '1423', name: 'ชดเชยวันลาพักร้อน (ประกันสังคม)' },
+      { id: '1425', name: 'ค่าจ้างในวันลาพักร้อน' },
+      { id: '1426', name: 'จ่ายคืนค่าจ้างพักร้อน(ครบปี/ใช้สิทธิไม่หมด)' },
+      { id: '1427', name: 'ชดเชยวันลาพักร้อน(ประกันสังคม)รับล่วงหน้า' },
+      { id: '1435', name: 'จ่ายคืนพักร้อน(ครบปี/ใช้สิทธิไม่หมด)รับล่วงหน้า' }
+    ],
+    'ลาคลอด': [
+      { id: '1233', name: 'ชดเชยค่าแรงลาคลอด' }
+    ],
+    'ลาเกณฑ์ทหาร': [],
+    'ลาเพื่อทำหมัน': [],
+    'ลาเพื่อฝึกอบรม': []
+  });
+
+  const [selectedLeaveType, setSelectedLeaveType] = useState('');
+  const [availableLeaveDetails, setAvailableLeaveDetails] = useState([]);
+  const [showLeaveDetailsDropdown, setShowLeaveDetailsDropdown] = useState(false);
+
+  // ฟังก์ชันเมื่อเลือกประเภทการลา
+  const handleLeaveTypeChange = (event) => {
+    const selectedType = event.target.value;
+    setSelectedLeaveType(selectedType);
+    
+    // ตั้งค่าข้อมูลเริ่มต้นตามประเภทการลา
+    const details = leaveOptions[selectedType] || [];
+    setAvailableLeaveDetails(details);
+    
+    // ถ้ามีรายการให้เลือก ให้แสดง dropdown, ถ้าไม่มีให้ซ่อน
+    setShowLeaveDetailsDropdown(details.length > 0);
+    
+    // รีเซ็ตค่าที่เกี่ยวข้อง
+    if (details.length === 0) {
+      setRemainCode('');
+      setRemainName('');
+    }
+  };
+
+  // ฟังก์ชันเมื่อเลือกรายละเอียดการลา
+  const handleLeaveDetailChange = (detail) => {
+    setRemainCode(detail.id);
+    setRemainName(detail.name);
+    setShowLeaveDetailsDropdown(false); // ซ่อน dropdown หลังจากเลือก
+  };
+
+  // ฟังก์ชันเมื่อคลิก outside dropdown
+  const handleClickOutside = (event) => {
+    if (!event.target.closest('.leave-details-dropdown')) {
+      setShowLeaveDetailsDropdown(false);
+    }
+  };
+
+  // เพิ่ม event listener สำหรับคลิก outside
+  useEffect(() => {
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
 
   const [modalIsOpen, setModalIsOpen] = useState(false);
@@ -2681,7 +2764,7 @@ try {
     parseFloat(accountingResult?.[0]?.total || '0') +
     parseFloat(totalDeductSalary || '0'); // เพิ่ม totalDeductSalary
     
-
+ 
   const netTotal = incomeTotal - deductionTotal;
 
   return isNaN(netTotal)
@@ -2734,6 +2817,7 @@ try {
                 {/* </Link > */}
               </div>
               {/* {JSON.stringify(employee.addSalary,null,2)} */}
+              
               <h2 class="title">สรุปวันลา</h2>
               <section class="Frame">
                 <div class="row">
@@ -2772,8 +2856,9 @@ try {
                               empDataSelect[option.name] !== undefined
                               ? empDataSelect[option.name]
                               : 0;
-                          const welfareTypeCount =
-                            welfareTypeCountMap[option.name] || 0;
+                          // const welfareTypeCount =
+                          //   welfareTypeCountMap[option.name] || 0;
+                          const welfareTypeCount = usedLeaveCounts[option.id] || 0;
 
                           return (
                             <tr key={option.id}>
@@ -2857,56 +2942,103 @@ try {
                       )}
                     </div>
                   </div>
-                  <div class="col-md-2">
-                    <select
-                      onChange={handleSelectChange2}
-                      className="form-control"
-                    >
-                      <option value="">เลือกตัวเลือก</option>
-                      {options.map((option) => (
-                        <option key={option.id} value={option.name}>
-                          {option.id}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div class="col-md-2">
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={remainCode}
-                      onChange={handleRemainCodeChange}
-                      placeholder="รหัส"
-                    />
-                  </div>
-                  <div class="col-md-2">
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={remainName}
-                      onChange={handleRemainNameChange}
-                      placeholder="ชื่อ"
-                    />
-                  </div>
-                  <div class="col-md-2">
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={remainSalary}
-                      onChange={handleRemainSalaryChange}
-                      placeholder="บาท"
-                    />
-                  </div>
-                  <div class="col-md-2">
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={remainComment}
-                      onChange={handleRemainCommentChange}
-                      placeholder="หมายเหตุ"
-                    />
-                  </div>
-                </div>
+                  {/* ประเภทการลา - แก้ไขส่วนนี้ */}
+  <div class="col-md-2" style={{ position: 'relative' }}>
+    <select
+      value={selectedLeaveType}
+      onChange={handleLeaveTypeChange}
+      className="form-control"
+    >
+      <option value="">เลือกประเภทการลา</option>
+      {Object.keys(leaveOptions).map((leaveType) => (
+        <option key={leaveType} value={leaveType}>
+          {leaveType}
+        </option>
+      ))}
+    </select>
+    
+    {/* Dropdown สำหรับเลือกรายละเอียดการลา */}
+    {showLeaveDetailsDropdown && availableLeaveDetails.length > 0 && (
+      <div 
+        className="leave-details-dropdown"
+        style={{
+          position: 'absolute',
+          top: '100%',
+          left: 0,
+          right: 0,
+          backgroundColor: 'white',
+          border: '1px solid #ccc',
+          borderRadius: '4px',
+          maxHeight: '200px',
+          overflowY: 'auto',
+          zIndex: 1000,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+        }}
+      >
+        {availableLeaveDetails.map((detail, index) => (
+          <div
+            key={index}
+            onClick={() => handleLeaveDetailChange(detail)}
+            style={{
+              padding: '8px 12px',
+              cursor: 'pointer',
+              borderBottom: '1px solid #eee'
+            }}
+            onMouseEnter={(e) => e.target.style.backgroundColor = '#f5f5f5'}
+            onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
+          >
+            <div style={{ fontWeight: 'bold' }}>{detail.id}</div>
+            <div style={{ fontSize: '0.9em', color: '#666' }}>{detail.name}</div>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+  
+  {/* รหัสเงินเพิ่มเงินหัก */}
+  <div class="col-md-2">
+    <input
+      type="text"
+      className="form-control"
+      value={remainCode}
+      onChange={handleRemainCodeChange}
+      placeholder="รหัส"
+      readOnly={showLeaveDetailsDropdown} // ไม่ให้แก้ไขเมื่อมี dropdown แสดง
+    />
+  </div>
+  
+  {/* ชื่อ */}
+  <div class="col-md-2">
+    <input
+      type="text"
+      className="form-control"
+      value={remainName}
+      onChange={handleRemainNameChange}
+      placeholder="ชื่อ"
+      readOnly={showLeaveDetailsDropdown} // ไม่ให้แก้ไขเมื่อมี dropdown แสดง
+    />
+  </div>
+  
+  <div class="col-md-2">
+    <input
+      type="text"
+      className="form-control"
+      value={remainSalary}
+      onChange={handleRemainSalaryChange}
+      placeholder="บาท"
+    />
+  </div>
+  <div class="col-md-2">
+    <input
+      type="text"
+      className="form-control"
+      value={remainComment}
+      onChange={handleRemainCommentChange}
+      placeholder="หมายเหตุ"
+    />
+  </div>
+</div>
+              
                 <br />
                 <div class="row">
                   <div class="col-md-2"></div>
@@ -2992,7 +3124,7 @@ try {
               </section>
             </div>
           </section>
-        </div>
+        </div>    
       </div>
     {/* </body> */}
 </div>
