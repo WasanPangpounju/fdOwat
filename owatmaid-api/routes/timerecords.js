@@ -1751,6 +1751,13 @@ year,
     employee_record
   } = req.body;
 
+  // Debug: Log payFullDay data
+  console.log('📋 Employee Record Data:', JSON.stringify(employee_record, null, 2));
+  employee_record.forEach((record, index) => {
+    if (record.payFullDay !== undefined) {
+      console.log(`✅ Record ${index}: payFullDay = ${record.payFullDay}, totalTime = ${record.totalTime}`);
+    }
+  });
 
   // Create timerecordEmployee 
   const timerecordEmployeeData = new timerecordEmployee({
@@ -1788,9 +1795,19 @@ year,
 // Route to delete all matching records and save a new one
 router.put("/updatetimerecordemployee/:employeeRecordId", async (req, res) => {
   try {
-    const { year, employeeId, employeeName, month } = req.body;
+    const { year, employeeId, employeeName, month, employee_record } = req.body;
 
     console.log("🔍 Finding records to delete for:", { year, employeeId, month });
+
+    // Debug: Log payFullDay data
+    console.log('📋 Employee Record Data (Update):', JSON.stringify(employee_record, null, 2));
+    if (employee_record) {
+      employee_record.forEach((record, index) => {
+        if (record.payFullDay !== undefined) {
+          console.log(`✅ Record ${index}: payFullDay = ${record.payFullDay}, totalTime = ${record.totalTime}`);
+        }
+      });
+    }
 
     // Delete all matching records
     const deleteResult = await timerecordEmployee.deleteMany({ year, employeeId, month });
@@ -1801,16 +1818,16 @@ router.put("/updatetimerecordemployee/:employeeRecordId", async (req, res) => {
     const newRecord = new timerecordEmployee(req.body);
 
     // Save the new record
-    const employee_record = await newRecord.save();
+    const saved_employee_record = await newRecord.save();
 
-    console.log("✅ New record saved:", employee_record);
+    console.log("✅ New record saved:", saved_employee_record);
 
-    if(employee_record ) {
+    if(saved_employee_record ) {
       await setToWorkplaceTimerecords(employeeId, employeeName,  newRecord.employee_record, year, month) 
 
     }
     // Respond with the newly created record
-    res.status(201).json(employee_record);
+    res.status(201).json(saved_employee_record);
   } catch (error) {
     console.error("🔥 Error updating record:", error);
     res.status(500).json({ error: "Internal server error" });
