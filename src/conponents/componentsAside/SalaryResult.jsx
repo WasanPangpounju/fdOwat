@@ -1820,6 +1820,8 @@ function Salaryresult() {
   const [accountingResult, setAccountingResult] = useState([]); // Store search results
   const [loading, setLoading] = useState(false); // Track loading state
   const [error, setError] = useState(null); // Store errors
+  const [pageLoading, setPageLoading] = useState(true); // Track page loading state
+  const [initialDataLoaded, setInitialDataLoaded] = useState(false); // Track if initial data is loaded
 
   const [localSocialSecurity , setLocalSocialSecurity] = useState(0);
   const [totalAddSalary, setTotalAddSalary] = useState(0); // เก็บยอดรวมเงินเพิ่ม
@@ -1828,32 +1830,37 @@ function Salaryresult() {
 
   const updateData = async () => {
     if (accountingResult.length > 0) {
-      const updatedResult = [...accountingResult];
-  
-      // คำนวณยอดรวมเงินเพิ่มจาก addSalaryList
-      const calculatedTotalAddSalary = accountingResult?.[0]?.addSalaryList?.reduce(
-        (total, item) => total + parseFloat(item.SpSalary || '0'), 
-        0
-      ) || 0;
+      // เริ่ม loading
+      setLoading(true);
+      setPageLoading(true);
 
-      // คำนวณยอดรวมเงินหักจาก deductSalaryList
-      const calculatedTotalDeductSalary = accountingResult?.[0]?.deductSalaryList?.reduce(
-        (total, item) => total + parseFloat(item.amount || '0'), 
-        0
-      ) || 0;
+      try {
+        const updatedResult = [...accountingResult];
+    
+        // คำนวณยอดรวมเงินเพิ่มจาก addSalaryList
+        const calculatedTotalAddSalary = accountingResult?.[0]?.addSalaryList?.reduce(
+          (total, item) => total + parseFloat(item.SpSalary || '0'), 
+          0
+        ) || 0;
 
-      // อัปเดตค่าภายใน object
-      updatedResult[0] = {
-        ...updatedResult[0],
-        socialSecurity: localSocialSecurity,
-        publicHolidayCash: localPublicHolidayCash,
-        totalAddSalary: calculatedTotalAddSalary, // เพิ่มยอดรวมเงินเพิ่ม
-        totalDeductSalary: calculatedTotalDeductSalary, // เพิ่มยอดรวมเงินหัก
-      };
-  
-      setAccountingResult(updatedResult);
-      setTotalAddSalary(calculatedTotalAddSalary); // อัปเดต state
-      setTotalDeductSalary(calculatedTotalDeductSalary); // อัปเดต state เงินหัก
+        // คำนวณยอดรวมเงินหักจาก deductSalaryList
+        const calculatedTotalDeductSalary = accountingResult?.[0]?.deductSalaryList?.reduce(
+          (total, item) => total + parseFloat(item.amount || '0'), 
+          0
+        ) || 0;
+
+        // อัปเดตค่าภายใน object
+        updatedResult[0] = {
+          ...updatedResult[0],
+          socialSecurity: localSocialSecurity,
+          publicHolidayCash: localPublicHolidayCash,
+          totalAddSalary: calculatedTotalAddSalary, // เพิ่มยอดรวมเงินเพิ่ม
+          totalDeductSalary: calculatedTotalDeductSalary, // เพิ่มยอดรวมเงินหัก
+        };
+    
+        setAccountingResult(updatedResult);
+        setTotalAddSalary(calculatedTotalAddSalary); // อัปเดต state
+        setTotalDeductSalary(calculatedTotalDeductSalary); // อัปเดต state เงินหัก
   
       // เตรียมข้อมูลสำหรับส่ง API
       const updatePayload = {
@@ -1881,10 +1888,16 @@ function Salaryresult() {
         console.error("เกิดข้อผิดพลาดขณะอัปเดตข้อมูล:", error);
         alert("เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง");
       }
+      } catch (error) {
+        console.error("เกิดข้อผิดพลาดในการประมวลผลข้อมูล:", error);
+        alert("เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง");
+      } finally {
+        setLoading(false);
+        setPageLoading(false);
+      }
     }
   };
- 
-  
+
 useEffect(() => {
   if(accountingResult?.[0]?.socialSecurity ){
     const ssBase = parseFloat(accountingResult?.[0]?.socialSecurity || 0);
@@ -1919,11 +1932,38 @@ useEffect(() => {
     setTotalDeductSalary(calculatedTotal);
   }
 }, [accountingResult]);
+
+// useEffect สำหรับจัดการ page loading
+useEffect(() => {
+  // ตรวจสอบว่าข้อมูลพื้นฐานโหลดเสร็จแล้วหรือไม่
+  const checkInitialDataReady = () => {
+    // เช็คว่ามีข้อมูลที่จำเป็นสำหรับการแสดงผลหรือไม่
+    if (employeeList && employeeList.length > 0) {
+      setInitialDataLoaded(true);
+      setPageLoading(false);
+    }
+  };
+
+  // เรียกใช้ timeout เพื่อให้เวลาข้อมูลโหลด
+  const timer = setTimeout(checkInitialDataReady, 1000);
+
+  // Cleanup timer
+  return () => clearTimeout(timer);
+}, [employeeList]);
+
+// useEffect สำหรับตรวจสอบเมื่อ loading เปลี่ยน
+useEffect(() => {
+  if (loading) {
+    setPageLoading(true);
+  }
+}, [loading]);
+
   async function handleSearchAccounting() {
     event.preventDefault();
 
 setAccountingResult({});
 setLoading(true);
+setPageLoading(true); // เพิ่ม page loading เมื่อค้นหา
 setError(null);
 setLocalPublicHolidayCash(0);
 setLocalSocialSecurity(0);
@@ -1982,8 +2022,12 @@ try {
   console.error(e);
 } finally {
   setLoading(false);
+  setPageLoading(false); // ปิด page loading เมื่อเสร็จ
 }
 
+} else {
+  setLoading(false);
+  setPageLoading(false);
 }
 
 
@@ -1997,17 +2041,49 @@ try {
   }
 
   return (
-    // <div>
-
-    // </div>
-    // <div>
-
-    // <body class="hold-transition sidebar-mini" className="editlaout">
-    //   <div class="wrapper">
-    //     <div class="content-wrapper">
     <div className="hold-transition sidebar-mini editlaout">
-    <div className="wrapper">
-      <div className="content-wrapper">
+      <div className="wrapper">
+        <div className="content-wrapper">
+          {/* แสดง Loading เมื่อข้อมูลยังไม่พร้อม */}
+          {pageLoading && (
+            <div
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                zIndex: 9999,
+                flexDirection: 'column'
+              }}
+            >
+              <div
+                style={{
+                  border: '4px solid #f3f3f3',
+                  borderTop: '4px solid #3498db',
+                  borderRadius: '50%',
+                  width: '50px',
+                  height: '50px',
+                  animation: 'spin 2s linear infinite'
+                }}
+              />
+              <p style={{ marginTop: '20px', fontSize: '16px', color: '#666' }}>
+                {loading ? 'กำลังโหลดข้อมูล...' : 'กำลังเตรียมข้อมูล...'}
+              </p>
+              <style jsx>{`
+                @keyframes spin {
+                  0% { transform: rotate(0deg); }
+                  100% { transform: rotate(360deg); }
+                }
+              `}</style>
+            </div>
+          )}
+
+          {/* เนื้อหาหลัก */}
 
 
           {/* <!-- Content Header (Page header) --> */}
@@ -2135,8 +2211,21 @@ try {
                         type="button"
                         class="btn b_save"
                         onClick={handleSearchAccounting}
+                        disabled={loading}
+                        style={{ 
+                          opacity: loading ? 0.6 : 1, 
+                          cursor: loading ? 'not-allowed' : 'pointer' 
+                        }}
                       >
-                        <i class="nav-icon fas fa-search"></i> &nbsp; ค้นหา
+                        {loading ? (
+                          <>
+                            <i class="fas fa-spinner fa-spin"></i> &nbsp; กำลังค้นหา...
+                          </>
+                        ) : (
+                          <>
+                            <i class="nav-icon fas fa-search"></i> &nbsp; ค้นหา
+                          </>
+                        )}
                       </button>
                     </div>
                   </form>
@@ -2721,14 +2810,36 @@ try {
               <div class="line_btn">
                 <button
                   type="button"
-                  onClick={updateData }
+                  onClick={updateData}
                   class="btn b_save"
+                  disabled={loading}
+                  style={{ 
+                    opacity: loading ? 0.6 : 1, 
+                    cursor: loading ? 'not-allowed' : 'pointer' 
+                  }}
                 >
-                  <i class="nav-icon fas fa-save"></i> &nbsp;บันทึก
+                  {loading ? (
+                    <>
+                      <i class="fas fa-spinner fa-spin"></i> &nbsp;กำลังบันทึก...
+                    </>
+                  ) : (
+                    <>
+                      <i class="nav-icon fas fa-save"></i> &nbsp;บันทึก
+                    </>
+                  )}
                 </button>
 
                 {/* <Link to="/Salaryresult"> */}
-                <button type="button" onClick={handleReLoad} class="btn clean">
+                <button 
+                  type="button" 
+                  onClick={handleReLoad} 
+                  class="btn clean"
+                  disabled={loading}
+                  style={{ 
+                    opacity: loading ? 0.6 : 1, 
+                    cursor: loading ? 'not-allowed' : 'pointer' 
+                  }}
+                >
                   <i class="far fa-window-close"></i> &nbsp;ยกเลิก
                 </button>
                 {/* </Link > */}
@@ -2995,7 +3106,7 @@ try {
         </div>
       </div>
     {/* </body> */}
-</div>
+    </div>
   );
 }
 

@@ -148,6 +148,12 @@ const [weekendData, setWeekendData] = useState([]);
 
   const [year, setYear] = useState("");
   const [month, setMonth] = useState("");
+  
+  // Loading states
+  const [pageLoading, setPageLoading] = useState(true);
+  const [initialDataLoaded, setInitialDataLoaded] = useState(false);
+  const [excelLoading, setExcelLoading] = useState(false); // เพิ่ม loading สำหรับ Excel
+  const [showTable, setShowTable] = useState(true); // เปลี่ยนเป็น true เพื่อแสดงตารางทันที
 
 
   // const handleWorkDateChange = (date) => {
@@ -178,9 +184,6 @@ const [weekendData, setWeekendData] = useState([]);
 
 const fetchWeekendData = async (year, month, workplaceId) => {
   try {
-    console.log('Fetching weekend data:', { year, month, workplaceId }); // Debug log
-    
-
     const response2 = await fetch('http://10.10.110.7:3000/workplace/caldata', {
       method: 'POST',
       headers: {
@@ -193,16 +196,12 @@ const fetchWeekendData = async (year, month, workplaceId) => {
       }),
     });
     const data2 = await response2.json();
-    console.log('caldata response:', data2); 
     
     // แล้วค่อยเรียก conclude/getWeekendDates
     const response = await fetch(
       `${endpoint}/conclude/getWeekendDates?yyyy=${year}&mm=${month.padStart(2, '0')}&workplaceId=${workplaceId}`
     );
     const data = await response.json();
-    console.log('Weekend data received:', data); // Debug log
-    console.log('dayOffOnly data:', data.dayOffOnly); // Debug specific to dayOffOnly
-    console.log('dayoffWorkplace data:', data.dayoffWorkplace); // Debug dayoffWorkplace 
 
     const weekends = [];
     
@@ -233,9 +232,6 @@ const fetchWeekendData = async (year, month, workplaceId) => {
         const date = typeof item === 'object' ? item.date : item;
         const message = typeof item === 'object' ? item.message : 'วันหยุดนักขัตฤกษ์';
         weekends.push({ date, type: 'dayOffOnly', message });
-        
-        // Log เพื่อ debug
-        console.log(`Added dayOffOnly: ${date}, type: dayOffOnly, message: ${message}`);
       });
     }
     
@@ -246,13 +242,10 @@ const fetchWeekendData = async (year, month, workplaceId) => {
       });
     }
     
-    console.log('Processed weekends array:', weekends); // Debug weekends
-    
     // ✅ เพิ่มการจัดการ dayoffWorkplace - แก้ไขโครงสร้างข้อมูล
     // ให้เป็น array และเพิ่ม property dayoffWorkplace
     weekends.dayoffWorkplace = data.dayoffWorkplace || [];
     
-    console.log('Final weekend data with dayoffWorkplace:', weekends); // Debug final data
     setWeekendData(weekends);
   } catch (error) {
     console.error('Error fetching weekend data:', error);
@@ -422,8 +415,6 @@ useEffect(() => {
     fetch(endpoint + "/workplace/list")
       .then((response) => response.json())
       .then((data) => {
-        console.log("Original data:", data.map(item => item.workplaceId));
-        
         // Sort data by workplaceId (handle numbers with parentheses) - ASCENDING ORDER
         const sortedData = [...data].sort((a, b) => {
           // Extract main number and number in parentheses
@@ -462,8 +453,6 @@ useEffect(() => {
           // If main numbers are equal, compare sub numbers - ASCENDING (น้อยไปมาก)  
           return aData.sub - bData.sub;
         });
-        
-        console.log("Sorted data (ASCENDING):", sortedData.map(item => item.workplaceId));
         
         // Update the state with the fetched data
         setWorkplaceList(sortedData);
@@ -755,12 +744,12 @@ useEffect(() => {
       }
 
       try {
-        console.log(`🔄 Starting to fetch prefixes for ${data.length} employees...`);
+        // console.log(`🔄 Starting to fetch prefixes for ${data.length} employees...`);
         
         const prefixPromises = data.map(async (record) => {
           // เพิ่ม validation สำหรับ record
           if (!record || !record.employeeId) {
-            console.warn('Invalid record or missing employeeId:', record);
+            // console.warn('Invalid record or missing employeeId:', record);
             return {
               employeeId: record?.employeeId || 'unknown',
               prefix: ''
@@ -779,7 +768,7 @@ useEffect(() => {
             
             if (response.status === 200 && response.data) {
               // Debug: ดูโครงสร้างข้อมูลที่ได้จาก API
-              console.log(`🔍 API Response for ${record.employeeId}:`, response.data);
+              // console.log(`🔍 API Response for ${record.employeeId}:`, response.data);
               
               // ตรวจสอบโครงสร้างข้อมูล - API ส่งกลับมาเป็น { employees: [...] }
               let employeeData = null;
@@ -787,15 +776,15 @@ useEffect(() => {
               if (response.data.employees && Array.isArray(response.data.employees)) {
                 // หาพนักงานที่ตรงกับ employeeId
                 employeeData = response.data.employees.find(emp => emp.employeeId === record.employeeId);
-                console.log(`🔍 Found employee data:`, employeeData);
+                // console.log(`🔍 Found employee data:`, employeeData);
               } else if (response.data.employeeId) {
                 // ถ้าเป็น object เดียว
                 employeeData = response.data;
-                console.log(`🔍 Direct employee data:`, employeeData);
+                // console.log(`🔍 Direct employee data:`, employeeData);
               }
               
               const prefix = employeeData?.prefix || '';
-              console.log(`✅ Fetched prefix for ${record.employeeId}: ${prefix || 'empty'}`);
+              // console.log(`✅ Fetched prefix for ${record.employeeId}: ${prefix || 'empty'}`);
               
               return {
                 employeeId: record.employeeId,
@@ -803,7 +792,7 @@ useEffect(() => {
               };
             }
           } catch (error) {
-            console.error(`❌ Error fetching prefix for employee ${record.employeeId}:`, error.message);
+            // console.error(`❌ Error fetching prefix for employee ${record.employeeId}:`, error.message);
             // Return fallback data แทนการ throw error
             return {
               employeeId: record.employeeId,
@@ -830,7 +819,7 @@ useEffect(() => {
           }
         });
         
-        console.log(`✅ Successfully processed ${Object.keys(prefixMap).length} prefixes`);
+        // console.log(`✅ Successfully processed ${Object.keys(prefixMap).length} prefixes`);
         setEmployeePrefixes(prefixMap);
         
       } catch (error) {
@@ -933,6 +922,36 @@ if(sortedData.length > 0) {
     console.log('- workplaceAddsalary:', workplaceAddsalary?.length || 0, 'items');
   }, [data, loading, employeePrefixes, workplaceAddsalary]);
 
+  // useEffect สำหรับจัดการ page loading
+  useEffect(() => {
+    // ตรวจสอบว่าข้อมูลพื้นฐานโหลดเสร็จแล้วหรือไม่
+    const checkInitialDataReady = () => {
+      // ตรวจสอบว่ามี workplaceListAll หรือไม่ (แค่นี้พอ ไม่ต้องรอ employeeList)
+      if (workplaceListAll && workplaceListAll.length > 0) {
+        setInitialDataLoaded(true);
+        setPageLoading(false);
+      } else {
+        // ถ้ายังไม่มีข้อมูล ให้รอ
+        setPageLoading(true);
+      }
+    };
+
+    // เรียกใช้ timeout เพื่อให้เวลาข้อมูลโหลด (ลดเวลาเหลือ 500ms)
+    const timer = setTimeout(checkInitialDataReady, 500);
+
+    // Cleanup timer
+    return () => clearTimeout(timer);
+  }, [workplaceListAll]); // เปลี่ยนจาก employeeList เป็น workplaceListAll
+
+  // useEffect สำหรับตรวจสอบเมื่อ loading เปลี่ยน
+  useEffect(() => {
+    if (loading) {
+      setPageLoading(true);
+    } else if (initialDataLoaded) {
+      setPageLoading(false);
+    }
+  }, [loading, initialDataLoaded]);
+
 
   const [searchLoading, setSearchLoading] = useState(false);
 
@@ -957,24 +976,24 @@ if(sortedData.length > 0) {
     }
 
     setSearchLoading(true); // เริ่มต้น loading
-
-    if (year && month && searchWorkplaceId) {
-      await fetchWeekendData(year, month, searchWorkplaceId);
-    }
-
-    const dataSearch = {
-      year: year, 
-      month: month, 
-      workplaceId: searchWorkplaceId
-    }
+    setPageLoading(true); // เพิ่ม page loading
 
     try {
+      if (year && month && searchWorkplaceId) {
+        await fetchWeekendData(year, month, searchWorkplaceId);
+      }
+
+      const dataSearch = {
+        year: year, 
+        month: month, 
+        workplaceId: searchWorkplaceId
+      }
+
       // 🆕 ดึงข้อมูล workplace addSalary ก่อน
       let workplaceAddSalaryData = [];
       try {
         const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${searchWorkplaceId}`);
         workplaceAddSalaryData = workplaceResponse.data.addSalary || [];
-        console.log('📦 Workplace addSalary:', workplaceAddSalaryData);
       } catch (error) {
         console.error('Error fetching workplace addSalary:', error);
       }
@@ -990,29 +1009,15 @@ if(sortedData.length > 0) {
         a.employeeId.localeCompare(b.employeeId)
       );
 
-      // Debug: ตรวจสอบข้อมูลที่ได้รับจาก API
-      console.log(`📥 === ข้อมูลที่ได้รับจาก Frontend ===`);
-      console.log(`📊 จำนวนพนักงาน: ${sortedData.length} คน`);
-      if (sortedData.length > 0) {
-        console.log(`🔍 ตัวอย่างข้อมูลพนักงานคนแรก:`);
-        console.log(`  - employeeId: ${sortedData[0].employeeId}`);
-        console.log(`  - personalDayOff:`, sortedData[0].personalDayOff);
-        console.log(`  - stopDaysList:`, sortedData[0].stopDaysList);
-        console.log(`  - cashcustomizeDayoff:`, sortedData[0].cashcustomizeDayoff);
-        console.log(`  - addSalaryList:`, sortedData[0].addSalaryList);
-        console.log(`  - ข้อมูลทั้งหมด:`, sortedData[0]);
-      }
-      console.log(`=================================\n`);
-
       // 🆕 รวมสวัสดิการจากหน่วยงานและพนักงาน
       const mergedAddSalary = mergeWorkplaceAndEmployeeAddSalary(workplaceAddSalaryData, sortedData);
       setWorkplaceAddsalary(mergedAddSalary);
-      console.log('✅ Set merged workplaceAddsalary in handleSearch:', mergedAddSalary);
 
       setData(sortedData);
 
       if(sortedData.length > 0) {
         setLoading(false);
+        setShowTable(true); // แสดงตารางเมื่อมีข้อมูล
       }
     } catch (error) {
       console.error("Error:", error);
@@ -1023,8 +1028,11 @@ if(sortedData.length > 0) {
         confirmButtonText: 'ตกลง',
         confirmButtonColor: '#dc3545'
       });
-      setSearchLoading(false); // ปิด loading เมื่อเกิดข้อผิดพลาด
+      setShowTable(false); // ซ่อนตารางเมื่อเกิดข้อผิดพลาด
       return; // หยุดการทำงานหากเกิดข้อผิดพลาด
+    } finally {
+      setSearchLoading(false); // ปิด loading เสมอ
+      setPageLoading(false); // ปิด page loading เสมอ
     }
     const data = await {
       // workplaceId: searchWorkplaceId,
@@ -7548,45 +7556,11 @@ const getDateStyle = (day) => {
       return;
     }
 
-    const result = await Swal.fire({
-      icon: 'question',
-      title: 'ยืนยันการ Force Reload',
-      html: `คุณต้องการ Force Reload ข้อมูลพนักงานทั้งหมดในหน่วยงาน <b>${searchWorkplaceId}</b> หรือไม่?<br><br>
-             📊 จำนวนพนักงาน: <b>${data.length}</b> คน<br>
-             📅 เดือน: <b>${month}/${year}</b><br><br>
-             <small>⚠️ การดำเนินการนี้จะใช้เวลาในการประมวลผล</small>`,
-      showCancelButton: true,
-      confirmButtonText: 'ดำเนินการ',
-      cancelButtonText: 'ยกเลิก',
-      confirmButtonColor: '#28a745',
-      cancelButtonColor: '#6c757d',
-      allowOutsideClick: false
-    });
-
-    if (!result.isConfirmed) {
-      return;
-    }
-
     try {
       console.log('🔄 Starting Force Reload for all employees...');
       
-      // แสดง loading ด้วย SweetAlert
-      Swal.fire({
-        title: 'กำลังประมวลผล...',
-        html: `<div style="text-align: center;">
-                 <div style="margin: 20px 0;">
-                   <i class="fas fa-spinner fa-spin fa-2x"></i>
-                 </div>
-                 <p>กำลัง Force Reload ข้อมูลพนักงาน <strong>${data.length}</strong> คน</p>
-                 <p style="font-size: 12px; color: #666;">กรุณารอสักครู่...</p>
-               </div>`,
-        allowOutsideClick: false,
-        allowEscapeKey: false,
-        showConfirmButton: false,
-        didOpen: () => {
-          Swal.showLoading();
-        }
-      });
+      // แสดง loading ด้วย SweetAlert ทันทีโดยไม่ต้องถามยืนยัน
+     
       
       // แสดง loading
       setLoading(true);
@@ -7801,6 +7775,10 @@ const getDateStyle = (day) => {
       console.log('🚀 Starting Excel generation...');
     
     try {
+      // เริ่ม loading
+      setExcelLoading(true);
+      setPageLoading(true);
+      
       // Check if required data exists
       console.log('📊 Checking data availability...');
       console.log('- Data:', data ? Object.keys(data).length : 'null');
@@ -7829,6 +7807,8 @@ const getDateStyle = (day) => {
       if (!dataArray || dataArray.length === 0) {
         console.warn('⚠️ No employee data found');
         alert('ไม่มีข้อมูลพนักงานสำหรับการสร้างไฟล์ Excel\n\nกรุณา:\n1. เลือกหน่วยงาน\n2. เลือกเดือนและปี\n3. กดค้นหาก่อน');
+        setExcelLoading(false);
+        setPageLoading(false);
         return;
       }
       
@@ -8126,28 +8106,12 @@ const getDateStyle = (day) => {
       const totalWorkDaysCol = String.fromCharCode(67 + dayNumbers.length);
       safeMergeCell(`${totalWorkDaysCol}5:${totalWorkDaysCol}8`);
       
-      // 🆕 Merge "ค่าล่วงเวลา" (Row 5 only - ครอบคลุม 5 คอลัมน์)
-      console.log('Merging "ค่าล่วงเวลา" header...');
-      const overtimeStartCol = String.fromCharCode(67 + dayNumbers.length + 1);
-      const overtimeEndCol = String.fromCharCode(67 + dayNumbers.length + 5);
-      safeMergeCell(`${overtimeStartCol}5:${overtimeEndCol}5`);
-      // ตั้งค่าสีพื้นหลังเหลืองสำหรับ "ค่าล่วงเวลา"
-      const overtimeHeaderCell = worksheet.getCell(`${overtimeStartCol}5`);
-      overtimeHeaderCell.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: 'FFFFF7C2' } // สีเหลือง #fff7c2
-      };
-      overtimeHeaderCell.font = { bold: true, size: 25 };
-      overtimeHeaderCell.alignment = { horizontal: 'center', vertical: 'middle' };
-      
       // Merge summary columns (วันหยุด, วันนักขัต, ทำงานวันหยุด/นักขัต, โอที 1.5 เท่า, โอที 3 เท่า)
-      // ⚠️ Merge เฉพาะ Row 6-8 เท่านั้น (ไม่รวม Row 5 เพราะถูก merge เป็น "ค่าล่วงเวลา" แล้ว)
-      console.log('Merging summary columns (โอที and holidays) for rows 6-8...');
+      console.log('Merging summary columns (โอที and holidays)...');
       const summaryStartCol = String.fromCharCode(67 + dayNumbers.length + 1); // เริ่มจากคอลัมน์หลัง "รวมวันทำงาน"
       for (let i = 0; i < 5; i++) { // 5 คอลัมน์: วันหยุด, วันนักขัต, ทำงานวันหยุด/นักขัต, โอที 1.5 เท่า, โอที 3 เท่า
         const colLetter = String.fromCharCode(summaryStartCol.charCodeAt(0) + i);
-        safeMergeCell(`${colLetter}6:${colLetter}8`); // เปลี่ยนจาก 5:8 เป็น 6:8
+        safeMergeCell(`${colLetter}5:${colLetter}8`);
       }
       
       // Add text rotation to summary columns (โอที and holidays)
@@ -8155,14 +8119,14 @@ const getDateStyle = (day) => {
       for (let i = 0; i < 5; i++) {
         try {
           const colLetter = String.fromCharCode(summaryStartCol.charCodeAt(0) + i);
-          const summaryCell = worksheet.getCell(`${colLetter}6`); // เปลี่ยนจาก row 5 เป็น row 6
+          const summaryCell = worksheet.getCell(`${colLetter}5`);
           if (summaryCell) {
             summaryCell.alignment = {
               horizontal: 'center',
               vertical: 'middle',
               textRotation: 90
             };
-            console.log(`Text rotation applied to summary cell ${colLetter}6`);
+            console.log(`Text rotation applied to summary cell ${colLetter}5`);
           }
         } catch (rotationError) {
           console.warn(`Error applying text rotation to summary column ${i}:`, rotationError.message);
@@ -8189,40 +8153,24 @@ const getDateStyle = (day) => {
       if (workplaceAddsalary && workplaceAddsalary.length > 0) {
         console.log('Merging welfare columns...');
         const welfareStartCol = String.fromCharCode(67 + dayNumbers.length + 1 + 5); // หลังโอที 5 คอลัมน์
-        const welfareCount = mergeWorkplaceAddsalary(workplaceAddsalary).length;
-        
-        // 🆕 Merge "สวัสดิการ" header (Row 5 only - ครอบคลุมทุกคอลัมน์สวัสดิการ)
-        const welfareEndCol = String.fromCharCode(welfareStartCol.charCodeAt(0) + welfareCount - 1);
-        safeMergeCell(`${welfareStartCol}5:${welfareEndCol}5`);
-        // ตั้งค่าสีพื้นหลังเหลืองสำหรับ "สวัสดิการ"
-        const welfareHeaderCell = worksheet.getCell(`${welfareStartCol}5`);
-        welfareHeaderCell.fill = {
-          type: 'pattern',
-          pattern: 'solid',
-          fgColor: { argb: 'FFFFF7C2' } // สีเหลือง #fff7c2
-        };
-        welfareHeaderCell.font = { bold: true, size: 25 };
-        welfareHeaderCell.alignment = { horizontal: 'center', vertical: 'middle' };
-        
-        // Merge แต่ละคอลัมน์สวัสดิการสำหรับ Row 6-8 (ไม่รวม Row 5)
-        for (let i = 0; i < welfareCount; i++) {
+        for (let i = 0; i < workplaceAddsalary.length; i++) {
           const colLetter = String.fromCharCode(welfareStartCol.charCodeAt(0) + i);
-          safeMergeCell(`${colLetter}6:${colLetter}8`); // เปลี่ยนจาก 5:8 เป็น 6:8
+          safeMergeCell(`${colLetter}5:${colLetter}8`);
         }
         
         // Add text rotation to welfare columns
         console.log('Adding text rotation to welfare columns...');
-        for (let i = 0; i < welfareCount; i++) {
+        for (let i = 0; i < workplaceAddsalary.length; i++) {
           try {
             const colLetter = String.fromCharCode(welfareStartCol.charCodeAt(0) + i);
-            const welfareCell = worksheet.getCell(`${colLetter}6`); // เปลี่ยนจาก row 5 เป็น row 6
+            const welfareCell = worksheet.getCell(`${colLetter}5`);
             if (welfareCell) {
               welfareCell.alignment = {
                 horizontal: 'center',
                 vertical: 'middle',
                 textRotation: 90
               };
-              console.log(`Text rotation applied to welfare cell ${colLetter}6`);
+              console.log(`Text rotation applied to welfare cell ${colLetter}5`);
             }
           } catch (rotationError) {
             console.warn(`Error applying text rotation to welfare column ${i}:`, rotationError.message);
@@ -10316,36 +10264,28 @@ else if(dataArray.length === 5) {
                       fgColor: { argb: 'FFFFF7C2' } // สีเหลือง #fff7c2
                     };
                   } else if (colIndex >= overtimeStartCol && colIndex <= overtimeEndCol) {
-                    // 🆕 คอลัมน์ค่าล่วงเวลา - ถ้าเป็น row 5 จะถูก merge แล้ว (ไม่ต้องทำซ้ำ)
-                    // สำหรับ row 6-8 ให้ใส่สีเหลือง
-                    if (rowIndex !== 5) {
+                    // คอลัมน์ค่าล่วงเวลา (วันหยุด, วันนักขัต, ทำงานวันหยุด/นักขัต, โอที 1.5 เท่า, โอที 3 เท่า) - สีเหลือง
+                    cell.fill = {
+                      type: 'pattern',
+                      pattern: 'solid',
+                      fgColor: { argb: 'FFFFF7C2' } // สีเหลือง #fff7c2
+                    };
+                  } else if (welfareColumnsCount > 0 && colIndex >= welfareStartCol && colIndex <= welfareEndCol) {
+                    // คอลัมน์สวัสดิการทั้งหมด (ค่าอาหาร, ค่าน้ำ/ไฟ/โทรศัพท์, ค่าตำแหน่ง, เบี้ยขยัน, ค่าเดินทาง)
+                    // ตรวจสอบค่าในเซลล์ ถ้าเป็น "NO" ให้ใช้สีเทา ถ้าไม่ใช่ให้ใช้สีเหลือง
+                    const cellValue = cell.value;
+                    if (cellValue === "NO" || cellValue === "no" || cellValue === "No") {
+                      cell.fill = {
+                        type: 'pattern',
+                        pattern: 'solid',
+                        fgColor: { argb: 'FF9E9E9E' } // สีเทา สำหรับค่า NO
+                      };
+                    } else {
                       cell.fill = {
                         type: 'pattern',
                         pattern: 'solid',
                         fgColor: { argb: 'FFFFF7C2' } // สีเหลือง #fff7c2
                       };
-                    }
-                  } else if (welfareColumnsCount > 0 && colIndex >= welfareStartCol && colIndex <= welfareEndCol) {
-                    // 🆕 คอลัมน์สวัสดิการ - ถ้าเป็น row 5 จะถูก merge แล้ว (ไม่ต้องทำซ้ำ)
-                    // สำหรับ row 6-8 ให้ตรวจสอบค่าในเซลล์
-                    if (rowIndex === 5) {
-                      // Row 5 ถูก merge แล้ว ไม่ต้องทำอะไร
-                    } else {
-                      // Row 6-8 ตรวจสอบค่าในเซลล์ ถ้าเป็น "NO" ให้ใช้สีเทา ถ้าไม่ใช่ให้ใช้สีเหลือง
-                      const cellValue = cell.value;
-                      if (cellValue === "NO" || cellValue === "no" || cellValue === "No") {
-                        cell.fill = {
-                          type: 'pattern',
-                          pattern: 'solid',
-                          fgColor: { argb: 'FF9E9E9E' } // สีเทา สำหรับค่า NO
-                        };
-                      } else {
-                        cell.fill = {
-                          type: 'pattern',
-                          pattern: 'solid',
-                          fgColor: { argb: 'FFFFF7C2' } // สีเหลือง #fff7c2
-                        };
-                      }
                     }
                   } else if (colIndex === cashHolidayColIndex) {
                     // คอลัมน์วัน Cash Holiday - สีเหลือง
@@ -10802,6 +10742,9 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
         confirmButtonColor: '#dc3545',
         width: '500px'
       });
+    } finally {
+      setExcelLoading(false);
+      setPageLoading(false);
     }
   };
 
@@ -11291,6 +11234,45 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
     <div className="wrapper">
       <div className="content-wrapper">
 
+          {/* Loading Overlay */}
+          {pageLoading && (
+            <div
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                zIndex: 9999,
+                flexDirection: 'column'
+              }}
+            >
+              <div
+                style={{
+                  border: '4px solid #f3f3f3',
+                  borderTop: '4px solid #3498db',
+                  borderRadius: '50%',
+                  width: '50px',
+                  height: '50px',
+                  animation: 'spin 2s linear infinite'
+                }}
+              />
+              <p style={{ marginTop: '20px', fontSize: '16px', color: '#666' }}>
+                {loading ? 'กำลังโหลดข้อมูล...' : 'กำลังเตรียมข้อมูล...'}
+              </p>
+              <style jsx>{`
+                @keyframes spin {
+                  0% { transform: rotate(0deg); }
+                  100% { transform: rotate(360deg); }
+                }
+              `}</style>
+            </div>
+          )}
+
           {/* <!-- Content Header (Page header) --> */}
           <ol class="breadcrumb">
             <li class="breadcrumb-item">
@@ -11586,24 +11568,41 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                         </div>
                         <button
                         onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleSearch(e);
+                          handleForceReload(e);
                         }}
                         type="button"
                         className="btn b_save"
-
+                        disabled={searchLoading || pageLoading}
+                        style={{ 
+                          opacity: (searchLoading || pageLoading) ? 0.6 : 1, 
+                          cursor: (searchLoading || pageLoading) ? 'not-allowed' : 'pointer' 
+                        }}
                       >
-                   
-                         ค้นหา
+                        {searchLoading ? (
+                          <>
+                            <i className="fas fa-spinner fa-spin"></i> &nbsp; กำลังค้นหา...
+                          </>
+                        ) : (
+                          <>
+                            <i className="nav-icon fas fa-search"></i> &nbsp; ค้นหา
+                          </>
+                        )}
                       </button>
                       <button
                         onClick={generateExcel}
                         style={{ marginLeft: "1rem", width: "10rem", backgroundColor: "", color: "white" }}
                         class="btn b_save bg-success p-2"
+                        disabled={excelLoading || pageLoading}
                       > 
-                        <i class="fas fa-file-excel m-1"></i>ดาวน์โหลด Excel
-                     
+                        {excelLoading ? (
+                          <>
+                            <i className="fas fa-spinner fa-spin m-1"></i>กำลังสร้าง...
+                          </>
+                        ) : (
+                          <>
+                            <i className="fas fa-file-excel m-1"></i>ดาวน์โหลด Excel
+                          </>
+                        )}
                       </button>
                        <button
                         onClick={handleForceReload}
@@ -11614,6 +11613,8 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                      
                       </button>
 
+                      {/* แสดงตารางทันที */}
+                      {showTable && (
                       <div className="pt-3">
                           <div className="table table-responsive" >
                           <table
@@ -12010,16 +12011,12 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
 
   // Debug: แสดงข้อมูล weekendData ทั้งหมด (ทำครั้งเดียวพอ)
   if (day === dayNumbers[0]) { // แสดงเฉพาะวันแรกเพื่อไม่ให้ spam log
-    console.log('📋 Debug: ข้อมูล weekendData ทั้งหมด:', weekendData);
-    console.log('📋 Debug: weekendData type:', typeof weekendData);
-    console.log('📋 Debug: weekendData isArray:', Array.isArray(weekendData));
-    console.log('📋 Debug: weekendData[0]:', weekendData?.[0]);
-    console.log('📋 Debug: เดือน/ปีที่กำลังแสดง:', `${month}/${year}`);
+ 
     
     // ตรวจสอบโครงสร้างข้อมูล weekendData ทั้งหมด
     if (Array.isArray(weekendData)) {
       weekendData.forEach((item, index) => {
-        console.log(`📋 Debug: weekendData[${index}]:`, item);
+     
       });
     }
   }
@@ -12139,12 +12136,7 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                    <td className="text-center text-red align-middle p-1">
     {(() => { 
       const originalValue = record.sumOt1p5;
-      console.log('=== DEBUG OT 1.5 ===');
-      console.log('employeeId:', record.employeeId);
-      console.log('originalValue:', originalValue);
-      console.log('type:', typeof originalValue);
-      console.log('full record:', record);
-      console.log('==================');
+   
       return originalValue || '';
     })()}
 </td>
@@ -13266,6 +13258,8 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
                             </table>
                           </div>
                         </div>
+                      )}
+                      {/* ปิด showTable */}
 
                       
                     </form>

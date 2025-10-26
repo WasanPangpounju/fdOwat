@@ -2,6 +2,7 @@ import endpoint from "../../config";
 
 import axios from "axios";
 import React, { useEffect, useState, useRef } from "react";
+import Swal from 'sweetalert2';
 
 // import DatePicker from "react-datepicker";
 // import "react-datepicker/dist/react-datepicker.css";
@@ -54,8 +55,6 @@ function AddEditEmployee() {
   const [formattedDate, setFormattedDate] = useState("");
   const popupRef = useRef(null);
   const [dateOfBirth, setDateOfBirth] = useState(""); //วดป เกิด
-  const [isLoading, setIsLoading] = useState(false); // เพิ่ม loading state
-  const [deleted, setDeleted] = useState(false); // เพิ่ม deleted state ที่หายไป
 
   const handleDateChange = () => {
     if (day && month && year) {
@@ -118,6 +117,7 @@ function AddEditEmployee() {
   const [buttonValue, setButtonValue] = useState("");
   const [newEmp, setNewEmp] = useState(true);
   const [employeeselection, setEmployeeselection] = useState([]);
+  const [isLoading, setIsLoading] = useState(false); // สำหรับจัดการสถานะ loading
 
   const bordertable = {
     borderLeft: "2px solid #000",
@@ -321,20 +321,12 @@ function AddEditEmployee() {
 
     //get all Workplace from API
     fetch(endpoint + "/workplace/listselect") // Update with your API endpoint
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-      })
+      .then((response) => response.json())
       .then((data) => {
         setWorkplaceSelection(data);
-        console.log('Workplace data loaded:', data);
+        console.log(data);
       })
-      .catch((error) => {
-        console.error("Error fetching workplaces:", error);
-        alert("ไม่สามารถโหลดข้อมูลหน่วยงานได้ กรุณาตรวจสอบการเชื่อมต่อ");
-      });
+      .catch((error) => console.error("Error fetching employees:", error));
   }, []);
 
   //   const handleDateOfBirth = (date) => {
@@ -436,166 +428,645 @@ function AddEditEmployee() {
   async function handleManageEmployee(event) {
     event.preventDefault();
     
-    // ป้องกันการ submit ซ้ำ
+    // ป้องกันการส่งฟอร์มซ้ำขณะ loading
     if (isLoading) {
       return;
     }
     
-    setIsLoading(true);
+    // ตรวจสอบช่องที่บังคับกรอก
+    const requiredFields = [
+      { field: employeeId, name: 'รหัสพนักงาน' },
+      { field: workplace, name: 'หน่วยงาน' },
+      { field: position, name: 'ตำแหน่ง' },
+      { field: jobtype, name: 'ประเภทการจ้าง' },
+      { field: prefix, name: 'คำนำหน้า' },
+      { field: name, name: 'ชื่อ' },
+      { field: lastName, name: 'นามสกุล' },
+      { field: formattedDate, name: 'วันเกิด' },
+      { field: idCard, name: 'เลขบัตรประชาชน' },
+      { field: ethnicity, name: 'เชื้อชาติ' },
+      { field: religion, name: 'ศาสนา' },
+      { field: maritalStatus, name: 'สถานภาพการสมรส' },
+      { field: address, name: 'ที่อยู่ตามบัตรประชาชน' },
+      { field: currentAddress, name: 'ที่อยู่ปัจจุบัน' }
+    ];
+
+    const missingFields = requiredFields.filter(item => !item.field || item.field.trim() === '');
     
-    try {
-      // ตรวจสอบข้อมูลที่จำเป็นก่อนส่ง
-      const requiredFields = [
-        { field: employeeId, name: 'รหัสพนักงาน' },
-        { field: workplace, name: 'หน่วยงาน' },
-        { field: position, name: 'ตำแหน่ง' },
-        { field: jobtype, name: 'ประเภทการจ้าง' },
-        { field: prefix, name: 'คำนำหน้าชื่อ' },
-        { field: name, name: 'ชื่อ' },
-        { field: lastName, name: 'นามสกุล' },
-        { field: gender, name: 'เพศ' },
-        { field: dateOfBirth, name: 'วันเดือนปีเกิด' },
-        { field: idCard, name: 'เลขบัตรประจำตัวประชาชน' },
-        { field: ethnicity, name: 'เชื้อชาติ' },
-        { field: religion, name: 'ศาสนา' },
-        { field: maritalStatus, name: 'สถานภาพการสมรส' },
-        { field: address, name: 'ที่อยู่ตามบัตรประชาชน' },
-        { field: currentAddress, name: 'ที่อยู่ปัจจุบัน' }
-      ];
-
-      const missingFields = requiredFields.filter(item => !item.field || item.field.trim() === '');
+    if (missingFields.length > 0) {
+      const missingFieldNames = missingFields.map(item => item.name).join(', ');
       
-      if (missingFields.length > 0) {
-        const fieldNames = missingFields.map(item => item.name).join(', ');
-        alert(`กรุณากรอกข้อมูลในช่องต่อไปนี้: ${fieldNames}`);
-        return;
-      }
+      Swal.fire({
+        icon: 'warning',
+        title: 'กรุณากรอกข้อมูลให้ครบถ้วน',
+        html: `<div style="text-align: left;">
+          <p>ช่องที่ยังไม่ได้กรอก:</p>
+          <ul style="color: #dc3545; font-weight: bold;">
+            ${missingFields.map(item => `<li>${item.name}</li>`).join('')}
+          </ul>
+        </div>`,
+        confirmButtonText: 'ตกลง',
+        confirmButtonColor: '#f0ad4e'
+      });
+      return;
+    }
 
-      // ตรวจสอบรูปแบบเลขบัตรประชาชน
-      if (idCard && idCard.length !== 13) {
-        alert('เลขบัตรประจำตัวประชาชนต้องมี 13 หลัก');
-        return;
-      }
+    // ตรวจสอบความถูกต้องของเลขบัตรประชาชน
+    if (idCard && idCard.length !== 13) {
+      Swal.fire({
+        icon: 'error',
+        title: 'ข้อมูลไม่ถูกต้อง',
+        text: 'เลขบัตรประชาชนต้องมี 13 หลัก',
+        confirmButtonText: 'ตกลง',
+        confirmButtonColor: '#dc3545'
+      });
+      return;
+    }
 
-      // ตรวจสอบรูปแบบเบอร์โทรศัพท์
-      if (phoneNumber && phoneNumber.length < 9) {
-        alert('เบอร์โทรศัพท์ไม่ถูกต้อง');
-        return;
-      }
+    // ตรวจสอบเบอร์โทรศัพท์
+    if (phoneNumber && (phoneNumber.length < 9 || phoneNumber.length > 10)) {
+      Swal.fire({
+        icon: 'error',
+        title: 'ข้อมูลไม่ถูกต้อง',
+        text: 'เบอร์โทรศัพท์ต้องมี 9-10 หลัก',
+        confirmButtonText: 'ตกลง',
+        confirmButtonColor: '#dc3545'
+      });
+      return;
+    }
 
-      const data = {
-        employeeId: employeeId.trim(),
-        position: position.trim(),
-        department: department.trim(),
-        workplace: workplace.trim(),
-        jobtype: jobtype,
-        salary: salary.trim(),
-        startjob: startjob,
-        endjob: endjob,
-        exceptjob: exceptjob,
-        prefix: prefix,
-        name: name.trim(),
-        lastName: lastName.trim(),
-        nickName: nickName.trim(),
-        gender: gender,
-        dateOfBirth: dateOfBirth,
-        age: age,
-        idCard: idCard.trim(),
-        ethnicity: ethnicity,
-        religion: religion,
-        maritalStatus: maritalStatus,
-        militaryStatus: militaryStatus,
-        address: address.trim(),
-        province: province,
-        district: district,
-        subDistrict: subDistrict,
-        postalCode: postalCode.trim(),
-        houseNumber: houseNumber.trim(),
-        province2: province2,
-        district2: district2,
-        subDistrict2: subDistrict2,
-        postalCode2: postalCode2.trim(),
-        houseNumber2: houseNumber2.trim(),
-        currentAddress: currentAddress.trim(),
-        phoneNumber: phoneNumber.trim(),
-        emergencyContactNumber: emergencyContactNumber.trim(),
-        emergencyName: emergencyName.trim(),
-        emergencyRelationship: emergencyRelationship,
-        idLine: idLine.trim(),
-      };
-      
-      console.log('ข้อมูลที่จะส่ง:', data);
-
-      //check create or update Employee
-      if (newEmp) {
-        console.log('กำลังสร้างพนักงานใหม่...');
-        const response = await axios.post(endpoint + "/employee/create", data, {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          timeout: 10000 // 10 วินาที
+    // ตรวจสอบบัตรประชาชนซ้ำก่อนบันทึก (เฉพาะการสร้างพนักงานใหม่)
+    if (newEmp && idCard) {
+      try {
+        // แสดง loading สำหรับการตรวจสอบ
+        setIsLoading(true);
+        Swal.fire({
+          title: 'กำลังตรวจสอบข้อมูล...',
+          html: 'กรุณารอสักครู่',
+          allowOutsideClick: false,
+          allowEscapeKey: false,
+          showConfirmButton: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
         });
+
+        const checkIdResponse = await axios.get(`${endpoint}/employee/check-idcard/${idCard}`);
         
-        console.log('Response สำเร็จ:', response.data);
-        alert("บันทึกสำเร็จ");
-        window.location.reload();
+        if (checkIdResponse.data.exists) {
+          const existingEmployee = checkIdResponse.data.employee;
+          
+          setIsLoading(false);
+          Swal.fire({
+            icon: 'error',
+            title: 'เลขบัตรประชาชนซ้ำ',
+            html: `<div style="text-align: left;">
+              <p><strong>เลขบัตรประชาชน "${idCard}" ถูกใช้แล้วโดย:</strong></p>
+              <ul style="color: #dc3545; font-weight: bold; margin: 10px 0;">
+                <li>ชื่อ: ${existingEmployee.name} ${existingEmployee.lastName || ''}</li>
+                <li>รหัสพนักงาน: ${existingEmployee.employeeId}</li>
+                <li>หน่วยงาน: ${existingEmployee.workplace || '-'}</li>
+              </ul>
+              <p style="color: #6c757d; font-size: 0.9em;">กรุณาตรวจสอบเลขบัตรประชาชนและลองใหม่อีกครั้ง</p>
+            </div>`,
+            confirmButtonText: 'ตกลง',
+            confirmButtonColor: '#dc3545'
+          });
+          return;
+        }
+      } catch (error) {
+        setIsLoading(false);
+        console.error("Error checking ID Card:", error);
+        // หากเกิดข้อผิดพลาดในการตรวจสอบ ให้ดำเนินการต่อไป
+        // แต่แสดงคำเตือน
+        if (error.response?.status !== 404) {
+          Swal.fire({
+            icon: 'warning',
+            title: 'ไม่สามารถตรวจสอบบัตรประชาชนได้',
+            text: 'ระบบจะดำเนินการบันทึกต่อไป แต่อาจมีการตรวจสอบซ้ำในขั้นตอนถัดไป',
+            confirmButtonText: 'ดำเนินการต่อ',
+            confirmButtonColor: '#f0ad4e'
+          });
+        }
+      }
+    }
+
+    // ตรวจสอบรหัสพนักงานซ้ำก่อนบันทึก (เฉพาะการสร้างพนักงานใหม่)
+    if (newEmp && employeeId) {
+      try {
+        // หาก loading ยังไม่ถูกเปิดจากการตรวจสอบบัตรประชาชน
+        if (!isLoading) {
+          setIsLoading(true);
+          Swal.fire({
+            title: 'กำลังตรวจสอบข้อมูล...',
+            html: 'กรุณารอสักครู่',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            didOpen: () => {
+              Swal.showLoading();
+            }
+          });
+        }
+
+        const checkEmpResponse = await axios.get(`${endpoint}/employee/check-employeeid/${employeeId}`);
         
+        if (checkEmpResponse.data.exists) {
+          const existingEmployee = checkEmpResponse.data.employee;
+          
+          setIsLoading(false);
+          Swal.fire({
+            icon: 'error',
+            title: 'รหัสพนักงานซ้ำ',
+            html: `<div style="text-align: left;">
+              <p><strong>รหัสพนักงาน "${employeeId}" ถูกใช้แล้วโดย:</strong></p>
+              <ul style="color: #dc3545; font-weight: bold; margin: 10px 0;">
+                <li>ชื่อ: ${existingEmployee.name} ${existingEmployee.lastName || ''}</li>
+                <li>เลขบัตรประชาชน: ${existingEmployee.idCard || '-'}</li>
+                <li>หน่วยงาน: ${existingEmployee.workplace || '-'}</li>
+              </ul>
+              <p style="color: #6c757d; font-size: 0.9em;">กรุณาตรวจสอบรหัสพนักงานและลองใหม่อีกครั้ง</p>
+            </div>`,
+            confirmButtonText: 'ตกลง',
+            confirmButtonColor: '#dc3545'
+          });
+          return;
+        }
+      } catch (error) {
+        console.error("Error checking Employee ID:", error);
+        // หากไม่มี API นี้หรือเกิดข้อผิดพลาด ให้ดำเนินการต่อไป
+        if (error.response?.status !== 404 && error.response?.status !== 501) {
+          console.warn("Employee ID check API not available or error occurred");
+        }
+      }
+    }
+
+    const data = {
+      employeeId: employeeId,
+      position: position,
+      department: department,
+      workplace: workplace,
+      jobtype: jobtype,
+      salary: salary,
+      startjob: startjob,
+      endjob: endjob,
+      exceptjob: exceptjob,
+      prefix: prefix,
+      name: name,
+      lastName: lastName,
+      nickName: nickName,
+      gender: gender,
+      dateOfBirth: dateOfBirth,
+      age: age,
+      idCard: idCard,
+      ethnicity: ethnicity,
+      religion: religion,
+      maritalStatus: maritalStatus,
+      militaryStatus: militaryStatus,
+      address: address,
+      
+      province: province,
+      district: district,
+      subDistrict: subDistrict,
+      postalCode: postalCode,
+      houseNumber: houseNumber,
+
+      province2: province2,
+      district2: district2,
+      subDistrict2: subDistrict2,
+      postalCode2: postalCode2,
+      houseNumber2: houseNumber2,
+
+      currentAddress: currentAddress,
+      phoneNumber: phoneNumber,
+      emergencyContactNumber: emergencyContactNumber,
+      emergencyName: emergencyName,
+      emergencyRelationship: emergencyRelationship,
+
+      idLine: idLine,
+    };
+    console.log(data);
+
+    //check create or update Employee
+    if (newEmp) {
+      // แสดง loading (หาก loading ยังไม่ถูกเปิดจากการตรวจสอบข้อมูล)
+      if (!isLoading) {
+        setIsLoading(true);
+        Swal.fire({
+          title: 'กำลังบันทึกข้อมูล...',
+          html: 'กรุณารอสักครู่',
+          allowOutsideClick: false,
+          allowEscapeKey: false,
+          showConfirmButton: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
+        });
       } else {
-        if (buttonValue === "save") {
-          console.log('กำลังอัพเดตพนักงาน ID:', _id);
+        // อัปเดตข้อความ loading
+        Swal.update({
+          title: 'กำลังบันทึกข้อมูล...',
+          html: 'กรุณารอสักครู่'
+        });
+      }
+
+      try {
+        const response = await axios.post(endpoint + "/employee/create", data);
+        
+        setIsLoading(false);
+        Swal.fire({
+          icon: 'success',
+          title: 'บันทึกสำเร็จ!',
+          text: 'ข้อมูลพนักงานถูกบันทึกเรียบร้อยแล้ว',
+          confirmButtonText: 'ตกลง',
+          confirmButtonColor: '#28a745'
+        }).then(() => {
+          window.location.reload();
+        });
+
+      } catch (error) {
+        setIsLoading(false);
+        console.error("Error:", error);
+        console.error("Response Data:", error.response?.data);
+        
+        let errorMessage = 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ';
+        let errorDetails = [];
+
+        if (error.response?.data) {
+          if (error.response.data.message) {
+            errorMessage = error.response.data.message;
+          }
+          
+          if (error.response.data.errors) {
+            errorDetails = Object.entries(error.response.data.errors).map(([field, msg]) => `${field}: ${msg}`);
+          }
+          
+          if (error.response.data.code === 11000) {
+            errorMessage = 'ข้อมูลซ้ำในระบบ';
+            if (error.response.data.keyPattern?.employeeId) {
+              errorDetails.push('รหัสพนักงานนี้มีอยู่ในระบบแล้ว');
+            }
+            if (error.response.data.keyPattern?.idCard) {
+              errorDetails.push('เลขบัตรประชาชนนี้มีอยู่ในระบบแล้ว');
+            }
+            
+            // หากมีข้อมูลพนักงานที่ซ้ำ
+            if (error.response.data.conflictData) {
+              const conflictEmp = error.response.data.conflictData;
+              if (conflictEmp.employeeId === employeeId) {
+                errorDetails.push(`รหัสพนักงาน "${employeeId}" ถูกใช้โดย: ${conflictEmp.name} ${conflictEmp.lastName || ''}`);
+              }
+              if (conflictEmp.idCard === idCard) {
+                errorDetails.push(`เลขบัตรประชาชน "${idCard}" ถูกใช้โดย: ${conflictEmp.name} ${conflictEmp.lastName || ''} (รหัส: ${conflictEmp.employeeId})`);
+              }
+            }
+          }
+          
+          // จัดการข้อผิดพลาดอื่นๆ
+          if (error.response.data.details) {
+            errorDetails.push(...error.response.data.details);
+          }
+          
+          // จัดการกรณี validation error จาก API
+          if (error.response.data.validationErrors) {
+            errorDetails.push(...error.response.data.validationErrors);
+          }
+        }
+
+        Swal.fire({
+          icon: 'error',
+          title: 'ไม่สามารถบันทึกข้อมูลได้',
+          html: `<div style="text-align: left;">
+            <p><strong>สาเหตุ:</strong> ${errorMessage}</p>
+            ${errorDetails.length > 0 ? `
+              <p><strong>รายละเอียด:</strong></p>
+              <ul style="color: #dc3545;">
+                ${errorDetails.map(detail => `<li>${detail}</li>`).join('')}
+              </ul>
+            ` : ''}
+            <p style="color: #6c757d; font-size: 0.9em;">กรุณาตรวจสอบข้อมูลและลองใหม่อีกครั้ง</p>
+          </div>`,
+          confirmButtonText: 'ตกลง',
+          confirmButtonColor: '#dc3545'
+        });
+      }
+    } else {
+      if (buttonValue == "save") {
+        // เพิ่มการตรวจสอบข้อมูลก่อนอัปเดต
+        const updateRequiredFields = [
+          { field: employeeId, name: 'รหัสพนักงาน' },
+          { field: workplace, name: 'หน่วยงาน' },
+          { field: position, name: 'ตำแหน่ง' },
+          { field: jobtype, name: 'ประเภทการจ้าง' },
+          { field: prefix, name: 'คำนำหน้า' },
+          { field: name, name: 'ชื่อ' },
+          { field: lastName, name: 'นามสกุล' },
+          { field: formattedDate, name: 'วันเกิด' },
+          { field: idCard, name: 'เลขบัตรประชาชน' },
+          { field: ethnicity, name: 'เชื้อชาติ' },
+          { field: religion, name: 'ศาสนา' },
+          { field: maritalStatus, name: 'สถานภาพการสมรส' },
+          { field: address, name: 'ที่อยู่ตามบัตรประชาชน' },
+          { field: currentAddress, name: 'ที่อยู่ปัจจุบัน' }
+        ];
+
+        const missingUpdateFields = updateRequiredFields.filter(item => !item.field || item.field.trim() === '');
+        
+        if (missingUpdateFields.length > 0) {
+          const missingFieldNames = missingUpdateFields.map(item => item.name).join(', ');
+          
+          Swal.fire({
+            icon: 'warning',
+            title: 'กรุณากรอกข้อมูลให้ครบถ้วนก่อนอัปเดต',
+            html: `<div style="text-align: left;">
+              <p>ช่องที่ยังไม่ได้กรอก:</p>
+              <ul style="color: #dc3545; font-weight: bold;">
+                ${missingUpdateFields.map(item => `<li>${item.name}</li>`).join('')}
+              </ul>
+            </div>`,
+            confirmButtonText: 'ตกลง',
+            confirmButtonColor: '#f0ad4e'
+          });
+          return;
+        }
+
+        // ตรวจสอบความถูกต้องของข้อมูลก่อนอัปเดต
+        if (idCard && idCard.length !== 13) {
+          Swal.fire({
+            icon: 'error',
+            title: 'ข้อมูลไม่ถูกต้อง',
+            text: 'เลขบัตรประชาชนต้องมี 13 หลัก',
+            confirmButtonText: 'ตกลง',
+            confirmButtonColor: '#dc3545'
+          });
+          return;
+        }
+
+        if (phoneNumber && (phoneNumber.length < 9 || phoneNumber.length > 10)) {
+          Swal.fire({
+            icon: 'error',
+            title: 'ข้อมูลไม่ถูกต้อง',
+            text: 'เบอร์โทรศัพท์ต้องมี 9-10 หลัก',
+            confirmButtonText: 'ตกลง',
+            confirmButtonColor: '#dc3545'
+          });
+          return;
+        }
+
+        // ตรวจสอบบัตรประชาชนซ้ำก่อนอัปเดต
+        if (idCard) {
+          try {
+            // แสดง loading สำหรับการตรวจสอบ
+            setIsLoading(true);
+            Swal.fire({
+              title: 'กำลังตรวจสอบข้อมูล...',
+              html: 'กรุณารอสักครู่',
+              allowOutsideClick: false,
+              allowEscapeKey: false,
+              showConfirmButton: false,
+              didOpen: () => {
+                Swal.showLoading();
+              }
+            });
+
+            const checkIdResponse = await axios.get(`${endpoint}/employee/check-idcard/${idCard}`);
+            
+            if (checkIdResponse.data.exists) {
+              const existingEmployee = checkIdResponse.data.employee;
+              
+              // ตรวจสอบว่าเป็นพนักงานคนเดียวกันหรือไม่
+              if (existingEmployee._id !== _id) {
+                setIsLoading(false);
+                Swal.fire({
+                  icon: 'error',
+                  title: 'เลขบัตรประชาชนซ้ำ',
+                  html: `<div style="text-align: left;">
+                    <p><strong>เลขบัตรประชาชน "${idCard}" ถูกใช้แล้วโดย:</strong></p>
+                    <ul style="color: #dc3545; font-weight: bold; margin: 10px 0;">
+                      <li>ชื่อ: ${existingEmployee.name} ${existingEmployee.lastName || ''}</li>
+                      <li>รหัสพนักงาน: ${existingEmployee.employeeId}</li>
+                      <li>หน่วยงาน: ${existingEmployee.workplace || '-'}</li>
+                    </ul>
+                    <p style="color: #6c757d; font-size: 0.9em;">กรุณาตรวจสอบเลขบัตรประชาชนและลองใหม่อีกครั้ง</p>
+                  </div>`,
+                  confirmButtonText: 'ตกลง',
+                  confirmButtonColor: '#dc3545'
+                });
+                return;
+              }
+            }
+          } catch (error) {
+            setIsLoading(false);
+            console.error("Error checking ID Card:", error);
+            // หากเกิดข้อผิดพลาดในการตรวจสอบ ให้ดำเนินการต่อไป
+            if (error.response?.status !== 404) {
+              const result = await Swal.fire({
+                icon: 'warning',
+                title: 'ไม่สามารถตรวจสอบบัตรประชาชนได้',
+                text: 'ต้องการดำเนินการอัปเดตต่อไปหรือไม่?',
+                showCancelButton: true,
+                confirmButtonText: 'ดำเนินการต่อ',
+                cancelButtonText: 'ยกเลิก',
+                confirmButtonColor: '#f0ad4e',
+                cancelButtonColor: '#6c757d'
+              });
+              
+              if (!result.isConfirmed) {
+                return;
+              }
+            }
+          }
+        }
+
+        // ตรวจสอบรหัสพนักงานซ้ำก่อนอัปเดต
+        if (employeeId) {
+          try {
+            // หาก loading ยังไม่ถูกเปิดจากการตรวจสอบบัตรประชาชน
+            if (!isLoading) {
+              setIsLoading(true);
+              Swal.fire({
+                title: 'กำลังตรวจสอบข้อมูล...',
+                html: 'กรุณารอสักครู่',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                  Swal.showLoading();
+                }
+              });
+            }
+
+            const checkEmpResponse = await axios.get(`${endpoint}/employee/check-employeeid/${employeeId}`);
+            
+            if (checkEmpResponse.data.exists) {
+              const existingEmployee = checkEmpResponse.data.employee;
+              
+              // ตรวจสอบว่าเป็นพนักงานคนเดียวกันหรือไม่
+              if (existingEmployee._id !== _id) {
+                setIsLoading(false);
+                Swal.fire({
+                  icon: 'error',
+                  title: 'รหัสพนักงานซ้ำ',
+                  html: `<div style="text-align: left;">
+                    <p><strong>รหัสพนักงาน "${employeeId}" ถูกใช้แล้วโดย:</strong></p>
+                    <ul style="color: #dc3545; font-weight: bold; margin: 10px 0;">
+                      <li>ชื่อ: ${existingEmployee.name} ${existingEmployee.lastName || ''}</li>
+                      <li>เลขบัตรประชาชน: ${existingEmployee.idCard || '-'}</li>
+                      <li>หน่วยงาน: ${existingEmployee.workplace || '-'}</li>
+                    </ul>
+                    <p style="color: #6c757d; font-size: 0.9em;">กรุณาตรวจสอบรหัสพนักงานและลองใหม่อีกครั้ง</p>
+                  </div>`,
+                  confirmButtonText: 'ตกลง',
+                  confirmButtonColor: '#dc3545'
+                });
+                return;
+              }
+            }
+          } catch (error) {
+            console.error("Error checking Employee ID:", error);
+            // หากไม่มี API นี้หรือเกิดข้อผิดพลาด ให้ดำเนินการต่อไป
+            if (error.response?.status !== 404 && error.response?.status !== 501) {
+              console.warn("Employee ID check API not available or error occurred");
+            }
+          }
+        }
+
+        // แสดง loading สำหรับการอัปเดต
+        if (!isLoading) {
+          setIsLoading(true);
+          Swal.fire({
+            title: 'กำลังอัปเดตข้อมูล...',
+            html: 'กรุณารอสักครู่',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            didOpen: () => {
+              Swal.showLoading();
+            }
+          });
+        } else {
+          // อัปเดตข้อความ loading
+          Swal.update({
+            title: 'กำลังอัปเดตข้อมูล...',
+            html: 'กรุณารอสักครู่'
+          });
+        }
+
+        try {
           const response = await axios.put(
             endpoint + "/employee/update/" + _id,
-            data,
-            {
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              timeout: 10000 // 10 วินาที
-            }
+            data
           );
           
-          console.log('Response อัพเดตสำเร็จ:', response.data);
-          alert("บันทึกสำเร็จ");
-          window.location.reload();
+          if (response) {
+            setIsLoading(false);
+            Swal.fire({
+              icon: 'success',
+              title: 'อัปเดตสำเร็จ!',
+              text: 'ข้อมูลพนักงานถูกอัปเดตเรียบร้อยแล้ว',
+              confirmButtonText: 'ตกลง',
+              confirmButtonColor: '#28a745'
+            }).then(() => {
+              window.location.reload();
+            });
+          }
+        } catch (error) {
+          setIsLoading(false);
+          console.error("Error:", error);
+          console.error("Response Data:", error.response?.data);
+          
+          let errorMessage = 'เกิดข้อผิดพลาดในการอัปเดต';
+          let errorDetails = [];
+
+          if (error.response?.data) {
+            if (error.response.data.message) {
+              errorMessage = error.response.data.message;
+            }
+            
+            // จัดการข้อผิดพลาดเกี่ยวกับการตรวจสอบความถูกต้อง
+            if (error.response.data.errors) {
+              if (Array.isArray(error.response.data.errors)) {
+                errorDetails = error.response.data.errors;
+              } else {
+                errorDetails = Object.entries(error.response.data.errors).map(([field, msg]) => `${field}: ${msg}`);
+              }
+            }
+            
+            // จัดการข้อผิดพลาดเกี่ยวกับข้อมูลซ้ำ (MongoDB duplicate key error)
+            if (error.response.data.code === 11000 || error.response.status === 409) {
+              errorMessage = 'ข้อมูลซ้ำในระบบ';
+              
+              if (error.response.data.keyPattern?.employeeId) {
+                errorDetails.push('รหัสพนักงานนี้มีอยู่ในระบบแล้ว');
+              }
+              if (error.response.data.keyPattern?.idCard) {
+                errorDetails.push('เลขบัตรประชาชนนี้มีอยู่ในระบบแล้ว');
+              }
+              
+              // หากมีข้อมูลพนักงานที่ซ้ำ
+              if (error.response.data.conflictData) {
+                const conflictEmp = error.response.data.conflictData;
+                if (conflictEmp.employeeId === employeeId) {
+                  errorDetails.push(`รหัสพนักงาน "${employeeId}" ถูกใช้โดย: ${conflictEmp.name} ${conflictEmp.lastName || ''}`);
+                }
+                if (conflictEmp.idCard === idCard) {
+                  errorDetails.push(`เลขบัตรประชาชน "${idCard}" ถูกใช้โดย: ${conflictEmp.name} ${conflictEmp.lastName || ''} (รหัส: ${conflictEmp.employeeId})`);
+                }
+              }
+            }
+            
+            // จัดการข้อผิดพลาดอื่นๆ
+            if (error.response.data.details) {
+              errorDetails.push(...error.response.data.details);
+            }
+            
+            // จัดการกรณี validation error จาก API
+            if (error.response.data.validationErrors) {
+              errorDetails.push(...error.response.data.validationErrors);
+            }
+          }
+          
+          // หากไม่มีรายละเอียดเฉพาะ ให้แสดงสถานะ HTTP
+          if (errorDetails.length === 0 && error.response?.status) {
+            switch (error.response.status) {
+              case 400:
+                errorDetails.push('ข้อมูลที่ส่งไม่ถูกต้อง');
+                break;
+              case 401:
+                errorDetails.push('ไม่มีสิทธิ์ในการเข้าถึง');
+                break;
+              case 403:
+                errorDetails.push('ไม่อนุญาตให้ทำการดำเนินการนี้');
+                break;
+              case 404:
+                errorDetails.push('ไม่พบข้อมูลพนักงานที่ต้องการอัปเดต');
+                break;
+              case 500:
+                errorDetails.push('เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์');
+                break;
+              default:
+                errorDetails.push(`รหัสข้อผิดพลาด: ${error.response.status}`);
+            }
+          }
+          
+          Swal.fire({
+            icon: 'error',
+            title: 'ไม่สามารถอัปเดตข้อมูลได้',
+            html: `<div style="text-align: left;">
+              <p><strong>สาเหตุ:</strong> ${errorMessage}</p>
+              ${errorDetails.length > 0 ? `
+                <p><strong>รายละเอียด:</strong></p>
+                <ul style="color: #dc3545;">
+                  ${errorDetails.map(detail => `<li>${detail}</li>`).join('')}
+                </ul>
+              ` : ''}
+              <p style="color: #6c757d; font-size: 0.9em;">กรุณาตรวจสอบข้อมูลและลองใหม่อีกครั้ง</p>
+            </div>`,
+            confirmButtonText: 'ตกลง',
+            confirmButtonColor: '#dc3545'
+          });
         }
       }
-      
-    } catch (error) {
-      console.error("Error managing employee:", error);
-      
-      let errorMessage = newEmp ? "เกิดข้อผิดพลาดในการสร้างพนักงาน: " : "เกิดข้อผิดพลาดในการอัพเดตข้อมูล: ";
-      
-      if (error.response) {
-        // Server ตอบกลับมาแต่มี error status
-        console.error("Error Response Data:", error.response.data);
-        console.error("Error Status:", error.response.status);
-        
-        switch (error.response.status) {
-          case 400:
-            errorMessage += "ข้อมูลไม่ถูกต้อง - " + (error.response.data.message || "กรุณาตรวจสอบข้อมูลที่กรอก");
-            break;
-          case 409:
-            errorMessage += "รหัสพนักงานหรือเลขบัตรประชาชนซ้ำ";
-            break;
-          case 404:
-            errorMessage += "ไม่พบข้อมูลพนักงานที่ต้องการแก้ไข";
-            break;
-          case 500:
-            errorMessage += "เกิดข้อผิดพลาดจากเซิร์ฟเวอร์";
-            break;
-          default:
-            errorMessage += error.response.data.message || "ไม่สามารถบันทึกข้อมูลได้";
-        }
-      } else if (error.request) {
-        // ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้
-        errorMessage += "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต";
-      } else {
-        errorMessage += error.message || "เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ";
-      }
-      
-      alert(errorMessage);
-    } finally {
-      setIsLoading(false);
     }
   }
 
@@ -655,113 +1126,99 @@ function AddEditEmployee() {
   async function handleSearch(event) {
     event.preventDefault();
 
-    // ตรวจสอบว่ามีข้อมูลค้นหาหรือไม่
-    if (!searchEmployeeId.trim() && !searchEmployeeName.trim()) {
-      alert("กรุณาระบุรหัสพนักงานหรือชื่อพนักงานที่ต้องการค้นหา");
-      return;
-    }
-
     // get value from form search
     const data = {
-      employeeId: searchEmployeeId.trim(),
-      name: searchEmployeeName.trim(),
+      employeeId: searchEmployeeId,
+      name: searchEmployeeName,
       idCard: "",
       workPlace: "",
     };
 
     try {
-      console.log('กำลังค้นหาพนักงาน:', data);
-      const response = await axios.post(endpoint + "/employee/search", data, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        timeout: 10000
-      });
-      
+      const response = await axios.post(endpoint + "/employee/search", data);
       setSearchResult(response.data.employees);
-      console.log('ผลการค้นหา:', response.data.employees);
-      
+      // alert(response.data.employees.length);
       if (response.data.employees.length < 1) {
+        // window.location.reload();
         setEmployeeId("");
         setName("");
-        alert("ไม่พบข้อมูลพนักงานที่ค้นหา");
+        alert("ไม่พบข้อมูล");
       } else {
+        // alert(response.data.employees.length);
+
         //clean form
         setSearchEmployeeId("");
         setSearchEmployeeName("");
         set_id(response.data.employees[0]._id);
 
         // Set search values
-        setEmployeeId(response.data.employees[0].employeeId || "");
-        setWorkplace(response.data.employees[0].workplace || "");
-        setPosition(response.data.employees[0].position || "");
-        setSalary(response.data.employees[0].salary || "");
-        setJobtype(response.data.employees[0].jobtype || "");
-        setPrefix(response.data.employees[0].prefix || "");
-        setName(response.data.employees[0].name || "");
-        setLastName(response.data.employees[0].lastName || "");
-        setNickName(response.data.employees[0].nickName || "");
-        
-        // ปรับการแสดงผลเพศ
-        if (response.data.employees[0].gender) {
-          const genderValue = response.data.employees[0].gender === "male" ? "ชาย" : 
-                             response.data.employees[0].gender === "female" ? "หญิง" : 
-                             response.data.employees[0].gender;
-          setGender(genderValue);
-        }
+        setEmployeeId(response.data.employees[0].employeeId);
+        setWorkplace(response.data.employees[0].workplace);
 
-        setFormattedDate(response.data.employees[0].dateOfBirth || "");
-        setDateOfBirth(response.data.employees[0].dateOfBirth || "");
-        setAge(response.data.employees[0].age || "");
-        setIdCard(response.data.employees[0].idCard || "");
-        setEthnicity(response.data.employees[0].ethnicity || "");
-        setReligion(response.data.employees[0].religion || "");
-        setMaritalStatus(response.data.employees[0].maritalStatus || "");
-        setMilitaryStatus(response.data.employees[0].militaryStatus || "");
-        setAddress(response.data.employees[0].address || "");
+        setPosition(response.data.employees[0].position);
+        setSalary(response.data.employees[0].salary);
+        setJobtype(response.data.employees[0].jobtype);
+        setPrefix(response.data.employees[0].prefix);
 
-        setProvince(response.data.employees[0].province || "");
-        setDistrict(response.data.employees[0].district || "");
-        setSubDistrict(response.data.employees[0].subDistrict || "");
-        setPostalCode(response.data.employees[0].postalCode || "");
-        setHouseNumber(response.data.employees[0].houseNumber || "");
+        setName(response.data.employees[0].name);
+        setLastName(response.data.employees[0].lastName);
+        setNickName(response.data.employees[0].nickName);
+        // setGender(response.data.employees[0].gender);
+        setGender(
+          response.data.employees[0].gender === "male" ? "ชาย" : "หญิง"
+        );
 
-        setProvince2(response.data.employees[0].province2 || "");
-        setDistrict2(response.data.employees[0].district2 || "");
-        setSubDistrict2(response.data.employees[0].subDistrict2 || "");
-        setPostalCode2(response.data.employees[0].postalCode2 || "");
-        setHouseNumber2(response.data.employees[0].houseNumber2 || "");
+        // setDateOfBirth(response.data.employees[0].dateOfBirth);
+        // const isoDate = response.data.employees[0].dateOfBirth;
+        // Convert ISO date to JavaScript Date object
+        // const dateObject = new Date(isoDate);
+        // Set the formatted date to the state
 
-        setCopyAddress(response.data.employees[0].copyAddress || false);
-        setCurrentAddress(response.data.employees[0].currentAddress || "");
-        setPhoneNumber(response.data.employees[0].phoneNumber || "");
-        setEmergencyContactNumber(response.data.employees[0].emergencyContactNumber || "");
-        setEmergencyRelationship(response.data.employees[0].emergencyRelationship || "");
-        setEmergencyName(response.data.employees[0].emergencyName || "");
-        setIdLine(response.data.employees[0].idLine || "");
+        // setDateOfBirth(response.data.employees[0].dateObject);
+        setFormattedDate(response.data.employees[0].dateOfBirth);
+        // console.log("321",response.data.employees[0].dateObject);
+        setAge(response.data.employees[0].age);
+        setIdCard(response.data.employees[0].idCard);
+        setEthnicity(response.data.employees[0].ethnicity);
+        setReligion(response.data.employees[0].religion);
+        setMaritalStatus(response.data.employees[0].maritalStatus);
+
+        setMilitaryStatus(response.data.employees[0].militaryStatus);
+        setAddress(response.data.employees[0].address);
+
+        setProvince(response.data.employees[0].province);
+        setDistrict(response.data.employees[0].district);
+        setSubDistrict(response.data.employees[0].subDistrict);
+        setPostalCode(response.data.employees[0].postalCode);
+        setHouseNumber(response.data.employees[0].houseNumber);
+
+        setProvince2(response.data.employees[0].province2);
+        setDistrict2(response.data.employees[0].district2);
+        setSubDistrict2(response.data.employees[0].subDistrict2);
+        setPostalCode2(response.data.employees[0].postalCode2);
+        setHouseNumber2(response.data.employees[0].houseNumber2);
+
+        setCopyAddress(response.data.employees[0].copyAddress);
+        setCurrentAddress(response.data.employees[0].currentAddress);
+        setPhoneNumber(response.data.employees[0].phoneNumber);
+        setEmergencyContactNumber(
+          response.data.employees[0].emergencyContactNumber
+        );
+        setEmergencyRelationship(response.data.employees[0].emergencyRelationship);
+        setEmergencyName(response.data.employees[0].emergencyName);
+        setIdLine(response.data.employees[0].idLine);
 
         setNewEmp(false);
+
+        // setSearchEmployeeId(response.data.employees[0].employeeId);
+        // setSearchEmployeeName(response.data.employees[0].name);
+
+        // console.log('workOfOT:', response.data.workplaces[0].workOfOT);
+        // console.log('workOfOT:', endTime);
       }
     } catch (error) {
-      console.error("Error searching employee:", error);
-      
-      let errorMessage = "เกิดข้อผิดพลาดในการค้นหา: ";
-      
-      if (error.response) {
-        if (error.response.status === 404) {
-          errorMessage += "ไม่พบข้อมูลพนักงาน";
-        } else if (error.response.status === 500) {
-          errorMessage += "เกิดข้อผิดพลาดจากเซิร์ฟเวอร์";
-        } else {
-          errorMessage += error.response.data?.message || "กรุณาตรวจสอบข้อมูลในช่องค้นหา";
-        }
-      } else if (error.request) {
-        errorMessage += "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้";
-      } else {
-        errorMessage += error.message || "เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ";
-      }
-      
-      alert(errorMessage);
+      alert("กรุณาตรวจสอบข้อมูลในช่องค้นหา");
+      // window.location.reload();
     }
   }
 
@@ -807,11 +1264,20 @@ function AddEditEmployee() {
   //     window.location.reload();
   // };
   const handleDelete = async (_id) => {
-    // Show confirmation dialog
-    const isConfirmed = window.confirm("ต้องการลบพนักงานรึไม่");
+    // Show confirmation dialog with SweetAlert2
+    const result = await Swal.fire({
+      icon: 'warning',
+      title: 'ยืนยันการลบ',
+      text: 'คุณแน่ใจหรือไม่ที่จะลบข้อมูลพนักงานนี้?',
+      showCancelButton: true,
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'ลบ',
+      cancelButtonText: 'ยกเลิก'
+    });
 
     // If user confirms, proceed with deletion
-    if (isConfirmed) {
+    if (result.isConfirmed) {
       try {
         const response = await axios.delete(
           `${endpoint}/employee/delete_id/${_id}`
@@ -821,16 +1287,38 @@ function AddEditEmployee() {
         if (response.status === 200) {
           console.log("Employee deleted successfully:", response.data);
           setDeleted(true);
-          // Optionally, update your UI or state after successful deletion
+          
+          Swal.fire({
+            icon: 'success',
+            title: 'ลบสำเร็จ!',
+            text: 'ข้อมูลพนักงานถูกลบเรียบร้อยแล้ว',
+            confirmButtonText: 'ตกลง',
+            confirmButtonColor: '#28a745'
+          }).then(() => {
+            window.location.reload();
+          });
         } else {
           console.error("Error deleting employee:", response.data.error);
+          
+          Swal.fire({
+            icon: 'error',
+            title: 'ไม่สามารถลบได้',
+            text: 'เกิดข้อผิดพลาดในการลบข้อมูล',
+            confirmButtonText: 'ตกลง',
+            confirmButtonColor: '#dc3545'
+          });
         }
       } catch (error) {
         console.error("Error deleting employee:", error.message);
+        
+        Swal.fire({
+          icon: 'error',
+          title: 'เกิดข้อผิดพลาด',
+          text: 'ไม่สามารถลบข้อมูลได้ กรุณาลองใหม่อีกครั้ง',
+          confirmButtonText: 'ตกลง',
+          confirmButtonColor: '#dc3545'
+        });
       }
-
-      alert("ทำการลบเรียบร้อย");
-      window.location.reload();
     }
   };
 
@@ -1035,7 +1523,7 @@ function AddEditEmployee() {
                             <div class="row">
                               <div class="col-md-3">
                                 <div class="form-group">
-                                  <label role="prefix">รหัส</label>
+                                  <label role="prefix">รหัส <span style={{ color: 'red', fontWeight: 'bold' }}>*</span></label>
                                   <input
                                     required
                                     type="number"
@@ -1052,7 +1540,7 @@ function AddEditEmployee() {
                               </div>
                               <div class="col-md-3">
                                 <div class="form-group">
-                                  <label role="name">หน่วยงาน</label>
+                                  <label role="name">หน่วยงาน <span style={{ color: 'red', fontWeight: 'bold' }}>*</span></label>
                                   <input
                                     required
                                     type="text"
@@ -1079,7 +1567,7 @@ function AddEditEmployee() {
                               </div>
                               <div class="col-md-3">
                                 <div class="form-group">
-                                  <label role="lastName">ตำแหน่ง</label>
+                                  <label role="lastName">ตำแหน่ง <span style={{ color: 'red', fontWeight: 'bold' }}>*</span></label>
                                   <input
                                     required
                                     type="text"
@@ -1111,7 +1599,7 @@ function AddEditEmployee() {
                               </div>
                               <div class="col-md-3">
                                 <div class="form-group">
-                                  <label role="name">ประเภทการจ้าง</label>
+                                  <label role="name">ประเภทการจ้าง <span style={{ color: 'red', fontWeight: 'bold' }}>*</span></label>
                                   {/* <input type="text" name="jobtype" class="form-control" id="jobtype" placeholder="ประเภทการจ้าง"  /> */}
                                   <select
                                     required
@@ -1138,7 +1626,7 @@ function AddEditEmployee() {
                             <div class="row">
                               <div class="col-md-3">
                                 <div class="form-group">
-                                  <label role="prefix">คำนำหน้า</label>
+                                  <label role="prefix">คำนำหน้า <span style={{ color: 'red', fontWeight: 'bold' }}>*</span></label>
                                   {/* <input
                                     required
                                     type="text"
@@ -1169,7 +1657,7 @@ function AddEditEmployee() {
                               </div>
                               <div class="col-md-3">
                                 <div class="form-group">
-                                  <label role="name">ชื่อ</label>
+                                  <label role="name">ชื่อ <span style={{ color: 'red', fontWeight: 'bold' }}>*</span></label>
                                   <input
                                     required
                                     type="text"
@@ -1184,7 +1672,7 @@ function AddEditEmployee() {
                               </div>
                               <div class="col-md-3">
                                 <div class="form-group">
-                                  <label role="lastName">นามสกุล</label>
+                                  <label role="lastName">นามสกุล <span style={{ color: 'red', fontWeight: 'bold' }}>*</span></label>
                                   <input
                                     required
                                     type="text"
@@ -1223,7 +1711,7 @@ function AddEditEmployee() {
                               </div>
 
                               <div class="col-md-3">
-                                <label role="dateOfBirth">วันเดือนปีเกิด</label>
+                                <label role="dateOfBirth">วันเดือนปีเกิด <span style={{ color: 'red', fontWeight: 'bold' }}>*</span></label>
                               </div>
                               <div class="col-md-3">
                                 <label role="dateOfBirth">อายุ</label>
@@ -1233,7 +1721,7 @@ function AddEditEmployee() {
                               </div> */}
                               <div class="col-md-3">
                                 {" "}
-                                <label role="age">เลขบัตรประจำตัวประชาชน</label>
+                                <label role="age">เลขบัตรประจำตัวประชาชน <span style={{ color: 'red', fontWeight: 'bold' }}>*</span></label>
                               </div>
                             </div>
                             <div class="row">
@@ -1414,14 +1902,7 @@ function AddEditEmployee() {
                                     id="idCard"
                                     placeholder="เลขบัตรประจำตัวประชาชน"
                                     value={idCard}
-                                    onChange={(e) => {
-                                      // อนุญาตเฉพาะตัวเลข
-                                      const value = e.target.value.replace(/\D/g, '');
-                                      if (value.length <= 13) {
-                                        setIdCard(value);
-                                      }
-                                    }}
-                                    maxLength="13"
+                                    onChange={(e) => setIdCard(e.target.value)}
                                   />
                                 </div>
                               </div>
@@ -1430,7 +1911,7 @@ function AddEditEmployee() {
                             <div class="row">
                               <div class="col-md-3">
                                 <div class="form-group">
-                                  <label role="ethnicity">เชื้อชาติ</label>
+                                  <label role="ethnicity">เชื้อชาติ <span style={{ color: 'red', fontWeight: 'bold' }}>*</span></label>
                                   {/* <input
                                     type="text"
                                     name="ethnicity"
@@ -1460,7 +1941,7 @@ function AddEditEmployee() {
                               </div>
                               <div class="col-md-3">
                                 <div class="form-group">
-                                  <label role="religion">ศาสนา</label>
+                                  <label role="religion">ศาสนา <span style={{ color: 'red', fontWeight: 'bold' }}>*</span></label>
                                   {/* <input
                                     type="text"
                                     name="religion"
@@ -1490,7 +1971,7 @@ function AddEditEmployee() {
                               <div class="col-md-3">
                                 <div class="form-group">
                                   <label role="maritalStatus">
-                                    สถานภาพการสมรส
+                                    สถานภาพการสมรส <span style={{ color: 'red', fontWeight: 'bold' }}>*</span>
                                   </label>
                                   {/* <input
                                     required
@@ -1559,7 +2040,7 @@ function AddEditEmployee() {
                               <div class="col-md-12">
                                 <div class="form-group">
                                   <label role="address">
-                                    ที่อยู่ตามบัตรประชาชน
+                                    ที่อยู่ตามบัตรประชาชน <span style={{ color: 'red', fontWeight: 'bold' }}>*</span>
                                   </label>
                                   <textarea
                                     required
@@ -1763,7 +2244,7 @@ function AddEditEmployee() {
                               <div class="col-md-12">
                                 <div class="form-group">
                                   <label role="address">
-                                    ที่อยู่ปัจจุบัน
+                                    ที่อยู่ปัจจุบัน <span style={{ color: 'red', fontWeight: 'bold' }}>*</span>
                                   </label>
                                   <textarea
                                     required
@@ -1941,14 +2422,9 @@ function AddEditEmployee() {
                                     id="phoneNumber"
                                     placeholder="เบอร์โทรศัพท์"
                                     value={phoneNumber}
-                                    onChange={(e) => {
-                                      // อนุญาตเฉพาะตัวเลขและขีด
-                                      const value = e.target.value.replace(/[^\d-]/g, '');
-                                      if (value.length <= 15) {
-                                        setPhoneNumber(value);
-                                      }
-                                    }}
-                                    maxLength="15"
+                                    onChange={(e) =>
+                                      setPhoneNumber(e.target.value)
+                                    }
                                   />
                                 </div>
                               </div>
@@ -2003,14 +2479,9 @@ function AddEditEmployee() {
                                     id="emergencyContactNumber"
                                     placeholder="เบอร์ติดต่อกรณีฉุกเฉิน"
                                     value={emergencyContactNumber}
-                                    onChange={(e) => {
-                                      // อนุญาตเฉพาะตัวเลขและขีด
-                                      const value = e.target.value.replace(/[^\d-]/g, '');
-                                      if (value.length <= 15) {
-                                        setEmergencyContactNumber(value);
-                                      }
-                                    }}
-                                    maxLength="15"
+                                    onChange={(e) =>
+                                      setEmergencyContactNumber(e.target.value)
+                                    }
                                   />
                                 </div>
                                 <div class="form-group col-md-3">
@@ -2056,9 +2527,17 @@ function AddEditEmployee() {
                           onClick={() => setButtonValue("create")}
                           class="btn b_save"
                           disabled={isLoading}
+                          style={{ opacity: isLoading ? 0.6 : 1, cursor: isLoading ? 'not-allowed' : 'pointer' }}
                         >
-                          <i class="nav-icon fas fa-save"></i>{" "}
-                          &nbsp;{isLoading ? "กำลังบันทึก..." : "สร้างพนักงานใหม่"}
+                          {isLoading ? (
+                            <>
+                              <i class="fas fa-spinner fa-spin"></i> &nbsp;กำลังบันทึก...
+                            </>
+                          ) : (
+                            <>
+                              <i class="nav-icon fas fa-save"></i> &nbsp;สร้างพนักงานใหม่
+                            </>
+                          )}
                         </button>
                       ) : (
                         <button
@@ -2068,12 +2547,20 @@ function AddEditEmployee() {
                           onClick={() => setButtonValue("save")}
                           class="btn b_save"
                           disabled={isLoading}
+                          style={{ opacity: isLoading ? 0.6 : 1, cursor: isLoading ? 'not-allowed' : 'pointer' }}
                         >
-                          <i class="nav-icon fas fa-save"></i> 
-                          &nbsp;{isLoading ? "กำลังบันทึก..." : "บันทึก"}
+                          {isLoading ? (
+                            <>
+                              <i class="fas fa-spinner fa-spin"></i> &nbsp;กำลังอัปเดต...
+                            </>
+                          ) : (
+                            <>
+                              <i class="nav-icon fas fa-save"></i> &nbsp;บันทึก
+                            </>
+                          )}
                         </button>
                       )}
-                      <button class="btn clean" disabled={isLoading}>
+                      <button class="btn clean" disabled={isLoading} style={{ opacity: isLoading ? 0.6 : 1 }}>
                         <i class="far fa-window-close"></i> &nbsp;ยกเลิก
                       </button>{" "}
                     </div>

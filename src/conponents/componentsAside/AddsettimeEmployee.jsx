@@ -261,6 +261,9 @@ const [customWorkplace , setCustomWorkplace] = useState({});
   const [wBeforeSelectOtTimeout, setWBeforeSelectOtTimeout] = useState("");
   const [wBeforeOtTime, setWBeforeOtTime] = useState("");
 
+  // State for "จ่ายเต็มวัน" checkbox
+  const [payFullDay, setPayFullDay] = useState(false);
+
   // Get the number of days in the specified month
   const numberOfDaysInMonth = new Date(2024, 2, 0).getDate();
 
@@ -2516,7 +2519,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
       specialtSalaryOT: specialtSalaryOT || "",
       cashOfHoliday: cashOfHoliday || "",
       cashOfHolidayOt: cashOfHolidayOt || "",
-
+      payFullDay: payFullDay || false, // Add payFullDay flag
       messageSalary: messageSalary || "",
     };
 
@@ -2548,6 +2551,9 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
       setWBeforeSelectOtTimeout(preservedOtValues.wBeforeSelectOtTimeout);
       setWBeforeOtTime(preservedOtValues.wBeforeOtTime);
     }, 100);
+    
+    // Reset payFullDay checkbox
+    setPayFullDay(false);
     
     // ไม่ล้างค่าในฟิลด์เพื่อให้ผู้ใช้สามารถเพิ่มข้อมูลต่อเนื่องได้โดยไม่ต้องกรอกซ้ำ
     // เพียงแค่เปลี่ยนวันที่ไปวันถัดไป แต่จำค่าอื่นๆ ไว้ทั้งหมด รวมถึง OT
@@ -2679,7 +2685,8 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
         specialtSalary: rowData.specialtSalary || '',
         specialtSalaryOT: rowData.specialtSalaryOT || '',
         cashOfHoliday: rowData.cashOfHoliday || '',
-        cashOfHolidayOt: rowData.cashOfHolidayOt || ''
+        cashOfHolidayOt: rowData.cashOfHolidayOt || '',
+        payFullDay: rowData.payFullDay || false
       } 
     });
   };
@@ -3446,6 +3453,23 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
               value={wAllTime}
               onChange={(e) => setWAllTime(e.target.value)}
             />
+            {/* Show checkbox when work hours < 8 */}
+            {wAllTime && parseFloat(wAllTime) < 8 && (
+              <div className="mt-2">
+                <div className="form-check">
+                  <input
+                    type="checkbox"
+                    className="form-check-input"
+                    id="payFullDayCheckbox"
+                    checked={payFullDay}
+                    onChange={(e) => setPayFullDay(e.target.checked)}
+                  />
+                  <label className="form-check-label text-center" htmlFor="payFullDayCheckbox">
+                    จ่ายเต็มวัน
+                  </label>
+                </div>
+              </div>
+            )}
           </td>
 
           {/* OT Start Time */}
@@ -3698,15 +3722,41 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                 </th>
                 <th>
                   {editMode[index] ? (
-                    <input
-                      type="text"
-                      className="form-control form-control-sm"
-                      value={editData[index]?.totalTime || ''}
-                      onChange={(e) => handleEditFieldChange(index, 'totalTime', e.target.value)}
-                      style={{ width: "80px", fontSize: "12px" }}
-                    />
+                    <div>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        value={editData[index]?.totalTime || ''}
+                        onChange={(e) => handleEditFieldChange(index, 'totalTime', e.target.value)}
+                        style={{ width: "80px", fontSize: "12px" }}
+                      />
+                      {editData[index]?.totalTime && parseFloat(editData[index]?.totalTime) < 8 && (
+                        <div className="form-check mt-1">
+                          <input
+                            type="checkbox"
+                            className="form-check-input"
+                            id={`editPayFullDay${index}`}
+                            checked={editData[index]?.payFullDay || false}
+                            onChange={(e) => handleEditFieldChange(index, 'payFullDay', e.target.checked)}
+                            style={{ fontSize: "10px" }}
+                          />
+                          <label className="form-check-label" htmlFor={`editPayFullDay${index}`} style={{ fontSize: "10px" }}>
+                            จ่ายเต็มวัน
+                          </label>
+                        </div>
+                      )}
+                    </div>
                   ) : (
-                    rowData2.totalTime
+                    <div>
+                      {rowData2.totalTime}
+                      {rowData2.payFullDay && (
+                        <div>
+                          <span className="badge badge-success" style={{ fontSize: "10px" }}>
+                            จ่ายเต็มวัน
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   )}
                 </th>
                 
