@@ -2725,28 +2725,10 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
   }
   
   const totalLostWage = notWorkedOnStopDays * dailyWage;
-  const workRatePerHour = dailyWage / 8;
-  
-  // ✅ คำนวณ totalWorkerWage จากชั่วโมงทำงานจริงในแต่ละวันหยุด
-  let totalWorkerWage = 0;
-  let totalHoursWorked = 0;
-  
-  attendanceDetails.forEach(detail => {
-    if (detail.status === 'มาทำงาน' && detail.totalTime && detail.totalTime !== '0') {
-      const hours = parseFloat(detail.totalTime);
-      totalHoursWorked += hours;
-      const wageForThisDay = hours * workRatePerHour * dayoffRateHour;
-      totalWorkerWage += wageForThisDay;
-      console.log(`   💰 วันที่ ${detail.date}: ${hours} ชม. × ${workRatePerHour.toFixed(2)} × ${dayoffRateHour} = ${wageForThisDay.toFixed(2)} บาท`);
-    }
-  });
-  
-  console.log(`\n💰 === การคำนวณค่าแรง ===`);
+  const totalWorkerWage = workedOnStopDays * dayoffRateHour
+   console.log(`\n💰 === การคำนวณค่าแรง ===`);
   console.log(`💵 ค่าแรงต่อวัน: ${dailyWage.toFixed(2)} บาท`);
-  console.log(`� ค่าแรงต่อชั่วโมง: ${workRatePerHour.toFixed(2)} บาท`);
-  console.log(`📊 ตัวคูณวันหยุด (dayoffRateHour): ${dayoffRateHour}x`);
-  console.log(`⏱️  รวมชั่วโมงทำงานในวันหยุด: ${totalHoursWorked} ชั่วโมง`);
-  console.log(`📅 จำนวนวันหยุดที่มาทำงาน: ${workedOnStopDays} วัน`);
+  console.log(`📅 จำนวนเงินที่ได้customizeDayoff ${totalWorkerWage} วัน`);
   console.log(`📅 จำนวนวันหยุดที่ไม่มาทำงาน: ${notWorkedOnStopDays} วัน`);
   console.log(`💸 ค่าแรงที่ต้องหัก: ${totalLostWage.toFixed(2)} บาท`);
   console.log(`💎 cashcustomizeDayoff จะถูกตั้งเป็น: ${totalWorkerWage.toFixed(2)} บาท`);
