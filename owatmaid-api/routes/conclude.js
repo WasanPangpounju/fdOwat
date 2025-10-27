@@ -2696,6 +2696,9 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
     
     const workplaceResponse = await axios.get(workplaceApiUrl);
     const workRate = parseFloat(workplaceResponse.data.workRate || '0');
+    const workRateforHoliday = parseFloat(workplaceResponse.data.dayoffRateHour || '0');
+    
+    console.log(`📋 ข้อมูลที่ได้รับ: workRate = ${workRate}, workRateforHoliday = ${workRateforHoliday}`);
     
     if (workRate > 0) {
       dailyWage = workRate;
@@ -2717,7 +2720,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
   }
   
   const totalLostWage = notWorkedOnStopDays * dailyWage;
-  const totalWorkerWage = workedOnStopDays * 10000000; // กำหนดเป็น 10 ล้านต่อวันที่มาทำงาน
+  const totalWorkerWage = workedOnStopDays * dayoffRateHour; // กำหนดเป็น 10 ล้านต่อวันที่มาทำงาน
    console.log(`\n💰 === การคำนวณค่าแรง ===`);
   console.log(`💵 ค่าแรงต่อวัน: ${dailyWage.toFixed(2)} บาท`);
   console.log(`📅 จำนวนเงินที่ได้customizeDayoff ${totalWorkerWage} วัน`);
