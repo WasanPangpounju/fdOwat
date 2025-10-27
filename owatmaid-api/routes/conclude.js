@@ -19,6 +19,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const bodyParser = require('body-parser');
 const { months } = require('moment');
+const { da } = require('date-fns/locale');
 
 const getDayNumberFromName = (dayName) => {
   const daysMap = {
@@ -2697,7 +2698,15 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
     const workplaceResponse = await axios.get(workplaceApiUrl);
     const workRate = parseFloat(workplaceResponse.data.workRate || '0');
     const dayoffRate = parseFloat(workplaceResponse.data.dayoffRateHour || '1');
+
+     if (dayoffRate > 0) {
+      dayoffRate = dayoffRate;
+      
+    } else {
+      // Fallback ใช้การคำนวณเดิมถ้า workRate ไม่มีหรือเป็น 0
     
+    }
+
     if (workRate > 0) {
       dailyWage = workRate;
       console.log(`✅ ใช้ workRate จาก API (workplace: ${workplaceId}): ${dailyWage} บาท/วัน`);
@@ -2718,7 +2727,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
   }
   
   const totalLostWage = notWorkedOnStopDays * dailyWage;
-  const totalWorkerWage = workedOnStopDays * dayoffRate * totalTime;
+  const totalWorkerWage = workedOnStopDays * dayoffRate * 30;
    console.log(`\n💰 === การคำนวณค่าแรง ===`);
   console.log(`💵 ค่าแรงต่อวัน: ${dailyWage.toFixed(2)} บาท`);
   console.log(`📅 จำนวนเงินที่ได้customizeDayoff ${totalWorkerWage} วัน`);
