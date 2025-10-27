@@ -1837,12 +1837,15 @@ router.put("/updatetimerecordemployee/:employeeRecordId", async (req, res) => {
 // เช็คจำนวนหน่วยงานในแต่ละเดือน
 router.post('/checkworkplacesinmonth', async (req, res) => {
   try {
+    const startTime = Date.now();
     const { month, year } = req.body;
 
     if (!month || month === '') {
       return res.status(400).json({ 
         success: false,
-        message: 'กรุณาระบุเดือนที่ต้องการเช็ค' 
+        message: 'กรุณาระบุเดือนที่ต้องการเช็ค',
+        timestamp: new Date().toISOString(),
+        executionTime: `${Date.now() - startTime}ms`
       });
     }
 
@@ -1904,6 +1907,8 @@ router.post('/checkworkplacesinmonth', async (req, res) => {
 
     console.log(`📊 [CHECK WORKPLACES] ${summary}`);
 
+    const executionTime = Date.now() - startTime;
+
     res.status(200).json({
       success: true,
       month: month,
@@ -1911,7 +1916,9 @@ router.post('/checkworkplacesinmonth', async (req, res) => {
       totalWorkplaces: totalWorkplaces,
       summary: summary,
       workplaces: workplaces,
-      details: workplaces
+      details: workplaces,
+      timestamp: new Date().toISOString(),
+      executionTime: `${executionTime}ms`
     });
 
   } catch (error) {
@@ -1919,7 +1926,8 @@ router.post('/checkworkplacesinmonth', async (req, res) => {
     res.status(500).json({ 
       success: false,
       message: 'เกิดข้อผิดพลาดในการดึงข้อมูล',
-      error: error.message 
+      error: error.message,
+      timestamp: new Date().toISOString()
     });
   }
 });
