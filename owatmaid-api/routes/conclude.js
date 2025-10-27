@@ -2696,15 +2696,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
     
     const workplaceResponse = await axios.get(workplaceApiUrl);
     const workRate = parseFloat(workplaceResponse.data.workRate || '0');
-    const workRateforHoliday = parseFloat(workplaceResponse.data.dayoffRateHour || '0');
     
-    console.log(`📋 ข้อมูลที่ได้รับ: workRate = ${workRate}, workRateforHoliday = ${workRateforHoliday}`);
-    
-    if (workRateforHoliday > 0) {
-      dayoffRateHour = workRateforHoliday;
-      console.log(`✅ ใช้ dayoffRateHour จาก API (workplace: ${workplaceId}): ${dayoffRateHour} บาท/ชั่วโมง`);
-    }
-
     if (workRate > 0) {
       dailyWage = workRate;
       console.log(`✅ ใช้ workRate จาก API (workplace: ${workplaceId}): ${dailyWage} บาท/วัน`);
@@ -2725,8 +2717,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
   }
   
   const totalLostWage = notWorkedOnStopDays * dailyWage;
-  const workRatePerHour = dailyWage / 8;
-  const totalWorkerWage = workedOnStopDays * workRatePerHour *dayoffRateHour; 
+  const totalWorkerWage = workedOnStopDays * dailyWage;
    console.log(`\n💰 === การคำนวณค่าแรง ===`);
   console.log(`💵 ค่าแรงต่อวัน: ${dailyWage.toFixed(2)} บาท`);
   console.log(`📅 จำนวนเงินที่ได้customizeDayoff ${totalWorkerWage} วัน`);
@@ -2812,33 +2803,17 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
       let addSalaryDaily = [];
 
       // ตรวจสอบว่าเป็นวันหยุดหรือไม่
-      // ✅ สำหรับหน่วยงานพิเศษ 7 วัน ต้องรวม dayoffWorkplace ด้วย
       const allHolidays = [
         ...(weekendData.weekendAndDayOff || []),
-        ...(weekendData.dayOffOnly || []),
-        ...(weekendData.dayoffWorkplace || [])  // ✅ เพิ่มวันหยุดของหน่วยงานพิเศษ
+        ...(weekendData.dayOffOnly || [])
       ];
-      
-      console.log(`\n🔍 [DEBUG] ตรวจสอบวันหยุด:`);
-      console.log(`   - bangkokDate: "${bangkokDate}"`);
-      console.log(`   - weekendAndDayOff: ${JSON.stringify(weekendData.weekendAndDayOff || [])}`);
-      console.log(`   - dayOffOnly: ${JSON.stringify(weekendData.dayOffOnly || [])}`);
-      console.log(`   - dayoffWorkplace: ${JSON.stringify(weekendData.dayoffWorkplace || [])}`);
-      console.log(`   - allHolidays (รวมทุก array): ${JSON.stringify(allHolidays)}`);
       
       const isHoliday = allHolidays.includes(bangkokDate);
       const isPublicHoliday = (weekendData.dayOffOnly || []).includes(bangkokDate); // วันหยุดนักขัตฤกษ์
-      const isWeekendOrCustom = (weekendData.weekendAndDayOff || []).includes(bangkokDate) || 
-                                (weekendData.dayoffWorkplace || []).includes(bangkokDate); // วันหยุดสุดสัปดาห์/กำหนดเอง หรือ วันหยุดหน่วยงาน
-      
-      console.log(`   - isHoliday: ${isHoliday}`);
-      console.log(`   - isPublicHoliday: ${isPublicHoliday}`);
-      console.log(`   - isWeekendOrCustom: ${isWeekendOrCustom}`);
+      const isWeekendOrCustom = (weekendData.weekendAndDayOff || []).includes(bangkokDate); // วันหยุดสุดสัปดาห์/กำหนดเอง
       
       // ตรวจสอบว่าพนักงานมาทำงานหรือไม่ (มีเวลาทำงาน > 0)
       const hasWorked = record.totalTime && parseFloat(record.totalTime) > 0;
-      console.log(`   - hasWorked: ${hasWorked} (totalTime: ${record.totalTime})`);
-      console.log(`   - เงื่อนไข (isHoliday && hasWorked): ${isHoliday && hasWorked}`);
       
       if (isHoliday && hasWorked) {
         // ถ้าเป็นวันหยุดและพนักงานมาทำงาน
@@ -2908,15 +2883,8 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
         
       } else {
         // วันทำงานปกติหรือวันหยุดที่ไม่มาทำงาน
-        
-        // ✅ ตรวจสอบว่าเป็นวันหยุดหรือไม่ (แม้ไม่มาทำงาน)
-        if (isHoliday) {
-          console.log(`🏖️ เป็นวันหยุดแต่ไม่มาทำงาน -> dayType = stop`);
-          dayType = 'stop';
-        } else {
-          console.log(`🏢 หน่วยงานพิเศษ 7 วัน: วันทำงานปกติ -> dayType = work`);
-          dayType = 'work';
-        }
+        console.log(`🏢 หน่วยงานพิเศษ 7 วัน: วันทำงานปกติ -> dayType = work`);
+        dayType = 'work';
         
         // คำนวณค่าแรงแบบวันทำงานปกติ
         // แก้ไขเวลา OT ก่อนทำงานให้คิดจากหน่วยนาที (หน่วยงานพิเศษ 7 วัน)
