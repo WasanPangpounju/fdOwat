@@ -620,6 +620,15 @@ const [isGeneratingExcel, setIsGeneratingExcel] = useState(false);
       }
 
       pdf.text(`เงินได้สะสมต่อปี`, 9, head2 + 83);
+      const netSalaryForDisplay2 = calculateNetSalary(currentEmployee2, responseDataAll[i + 1]?.accountingRecord?.[0]);
+      pdf.text(
+        `${netSalaryForDisplay2.toLocaleString('th-TH', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        })}`,
+        17,
+        head2 + 90
+      );
       pdf.text(`ภาษีสะสมต่อปี`, 40, head2 + 83);
       pdf.text(`เงินสะสมกองทุนต่อปี`, 71, head2 + 83);
       pdf.text(`เงินประกันสะสมต่อปี`, 102, head2 + 83);
@@ -1237,20 +1246,20 @@ const [isGeneratingExcel, setIsGeneratingExcel] = useState(false);
     // ตรวจสอบถ้าเลือก option1 (แบบหน่วยงาน)
     if (value === "option1") {
       // แสดง SweetAlert แจ้งเตือน
-      Swal.fire({
-        icon: 'info',
-        title: 'ระบบกำลังปรับปรุง',
-        text: 'ระบบกำลังปรับปรุงการออกแบบหน่วยงาน ให้ใช้การออกแบบรายบุคคลก่อน',
-        confirmButtonText: 'ตกลง',
-        confirmButtonColor: '#3085d6'
-      }).then(() => {
-        // หลังจากกด OK ให้เปลี่ยนเป็น option2 (แบบพนักงาน)
-        setSelectedOption("option2");
-        // Clear ข้อมูลของแบบหน่วยงาน
-        setWorkplacrId("");
-        setWorkplacrName("");
-      });
-      return; // ไม่ต้องเซ็ต selectedOption เป็น option1
+      // Swal.fire({
+      //   icon: 'info',
+      //   title: 'ระบบกำลังปรับปรุง',
+      //   text: 'ระบบกำลังปรับปรุงการออกแบบหน่วยงาน ให้ใช้การออกแบบรายบุคคลก่อน',
+      //   confirmButtonText: 'ตกลง',
+      //   confirmButtonColor: '#3085d6'
+      // }).then(() => {
+      //   // หลังจากกด OK ให้เปลี่ยนเป็น option2 (แบบพนักงาน)
+      //   setSelectedOption("option2");
+      //   // Clear ข้อมูลของแบบหน่วยงาน
+      //   setWorkplacrId("");
+      //   setWorkplacrName("");
+      // });
+      // return; // ไม่ต้องเซ็ต selectedOption เป็น option1
     }
     
     setSelectedOption(value);
@@ -2342,6 +2351,15 @@ const advance = parseFloat(currentEmployee.advance || advance2330 || 0);
     }
 
     pdf.text(`เงินได้สะสมต่อปี`, 9, 108);
+    const netSalaryForDisplay1 = calculateNetSalary(currentEmployee, responseDataAll[i]?.accountingRecord?.[0]);
+    pdf.text(
+      `${netSalaryForDisplay1.toLocaleString('th-TH', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      })}`,
+      17,
+      115
+    );
     pdf.text(`ภาษีสะสมต่อปี`, 40, 108);
     pdf.text(`เงินสะสมกองทุนต่อปี`, 71, 108);
     pdf.text(`เงินประกันสะสมต่อปี`, 102, 108);
@@ -2592,6 +2610,15 @@ const advance = parseFloat(currentEmployee.advance || advance2330 || 0);
       }
 
       pdf.text(`เงินได้สะสมต่อปี`, 9, head2 + 83);
+      const netSalaryForDisplay2 = calculateNetSalary(currentEmployee2, responseDataAll[i + 1]?.accountingRecord?.[0]);
+      pdf.text(
+        `${netSalaryForDisplay2.toLocaleString('th-TH', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        })}`,
+        17,
+        head2 + 90
+      );
       pdf.text(`ภาษีสะสมต่อปี`, 40, head2 + 83);
       pdf.text(`เงินสะสมกองทุนต่อปี`, 71, head2 + 83);
       pdf.text(`เงินประกันสะสมต่อปี`, 102, head2 + 83);
