@@ -2717,7 +2717,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
   }
   
   const totalLostWage = notWorkedOnStopDays * dailyWage;
-  const totalWorkerWage = workedOnStopDays * dailyWage;
+  const totalWorkerWage = workedOnStopDays * 10000000; // กำหนดเป็น 10 ล้านต่อวันที่มาทำงาน
    console.log(`\n💰 === การคำนวณค่าแรง ===`);
   console.log(`💵 ค่าแรงต่อวัน: ${dailyWage.toFixed(2)} บาท`);
   console.log(`📅 จำนวนเงินที่ได้customizeDayoff ${totalWorkerWage} วัน`);
