@@ -7887,23 +7887,57 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
   cashcustomizeDayoff = (cashcustomizeDayoff || 0).toFixed(2);
   publicHolidayCash = (publicHolidayCash || 0).toFixed(2);
   cashSpecialDay = (cashSpecialDay || 0).toFixed(2);
+  
 
-  // 🎯 คำนวณ sumCashWorkMul["1"] ใหม่จาก workRate * dayWorkCount
+  // 🎯 คำนวณ sumCashWorkMul["1"] ใหม่แบบรายวัน (คูณ totalTime แต่ละวัน)
   if (workRate > 0 && dayWorkCount > 0 && typeOfemployee === 'รายวัน') {
-    const newsumCashperHour = workRate / 8;
-    const newSumCashWorkMul1 = newsumCashperHour * sumTimeWork;
-    console.log(`\n🎯 === การคำนวณ sumCashWorkMul["1"] ใหม่ ===`);
-    console.log(`🎯 workRate: ${workRate} บาท`);
+    const hourlyRate = workRate / 8; // ค่าแรงต่อชั่วโมง
+    let newSumCashWorkMul1 = 0;
+    
+    console.log(`\n🎯 === การคำนวณ sumCashWorkMul["1"] ใหม่แบบรายวัน ===`);
+    console.log(`🎯 workRate: ${workRate} บาท/วัน`);
+    console.log(`🎯 hourlyRate: ${hourlyRate} บาท/ชม. (workRate ÷ 8)`);
     console.log(`🎯 dayWorkCount: ${dayWorkCount} วัน`);
     console.log(`🎯 sumCashWorkMul["1"] เดิม: ${sumCashWorkMul["1"]}`);
-    console.log(`🎯 sumCashWorkMul["1"] ใหม่: ${newSumCashWorkMul1} (${workRate} × ${dayWorkCount})`);
+    console.log(`\n📋 คำนวณแต่ละวัน:`);
+    
+    // วนลูปแต่ละ record เพื่อคำนวณรายวัน
+    employee_record.forEach((record, index) => {
+      // เช็คว่าเป็นวันทำงานปกติ (dayType = "work")
+      const isWorkDay = record?.dayType === "work";
+      const hasWorkTime = record.totalTime && record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0;
+      const isNormalShift = record.shift !== "specialt_shift" && record.shift !== "cash_holiday";
+      const isCashWorkMul1 = record?.cashWorkMul === "1";
+      
+      if (isWorkDay && hasWorkTime && isNormalShift && isCashWorkMul1) {
+        let hoursToUse = 0;
+        
+        // ถ้า payFullDay = true ให้ใช้ 8 ชม. แทน totalTime
+        if (record.payFullDay === true) {
+          hoursToUse = 8;
+          console.log(`   วันที่ ${record.date}: payFullDay=true → ใช้ 8 ชม. (ไม่สนใจ totalTime=${record.totalTime})`);
+        } else {
+          // ใช้ totalTime ตามปกติ
+          hoursToUse = convertTimeToDecimal(record.totalTime);
+          console.log(`   วันที่ ${record.date}: payFullDay=false → ใช้ totalTime=${record.totalTime} → ${hoursToUse} ชม.`);
+        }
+        
+        const cashForThisDay = hourlyRate * hoursToUse;
+        newSumCashWorkMul1 += cashForThisDay;
+        console.log(`   → คำนวณ: ${hourlyRate.toFixed(2)} × ${hoursToUse} = ${cashForThisDay.toFixed(2)} บาท (สะสม: ${newSumCashWorkMul1.toFixed(2)})`);
+      }
+    });
+    
+    console.log(`\n🎯 สรุป:`);
+    console.log(`🎯 sumCashWorkMul["1"] ใหม่: ${newSumCashWorkMul1.toFixed(2)} บาท`);
+    console.log(`🎯 เปรียบเทียบกับเดิม: ${sumCashWorkMul["1"]} → ${newSumCashWorkMul1.toFixed(2)}`);
     
     sumCashWorkMul["1"] = newSumCashWorkMul1;
     sumCashWork = newSumCashWorkMul1;
     
   } else {
     console.log(`\n⚠️ ไม่สามารถคำนวณ sumCashWorkMul["1"] ใหม่ได้:`);
-    console.log(`   workRate: ${workRate}, dayWorkCount: ${dayWorkCount}`);
+    console.log(`   workRate: ${workRate}, dayWorkCount: ${dayWorkCount}, typeOfemployee: ${typeOfemployee}`);
   }
 
   try {
