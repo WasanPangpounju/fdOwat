@@ -4858,7 +4858,9 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
           record.employeeId,
           record.employee_record,
           record.month,
-          record.year
+          record.year,
+          null, // welfareAddSalaryList
+          record.stopDaysList || [] // ส่ง stopDaysList จาก database
         );
         
         // อัปเดตค่าที่คำนวณใหม่
@@ -5475,7 +5477,8 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           doc.employee_record,
           doc.month,
           doc.year,
-          doc.addSalaryList // ส่ง addSalaryList ที่มี welfare data แล้วจากการประมวลผลข้างต้น
+          doc.addSalaryList, // ส่ง addSalaryList ที่มี welfare data แล้วจากการประมวลผลข้างต้น
+          doc.stopDaysList || [] // ส่ง stopDaysList จาก database
         );
 
         // Log ค่าที่ได้จาก calculateCashValues
@@ -5729,7 +5732,7 @@ const convertTimeToDecimal = (timeString) => {
 
 
 
-const calculateCashValues = async (employeeId, employee_record, month, year, welfareAddSalaryList = null) => {
+const calculateCashValues = async (employeeId, employee_record, month, year, welfareAddSalaryList = null, stopDaysListParam = null) => {
   // แสดงข้อมูลรอบเงินเดือนก่อนเริ่มการคำนวณ
   const monthInt = parseInt(month);
   const yearInt = parseInt(year);
@@ -6038,93 +6041,101 @@ let timeCashWorkMul = {
         
         console.log(`📋 จำนวนกฎการทำงาน: ${workTimeDay.length} รายการ`);
         
-        // หาวันหยุดจาก workTimeDay
+        // หาวันหยุดจาก stopDaysListParam (ถ้ามี) หรือสร้างจาก workTimeDay
         const monthInt = parseInt(month);
         const yearInt = parseInt(year);
-        const stopDaysList = [];
+        let stopDaysList = [];
         
-        // ตรวจสอบวันที่ 21-31 ของเดือนก่อนหน้า
-        let prevMonth = monthInt - 1;
-        let prevYear = yearInt;
-        if (prevMonth === 0) {
-          prevMonth = 12;
-          prevYear = yearInt - 1;
-        }
+        // 🎯 ใช้ stopDaysList จาก parameter ถ้ามี
+        if (stopDaysListParam && Array.isArray(stopDaysListParam) && stopDaysListParam.length > 0) {
+          stopDaysList = stopDaysListParam;
+          console.log(`🎯 ใช้ stopDaysList จาก parameter: ${stopDaysList.length} วัน`);
+        } else {
+          console.log(`⚙️ สร้าง stopDaysList จาก workTimeDay`);
         
-        const lastDayOfPrevMonth = new Date(prevYear, prevMonth, 0).getDate();
-        
-        // เก็บวันหยุดทั้งหมดในรอบเงินเดือน
-        // วันที่ 21-31 ของเดือนก่อนหน้า
-        for (let day = 21; day <= lastDayOfPrevMonth; day++) {
-          const date = new Date(prevYear, prevMonth - 1, day);
-          const dayOfWeek = date.getDay();
+          // ตรวจสอบวันที่ 21-31 ของเดือนก่อนหน้า
+          let prevMonth = monthInt - 1;
+          let prevYear = yearInt;
+          if (prevMonth === 0) {
+            prevMonth = 12;
+            prevYear = yearInt - 1;
+          }
           
-          // ตรวจสอบว่าเป็นวันหยุดหรือไม่
-          for (const schedule of workTimeDay) {
-            if (schedule.workOrStop === 'stop') {
-              const startDayNum = getDayNumberFromName(schedule.startDay);
-              const endDayNum = getDayNumberFromName(schedule.endDay);
-              
-              let isStopDay = false;
-              
-              // กรณีวันเดียว
-              if (startDayNum === endDayNum && dayOfWeek === startDayNum) {
-                isStopDay = true;
-              }
-              // กรณีช่วงวันปกติ
-              else if (startDayNum <= endDayNum && dayOfWeek >= startDayNum && dayOfWeek <= endDayNum) {
-                isStopDay = true;
-              }
-              // กรณีช่วงวันข้ามสัปดาห์
-              else if (startDayNum > endDayNum && (dayOfWeek >= startDayNum || dayOfWeek <= endDayNum)) {
-                isStopDay = true;
-              }
-              
-              if (isStopDay) {
-                stopDaysList.push({
-                  date: day,
-                  month: prevMonth,
-                  year: prevYear
-                });
-                break;
+          const lastDayOfPrevMonth = new Date(prevYear, prevMonth, 0).getDate();
+          
+          // เก็บวันหยุดทั้งหมดในรอบเงินเดือน
+          // วันที่ 21-31 ของเดือนก่อนหน้า
+          for (let day = 21; day <= lastDayOfPrevMonth; day++) {
+            const date = new Date(prevYear, prevMonth - 1, day);
+            const dayOfWeek = date.getDay();
+            
+            // ตรวจสอบว่าเป็นวันหยุดหรือไม่
+            for (const schedule of workTimeDay) {
+              if (schedule.workOrStop === 'stop') {
+                const startDayNum = getDayNumberFromName(schedule.startDay);
+                const endDayNum = getDayNumberFromName(schedule.endDay);
+                
+                let isStopDay = false;
+                
+                // กรณีวันเดียว
+                if (startDayNum === endDayNum && dayOfWeek === startDayNum) {
+                  isStopDay = true;
+                }
+                // กรณีช่วงวันปกติ
+                else if (startDayNum <= endDayNum && dayOfWeek >= startDayNum && dayOfWeek <= endDayNum) {
+                  isStopDay = true;
+                }
+                // กรณีช่วงวันข้ามสัปดาห์
+                else if (startDayNum > endDayNum && (dayOfWeek >= startDayNum || dayOfWeek <= endDayNum)) {
+                  isStopDay = true;
+                }
+                
+                if (isStopDay) {
+                  stopDaysList.push({
+                    date: day,
+                    month: prevMonth,
+                    year: prevYear
+                  });
+                  break;
+                }
               }
             }
           }
-        }
-        
-        // วันที่ 1-20 ของเดือนปัจจุบัน
-        for (let day = 1; day <= 20; day++) {
-          const date = new Date(yearInt, monthInt - 1, day);
-          const dayOfWeek = date.getDay();
           
-          // ตรวจสอบว่าเป็นวันหยุดหรือไม่
-          for (const schedule of workTimeDay) {
-            if (schedule.workOrStop === 'stop') {
-              const startDayNum = getDayNumberFromName(schedule.startDay);
-              const endDayNum = getDayNumberFromName(schedule.endDay);
-              
-              let isStopDay = false;
-              
-              // กรณีวันเดียว
-              if (startDayNum === endDayNum && dayOfWeek === startDayNum) {
-                isStopDay = true;
-              }
-              // กรณีช่วงวันปกติ
-              else if (startDayNum <= endDayNum && dayOfWeek >= startDayNum && dayOfWeek <= endDayNum) {
-                isStopDay = true;
-              }
-              // กรณีช่วงวันข้ามสัปดาห์
-              else if (startDayNum > endDayNum && (dayOfWeek >= startDayNum || dayOfWeek <= endDayNum)) {
-                isStopDay = true;
-              }
-              
-              if (isStopDay) {
-                stopDaysList.push({
-                  date: day,
-                  month: monthInt,
-                  year: yearInt
-                });
-                break;
+          // วันที่ 1-20 ของเดือนปัจจุบัน
+          for (let day = 1; day <= 20; day++) {
+            const date = new Date(yearInt, monthInt - 1, day);
+            const dayOfWeek = date.getDay();
+            
+            // ตรวจสอบว่าเป็นวันหยุดหรือไม่
+            for (const schedule of workTimeDay) {
+              if (schedule.workOrStop === 'stop') {
+                const startDayNum = getDayNumberFromName(schedule.startDay);
+                const endDayNum = getDayNumberFromName(schedule.endDay);
+                
+                let isStopDay = false;
+                
+                // กรณีวันเดียว
+                if (startDayNum === endDayNum && dayOfWeek === startDayNum) {
+                  isStopDay = true;
+                }
+                // กรณีช่วงวันปกติ
+                else if (startDayNum <= endDayNum && dayOfWeek >= startDayNum && dayOfWeek <= endDayNum) {
+                  isStopDay = true;
+                }
+                // กรณีช่วงวันข้ามสัปดาห์
+                else if (startDayNum > endDayNum && (dayOfWeek >= startDayNum || dayOfWeek <= endDayNum)) {
+                  isStopDay = true;
+                }
+                
+                if (isStopDay) {
+                  stopDaysList.push({
+                    date: day,
+                    month: monthInt,
+                    year: yearInt
+                  });
+                  break;
+                }
               }
             }
           }
