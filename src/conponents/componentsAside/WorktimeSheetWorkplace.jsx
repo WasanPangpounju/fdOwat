@@ -8772,8 +8772,15 @@ const socialSecurityColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount;
           }
           
           empRow2.push(record.specialShiftTotalSalary ? formatNumberWithComma(parseFloat(record.specialShiftTotalSalary).toFixed(2)) : ''); // วัน Cash Holiday
-          // เพิ่ม social security column
-          empRow2.push(record.socialSecurity ? formatNumberWithComma(parseFloat(record.socialSecurity).toFixed(2)) : '');
+          
+          // 🔥 แก้ไข: ใช้ลอจิกเดียวกันกับหน้าเว็บ - เช็ค tax ก่อน แล้วค่อยเช็ค socialSecurity
+          // ถ้ามี tax > 0 ให้แสดง tax, ถ้าไม่มีค่อยแสดง socialSecurity >= 50
+          const taxOrSocialSecurity = (record.tax && parseFloat(record.tax) > 0) 
+            ? formatNumberWithComma(parseFloat(record.tax).toFixed(2)) 
+            : (record.socialSecurity && parseFloat(record.socialSecurity) >= 50 
+              ? formatNumberWithComma(parseFloat(record.socialSecurity).toFixed(2)) 
+              : '');
+          empRow2.push(taxOrSocialSecurity);
           
           // เพิ่ม employee allowance column (เงินสงเคราะห์ลูกจ้าง)
           empRow2.push(record.employeeAllowance ? formatNumberWithComma(parseFloat(record.employeeAllowance).toFixed(2)) : '');
@@ -9309,8 +9316,32 @@ console.log(`Employee ${idx + 1} ends at row ${currentRowIndex - 1}, page ${curr
       // Total employees per day
       const totalEmpRow = ['รวมพนักงานทำงาน/วัน', ''];
       dayNumbers.forEach((day, i) => {
-        const count = employeeCountPerDay[i] || 0;
-        totalEmpRow.push(count === 0 ? '' : count);
+        // ตรวจสอบว่าวันนี้เป็นวันหยุดหรือไม่
+        const dayNum = parseInt(day);
+        let actualMonth, actualYear;
+        
+        if (dayNum >= 21) {
+          actualMonth = parseInt(month) - 1;
+          actualYear = parseInt(year);
+          if (actualMonth === 0) {
+            actualMonth = 12;
+            actualYear = actualYear - 1;
+          }
+        } else {
+          actualMonth = parseInt(month);
+          actualYear = parseInt(year);
+        }
+        
+        const targetDateStr = `${actualYear}-${actualMonth.toString().padStart(2, '0')}-${dayNum.toString().padStart(2, '0')}`;
+        const isWeekend = weekendData?.dayoffWorkplace?.includes(targetDateStr);
+        
+        // ถ้าเป็นวันหยุด ให้แสดง 0
+        if (isWeekend) {
+          totalEmpRow.push(0);
+        } else {
+          const count = employeeCountPerDay[i] || 0;
+          totalEmpRow.push(count === 0 ? '' : count);
+        }
       });
       totalEmpRow.push(employeeCountPerDay.reduce((total, count) => total + (count || 0), 0));
 const remainingColsTotal = row1.length - totalEmpRow.length;
@@ -9318,13 +9349,30 @@ for (let i = 0; i < remainingColsTotal; i++) {
     totalEmpRow.push('');
 }
       
-      // Mark special styling for empty work days (gray background)
+      // Mark special styling for weekend/holiday days
       totalEmpRow.specialStyles = {};
       dayNumbers.forEach((day, i) => {
-        const count = employeeCountPerDay[i] || 0;
-        if (count === 0) {
+        const dayNum = parseInt(day);
+        let actualMonth, actualYear;
+        
+        if (dayNum >= 21) {
+          actualMonth = parseInt(month) - 1;
+          actualYear = parseInt(year);
+          if (actualMonth === 0) {
+            actualMonth = 12;
+            actualYear = actualYear - 1;
+          }
+        } else {
+          actualMonth = parseInt(month);
+          actualYear = parseInt(year);
+        }
+        
+        const targetDateStr = `${actualYear}-${actualMonth.toString().padStart(2, '0')}-${dayNum.toString().padStart(2, '0')}`;
+        const isWeekend = weekendData?.dayoffWorkplace?.includes(targetDateStr);
+        
+        if (isWeekend) {
           totalEmpRow.specialStyles[i + 2] = { // +2 เพราะ column A,B เป็น "รวมพนักงานทำงาน/วัน" และ ""
-            backgroundColor: '', // สีเทา
+            backgroundColor: '', // สีเทา (วันหยุด)
             fontColor: 'FF000000',      // ตัวอักษรสีดำ
             fontWeight: 'bold'
           };
@@ -11144,25 +11192,56 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
   ];
   const overtimeLabels = ["วันหยุด", "วันนักขัต", "ทำงานวันหยุด/นักขัต", "โอที 1.5 เท่า", "โอที 3 เท่า"];
 
-// เพิ่ม function สำหรับนับพนักงานที่ทำงานในแต่ละวัน
+  // เพิ่ม function สำหรับนับพนักงานที่ทำงานในแต่ละวัน
   const countEmployeesPerDay = () => {
     const counts = Array(dayNumbers.length).fill(0);
     
     if (data && data.length > 0) {
       data.forEach(record => {
         dayNumbers.forEach((day, dayIndex) => {
+          // ตรวจสอบว่าวันนี้เป็นวันหยุดหรือไม่
+          const dayNum = parseInt(day);
+          let actualMonth, actualYear;
+          
+          if (dayNum >= 21) {
+            actualMonth = parseInt(month) - 1;
+            actualYear = parseInt(year);
+            if (actualMonth === 0) {
+              actualMonth = 12;
+              actualYear = actualYear - 1;
+            }
+          } else {
+            actualMonth = parseInt(month);
+            actualYear = parseInt(year);
+          }
+          
+          const targetDateStr = `${actualYear}-${actualMonth.toString().padStart(2, '0')}-${dayNum.toString().padStart(2, '0')}`;
+          const isWeekend = weekendData?.dayoffWorkplace?.includes(targetDateStr);
+          
+          // ถ้าเป็นวันหยุด ให้แสดง 0
+          if (isWeekend) {
+            counts[dayIndex] = 0;
+            return;
+          }
+          
+          // ถ้าไม่ใช่วันหยุด ให้นับพนักงานที่มาทำงาน
           const found = record?.employee_record?.find(itemx => itemx.date === day);
-          if (found?.dayType === "work") {
+          if (found?.dayType === "work" || found?.dayType === "stop") {
             counts[dayIndex]++;
           }
         });
       });
     }
     
-    return counts;
-  };
-
-  // เพิ่ม function สำหรับรวมชั่วโมงโอที 1.5 ในแต่ละวัน
+    // จำกัดจำนวนไม่ให้เกินพนักงานตามสัญญา
+    // ถ้ามาทำงานเกินกว่าสัญญา ให้แสดงแค่ตามจำนวนสัญญา
+    return counts.map(count => {
+      if (contractEmployeeCount > 0 && count > contractEmployeeCount) {
+        return contractEmployeeCount;
+      }
+      return count;
+    });
+  };  // เพิ่ม function สำหรับรวมชั่วโมงโอที 1.5 ในแต่ละวัน
   const sumOvertimePerDay = () => {
     const sums = Array(dayNumbers.length).fill(0);
     
@@ -13314,7 +13393,7 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
                         <td key={`ws-${i}`} className="text-center"></td>
                       ))}
                       <td className="text-center"></td>
-                      <td className="text-center"></td>
+                      <td className="text-center"></td> 
                       <td className="text-center"></td>
                       
                     </tr>

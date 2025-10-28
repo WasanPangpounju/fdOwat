@@ -2342,6 +2342,7 @@ const advance = parseFloat(currentEmployee.advance || advance2330 || 0);
     }
 
     pdf.text(`เงินได้สะสมต่อปี`, 9, 108);
+    pdf.text(`${currentEmployee}`)
     pdf.text(`ภาษีสะสมต่อปี`, 40, 108);
     pdf.text(`เงินสะสมกองทุนต่อปี`, 71, 108);
     pdf.text(`เงินประกันสะสมต่อปี`, 102, 108);

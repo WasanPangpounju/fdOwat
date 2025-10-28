@@ -494,7 +494,7 @@ addSalaryList.forEach(item => {
 console.log(`Final plusOther for employee ${record.employeeId}: ${plusOther}`);
 
   let positionAndTransportationWithSocialPlus = 0;
-  const positionAndTransportationIds = ["1230", "1520","1529","1534","1350"];
+  const positionAndTransportationIds = ["1230", "1520"];
 
   addSalaryList.forEach(item => {
       console.log('addSalaryList item:', item); // ดูว่ามีข้อมูลอะไรบ้าง
