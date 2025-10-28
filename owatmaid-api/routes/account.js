@@ -7909,29 +7909,6 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
       const isNormalShift = record.shift !== "specialt_shift" && record.shift !== "cash_holiday";
       const isCashWorkMul1 = record?.cashWorkMul === "1";
       
-      // 🚫 เช็คว่าวันนี้อยู่ใน stopDaysList หรือไม่
-      let isInStopDaysList = false;
-      if (stopDaysList && Array.isArray(stopDaysList) && stopDaysList.length > 0) {
-        const recordDate = parseInt(record.date);
-        isInStopDaysList = stopDaysList.some(stopDay => {
-          // เปรียบเทียบวันที่และเดือนที่ตรงกัน
-          if (recordDate >= 21) {
-            // วันที่ 21-31 เทียบกับเดือนก่อนหน้า
-            const prevMonth = parseInt(month) - 1 <= 0 ? 12 : parseInt(month) - 1;
-            const prevYear = parseInt(month) - 1 <= 0 ? parseInt(year) - 1 : parseInt(year);
-            return stopDay.date === recordDate && stopDay.month === prevMonth && stopDay.year === prevYear;
-          } else {
-            // วันที่ 1-20 เทียบกับเดือนปัจจุบัน
-            return stopDay.date === recordDate && stopDay.month === parseInt(month) && stopDay.year === parseInt(year);
-          }
-        });
-      }
-      
-      if (isInStopDaysList) {
-        console.log(`   🚫 วันที่ ${record.date}: อยู่ใน stopDaysList → ข้ามไม่นำมาคำนวณ`);
-        return; // ข้ามวันนี้
-      }
-      
       if (isWorkDay && hasWorkTime && isNormalShift && isCashWorkMul1) {
         let hoursToUse = 0;
         
