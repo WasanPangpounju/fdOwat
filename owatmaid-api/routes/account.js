@@ -7919,8 +7919,16 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
       if (stopDaysListParam && Array.isArray(stopDaysListParam) && stopDaysListParam.length > 0) {
         isInStopDaysList = stopDaysListParam.some(stopDay => {
           const recordDate = parseInt(record.date);
-          const recordMonth = parseInt(month);
-          const recordYear = parseInt(year);
+          const currentMonth = parseInt(month);
+          const currentYear = parseInt(year);
+          
+          // คำนวณเดือนก่อนหน้า
+          let prevMonth = currentMonth - 1;
+          let prevYear = currentYear;
+          if (prevMonth < 1) {
+            prevMonth = 12;
+            prevYear = currentYear - 1;
+          }
           
           // เดือนและปีของ stopDay
           const stopDayMonth = parseInt(stopDay.month);
@@ -7928,7 +7936,16 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
           const stopDayDate = parseInt(stopDay.date);
           
           // เช็คว่าตรงกันหรือไม่ (รองรับทั้งเดือนเดียวกันและข้ามเดือน)
-          const isSameDate = stopDayDate === recordDate && stopDayMonth === recordMonth && stopDayYear === recordYear;
+          let isSameDate = false;
+          
+          // กรณีที่ 1: วันที่ 21-31 ของเดือนก่อนหน้า
+          if (recordDate >= 21 && stopDayMonth === prevMonth && stopDayYear === prevYear && stopDayDate === recordDate) {
+            isSameDate = true;
+          }
+          // กรณีที่ 2: วันที่ 1-20 ของเดือนปัจจุบัน
+          else if (recordDate <= 20 && stopDayMonth === currentMonth && stopDayYear === currentYear && stopDayDate === recordDate) {
+            isSameDate = true;
+          }
           
           return isSameDate;
         });
