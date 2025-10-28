@@ -7903,6 +7903,32 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
     
     // วนลูปแต่ละ record เพื่อคำนวณรายวัน
     employee_record.forEach((record, index) => {
+      // 🚫 เช็คว่าวันนี้อยู่ใน stopDaysList หรือไม่
+      let isInStopDaysList = false;
+      if (stopDaysList && Array.isArray(stopDaysList) && stopDaysList.length > 0) {
+        isInStopDaysList = stopDaysList.some(stopDay => {
+          const recordDate = parseInt(record.date);
+          const recordMonth = parseInt(month);
+          const recordYear = parseInt(year);
+          
+          // เดือนและปีของ stopDay
+          const stopDayMonth = parseInt(stopDay.month);
+          const stopDayYear = parseInt(stopDay.year);
+          const stopDayDate = parseInt(stopDay.date);
+          
+          // เช็คว่าตรงกันหรือไม่ (รองรับทั้งเดือนเดียวกันและข้ามเดือน)
+          const isSameDate = stopDayDate === recordDate && stopDayMonth === recordMonth && stopDayYear === recordYear;
+          
+          return isSameDate;
+        });
+      }
+      
+      // ถ้าอยู่ใน stopDaysList ให้ข้ามไป (ไม่นับ totalTime)
+      if (isInStopDaysList) {
+        console.log(`   🚫 วันที่ ${record.date}: อยู่ใน stopDaysList → ข้ามไม่นับ totalTime`);
+        return; // ข้ามไปวันถัดไป
+      }
+      
       // เช็คว่าเป็นวันทำงานปกติ (dayType = "work")
       const isWorkDay = record?.dayType === "work";
       const hasWorkTime = record.totalTime && record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0;
