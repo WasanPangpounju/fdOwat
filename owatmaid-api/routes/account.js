@@ -7916,8 +7916,8 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
     employee_record.forEach((record, index) => {
       // 🚫 เช็คว่าวันนี้อยู่ใน stopDaysList หรือไม่
       let isInStopDaysList = false;
-      if (stopDaysList && Array.isArray(stopDaysList) && stopDaysList.length > 0) {
-        isInStopDaysList = stopDaysList.some(stopDay => {
+      if (stopDaysListParam && Array.isArray(stopDaysListParam) && stopDaysListParam.length > 0) {
+        isInStopDaysList = stopDaysListParam.some(stopDay => {
           const recordDate = parseInt(record.date);
           const recordMonth = parseInt(month);
           const recordYear = parseInt(year);
