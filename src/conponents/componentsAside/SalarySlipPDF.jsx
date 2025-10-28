@@ -2351,9 +2351,6 @@ const advance = parseFloat(currentEmployee.advance || advance2330 || 0);
     }
 
     pdf.text(`เงินได้สะสมต่อปี`, 9, 108);
-<<<<<<< HEAD
-    pdf.text(`${currentEmployee}`)
-=======
     const netSalaryForDisplay1 = calculateNetSalary(currentEmployee, responseDataAll[i]?.accountingRecord?.[0]);
     pdf.text(
       `${netSalaryForDisplay1.toLocaleString('th-TH', {
@@ -2363,7 +2360,7 @@ const advance = parseFloat(currentEmployee.advance || advance2330 || 0);
       17,
       115
     );
->>>>>>> 043ed8271cbe1430592267940422c552042b516b
+    
     pdf.text(`ภาษีสะสมต่อปี`, 40, 108);
     pdf.text(`เงินสะสมกองทุนต่อปี`, 71, 108);
     pdf.text(`เงินประกันสะสมต่อปี`, 102, 108);
