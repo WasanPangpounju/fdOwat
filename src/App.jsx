@@ -160,11 +160,8 @@ useEffect(() => {
       console.log("Sorted data (ASCENDING):", sortedData.map(item => item.workplaceId));
       console.log("Setting workplaceList with:", sortedData); // Debug: ตรวจสอบข้อมูลที่จะ set
       
-      // Clear state first, then set new data to force re-render
-      setWorkplaceList([]);
-      setTimeout(() => {
-        setWorkplaceList(sortedData);
-      }, 0);
+      // ✅ Fixed: Update state once (removed unnecessary double render)
+      setWorkplaceList(sortedData);
     })
     .catch((error) => {
       console.error("Error fetching data:", error);

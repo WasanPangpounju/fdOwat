@@ -1545,7 +1545,11 @@ router.get('/getWeekendDates', async (req, res) => {
 
     // ตรวจสอบวันเสาร์-อาทิตย์ในช่วงเวลา
     const weekendSet = new Set();
-    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+    // ✅ Fixed: Add safety check to prevent infinite loop
+    const maxIterations = 400; // Max 400 days (~13 months)
+    let iterations = 0;
+    for (let d = new Date(startDate); d <= endDate && iterations < maxIterations; d.setDate(d.getDate() + 1)) {
+      iterations++;
       const day = d.getDay();
       if (day === 0 || day === 6) {
         const yyyy = d.getFullYear();
@@ -1553,6 +1557,9 @@ router.get('/getWeekendDates', async (req, res) => {
         const dd = String(d.getDate()).padStart(2, '0');
         weekendSet.add(`${yyyy}-${mm}-${dd}`);
       }
+    }
+    if (iterations >= maxIterations) {
+      console.error('⚠️ Date loop exceeded max iterations (400 days) - possible invalid date range');
     }
 
     // ✅ คำนวณ dayoffWorkplace ใหม่ตามช่วงเวลาที่ถูกต้อง
@@ -1593,7 +1600,11 @@ router.get('/getWeekendDates', async (req, res) => {
       console.log(`🗓️ วันหยุดประจำที่หน่วยงานกำหนด (เลขวัน): ${dayOffList}`);
       
       // สร้างรายการวันที่ในช่วงเงินเดือนที่ตรงกับวันหยุด
-      for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+      // ✅ Fixed: Add safety check to prevent infinite loop
+      let iterations2 = 0;
+      const maxIterations2 = 400;
+      for (let d = new Date(startDate); d <= endDate && iterations2 < maxIterations2; d.setDate(d.getDate() + 1)) {
+        iterations2++;
         const dayNumber = d.getDay();
         if (dayOffList.includes(dayNumber)) {
           const yyyy = d.getFullYear();
@@ -1602,6 +1613,9 @@ router.get('/getWeekendDates', async (req, res) => {
           const dateStr = `${yyyy}-${mm}-${dd}`;
           calculatedDayoffWorkplace.push(dateStr);
         }
+      }
+      if (iterations2 >= maxIterations2) {
+        console.error('⚠️ Date loop 2 exceeded max iterations (400 days)');
       }
     }
     
@@ -2034,7 +2048,11 @@ function getWeekendDates(yyyy, mm, daysOff = []) {
       })
   );
 
-  for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+  // ✅ Fixed: Add safety check to prevent infinite loop
+  let iterations3 = 0;
+  const maxIterations3 = 400;
+  for (let d = new Date(startDate); d <= endDate && iterations3 < maxIterations3; d.setDate(d.getDate() + 1)) {
+    iterations3++;
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
     const dd = String(d.getDate()).padStart(2, '0');
@@ -2049,6 +2067,10 @@ function getWeekendDates(yyyy, mm, daysOff = []) {
     } else if (isDayOff) {
       resultMap.set(dateStr, 'dayOff');
     }
+  }
+  
+  if (iterations3 >= maxIterations3) {
+    console.error('⚠️ Date loop 3 exceeded max iterations (400 days) in getEmployeeAllTimeRecord');
   }
 
   // แปลงเป็น array

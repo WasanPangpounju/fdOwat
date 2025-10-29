@@ -33,6 +33,7 @@ async function getEmployeeJobType(employeeId) {
 }
 
 // ฟังก์ชัน migrate ข้อมูลเก่าให้เพิ่ม typeOfemployee
+// ✅ Fixed: Optimize migration to reduce N+1 query problem
 async function migrateTimerecordsWithTypeOfEmployee() {
   try {
     console.log('🔄 [MIGRATE] เริ่มการ migrate ข้อมูลเก่าให้เพิ่ม typeOfemployee...');
@@ -44,25 +45,64 @@ async function migrateTimerecordsWithTypeOfEmployee() {
         { 'typeOfemployee': '' },
         { 'typeOfemployee': null }
       ]
-    });
+    }).limit(1000); // ✅ Limit to prevent too many records at once
 
     console.log(`📊 [MIGRATE] พบข้อมูลที่ต้อง migrate: ${timerecordsNeedMigration.length} records`);
 
-    let migratedCount = 0;
-    for (const timerecord of timerecordsNeedMigration) {
-      const employeeId = timerecord.employeeId;
-      const typeOfemployee = await getEmployeeJobType(employeeId);
-      
-      // อัปเดตเฉพาะ typeOfemployee ที่ระดับ root (ไม่แตะ employee_record)
-      // บันทึกข้อมูลที่อัปเดตแล้ว
-      await timerecordEmployee.findByIdAndUpdate(
-        timerecord._id,
-        { typeOfemployee: typeOfemployee }, // เพิ่มเฉพาะที่ระดับ root
-        { new: true }
-      );
+    if (timerecordsNeedMigration.length === 0) {
+      console.log('✅ [MIGRATE] ไม่มีข้อมูลที่ต้อง migrate');
+      return { success: true, migratedCount: 0 };
+    }
 
-      migratedCount++;
-      console.log(`✅ [MIGRATE] อัปเดต typeOfemployee สำหรับพนักงาน ${employeeId}: ${typeOfemployee} (${migratedCount}/${timerecordsNeedMigration.length})`);
+    // ✅ Fetch all employee data at once (instead of one by one)
+    const uniqueEmployeeIds = [...new Set(timerecordsNeedMigration.map(t => t.employeeId))];
+    console.log(`🔍 [MIGRATE] กำลังดึงข้อมูลพนักงาน ${uniqueEmployeeIds.length} คน...`);
+    
+    const employeeJobTypeMap = new Map();
+    
+    // Fetch employees in batches of 100
+    const batchSize = 100;
+    for (let i = 0; i < uniqueEmployeeIds.length; i += batchSize) {
+      const batch = uniqueEmployeeIds.slice(i, i + batchSize);
+      try {
+        const responses = await Promise.all(
+          batch.map(empId => 
+            axios.get(sURL + '/employee/' + empId).catch(err => {
+              console.warn(`⚠️ Failed to fetch employee ${empId}:`, err.message);
+              return null;
+            })
+          )
+        );
+        
+        responses.forEach((res, idx) => {
+          if (res && res.data) {
+            employeeJobTypeMap.set(batch[idx], res.data.jobtype || '');
+          }
+        });
+      } catch (err) {
+        console.error(`⚠️ Error fetching batch ${i}-${i+batchSize}:`, err.message);
+      }
+    }
+
+    console.log(`✅ [MIGRATE] ดึงข้อมูลพนักงานสำเร็จ ${employeeJobTypeMap.size}/${uniqueEmployeeIds.length} คน`);
+
+    // ✅ Prepare bulk operations
+    const bulkOps = timerecordsNeedMigration.map(timerecord => {
+      const typeOfemployee = employeeJobTypeMap.get(timerecord.employeeId) || '';
+      return {
+        updateOne: {
+          filter: { _id: timerecord._id },
+          update: { $set: { typeOfemployee: typeOfemployee } }
+        }
+      };
+    });
+
+    // ✅ Execute all updates at once using bulkWrite
+    let migratedCount = 0;
+    if (bulkOps.length > 0) {
+      const result = await timerecordEmployee.bulkWrite(bulkOps, { ordered: false });
+      migratedCount = result.modifiedCount || bulkOps.length;
+      console.log(`✅ [MIGRATE] อัปเดตข้อมูลสำเร็จ: ${migratedCount} records`);
     }
 
     console.log(`🎉 [MIGRATE] เสร็จสิ้นการ migrate ข้อมูล: ${migratedCount} records`);
