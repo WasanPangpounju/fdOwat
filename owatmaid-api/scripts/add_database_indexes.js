@@ -124,12 +124,20 @@ async function addIndexes() {
     
     const workplaceCollection = db.collection('workplaces');
     
-    // Index for workplaceId
-    await workplaceCollection.createIndex(
-      { workplaceId: 1 },
-      { background: true, name: 'idx_workplaceId', unique: true }
-    );
-    console.log('✅ Created unique index: workplaceId');
+    // Index for workplaceId (skip if already exists)
+    try {
+      await workplaceCollection.createIndex(
+        { workplaceId: 1 },
+        { background: true, name: 'idx_workplaceId', unique: true }
+      );
+      console.log('✅ Created unique index: workplaceId');
+    } catch (err) {
+      if (err.code === 85) {
+        console.log('ℹ️  Index workplaceId already exists, skipping...');
+      } else {
+        throw err;
+      }
+    }
 
     // ===================================
     // List all indexes
