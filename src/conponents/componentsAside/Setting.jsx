@@ -2157,9 +2157,15 @@ if (newWorkplace) {
 
   // Make the API call to update the resource by ID
   try {
+    // กำหนดค่า workOfWeek เป็น 7 ก่อนส่งข้อมูล
+    const updatedData = {
+      ...data,
+      workOfWeek: "7"
+    };
+    
     const response = await axios.put(
       endpoint + "/workplace/update/" + _id,
-      data
+      updatedData
     );
     // setEmployeesResult(response.data.employees);
     if (response) {
