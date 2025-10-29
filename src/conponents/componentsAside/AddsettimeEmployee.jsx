@@ -29,7 +29,7 @@ function AddsettimeEmployee() {
   }, [isDataTrue]);
 
   const bordertable = {
-    borderLeft: "2px solid #000",
+    borderLeft: "0.3px solid #000",
   };
 
   // Function to generate PDF report
@@ -90,7 +90,7 @@ const generatePDFReport = async () => {
     dateSection.style.right = '0';
     dateSection.style.textAlign = 'center';
     dateSection.style.fontSize = '12px';
-    dateSection.style.border = '1px solid #000';
+    dateSection.style.border = '0.3px solid #000';
     dateSection.style.padding = '10px';
     dateSection.style.width = '150px';
     dateSection.style.backgroundColor = '#f8f9fa';
@@ -140,7 +140,7 @@ const generatePDFReport = async () => {
       fallbackDiv.style.width = '80px';
       fallbackDiv.style.height = '80px';
       fallbackDiv.style.backgroundColor = '#e9ecef';
-      fallbackDiv.style.border = '1px solid #dee2e6';
+      fallbackDiv.style.border = '0.3px solid #dee2e6';
       fallbackDiv.style.display = 'flex';
       fallbackDiv.style.alignItems = 'center';
       fallbackDiv.style.justifyContent = 'center';
@@ -190,9 +190,9 @@ const generatePDFReport = async () => {
         // สร้างตารางใหม่สำหรับ PDF โดยทำการ merge เซลล์ให้ถูกต้อง
         const pdfTable = document.createElement('table');
         pdfTable.style.width = '100%';
-        pdfTable.style.borderCollapse = 'collapse';
+        pdfTable.style.borderCollapse = 'separate';
         pdfTable.style.fontSize = '10px';
-        pdfTable.style.border = '1px solid #000';
+        pdfTable.style.border = '0.3px solid #000';
         pdfTable.style.textAlign = 'center';
         pdfTable.style.marginTop = '20px';
 
@@ -217,7 +217,7 @@ const generatePDFReport = async () => {
         headers.forEach(header => {
           const th = document.createElement('th');
           th.textContent = header.text;
-          th.style.border = '1px solid #000';
+          th.style.border = '0.3px solid #000';
           th.style.padding = '8px';
           th.style.backgroundColor = '#f8f9fa';
           th.style.fontWeight = 'bold';
@@ -243,7 +243,7 @@ const generatePDFReport = async () => {
         subHeaders.forEach(subHeader => {
           const th = document.createElement('th');
           th.textContent = subHeader;
-          th.style.border = '1px solid #000';
+          th.style.border = '0.3px solid #000';
           th.style.padding = '8px';
           th.style.backgroundColor = '#f8f9fa';
           th.style.fontWeight = 'bold';
@@ -270,7 +270,7 @@ const generatePDFReport = async () => {
               if (cellIndex < cells.length - 1) {
                 const newCell = document.createElement('td');
                 newCell.textContent = cell.textContent.trim();
-                newCell.style.border = '1px solid #000';
+                newCell.style.border = '0.3px solid #000';
                 newCell.style.padding = '6px';
                 newCell.style.textAlign = 'center';
                 newCell.style.verticalAlign = 'middle';

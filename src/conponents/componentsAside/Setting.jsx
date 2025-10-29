@@ -968,7 +968,7 @@ const handleRemovePublicHoliday = async (holidayToRemove) => {
   const [workplaceId, setWorkplaceId] = useState(""); //รหัสหน่วยงาน
   const [workplaceName, setWorkplaceName] = useState(""); //ชื่อหน่วยงาน
   const [workplaceArea, setWorkplaceArea] = useState(""); //สถานที่ปฏิบัติงาน
-  const [workOfWeek, setWorkOfWeek] = useState(""); //วันทำงานต่อสัปดาห์
+  const [workOfWeek, setWorkOfWeek] = useState("7"); //วันทำงานต่อสัปดาห์
 
   const [workStart1, setWorkStart1] = useState(""); //เวลาเริ่มกะเช้า
   const [workEnd1, setWorkEnd1] = useState(""); //เวลาออกกะเช้า
@@ -2559,7 +2559,7 @@ if (newWorkplace) {
                           />
                         </div>
                       </div>
-                      <div class="col-md-6">
+                      {/* <div class="col-md-6">
                         <div class="form-group">
                           <label role="workOfWeek">
                             จำนวนวันทำงานต่อสัปดาห์<span style={{ color: "red" }}>*</span>
@@ -2580,7 +2580,7 @@ if (newWorkplace) {
                             }}
                           />
                         </div>
-                      </div>
+                      </div> */}
                     </div>
                   </div>
                 </section>

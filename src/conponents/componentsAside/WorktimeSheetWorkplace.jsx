@@ -7995,6 +7995,7 @@ const getDateStyle = (day) => {
       const headerRow2 = worksheet.addRow(row2);
       const headerRow3 = worksheet.addRow(row3);
       const headerRow4 = worksheet.addRow(row4);
+      headerRow4.height = 200; // Set height for row 8 (headerRow4) directly after creation
       
       console.log('Header rows added to worksheet successfully');
       
@@ -8251,7 +8252,7 @@ try {
     try {
       const cashHolidayCell = worksheet.getCell(`${cashHolidayCol}5`);
       if (cashHolidayCell) {
-        cashHolidayCell.value = 'วัน Cash Holiday'; // ตั้งค่าข้อความใหม่
+        cashHolidayCell.value = 'ทำงานวันหยุด(จ่ายสด)'; // มันคือ "วัน Cash Holiday"
         cashHolidayCell.alignment = {
           horizontal: 'center',
           vertical: 'middle',
