@@ -23,11 +23,8 @@ import Top from "./conponents/Top";
 import Dashboard from "./conponents/componentsAside/Dashboard";
 import Search from "./conponents/componentsAside/Search";
 import Employee from "./conponents/componentsAside/Employee";
-import EmployeesSelected from "./conponents/componentsAside/EmployeesSelected";
-import TestComponent from "./conponents/componentsAside/TestComponent";
 
 import Salary from "./conponents/componentsAside/Salary";
-import BankReportComponent from "./conponents/componentsAside/BankReportComponent";
 // import Salary from "./conponents/Salary";
 
 import IncomeTax from "./conponents/componentsAside/IncomeTax";
@@ -58,11 +55,9 @@ import SettingComplex from "./conponents/componentsAside/SettingComplex";
 import SettingAllList from "./conponents/componentsAside/SettingAllList";
 import SettingEdit from "./conponents/componentsAside/SettingEdit";
 import SettingSpecial from "./conponents/componentsAside/SettingSpecail";
-import EmployeeWorkDay from "./conponents/componentsAside/componentsetting/EmployeeWorkDay";
 
 import SystemUser from "./conponents/componentsAside/SystemUser";
 import Addsettime from "./conponents/componentsAside/Addsettime";
-import AddsettimeUpload from "./conponents/componentsAside/AddsettimeUpload";
 
 import Salarysummary from "./conponents/componentsAside/Salarysummary";
 // import Examine from "./conponents/componentsAside/salarysummary/examine";
@@ -77,7 +72,6 @@ import SalaryAllResultAudit from "./conponents/componentsAside/SalaryAllResultAu
 import WorktimeSheetWorkplacefor10105 from "./conponents/componentsAside/WorktimeSheetWorkplacefor10105";
 
 
-import AddsettimeReplace from "./conponents/componentsAside/AddsettimeReplace";
 import ReplaceReport from "./conponents/componentsAside/ReplaceReport";
 import ReplaceWorkplaceReport from "./conponents/componentsAside/ReplaceWorkplaceReport";
 import ReplaceEmployeeReport from "./conponents/componentsAside/ReplaceEmployeeReport";
@@ -85,25 +79,17 @@ import ReplaceEmployeeReport from "./conponents/componentsAside/ReplaceEmployeeR
 import Worktimesheet from "./conponents/componentsAside/Worktimesheet";
 import WorktimeSheetWorkplace from "./conponents/componentsAside/WorktimeSheetWorkplace";
 import WorktimeSheetWorkplaceSpace from "./conponents/componentsAside/WorktimeSheetWorkplaceSpace";
-import WorktimeSheetWorkplace_Save01_22_2024 from "./conponents/componentsAside/WorktimeSheetWorkplace_Save01-22-2024";
-
-import TestPDF from "./conponents/componentsAside/TestPDF";
 
 import SalarySlipPDF from "./conponents/componentsAside/SalarySlipPDF";
-import BackReport from "./conponents/componentsAside/BackReport";
 // import SendEmployeePDF from "./conponents/componentsAside/sendEmployeePDF";
 import SendEmployeePDF from "./conponents/componentsAside/SendEmployeePDF";
-import SendEmployeePDF2 from "./conponents/componentsAside/SendEmployeePDF2";
-import SendEmployeePDF3 from "./conponents/componentsAside/SendEmployeePDF3";
 import Testapp from "./conponents/componentsAside/Test";
 import TestPDFSalary from "./conponents/componentsAside/TestPDFSalary";
-import TestPDFResultSalay from "./conponents/componentsAside/TestPDFResultSalay";
 import TestPDFResultSalayNew from "./conponents/componentsAside/TestPDFResultSalayNew";
 
 // import Time from "./conponents/Time";
 import Testcal from "./conponents/Testcal";
 import Countday from "./conponents/Countday";
-import TestShowManyData from "./conponents/componentsAside/TestShowManyData";
 
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 // import Login from "./conponents/Login";
@@ -330,10 +316,6 @@ useEffect(() => {
                 path="/worktimesheetworkplaceSpace"
                 element={<WorktimeSheetWorkplaceSpace employeeList={employeeList} />}
               />
-              <Route
-                path="/worktimeSheetWorkplace_Save01_22_2024"
-                element={<WorktimeSheetWorkplace_Save01_22_2024 />}
-              />
 
               <Route path="/income_tax" element={<IncomeTax />} />
               <Route path="/social_security" element={<SocialSecurity />} />
@@ -394,11 +376,6 @@ useEffect(() => {
               <Route
                 path="/addsettime"
                 element={<Addsettime workplaceList={workplaceList} employeeList={employeeList}/>}
-              />
-
-              <Route
-                              path="/addsettimereplace"
-                element={<AddsettimeReplace workplaceList={workplaceList} employeeList={employeeList}/>}
               />
 
               {/* <Route path="/addsettimeupload" element={<AddsettimeUpload workplaceList={workplaceList}/>} /> */}
