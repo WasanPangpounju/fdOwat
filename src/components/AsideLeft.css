@@ -1,0 +1,22 @@
+/* Increase height of each menu item without changing colors */
+.nav-sidebar .nav-item .nav-link {
+    padding-top: 0.8rem !important;
+    padding-bottom: 0.8rem !important;
+}
+
+/* Keep original padding for submenu items but increase height */
+.nav-sidebar .nav-item .nav-treeview .nav-link {
+    padding-top: 0.8rem !important;
+    padding-bottom: 0.8rem !important;
+}
+
+/* Adjust spacing in user panel */
+.user-panel {
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+}
+
+/* Keep icon sizes proportional */
+.nav-sidebar .nav-link i.nav-icon {
+    margin-right: 0.5rem !important;
+}

@@ -1,0 +1,206 @@
+import React, { useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import axios from 'axios';
+import Swal from 'sweetalert2';
+import '../editwindowcss.css'; // CSS รวมของโปรเจกต์
+
+function Dashboard() {
+  useEffect(() => {
+    document.title = 'แดชบอร์ด';
+  }, []);
+
+  // ฟังก์ชันปิดงวด - เคลียร์ addSalary และ deductSalary
+  const closePeriod = async () => {
+    try {
+      // ยืนยันการกระทำด้วย SweetAlert2
+      const result = await Swal.fire({
+        title: 'ยืนยันการปิดงวด',
+        text: 'คุณต้องการปิดงวด ใช่หรือไม่?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'ยืนยัน: ปิดงวด',
+        cancelButtonText: 'ยกเลิก'
+      });
+
+      if (result.isConfirmed) {
+        // แสดง loading
+        Swal.fire({
+          title: 'กำลังปิดงวด...',
+          text: 'กรุณารอสักครู่',
+          allowOutsideClick: false,
+          allowEscapeKey: false,
+          showConfirmButton: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
+        });
+
+        // เรียก API เพื่อค้นหาข้อมูลพนักงาน ID 660075
+        const response = await axios.post('http://10.10.110.7:3000/employee/search', {
+          employeeId: "660075"
+        });
+
+        if (response.data && response.data.employees && response.data.employees.length > 0) {
+          const employee = response.data.employees[0];
+          
+          // อัปเดตข้อมูลโดยเคลียร์ addSalary และ deductSalary
+          const updateData = {
+            ...employee,
+            addSalary: [],
+            deductSalary: []
+          };
+
+          // เรียก API เพื่ออัปเดตข้อมูล
+          await axios.put(`http://10.10.110.7:3000/employee/update/${employee._id}`, updateData);
+          
+          // แสดงข้อความสำเร็จ
+          await Swal.fire({
+            title: 'ปิดงวดสำเร็จ!',
+            text: 'เรียบร้อยแล้ว',
+            icon: 'success',
+            confirmButtonColor: '#28a745',
+            confirmButtonText: 'ตกลง'
+          });
+          
+          window.location.reload();
+        } else {
+          // แสดงข้อความไม่พบข้อมูล
+          await Swal.fire({
+            title: 'ไม่พบข้อมูล!',
+            text: 'ไม่พบข้อมูลพนักงาน ID 660075',
+            icon: 'error',
+            confirmButtonColor: '#dc3545',
+            confirmButtonText: 'ตกลง'
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error closing period:', error);
+      
+      // แสดงข้อความผิดพลาด
+      await Swal.fire({
+        title: 'เกิดข้อผิดพลาด!',
+        text: 'เกิดข้อผิดพลาดในการปิดงวด กรุณาลองใหม่อีกครั้ง',
+        icon: 'error',
+        confirmButtonColor: '#dc3545',
+        confirmButtonText: 'ตกลง'
+      });
+    }
+  };
+
+  return (
+    <div className="hold-transition sidebar-mini editlaout">
+      <div className="wrapper">
+        <div className="content-wrapper">
+          
+          {/* Breadcrumb */}
+          <ol className="breadcrumb">
+            <li className="breadcrumb-item">
+              <i className="fas fa-home"></i> <span>หน้าหลัก</span>
+            </li>
+            <li className="breadcrumb-item active">แดชบอร์ด</li>
+          </ol>
+
+          {/* Header */}
+          <div className="content-header">
+            <div className="container-fluid">
+              <div className="row mb-2">
+                <h1 className="m-0">
+                  <i className="far fa-arrow-alt-circle-right"></i> แดชบอร์ด
+                </h1>
+              </div>
+            </div>
+          </div>
+
+          {/* Main content */}
+          <section className="content">
+            <div className="container-fluid">
+              <div className="row gy-4">
+                {dashboardItems.map((item, idx) => (
+                  <DashboardButton key={idx} {...item} />
+                ))}
+                <div className='d-flex justify-content-center align-items-center col-12'>
+                  <button 
+                    onClick={closePeriod}
+                    className="btn btn-danger">ปิดงวด</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// รายการปุ่มในแดชบอร์ด
+const dashboardItems = [
+  { to: "/addsettimeauto", icon: "bi bi-clock", text: "ระบบลงเวลาอัตโมมัติ", color: "#ff6c60" },
+  { to: "/addEdit_Employee", icon: "bi bi-people", text: "เพิ่ม/ลบ พนักงาน", color: "#9DBAEA" },
+  { to: "/addEdit_SalaryEmployee", icon: "bi bi-cash", text: "เงินเพิ่ม/เงินหัก", color: "#A2B4D2" },
+  { to: "/speacialshiftcash", icon: "bi bi-file-earmark-text", text: "ระบบเอกสารจ่ายสด", color: "#58c9f3" },
+  { to: "#", icon: "bi bi-file-text", text: "ระบบออกเอกสาร", color: "#41cac0" },
+  { to: "#", icon: "bi bi-file-bar-graph", text: "รายงานผู้บริหาร", color: "#8175c7" },
+  { to: "/search", icon: "bi bi-diagram-3", text: "จัดการพนักงาน", color: "#ffc107" },
+  { to: "#", icon: "bi bi-gear", text: "การตั้งค่า", color: "#aebece" },
+];
+
+
+// Component ปุ่มแต่ละอัน
+function DashboardButton({ to, icon, text, color, disabled }) {
+  const handleClick = (e) => {
+    if (disabled) {
+      e.preventDefault();
+      Swal.fire({
+        title: 'ปิดปรับปรุงชั่วคราว',
+        text: 'ระบบนี้อยู่ระหว่างการปรับปรุง กรุณาลองใหม่อีกครั้งในภายหลัง',
+        icon: 'info',
+        confirmButtonColor: '#3085d6',
+        confirmButtonText: 'ตกลง'
+      });
+    }
+  };
+
+  return (
+    <div className="col-6 col-md-3 mb-3 d-flex justify-content-center">
+      <Link
+        to={to}
+        onClick={handleClick}
+        className={`d-block text-white text-center rounded shadow-sm p-3 text-decoration-none h-100 ${disabled ? 'disabled-link' : ''}`}
+        style={{
+          background: disabled ? '#6c757d' : color,
+          minHeight: '80px',
+          maxWidth: '190px',
+          width: '100%',
+          fontSize: '1rem',
+          lineHeight: 0.7,
+          opacity: disabled ? 0.6 : 1,
+          display: 'grid',
+          placeItems: 'center',
+          gap: '10px',
+          transition: 'all 0.3s ease',
+          transform: 'translateY(0)',
+          boxShadow: '0 5px 7px rgba(0,0,0,0.1)'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-5px)';
+          e.currentTarget.style.boxShadow = '0 6px 12px rgba(0,0,0,0.15)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+        }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center' }}>
+          <i className={`${icon} fa-2x`}></i>
+          <div>{text}</div>
+        </div>
+      </Link>
+    </div>
+  );
+}
+
+export default Dashboard;

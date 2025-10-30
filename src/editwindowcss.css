@@ -1,0 +1,34 @@
+.content-wrapper {
+  min-height: 100vh;
+  padding-bottom: 60px;  /* ความสูงของ footer */
+  overflow-y: auto;      /* เพิ่ม scroll bar เมื่อเนื้อหาเกินขนาด */
+}
+
+.wrapper {
+  position: relative;
+  min-height: 100vh;
+}
+
+/* ปรับ layout หลัก */
+.editlaout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ให้เนื้อหาสามารถ scroll ได้ */
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+/* ปรับ footer ให้อยู่ด้านล่างเสมอ */
+.main-footer {
+  margin-top: auto;
+}
+
+/* ปรับ container ให้มี height ที่เหมาะสม */
+.container-fluid {
+  min-height: calc(100vh - 200px); /* ลบความสูงของ header และ footer */
+}
