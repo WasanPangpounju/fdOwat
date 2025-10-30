@@ -1,0 +1,18 @@
+/* ทำให้เส้นกรอบแสดงทั่วทุก cell */
+.table-bordered th,
+.table-bordered td {
+  border: 1px solid black;
+}
+
+.full-width-table {
+  width: 100% !important;
+  border-collapse: collapse;
+  border: 1px solid #ccc;
+}
+
+.full-width-table th,
+.full-width-table td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  text-align: left;
+}

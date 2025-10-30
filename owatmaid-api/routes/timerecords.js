@@ -1,6 +1,10 @@
 const connectionString = require('../config');
 const sURL = 'http://localhost:3000';
 
+const timerecordEmployee = require('./models/periodtimerecordModel');
+const workplaceTimerecords = require('./models/periodworkplacetimerecordModel');
+const welfare = require('./models/welfareModel');
+
 const axios = require('axios');
 
 var express = require('express');
@@ -11,6 +15,103 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const bodyParser = require('body-parser');
 const { months } = require('moment');
+
+// ฟังก์ชันดึงข้อมูล typeOfemployee จาก employee API
+async function getEmployeeJobType(employeeId) {
+  try {
+    const employeeResponse = await axios.get(sURL + '/employee/' + employeeId);
+    if (employeeResponse && employeeResponse.data) {
+      const typeOfemployee = employeeResponse.data.jobtype || '';
+      console.log(`🔍 [timerecords] ดึงข้อมูล jobtype สำหรับพนักงาน ${employeeId}: ${typeOfemployee}`);
+      return typeOfemployee;
+    }
+    return '';
+  } catch (error) {
+    console.error(`⚠️ [timerecords] ไม่สามารถดึงข้อมูลพนักงาน ${employeeId}:`, error.message);
+    return '';
+  }
+}
+
+// ฟังก์ชัน migrate ข้อมูลเก่าให้เพิ่ม typeOfemployee
+// ✅ Fixed: Optimize migration to reduce N+1 query problem
+async function migrateTimerecordsWithTypeOfEmployee() {
+  try {
+    console.log('🔄 [MIGRATE] เริ่มการ migrate ข้อมูลเก่าให้เพิ่ม typeOfemployee...');
+    
+    // ดึงข้อมูล timerecords ที่ยังไม่มี typeOfemployee ที่ระดับ root
+    const timerecordsNeedMigration = await timerecordEmployee.find({
+      $or: [
+        { 'typeOfemployee': { $exists: false } },
+        { 'typeOfemployee': '' },
+        { 'typeOfemployee': null }
+      ]
+    }).limit(1000); // ✅ Limit to prevent too many records at once
+
+    console.log(`📊 [MIGRATE] พบข้อมูลที่ต้อง migrate: ${timerecordsNeedMigration.length} records`);
+
+    if (timerecordsNeedMigration.length === 0) {
+      console.log('✅ [MIGRATE] ไม่มีข้อมูลที่ต้อง migrate');
+      return { success: true, migratedCount: 0 };
+    }
+
+    // ✅ Fetch all employee data at once (instead of one by one)
+    const uniqueEmployeeIds = [...new Set(timerecordsNeedMigration.map(t => t.employeeId))];
+    console.log(`🔍 [MIGRATE] กำลังดึงข้อมูลพนักงาน ${uniqueEmployeeIds.length} คน...`);
+    
+    const employeeJobTypeMap = new Map();
+    
+    // Fetch employees in batches of 100
+    const batchSize = 100;
+    for (let i = 0; i < uniqueEmployeeIds.length; i += batchSize) {
+      const batch = uniqueEmployeeIds.slice(i, i + batchSize);
+      try {
+        const responses = await Promise.all(
+          batch.map(empId => 
+            axios.get(sURL + '/employee/' + empId).catch(err => {
+              console.warn(`⚠️ Failed to fetch employee ${empId}:`, err.message);
+              return null;
+            })
+          )
+        );
+        
+        responses.forEach((res, idx) => {
+          if (res && res.data) {
+            employeeJobTypeMap.set(batch[idx], res.data.jobtype || '');
+          }
+        });
+      } catch (err) {
+        console.error(`⚠️ Error fetching batch ${i}-${i+batchSize}:`, err.message);
+      }
+    }
+
+    console.log(`✅ [MIGRATE] ดึงข้อมูลพนักงานสำเร็จ ${employeeJobTypeMap.size}/${uniqueEmployeeIds.length} คน`);
+
+    // ✅ Prepare bulk operations
+    const bulkOps = timerecordsNeedMigration.map(timerecord => {
+      const typeOfemployee = employeeJobTypeMap.get(timerecord.employeeId) || '';
+      return {
+        updateOne: {
+          filter: { _id: timerecord._id },
+          update: { $set: { typeOfemployee: typeOfemployee } }
+        }
+      };
+    });
+
+    // ✅ Execute all updates at once using bulkWrite
+    let migratedCount = 0;
+    if (bulkOps.length > 0) {
+      const result = await timerecordEmployee.bulkWrite(bulkOps, { ordered: false });
+      migratedCount = result.modifiedCount || bulkOps.length;
+      console.log(`✅ [MIGRATE] อัปเดตข้อมูลสำเร็จ: ${migratedCount} records`);
+    }
+
+    console.log(`🎉 [MIGRATE] เสร็จสิ้นการ migrate ข้อมูล: ${migratedCount} records`);
+    return { success: true, migratedCount };
+  } catch (error) {
+    console.error('❌ [MIGRATE] เกิดข้อผิดพลาดในการ migrate:', error);
+    return { success: false, error: error.message };
+  }
+}
 
 
 //Connect mongodb
@@ -33,6 +134,7 @@ const workplaceTimerecordSchema = new mongoose.Schema({
   employeeRecord: [{
     staffId: String,
     staffName: String,
+    typeOfemployee: String,
     shift: String,
     startTime: String,
     endTime: String,
@@ -56,11 +158,13 @@ const employeeTimerecordSchema = new mongoose.Schema({
   employeeId: String,
   employeeName: String,
   month: String,
+  typeOfemployee: String, // เพิ่มที่ระดับ root
   employee_workplaceRecord: [{
     workplaceId: String,
     workplaceName: String,
     wGroup : String,
     date: String,
+    typeOfemployee: String,
     shift: String,
     startTime: String,
     endTime: String,
@@ -77,6 +181,75 @@ specialtSalaryOT: String,
 
 // Create the workplace record time model based on the schema
 const workplaceTimerecordEmp = mongoose.model('employeeTimerecord', employeeTimerecordSchema );
+
+//======test 
+router.get('/listempdeletexx', async (req, res) => {
+  try {
+    // Fetch the data first
+    const workplaceTimeRecordData = await timerecordEmployee.find();
+
+    // Delete all data
+    // await timerecordEmployee.deleteMany();
+
+    // console.log(`Deleted ${workplaceTimeRecordData.employee_record.length} records.`);
+    workplaceTimeRecordData.map(item => {
+    console.log(`Deleted ${item.employee_record.length} records.`);
+
+    })
+    await res.json(workplaceTimeRecordData);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// Endpoint สำหรับ migrate ข้อมูลเก่าให้เพิ่ม typeOfemployee
+router.get('/migrate-typeofemployee', async (req, res) => {
+  try {
+    const result = await migrateTimerecordsWithTypeOfEmployee();
+    res.json({
+      message: 'Migration completed',
+      success: result.success,
+      migratedCount: result.migratedCount,
+      error: result.error || null
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal Server Error', message: err.message });
+  }
+});
+// Get list of employeeTimerecords
+router.get('/listemptest', async (req, res) => {
+  try {
+    // Fetch the data first
+    const workplaceTimeRecordData = await timerecordEmployee.find();
+    // console.log(workplaceTimeRecordData[0].employee_workplaceRecord );
+
+console.log(workplaceTimeRecordData.length);
+    res.json(workplaceTimeRecordData );
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+router.get('/listdeletexx', async (req, res) => {
+
+  try {
+    // Fetch the data first
+    const workplaceTimeRecordData = await workplaceTimerecords.find();
+
+    // Delete all data
+    // await workplaceTimerecords.deleteMany();
+
+    // console.log(`Deleted ${workplaceTimeRecordData.length} records.`);
+    res.json(workplaceTimeRecordData);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
 
 
 router.get('/timerecordempdelete', async (req, res) => {
@@ -160,23 +333,87 @@ router.get('/listdelete', async (req, res) => {
   }
 });
 
+// Delete timerecord by ID
+router.delete('/deletetimerecordbyid/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Validate if ID is a valid MongoDB ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid ID format. Please provide a valid MongoDB ObjectId.'
+      });
+    }
+
+    // Try to find and delete from timerecordEmployee first
+    let deletedRecord = await timerecordEmployee.findByIdAndDelete(id);
+    let deletedFrom = 'timerecordEmployee';
+
+    // If not found in timerecordEmployee, try workplaceTimerecord
+    if (!deletedRecord) {
+      deletedRecord = await workplaceTimerecord.findByIdAndDelete(id);
+      deletedFrom = 'workplaceTimerecord';
+    }
+
+    // If not found in workplaceTimerecord, try workplaceTimerecords
+    if (!deletedRecord) {
+      deletedRecord = await workplaceTimerecords.findByIdAndDelete(id);
+      deletedFrom = 'workplaceTimerecords';
+    }
+
+    // If still not found, return error
+    if (!deletedRecord) {
+      return res.status(404).json({
+        success: false,
+        message: `Timerecord with ID ${id} not found in any collection.`
+      });
+    }
+
+    // Log the deletion
+    console.log(`✅ Deleted timerecord ${id} from ${deletedFrom} collection`);
+
+    // Return success response
+    res.status(200).json({
+      success: true,
+      message: `Timerecord deleted successfully from ${deletedFrom} collection.`,
+      deletedRecord: {
+        _id: deletedRecord._id,
+        employeeId: deletedRecord.employeeId || deletedRecord.workplaceId,
+        employeeName: deletedRecord.employeeName || deletedRecord.workplaceName,
+        month: deletedRecord.month || 'N/A',
+        year: deletedRecord.year || deletedRecord.timerecordId,
+        deletedFrom: deletedFrom
+      }
+    });
+
+  } catch (err) {
+    console.error('❌ Error deleting timerecord:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Internal Server Error',
+      error: err.message
+    });
+  }
+});
+
 
 
 // Get  workplace time record by WorkplaceTimeRecord Id
-router.get('/:workplaceTimeRecordId', async (req, res) => {
-  try {
-    const workplaceTimeRecordData = await workplaceTimerecord.findOne({ workplaceTimeRecordId: req.params.workplaceTimeRecordId });
+// router.get('/:workplaceTimeRecordId', async (req, res) => {
+//   try {
+//     const workplaceTimeRecordData = await workplaceTimerecord.findOne({ workplaceTimeRecordId: req.params.workplaceTimeRecordId });
 
-    if (workplaceTimeRecordData) {
-      res.json(workplaceTimeRecordData );
-    } else {
-      res.status(404).json({ error: 'workplace not found' });
-    }
-  } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
-  }
+//     if (workplaceTimeRecordData) {
+//       res.json(workplaceTimeRecordData );
+//     } else {
+//       res.status(404).json({ error: 'workplace not found' });
+//     }
+//   } catch (error) {
+//     res.status(500).json({ error: 'Internal server error' });
+//   }
 
-});
+// });
 
 
 
@@ -248,44 +485,60 @@ router.post('/searchemp', async (req, res) => {
     const { employeeId,
       employeeName,
       month,
-      timerecordId} = req.body;
+      year,
+      timerecordId,
+      workplaceId,
+      'employee_workplaceRecord.workplaceId': workplaceIdInRecord} = req.body;
 
     // Construct the search query based on the provided parameters
     const query = {};
 
-    if (employeeId !== '') {
-      query.employeeId= employeeId;
+    if (employeeId && employeeId !== '') {
+      query.employeeId = employeeId;
     }
 
-
-    if (employeeName !== '') {
+    if (employeeName && employeeName !== '') {
       query.employeeName = { $regex: new RegExp(employeeName, 'i') };
     }
 
-    if (month !== '') {
-      //query.month = new Date(date);
-      query.month = { $regex: new RegExp(month , 'i') };
+    if (month && month !== '') {
+      query.month = { $regex: new RegExp(month, 'i') };
     }
 
-    if (timerecordId !== '') {
-      //query.month = new Date(date);
-      query.timerecordId = { $regex: new RegExp(timerecordId , 'i') };
+    if (year && year !== '') {
+      // Add year filter - assuming timerecordId contains year info or we need to filter by year in employee_workplaceRecord
+      query.timerecordId = { $regex: new RegExp(year, 'i') };
     }
 
-    // console.log('Constructed Query:');
-    // console.log(query);
+    if (timerecordId && timerecordId !== '') {
+      query.timerecordId = { $regex: new RegExp(timerecordId, 'i') };
+    }
 
-    if (employeeId == '' && employeeName == '' && month == '' && timerecordId == '') {
-      res.status(200).json({});
+    // Support for workplaceId in employee_workplaceRecord
+    if (workplaceIdInRecord && workplaceIdInRecord !== '') {
+      query['employee_workplaceRecord.workplaceId'] = workplaceIdInRecord;
+    }
+
+    // Direct workplaceId parameter
+    if (workplaceId && workplaceId !== '') {
+      query['employee_workplaceRecord.workplaceId'] = workplaceId;
+    }
+
+    console.log('Constructed Query:');
+    console.log(query);
+
+    // If no search parameters provided, return empty result
+    if (Object.keys(query).length === 0) {
+      return res.status(200).json({ recordworkplace: [] });
     }
 
     // Query the workplace collection for matching documents
-    const recordworkplace  = await workplaceTimerecordEmp.find(query);
+    const recordworkplace = await workplaceTimerecordEmp.find(query);
 
-    // await console.log('Search Results:');
-    // await console.log(recordworkplace  );
-    let textSearch = 'workplace';
-    await res.status(200).json({ recordworkplace  });
+    console.log('Search Results:');
+    console.log(recordworkplace);
+    
+    res.status(200).json({ recordworkplace });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Internal server error' });
@@ -293,90 +546,14 @@ router.post('/searchemp', async (req, res) => {
 });
 
 
-// Create new workplace 
-// router.post('/create', async (req, res) => {
-  
-//   const {
-//     workplaceId,
-//     workplaceName,
-//     date,
-//     employeeRecord
-//   } = await req.body;
-//   // console.log(date);
-
-//   const currentDate = await new Date(date);
-//   const currentYear = await currentDate.getFullYear();
-//   const timerecordId = await currentYear;
-
-
-//   // Create workplace
-//   const workplaceTimeRecordData = await new workplaceTimerecord({
-//     timerecordId,
-//     workplaceId,
-//     workplaceName,
-//     date,
-//     employeeRecord
-//   });
-
-//   try {
-//     const ans = await workplaceTimeRecordData.save();
-// if(ans){
-//   console.log('create workplace time record success');
-//       await setToEmployee(workplaceId, workplaceName, date, employeeRecord);
-
-// }
-//     await res.json(workplaceTimeRecordData);
-//   } catch (err) {
-//     console.log(err);
-//     res.status(400).json({ error: err.message });
-//   }
-
-// });
-
-
-// Create new workplace
-// router.post('/create', async (req, res) => {
-//   try {
-//     const {
-//       workplaceId,
-//       workplaceName,
-//       date,
-//       employeeRecord
-//     } = req.body;
-
-//     // Filter out employeeRecord objects where staffId is null
-//     const filteredEmployeeRecord = employeeRecord.filter(record => record.staffId !== null);
-
-//     const currentDate = new Date(date);
-//     const currentYear = currentDate.getFullYear();
-//     const timerecordId = currentYear;
-
-//     // Create workplace with filtered employeeRecord array
-//     const workplaceTimeRecordData = new workplaceTimerecord({
-//       timerecordId,
-//       workplaceId,
-//       workplaceName,
-//       date,
-//       employeeRecord: filteredEmployeeRecord
-//     });
-
-//     const ans = await workplaceTimeRecordData.save();
-//     if (ans) {
-//       console.log('Create workplace time record success');
-//       // Call your setToEmployee function here if needed
-//     }
-
-//     res.json(workplaceTimeRecordData);
-//   } catch (err) {
-//     console.error(err);
-//     res.status(400).json({ error: err.message });
-//   }
-// });
-
-// Create new employee time record
+// Create new employee timerecord 
 router.post('/createemp', async (req, res) => {
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+  //const timerecordId = currentYear;
+
   const {
-    timerecordId,
+timerecordId,
     employeeId,
     employeeName,
     month,
@@ -384,35 +561,49 @@ router.post('/createemp', async (req, res) => {
   } = req.body;
 
   try {
-    // Delete existing records for the same employee and month
-    await workplaceTimerecordEmp.deleteMany({ timerecordId, employeeId, month });
+    // ดึงข้อมูล typeOfemployee จาก employee API
+    const typeOfemployee = await getEmployeeJobType(employeeId);
 
-    // Create new employee record
+    // ไม่ต้องเพิ่ม typeOfemployee ใน employee_workplaceRecord แต่ละรายการ
+    // เก็บไว้ที่ระดับ root เท่านั้น
+
+    // Create workplace
     const workplaceTimeRecordData = new workplaceTimerecordEmp({
-      timerecordId,
+timerecordId,
       employeeId,
       employeeName,
       month,
-      employee_workplaceRecord
+      typeOfemployee: typeOfemployee, // เพิ่มที่ระดับ root
+      employee_workplaceRecord: employee_workplaceRecord // ใช้ข้อมูลเดิม
     });
+    console.log(workplaceTimeRecordData );
 
+    // Delete existing records for the same employee and month timerecordId
+    await workplaceTimerecordEmp.deleteMany({
+      timerecordId,
+      employeeId,
+      employeeName,
+      month    });
+      
     await workplaceTimeRecordData.save();
 
-    // Iterate through each employee_workplaceRecord to update workplaceTimerecord
+    //save or update to workplace timeRecord
     for (const record of employee_workplaceRecord) {
-      const { workplaceId, workplaceName, wGroup, date } = record;
+      const { workplaceId, wGroup, date } = record;
+      const wdate = await month + '/' + date + '/' + timerecordId;
 
-      // Find the existing workplace record
-      let workplaceRecord = await workplaceTimerecord.findOne({ timerecordId, workplaceId });
+      let workplaceRecord = await workplaceTimerecord.findOne({timerecordId: timerecordId,workplaceId: workplaceId, wGroup: wGroup,date:  wdate });
 
       if (workplaceRecord) {
+        
         // If workplace record exists, update employeeRecord array
         const existingEmployeeIndex = workplaceRecord.employeeRecord.findIndex(emp => emp.staffId === employeeId);
-        
         if (existingEmployeeIndex !== -1) {
-          // Update existing employee record
+                    // Update existing employee record
           workplaceRecord.employeeRecord[existingEmployeeIndex] = {
-            ...workplaceRecord.employeeRecord[existingEmployeeIndex],
+            staffId: employeeId,
+            staffName: employeeName,
+            typeOfemployee: typeOfemployee,
             ...record
           };
         } else {
@@ -420,79 +611,42 @@ router.post('/createemp', async (req, res) => {
           workplaceRecord.employeeRecord.push({
             staffId: employeeId,
             staffName: employeeName,
+            typeOfemployee: typeOfemployee,
             ...record
           });
         }
-      } else {
-        // Create a new workplace record
-        workplaceRecord = new workplaceTimerecord({
-          timerecordId,
-          workplaceId,
-          workplaceName,
-          wGroup,
-          date,
-          employeeRecord: [{
-            staffId: employeeId,
-            staffName: employeeName,
-            ...record
-          }]
-        });
-      }
 
+                
+      } else {
+                  // Add new employee record
+                  workplaceRecord = new workplaceTimerecord({
+                    timerecordId,
+                    workplaceId,
+                    workplaceName: record.workplaceName,
+                    wGroup,
+                    date: wdate,
+                    employeeRecord: [{
+                      staffId: employeeId,
+                      staffName: employeeName,
+                      typeOfemployee: typeOfemployee,
+                      ...record
+                    }]
+                  });
+          
+      }
       await workplaceRecord.save();
+
     }
 
-    res.json({ message: "Employee and workplace records saved successfully", workplaceTimeRecordData });
+    
+    await res.json(workplaceTimeRecordData);
 
   } catch (err) {
     console.log(err);
     res.status(400).json({ error: err.message });
   }
+
 });
-
-// // Create new employee timerecord 
-// router.post('/createemp', async (req, res) => {
-//   const currentDate = new Date();
-//   const currentYear = currentDate.getFullYear();
-//   //const timerecordId = currentYear;
-
-//   const {
-// timerecordId,
-//     employeeId,
-//     employeeName,
-//     month,
-//     employee_workplaceRecord
-//   } = req.body;
-
-
-//   // Create workplace
-//   const workplaceTimeRecordData = new workplaceTimerecordEmp({
-// timerecordId,
-//     employeeId,
-//     employeeName,
-//     month,
-//     employee_workplaceRecord
-//   });
-// console.log(workplaceTimeRecordData );
-
-//   try {
-//     // Delete existing records for the same employee and month timerecordId
-//     await workplaceTimerecordEmp.deleteMany({
-//       timerecordId,
-//       employeeId,
-//       employeeName,
-//       month    });
-      
-//     await workplaceTimeRecordData.save();
- 
-//     await res.json(workplaceTimeRecordData);
-
-//   } catch (err) {
-//     console.log(err);
-//     res.status(400).json({ error: err.message });
-//   }
-
-// });
 
 
 // // Update a employeeTimeRecordData  by its employeeTimeRecordData  
@@ -528,34 +682,25 @@ router.put('/updateemp/:employeeRecordId', async (req, res) => {
   const updateFields = await req.body;
 
   try {
-    // // Find the existing record to get timerecordId, employeeId, and month
-    // const existingRecord = await workplaceTimerecordEmp.findById(employeeIdToUpdate);
+    // ดึงข้อมูล typeOfemployee จาก employee API
+    const typeOfemployee = await getEmployeeJobType(updateFields.employeeId);
 
-    // if (!existingRecord) {
-    //   return res.status(404).json({ message: 'Resource not found' });
-    // }
-    
-    // // Delete all records that match timerecordId, employeeId, and month
-    // await workplaceTimerecordEmp.deleteMany({
-    //   timerecordId: existingRecord.timerecordId,
-    //   employeeId: existingRecord.employeeId,
-    //   month: existingRecord.month,
-    // });
+    // ไม่ต้องเพิ่ม typeOfemployee ใน employee_workplaceRecord แต่ละรายการ
+    // เก็บไว้ที่ระดับ root เท่านั้น
+
+    // อัปเดต updateFields ด้วยข้อมูล typeOfemployee
+    const updatedFields = {
+      ...updateFields,
+      typeOfemployee: typeOfemployee // เพิ่มที่ระดับ root เท่านั้น
+    };
+
     await workplaceTimerecordEmp.deleteMany({
       timerecordId: updateFields.timerecordId,
       employeeId: updateFields.employeeId,
       month: updateFields.month,
     });
     
-        const newRecord = await new workplaceTimerecordEmp(updateFields);
-    // Create a new record with updated fields
-    // const newRecord = await new workplaceTimerecordEmp({
-    //   timerecordId: updateFields.timerecordId || existingRecord.timerecordId,
-    //   employeeId: updateFields.employeeId || existingRecord.employeeId,
-    //   employeeName: updateFields.employeeName || existingRecord.employeeName,
-    //   month: updateFields.month || existingRecord.month,
-    //   employee_workplaceRecord: updateFields.employee_workplaceRecord || existingRecord.employee_workplaceRecord
-    // });
+    const newRecord = await new workplaceTimerecordEmp(updatedFields);
 
     // Save the new record
     const savedRecord = await newRecord.save();
@@ -569,87 +714,339 @@ await    console.error(error);
 });
 
 
-async function setToWorkplace(selectWorkplaceId, selectworkplaceName, selectMonth, workplaceTimeRecordData) {
-  
-}
+const setToWorkplaceTimerecords = async (employeeId, employeeName, employee_record, year, month) => {
+  try {
+    if (!employee_record || employee_record.length === 0) {
+      console.log(`⚠️ No employee records provided for Employee ID: ${employeeId}. Skipping update.`);
+      return;
+    }
+
+    for (const record of employee_record) {
+      const { workplaceId, workplaceName, wGroup, date, shift, startTime, endTime, totalTime, 
+        beforeStartOtTime, beforeEndOtTime, beforeTotalOtTime, 
+        startOtTime, endOtTime, totalOtTime, cashSalary, specialtSalary, specialtSalaryOT, messageSalary } = record;
+
+      let numericDate = Number(date);
+      let numericMonth = Number(month);
+      let numericYear = Number(year);
+
+      // Adjust month if date is 21-31
+      if (numericDate >= 21) {
+        numericMonth -= 1;
+        if (numericMonth === 0) { 
+          numericMonth = 12;
+          numericYear -= 1;
+        }
+      }
+
+      let formattedDate = `${String(numericDate)}/${String(numericMonth).padStart(2, '0')}/${numericYear}`;
+
+      // Find if this workplace record exists
+      let workplaceRecord = await workplaceTimerecords.findOne({
+        year: numericYear,
+        workplaceId,
+        date: formattedDate
+      });
+
+      if (workplaceRecord) {
+        // Update existing employee data
+        let updatedEmployeeRecords = workplaceRecord.employeeRecord.filter(emp => emp.employeeId !== employeeId);
+// console.log('updatedEmployeeRecords ' + updatedEmployeeRecords .length);
+
+        if (shift || startTime || endTime) {
+          updatedEmployeeRecords.push({
+            employeeId,
+            employeeName,
+            shift,
+            startTime,
+            endTime,
+            totalTime,
+            beforeStartOtTime,
+            beforeEndOtTime,
+            beforeTotalOtTime,
+            startOtTime,
+            endOtTime,
+            totalOtTime,
+            cashSalary,
+            specialtSalary,
+            specialtSalaryOT,
+            messageSalary
+          });
+        }
+
+        // 🚨 **If `employeeRecord` is empty after update, delete the workplace record**
+        if (updatedEmployeeRecords.length === 0) {
+          await workplaceTimerecords.findByIdAndDelete(workplaceRecord._id);
+          console.log(`🗑️ Deleted workplace record for workplaceId: ${workplaceId} on ${formattedDate} because no employees exist.`);
+          continue;
+        }
+
+        // // Update Workplace Record
+        // await workplaceTimerecords.findByIdAndUpdate(workplaceRecord._id, { employeeRecord: updatedEmployeeRecords }, { new: true });
+        // console.log(`✅ Updated workplace record for workplaceId: ${workplaceId} on ${formattedDate}`);
+// Update Workplace Record - First clear old data, then update
+await workplaceTimerecords.findByIdAndUpdate(workplaceRecord._id, { $set: { employeeRecord: [] } });
+
+await workplaceTimerecords.findByIdAndUpdate(
+  workplaceRecord._id,
+  { $set: { employeeRecord: updatedEmployeeRecords } },
+  { new: true }
+);
+
+console.log(`✅ Completely replaced workplace record for workplaceId: ${workplaceId} on ${formattedDate}`);
+
+      } else {
+        // 🚨 **Skip creation if `employee_record` is empty**
+        if (employee_record.length === 0) {
+          console.log(`⚠️ Skipping creation for workplaceId: ${workplaceId} on ${formattedDate} because employeeRecord is empty.`);
+          continue;
+        }
+
+        // Create new workplace record
+        const newWorkplaceRecord = new workplaceTimerecords({
+          year: numericYear,
+          workplaceId,
+          workplaceName,
+          wGroup,
+          date: formattedDate,
+          employeeRecord: [{
+            employeeId,
+            employeeName,
+            shift,
+            startTime,
+            endTime,
+            totalTime,
+            beforeStartOtTime,
+            beforeEndOtTime,
+            beforeTotalOtTime,
+            startOtTime,
+            endOtTime,
+            totalOtTime,
+            cashSalary,
+            specialtSalary,
+            specialtSalaryOT,
+            messageSalary
+          }]
+        });
+
+        await newWorkplaceRecord.save();
+        console.log(`✅ Created new workplace record for workplaceId: ${workplaceId} on ${formattedDate}`);
+      }
+    }
+  } catch (error) {
+    console.error("🔥 Error in setToWorkplaceTimerecords:", error);
+  }
+};
+
+// async function setToWorkplaceTimerecords(employeeId, employeeName, employeeRecords, year, month) {
+//   console.log("🔄 Processing workplace records...");
+
+//   try {
+//     for (const record of employeeRecords) {
+//       let {
+//         workplaceId,
+//         workplaceName,
+//         wGroup,
+//         date,
+//         shift,
+//         startTime,
+//         endTime,
+//         totalTime,
+//         beforeStartOtTime,
+//         beforeEndOtTime,
+//         beforeTotalOtTime,
+//         startOtTime,
+//         endOtTime,
+//         totalOtTime,
+//         cashSalary,
+//         specialtSalary,
+//         specialtSalaryOT,
+//         messageSalary
+//       } = record;
+
+//       // Ensure date is in "DD/MM/YYYY" format
+//       const formattedDate = `${date}/${month}/${year}`;
+
+//       // 🔍 Check if a workplace record exists for this date
+//       let workplaceRecord = await workplaceTimerecords.findOne({
+//         workplaceId,
+//         wGroup,
+//         date: formattedDate
+//       });
+
+//       if (workplaceRecord) {
+//         // ✅ Check if the employee already exists in the record
+//         const existingEmployeeIndex = workplaceRecord.employeeRecord.findIndex(emp => emp.employeeId === employeeId);
+
+//         if (existingEmployeeIndex !== -1) {
+//           // 🔄 Update existing employee record
+//           workplaceRecord.employeeRecord[existingEmployeeIndex] = {
+//             employeeId,
+//             employeeName,
+//             shift,
+//             startTime,
+//             endTime,
+//             totalTime,
+//             beforeStartOtTime,
+//             beforeEndOtTime,
+//             beforeTotalOtTime,
+//             startOtTime,
+//             endOtTime,
+//             totalOtTime,
+//             cashSalary,
+//             specialtSalary,
+//             specialtSalaryOT,
+//             messageSalary
+//           };
+//         } else {
+//           // ➕ Add new employee record
+//           workplaceRecord.employeeRecord.push({
+//             employeeId,
+//             employeeName,
+//             shift,
+//             startTime,
+//             endTime,
+//             totalTime,
+//             beforeStartOtTime,
+//             beforeEndOtTime,
+//             beforeTotalOtTime,
+//             startOtTime,
+//             endOtTime,
+//             totalOtTime,
+//             cashSalary,
+//             specialtSalary,
+//             specialtSalaryOT,
+//             messageSalary
+//           });
+//         }
+//       } else {
+//         // ❌ Create new workplace record if not found
+//         workplaceRecord = new workplaceTimerecords({
+//           year,
+//           workplaceId,
+//           workplaceName,
+//           wGroup,
+//           date: formattedDate,
+//           employeeRecord: [
+//             {
+//               employeeId,
+//               employeeName,
+//               shift,
+//               startTime,
+//               endTime,
+//               totalTime,
+//               beforeStartOtTime,
+//               beforeEndOtTime,
+//               beforeTotalOtTime,
+//               startOtTime,
+//               endOtTime,
+//               totalOtTime,
+//               cashSalary,
+//               specialtSalary,
+//               specialtSalaryOT,
+//               messageSalary
+//             }
+//           ]
+//         });
+//       }
+
+//       // Save updated/new workplace record
+//       await workplaceRecord.save();
+//       console.log(`✅ Workplace record updated for ${workplaceId} on ${formattedDate}`);
+//     }
+
+//     console.log("✅ All workplace records processed successfully!");
+//   } catch (error) {
+//     console.error("❌ Error processing workplace records:", error);
+//   }
+// }
 
 
-async function setToEmployee(selectWorkplaceId, selectworkplaceName, selectMonth, workplaceTimeRecordData) {
+async function setToEmployee(selectWorkplaceId, selectworkplaceName, selectWGroup, selectMonth, workplaceTimeRecordData) {
   console.log('setToEmployee working');
-  const dateParts = selectMonth.split('/');
-  const workplaceId = selectWorkplaceId;
-  const workplaceName = selectworkplaceName;
-  const month = dateParts[1];
-  const day = dateParts[0];
+  
+  const dateParts = selectMonth.split("/");
+  const day = parseInt(dateParts[0], 10);
+  let year = parseInt(dateParts[2], 10);
+  let month = parseInt(dateParts[1], 10); // Month is 1-based (1 = January, 12 = December)
+
+  // Adjust month based on date range
+  if (day >= 21) {
+    month += 1; // Move to previous month
+    if (month === 13) {
+      month = '01'; // Wrap around to December
+      year += 1; // Adjust year for previous December
+    }
+  }
+
+  // Convert month to 2-digit format (e.g., '01', '02', ..., '12')
+  const formattedMonth = month.toString().padStart(2, '0');
 
   for (const element of workplaceTimeRecordData) {
     if (element.staffId !== '') {
       try {
-        const timerecordId_year = dateParts[2];
-        const timerecordId = timerecordId_year;
-
         const query = {
-          timerecordId : timerecordId,
-          employeeId: element.staffId,
-          month: { $regex: new RegExp(month, 'i') }
+          year: year.toString(),
+          employeeId: element.employeeId,
+          month: { $regex: new RegExp(`^${formattedMonth}$`, 'i') } // Exact match with two-digit month
         };
 
-        const recordworkplace = await workplaceTimerecordEmp.findOne(query);
+        const recordworkplace = await timerecordEmployee.findOne(query);
 
         if (recordworkplace) {
           // Employee time record exists, update employee_workplaceRecord
-          recordworkplace.employee_workplaceRecord.push({
-            'workplaceId': workplaceId,
-            'workplaceName': workplaceName,
-            'wGroup': wGroup  || '',
+          recordworkplace.employee_record.push({
+            'workplaceId': selectWorkplaceId,
+            'workplaceName': selectworkplaceName,
+            'wGroup': selectWGroup || '',
             'date': day,
+            'typeOfemployee': element.typeOfemployee || '',
             'shift': element.shift,
             'startTime': element.startTime,
             'endTime': element.endTime,
-            'allTime': element.allTime,
-            'otTime': element.otTime,
-            'selectotTime': element.selectotTime,
-            'selectotTimeOut': element.selectotTimeOut,
+            'totalTime': element.totalTime,
+            'beforeStartOtTime': element.beforeStartOtTime,
+            'beforeEndOtTime': element.beforeEndOtTime,
+            'beforeTotalOtTime': element.beforeTotalOtTime,
+            'startOtTime': element.startOtTime,
+            'endOtTime': element.endOtTime,
+            'totalOtTime': element.totalOtTime,
             'cashSalary': element.cashSalary,
             'specialtSalary': element.specialtSalary,
             'specialtSalaryOT': element.specialtSalaryOT,
-                    'messageSalary': element.messageSalary,
+            'messageSalary': element.messageSalary,
           });
 
           await recordworkplace.save();
           console.log('Employee time record updated successfully.');
         } else {
           // Employee time record does not exist, create a new one
-          const timerecordId_year = dateParts[2];
-          const timerecordId = timerecordId_year;
-          const employeeId = element.staffId;
-          const employeeName = element.staffName;
-
-          const employee_workplaceRecord = {
-            'workplaceId': workplaceId,
-            'workplaceName': workplaceName,
-            'wGroup': wGroup  || '',
-            'date': day,
-            'shift': element.shift,
-            'startTime': element.startTime,
-            'endTime': element.endTime,
-            'allTime': element.allTime,
-            'otTime': element.otTime,
-            'selectotTime': element.selectotTime,
-            'selectotTimeOut': element.selectotTimeOut,
-            'cashSalary': element.cashSalary,
-            'specialtSalary': element.specialtSalary,
-            'specialtSalaryOT': element.specialtSalaryOT,
-                    'messageSalary': element.messageSalary,
-          };
-
-          // Create new employee time record
-          const newEmployeeTimeRecord = new workplaceTimerecordEmp({
-            timerecordId,
-            employeeId,
-            employeeName,
-            month,
-            employee_workplaceRecord
+          const newEmployeeTimeRecord = new timerecordEmployee({
+            year: year.toString(),
+            employeeId: element.employeeId,
+            employeeName: element.employeeName,
+            month: formattedMonth,
+            employee_record: [{
+              'workplaceId': selectWorkplaceId,
+              'workplaceName': selectworkplaceName,
+              'wGroup': selectWGroup || '',
+              'date': day,
+              'typeOfemployee': element.typeOfemployee || '',
+              'shift': element.shift,
+              'startTime': element.startTime,
+              'endTime': element.endTime,
+              'totalTime': element.totalTime,
+              'beforeStartOtTime': element.beforeStartOtTime,
+              'beforeEndOtTime': element.beforeEndOtTime,
+              'beforeTotalOtTime': element.beforeTotalOtTime,
+              'startOtTime': element.startOtTime,
+              'endOtTime': element.endOtTime,
+              'totalOtTime': element.totalOtTime,
+              'cashSalary': element.cashSalary,
+              'specialtSalary': element.specialtSalary,
+              'specialtSalaryOT': element.specialtSalaryOT,
+              'messageSalary': element.messageSalary,
+            }]
           });
 
           await newEmployeeTimeRecord.save();
@@ -661,6 +1058,101 @@ async function setToEmployee(selectWorkplaceId, selectworkplaceName, selectMonth
     }
   }
 }
+
+
+// async function setToEmployee(selectWorkplaceId, selectworkplaceName, selectWGroup, selectMonth, workplaceTimeRecordData) {
+//   console.log('setToEmployee working');
+//   const dateParts = selectMonth.split("/");
+//   const workplaceId = selectWorkplaceId;
+//   const workplaceName = selectworkplaceName;
+//   const month = dateParts[1];
+//   const day = dateParts[0];
+
+//   for (const element of workplaceTimeRecordData) {
+//     if (element.staffId !== '') {
+//       try {
+//         const timerecordId_year = dateParts[2];
+//         const year= timerecordId_year;
+
+//         const query = {
+//           year: year,
+//           employeeId: element.employeeId,
+//           month: { $regex: new RegExp(month, 'i') }
+//         };
+
+//         const recordworkplace = await timerecordEmployee.findOne(query);
+
+//         if (recordworkplace) {
+//           // Employee time record exists, update employee_workplaceRecord
+//           recordworkplace.employee_workplaceRecord.push({
+//             'workplaceId': workplaceId,
+//             'workplaceName': workplaceName,
+//             'wGroup': selectWGroup || '',
+//             'date': day,
+//             'shift': element.shift,
+//             'startTime': element.startTime,
+//             'endTime': element.endTime,
+//             'totalTime': element.totalTime,
+//             'beforeStartOtTime': element.beforeStartOtTime,
+//             'beforeEndOtTime': element.beforeEndOtTime,
+//             'beforeTotalOtTime': element.beforeTotalOtTime,
+//             'startOtTime': element.startOtTime,
+//             'endOtTime': element.endOtTime,
+//             'totalOtTime': element.totalOtTime,
+//             'cashSalary': element.cashSalary,
+//             'specialtSalary': element.specialtSalary,
+//             'specialtSalaryOT': element.specialtSalaryOT,
+//                     'messageSalary': element.messageSalary,
+//           });
+
+//           await recordworkplace.save();
+//           console.log('Employee time record updated successfully.');
+//         } else {
+//           // Employee time record does not exist, create a new one
+//           const timerecordId_year = dateParts[2];
+//           const year= timerecordId_year;
+//           const employeeId = element.employeeId ;
+//           const employeeName = element.employeeName;
+
+//           const employee_record = {
+//             'workplaceId': workplaceId,
+//             'workplaceName': workplaceName,
+//             'wGroup': selectWGroup || '',
+//             'date': day,
+//             'shift': element.shift,
+//             'startTime': element.startTime,
+//             'endTime': element.endTime,
+//             'totalTime': element.totalTime,
+//             'beforeStartOtTime': element.beforeStartOtTime,
+//             'beforeEndOtTime': element.beforeEndOtTime,
+//             'beforeTotalOtTime': element.beforeTotalOtTime,
+//             'startOtTime': element.startOtTime,
+//             'endOtTime': element.endOtTime,
+//             'totalOtTime': element.totalOtTime,
+//             'cashSalary': element.cashSalary,
+//             'specialtSalary': element.specialtSalary,
+//             'specialtSalaryOT': element.specialtSalaryOT,
+//                     'messageSalary': element.messageSalary,
+//           };
+
+//           // Create new employee time record
+//           const newEmployeeTimeRecord = new timerecordEmployee({
+//             year,
+//             employeeId,
+//             employeeName,
+//             month,
+//             employee_record 
+//           });
+
+//           await newEmployeeTimeRecord.save();
+//           console.log('New employee time record created successfully.');
+//         }
+//       } catch (error) {
+//         console.error(error);
+//       }
+//     }
+//   }
+// }
 
 // Create new workplace
 router.post('/create', async (req, res) => {
@@ -676,24 +1168,34 @@ router.post('/create', async (req, res) => {
     // Filter out employeeRecord objects where staffId is null
     const filteredEmployeeRecord = employeeRecord.filter(record => record.staffId !== '');
 
+    // เพิ่ม typeOfemployee สำหรับแต่ละพนักงาน
+    const updatedEmployeeRecord = [];
+    for (const record of filteredEmployeeRecord) {
+      const typeOfemployee = await getEmployeeJobType(record.staffId);
+      updatedEmployeeRecord.push({
+        ...record,
+        typeOfemployee: typeOfemployee
+      });
+    }
+
     const currentDate = new Date(date);
     const currentYear = currentDate.getFullYear();
     const timerecordId = currentYear;
 
-    // Create workplace with filtered employeeRecord array
+    // Create workplace with updated employeeRecord array
     const workplaceTimeRecordData = new workplaceTimerecord({
       timerecordId,
       workplaceId,
       workplaceName,
       wGroup ,
       date,
-      employeeRecord: filteredEmployeeRecord
+      employeeRecord: updatedEmployeeRecord
     });
 
     const ans = await workplaceTimeRecordData.save();
     if (ans) {
       console.log('Create workplace time record success');
-      await setToEmployee(workplaceId, workplaceName, date, filteredEmployeeRecord);
+      await setToEmployee(workplaceId, workplaceName, wGroup, date, updatedEmployeeRecord);
     }
 
     res.json(workplaceTimeRecordData);
@@ -721,7 +1223,7 @@ router.put('/update/:workplaceRecordId', async (req, res) => {
     }
 
     // Update records in workplaceTimerecordEmp using setToEmployee with updateRecord set to true
-    await setToEmployee(updatedResource.workplaceId, updatedResource.workplaceName, updatedResource.date, updatedResource.employeeRecord, true);
+    await setToEmployee(updatedResource.workplaceId, updatedResource.workplaceName,updatedResource.wGroup,  updatedResource.date, updatedResource.employeeRecord);
 
     // Send the updated resource as the response
     res.json(updatedResource);
@@ -873,5 +1375,1149 @@ router.get('/listmonth', async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
+
+// ==========
+
+router.post('/searchtimerecordmonthyear', async (req, res) => {
+  try {
+    const { 
+      month,
+      year,
+      workplaceId,
+      employeeId
+    } = req.body;
+
+    // ใช้ aggregation pipeline สำหรับการค้นหาที่ซับซ้อน
+    const pipeline = [];
+
+    // Match stage
+    const matchConditions = {};
+    if (month !== '') {
+      matchConditions.month = { $regex: new RegExp(month, 'i') };
+    }
+    if (year !== '') {
+      matchConditions.year = { $regex: new RegExp(year, 'i') };
+    }
+     if (employeeId && employeeId !== '') {
+      matchConditions.employeeId = employeeId;
+    }
+    
+    
+    pipeline.push({ $match: matchConditions });
+
+    // ถ้ามี workplaceId ให้กรองเฉพาะ employee_record ที่ตรงกับ workplaceId
+    if (workplaceId && workplaceId !== '') {
+      pipeline.push({
+        $addFields: {
+          employee_record: {
+            $filter: {
+              input: "$employee_record",
+              cond: { $eq: ["$$this.workplaceId", workplaceId] }
+            }
+          }
+        }
+      });
+      
+      // กรองออกเฉพาะ documents ที่มี employee_record หลังจาก filter แล้ว
+      pipeline.push({
+        $match: {
+          "employee_record": { $ne: [] }
+        }
+      });
+    }
+
+    if (month == '' && year == '' && workplaceId == '') {
+      return res.status(200).json({ result: [] });
+    }
+
+    const result = await timerecordEmployee.aggregate(pipeline);
+
+    // เพิ่มข้อมูล welfare/leave ลงใน addSalaryList และตรวจสอบ typeOfemployee
+    for (let timeRecord of result) {
+      try {
+        // ตรวจสอบและเพิ่ม typeOfemployee หากยังไม่มี
+        let needUpdate = false;
+        const updatedEmployeeRecord = [];
+        let typeOfemployee = timeRecord.typeOfemployee || ''; // ดึงจากระดับ root ก่อน
+        
+        // หากยังไม่มี typeOfemployee ที่ระดับ root ให้ดึงจาก employee API
+        if (!typeOfemployee || typeOfemployee === '') {
+          typeOfemployee = await getEmployeeJobType(timeRecord.employeeId);
+          needUpdate = true;
+          console.log(`🔄 [SEARCH] เพิ่ม typeOfemployee สำหรับพนักงาน ${timeRecord.employeeId}: ${typeOfemployee}`);
+        }
+        
+        // คัดลอก employee_record โดยไม่เปลี่ยนแปลง (ไม่เพิ่ม typeOfemployee ในแต่ละ record)
+        for (const record of timeRecord.employee_record) {
+          updatedEmployeeRecord.push(record);
+        }
+        
+        // อัปเดตฐานข้อมูลหากจำเป็น - เพิ่ม typeOfemployee ที่ระดับ root
+        if (needUpdate) {
+          await timerecordEmployee.findByIdAndUpdate(
+            timeRecord._id,
+            { 
+              employee_record: updatedEmployeeRecord,
+              typeOfemployee: typeOfemployee // เพิ่มที่ระดับ root
+            },
+            { new: true }
+          );
+          timeRecord.typeOfemployee = typeOfemployee; // เพิ่มในผลลัพธ์ที่ส่งกลับ
+          console.log(`✅ [SEARCH] อัปเดต typeOfemployee ในฐานข้อมูลสำหรับพนักงาน ${timeRecord.employeeId}`);
+        }
+
+        // ตรวจสอบให้แน่ใจว่า typeOfemployee แสดงใน response
+        if (!timeRecord.typeOfemployee) {
+          timeRecord.typeOfemployee = typeOfemployee;
+        }
+
+        // ค้นหาข้อมูล welfare ของพนักงาน
+        const welfareQuery = { employeeId: timeRecord.employeeId };
+        
+        // ถ้ามีการระบุ year ให้กรองตามปี
+        if (year && year !== '') {
+          welfareQuery.year = year;
+        }
+        
+        // Debug: Log the welfare query
+        console.log('🔍 Welfare Query for employee:', timeRecord.employeeId, welfareQuery);
+        
+        const welfareRecords = await welfare.find(welfareQuery);
+        
+        // Debug: Log the welfare results
+        console.log('📊 Welfare Records found:', welfareRecords.length, 'records for employee:', timeRecord.employeeId);
+        
+        // Debug: Check what welfare data exists for this employee (without month/year filter)
+        const allWelfareForEmployee = await welfare.find({ employeeId: timeRecord.employeeId });
+        console.log('🔎 All welfare records for employee:', timeRecord.employeeId, 'count:', allWelfareForEmployee.length);
+        if (allWelfareForEmployee.length > 0) {
+          console.log('📋 Sample welfare record structure:', JSON.stringify(allWelfareForEmployee[0], null, 2));
+        }
+        
+        // รวม addSalaryList จากข้อมูล welfare ทั้งหมด
+        let addSalaryFromWelfare = [];
+        // สำหรับ id เฉพาะที่จะใช้ logic รวมตาม startDay
+        const targetIds = new Set(['1423', '1234']);
+        // ใช้ Map สำหรับรวมรายการของ id เฉพาะ: อนุญาต id ซ้ำได้ แต่ถ้า startDay ซ้ำจะไม่รวม; ถ้า startDay ต่างกันให้รวมและบวกเงิน
+        const welfareAgg = new Map(); // key = welfareId, value = { item, seenDates: Set<string> }
+
+        const normalizeStartDay = (d) => {
+          if (!d) return '';
+          const dt = new Date(d);
+          return isNaN(dt.getTime()) ? '' : dt.toISOString().slice(0, 10);
+        };
+        
+        welfareRecords.forEach(welfareRecord => {
+          if (welfareRecord.record && Array.isArray(welfareRecord.record)) {
+            welfareRecord.record.forEach(record => {
+              // 🎯 กรองเฉพาะ records ที่อยู่ในรอบเงินเดือน (21 เดือนก่อน - 20 เดือนปัจจุบัน)
+              let shouldInclude = true;
+              
+              if (month && month !== '' && record.startDay) {
+                const recordStartDate = new Date(record.startDay);
+                
+                // คำนวณรอบเงินเดือน: 21 เดือนก่อน - 20 เดือนปัจจุบัน
+                const currentYear = parseInt(year) || new Date().getFullYear();
+                const currentMonth = parseInt(month);
+                
+                // วันที่เริ่มรอบ: 21 ของเดือนก่อน
+                let startYear = currentYear;
+                let startMonth = currentMonth - 1;
+                if (startMonth < 1) {
+                  startMonth = 12;
+                  startYear--;
+                }
+                const periodStartDate = new Date(startYear, startMonth - 1, 21); // month - 1 เพราะ JS month เริ่มจาก 0
+                
+                // วันที่สิ้นสุดรอบ: 20 ของเดือนปัจจุบัน
+                const periodEndDate = new Date(currentYear, currentMonth - 1, 20, 23, 59, 59); // สิ้นสุดวัน
+                
+                // ตรวจสอบว่า startDay อยู่ในรอบเงินเดือนหรือไม่
+                shouldInclude = recordStartDate >= periodStartDate && recordStartDate <= periodEndDate;
+                
+                console.log(`🔍 [TIMERECORDS] กรองตามรอบเงินเดือน:`);
+                console.log(`   - เดือนที่เลือก: ${month}/${year}`);
+                console.log(`   - รอบเงินเดือน: ${periodStartDate.toISOString().slice(0,10)} ถึง ${periodEndDate.toISOString().slice(0,10)}`);
+                console.log(`   - startDay: ${record.startDay}`);
+                console.log(`   - recordDate: ${recordStartDate.toISOString().slice(0,10)}`);
+                console.log(`   - include: ${shouldInclude}`);
+              }
+              
+              if (!shouldInclude) return;
+
+              const welfareId = record.id || record.welfareType || "";
+              const amount = parseFloat(record.SpSalary || '0') || 0;
+
+              if (targetIds.has(welfareId)) {
+                // ใช้ logic เฉพาะ: รวมหลาย startDay เป็น 1 รายการต่อ id, เก็บข้อมูลวันที่ทั้งหมด
+                const startKey = normalizeStartDay(record.startDay);
+                if (!welfareAgg.has(welfareId)) {
+                  const baseItem = {
+                    id: welfareId,
+                    name: record.name || record.welfareTypeEn || "",
+                    SpSalary: String(amount),
+                    roundOfSalary: record.roundOfSalary || "monthly",
+                    StaffType: record.StaffType || "all",
+                    nameType: record.nameType || "",
+                    message: record.comment || record.message || "",
+                    welfareType: record.welfareType || "",
+                    startDay: startKey || "",
+                    endDay: record.endDay || "",
+                    welfareMonth: welfareRecord.month || "",
+                    welfareYear: welfareRecord.year || "",
+                    // เพิ่ม date/month/year ตามที่ขอ
+                    date: startKey ? startKey.split('-')[2] : (welfareRecord.month ? '01' : ''),
+                    month: startKey ? startKey.split('-')[1] : (welfareRecord.month || ''),
+                    year: startKey ? startKey.split('-')[0] : (welfareRecord.year || ''),
+                  };
+                  welfareAgg.set(welfareId, { item: baseItem, seenDates: new Set(startKey ? [startKey] : []) });
+                  console.log(`✅ [TIMERECORDS] (target) สร้างกลุ่ม id=${welfareId}, startDay=${startKey}, amount=${amount}`);
+                } else {
+                  const agg = welfareAgg.get(welfareId);
+                  if (startKey && agg.seenDates.has(startKey)) {
+                    console.log(`🚫 [TIMERECORDS] (target) ข้าม (id ซ้ำ + startDay ซ้ำ) id=${welfareId}, startDay=${startKey}, amount=${amount}`);
+                  } else {
+                    const current = parseFloat(agg.item.SpSalary || '0') || 0;
+                    agg.item.SpSalary = String(current + amount);
+                    if (startKey) {
+                      agg.seenDates.add(startKey);
+                      // รวมวันที่ในฟิลด์ date โดยคั่นด้วย comma
+                      const currentDate = agg.item.date || '';
+                      const newDate = startKey.split('-')[2];
+                      if (currentDate && !currentDate.split(',').includes(newDate)) {
+                        agg.item.date = currentDate + ',' + newDate;
+                      } else if (!currentDate) {
+                        agg.item.date = newDate;
+                      }
+                      
+                      // อัปเดต startDay เป็นวันที่เก่าสุด
+                      if (!agg.item.startDay) {
+                        agg.item.startDay = startKey;
+                        agg.item.month = startKey.split('-')[1];
+                        agg.item.year = startKey.split('-')[0];
+                      } else {
+                        const existing = new Date(agg.item.startDay);
+                        const incoming = new Date(startKey);
+                        if (!isNaN(incoming.getTime()) && !isNaN(existing.getTime()) && incoming < existing) {
+                          agg.item.startDay = startKey;
+                          agg.item.month = startKey.split('-')[1];
+                          agg.item.year = startKey.split('-')[0];
+                        }
+                      }
+                    }
+                    console.log(`🔄 [TIMERECORDS] (target) รวม id=${welfareId}, +${amount} ⇒ ${agg.item.SpSalary}, dates=${agg.item.date}`);
+                  }
+                }
+              } else {
+                // 🎯 สำหรับ id อื่นๆ: ใช้ logic รวม SpSalary ถ้า id เดียวกัน
+                const existingIndex = addSalaryFromWelfare.findIndex(existingItem => existingItem.id === welfareId);
+                
+                if (existingIndex !== -1) {
+                  // ถ้ามี id เดียวกันแล้ว ให้รวม SpSalary
+                  const existingAmount = parseFloat(addSalaryFromWelfare[existingIndex].SpSalary || '0') || 0;
+                  const newTotal = existingAmount + amount;
+                  addSalaryFromWelfare[existingIndex].SpSalary = String(newTotal);
+                  
+                  // รวมวันที่ในฟิลด์ date
+                  const currentStartDay = normalizeStartDay(record.startDay);
+                  if (currentStartDay) {
+                    const existingDate = addSalaryFromWelfare[existingIndex].date || '';
+                    const newDate = currentStartDay.split('-')[2];
+                    if (existingDate && !existingDate.split(',').includes(newDate)) {
+                      addSalaryFromWelfare[existingIndex].date = existingDate + ',' + newDate;
+                    } else if (!existingDate) {
+                      addSalaryFromWelfare[existingIndex].date = newDate;
+                    }
+                  }
+                  
+                  console.log(`🔄 [TIMERECORDS] (normal) รวม id=${welfareId}, ${existingAmount} + ${amount} ⇒ ${newTotal}`);
+                } else {
+                  // ถ้าไม่มี id เดียวกัน ให้เพิ่มใหม่
+                  addSalaryFromWelfare.push({
+                    id: welfareId,
+                    name: record.name || record.welfareTypeEn || "",
+                    SpSalary: record.SpSalary || "0",
+                    roundOfSalary: record.roundOfSalary || "monthly",
+                    StaffType: record.StaffType || "all",
+                    nameType: record.nameType || "",
+                    message: record.comment || record.message || "",
+                    welfareType: record.welfareType || "",
+                    startDay: record.startDay || "",
+                    endDay: record.endDay || "",
+                    welfareMonth: welfareRecord.month || "",
+                    welfareYear: welfareRecord.year || "",
+                    // เพิ่ม date/month/year ตามที่ขอ
+                    date: record.startDay ? normalizeStartDay(record.startDay).split('-')[2] : (welfareRecord.month ? '01' : ''),
+                    month: record.startDay ? normalizeStartDay(record.startDay).split('-')[1] : (welfareRecord.month || ''),
+                    year: record.startDay ? normalizeStartDay(record.startDay).split('-')[0] : (welfareRecord.year || ''),
+                  });
+                  console.log(`✅ [TIMERECORDS] (normal) เพิ่ม welfare item ใหม่: ${record.name} (${record.SpSalary})`);
+                }
+              }
+            });
+          }
+        });
+
+        // รวมผลของกลุ่ม target ids เข้ากับรายการปกติ
+        const targetMergedItems = Array.from(welfareAgg.values()).map(v => v.item);
+        addSalaryFromWelfare = [...addSalaryFromWelfare, ...targetMergedItems];
+        console.log(`📊 [TIMERECORDS] สรุป welfare หลังประมวลผล: normal=${addSalaryFromWelfare.length - targetMergedItems.length} + target=${targetMergedItems.length} → total=${addSalaryFromWelfare.length}`);
+
+        // รวม addSalaryList เดิมกับข้อมูลจาก welfare
+        if (!timeRecord.addSalaryList) {
+          timeRecord.addSalaryList = [];
+        }
+        
+        // 🎯 ลบข้อมูล welfare เดิมออกก่อนเพิ่มใหม่ เพื่อป้องกันการซ้ำ และ sync กับ DB
+        const originalLength = timeRecord.addSalaryList ? timeRecord.addSalaryList.length : 0;
+        
+        // สร้าง Set ของ welfare IDs ที่มีอยู่จริงใน welfare database
+        const validWelfareIds = new Set();
+        addSalaryFromWelfare.forEach(item => {
+          if (item.id) validWelfareIds.add(item.id);
+        });
+        
+        // กรองเอาเฉพาะข้อมูลที่ไม่ใช่ welfare หรือเป็น welfare ที่ยังมีอยู่ใน DB
+        timeRecord.addSalaryList = timeRecord.addSalaryList.filter(item => {
+          // ถ้าไม่มี welfareType หรือ welfareType เป็น falsy และไม่อยู่ใน validWelfareIds = เก็บไว้
+          const isWelfareItem = item.welfareType || validWelfareIds.has(item.id);
+          const shouldKeep = !isWelfareItem;
+          
+          if (isWelfareItem) {
+            console.log(`🗑️ [TIMERECORDS] ลบ welfare item: id=${item.id}, name=${item.name}, welfareType=${item.welfareType || 'undefined'}`);
+          }
+          
+          return shouldKeep;
+        });
+        
+        console.log(`🧹 [TIMERECORDS] ลบข้อมูล welfare เดิมทั้งหมดออก: ${originalLength} → ${timeRecord.addSalaryList.length} items`);
+        
+        // เพิ่ม welfare data ที่ไม่ซ้ำแล้ว (เฉพาะที่มีอยู่จริงใน welfare database)
+        timeRecord.addSalaryList = [...timeRecord.addSalaryList, ...addSalaryFromWelfare];
+        console.log(`📝 [TIMERECORDS] เพิ่ม welfare data ใหม่จาก DB: ${addSalaryFromWelfare.length} items`);
+        
+        // 🎯 กรองข้อมูลซ้ำขั้นสุดท้าย เผื่อมี ID ซ้ำระหว่าง addSalaryList เดิมกับ welfare data
+        const finalUniqueItems = [];
+        const finalSeenIds = new Set();
+        
+        timeRecord.addSalaryList.forEach(item => {
+          const itemId = item.id || "";
+          if (!finalSeenIds.has(itemId)) {
+            finalSeenIds.add(itemId);
+            finalUniqueItems.push(item);
+          } else {
+            console.log(`🚫 [TIMERECORDS] ข้าม item ซ้ำขั้นสุดท้าย: id=${itemId}, name=${item.name}`);
+          }
+        });
+        
+        timeRecord.addSalaryList = finalUniqueItems;
+        
+        // Debug: Log the welfare data addition
+        if (addSalaryFromWelfare.length > 0) {
+          console.log('✅ Added', addSalaryFromWelfare.length, 'welfare items to addSalaryList for employee:', timeRecord.employeeId);
+        } else {
+          console.log('⚠️ No welfare data to add for employee:', timeRecord.employeeId);
+        }
+        
+      } catch (welfareError) {
+        console.error('Error fetching welfare data for employee:', timeRecord.employeeId, welfareError);
+        // ถ้ามีข้อผิดพลาดในการดึงข้อมูล welfare ก็ให้ใช้ addSalaryList เดิม
+        if (!timeRecord.addSalaryList) {
+          timeRecord.addSalaryList = [];
+        }
+      }
+    }
+
+    res.status(200).json({ result });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+//search timerecordEmployee 
+router.post('/searchtimerecordemployee', async (req, res) => {
+  try {
+    const { employeeId,
+      employeeName,
+      month,
+     year} = req.body;
+
+    // Construct the search query based on the provided parameters
+    const query = {};
+
+    if (employeeId !== '') {
+      query.employeeId= employeeId;
+    }
+
+
+    if (employeeName !== '') {
+      query.employeeName = { $regex: new RegExp(employeeName, 'i') };
+    }
+
+    if (month !== '') {
+      //query.month = new Date(date);
+      query.month = { $regex: new RegExp(month , 'i') };
+    }
+
+    if (year!== '') {
+      query.year = { $regex: new RegExp(year , 'i') };
+    }
+
+    if (employeeId == '' && employeeName == '' && month == '' && year== '') {
+      res.status(200).json({});
+    }
+
+    // Query the workplace collection for matching documents
+    const result = await timerecordEmployee.find(query);
+
+    await res.status(200).json({ result});
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Create new timerecordEmployee 
+router.post('/createtimerecordemployee', async (req, res) => {
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+
+  const {
+year,
+    employeeId,
+    employeeName,
+    month,
+    employee_record
+  } = req.body;
+
+  // Debug: Log payFullDay data
+  console.log('📋 Employee Record Data:', JSON.stringify(employee_record, null, 2));
+  employee_record.forEach((record, index) => {
+    if (record.payFullDay !== undefined) {
+      console.log(`✅ Record ${index}: payFullDay = ${record.payFullDay}, totalTime = ${record.totalTime}`);
+    }
+  });
+
+  // Create timerecordEmployee 
+  const timerecordEmployeeData = new timerecordEmployee({
+year,
+    employeeId,
+    employeeName,
+    month,
+    employee_record
+  });
+// console.log(workplaceTimeRecordData );
+
+  try {
+    // Delete existing records for the same employee and month timerecordId
+    await timerecordEmployee.deleteMany({
+      year,
+      employeeId,
+      employeeName,
+      month    });
+      
+    await timerecordEmployeeData.save();
+
+    if(timerecordEmployeeData) {
+      await setToWorkplaceTimerecords(employeeId, employeeName,  employee_record, year, month) 
+    }
+
+    await res.json(timerecordEmployeeData);
+
+  } catch (err) {
+    console.log(err);
+    res.status(400).json({ error: err.message });
+  }
+
+});
+
+// Route to delete all matching records and save a new one
+router.put("/updatetimerecordemployee/:employeeRecordId", async (req, res) => {
+  try {
+    const { year, employeeId, employeeName, month, employee_record } = req.body;
+
+    console.log("🔍 Finding records to delete for:", { year, employeeId, month });
+
+    // Debug: Log payFullDay data
+    console.log('📋 Employee Record Data (Update):', JSON.stringify(employee_record, null, 2));
+    if (employee_record) {
+      employee_record.forEach((record, index) => {
+        if (record.payFullDay !== undefined) {
+          console.log(`✅ Record ${index}: payFullDay = ${record.payFullDay}, totalTime = ${record.totalTime}`);
+        }
+      });
+    }
+
+    // Delete all matching records
+    const deleteResult = await timerecordEmployee.deleteMany({ year, employeeId, month });
+
+    console.log(`🗑️ Deleted ${deleteResult.deletedCount} records`);
+
+    // Create a new record with updated fields
+    const newRecord = new timerecordEmployee(req.body);
+
+    // Save the new record
+    const saved_employee_record = await newRecord.save();
+
+    console.log("✅ New record saved:", saved_employee_record);
+
+    if(saved_employee_record ) {
+      await setToWorkplaceTimerecords(employeeId, employeeName,  newRecord.employee_record, year, month) 
+
+    }
+    // Respond with the newly created record
+    res.status(201).json(saved_employee_record);
+  } catch (error) {
+    console.error("🔥 Error updating record:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// เช็คจำนวนหน่วยงานในแต่ละเดือน
+router.post('/checkworkplacesinmonth', async (req, res) => {
+  try {
+    const startTime = Date.now();
+    const { month, year } = req.body;
+
+    if (!month || month === '') {
+      return res.status(400).json({ 
+        success: false,
+        message: 'กรุณาระบุเดือนที่ต้องการเช็ค',
+        timestamp: new Date().toISOString(),
+        executionTime: `${Date.now() - startTime}ms`
+      });
+    }
+
+    // ใช้ aggregation pipeline เพื่อหาหน่วยงานที่ไม่ซ้ำกันในเดือนที่ระบุ
+    const pipeline = [];
+
+    // Match stage - กรองตามเดือนและปี
+    const matchConditions = {
+      month: { $regex: new RegExp(month, 'i') }
+    };
+    
+    if (year && year !== '') {
+      matchConditions.year = { $regex: new RegExp(year, 'i') };
+    }
+    
+    pipeline.push({ $match: matchConditions });
+
+    // Unwind employee_record เพื่อเข้าถึงข้อมูลหน่วยงานในแต่ละ record
+    pipeline.push({ $unwind: "$employee_record" });
+
+    // Group เพื่อหาหน่วยงานที่ไม่ซ้ำกัน
+    pipeline.push({
+      $group: {
+        _id: {
+          workplaceId: "$employee_record.workplaceId",
+          workplaceName: "$employee_record.workplaceName"
+        },
+        employeeCount: { $addToSet: "$employeeId" }, // นับพนักงานที่ไม่ซ้ำ
+        recordCount: { $sum: 1 } // นับจำนวน record ทั้งหมด
+      }
+    });
+
+    // Project เพื่อจัดรูปแบบข้อมูล
+    pipeline.push({
+      $project: {
+        _id: 0,
+        workplaceId: "$_id.workplaceId",
+        workplaceName: "$_id.workplaceName",
+        employeeCount: { $size: "$employeeCount" },
+        recordCount: "$recordCount"
+      }
+    });
+
+    // Sort ตามรหัสหน่วยงาน
+    pipeline.push({ $sort: { workplaceId: 1 } });
+
+    const workplaces = await timerecordEmployee.aggregate(pipeline);
+
+    // สร้างข้อความสรุป
+    const totalWorkplaces = workplaces.length;
+    const workplaceList = workplaces.map(wp => 
+      `${wp.workplaceName} (รหัส: ${wp.workplaceId}, พนักงาน: ${wp.employeeCount} คน, บันทึก: ${wp.recordCount} รายการ)`
+    ).join(', ');
+
+    const yearText = year && year !== '' ? ` ปี ${year}` : '';
+    const summary = totalWorkplaces > 0 
+      ? `เดือน ${month}${yearText} มี ${totalWorkplaces} หน่วยงาน: ${workplaceList}`
+      : `เดือน ${month}${yearText} ไม่มีข้อมูลหน่วยงาน`;
+
+    console.log(`📊 [CHECK WORKPLACES] ${summary}`);
+
+    const executionTime = Date.now() - startTime;
+
+    res.status(200).json({
+      success: true,
+      month: month,
+      year: year || 'ทุกปี',
+      totalWorkplaces: totalWorkplaces,
+      summary: summary,
+      workplaces: workplaces,
+      details: workplaces,
+      timestamp: new Date().toISOString(),
+      executionTime: `${executionTime}ms`
+    });
+
+  } catch (error) {
+    console.error('❌ [CHECK WORKPLACES] เกิดข้อผิดพลาด:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการดึงข้อมูล',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+
+router.post('/checkspecialtshift', async (req, res) => {
+  try {
+    const { month, year, checkApproval, workplaceId, startDate, endDate } = req.body;
+
+    if (!month || month === '') {
+      return res.status(400).json({ 
+        success: false,
+        message: 'กรุณาระบุเดือนที่ต้องการเช็ค' 
+      });
+    }
+
+    // ถ้าเป็นการตรวจสอบ approval
+    if (checkApproval && workplaceId && startDate && endDate) {
+      try {
+        // ใช้ MongoDB เพื่อตรวจสอบ approval
+        const mongoose = require('mongoose');
+        
+        // Schema สำหรับการอนุมัติ (ถ้ายังไม่มี)
+        let WorkplaceApproval;
+        try {
+          WorkplaceApproval = mongoose.model('WorkplaceApproval');
+        } catch (error) {
+          // ถ้ายังไม่มี model ให้สร้างใหม่
+          const approvalDetailSchema = new mongoose.Schema({
+            employeeId: String,
+            employeeName: String,
+            specialShiftAmount: { type: Number, default: 0 },
+            otAmount: { type: Number, default: 0 },
+            totalAmount: { type: Number, default: 0 },
+            workDays: { type: Number, default: 0 }
+          });
+
+          const workplaceApprovalSchema = new mongoose.Schema({
+            workplaceId: { type: String, required: true },
+            workplaceName: { type: String, required: true },
+            startDate: { type: Date, required: true },
+            endDate: { type: Date, required: true },
+            approvedBy: { type: String, required: true },
+            approvedAt: { type: Date, default: Date.now },
+            totalAmount: { type: Number, required: true },
+            totalEmployees: { type: Number, required: true },
+            month: String,
+            year: String,
+            status: { type: String, enum: ['approved', 'cancelled'], default: 'approved' },
+            employeeDetails: [approvalDetailSchema],
+            createdAt: { type: Date, default: Date.now },
+            updatedAt: { type: Date, default: Date.now }
+          });
+
+          // สร้าง compound index เพื่อป้องกันการอนุมัติซ้ำ
+          workplaceApprovalSchema.index({ workplaceId: 1, startDate: 1, endDate: 1 }, { unique: true });
+
+          WorkplaceApproval = mongoose.model('WorkplaceApproval', workplaceApprovalSchema);
+        }
+        
+        const searchStartDate = new Date(startDate);
+        const searchEndDate = new Date(endDate);
+        
+        // ตรวจสอบการอนุมัติที่ตรงเป็นเป๊ะ
+        const exactApproval = await WorkplaceApproval.findOne({
+          workplaceId: workplaceId,
+          startDate: searchStartDate,
+          endDate: searchEndDate,
+          status: 'approved'
+        });
+        
+        if (exactApproval) {
+          return res.json({
+            success: true,
+            month: month,
+            year: year ? parseInt(year) : new Date().getFullYear(),
+            approvalInfo: {
+              id: exactApproval._id,
+              workplace_id: exactApproval.workplaceId,
+              workplace_name: exactApproval.workplaceName,
+              start_date: exactApproval.startDate,
+              end_date: exactApproval.endDate,
+              approved_by: exactApproval.approvedBy,
+              approved_at: exactApproval.approvedAt,
+              total_amount: exactApproval.totalAmount,
+              total_employees: exactApproval.totalEmployees,
+              month: exactApproval.month,
+              year: exactApproval.year,
+              status: exactApproval.status
+            },
+            workplaces: []
+          });
+        }
+        
+        // ตรวจสอบการซ้อนทับช่วงวันที่
+        const overlappingApprovals = await WorkplaceApproval.find({
+          workplaceId: workplaceId,
+          status: 'approved',
+          $or: [
+            // ช่วงใหม่เริ่มก่อนที่เก่าจะจบ และ จบหลังที่เก่าเริ่ม
+            {
+              $and: [
+                { startDate: { $lte: searchEndDate } },
+                { endDate: { $gte: searchStartDate } }
+              ]
+            }
+          ]
+        });
+        
+        if (overlappingApprovals.length > 0) {
+          return res.json({
+            success: true,
+            month: month,
+            year: year ? parseInt(year) : new Date().getFullYear(),
+            hasOverlap: true,
+            overlappingApprovals: overlappingApprovals.map(approval => ({
+              id: approval._id,
+              workplace_id: approval.workplaceId,
+              workplace_name: approval.workplaceName,
+              start_date: approval.startDate,
+              end_date: approval.endDate,
+              approved_by: approval.approvedBy,
+              approved_at: approval.approvedAt,
+              total_amount: approval.totalAmount,
+              total_employees: approval.totalEmployees,
+              status: approval.status
+            })),
+            workplaces: []
+          });
+        }
+        
+      } catch (error) {
+        console.error('Error checking approval:', error);
+      }
+    }
+
+    // คำนวณช่วงวันที่สำหรับเดือนที่เลือก
+    // เดือน 8 หมายถึง 21/7 - 20/8
+    const targetMonth = parseInt(month);
+    const targetYear = year ? parseInt(year) : new Date().getFullYear();
+    
+    // คำนวณเดือนก่อนหน้าและปี
+    let prevMonth = targetMonth - 1;
+    let prevYear = targetYear;
+    
+    if (prevMonth === 0) {
+      prevMonth = 12;
+      prevYear = targetYear - 1;
+    }
+
+    // สร้าง regex patterns สำหรับช่วงวันที่
+    const prevMonthPattern = prevMonth.toString().padStart(2, '0');
+    const currentMonthPattern = targetMonth.toString().padStart(2, '0');
+    
+    console.log(`🔍 [DEBUG] Searching for special shift in period: ${targetMonth} (${targetYear})`);
+    console.log(`🔍 [DEBUG] Date range: ${prevMonth}/${prevYear} (21-31) to ${targetMonth}/${targetYear} (1-20)`);
+    console.log(`🔍 [DEBUG] Patterns: prev=${prevMonthPattern}, current=${currentMonthPattern}`);
+    
+    // 🎯 FIX: ข้อมูลวันที่ 21-31 ของเดือนก่อนหน้าเก็บไว้ในเดือนปัจจุบันแล้ว
+    console.log(`🔧 [LOGIC FIX] ข้อมูลทั้งหมดเก็บไว้ในเดือน ${currentMonthPattern}/${targetYear} แล้ว`);
+    
+    // เช็คข้อมูลดิบในฐานข้อมูลก่อน aggregation
+    console.log(`🔍 [RAW DATA CHECK] ตรวจสอบข้อมูลดิบในฐานข้อมูล`);
+    
+    // เช็คข้อมูลเดือนปัจจุบันที่มีทั้งวันที่ 21-31 ของเดือนก่อน + 1-20 ของเดือนปัจจุบัน
+    const allMonthData = await timerecordEmployee.find({
+      year: targetYear.toString(),
+      month: currentMonthPattern,
+      'employee_record.shift': 'cash_holiday'
+    }).limit(10);
+    console.log(`📊 [MONTH ${currentMonthPattern} DATA] พบข้อมูลกะพิเศษในเดือน ${currentMonthPattern}: ${allMonthData.length} records`);
+    
+    if (allMonthData.length > 0) {
+      // วิเคราะห์ช่วงวันที่
+      allMonthData.forEach((record, index) => {
+        if (index < 3) {
+          const specialShifts = record.employee_record.filter(emp => emp.shift === 'cash_holiday');
+          console.log(`� [EMPLOYEE ${index + 1}] ${record.employeeName}: มีกะพิเศษ ${specialShifts.length} วัน`);
+          specialShifts.forEach(shift => {
+            const dayNum = parseInt(shift.date);
+            const isJulyPeriod = dayNum >= 21 && dayNum <= 31;
+            const isAugustPeriod = dayNum >= 1 && dayNum <= 20;
+            console.log(`   - วันที่ ${shift.date}: ${isJulyPeriod ? '(ช่วงกรกฎาคม)' : isAugustPeriod ? '(ช่วงสิงหาคม)' : '(นอกช่วง)'}`);
+          });
+        }
+      });
+    }
+    
+    // ใช้ aggregation pipeline เพื่อหาหน่วยงานที่มีกะพิเศษในช่วงวันที่ที่ระบุ
+    const pipeline = [];
+
+    // Match stage - กรองเฉพาะเดือนปัจจุบันที่มีข้อมูลทั้งหมด
+    const matchConditions = {
+      $and: [
+        { 
+          year: targetYear.toString(),
+          month: currentMonthPattern
+        },
+        { 'employee_record.shift': 'cash_holiday' }
+      ]
+    };
+    
+    console.log(`🔍 [MATCH CONDITIONS] `, JSON.stringify(matchConditions, null, 2));
+    pipeline.push({ $match: matchConditions });
+
+    // ตรวจสอบผลลัพธ์หลัง match stage
+    const matchResults = await timerecordEmployee.aggregate([
+      { $match: matchConditions }
+    ]);
+    console.log(`📊 [AFTER MATCH] พบข้อมูลหลัง match: ${matchResults.length} records`);
+    matchResults.forEach((record, index) => {
+      if (index < 3) { // แสดงแค่ 3 records แรก
+        console.log(`📋 [MATCH RESULT ${index + 1}] Year: ${record.year}, Month: ${record.month}, Employee: ${record.employeeName}`);
+        const specialShifts = record.employee_record.filter(emp => emp.shift === 'cash_holiday');
+        console.log(`📅 [SPECIAL SHIFTS] พนักงาน ${record.employeeName} มีกะพิเศษ ${specialShifts.length} วัน`);
+        specialShifts.forEach(shift => {
+          console.log(`   - วันที่ ${shift.date}/${record.month}/${record.year}: ${shift.shift}`);
+        });
+      }
+    });
+
+    // Unwind employee_record เพื่อเข้าถึงข้อมูลในแต่ละ record
+    pipeline.push({ $unwind: "$employee_record" });
+
+    // เพิ่มฟิลด์สำหรับการเปรียบเทียบ
+    pipeline.push({
+      $addFields: {
+        "employee_record.dateInt": { $toInt: "$employee_record.date" },
+        // เมื่อข้อมูลทั้งหมดอยู่ในเดือนเดียวกัน ใช้เดือนปัจจุบัน
+        "docMonthInt": { $toInt: "$month" },
+        "docYearInt": { $toInt: "$year" }
+      }
+    });
+
+    // กรองข้อมูลตามช่วงวันที่และ shift (ข้อมูลทั้งหมดอยู่ในเดือนเดียวกัน)
+    pipeline.push({
+      $match: {
+        $and: [
+          { 'employee_record.shift': 'cash_holiday' },
+          {
+            $or: [
+              // วันที่ 21-31 (ช่วงเดือนก่อนหน้า แต่เก็บไว้ในเดือนปัจจุบัน)
+              { 'employee_record.dateInt': { $gte: 21, $lte: 31 } },
+              // วันที่ 1-20 (ช่วงเดือนปัจจุบัน)
+              { 'employee_record.dateInt': { $gte: 1, $lte: 20 } }
+            ]
+          }
+        ]
+      }
+    });
+
+    // Group ตามหน่วยงานและพนักงาน
+    const groupStage = {
+      $group: {
+        _id: {
+          workplaceId: "$employee_record.workplaceId",
+          workplaceName: "$employee_record.workplaceName",
+          employeeId: "$employeeId",
+          employeeName: "$employeeName"
+        },
+        specialShiftDays: { 
+          $push: {
+            date: {
+              $concat: [
+                "$employee_record.date", "/",
+                // 🔧 FIX: ตรวจสอบช่วงวันที่เพื่อใส่เดือนที่ถูกต้อง
+                {
+                  $cond: {
+                    if: { 
+                      $and: [
+                        { $gte: ["$employee_record.dateInt", 21] },
+                        { $lte: ["$employee_record.dateInt", 31] }
+                      ]
+                    },
+                    then: prevMonthPattern, // วันที่ 21-31 = เดือนก่อนหน้า (กรกฎาคม)
+                    else: currentMonthPattern // วันที่ 1-20 = เดือนปัจจุบัน (สิงหาคม)
+                  }
+                }, "/",
+                { $toString: { $add: [targetYear, 543] } } // แปลงเป็น พ.ศ. (ใช้ปีเดียวกันสำหรับง่าย)
+              ]
+            },
+            cashOfHoliday: "$employee_record.cashOfHoliday",
+            cashOfHolidayOt: "$employee_record.cashOfHolidayOt"
+          }
+        },
+        totalDays: { $sum: 1 }
+      }
+    };
+    
+    pipeline.push(groupStage);
+
+    // Sort specialShiftDays by date
+    pipeline.push({
+      $addFields: {
+        specialShiftDays: {
+          $sortArray: {
+            input: "$specialShiftDays",
+            sortBy: { 
+              date: 1 
+            }
+          }
+        }
+      }
+    });
+
+    // Group อีกครั้งตามหน่วยงาน
+    pipeline.push({
+      $group: {
+        _id: {
+          workplaceId: "$_id.workplaceId",
+          workplaceName: "$_id.workplaceName"
+        },
+        employees: {
+          $push: {
+            employeeId: "$_id.employeeId",
+            employeeName: "$_id.employeeName",
+            specialShiftDays: "$specialShiftDays",
+            totalDays: "$totalDays"
+          }
+        },
+        totalEmployees: { $sum: 1 },
+        totalShiftDays: { $sum: "$totalDays" }
+      }
+    });
+
+    // Sort employees by employeeId
+    pipeline.push({
+      $addFields: {
+        employees: {
+          $sortArray: {
+            input: "$employees",
+            sortBy: { employeeId: 1 }
+          }
+        }
+      }
+    });
+
+    // Project เพื่อจัดรูปแบบข้อมูล
+    pipeline.push({
+      $project: {
+        _id: 0,
+        workplaceId: "$_id.workplaceId",
+        workplaceName: "$_id.workplaceName",
+        totalEmployeesWithSpecialShift: "$totalEmployees",
+        totalShiftDays: "$totalShiftDays",
+        employees: "$employees"
+      }
+    });
+
+    // Sort ตามรหัสหน่วยงาน
+    pipeline.push({ $sort: { workplaceId: 1 } });
+
+    const workplacesWithSpecialShift = await timerecordEmployee.aggregate(pipeline);
+
+    console.log(`🔍 [DEBUG] Pipeline executed, found ${workplacesWithSpecialShift.length} workplaces with special shifts`);
+    
+    // Debug: ตรวจสอบว่ามีข้อมูลจากช่วงวันที่ต่างๆ หรือไม่
+    if (workplacesWithSpecialShift.length > 0) {
+      let julyPeriodCount = 0;  // วันที่ 21-31
+      let augustPeriodCount = 0; // วันที่ 1-20
+      
+      workplacesWithSpecialShift.forEach((workplace) => {
+        workplace.employees.forEach((emp) => {
+          emp.specialShiftDays.forEach((day) => {
+            // แยกวันที่จาก format "21/08/2568"
+            const dateParts = day.date.split('/');
+            const dayNum = parseInt(dateParts[0]);
+            
+            if (dayNum >= 21 && dayNum <= 31) {
+              julyPeriodCount++;
+              console.log(`📅 [JULY PERIOD] พบ: ${emp.employeeName} วันที่ ${day.date} (ช่วงกรกฎาคม)`);
+            } else if (dayNum >= 1 && dayNum <= 20) {
+              augustPeriodCount++;
+              console.log(`📅 [AUGUST PERIOD] พบ: ${emp.employeeName} วันที่ ${day.date} (ช่วงสิงหาคม)`);
+            }
+          });
+        });
+      });
+      
+      console.log(`📊 [FINAL SUMMARY] ช่วงกรกฎาคม (21-31): ${julyPeriodCount} วัน, ช่วงสิงหาคม (1-20): ${augustPeriodCount} วัน`);
+      console.log(`🎯 [RESULT] รวมทั้งหมด: ${julyPeriodCount + augustPeriodCount} วันกะพิเศษ`);
+    }
+
+    // สร้างข้อความสรุป
+    const totalWorkplaces = workplacesWithSpecialShift.length;
+    const totalEmployees = workplacesWithSpecialShift.reduce((sum, wp) => sum + wp.totalEmployeesWithSpecialShift, 0);
+    const totalDays = workplacesWithSpecialShift.reduce((sum, wp) => sum + wp.totalShiftDays, 0);
+    
+    const workplaceList = workplacesWithSpecialShift.map(wp => 
+      `${wp.workplaceName} (รหัส: ${wp.workplaceId}, พนักงาน: ${wp.totalEmployeesWithSpecialShift} คน, กะพิเศษรวม: ${wp.totalShiftDays} วัน)`
+    ).join(', ');
+
+    const dateRange = `21/${prevMonthPattern}/${prevYear} - 20/${currentMonthPattern}/${targetYear}`;
+    const summary = totalWorkplaces > 0 
+      ? `งวดเดือน ${month} (${dateRange}) มี ${totalWorkplaces} หน่วยงานที่มีกะพิเศษ รวม ${totalEmployees} คน และ ${totalDays} วันทำงาน: ${workplaceList}`
+      : `งวดเดือน ${month} (${dateRange}) ไม่มีหน่วยงานที่มีกะพิเศษ`;
+
+    console.log(`✅ [CHECK SPECIAL SHIFT] ${summary}`);
+
+    res.status(200).json({
+      success: true,
+      month: month,
+      year: targetYear,
+      dateRange: dateRange,
+      totalWorkplacesWithSpecialShift: totalWorkplaces,
+      totalEmployeesWithSpecialShift: totalEmployees,
+      totalShiftDays: totalDays,
+      summary: summary,
+      workplaces: workplacesWithSpecialShift
+    });
+
+  } catch (error) {
+    console.error('❌ [CHECK SPECIAL SHIFT] เกิดข้อผิดพลาด:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการดึงข้อมูลกะพิเศษ',
+      error: error.message 
+    });
+  }
+});
+// ========= workplace
+
+// Create new workplaceTimerecords
+router.post('/createworkplacetimerecords', async (req, res) => {
+  try {
+    const {
+      workplaceId,
+      workplaceName,
+      wGroup ,
+      date,
+      employeeRecord
+    } = req.body;
+
+    // Filter out employeeRecord objects where staffId is null
+    const filteredEmployeeRecord = employeeRecord.filter(record => record.employeeId !== '');
+
+    const currentDate = new Date(date);
+    const currentYear = currentDate.getFullYear();
+    const year = currentYear;
+
+    // Create workplace with filtered employeeRecord array
+    const workplaceTimeRecordData = new workplaceTimerecords({
+      workplaceId,
+      workplaceName,
+      wGroup ,
+      date,
+      employeeRecord: filteredEmployeeRecord
+    });
+
+    const ans = await workplaceTimeRecordData.save();
+    if (ans) {
+      console.log('Create workplace time record success');
+      await setToEmployee(workplaceId, workplaceName,wGroup , date, filteredEmployeeRecord);
+    }
+
+    res.json(workplaceTimeRecordData);
+  } catch (err) {
+    console.error(err);
+    res.status(400).json({ error: err.message });
+  }
+});
+
+//search
+router.post('/searchworkplacetimerecords', async (req, res) => {
+  try {
+    const { workplaceId,
+      // workplaceName,
+      wGroup ,
+      date} = req.body;
+    // Construct the search query based on the provided parameters
+    const query = {};
+
+    if (workplaceId !== '') {
+      query.workplaceId = workplaceId;
+    }
+
+
+    // if (workplaceName !== '') {
+    //   query.workplaceName = { $regex: new RegExp(workplaceName, 'i') };
+    // }
+
+    if (wGroup !== '') {
+      query.wGroup = wGroup;
+      // { $regex: new RegExp(wGroup , 'i') };
+    }
+    if (date !== '') {
+      const [dd, mm, yyyy] = date.split('/'); // Split the date string
+      query.date = `${parseInt(dd, 10)}/${mm}/${yyyy}`; // Convert dd to an integer to remove leading zero
+    }
+    
+    // if (date !== '') {
+    //   query.date= date;
+    // }
+console.log('query.date ' + query.date);
+    // console.log('Constructed Query:');
+    // console.log(query);
+
+    if (workplaceId == '' && workplaceName == '' && date == '') {
+      res.status(200).json({});
+    }
+
+    // Query the workplace collection for matching documents
+    const recordworkplace  = await workplaceTimerecords.find(query);
+
+    await console.log('Search Results:');
+    await console.log(recordworkplace  );
+    let textSearch = 'workplace';
+    await res.status(200).json({ recordworkplace  });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Delete existing records by workplaceId, wGroup, and date, then save a new one
+router.put('/updateworkplacetimerecords/:workplaceRecordId', async (req, res) => {
+  const workplaceIdToUpdate = req.params.workplaceRecordId;
+  const newData = req.body; // New data to insert
+
+  try {
+    // Step 1: Delete records matching workplaceId, wGroup, and date
+    const deleteResult = await workplaceTimerecords.deleteMany({
+      workplaceId: newData.workplaceId,
+      wGroup: newData.wGroup,
+      date: newData.date,
+    });
+
+    console.log(`🗑️ Deleted ${deleteResult.deletedCount} records`);
+
+    // Step 2: Create a new record with the updated data
+    const newRecord = new workplaceTimerecords(newData);
+    const updatedResource = await newRecord.save();
+
+    // Step 3: Update workplaceTimerecordEmp (if needed)
+    await setToEmployee(
+      updatedResource.workplaceId,
+      updatedResource.workplaceName,
+      updatedResource.wGroup,
+      newData.date,
+      updatedResource.employeeRecord
+    );
+
+    // Respond with the newly created record
+    res.status(201).json(updatedResource );
+    
+  } catch (error) {
+    console.error("❌ Error:", error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 
 module.exports = router;

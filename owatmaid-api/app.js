@@ -23,6 +23,7 @@ var addsalaryRouter = require('./routes/addsalary');
 var oldemployeesRouter = require('./routes/oldemployees');
 var imgemployeeRouter = require('./routes/imgemployee');
 var uploadRouter = require('./routes/upload');
+var specialShiftApprovalRouter = require('./routes/specialShiftApproval');
 
 var app = express();
 
@@ -55,6 +56,7 @@ app.use('/leave', leaveRouter);
 app.use('/api', uploadRouter);
 app.use('/basicsetting', basicSettingRouter);
 app.use('/outsider', outsiderRouter);
+app.use('/timerecord', specialShiftApprovalRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

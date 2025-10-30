@@ -1,4 +1,5 @@
 const connectionString = require("../config");
+const Employee = require('./models/employeeModel');
 
 var express = require("express");
 var router = express.Router();
@@ -18,434 +19,6 @@ mongoose.connect(connectionString, {
 const db = mongoose.connection;
 db.on("error", console.error.bind(console, "MongoDB connection error:"));
 
-// Define employee schema
-const employeeSchema = new mongoose.Schema({
-  employeeId: {
-    type: String,
-    required: true,
-    unique: true,
-  },
-  position: { //ตำแหน่ง
-    type: String,
-  },
-  department: {
-    type: String,
-  },
-  workplace: { //// รหัสหน่วยงาน
-    type: String,
-  },
-  jobtype: {
-    type: String,
-  },
-  startjob: { /// วันที่เริ่มงาน
-    type: String,
-  },
-  endjob: { /// วันที่ออก
-    type: String,
-  },
-  exceptjob: { //วันที่ประจุ
-    type: String,
-  },
-  prefix: {
-    type: String, //// คำนำหน้า
-  },
-  name: {
-    type: String, //// use SocialSecurity
-  },
-  lastName: {
-    type: String, //// use SocialSecurity
-  },
-  nickName: {
-    type: String,
-  },
-  gender: {
-    type: String,
-  },
-  dateOfBirth: {
-    type: String,
-  },
-  age: {
-    type: Number,
-  },
-  idCard: {
-    type: String,
-    required: true, //// use SocialSecurity
-    unique: true,
-  },
-  idCardIssueDate: { //วันออกบัตร
-    type: String,
-  },
-  idCardPlace: {
-    type: String, //สถานที่ออกบัตร
-  },
-  stayLive: {  // จังหวัดที่อยู่
-    type: String,
-  },
-  natnalty: { //สัญชาติ
-    type: String,
-  },
-  origin: { // เชื้อชาติ
-    type: String,
-  },
-  religion: { // ประเทศ
-    type: String,
-  },
-  ethnicity: { //เชื้อชาติ
-    type: String,
-  },
-  maritalStatus: { //สถานภาพการสมรส
-    type: String,
-  },
-  militaryStatus: { //สถานภาพทางการทหาร
-    type: String,
-  },
-  blood: {
-    type: String,
-  },
-  height: {
-    type: String,
-  },
-  weight: {
-    type: String,
-  },
-
-  fatherName: {
-    type: String,
-  },
-  fatherNatnalty: {
-    type: String,
-  },
-  motherName: {
-    type: String,
-  },
-  motherNatnalty: {
-    type: String,
-  },
-  emr_cntt: {
-    type: String,
-  },
-  emr_adr1: {
-    type: String,
-  },
-  emr_adr2: {
-    type: String,
-  },
-  emr_adr3: {
-    type: String,
-  },
-
-  address: {
-    //บ้านเลขที่ หมู่ที่
-    type: String,
-  },
-  
-  country: {
-    //ประเทศ
-    type: String,
-  },
-  province: {
-    //จังหวัด
-    type: String,
-  },
-  district: {
-    //อำเภอ
-    type: String,
-  },
-  subDistrict: {
-    //ตำบล
-    type: String,
-  },
-  postalCode: {
-    //รหัสไปรษณีย์
-    type: String,
-  },
-  houseNumber: {
-    //บ้านเลขที่
-    type: String,
-  },
-
-  province2: {
-    //จังหวัด
-    type: String,
-  },
-  district2: {
-    //อำเภอ
-    type: String,
-  },
-  subDistrict2: {
-    //ตำบล
-    type: String,
-  },
-  postalCode2: {
-    //รหัสไปรษณีย์
-    type: String,
-  },
-  houseNumber2: {
-    //บ้านเลขที่
-    type: String,
-  },
-
-  currentAddress: {
-    type: String,
-  },
-  currentProvince: {
-    //จังหวัด
-    type: String,
-  },
-  currentDistrict: {
-    //อำเภอ
-    type: String,
-  },
-  currentSubdistrict: {
-    //ตำบล
-    type: String,
-  },
-  currentZipcode: {
-    //รหัสไปรษณีย์
-    type: String,
-  },
-
-  phoneNumber: {
-    type: String,
-    // match: /^[0-9]{10}$/, // Regular expression for 10-digit phone number
-  },
-  emergencyContactNumber: {
-    type: String,
-    // match: /^[0-9]{10}$/, // Regular expression for 10-digit phone number
-  },
-  statusEmergencyContact: {
-    type: String,
-  },
-  tax_id: {
-    type: String,
-  },
-  i_type: {
-    type: String,
-  },
-  i_card: {
-    type: String,
-  },
-  i_exp: {
-    type: String,
-  },
-  i_iss: {
-    type: String,
-  },
-  iss_ampur: {
-    type: String,
-  },
-  iss_prov: {
-    type: String,
-  },
-  sp_intl: {
-    type: String,
-  },
-  sp_name: {
-    type: String,
-  },
-  sp_surnme: {
-    type: String,
-  },
-  domicile: { // ภูมิลำเนา
-    type: String,
-  },
-  fml_domicile_origin: { // เชื้อชาติ คู่สมรส
-    type: String,
-  },
-  fml_natnalty: { //สัญชาติ คู่สมรส
-    type: String,
-  },
-  fml_religion: { //ประเทศ คู่สมรส
-    type: String,
-  },
-  fml_military: { //// สถานภาพทางการทหาร คู่สมรส
-    type: String,
-  },
-  fml_blood: {
-    type: String,
-  },
-  fml_height: {
-    type: String,
-  },
-  fml_weight: {
-    type: String,
-  },
-  fml_card_adr1: {
-    type: String,
-  },
-  fml_card_adr2: {
-    type: String,
-  },
-  fml_card_adr3: {
-    type: String,
-  },
-  Fml_fatherName: {
-    type: String,
-  },
-  Fml_motherName: {
-    type: String,
-  },
-  Fml_fatherName2: {
-    type: String,
-  },
-  Fml_fatherID: {
-    type: String,
-  },
-  Fml_motherID: {
-    type: String,
-  },
-  ssoEntryDate: { // วันเข้างานปกส
-    type: String,
-  },
-  message: {
-    type: String,
-  },
-  bank_initial: { // อักษรย่อของธนาคาร
-    type: String,
-  },
-  branchBank: { // สาขาธนาคาร
-    type: String,
-  },
-  idLine: {
-    type: String,
-  },
-  vaccination: [], // การฉีดวัคซีน
-  treatmentRights: { //สิทธิการรักษา
-    type: String,
-  },
-  startcount: String,
-  salary: String, //// use SocialSecurity
-  salarytype: String,
-  money: String,
-  salaryupdate: Date,
-  salaryout: String,
-  salarypayment: String,
-  salarybank: String,
-  banknumber: String,
-  salaryTaxType: String,
-  costtype: String,
-
-  salaryadd1: String,
-  salaryadd1v: String,
-  salaryadd2: String,
-  salaryadd2v: String,
-  salaryadd3: String,
-  salaryadd3v: String,
-  salaryadd4: String,
-  salaryadd4v: String,
-  salaryadd5: String,
-  salaryadd5v: String,
-  salaryaddtype: String,
-  ///socielsecurity
-  salaryadd1Sec: String,
-  salaryadd2Sec: String,
-  salaryadd3Sec: String,
-  salaryadd4Sec: String,
-  salaryadd5Sec: String,
-
-  remainbusinessleave: String,
-  businessleavesalary: String,
-  remainsickleave: String,
-  sickleavesalary: String,
-  remainvacation: String,
-  maternityleave: String,
-  maternityleavesalary: String,
-  vacationsalary: String,
-  militaryleave: String,
-  militaryleavesalary: String,
-  sterilization: String,
-  sterilizationsalary: String,
-  leavefortraining: String,
-  leavefortrainingsalary: String,
-
-  SocialSecurityCheck: String,
-  selectedOption: String,
-  idPerson: String,
-  salary: String,
-  minus: String,
-  socialsecurity: String,
-  socialsecurityemployer: String,
-  minusemployer: String,
-
-  selectedHospDFSelect: String,
-  selectedHospSelect1: String,
-  selectedHospSelect2: String,
-  selectedHospSelect3: String,
-
-  selectedHospDf: String,
-  selectedHosp1: String,
-  selectedHosp2: String,
-  selectedHosp3: String,
-  beforebecomeEmployee: String,
-  wagesbeforeusingProgram: String,
-  wagesafterusingProgram: String,
-  companybeforeusingProgram: String,
-  ////otherExp
-  number1: String,
-  number2: String,
-
-  input1: String,
-  input2: String,
-  input3: String,
-  anything: String,
-
-  crimeinvestigation: String,
-  shirt: String,
-  shirtcount: String,
-  trousers: String,
-  trouserscount: String,
-  wholeset: String,
-  wholesetcount: String,
-  saveftyShoes: String,
-  saveftyShoescount: String,
-  apron: String,
-  aproncount: String,
-  hat: String,
-  hatcount: String,
-  custom: String,
-
-  admoney1: String,
-  admoney2: String,
-  admoney3: String,
-
-  commentadmoney1: String,
-  commentadmoney2: String,
-  commentadmoney3: String,
-  PriceType: String,
-  divide: String,
-
-  addSalary: [
-    {
-      id: String,
-      name: String,
-      SpSalary: String,
-      roundOfSalary: String,
-      StaffType: String,
-      nameType: String,
-      message: String,
-    },
-  ],
-  deductSalary: [
-    {
-      id: String,
-      name: String,
-      amount: String,
-      payType: String,
-      installment: String,
-      nameType: String,
-      message: String,
-    },
-  ],
-
-  selectAddSalary: [],
-  sumAddSalary: String,
-  sumSalaryForTax: String,
-  tax: String,
-});
-
-
-// Create the Employee model based on the schema
-const Employee = mongoose.model("Employee", employeeSchema);
 
 function fixKeys(obj) {
   let newObj = {};
@@ -733,6 +306,86 @@ router.get("/:employeeId", async (req, res) => {
   }
 });
 
+// ✅ [API #1] GET /api/employees/:employeeId/custom-workplace
+// 🔍 ดึง customWorkplace จาก employeeId
+router.get('/:employeeId/custom-workplace', async (req, res) => {
+  const { employeeId } = req.params;
+
+  try {
+    const employee = await Employee.findOne({ employeeId });
+
+    if (!employee) {
+      return res.status(404).json({ message: 'ไม่พบพนักงาน' });
+    }
+
+    if (!employee.customWorkplace) {
+      return res.status(404).json({ message: 'ไม่มีข้อมูล customWorkplace' });
+    }
+
+    res.status(200).json({ customWorkplace: employee.customWorkplace });
+  } catch (err) {
+    console.error('❌ Error fetching customWorkplace:', err);
+    res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: err.message });
+  }
+});
+
+
+// ✅ [API #2] PUT /api/employees/:employeeId/custom-workplace
+// 📝 รับ customWorkplace จาก frontend แล้วบันทึกลงในพนักงาน
+router.put('/:employeeId/custom-workplace', async (req, res) => {
+  const { employeeId } = req.params;
+  const { customWorkplace } = req.body;
+
+  // ตรวจสอบว่า customWorkplace เป็น object ที่ส่งมาจาก frontend
+  if (!customWorkplace || typeof customWorkplace !== 'object') {
+    return res.status(400).json({ message: 'กรุณาส่ง customWorkplace ที่ถูกต้อง' });
+  }
+
+  try {
+    const employee = await Employee.findOne({ employeeId });
+
+    if (!employee) {
+      return res.status(404).json({ message: 'ไม่พบพนักงาน' });
+    }
+
+    employee.customWorkplace = customWorkplace;
+    await employee.save();
+
+    res.status(200).json({
+      message: 'บันทึก customWorkplace สำเร็จ',
+      customWorkplace: employee.customWorkplace,
+    });
+  } catch (err) {
+    console.error('❌ Error saving customWorkplace:', err);
+    res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: err.message });
+  }
+});
+
+// ✅ DELETE /api/employees/:employeeId/custom-workplace
+// 👉 ลบ field customWorkplace ใน employee
+router.delete('/:employeeId/custom-workplace', async (req, res) => {
+  const { employeeId } = req.params;
+
+  try {
+    const employee = await Employee.findOne({ employeeId });
+
+    if (!employee) {
+      return res.status(404).json({ message: 'ไม่พบพนักงาน' });
+    }
+
+    // ❌ ลบ field customWorkplace
+    employee.customWorkplace = undefined;
+    await employee.save();
+
+    res.status(200).json({ message: 'ลบ customWorkplace สำเร็จ' });
+  } catch (err) {
+    console.error('❌ Error deleting customWorkplace:', err);
+    res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: err.message });
+  }
+});
+
+
+
 router.post("/search", async (req, res) => {
   try {
     const { employeeId, name, idCard, workPlace } = req.body;
@@ -967,6 +620,9 @@ router.post("/create", async (req, res) => {
     addSalary,
     selectAddSalary,
     sumAddSalary,
+    banknumber,
+    salarybank,
+    
   } = req.body;
   console.log(`Name: ${name}, Id card: ${idCard}`);
 
@@ -1263,6 +919,160 @@ router.delete("/delete_id/:_id", async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Update employee by employeeId (for loan contracts and other updates)
+router.post("/updateemployees", async (req, res) => {
+  try {
+    const { employeeId, loanContracts, ...otherFields } = req.body;
+    
+    if (!employeeId) {
+      return res.status(400).json({ error: "employeeId is required" });
+    }
+
+    // Prepare update object
+    const updateFields = { ...otherFields };
+    
+    // If loanContracts is provided, add it to update fields
+    if (loanContracts) {
+      updateFields.loanContracts = loanContracts;
+    }
+
+    // Find employee by employeeId and update
+    const updatedEmployee = await Employee.findOneAndUpdate(
+      { employeeId: employeeId },
+      updateFields,
+      { new: true, upsert: false }
+    );
+
+    if (!updatedEmployee) {
+      return res.status(404).json({ error: "Employee not found" });
+    }
+
+    res.json({ 
+      success: true, 
+      message: "Employee updated successfully", 
+      employee: updatedEmployee 
+    });
+    
+  } catch (error) {
+    console.error('Error updating employee:', error);
+    res.status(500).json({ error: "Internal server error", details: error.message });
+  }
+});
+
+// ✅ GET /api/employees/filter-by-jobtype/:jobtype
+// 🔍 กรองพนักงานตาม jobtype และแสดง workplace ในวงเล็บ
+router.get("/filter-by-jobtype/:jobtype", async (req, res) => {
+  try {
+    const { jobtype } = req.params;
+    
+    if (!jobtype) {
+      return res.status(400).json({ error: "jobtype is required" });
+    }
+
+    // Query employees by jobtype
+    const employees = await Employee.find({ jobtype: jobtype });
+
+    if (employees.length === 0) {
+      return res.status(404).json({ 
+        message: `ไม่พบพนักงานที่มี jobtype: ${jobtype}`,
+        count: 0,
+        employees: []
+      });
+    }
+
+    // Format employee data with workplace in parentheses
+    const formattedEmployees = employees.map(employee => {
+      // Format dates
+      let formattedEmployee = { ...employee.toObject() };
+      
+      if (formattedEmployee.startjob) {
+        const [day, month, year] = formattedEmployee.startjob.split('/');
+        formattedEmployee.startjob = `${month}/${day}/${year}`;
+      }
+      
+      if (formattedEmployee.exceptjob) {
+        const [day, month, year] = formattedEmployee.exceptjob.split('/');
+        formattedEmployee.exceptjob = `${month}/${day}/${year}`;
+      }
+
+      // Ensure arrays exist
+      if (!formattedEmployee.addSalary) {
+        formattedEmployee.addSalary = [];
+      }
+      if (!formattedEmployee.deductSalary) {
+        formattedEmployee.deductSalary = [];
+      }
+      if (!formattedEmployee.department) {
+        formattedEmployee.department = '';
+      }
+
+      // Add formatted display name with workplace in parentheses
+      const workplace = formattedEmployee.workplace || 'ไม่ระบุสถานที่ทำงาน';
+      formattedEmployee.displayName = `${formattedEmployee.name} (${workplace})`;
+
+      return formattedEmployee;
+    });
+
+    res.status(200).json({
+      message: `พบพนักงาน jobtype: ${jobtype} จำนวน ${employees.length} คน`,
+      jobtype: jobtype,
+      count: employees.length,
+      employees: formattedEmployees
+    });
+
+  } catch (error) {
+    console.error('Error filtering employees by jobtype:', error);
+    res.status(500).json({ 
+      error: "Internal server error", 
+      details: error.message 
+    });
+  }
+});
+
+// ✅ GET /api/employees/check-idcard/:idCard
+// 🔍 ตรวจสอบว่าเลขบัตรประชาชนมีอยู่ในระบบแล้วหรือไม่
+router.get("/check-idcard/:idCard", async (req, res) => {
+  try {
+    const { idCard } = req.params;
+    
+    if (!idCard) {
+      return res.status(400).json({ error: "idCard is required" });
+    }
+
+    // Query employee by idCard
+    const employee = await Employee.findOne({ idCard: idCard });
+
+    if (!employee) {
+      return res.status(404).json({ 
+        exists: false,
+        message: "เลขบัตรประชาชนนี้ยังไม่มีในระบบ"
+      });
+    }
+
+    res.status(200).json({
+      exists: true,
+      message: `เลขบัตรประจำตัวประชาชน "${idCard}" มีอยู่ในระบบแล้ว`,
+      employee: {
+        _id: employee._id,
+        employeeId: employee.employeeId,
+        prefix: employee.prefix,
+        name: employee.name,
+        lastName: employee.lastName,
+        workplace: employee.workplace,
+        position: employee.position,
+        idCard: employee.idCard
+      }
+    });
+
+  } catch (error) {
+    console.error('Error checking idCard:', error);
+    res.status(500).json({ 
+      error: "Internal server error", 
+      details: error.message 
+    });
   }
 });
 

@@ -1,0 +1,110 @@
+{
+  "timerecord_create_example": {
+    "year": "2024",
+    "employeeId": "EMP001",
+    "employeeName": "สมชาย ใจดี",
+    "month": "09",
+    "employee_record": [
+      {
+        "workplaceId": "1001",
+        "workplaceName": "สำนักงานใหญ่",
+        "wGroup": "1",
+        "date": "1",
+        "shift": "morning_shift",
+        "startTime": "08.00",
+        "endTime": "17.00",
+        "allTime": "8.0",
+        "otTime": "2.0",
+        "selectotTime": "17.00",
+        "selectotTimeOut": "19.00",
+        "cashSalary": "",
+        "specialtSalary": "",
+        "specialtSalaryOT": "",
+        "cashOfHoliday": "",
+        "cashOfHolidayOt": "",
+        "messageSalary": "",
+        "tmpIndex": 0
+      },
+      {
+        "workplaceId": "1001",
+        "workplaceName": "สำนักงานใหญ่",
+        "wGroup": "1",
+        "date": "2",
+        "shift": "specialt_shift",
+        "startTime": "09.00",
+        "endTime": "18.00",
+        "allTime": "8.0",
+        "otTime": "2.0",
+        "selectotTime": "18.00",
+        "selectotTimeOut": "20.00",
+        "cashSalary": "",
+        "specialtSalary": "1500",
+        "specialtSalaryOT": "750",
+        "cashOfHoliday": "",
+        "cashOfHolidayOt": "",
+        "messageSalary": "",
+        "tmpIndex": 1
+      },
+      {
+        "workplaceId": "1001",
+        "workplaceName": "สำนักงานใหญ่",
+        "wGroup": "1",
+        "date": "3",
+        "shift": "cash_holiday",
+        "startTime": "08.00",
+        "endTime": "17.00",
+        "allTime": "8.0",
+        "otTime": "1.5",
+        "selectotTime": "17.00",
+        "selectotTimeOut": "18.30",
+        "cashSalary": "",
+        "specialtSalary": "",
+        "specialtSalaryOT": "",
+        "cashOfHoliday": "800",
+        "cashOfHolidayOt": "400",
+        "messageSalary": "",
+        "tmpIndex": 2
+      }
+    ],
+    "specialShiftTotalSalary": "2250"
+  },
+  
+  "timerecord_update_example": {
+    "year": "2024",
+    "employeeId": "EMP001",
+    "employeeName": "สมชาย ใจดี (เต็ม)",
+    "month": "09",
+    "employee_record": [
+      {
+        "workplaceId": "1001",
+        "workplaceName": "สำนักงานใหญ่",
+        "wGroup": "1",
+        "date": "1",
+        "shift": "morning_shift",
+        "startTime": "08.00",
+        "endTime": "17.00",
+        "allTime": "8.0",
+        "otTime": "2.0",
+        "selectotTime": "17.00",
+        "selectotTimeOut": "19.00",
+        "cashSalary": "",
+        "specialtSalary": "",
+        "specialtSalaryOT": "",
+        "cashOfHoliday": "",
+        "cashOfHolidayOt": "",
+        "messageSalary": "",
+        "tmpIndex": 0,
+        "_id": "66f123456789abcdef123456"
+      }
+    ],
+    "specialShiftTotalSalary": "1200",
+    "timeRecord_id": "66f123456789abcdef123456"
+  },
+
+  "accounting_api_example": {
+    "employeeId": "EMP001",
+    "month": "09",
+    "year": "2024",
+    "specialShiftTotalSalary": "2250"
+  }
+}

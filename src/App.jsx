@@ -2,100 +2,101 @@
 import React, { useEffect, useState, useRef } from "react";
 import endpoint from "./config";
 import { useLocation } from "react-router-dom";
-
 // import Posts from "./Post";
 // import Home from "./Home";
 // import Profile from './Profile';
 
-import LoginForm from "./conponents/Login";
+import WorkplaceSpecialShiftDetail from "./components/componentsAside/WorkplaceSpecialShiftDetail";
 
-import AsideLeft from "./conponents/AsideLeft";
-import Top from "./conponents/Top";
+import LoginForm from "./components/Login";
+import Register from "./components/Register";
+import ForgotPassword from "./components/ForgotPassword";
 
-import Dashboard from "./conponents/componentsAside/Dashboard";
-import Search from "./conponents/componentsAside/Search";
-import Employee from "./conponents/componentsAside/Employee";
-import EmployeesSelected from "./conponents/componentsAside/EmployeesSelected";
+import BankReport from "./components/componentsAside/BankReport";
+import BankReportExecutiveCommittee from "./components/componentsAside/BankReportExecutiveCommittee";
 
-import Salary from "./conponents/componentsAside/Salary";
-// import Salary from "./conponents/Salary";
+import AsideLeft from "./components/AsideLeft";
+import Footer from "./components/Footer";
+import AdminRoute from "./components/AdminRoute";
+import AddSetTimeAuto from "./components/componentsAside/addsettimeauto";
 
-import IncomeTax from "./conponents/componentsAside/IncomeTax";
-import SocialSecurity from "./conponents/componentsAside/SocialSecurity";
-import ProvidentFund from "./conponents/componentsAside/ProvidentFund";
-import Collateral from "./conponents/componentsAside/Collateral";
-import Document from "./conponents/componentsAside/Document";
+import Top from "./components/Top";
 
-import CalculateTax from "./conponents/componentsAside/CalculateTax";
-import CalculateTaxDeductions from "./conponents/componentsAside/CalculateTaxDeductions";
-import OtherExpenses from "./conponents/componentsAside/OtherExpenses";
-import SearchResults from "./conponents/componentsAside/SearchResults";
+import Dashboard from "./components/componentsAside/Dashboard";
+import Search from "./components/componentsAside/Search";
+import Employee from "./components/componentsAside/Employee";
 
-import Application from "./conponents/componentsAside/Application";
-import Application1 from "./conponents/componentsAside/Application1";
-import Application2 from "./conponents/componentsAside/Application2";
-import Application3 from "./conponents/componentsAside/Application3";
-import Application4 from "./conponents/componentsAside/Application4";
-import ApplicationSummary from "./conponents/componentsAside/ApplicationSummary";
-import AddEditEmployee from "./conponents/componentsAside/AddEditEmployee";
-import AddEditSalaryEmployee from "./conponents/componentsAside/AddEditSalaryEmployee";
+import Salary from "./components/componentsAside/Salary";
+// import Salary from "./components/Salary";
 
-import BasicSetting from "./conponents/componentsAside/BasicSetting";
-import Setting from "./conponents/componentsAside/Setting";
-import SettingComplex from "./conponents/componentsAside/SettingComplex";
-import SettingAllList from "./conponents/componentsAside/SettingAllList";
-import SettingEdit from "./conponents/componentsAside/SettingEdit";
-import SettingSpecial from "./conponents/componentsAside/SettingSpecail";
-import EmployeeWorkDay from "./conponents/componentsAside/componentsetting/EmployeeWorkDay";
+import IncomeTax from "./components/componentsAside/IncomeTax";
+import SocialSecurity from "./components/componentsAside/SocialSecurity";
+import ProvidentFund from "./components/componentsAside/ProvidentFund";
+import Collateral from "./components/componentsAside/Collateral";
+import Document from "./components/componentsAside/Document";
 
-import SystemUser from "./conponents/componentsAside/SystemUser";
-import Addsettime from "./conponents/componentsAside/Addsettime";
-import AddsettimeUpload from "./conponents/componentsAside/AddsettimeUpload";
+import CalculateTax from "./components/componentsAside/CalculateTax";
+import CalculateTaxDeductions from "./components/componentsAside/CalculateTaxDeductions";
+import OtherExpenses from "./components/componentsAside/OtherExpenses";
+import SearchResults from "./components/componentsAside/SearchResults";
+import SpecialShiftCash from "./components/componentsAside/SpecialShiftCash";
 
-import Salarysummary from "./conponents/componentsAside/Salarysummary";
-// import Examine from "./conponents/componentsAside/salarysummary/examine";
-// import Salaryresult from "./conponents/componentsAside/salarysummary/salaryresult";
-// import Compensation from "./conponents/componentsAside/salarysummary/compensation";
+import Application from "./components/componentsAside/Application";
+import Application1 from "./components/componentsAside/Application1";
+import Application2 from "./components/componentsAside/Application2";
+import Application3 from "./components/componentsAside/Application3";
+import Application4 from "./components/componentsAside/Application4";
+import ApplicationSummary from "./components/componentsAside/ApplicationSummary";
+import AddEditEmployee from "./components/componentsAside/AddEditEmployee";
+import AddEditSalaryEmployee from "./components/componentsAside/AddEditSalaryEmployee";
+import AddSettingEmp from "./components/componentsAside/AddSettingEmp";
 
-import Examine from "./conponents/componentsAside/Examine";
-import Compensation from "./conponents/componentsAside/Compensation";
-import Salaryresult from "./conponents/componentsAside/SalaryResult";
-import SalaryAllResult from "./conponents/componentsAside/SalaryAllResult";
-import SalaryAllResultAudit from "./conponents/componentsAside/SalaryAllResultAudit";
+import BasicSetting from "./components/componentsAside/BasicSetting";
+import Setting from "./components/componentsAside/Setting";
+import SettingComplex from "./components/componentsAside/SettingComplex";
+import SettingAllList from "./components/componentsAside/SettingAllList";
+import SettingEdit from "./components/componentsAside/SettingEdit";
+import SettingSpecial from "./components/componentsAside/SettingSpecail";
+
+import SystemUser from "./components/componentsAside/SystemUser";
+import Addsettime from "./components/componentsAside/Addsettime";
+
+import Salarysummary from "./components/componentsAside/Salarysummary";
+// import Examine from "./components/componentsAside/salarysummary/examine";
+// import Salaryresult from "./components/componentsAside/salarysummary/salaryresult";
+// import Compensation from "./components/componentsAside/salarysummary/compensation";
+
+import Examine from "./components/componentsAside/Examine";
+import Compensation from "./components/componentsAside/Compensation";
+import Salaryresult from "./components/componentsAside/SalaryResult";
+import SalaryAllResult from "./components/componentsAside/SalaryAllResult";
+import SalaryAllResultAudit from "./components/componentsAside/SalaryAllResultAudit";
+import WorktimeSheetWorkplacefor10105 from "./components/componentsAside/WorktimeSheetWorkplacefor10105";
 
 
-import AddsettimeReplace from "./conponents/componentsAside/AddsettimeReplace";
-import ReplaceReport from "./conponents/componentsAside/ReplaceReport";
-import ReplaceWorkplaceReport from "./conponents/componentsAside/ReplaceWorkplaceReport";
-import ReplaceEmployeeReport from "./conponents/componentsAside/ReplaceEmployeeReport";
+import ReplaceReport from "./components/componentsAside/ReplaceReport";
+import ReplaceWorkplaceReport from "./components/componentsAside/ReplaceWorkplaceReport";
+import ReplaceEmployeeReport from "./components/componentsAside/ReplaceEmployeeReport";
 
-import Worktimesheet from "./conponents/componentsAside/Worktimesheet";
-import WorktimeSheetWorkplace from "./conponents/componentsAside/WorktimeSheetWorkplace";
-import WorktimeSheetWorkplaceSpace from "./conponents/componentsAside/WorktimeSheetWorkplaceSpace";
-import WorktimeSheetWorkplace_Save01_22_2024 from "./conponents/componentsAside/WorktimeSheetWorkplace_Save01-22-2024";
+import Worktimesheet from "./components/componentsAside/Worktimesheet";
+import WorktimeSheetWorkplace from "./components/componentsAside/WorktimeSheetWorkplace";
+import WorktimeSheetWorkplaceSpace from "./components/componentsAside/WorktimeSheetWorkplaceSpace";
 
-import TestPDF from "./conponents/componentsAside/TestPDF";
+import SalarySlipPDF from "./components/componentsAside/SalarySlipPDF";
+// import SendEmployeePDF from "./components/componentsAside/sendEmployeePDF";
+import SendEmployeePDF from "./components/componentsAside/SendEmployeePDF";
+import Testapp from "./components/componentsAside/Test";
+import TestPDFSalary from "./components/componentsAside/TestPDFSalary";
+import TestPDFResultSalayNew from "./components/componentsAside/TestPDFResultSalayNew";
 
-import SalarySlipPDF from "./conponents/componentsAside/SalarySlipPDF";
-import BackReport from "./conponents/componentsAside/BackReport";
-// import SendEmployeePDF from "./conponents/componentsAside/sendEmployeePDF";
-import SendEmployeePDF from "./conponents/componentsAside/SendEmployeePDF";
-import SendEmployeePDF2 from "./conponents/componentsAside/SendEmployeePDF2";
-import SendEmployeePDF3 from "./conponents/componentsAside/SendEmployeePDF3";
-import Testapp from "./conponents/componentsAside/Test";
-import TestPDFSalary from "./conponents/componentsAside/TestPDFSalary";
-import TestPDFResultSalay from "./conponents/componentsAside/TestPDFResultSalay";
-import TestPDFResultSalayNew from "./conponents/componentsAside/TestPDFResultSalayNew";
-
-// import Time from "./conponents/Time";
-import Testcal from "./conponents/Testcal";
-import Countday from "./conponents/Countday";
-import TestShowManyData from "./conponents/componentsAside/TestShowManyData";
+// import Time from "./components/Time";
+import Testcal from "./components/Testcal";
+import Countday from "./components/Countday";
 
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
-// import Login from "./conponents/Login";
-// import Registration from "./conponents/Registration";
-// import Testcal from "./conponents/Testcal";
+// import Login from "./components/Login";
+// import Registration from "./components/Registration";
+// import Testcal from "./components/Testcal";
 
 // import MyComponent from "./server/MyComponent";
 
@@ -111,19 +112,63 @@ function App() {
     return null;
   };
   const [workplaceList, setWorkplaceList] = useState([]);
-  useEffect(() => {
-    // Fetch data from the API when the component mounts
-    fetch(endpoint + "/workplace/list")
-      .then((response) => response.json())
-      .then((data) => {
-        // Update the state with the fetched data
-        setWorkplaceList(data);
-        // alert(data[0].workplaceName);
-      })
-      .catch((error) => {
-        console.error("Error fetching data:", error);
+
+useEffect(() => {
+  // Fetch data from the API when the component mounts
+  fetch(endpoint + "/workplace/list")
+    .then((response) => response.json())
+    .then((data) => {
+      console.log("Original data:", data.map(item => item.workplaceId));
+      
+      // Sort data by workplaceId (handle numbers with parentheses) - ASCENDING ORDER
+      const sortedData = [...data].sort((a, b) => {
+        // Extract main number and number in parentheses
+        const parseWorkplaceId = (id) => {
+          const idStr = String(id).trim();
+          
+          // Handle numbers with parentheses like "10296(1)"
+          const matchWithParens = idStr.match(/^(\d+)\((\d+)\)$/);
+          if (matchWithParens) {
+            return {
+              main: parseInt(matchWithParens[1], 10),
+              sub: parseInt(matchWithParens[2], 10)
+            };
+          }
+          
+          // Handle pure numbers like "10296" - treat as if it has (0)
+          const matchPureNumber = idStr.match(/^\d+$/);
+          if (matchPureNumber) {
+            return { 
+              main: parseInt(idStr, 10), 
+              sub: 0
+            };
+          }
+          
+          return { main: 0, sub: 0 };
+        };
+        
+        const aData = parseWorkplaceId(a.workplaceId);
+        const bData = parseWorkplaceId(b.workplaceId);
+        
+        // Compare main number first - ASCENDING (น้อยไปมาก)
+        if (aData.main !== bData.main) {
+          return aData.main - bData.main;
+        }
+        
+        // If main numbers are equal, compare sub numbers - ASCENDING (น้อยไปมาก)
+        return aData.sub - bData.sub;
       });
-  }, []);
+      
+      console.log("Sorted data (ASCENDING):", sortedData.map(item => item.workplaceId));
+      console.log("Setting workplaceList with:", sortedData); // Debug: ตรวจสอบข้อมูลที่จะ set
+      
+      // ✅ Fixed: Update state once (removed unnecessary double render)
+      setWorkplaceList(sortedData);
+    })
+    .catch((error) => {
+      console.error("Error fetching data:", error);
+    });
+}, []);
 
   const [employeeList, setEmployeeList] = useState([]);
 
@@ -198,11 +243,23 @@ function App() {
               <Route path="/employee" element={<Employee />} />
 
               <Route path="/salary" element={<Salary />} />
+                            <Route
+                path="/addsettingemp"
+                element={
+                  <AddSettingEmp
+                    workplaceList={workplaceList}
+                    employeeList={employeeList}
+                  />
+                }
+              />
+
               <Route path="/salarysummary" element={<Salarysummary />} />
 
               <Route path="/examine" element={<Examine />} />
               <Route path="/compensation" element={<Compensation />} />
               <Route path="/salaryresult" element={<Salaryresult />} />
+              <Route path="/addsettimeauto" element={<AddSetTimeAuto workplaceList={workplaceList}
+                    employeeList={employeeList} /> }/>
               <Route
                 path="/salaryAllresult"
                 element={<SalaryAllResult employeeList={employeeList} workplaceList={workplaceList} />}
@@ -216,9 +273,22 @@ function App() {
                 element={<SalarySlipPDF employeeList={employeeList} workplaceList={workplaceList}/>}
               />
               <Route
-                path="/backReport"
-                element={<BackReport employeeList={employeeList} workplaceList={workplaceList}/>}
+                path="/bankReport"
+                element={<BankReport employeeList={employeeList} workplaceList={workplaceList}/>}
               />
+              <Route
+                path="/bankReportExecutiveCommittee"
+                element={
+                  <AdminRoute 
+                    element={<BankReportExecutiveCommittee employeeList={employeeList} workplaceList={workplaceList}/>}
+                  />
+                }
+              />
+               <Route
+                path="/speacialshiftcash"
+                element={<SpecialShiftCash employeeList={employeeList} workplaceList={workplaceList} />}
+              />
+             
                <Route
                 path="/replaceReport"
                 element={<ReplaceReport employeeList={employeeList} workplaceList={workplaceList} />}
@@ -237,13 +307,13 @@ function App() {
                 path="/worktimesheetworkplace"
                 element={<WorktimeSheetWorkplace employeeList={employeeList} />}
               />
+              <Route
+                path="/worktimesheetworkplacefor10105"
+                element={<WorktimeSheetWorkplacefor10105 employeeList={employeeList} />}
+              />
                <Route
                 path="/worktimesheetworkplaceSpace"
                 element={<WorktimeSheetWorkplaceSpace employeeList={employeeList} />}
-              />
-              <Route
-                path="/worktimeSheetWorkplace_Save01_22_2024"
-                element={<WorktimeSheetWorkplace_Save01_22_2024 />}
               />
 
               <Route path="/income_tax" element={<IncomeTax />} />
@@ -251,6 +321,7 @@ function App() {
               <Route path="/provident_fund" element={<ProvidentFund />} />
               <Route path="/collateral" element={<Collateral />} />
               <Route path="/document" element={<Document />} />
+              <Route path="/workplace-special-shift-detail" element={<WorkplaceSpecialShiftDetail />} />
 
               <Route path="/calculate_tax" element={<CalculateTax />} />
               <Route
@@ -306,11 +377,6 @@ function App() {
                 element={<Addsettime workplaceList={workplaceList} employeeList={employeeList}/>}
               />
 
-              <Route
-                              path="/addsettimereplace"
-                element={<AddsettimeReplace workplaceList={workplaceList} employeeList={employeeList}/>}
-              />
-
               {/* <Route path="/addsettimeupload" element={<AddsettimeUpload workplaceList={workplaceList}/>} /> */}
               <Route path="/application" element={<Application />} />
               <Route path="/applicatio1" element={<Application1 />} />
@@ -352,8 +418,17 @@ function App() {
           </>
         </Router>
       ) : (
-        <LoginForm onLogin={handleLogin} />
+        <Router>
+          <Routes>
+            <Route path="/" element={<LoginForm onLogin={handleLogin} />} />
+            <Route path="/login" element={<LoginForm onLogin={handleLogin} />} />
+            {/* <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} /> */}
+          </Routes>
+          <Footer isLoginPage={true} />
+        </Router>
       )}
+      {loggedIn && <Footer isLoginPage={false} />}
     </div>
   );
 }

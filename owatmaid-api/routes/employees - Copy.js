@@ -16,6 +16,7 @@ const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'MongoDB connection error:'));
 
 
+
 // Define employee schema
 const employeeSchema = new mongoose.Schema({
   employeeId: {
