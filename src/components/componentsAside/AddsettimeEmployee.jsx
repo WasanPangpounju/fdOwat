@@ -190,11 +190,12 @@ const generatePDFReport = async () => {
         // สร้างตารางใหม่สำหรับ PDF โดยทำการ merge เซลล์ให้ถูกต้อง
         const pdfTable = document.createElement('table');
         pdfTable.style.width = '100%';
-        pdfTable.style.borderCollapse = 'separate';
+        pdfTable.style.borderCollapse = 'collapse';
         pdfTable.style.fontSize = '10px';
-        pdfTable.style.border = '0.3px solid #000';
+        pdfTable.style.border = '0.1px solid #000';
         pdfTable.style.textAlign = 'center';
         pdfTable.style.marginTop = '20px';
+        pdfTable.style.fontFamily = "'Sarabun', sans-serif";
 
         // สร้าง thead สำหรับ PDF
         const pdfThead = document.createElement('thead');
@@ -217,12 +218,13 @@ const generatePDFReport = async () => {
         headers.forEach(header => {
           const th = document.createElement('th');
           th.textContent = header.text;
-          th.style.border = '0.3px solid #000';
+          th.style.border = '0.1px solid #000';
           th.style.padding = '8px';
           th.style.backgroundColor = '#f8f9fa';
           th.style.fontWeight = 'bold';
           th.style.textAlign = 'center';
           th.style.verticalAlign = 'middle';
+          th.style.fontFamily = "'Sarabun', sans-serif";
           
           if (header.rowSpan > 1) th.rowSpan = header.rowSpan;
           if (header.colSpan > 1) th.colSpan = header.colSpan;
@@ -270,10 +272,11 @@ const generatePDFReport = async () => {
               if (cellIndex < cells.length - 1) {
                 const newCell = document.createElement('td');
                 newCell.textContent = cell.textContent.trim();
-                newCell.style.border = '0.3px solid #000';
+                newCell.style.border = '0.1px solid #000';
                 newCell.style.padding = '6px';
                 newCell.style.textAlign = 'center';
                 newCell.style.verticalAlign = 'middle';
+                newCell.style.fontFamily = "'Sarabun', sans-serif";
                 
                 // ถ้าเป็นคอลัมล์เงินจ้าง ให้จัดรูปแบบ
                 if (cellIndex === cells.length - 2) {
