@@ -9,6 +9,7 @@ const accountingSchema = new mongoose.Schema({
   workplace: String,
   name: String,
   lastName: String,
+  typeOfemployee: String,
   createBy: String,
 accountingRecord: [{ 
   countDay: String, 
@@ -61,6 +62,8 @@ hourTwoFive: String,
 hourThree: String,
 
 }],
+specialShiftTotalSalary:String,
+
 addSalary: [{
   id: String,
   name: String,
@@ -69,6 +72,14 @@ addSalary: [{
   StaffType: String,
   nameType: String,
   message: String,
+  date: String,
+  month: String,
+  year: String,
+  welfareType: String,
+  startDay: String,
+  endDay: String,
+  welfareMonth: String,
+  welfareYear: String
 }],
 deductSalary: [{
   id: String,

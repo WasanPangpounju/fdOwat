@@ -81,38 +81,45 @@ function EmployeesSelected({ onEmployeeSelect }) {
   }
 
   return (
-    <div>
+    <>
+    <div className='container' style={{fontSize:'12px',fontWeight:'500'}}>
       {storedEmp.length > 0 && (
-        <div style={{ textAlign: 'center' }}>
-          <div>
-            <h7>จำนวนพนักงานที่เลือก: {storedEmp.length}</h7>
+        <div style={{ fontSize:'11px'}}>
+          <div >
+            <div className='text-center'>
+            <h7 className='text-center'>จำนวนพนักงานที่เลือก: {storedEmp.length}</h7>
+            </div>
             <ul style={{ listStyle: 'none', paddingLeft: 0 }}>
               {storedEmp.map((employee) => (
                 <li
                   key={employee.employeeId}
                   style={{
                     display: 'flex',
-                    justifyContent: 'space-between',
+                    justifyContent: 'space-around',
                     alignItems: 'center',
                     marginBottom: '0.5rem',
-                    marginLeft: '-3rem',
+                    marginLeft: '-2rem',
                   }}
                 >
-                  <span style={{ flex: 1 }}>{employee.employeeId}:{employee.name} {employee.lastName}</span>
+                  <span style={{ marginLeft:'15px' , flex: 1 }}>{employee.employeeId}:{employee.name} {employee.lastName}</span>
                   <div>
-                    <button
+                    <button className='btn btn-primary ' 
+                    type='button'
                       aria-label="choose"
                       onClick={() => handleEmployeeSelect(employee)}
                       style={{
                         width: '2rem',
                         height: '2rem',
-                        margin: '0.1rem',
-                        borderRadius: '8px',
+                        margin: '1px',
+                        borderRadius: '30px',
+                        padding:'1px'
+
+                       
                       }}
                     >
-                      &#10003;
+                      <i class="bi bi-check-lg"></i>
                     </button>
-                    <button
+                    <button className='btn btn-danger'
                       aria-label="remove"
                       type="button"
                       onClick={() => handleRemoveEmployee(employee.employeeId)}
@@ -120,27 +127,30 @@ function EmployeesSelected({ onEmployeeSelect }) {
                         width: '2rem',
                         height: '2rem',
                         margin: '0.1rem',
-                        borderRadius: '8px',
+                        borderRadius: '30px',
+                        padding:'1px'
                       }}
                     >
-                      &#8722;
+                      <i class="bi bi-x-lg"></i>
                     </button>
                   </div>
                 </li>
               ))}
 
 
-
+              <div className='text-center'>
               <button
+              className='btn btn-danger '
                 type="button"
                 onClick={() => handleRemoveEmployeeAll()}
                 style={{
-                  margin: '0.2rem',
+                  width:'100px',
                   borderRadius: '8px',
                 }}
               >
                 ล้างรายการ
               </button>
+              </div>
 
             </ul>
 
@@ -148,7 +158,10 @@ function EmployeesSelected({ onEmployeeSelect }) {
         </div>
       )}
     </div>
+
+    </>
   );
 }
+
 
 export default EmployeesSelected;

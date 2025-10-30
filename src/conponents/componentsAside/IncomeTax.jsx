@@ -20,7 +20,7 @@ function IncomeTax() {
         // return () => { /* cleanup code */ };
     }, []);
     return (
-        <body class="hold-transition sidebar-mini" className='editlaout'>
+        <div class="hold-transition sidebar-mini" className='editlaout'>
             <div class="wrapper">
                 <div class="content-wrapper">
                     {/* <!-- Content Header (Page header) --> */}
@@ -126,7 +126,7 @@ function IncomeTax() {
                     {/* <!-- /.content --> */}
                 </div>
             </div>
-        </body>
+        </div>
     )
 }
 

@@ -18,6 +18,8 @@ import en from "date-fns/locale/en-US";
 
 import { addYears } from "date-fns";
 
+
+
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import employeeData from "./timerecord.json"; // นำเข้าไฟล์ JSON
@@ -386,7 +388,7 @@ function ReplaceWorkplaceReport({ employeeList, workplaceList }) {
     event.preventDefault(); // Prevent the form from submitting on Enter key press
   }
   return (
-    <body class="hold-transition sidebar-mini" className="editlaout">
+    <div class="hold-transition sidebar-mini" className="editlaout">
       <div class="wrapper">
         <div class="content-wrapper">
           {/* <!-- Content Header (Page header) --> */}
@@ -710,7 +712,7 @@ function ReplaceWorkplaceReport({ employeeList, workplaceList }) {
         </div>
 
       </div>
-    </body>
+    </div>
     // </div>
   );
 }

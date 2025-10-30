@@ -268,6 +268,16 @@ function Salary() {
       addSalary: newAddSalary,
     });
 
+    // Also update addSalaryWorkplace if this is for the workplace salary section
+    if (addSalaryWorkplace && addSalaryWorkplace[index]) {
+      const updatedSalaryWorkplace = [...addSalaryWorkplace];
+      updatedSalaryWorkplace[index] = {
+        ...updatedSalaryWorkplace[index],
+        [key]: newValue,
+      };
+      setAddSalaryWorkplace(updatedSalaryWorkplace);
+    }
+
   };
 
 
@@ -407,38 +417,87 @@ function Salary() {
   //     }));
 
   // };
-
-  const handleWorkplace = async (event) => {
-    await setWorkplace(event.target.value);
-    await setEmployeeData((prevData) => ({
-      ...prevData,
-      ["workplace"]: event.target.value,
-    }));
-    // alert(event.target.value);
-
-    const filtered = workplaceSelection.filter(
+const handleWorkplace = async (event) => {
+  console.log('=== handleWorkplace started ===');
+  console.log('Event:', event);
+  console.log('Event target value:', event.target.value);
+  
+  await setWorkplace(event.target.value);
+  await setEmployeeData((prevData) => ({
+    ...prevData,
+    ["workplace"]: event.target.value,
+  }));
+  
+  const inputValue = event.target.value;
+  console.log('Input value:', inputValue);
+  console.log('Workplace selection data:', workplaceSelection);
+  
+  // Try exact match first
+  let filtered = workplaceSelection.filter(
+    (wp) =>
+      inputValue === "" ||
+      wp.workplaceId === inputValue ||
+      wp.workplaceName === inputValue
+  );
+  
+  console.log('Exact match filtered:', filtered);
+  
+  // If no exact match found and input contains parentheses or has content
+  if (filtered.length === 0 && inputValue !== "") {
+    // Extract base ID (everything before the first parenthesis)
+    const baseId = inputValue.includes('(') ? inputValue.split('(')[0].trim() : inputValue;
+    console.log('Base ID:', baseId);
+    
+    filtered = workplaceSelection.filter(
       (wp) =>
-        event.target.value === "" ||
-        wp.workplaceId === event.target.value ||
-        wp.workplaceName === event.target.value
+        wp.workplaceId === baseId ||
+        wp.workplaceName === baseId ||
+        wp.workplaceId.startsWith(baseId) ||
+        wp.workplaceName.includes(baseId)
     );
-    // alert(JSON.stringify(filtered , null, 2) );
-    // alert(filtered[0].workplaceArea );
-    if (filtered !== "") {
-      if (employeeData.workplace == "") {
-        setWorkplacearea("");
-      } else {
-        setWorkplacearea(filtered[0].workplaceArea);
-        //set add Salary from workplace
-        setAddSalaryWorkplace(filtered[0].addSalary);
+    
+    console.log('Base ID filtered:', filtered);
+  }
+  
+  // Additional fallback: try partial matching without parentheses
+  if (filtered.length === 0 && inputValue !== "") {
+    const cleanInput = inputValue.replace(/[()]/g, '').trim();
+    console.log('Clean input:', cleanInput);
+    
+    filtered = workplaceSelection.filter(
+      (wp) =>
+        wp.workplaceId.includes(cleanInput) ||
+        wp.workplaceName.includes(cleanInput)
+    );
+    
+    console.log('Clean input filtered:', filtered);
+  }
+  
+  console.log('Final filtered result:', filtered);
+  
+  if (filtered.length > 0) {
+    console.log('Found workplace:', filtered[0]);
+    console.log('AddSalary data:', filtered[0].addSalary);
+    
+    if (employeeData.workplace === "") {
+      setWorkplacearea("");
+    } else {
+      setWorkplacearea(filtered[0].workplaceArea || "");
+      
+      // Check if addSalary exists and is array
+      const addSalaryData = filtered[0].addSalary || [];
+      console.log('Setting addSalaryWorkplace:', addSalaryData);
+      
+      setAddSalaryWorkplace(addSalaryData);
 
-        setEmployeeData((prevData) => ({
-          ...prevData,
-          ["addSalary"]: [],
-        }));
+      setEmployeeData((prevData) => ({
+        ...prevData,
+        ["addSalary"]: [],
+      }));
 
+      if (addSalaryData.length > 0) {
         const initialFormData = {
-          addSalary: filtered[0].addSalary.map((item) => ({
+          addSalary: addSalaryData.map((item) => ({
             id: item.codeSpSalary || "",
             name: item.name || "",
             SpSalary: item.SpSalary || "",
@@ -447,16 +506,22 @@ function Salary() {
             nameType: item.nameType || "",
           })),
         };
-
+        console.log('Setting formData:', initialFormData);
         setFormData(initialFormData);
+      } else {
+        console.log('No addSalary data found');
+        setFormData({ addSalary: [] });
       }
-    } else {
-      setWorkplacearea("");
     }
-
-    // setWorkplacearea(filtered[0].workplaceArea );
-  };
-
+  } else {
+    console.log('No workplace found, clearing data');
+    setWorkplacearea("");
+    setAddSalaryWorkplace([]);
+    setFormData({ addSalary: [] });
+  }
+  
+  console.log('=== handleWorkplace finished ===');
+};
 
   const handleWorktable = (event) => {
     setWorktable(event.target.value);
@@ -892,7 +957,7 @@ function Salary() {
   }
 
   return (
-    <body class="hold-transition sidebar-mini" className="editlaout">
+    <div class="hold-transition sidebar-mini" className="editlaout">
       <div class="wrapper">
         <div class="content-wrapper">
           {/* <!-- Content Header (Page header) --> */}
@@ -947,6 +1012,23 @@ function Salary() {
                               </div>
                               <div class="col-md-4">
                                 <div class="form-group">
+                                  <label role="employeeName">ชื่อพนักงาน</label>
+                                  <input
+                                    type="text"
+                                    class="form-control"
+                                    id="employeeName"
+                                    placeholder="ชื่อพนักงาน"
+                                    value={`${employeeData.name || ""} ${employeeData.lastName || ""}`}
+                                    onChange={(e) => handleChange(e, "employeeName")}
+                                    onInput={(e) => {
+                                        // Remove any non-digit characters
+                                        e.target.value = e.target.value.replace(/\D/g, "");
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                              <div class="col-md-4">
+                                <div class="form-group">
                                   <label role="position">ตำแหน่ง</label>
                                   <input
                                     type="text"
@@ -958,7 +1040,7 @@ function Salary() {
                                   />
                                 </div>
                               </div>
-                              <div class="col-md-4">
+                              {/* <div class="col-md-4">
                                 <div class="form-group">
                                   <label role="department">แผนก</label>
                                   <input
@@ -970,7 +1052,7 @@ function Salary() {
                                     onChange={(e) => handleChange(e, "department")}
                                   />
                                 </div>
-                              </div>
+                              </div> */}
                             </div>
                             <div class="row">
                               <div class="col-md-4">
@@ -1381,7 +1463,7 @@ function Salary() {
                                     onChange={(e) => handleChange(e, "salary")}
                                     onInput={(e) => {
                                       // Remove any non-digit characters
-                                      e.target.value = e.target.value.replace(/\D/g, "");
+                                    
                                     }}
                                   />
                                 </div>
@@ -1569,42 +1651,42 @@ function Salary() {
                                     value={employeeData.salarybank || ""}
                                     onChange={(e) => handleChange(e, "salarybank")}
                                   >
-                                    <option value="">ไม่ระบุ</option>
-                                    <option value="ธนาคารกรุงเทพ">
-                                      ธนาคาร กรุงเทพ
+                                     <option value="">ไม่ระบุ</option>
+                                    <option value="ธนาคารกรุงเทพ (มหาชน)">
+                                      ธนาคาร กรุงเทพ (มหาชน)
                                     </option>
-                                    <option value="ธนาคารกสิกรไทย">
-                                      ธนาคาร กสิกรไทย
+                                    <option value="ธนาคารกสิกรไทย (มหาชน)">
+                                      ธนาคาร กสิกรไทย (มหาชน)
                                     </option>
-                                    <option value="ธนาคารกรุงไทย">
-                                      ธนาคาร กรุงไทย
+                                    <option value="ธนาคารกรุงไทย (มหาชน)">
+                                      ธนาคาร กรุงไทย (มหาชน)
                                     </option>
-                                    <option value="ธนาคารทหารไทยธนชาต">
-                                      ธนาคาร ทหารไทยธนชาต
+                                    <option value="ธนาคารทหารไทยธนชาต (มหาชน)">
+                                      ธนาคาร ทหารไทยธนชาต (มหาชน)
                                     </option>
-                                    <option value="ธนาคารไทยพาณิชย์">
-                                      ธนาคาร ไทยพาณิชย์
+                                    <option value="ธนาคารไทยพาณิชย์ (มหาชน)">
+                                      ธนาคาร ไทยพาณิชย์ (มหาชน)
                                     </option>
-                                    <option value="ธนาคารกรุงศรีอยุธยา">
-                                      ธนาคาร กรุงศรีอยุธยา
+                                    <option value="ธนาคารกรุงศรีอยุธยา (มหาชน)">
+                                      ธนาคาร กรุงศรีอยุธยา (มหาชน)
                                     </option>
-                                    <option value="ธนาคารเกียรตินาคินภัทร">
-                                      ธนาคาร เกียรตินาคินภัทร
+                                    <option value="ธนาคารเกียรตินาคินภัทร (มหาชน)">
+                                      ธนาคาร เกียรตินาคินภัทร (มหาชน)
                                     </option>
-                                    <option value="ธนาคารซีไอเอ็มบีไทย">
-                                      ธนาคาร ซีไอเอ็มบีไทย
+                                    <option value="ธนาคารซีไอเอ็มบีไทย (มหาชน)">
+                                      ธนาคาร ซีไอเอ็มบีไทย (มหาชน)
                                     </option>
-                                    <option value="ธนาคาร ทิสโก้">
-                                      ธนาคาร ทิสโก้
+                                    <option value="ธนาคารทิสโก้ (มหาชน)">
+                                      ธนาคาร ทิสโก้ (มหาชน)
                                     </option>
-                                    <option value="ธนาคารยูโอบี">
-                                      ธนาคาร ยูโอบี
+                                    <option value="ธนาคารยูโอบี (มหาชน)">
+                                      ธนาคาร ยูโอบี (มหาชน)
                                     </option>
-                                    <option value="ธนาคารไทยเครดิตเพื่อรายย่อย">
-                                      ธนาคาร ไทยเครดิตเพื่อรายย่อย
+                                    <option value="ธนาคารไทยเครดิตเพื่อรายย่อย (มหาชน)">
+                                      ธนาคารไทยเครดิตเพื่อรายย่อย (มหาชน)
                                     </option>
-                                    <option value="ธนาคารแลนด์ แอนด์ เฮ้าส์">
-                                      ธนาคาร แลนด์ แอนด์ เฮ้าส์
+                                    <option value="ธนาคารแลนด์แอนด์เฮ้าส์ (มหาชน)">
+                                      ธนาคารแลนด์แอนด์เฮ้าส์ (มหาชน)
                                     </option>
                                     <option value="ธนาคารไอซีบีซี (ไทย)">
                                       ธนาคาร ไอซีบีซี (ไทย)
@@ -1644,10 +1726,7 @@ function Salary() {
                                     placeholder="เลขที่บัญชี"
                                     value={employeeData.banknumber || ""}
                                     onChange={(e) => handleChange(e, "banknumber")}
-                                    onInput={(e) => {
-                                      // Remove any non-digit characters
-                                      e.target.value = e.target.value.replace(/\D/g, "");
-                                    }}
+                                   
                                   />
                                 </div>
                               </div>
@@ -1682,19 +1761,21 @@ function Salary() {
                                   </div>
                                 </div>
                               </div>
-                              <div className="col-md-6">
+                              {/* <div className="col-md-6">
                                 <div className="row">
                                   <div className="col-md-3">
                                     <label role="salaryadd6">ประเภทพนักงาน</label>
                                   </div>
                                 </div>
-                              </div>
+                              </div> */}
                             </div>
                             {/* </div> */}
                             {addSalaryWorkplace
-                            .map((data, index) => (
-                              (data.StaffType === 'all' || data.StaffType === employeeData?.position) && (
-
+                              .map((data, index) => (
+                                (data.StaffType === 'all' || 
+                                data.StaffType === employeeData?.position || 
+                                data.StaffType === '' || 
+                                !data.StaffType) && (
                               <div className="row" key={index}>
                                 <div className="row">
                                   <div className="col-md-6">
@@ -1736,15 +1817,46 @@ function Salary() {
                                           type="text"
                                           name="SpSalary"
                                           className="form-control"
-                                          value={data.SpSalary}
-                                          onChange={(e) =>
+                                          value={data.SpSalary || ''}
+                                          onChange={(e) => {
+                                            // Allow numbers and decimal point
+                                            const numericValue = e.target.value.replace(/[^0-9.]/g, '');
+                                            
+                                            // Make sure there's only one decimal point
+                                            let validValue = numericValue;
+                                            if ((numericValue.match(/\./g) || []).length > 1) {
+                                              // If there are multiple dots, keep only the first one
+                                              const parts = numericValue.split('.');
+                                              validValue = parts[0] + '.' + parts.slice(1).join('');
+                                            }
+                                            
+                                            // Create a shallow copy of the data object
+                                            const updatedData = { ...data };
+                                            // Update the SpSalary in the copy
+                                            updatedData.SpSalary = validValue;
+                                            
+                                            // Create a shallow copy of the addSalaryWorkplace array
+                                            const updatedSalaryWorkplace = [...addSalaryWorkplace];
+                                            // Update the object at the specified index
+                                            updatedSalaryWorkplace[index] = updatedData;
+                                            
+                                            // Update the state with the new array
+                                            setAddSalaryWorkplace(updatedSalaryWorkplace);
+                                            
+                                            // Also call the original handler for any other processing
+                                            const newEvent = {
+                                              ...e,
+                                              target: {
+                                                ...e.target,
+                                                value: validValue
+                                              }
+                                            };
                                             handleChangeSpSalary(
-                                              e,
+                                              newEvent,
                                               index,
                                               "SpSalary"
-                                            )
-                                          }
-                                          readOnly
+                                            );
+                                          }}
                                         />
                                       </div>
                                       <div className="col-md-3">
@@ -1760,7 +1872,6 @@ function Salary() {
                                               "roundOfSalary"
                                             )
                                           }
-                                          disabled
                                         >
                                           <option value="daily">รายวัน</option>
                                           <option value="monthly">รายเดือน</option>
@@ -2430,7 +2541,7 @@ function Salary() {
           {/* <!-- /.content --> */}
         </div>
       </div>
-    </body>
+    </div>
   );
 }
 

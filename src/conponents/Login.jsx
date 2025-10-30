@@ -34,6 +34,7 @@ function LoginForm({ onLogin }) {
 
                 localStorage.setItem('token', token);
                 localStorage.setItem('user', JSON.stringify(user));
+                localStorage.setItem('userRole', user.role); // เพิ่มบรรทัดนี้เพื่อเก็บ role
 
                 localStorage.setItem('loggedIn', 'true');
                 window.location.reload();

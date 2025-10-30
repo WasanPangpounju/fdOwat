@@ -21,6 +21,19 @@ function AddEditSalaryEmployee() {
     const [searchEmployeeName, setSearchEmployeeName] = useState('');
     const [month, setMonth] = useState('');
 
+    // Loan Modal States
+    const [showLoanModal, setShowLoanModal] = useState(false);
+    const [isEditingLoan, setIsEditingLoan] = useState(false);
+    const [loanDate, setLoanDate] = useState('');
+    const [loanAmount, setLoanAmount] = useState('');
+    const [loanContractCode, setLoanContractCode] = useState('');
+    const [interestRate, setInterestRate] = useState('');
+    const [loanPeriod, setLoanPeriod] = useState('');
+    const [loanNote, setLoanNote] = useState('');
+    const [loanList, setLoanList] = useState([]);
+    const [monthlyPayments, setMonthlyPayments] = useState([]);
+    const [editingLoan, setEditingLoan] = useState(null);
+    const [isEditMode, setIsEditMode] = useState(false);
 
     const [searchAddSalaryList, setSearchAddSalaryList] = useState([]);
     const [searchDeductSalaryList, setSearchDeductSalaryList] = useState([]);
@@ -57,6 +70,23 @@ function AddEditSalaryEmployee() {
 
         getMaster();
     }, []);
+
+    // Handle ESC key for modal
+    useEffect(() => {
+        const handleEscKey = (event) => {
+            if (event.keyCode === 27) {
+                setShowLoanModal(false);
+            }
+        };
+
+        if (showLoanModal) {
+            document.addEventListener('keydown', handleEscKey);
+        }
+
+        return () => {
+            document.removeEventListener('keydown', handleEscKey);
+        };
+    }, [showLoanModal]);
 
 
     const options = [];
@@ -161,7 +191,7 @@ function AddEditSalaryEmployee() {
     };
 
     const [rowDataList, setRowDataList] = useState(new Array(numberOfRows).fill(initialRowData));
-
+searchDeductSalaryList
 
     useEffect(() => {
         const findObjectById = (id) => {
@@ -174,16 +204,49 @@ function AddEditSalaryEmployee() {
         }
     }, [addSalaryId, searchAddSalaryList]);
 
-    useEffect(() => {
-        const findObjectById = (id) => {
-            return searchDeductSalaryList.find(item => item.id === id);
+useEffect(() => {
+    // ป้องกันการทำงานตอนแก้ไข loan
+    if (isEditingLoan || isEditMode) {
+        return;
+    }
+    
+    const findObjectById = (id) => {
+        // ค้นหาจาก searchDeductSalaryList ก่อน (master data)
+        let foundItem = searchDeductSalaryList.find(item => item.id === id);
+        
+        // ถ้าไม่เจอ ค้นหาจาก rowDataList (รายการที่เพิ่มแล้ว)
+        if (!foundItem) {
+            foundItem = rowDataList.find(item => item.id === id);
         }
+        
+        return foundItem;
+    }
 
-        const foundObject = findObjectById(minusId);
-        if (foundObject) {
-            setMisnusName(foundObject.name); // Set only the name property
+    const foundObject = findObjectById(minusId);
+    if (foundObject) {
+        setMisnusName(foundObject.name);
+    } else if (minusId === '') {
+        // ถ้า minusId เป็นค่าว่าง ให้ clear ชื่อด้วย
+        setMisnusName('');
+    }
+}, [minusId, searchDeductSalaryList, rowDataList, isEditingLoan, isEditMode]);
+
+// เพิ่ม useEffect สำหรับจัดการ ESC key และ loan modal
+useEffect(() => {
+    const handleEscKey = (event) => {
+        if (event.keyCode === 27) {
+            setShowLoanModal(false);
         }
-    }, [minusId, searchDeductSalaryList]);
+    };
+
+    if (showLoanModal) {
+        document.addEventListener('keydown', handleEscKey);
+    }
+
+    return () => {
+        document.removeEventListener('keydown', handleEscKey);
+    };
+}, [showLoanModal]);
 
 
     ///////////////////
@@ -284,6 +347,31 @@ function AddEditSalaryEmployee() {
 
                     // Update the state with the new data
                     setRowDataList(newDataList1);
+
+                    // โหลดข้อมูลเงินกู้ (loanRecords)
+                    if (response.data.employees[0].loanRecords && response.data.employees[0].loanRecords.length > 0) {
+                        const loadedLoans = response.data.employees[0].loanRecords.map((loanRecord, index) => ({
+                            id: loanRecord.loanId || `loan_${Date.now()}_${index}`,
+                            date: loanRecord.loanDate ? new Date(loanRecord.loanDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                            amount: loanRecord.loanAmount || 0,
+                            contractCode: loanRecord.contractCode || '',
+                            loanCode: loanRecord.deductSalaryId || '',
+                            loanName: loanRecord.deductSalaryName || '',
+                            period: loanRecord.loanPeriod || 0,
+                            monthlyPayments: loanRecord.monthlyPayments ? loanRecord.monthlyPayments.map(payment => ({
+                                id: payment.installmentId,
+                                monthName: payment.monthName,
+                                amount: payment.amount || 0
+                            })) : [],
+                            totalPaid: loanRecord.summary ? loanRecord.summary.totalPaid : 0,
+                            remaining: loanRecord.summary ? loanRecord.summary.totalRemaining : loanRecord.loanAmount,
+                            note: loanRecord.note || ''
+                        }));
+                        
+                        setLoanList(loadedLoans);
+                    } else {
+                        setLoanList([]);
+                    }
 
 
                     //x33
@@ -479,20 +567,73 @@ function AddEditSalaryEmployee() {
         // alert(rowDataList2);
         dataResult.addSalary = await rowDataList2;
         dataResult.deductSalary = await rowDataList;
+        
+        // เพิ่มการบันทึกข้อมูลเงินกู้
+        if (loanList && loanList.length > 0) {
+            // แปลงข้อมูล loanList ให้ตรงกับ schema ของ database
+            const loanRecords = loanList.map(loan => ({
+                contractCode: loan.contractCode,
+                loanDate: new Date(loan.date),
+                loanAmount: Number(loan.amount),
+                loanPeriod: Number(loan.period),
+                interestRate: 0, // ถ้ามีระบบดอกเบี้ยให้เพิ่มตรงนี้
+                deductSalaryId: loan.loanCode,
+                deductSalaryName: loan.loanName,
+                status: 'active',
+                note: loan.note || '',
+                monthlyPayments: loan.monthlyPayments ? loan.monthlyPayments.map((payment, index) => ({
+                    installmentId: payment.id,
+                    monthYear: payment.monthName,
+                    monthName: payment.monthName,
+                    dueDate: new Date(),
+                    amount: Number(payment.amount) || 0,
+                    status: 'pending'
+                })) : [],
+                summary: {
+                    totalAmount: Number(loan.amount),
+                    totalPaid: Number(loan.totalPaid) || 0,
+                    totalRemaining: Number(loan.remaining) || Number(loan.amount),
+                    completedInstallments: 0,
+                    remainingInstallments: Number(loan.period),
+                    progressPercent: loan.amount > 0 ? Math.round(((loan.totalPaid || 0) / loan.amount) * 100) : 0
+                }
+            }));
+            
+            dataResult.loanRecords = loanRecords;
+            console.log('Loan records to save:', loanRecords); // Debug log
+        }
+
+        console.log('Data to send to API:', dataResult); // Debug log
 
         try {
             const response = await axios.put(endpoint + '/employee/update/' + dataResult._id, dataResult);
             // setEmployeesResult(response.data.employees);
             if (response) {
-                alert("บันทึกสำเร็จ");
+                // แสดงรายละเอียดการบันทึก
+                let saveMessage = "บันทึกสำเร็จ!";
+                if (dataResult.loanRecords && dataResult.loanRecords.length > 0) {
+                    saveMessage += `\n- บันทึกข้อมูลเงินกู้ ${dataResult.loanRecords.length} รายการ`;
+                }
+                if (dataResult.addSalary && dataResult.addSalary.length > 0) {
+                    saveMessage += `\n- บันทึกข้อมูลเงินเพิ่ม ${dataResult.addSalary.length} รายการ`;
+                }
+                if (dataResult.deductSalary && dataResult.deductSalary.length > 0) {
+                    saveMessage += `\n- บันทึกข้อมูลเงินหัก ${dataResult.deductSalary.length} รายการ`;
+                }
+                
+                alert(saveMessage);
                 // localStorage.setItem('selectedEmployees' , JSON.stringify(response.data.employees));
 
                 // window.location.reload();
 
             }
         } catch (error) {
-            alert('กรุณาตรวจสอบข้อมูลในช่องกรอกข้อมูล');
-            alert(error);
+            console.error('Error saving data:', error);
+            if (error.response) {
+                alert(`เกิดข้อผิดพลาดในการบันทึก: ${error.response.status} - ${error.response.data?.message || error.response.statusText}`);
+            } else {
+                alert('กรุณาตรวจสอบข้อมูลในช่องกรอกข้อมูล');
+            }
             // window.location.reload();
         }
 
@@ -520,9 +661,179 @@ function AddEditSalaryEmployee() {
         // }
 
     }
+
+// ...existing code...
+
+const handleAddLoan = () => {
+    // ตรวจสอบข้อมูลพื้นฐาน
+    if (!loanAmount || !loanContractCode || !minusId || !misnusName || !interestRate) {
+        alert('กรุณากรอกข้อมูลให้ครบถ้วน:\n- จำนวนเงิน\n- รหัสสัญญาเงินกู้\n- รหัสเงินหัก\n- ชื่อรายการเงินหัก\n- ระยะเวลา');
+        return;
+    }
+
+    // ตรวจสอบว่ามีการใส่ยอดเงินในเดือนใดเดือนหนึ่งอย่างน้อย
+    if (!monthlyPayments || monthlyPayments.length === 0) {
+        alert('กรุณาเลือกระยะเวลาผ่อนชำระก่อน');
+        return;
+    }
+
+    const hasAmount = monthlyPayments.some(month => month.amount && Number(month.amount) > 0);
+    if (!hasAmount) {
+        alert('กรุณาใส่ยอดเงินอย่างน้อยหนึ่งเดือน');
+        return;
+    }
+
+    const amount = Number(loanAmount);
+    const period = Number(interestRate); // ใช้ interestRate เป็นระยะเวลา
+    const totalPaid = calculateTotalPaid(monthlyPayments);
+    const remaining = calculateRemaining(amount, totalPaid);
+
+    if (isEditMode && editingLoan) {
+        // แก้ไขรายการเดิม
+        const updatedLoan = {
+            ...editingLoan,
+            amount: amount,
+            contractCode: loanContractCode,
+            loanCode: minusId,
+            loanName: misnusName,
+            period: period,
+            monthlyPayments: [...monthlyPayments],
+            totalPaid: totalPaid,
+            remaining: remaining,
+            note: loanNote
+        };
+
+        setLoanList(loanList.map(loan => 
+            loan.id === editingLoan.id ? updatedLoan : loan
+        ));
+        alert('แก้ไขรายการเงินกู้เรียบร้อยแล้ว');
+    } else {
+        // เพิ่มรายการใหม่
+        const newLoan = {
+            id: Date.now(),
+            date: new Date().toISOString().split('T')[0],
+            amount: amount,
+            contractCode: loanContractCode,
+            loanCode: minusId,
+            loanName: misnusName,
+            period: period,
+            monthlyPayments: [...monthlyPayments],
+            totalPaid: totalPaid,
+            remaining: remaining,
+            note: loanNote
+        };
+
+        setLoanList([...loanList, newLoan]);
+        alert('เพิ่มรายการเงินกู้เรียบร้อยแล้ว');
+    }
+    
+    // Reset form
+    resetLoanForm();
+    setShowLoanModal(false);
+};
+
+
+
+const handleEditLoan = (loan) => {
+    try {
+        // ตรวจสอบข้อมูล loan object
+        if (!loan || !loan.id) {
+            alert('ข้อมูลรายการเงินกู้ไม่ถูกต้อง');
+            return;
+        }
+
+        // ตั้งสถานะก่อนเพื่อป้องกัน useEffect
+        setIsEditingLoan(true);
+        setIsEditMode(true);
+        setEditingLoan(loan);
+        
+        // ตั้งค่าข้อมูลพื้นฐาน
+        setLoanAmount(loan.amount ? loan.amount.toString() : '');
+        setLoanContractCode(loan.contractCode || '');
+        setInterestRate(loan.period ? loan.period.toString() : '');
+        setLoanNote(loan.note || '');
+        
+        // ตั้งค่า monthlyPayments และตรวจสอบให้แน่ใจว่าเป็น array
+        const payments = loan.monthlyPayments || [];
+        if (Array.isArray(payments)) {
+            setMonthlyPayments([...payments]);
+        } else {
+            setMonthlyPayments([]);
+        }
+        
+        // ตั้งค่ารหัสและชื่อเงินหักในลำดับสุดท้าย
+        // และใช้ setTimeout เพื่อให้ isEditingLoan ได้ set ก่อน
+        setTimeout(() => {
+            const loanCode = loan.loanCode || '';
+            const loanName = loan.loanName || '';
+            
+            setMinusId(loanCode);
+            setMisnusName(loanName);
+            
+            setShowLoanModal(true);
+            
+            // รอให้ modal เปิดสมบูรณ์แล้วค่อย reset flag
+            setTimeout(() => {
+                setIsEditingLoan(false);
+            }, 1000);
+        }, 100);
+        
+    } catch (error) {
+        console.error('Error in handleEditLoan:', error);
+        alert('เกิดข้อผิดพลาดในการแก้ไขข้อมูล');
+    }
+};
+
+    // ฟังก์ชันสำหรับ reset form data
+const resetLoanForm = () => {
+    setIsEditingLoan(true); // ป้องกัน useEffect ตอน reset
+    
+    setLoanAmount('');
+    setLoanContractCode('');
+    setMinusId('');
+    setMisnusName('');
+    setInterestRate('');
+    setLoanNote('');
+    setMonthlyPayments([]);
+    setIsEditMode(false);
+    setEditingLoan(null);
+    
+    // รอสักครู่แล้วค่อย reset flag
+    setTimeout(() => {
+        setIsEditingLoan(false);
+    }, 100);
+};
+
+    const handleDeleteLoan = (id) => {
+        if (confirm('คุณต้องการลบรายการเงินกู้นี้หรือไม่? (ต้องกดบันทึกเพื่อยืนยันการลบ)')) {
+            // แค่ลบออกจาก state ในหน้า UI เท่านั้น 
+            // การลบจริงจะเกิดขึ้นเมื่อกดปุ่ม "บันทึก"
+            setLoanList(loanList.filter(loan => loan.id !== id));
+            
+            // แสดงข้อความแจ้งเตือน
+            alert('ลบรายการออกจากหน้าจอแล้ว กรุณากดปุ่ม "บันทึก" เพื่อยืนยันการลบข้อมูลในระบบ');
+        }
+    };
     console.log("rowDataList2", rowDataList2);
 
     console.log("rowDataList", rowDataList);
+
+    // ...existing code...
+
+// ฟังก์ชันสำหรับคำนวณยอดรวมที่จ่ายแล้ว
+const calculateTotalPaid = (monthlyPayments) => {
+    if (!monthlyPayments || !Array.isArray(monthlyPayments)) return 0;
+    return monthlyPayments.reduce((sum, payment) => {
+        return sum + (Number(payment.amount) || 0);
+    }, 0);
+};
+
+// ฟังก์ชันสำหรับคำนวณยอดคงเหลือ
+const calculateRemaining = (totalAmount, totalPaid) => {
+    return Math.max(0, Number(totalAmount) - Number(totalPaid));
+};
+
+// ...existing code...
 
     /////////////////
     const [selectedOption, setSelectedOption] = useState('agencytime');
@@ -537,7 +848,7 @@ function AddEditSalaryEmployee() {
     };
 
     return (
-        <body class="hold-transition sidebar-mini" className='editlaout'>
+        <div class="hold-transition sidebar-mini" className='editlaout'>
             <div class="wrapper">
                 <div class="content-wrapper">
                     {/* <!-- Content Header (Page header) --> */}
@@ -546,10 +857,16 @@ function AddEditSalaryEmployee() {
                         <li class="breadcrumb-item"><a href="#"> ระบบเงินเดือน</a></li>
                         <li class="breadcrumb-item active">ใบลงเวลาการปฏิบัติงาน</li>
                     </ol>
-                    <div class="content-header">
-                        <div class="container-fluid">
-                            <div class="row mb-2">
-                                <h1 class="m-0"><i class="far fa-arrow-alt-circle-right"></i> เงินเพิ่ม เงินหักพนักงาน</h1>
+                    <div className="content-header">
+                        <div className="container-fluid">
+                            <div className="row mb-2">
+                                <div className="col-12">
+                                    <h1 className="m-0 ">
+                                        <i className="fas fa-money-bill-wave mr-2"></i> 
+                                        เงินเพิ่ม เงินหักพนักงาน
+                                    </h1>
+                                    <p className="text-muted mb-0">จัดการเงินเพิ่มและเงินหักสำหรับพนักงาน</p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -561,56 +878,84 @@ function AddEditSalaryEmployee() {
                                 <div class="container-fluid">
                                     <div class="row">
                                         <div class="col-md-12">
-                                            <section class="Frame">
-                                                <div class="col-md-12">
+                                            <section className="card shadow-sm">
+                                                <div className="card-header  text-white"
+                                                heading="true" style={{ backgroundColor: 'rgb(56, 92, 130)' }}>
+                                                    <h5 className="mb-0">
+                                                        <i className="fas fa-search mr-2"></i>
+                                                        ค้นหาพนักงาน
+                                                    </h5>
+                                                </div>
+                                                <div className="card-body">
                                                     <form onSubmit={handleSearch}>
-                                                        <div class="row">
-                                                            <div class="col-md-6">
-                                                                <div class="form-group">
-                                                                    <label role="searchEmployeeId">รหัสพนักงาน</label>
-                                                                    <input type="text" class="form-control" id="searchEmployeeId" placeholder="รหัสพนักงาน" value={searchEmployeeId} onChange={(e) => setSearchEmployeeId(e.target.value)}
+                                                        <div className="row">
+                                                            <div className="col-md-6">
+                                                                <div className="form-group">
+                                                                    <label className="font-weight-bold">
+                                                                        <i className="fas fa-id-card mr-1"></i>
+                                                                        รหัสพนักงาน
+                                                                    </label>
+                                                                    <input 
+                                                                        type="text" 
+                                                                        className="form-control form-control-lg" 
+                                                                        id="searchEmployeeId" 
+                                                                        placeholder="กรอกรหัสพนักงาน" 
+                                                                        value={searchEmployeeId} 
+                                                                        onChange={(e) => setSearchEmployeeId(e.target.value)}
                                                                         onInput={(e) => {
-                                                                            // Remove any non-digit characters
-                                                                            e.target.value = e.target.value.replace(
-                                                                                /\D/g,
-                                                                                ""
-                                                                            );
-                                                                        }} />
+                                                                            e.target.value = e.target.value.replace(/\D/g, "");
+                                                                        }} 
+                                                                    />
                                                                 </div>
                                                             </div>
-                                                            <div class="col-md-6">
-                                                                <div class="form-group">
-                                                                    <label role="searchname">ชื่อพนักงาน</label>
-                                                                    <input type="text" class="form-control" id="searchname" placeholder="ชื่อพนักงาน" value={searchEmployeeName} onChange={(e) => setSearchEmployeeName(e.target.value)} />
+                                                            <div className="col-md-6">
+                                                                <div className="form-group">
+                                                                    <label className="font-weight-bold">
+                                                                        <i className="fas fa-user mr-1"></i>
+                                                                        ชื่อพนักงาน
+                                                                    </label>
+                                                                    <input 
+                                                                        type="text" 
+                                                                        className="form-control form-control-lg" 
+                                                                        id="searchname" 
+                                                                        placeholder="กรอกชื่อพนักงาน" 
+                                                                        value={searchEmployeeName} 
+                                                                        onChange={(e) => setSearchEmployeeName(e.target.value)} 
+                                                                    />
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                        <div class="d-flex justify-content-center">
-                                                            <button class="btn b_save"><i class="nav-icon fas fa-search"></i> &nbsp; ค้นหา</button>
+                                                        <div className="text-center">
+                                                            <button className="btn  btn-lg px-5"
+                                                            style={{ backgroundColor: 'rgb(56, 92, 130)', color: 'white' }} type="submit">
+                                                                <i className="fas fa-search mr-2"></i> 
+                                                                ค้นหา
+                                                            </button>
                                                         </div>
                                                     </form>
-                                                    <br />
-                                                    <div class="d-flex justify-content-center">
-                                                        <h2 class="title">ผลลัพธ์ {searchResult.length} รายการ</h2>
-                                                    </div>
-                                                    <div class="d-flex justify-content-center">
-                                                        <div class="row">
-                                                            <div class="col-md-12">
-                                                                <div class="form-group">
-                                                                    <ul style={{ listStyle: 'none', marginLeft: "-2rem" }}>
-                                                                        {searchResult.map(employee => (
-                                                                            <li
-                                                                                key={employee.id}
-                                                                                onClick={() => handleClickResult(employee)}
-                                                                            >
-                                                                                รหัส {employee.employeeId} ชื่อ{employee.name}
-                                                                            </li>
-                                                                        ))}
-                                                                    </ul>
-                                                                </div>
+                                                    
+                                                    {/* ผลลัพธ์การค้นหา */}
+                                                    {searchResult.length > 0 && (
+                                                        <div className="mt-4">
+                                                            
+                                                            <div className="list-group">
+                                                                {searchResult.map(employee => (
+                                                                    <button
+                                                                        key={employee.id}
+                                                                        type="button"
+                                                                        className="list-group-item list-group-item-action d-flex align-items-center"
+                                                                        onClick={() => handleClickResult(employee)}
+                                                                    >
+                                                                        <i className="fas fa-user-circle text-primary mr-3 fa-2x"></i>
+                                                                        <div>
+                                                                            <h6 className="mb-1">รหัส: {employee.employeeId}</h6>
+                                                                            <p className="mb-0 text-muted">ชื่อ: {employee.name}</p>
+                                                                        </div>
+                                                                    </button>
+                                                                ))}
                                                             </div>
                                                         </div>
-                                                    </div>
+                                                    )}
                                                 </div>
                                             </section>
                                             {/* <!--Frame--> */}
@@ -618,36 +963,7 @@ function AddEditSalaryEmployee() {
                                     </div>
                                     <form onSubmit={handleManageWorkplace}>
 
-                                        <div class="row">
-                                            <div class="col-md-12">
-                                                <h3>ข้อมูลพนักงาน</h3>
-                                                <div class="row">
-                                                    <div class="col-md-2">
-                                                        <div class="form-group">
-                                                            <label role="addSalaryId">{employeeId}</label>
-                                                        </div>
-                                                    </div>
-
-                                                    <div class="col-md-3">
-                                                        <div class="form-group">
-                                                            <label role="addSalaryName">{name} {lastName} </label>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-md-2">
-                                                        <div class="form-group">
-                                                            <label role="addSalary">ปรับปรุงเงินเพิ่ม/เงินหักเมื่อ 01/01/2024</label>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-md-3">
-                                                        <div class="form-group">
-                                                            <label role="message"> พบข้อมูลเงินเพิ่มเงินหัก </label>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-
-                                            </div>
-                                        </div>
+                                        
                                         <div class="row">
                                             <div class="col-md-12">
                                                 <h3>เงินเพิ่ม</h3>
@@ -693,10 +1009,7 @@ function AddEditSalaryEmployee() {
                                                                 <input type="text" class="form-control" id="addSalaryId" placeholder="รหัส" value={addSalaryId} onChange={(e) => setAddSalaryId(e.target.value)}
                                                                     onInput={(e) => {
                                                                         // Remove any non-digit characters
-                                                                        e.target.value = e.target.value.replace(
-                                                                            /\D/g,
-                                                                            ""
-                                                                        );
+                                                                       
                                                                     }} />
                                                             </div>
                                                         </div>
@@ -869,80 +1182,106 @@ function AddEditSalaryEmployee() {
                                                     </div>
 
 
-                                                    <section class="Frame">
-                                                        <div class="row">
-                                                            <div class="col-md-1">
-                                                                <div class="form-group">
-                                                                    <label role="addSalaryId">รหัส</label>
-                                                                </div>
-                                                            </div>
-
-                                                            <div class="col-md-2">
-                                                                <div class="form-group">
-                                                                    <label role="addSalaryName">ชื่อ</label>
-                                                                </div>
-                                                            </div>
-                                                            <div class="col-md-1">
-                                                                <div class="form-group">
-                                                                    <label role="addSalary">จำนวนเงิน</label>
-                                                                </div>
-                                                            </div>
-                                                            <div class="col-md-2">
-                                                                <div class="form-group">
-                                                                    <label role="">รายวัน/รายเดือน</label>
-                                                                </div>
-                                                            </div>
-                                                            <div class="col-md-2">
-                                                                <div class="form-group">
-                                                                    <label role="">ประเภทพนักงาน</label>
-                                                                </div>
-                                                            </div>
-                                                            <div class="col-md-3">
-                                                                <div class="form-group">
-                                                                    <label role="message">หมายเหตุ</label>
-                                                                </div>
-                                                            </div>
+                                                    {/* ตารางแสดงข้อมูลเงินเพิ่ม */}
+                                                    <div className="card shadow-sm mt-3">
+                                                        <div className="card-header bg-success text-white">
+                                                            <h6 className="mb-0">
+                                                                <i className="fas fa-plus-circle mr-2"></i>
+                                                                รายการเงินเพิ่ม
+                                                            </h6>
                                                         </div>
-                                                        <div class="row">
-                                                            <div class="col-md-12">
-
-                                                                {rowDataList2.map((item, index) => (
-                                                                    item.name && (
-                                                                        <div key={index}>
-                                                                            <div class="row" style={{ marginBottom: '1rem', borderBottom: '2px solid #000' }}>
-                                                                                <div class="col-md-1" style={bordertable}> {item.id}</div>
-                                                                                <div class="col-md-2" style={bordertable}> {item.name} </div>
-                                                                                <div class="col-md-1" style={bordertable}> {item.SpSalary} </div>
-
-                                                                                {item.roundOfSalary == "daily" && (
-                                                                                    <div class="col-md-2" style={bordertable}>รายวัน</div>
-                                                                                )}
-                                                                                {item.roundOfSalary == "monthly" && (
-                                                                                    <div class="col-md-2" style={bordertable}>รายเดือน</div>
-                                                                                )}
-
-                                                                                {item.StaffType == "header" && (
-                                                                                    <div class="col-md-2" style={bordertable}>หัวหน้างาน</div>
-                                                                                )}
-
-                                                                                {item.StaffType == "all" && (
-                                                                                    <div class="col-md-2" style={bordertable}>พนักงาน</div>
-                                                                                )}
-
-                                                                                <div class="col-md-2" style={bordertable}> {item.message} </div>
-                                                                                <div class="col-md-2" style={bordertable}>
-                                                                                    {/* <button onClick={() => handleEditRow(index)}>Edit</button> */}
-                                                                                    <button class="btn btn-xs btn-danger" style={{ padding: '0.3rem ', addSalaryIdth: '8rem' }} onClick={() => handleDeleteRow(index)}>ลบ</button>
-                                                                                </div>
-
-                                                                            </div>
-                                                                        </div>
-                                                                    )
-                                                                ))}
-
-                                                            </div>
+                                                        <div className="card-body p-0">
+                                                            {rowDataList2.length > 0 && rowDataList2.some(item => item.name) ? (
+                                                                <div className="table-responsive">
+                                                                    <table className="table table-hover table-striped mb-0">
+                                                                        <thead className="thead-light">
+                                                                            <tr>
+                                                                                <th className="text-center" width="10%">
+                                                                                    <i className="fas fa-hashtag mr-1"></i>รหัส
+                                                                                </th>
+                                                                                <th width="20%">
+                                                                                 รายการเงินเพิ่ม
+                                                                                </th>
+                                                                                <th className="text-center" width="15%">
+                                                                                    <i className="fas fa-money-bill mr-1"></i>จำนวนเงิน
+                                                                                </th>
+                                                                                <th className="text-center" width="15%">
+                                                                                    <i className="fas fa-calendar-alt mr-1"></i>ประเภทจ่าย
+                                                                                </th>
+                                                                                <th className="text-center" width="15%">
+                                                                                    <i className="fas fa-users mr-1"></i>ประเภทพนักงาน
+                                                                                </th>
+                                                                                <th width="15%">
+                                                                                    <i className="fas fa-sticky-note mr-1"></i>หมายเหตุ
+                                                                                </th>
+                                                                                <th className="text-center" width="10%">
+                                                                                    <i className="fas fa-cogs mr-1"></i>จัดการ
+                                                                                </th>
+                                                                            </tr>
+                                                                        </thead>
+                                                                        <tbody>
+                                                                            {rowDataList2.map((item, index) => (
+                                                                                item.name && (
+                                                                                    <tr key={index}>
+                                                                                        <td className="text-center p-3 font-weight-bold text-primary">
+                                                                                            {item.id}
+                                                                                        </td>
+                                                                                        <td className="p-3">
+                                                                                         
+                                                                                            {item.name}
+                                                                                        </td>
+                                                                                        <td className="text-center p-3">
+                                                                                            <span className="">
+                                                                                               {Number(item.SpSalary).toLocaleString()} บาท
+                                                                                            </span>
+                                                                                        </td>
+                                                                                        <td className="text-center p-3">
+                                                                                            {item.roundOfSalary === "daily" && (
+                                                                                                <span className="text-bold">รายวัน</span>
+                                                                                            )}
+                                                                                            {item.roundOfSalary === "monthly" && (
+                                                                                                <span className="text-bold">รายเดือน</span>
+                                                                                            )}
+                                                                                        </td>
+                                                                                        <td className="text-center p-3">
+                                                                                            {item.StaffType === "header" && (
+                                                                                                <span className="">หัวหน้างาน</span>
+                                                                                            )}
+                                                                                            {item.StaffType === "all" && (
+                                                                                                <span className="">พนักงาน</span>
+                                                                                            )}
+                                                                                            {item.StaffType !== "header" && item.StaffType !== "all" && item.StaffType && (
+                                                                                                <span className="">{item.StaffType}</span>
+                                                                                            )}
+                                                                                        </td>
+                                                                                        <td className="p-3 ">
+                                                                                            <small className="text-center">
+                                                                                                {item.message || '-'}
+                                                                                            </small>
+                                                                                        </td>
+                                                                                        <td className="text-center p-3">
+                                                                                            <button 
+                                                                                                className="btn btn-danger btn-sm"
+                                                                                                onClick={() => handleDeleteRow(index)}
+                                                                                                title="ลบรายการ"
+                                                                                            >
+                                                                                                <i className="fas fa-trash"></i>
+                                                                                            </button>
+                                                                                        </td>
+                                                                                    </tr>
+                                                                                )
+                                                                            ))}
+                                                                        </tbody>
+                                                                    </table>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="text-center py-4">
+                                                                    <i className="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                                                    <p className="text-muted">ยังไม่มีข้อมูลเงินเพิ่ม</p>
+                                                                </div>
+                                                            )}
                                                         </div>
-                                                    </section>
+                                                    </div>
                                                 </section>
                                             </div>
                                         </div>
@@ -1100,106 +1439,337 @@ function AddEditSalaryEmployee() {
                                                         </div>
 
                                                     </div>
-                                                    <section class="Frame">
-                                                        <div class="row">
-                                                            <div class="col-md-12">
-                                                                <div class="row">
-                                                                    <div class="col-md-1">
-                                                                        <div class="form-group">
-                                                                            <label role="addSalaryId">รหัส</label>
-                                                                        </div>
-                                                                    </div>
-
-                                                                    <div class="col-md-2">
-                                                                        <div class="form-group">
-                                                                            <label role="addSalaryName">ชื่อ</label>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div class="col-md-2">
-                                                                        <div class="form-group">
-                                                                            <label role="addSalary">จำนวนเงิน</label>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div class="col-md-2">
-                                                                        <div class="form-group">
-                                                                            <label role="">การหักเงิน</label>
-                                                                        </div>
-                                                                    </div>
-                                                                    {/* <div class="col-md-2">
-                                                                        <div class="form-group">
-                                                                            <label role="">จำนวนงวด</label>
-                                                                        </div>
-                                                                    </div> */}
-                                                                    <div class="col-md-3">
-                                                                        <div class="form-group">
-                                                                            <label role="message">หมายเหตุ</label>
-                                                                        </div>
-                                                                    </div>
+                                                    {/* ตารางแสดงข้อมูลเงินหัก */}
+                                                    <div className="card shadow-sm mt-3">
+                                                        <div className="card-header bg-danger text-white">
+                                                            <h6 className="mb-0">
+                                                                <i className="fas fa-minus-circle mr-2"></i>
+                                                                รายการเงินหัก
+                                                            </h6>
+                                                        </div>
+                                                        <div className="card-body p-0">
+                                                            {rowDataList.length > 0 && rowDataList.some(item => item.name) ? (
+                                                                <div className="table-responsive">
+                                                                    <table className="table table-hover table-striped mb-0">
+                                                                        <thead className="thead-light">
+                                                                            <tr>
+                                                                                <th className="text-center" width="10%">
+                                                                                    <i className="fas fa-hashtag mr-1"></i>รหัส
+                                                                                </th>
+                                                                                <th width="20%">
+                                                                                    รายการเงินหัก
+                                                                                </th>
+                                                                                <th className="text-center" width="15%">
+                                                                                    <i className="fas fa-money-bill mr-1"></i>จำนวนเงิน
+                                                                                </th>
+                                                                                <th className="text-center" width="15%">
+                                                                                    <i className="fas fa-credit-card mr-1"></i>การหักเงิน
+                                                                                </th>
+                                                                                <th width="25%">
+                                                                                    <i className="fas fa-sticky-note mr-1"></i>หมายเหตุ
+                                                                                </th>
+                                                                                <th className="text-center" width="15%">
+                                                                                    <i className="fas fa-cogs mr-1"></i>จัดการ
+                                                                                </th>
+                                                                            </tr>
+                                                                        </thead>
+                                                                        <tbody>
+                                                                            {rowDataList.map((item, index) => (
+                                                                                item.name && (
+                                                                                    <tr key={index}>
+                                                                                        <td className="text-center font-weight-bold text-primary p-3">
+                                                                                            {item.id}
+                                                                                        </td>
+                                                                                        <td className="p-3">
+                                                                                            {item.name}
+                                                                                        </td>
+                                                                                        <td className="text-center p-3">
+                                                                                            <span className="">
+                                                                                                - {Number(item.amount).toLocaleString()} บาท
+                                                                                            </span>
+                                                                                        </td>
+                                                                                        <td className="text-center p-3">
+                                                                                            {item.payType === "immedate" && (
+                                                                                                <span className="">จ่ายทั้งหมด</span>
+                                                                                            )}
+                                                                                            {item.payType === "installment" && (
+                                                                                                <span className="">ผ่อนจ่าย</span>
+                                                                                            )}
+                                                                                        </td>
+                                                                                        <td className="p-3 ">
+                                                                                            <small className="text-muted">
+                                                                                                {item.message || '-'}
+                                                                                            </small>
+                                                                                        </td>
+                                                                                        <td className="text-center p-2">
+                                                                                            <button
+                                                                                                className="btn btn-danger btn-sm"
+                                                                                                onClick={() => handleDeleteRow2(index)}
+                                                                                                title="ลบรายการ"
+                                                                                            >
+                                                                                                <i className="fas fa-trash"></i>
+                                                                                            </button>
+                                                                                        </td>
+                                                                                    </tr>
+                                                                                )
+                                                                            ))}
+                                                                        </tbody>
+                                                                    </table>
                                                                 </div>
-
-                                                            </div>
+                                                            ) : (
+                                                                <div className="text-center py-4">
+                                                                    <i className="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                                                    <p className="text-muted">ยังไม่มีข้อมูลเงินหัก</p>
+                                                                </div>
+                                                            )}
                                                         </div>
-                                                        <div class="row">
-                                                            <div class="col-md-12">
-
-
-                                                                {rowDataList.map((item, index) => (
-                                                                    item.name && (
-                                                                        <div key={index}>
-                                                                            <div class="row" style={{ marginBottom: '1rem', borderBottom: '2px solid #000' }}>
-                                                                                {/* <div class="col-md-1" style={bordertable}> {item.id}</div>
-                                                                                <div class="col-md-2" style={bordertable}> {item.name} </div>
-                                                                                <div class="col-md-2" style={bordertable}> {item.SpSalary} </div>
-
-                                                                                <div class="col-md-2" style={bordertable}> {item.SpSalary} </div>
-                                                                                <div class="col-md-2" style={bordertable}> {item.SpSalary} </div>
-
-                                                                                <div class="col-md-2" style={bordertable}> {item.message} </div> */}
-
-                                                                                <div class="col-md-1" style={bordertable}> {item.id}</div>
-                                                                                <div class="col-md-2" style={bordertable}> {item.name} </div>
-                                                                                <div class="col-md-2" style={bordertable}> {item.amount} </div>
-
-                                                                                {item.payType == "immedate" && (
-                                                                                    <div class="col-md-2" style={bordertable}>จ่ายทั้งหมด</div>
-                                                                                )}
-                                                                                {item.payType == "installment" && (
-                                                                                    <div class="col-md-2" style={bordertable}>ผ่อนจ่าย</div>
-                                                                                )}
-
-                                                                                {/* <div class="col-md-2" style={bordertable}>{item.installment}</div> */}
-
-                                                                                <div class="col-md-2" style={bordertable}> {item.message} </div>
-
-                                                                                {/* <div class="col-md-2" style={bordertable}>
-                                                                                    <button class="btn btn-xs btn-danger" style={{ padding: '0.3rem ', addSalaryIdth: '8rem' }} onClick={() => handleDeleteRow2(index)}>ลบ</button>
-                                                                                </div> */}
-                                                                                <button
-                                                                                    className="btn btn-xs btn-danger"
-                                                                                    style={{ padding: '0.3rem', width: '8rem' }}
-                                                                                    onClick={() => handleDeleteRow2(index)}
-                                                                                >
-                                                                                    ลบ
-                                                                                </button>
-
-                                                                            </div>
-                                                                        </div>
-                                                                    )
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    </section>
+                                                    </div>
                                                 </section>
                                             </div>
                                         </div>
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <h3>เงินคงค้าง</h3>
-                                                <section class="Frame">
-                                                    0
-                                                </section>
+                        
+<div class="row">
+    <div class="col-md-12">
+        <h3>รายการเงินกู้</h3>
+        <section className="Frame">
+            {/* ปุ่มเพิ่มรายการเงินกู้ */}
+            <div className="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <p className="text-muted mb-0">จัดการรายการเงินกู้ของพนักงาน</p>
+                </div>
+                <button 
+                    type="button"
+                    className="btn btn-warning btn-lg"
+                    onClick={() => {
+                        resetLoanForm();
+                        setShowLoanModal(true);
+                    }}
+                    style={{
+                        borderRadius: '10px',
+                        padding: '10px 25px',
+                        fontWeight: 'bold',
+                        boxShadow: '0 4px 8px rgba(255,193,7,0.3)'
+                    }}
+                >
+                    <i className="fas fa-plus-circle mr-2"></i>
+                    เพิ่มรายการเงินกู้
+                </button>
+            </div>
+
+            {/* แสดงรายการเงินกู้ในรูปแบบ Cards */}
+            {loanList && loanList.length > 0 ? (
+                <div className="row">
+                    {loanList.map((loan) => (
+                        <div key={loan.id} className="col-md-6 col-lg-4 mb-4">
+                            <div 
+                                className="card shadow-lg h-100"
+                                style={{
+                                    borderRadius: '15px',
+                                    border: '3px solid #ffc107',
+                                    background: 'linear-gradient(135deg, #fff9e6 0%, #ffffff 100%)',
+                                    transition: 'transform 0.3s, box-shadow 0.3s'
+                                }}
+                                onMouseOver={(e) => {
+                                    e.currentTarget.style.transform = 'translateY(-5px)';
+                                    e.currentTarget.style.boxShadow = '0 8px 25px rgba(255,193,7,0.3)';
+                                }}
+                                onMouseOut={(e) => {
+                                    e.currentTarget.style.transform = 'translateY(0)';
+                                    e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.1)';
+                                }}
+                            >
+                                {/* Header */}
+                                <div 
+                                    className="card-header text-white text-center"
+                                    style={{
+                                        background: 'linear-gradient(135deg, #ffc107, #ff8f00)',
+                                        borderRadius: '12px 12px 0 0',
+                                        padding: '20px'
+                                    }}
+                                >
+                                    <h5 className="mb-1" style={{ fontWeight: 'bold' }}>
+                                        <i className="fas fa-hand-holding-usd mr-2"></i>
+                                        {loan.loanName || 'รายการเงินกู้'}
+                                    </h5>
+                                    <small style={{ opacity: 0.9 }}>
+                                        รหัสสัญญา: {loan.contractCode} | รหัสหัก: {loan.loanCode} | วันที่: {new Date(loan.date).toLocaleDateString('th-TH')}
+                                    </small>
+                                </div>
+
+                                {/* Body */}
+                                <div className="card-body" style={{ padding: '25px' }}>
+                                    {/* ข้อมูลหลัก */}
+                                    <div className="row text-center mb-4">
+                                        <div className="col-12">
+                                            <div className="bg-light p-3 rounded-lg mb-3">
+                                                <small className="text-muted d-block">ยอดเงินกู้ทั้งหมด</small>
+                                                <h4 className="mb-0 text-primary font-weight-bold">
+                                                    ฿{Number(loan.amount || 0).toLocaleString()}
+                                                </h4>
                                             </div>
                                         </div>
+                                    </div>
+
+                                    {/* สถานะการผ่อน */}
+                                    <div className="row mb-3">
+                                        <div className="col-6">
+                                            <div className="text-center p-2 bg-success text-white rounded">
+                                                <small>จ่ายแล้ว</small>
+                                                <div className="font-weight-bold">
+                                                    ฿{Number(loan.totalPaid || 0).toLocaleString()}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="col-6">
+                                            <div className="text-center p-2 bg-danger text-white rounded">
+                                                <small>คงเหลือ</small>
+                                                <div className="font-weight-bold">
+                                                    ฿{Number(loan.remaining || 0).toLocaleString()}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Progress Bar */}
+                                    <div className="mb-3">
+                                        <div className="d-flex justify-content-between align-items-center mb-2">
+                                            <small className="text-muted">ความคืบหน้า</small>
+                                            <small className="font-weight-bold text-success">
+                                                {loan.amount > 0 ? Math.round((loan.totalPaid / loan.amount) * 100) : 0}%
+                                            </small>
+                                        </div>
+                                        <div className="progress" style={{ height: '8px', borderRadius: '10px' }}>
+                                            <div 
+                                                className="progress-bar bg-success"
+                                                style={{
+                                                    width: `${loan.amount > 0 ? (loan.totalPaid / loan.amount) * 100 : 0}%`,
+                                                    borderRadius: '10px'
+                                                }}
+                                            ></div>
+                                        </div>
+                                    </div>
+
+                                    {/* รายละเอียดการผ่อน */}
+                                    <div className="mb-3">
+                                        <small className="text-muted d-block mb-2">
+                                            <i className="fas fa-calendar-alt mr-1"></i>
+                                            รายการผ่อนชำระ ({loan.period} เดือน)
+                                        </small>
+                                        <div style={{ maxHeight: '120px', overflowY: 'auto' }}>
+                                            {loan.monthlyPayments && loan.monthlyPayments.length > 0 ? (
+                                                <div className="table-responsive">
+                                                    <table className="table table-sm table-borderless mb-0">
+                                                        <tbody>
+                                                            {loan.monthlyPayments.map((payment, index) => (
+                                                                <tr key={index}>
+                                                                    <td className="py-1 px-2" style={{ fontSize: '12px' }}>
+                                                                        งวด {payment.id}
+                                                                    </td>
+                                                                    <td className="py-1 px-2" style={{ fontSize: '12px' }}>
+                                                                        {payment.monthName}
+                                                                    </td>
+                                                                    <td className="text-right py-1 px-2" style={{ fontSize: '12px' }}>
+                                                                        {payment.amount ? (
+                                                                            <span className="text-success font-weight-bold">
+                                                                                ฿{Number(payment.amount).toLocaleString()}
+                                                                            </span>
+                                                                        ) : (
+                                                                            <span className="text-muted">-</span>
+                                                                        )}
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            ) : (
+                                                <small className="text-muted">ยังไม่มีรายการผ่อนชำระ</small>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* หมายเหตุ */}
+                                    {loan.note && (
+                                        <div className="mb-3">
+                                            <small className="text-muted d-block mb-1">
+                                                <i className="fas fa-sticky-note mr-1"></i>
+                                                หมายเหตุ
+                                            </small>
+                                            <small className="text-dark bg-light p-2 rounded d-block">
+                                                {loan.note}
+                                            </small>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Footer */}
+                                <div 
+                                    className="card-footer bg-transparent text-center"
+                                    style={{ padding: '15px 25px', borderTop: '1px solid #dee2e6' }}
+                                >
+                                    <div className="btn-group w-100">
+                                        <button
+                                            className="btn btn-info btn-sm"
+                                            onClick={() => handleEditLoan(loan)}
+                                            style={{ borderRadius: '8px 0 0 8px' }}
+                                            title="แก้ไข"
+                                        >
+                                            <i className="fas fa-edit mr-1"></i>
+                                            แก้ไข
+                                        </button>
+                                        <button
+                                            className="btn btn-danger btn-sm"
+                                            onClick={() => handleDeleteLoan(loan.id)}
+                                            style={{ borderRadius: '0 8px 8px 0' }}
+                                            title="ลบ"
+                                        >
+                                            <i className="fas fa-trash mr-1"></i>
+                                            ลบ
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div className="text-center py-5">
+                    <div 
+                        className="card"
+                        style={{
+                            background: 'linear-gradient(135deg, #f8f9fa, #e9ecef)',
+                            border: '2px dashed #dee2e6',
+                            borderRadius: '15px'
+                        }}
+                    >
+                        <div className="card-body py-5">
+                            <i className="fas fa-hand-holding-usd fa-4x text-muted mb-3"></i>
+                            <h5 className="text-muted mb-2">ยังไม่มีรายการเงินกู้</h5>
+                            <p className="text-muted mb-4">เริ่มต้นสร้างรายการเงินกู้สำหรับพนักงาน</p>
+                            <button 
+                                type="button"
+                                className="btn btn-warning btn-lg"
+                                onClick={() => {
+                                    resetLoanForm();
+                                    setShowLoanModal(true);
+                                }}
+                                style={{
+                                    borderRadius: '10px',
+                                    padding: '12px 30px',
+                                    fontWeight: 'bold'
+                                }}
+                            >
+                                <i className="fas fa-plus-circle mr-2"></i>
+                                เพิ่มรายการแรก
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </section>
+    </div>
+</div>
+
 
 
 
@@ -1218,11 +1788,557 @@ function AddEditSalaryEmployee() {
                         </div>
                         {/* <!-- /.container-fluid --> */}
                     </section>
+                    </div>
                 </div>
+                
+                {/* Loan Modal */}
+                {showLoanModal && (
+                    <div 
+                        style={{
+                            backgroundColor: 'rgba(0,0,0,0.5)',
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            width: '100vw',
+                            height: '100vh',
+                            zIndex: 1050,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: '20px',
+                            overflowY: 'auto'
+                        }}
+                        onClick={(e) => {
+                            if (e.target === e.currentTarget) {
+                                setShowLoanModal(false);
+                            }
+                        }}
+                    >
+                        <div 
+                            style={{
+                                backgroundColor: 'white',
+                                borderRadius: '15px',
+                                boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+                                width: '90vw',
+                                maxWidth: '1000px',
+                                maxHeight: '90vh',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                overflow: 'hidden'
+                            }}
+                        >
+                            {/* Header */}
+                            <div 
+                                style={{
+                                    background: 'linear-gradient(135deg, #ffc107, #ff8f00)',
+                                    color: 'white',
+                                    padding: '25px 30px',
+                                    borderRadius: '15px 15px 0 0',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center'
+                                }}
+                            >
+                                <h4 style={{ margin: 0, fontWeight: 'bold' }}>
+                                    <i className="fas fa-hand-holding-usd mr-3"></i>
+                                    {isEditMode ? 'แก้ไขรายการเงินกู้' : 'เพิ่มรายการเงินกู้'}
+                                </h4>
+                                <button 
+                                    onClick={() => {
+                                        setShowLoanModal(false);
+                                        resetLoanForm();
+                                    }}
+                                    style={{
+                                        background: 'rgba(255,255,255,0.2)',
+                                        border: 'none',
+                                        borderRadius: '50%',
+                                        width: '40px',
+                                        height: '40px',
+                                        color: 'white',
+                                        fontSize: '18px',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                    }}
+                                    title="ปิด"
+                                >
+                                    <i className="fas fa-times"></i>
+                                </button>
+                            </div>
 
-            </div>
-            {/* {JSON.stringify(rowDataList2, null, 2)} */}
-        </body>
+                            {/* Body */}
+                            <div 
+                                style={{
+                                    padding: '40px',
+                                    overflowY: 'auto',
+                                    flex: 1
+                                }}
+                            >
+                                <div className="row">
+                                    <div className="col-md-6">
+                                        <div className="form-group mb-4">
+                                            <label style={{ fontWeight: 'bold', fontSize: '16px', color: '#333' }}>
+                                                <i className="fas fa-calendar-alt mr-2 text-warning"></i>
+                                                วันที่สร้าง
+                                            </label>
+                                            <input 
+                                                type="text" 
+                                                className="form-control form-control-lg"
+                                                style={{
+                                                    fontSize: '16px',
+                                                    padding: '12px 15px',
+                                                    borderRadius: '8px',
+                                                    border: '2px solid #ddd',
+                                                    backgroundColor: '#f8f9fa'
+                                                }}
+                                                value={isEditMode && editingLoan ? new Date(editingLoan.date).toLocaleDateString('th-TH') : new Date().toLocaleDateString('th-TH')}
+                                                readOnly
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="col-md-6">
+                                        <div className="form-group mb-4">
+                                            <label style={{ fontWeight: 'bold', fontSize: '16px', color: '#333' }}>
+                                                <i className="fas fa-dollar-sign mr-2 text-success"></i>
+                                                จำนวนเงิน (บาท)
+                                            </label>
+                                            <input 
+                                                type="text" 
+                                                className="form-control form-control-lg"
+                                                style={{
+                                                    fontSize: '16px',
+                                                    padding: '12px 15px',
+                                                    borderRadius: '8px',
+                                                    border: '2px solid #ddd'
+                                                }}
+                                                placeholder="กรอกจำนวนเงิน"
+                                                value={loanAmount}
+                                                onChange={(e) => setLoanAmount(e.target.value)}
+                                                onInput={(e) => {
+                                                    e.target.value = e.target.value.replace(/[^0-9]/g, '');
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="row">
+                                    <div className="col-md-6">
+                                        <div className="form-group mb-4">
+                                            <label style={{ fontWeight: 'bold', fontSize: '16px', color: '#333' }}>
+                                                <i className="fas fa-file-contract mr-2 text-primary"></i>
+                                                รหัสสัญญาเงินกู้ <span style={{ color: 'red' }}>*</span>
+                                            </label>
+                                            <input 
+                                                type="text" 
+                                                className="form-control form-control-lg"
+                                                style={{
+                                                    fontSize: '16px',
+                                                    padding: '12px 15px',
+                                                    borderRadius: '8px',
+                                                    border: '2px solid #ddd'
+                                                }}
+                                                placeholder="กรอกรหัสสัญญาเงินกู้"
+                                                value={loanContractCode}
+                                                onChange={(e) => setLoanContractCode(e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="col-md-6">
+                                        <div className="form-group mb-4">
+                                            <label style={{ fontWeight: 'bold', fontSize: '16px', color: '#333' }}>
+                                                <i className="fas fa-calendar mr-2 text-info"></i>
+                                                ระยะเวลา (เดือน) <span style={{ color: 'red' }}>*</span>
+                                            </label>
+                                            <select 
+                                                className="form-control form-control-lg"
+                                                style={{
+                                                    fontSize: '16px',
+                                                    padding: '12px 15px',
+                                                    borderRadius: '8px',
+                                                    border: '2px solid #ddd'
+                                                }}
+                                                value={interestRate}
+                                                onChange={(e) => {
+                                                    const period = Number(e.target.value);
+                                                    setInterestRate(e.target.value);
+                                                    
+                                                    if (period > 0) {
+                                                        const currentDate = new Date();
+                                                        const payments = [];
+                                                        
+                                                        for (let i = 0; i < period; i++) {
+                                                            const nextMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
+                                                            const monthName = nextMonth.toLocaleDateString('th-TH', { 
+                                                                month: 'long', 
+                                                                year: 'numeric' 
+                                                            });
+                                                            
+                                                            payments.push({
+                                                                id: i + 1,
+                                                                monthName: monthName,
+                                                                amount: ''
+                                                            });
+                                                        }
+                                                        
+                                                        setMonthlyPayments(payments);
+                                                    } else {
+                                                        setMonthlyPayments([]);
+                                                    }
+                                                }}
+                                            >
+                                                <option value="">เลือกระยะเวลา</option>
+                                                <option value="1">1 เดือน</option>
+                                                <option value="2">2 เดือน</option>
+                                                <option value="3">3 เดือน</option>
+                                                <option value="4">4 เดือน</option>
+                                                <option value="5">5 เดือน</option>
+                                                <option value="6">6 เดือน</option>
+                                                <option value="7">7 เดือน</option>
+                                                <option value="8">8 เดือน</option>
+                                                <option value="9">9 เดือน</option>
+                                                <option value="10">10 เดือน</option>
+                                                <option value="11">11 เดือน</option>
+                                                <option value="12">12 เดือน</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="row">
+                                    <div className="col-md-6">
+                                        <div className="form-group mb-4">
+                                            <label style={{ fontWeight: 'bold', fontSize: '16px', color: '#333' }}>
+                                                <i className="fas fa-hashtag mr-2 text-info"></i>
+                                                รหัสเงินหัก
+                                            </label>
+                                            <input 
+                                                type="text" 
+                                                className="form-control form-control-lg"
+                                                style={{
+                                                    fontSize: '16px',
+                                                    padding: '12px 15px',
+                                                    borderRadius: '8px',
+                                                    border: '2px solid #ddd'
+                                                }}
+                                                placeholder="กรอกรหัสเงินหัก"
+                                                value={minusId}
+                                                onChange={(e) => {
+                                                    const value = e.target.value;
+                                                    setMinusId(value);
+                                                    
+                                                    // หาชื่อรายการจากรหัสที่กรอก (ยกเว้นในโหมดแก้ไขและกำลังโหลดข้อมูล)
+                                                    if (value && rowDataList && rowDataList.length > 0) {
+                                                        const foundItem = rowDataList.find(item => item.id && item.id.toString() === value.toString());
+                                                        
+                                                        if (foundItem && foundItem.name) {
+                                                            setMisnusName(foundItem.name);
+                                                        } else if (!isEditMode) {
+                                                            // ถ้าไม่เจอและไม่ได้อยู่ในโหมดแก้ไข ให้เคลียร์ชื่อ
+                                                            setMisnusName('');
+                                                        }
+                                                    } else if (!isEditMode) {
+                                                        // ถ้าไม่มีรหัสและไม่ได้อยู่ในโหมดแก้ไข ให้เคลียร์ชื่อ
+                                                        setMisnusName('');
+                                                    }
+                                                }}
+                                                onInput={(e) => {
+                                                    e.target.value = e.target.value.replace(/\D/g, '');
+                                                }}
+                                            />
+                                        </div>
+                                        
+                                    </div>
+                                    <div className="col-md-6">
+                                        <div className="form-group mb-4">
+                                            <label style={{ fontWeight: 'bold', fontSize: '16px', color: '#333' }}>
+                                                <i className="fas fa-tag mr-2 text-primary"></i>
+                                                ชื่อรายการเงินหัก
+                                            </label>
+                                            <input 
+                                                type="text" 
+                                                className="form-control form-control-lg"
+                                                style={{
+                                                    fontSize: '16px',
+                                                    padding: '12px 15px',
+                                                    borderRadius: '8px',
+                                                    border: '2px solid #ddd'
+                                                }}
+                                                placeholder="ชื่อรายการจะแสดงอัตโนมัติ"
+                                                value={misnusName}
+                                                onChange={(e) => setMisnusName(e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="row">
+                                    <div className="col-md-6">
+                                        <div className="form-group mb-4">
+                                            <label style={{ fontWeight: 'bold', fontSize: '16px', color: '#333' }}>
+                                                <i className="fas fa-calendar mr-2 text-info"></i>
+                                                ระยะเวลา (เดือน)
+                                            </label>
+                                            <select 
+                                                className="form-control form-control-lg"
+                                                style={{
+                                                    fontSize: '16px',
+                                                    padding: '12px 15px',
+                                                    borderRadius: '8px',
+                                                    border: '2px solid #ddd'
+                                                }}
+                                                value={interestRate}
+                                                onChange={(e) => {
+                                                    const months = parseInt(e.target.value);
+                                                    setInterestRate(e.target.value);
+                                                    
+                                                    // สร้างรายการเดือน
+                                                    if (months > 0) {
+                                                        const monthList = [];
+                                                        const currentDate = new Date();
+                                                        
+                                                        for (let i = 0; i < months; i++) {
+                                                            const targetDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
+                                                            const monthName = targetDate.toLocaleDateString('th-TH', { 
+                                                                year: 'numeric', 
+                                                                month: 'long' 
+                                                            });
+                                                            
+                                                            monthList.push({
+                                                                id: i + 1,
+                                                                monthName: monthName,
+                                                                amount: ''
+                                                            });
+                                                        }
+                                                        setMonthlyPayments(monthList);
+                                                    } else {
+                                                        setMonthlyPayments([]);
+                                                    }
+                                                }}
+                                            >
+                                                <option value="">เลือกระยะเวลา</option>
+                                                <option value="1">1 เดือน</option>
+                                                <option value="2">2 เดือน</option>
+                                                <option value="3">3 เดือน</option>
+                                                <option value="4">4 เดือน</option>
+                                                <option value="5">5 เดือน</option>
+                                                <option value="6">6 เดือน</option>
+                                            </select>
+                                        </div>
+                                        
+                                    </div>
+                                    
+                                </div>
+                                
+                                {/* รายการผ่อนชำระรายเดือน */}
+                                {monthlyPayments && monthlyPayments.length > 0 && (
+                                    <div style={{ marginBottom: '20px' }}>
+                                        <h5 style={{ color: '#333', fontWeight: 'bold', marginBottom: '20px' }}>
+                                            <i className="fas fa-calendar-check mr-2 text-info"></i>
+                                            รายการผ่อนชำระรายเดือน
+                                        </h5>
+                                        <div className="card" style={{ border: '2px solid #007bff', borderRadius: '10px' }}>
+                                            <div className="card-body p-0">
+                                                <div className="table-responsive">
+                                                    <table className="table table-striped table-hover mb-0">
+                                                        <thead style={{ backgroundColor: '#007bff', color: 'white' }}>
+                                                            <tr>
+                                                                <th className="text-center" style={{ padding: '15px' }}>งวดที่</th>
+                                                                <th style={{ padding: '15px' }}>เดือน/ปี</th>
+                                                                <th className="text-center" style={{ padding: '15px' }}>ยอดเงิน (บาท)</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {monthlyPayments.map((month) => (
+                                                                <tr key={month.id}>
+                                                                    <td className="text-center" style={{ padding: '12px', fontWeight: 'bold', color: '#007bff' }}>
+                                                                        {month.id}
+                                                                    </td>
+                                                                    <td style={{ padding: '12px', fontWeight: 'bold' }}>
+                                                                        {month.monthName}
+                                                                    </td>
+                                                                    <td style={{ padding: '8px' }}>
+                                                                        <input 
+                                                                            type="text"
+                                                                            className="form-control text-center"
+                                                                            style={{
+                                                                                fontSize: '16px',
+                                                                                fontWeight: 'bold',
+                                                                                borderRadius: '6px',
+                                                                                border: '2px solid #ddd'
+                                                                            }}
+                                                                            placeholder="0"
+                                                                            value={month.amount}
+                                                                            onChange={(e) => {
+                                                                                const newPayments = monthlyPayments.map(item => 
+                                                                                    item.id === month.id 
+                                                                                        ? { ...item, amount: e.target.value }
+                                                                                        : item
+                                                                                );
+                                                                                setMonthlyPayments(newPayments);
+                                                                            }}
+                                                                            onInput={(e) => {
+                                                                                e.target.value = e.target.value.replace(/[^0-9]/g, '');
+                                                                            }}
+                                                                        />
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                        <tfoot style={{ backgroundColor: '#f8f9fa' }}>
+                                                            <tr>
+                                                                <td colSpan="2" className="text-right" style={{ padding: '15px', fontWeight: 'bold', fontSize: '16px' }}>
+                                                                    รวมทั้งหมด:
+                                                                </td>
+                                                                <td className="text-center" style={{ padding: '15px' }}>
+                                                                    <strong style={{ fontSize: '18px', color: '#28a745' }}>
+                                                                        ฿{monthlyPayments.reduce((sum, month) => sum + (Number(month.amount) || 0), 0).toLocaleString()}
+                                                                    </strong>
+                                                                </td>
+                                                            </tr>
+                                                        </tfoot>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                <div className="form-group mb-4">
+                                    <label style={{ fontWeight: 'bold', fontSize: '16px', color: '#333' }}>
+                                        <i className="fas fa-sticky-note mr-2 text-secondary"></i>
+                                        หมายเหตุ
+                                    </label>
+                                    <textarea 
+                                        className="form-control" 
+                                        rows="4"
+                                        style={{
+                                            fontSize: '16px',
+                                            padding: '12px 15px',
+                                            borderRadius: '8px',
+                                            border: '2px solid #ddd',
+                                            resize: 'vertical'
+                                        }}
+                                        placeholder="กรอกหมายเหตุ (ถ้ามี)"
+                                        value={loanNote}
+                                        onChange={(e) => setLoanNote(e.target.value)}
+                                    ></textarea>
+                                </div>
+                                
+                                {/* สรุปการคำนวณ */}
+                                {loanAmount && interestRate && loanPeriod && (
+                                    <div 
+                                        style={{
+                                            backgroundColor: '#e8f5e8',
+                                            border: '2px solid #28a745',
+                                            borderRadius: '10px',
+                                            padding: '25px',
+                                            marginTop: '20px'
+                                        }}
+                                    >
+                                        <h5 style={{ color: '#155724', fontWeight: 'bold', marginBottom: '20px' }}>
+                                            <i className="fas fa-calculator mr-2"></i>
+                                            สรุปการคำนวณ
+                                        </h5>
+                                        <div className="row text-center">
+                                            <div className="col-md-4">
+                                                <div style={{ marginBottom: '15px' }}>
+                                                    <small style={{ color: '#666', fontSize: '14px' }}>จำนวนเงินกู้:</small><br/>
+                                                    <strong style={{ fontSize: '18px', color: '#007bff' }}>
+                                                        ฿{Number(loanAmount || 0).toLocaleString()}
+                                                    </strong>
+                                                </div>
+                                            </div>
+                                            <div className="col-md-4">
+                                                <div style={{ marginBottom: '15px' }}>
+                                                    <small style={{ color: '#666', fontSize: '14px' }}>ดอกเบี้ยรวม:</small><br/>
+                                                    <strong style={{ fontSize: '18px', color: '#ffc107' }}>
+                                                        ฿{Number((Number(loanAmount) * Number(interestRate) / 100) || 0).toLocaleString()}
+                                                    </strong>
+                                                </div>
+                                            </div>
+                                            <div className="col-md-4">
+                                                <div style={{ marginBottom: '15px' }}>
+                                                    <small style={{ color: '#666', fontSize: '14px' }}>ยอดผ่อนต่อเดือน:</small><br/>
+                                                    <strong style={{ fontSize: '18px', color: '#dc3545' }}>
+                                                        ฿{Number(((Number(loanAmount) + (Number(loanAmount) * Number(interestRate) / 100)) / Number(loanPeriod)) || 0).toLocaleString()}
+                                                    </strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Footer */}
+                            <div 
+                                style={{
+                                    padding: '25px 30px',
+                                    borderTop: '1px solid #eee',
+                                    display: 'flex',
+                                    justifyContent: 'flex-end',
+                                    gap: '15px'
+                                }}
+                            >
+                                <button 
+                                    onClick={() => {
+                                        setShowLoanModal(false);
+                                        resetLoanForm();
+                                    }}
+                                    style={{
+                                        padding: '12px 30px',
+                                        fontSize: '16px',
+                                        fontWeight: 'bold',
+                                        border: '2px solid #6c757d',
+                                        borderRadius: '8px',
+                                        backgroundColor: 'white',
+                                        color: '#6c757d',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.3s'
+                                    }}
+                                    onMouseOver={(e) => {
+                                        e.target.style.backgroundColor = '#6c757d';
+                                        e.target.style.color = 'white';
+                                    }}
+                                    onMouseOut={(e) => {
+                                        e.target.style.backgroundColor = 'white';
+                                        e.target.style.color = '#6c757d';
+                                    }}
+                                >
+                                    <i className="fas fa-times mr-2"></i>
+                                    ยกเลิก
+                                </button>
+                                <button 
+                                    onClick={handleAddLoan}
+                                    style={{
+                                        padding: '12px 30px',
+                                        fontSize: '16px',
+                                        fontWeight: 'bold',
+                                        border: '2px solid #ffc107',
+                                        borderRadius: '8px',
+                                        backgroundColor: '#ffc107',
+                                        color: 'white',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.3s'
+                                    }}
+                                    onMouseOver={(e) => {
+                                        e.target.style.backgroundColor = '#e0a800';
+                                        e.target.style.borderColor = '#e0a800';
+                                    }}
+                                    onMouseOut={(e) => {
+                                        e.target.style.backgroundColor = '#ffc107';
+                                        e.target.style.borderColor = '#ffc107';
+                                    }}
+                                >
+                                    <i className="fas fa-save mr-2"></i>
+                                    {isEditMode ? 'บันทึกการแก้ไข' : 'บันทึกข้อมูล'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+        </div>
 
     )
 }

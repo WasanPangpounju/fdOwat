@@ -375,7 +375,7 @@ const SendEmployeePDF3 = ({ employeeList }) => {
 
         doc.setFontSize(14);
         doc.text(`${index + 1}. ${value.Name}`, x, y);
-        doc.text(`ตำแหน่ง: ${value.position}`, x + 60, y);
+        doc.text(`ตำแหน่ง               ${value.position}`, x + 60, y);
         doc.text(
           `- ประวัติการศึกษา: ${value.educational}.${index + 1}`,
           x + 2,
@@ -1002,7 +1002,7 @@ const SendEmployeePDF3 = ({ employeeList }) => {
                                                 <button className="btn b_save" onClick={addInput}>Add Input</button> */}
                   <div className="row">
                     <div className="col-md-2">
-                      <label role="searchname" style={absoluteBottomStyle}>
+                      <label role="searchname" style={absoluteBottomStyle} className="mb-3">
                         วันที่
                       </label>
                     </div>
@@ -1044,7 +1044,7 @@ const SendEmployeePDF3 = ({ employeeList }) => {
                     </div>
                   </div>
                   <br />
-                  <div className="row">
+                  {/*<div className="row">
                     <div className="col-md-2">
                       <label role="searchname" style={absoluteBottomStyle}>
                         แสดงความนับถือ
@@ -1066,7 +1066,7 @@ const SendEmployeePDF3 = ({ employeeList }) => {
                         onChange={handlepositionHeadChange}
                       />
                     </div>
-                  </div>
+                  </div>*/}
                   <br />
                   <div className="row">
                     <div className="col-md-2">
@@ -1119,6 +1119,65 @@ const SendEmployeePDF3 = ({ employeeList }) => {
                   </div>
                   <br />
                   <div className="row">
+                      <div className="col-md-3">
+                      <label>รหัสพนักงาน:</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        value={input1}
+                        onChange={handleEmployeeIdChange}
+                        onInput={(e) => {
+                          // Remove any non-digit characters
+                          e.target.value = e.target.value.replace(/\D/g, "");
+                        }}
+                        list="staffIdList"
+                      />
+                      <datalist id="staffIdList">
+                        {employeeList.map((employee) => (
+                          <option
+                            key={employee.employeeId}
+                            value={employee.employeeId}
+                          />
+                        ))}
+                      </datalist>
+                    </div>
+
+                    <div className="col-md-3">
+                      <label>ชื่อ:</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        value={input2}
+                        onChange={handleEmployeeNameChange}
+                        list="staffNameList"
+                      />
+                      <datalist id="staffNameList">
+                        {employeeList.map((employee) => (
+                          <option
+                            key={employee.employeeId}
+                            value={`${employee.name} ${employee.lastName}`}
+                          />
+                        ))}
+                      </datalist>
+                    </div>
+                    <div className="col-md-3">
+                        <label>ตำเเหน่ง:</label>
+                        <input type="text" className="form-control" value={position} onChange={(e) => setPosition(e.target.value)} />
+                        
+                    </div>
+                    <div className="col-md-3">
+                      <button
+                        className="btn b_save"
+                        style={{ position: "absolute", bottom: "0rem" }}
+                        type="submit"
+                        onClick={addInput}
+                      >
+                        Add Input
+                      </button>
+                    </div>
+                  </div>
+                  <br /><br />
+                  <div className="row">
                     <div className="col-md-2">
                       <label role="searchname">เนื้อหาส่วนท้าย 1</label>
                     </div>
@@ -1165,7 +1224,30 @@ const SendEmployeePDF3 = ({ employeeList }) => {
                       ></textarea>
                     </div>
                   </div>
-                  <br />
+                  <br /><br />
+                  <div className="row">
+                    <div className="col-md-2">
+                      <label role="searchname" style={absoluteBottomStyle} className="mb-3">
+                        แสดงความนับถือ
+                      </label>
+                    </div>
+                    <div className="col-md-4">
+                      <input
+                        type="text"
+                        className="form-control"
+                        value={signature}
+                        onChange={handlesignatureChange}
+                      />
+                    </div>
+                    <div className="col-md-4">
+                      <input
+                        type="text"
+                        className="form-control"
+                        value={positionHead}
+                        onChange={handlepositionHeadChange}
+                      />
+                    </div>
+                  </div><br /><br />
                   <div className="row">
                     <div className="col-md-2">
                       <label role="searchname">รหัสท้ายกระดาษ</label>
@@ -1203,7 +1285,7 @@ const SendEmployeePDF3 = ({ employeeList }) => {
                         onChange={(e) => setInput2(e.target.value)}
                       />
                     </div> */}
-                    <div className="col-md-3">
+                    {/*<div className="col-md-3">
                       <label>รหัสพนักงาน:</label>
                       <input
                         type="text"
@@ -1253,7 +1335,7 @@ const SendEmployeePDF3 = ({ employeeList }) => {
                       >
                         Add Input
                       </button>
-                    </div>
+                    </div>*/}
                   </div>
                   <br />
                   {inputValuesTest.map((value, index) => (

@@ -1063,7 +1063,7 @@ function Employee() {
   console.log("subDistrict", subDistrict);
 
   return (
-    <body class="hold-transition sidebar-mini" className="editlaout">
+    <div class="hold-transition sidebar-mini" className="editlaout">
       <div class="wrapper">
         <div class="content-wrapper">
           <ol class="breadcrumb">
@@ -1098,7 +1098,7 @@ function Employee() {
                             <div class="row">
                               <div class="col-md-3">
                                 <div class="form-group">
-                                  <label role="employeeId">รหัสพนักงาน</label>
+                                  <label role="employeeId">รหัสพนักงาน <span style={{color: 'red'}}>*</span></label>
                                   <input
                                     required
                                     type="number"
@@ -1113,7 +1113,7 @@ function Employee() {
                               </div>
                               <div class="col-md-3">
                                 <div class="form-group">
-                                  <label role="position">ตำแหน่ง</label>
+                                  <label role="position">ตำแหน่ง <span style={{color: 'red'}}>*</span></label>
                                   {/* <input
                                 required
                                 type="text"
@@ -1556,7 +1556,7 @@ function Employee() {
                             <div class="row">
                               <div class="col-md-3">
                                 <div class="form-group">
-                                  <label role="prefix">คำนำหน้า</label>
+                                  <label role="prefix">คำนำหน้า <span style={{color: 'red'}}>*</span></label>
                                   <select
                                     required
                                     id="prefix"
@@ -1573,7 +1573,7 @@ function Employee() {
                               </div>
                               <div class="col-md-3">
                                 <div class="form-group">
-                                  <label role="name">ชื่อ</label>
+                                  <label role="name">ชื่อ <span style={{color: 'red'}}>*</span></label>
                                   <input
                                     required
                                     type="text"
@@ -1588,7 +1588,7 @@ function Employee() {
                               </div>
                               <div class="col-md-3">
                                 <div class="form-group">
-                                  <label role="lastName">นามสกุล</label>
+                                  <label role="lastName">นามสกุล <span style={{color: 'red'}}>*</span></label>
                                   <input
                                     required
                                     type="text"
@@ -1620,18 +1620,18 @@ function Employee() {
                             </div>
                             <div class="row">
                               <div class="col-md-3">
-                                <label role="dateOfBirth">เพศ</label>
+                                <label role="dateOfBirth">เพศ <span style={{color: 'red'}}>*</span></label>
                               </div>
 
                               <div class="col-md-3">
-                                <label role="dateOfBirth">วันเดือนปีเกิด</label>
+                                <label role="dateOfBirth">วันเดือนปีเกิด <span style={{color: 'red'}}>*</span></label>
                               </div>
                               <div class="col-md-3">
                                 <label role="dateOfBirth">อายุ</label>
                               </div>
                               <div class="col-md-3">
                                 <label role="dateOfBirth">
-                                  เลขบัตรประจำตัวประชาชน
+                                  เลขบัตรประจำตัวประชาชน <span style={{color: 'red'}}>*</span>
                                 </label>
                               </div>
                               {/* <div class="col-md-3">
@@ -1859,7 +1859,7 @@ function Employee() {
                             <div class="row">
                               <div class="col-md-3">
                                 <div class="form-group">
-                                  <label role="ethnicity">เชื้อชาติ</label>
+                                  <label role="ethnicity">เชื้อชาติ <span style={{color: 'red'}}>*</span></label>
                                   {/* <input
                                 type="text"
                                 name="ethnicity"
@@ -1914,7 +1914,7 @@ function Employee() {
                               </div>
                               <div class="col-md-3">
                                 <div class="form-group">
-                                  <label role="maritalStatus">สถานภาพการสมรส</label>
+                                  <label role="maritalStatus">สถานภาพการสมรส <span style={{color: 'red'}}>*</span></label>
                                   {/* <input
                                 type="text"
                                 name="maritalStatus"
@@ -1955,7 +1955,7 @@ function Employee() {
                               <div class="col-md-3">
                                 <div class="form-group">
                                   <label role="militaryStatus">
-                                    สถานภาพทางการทหาร
+                                    สถานภาพทางการทหาร <span style={{color: 'red'}}>*</span>
                                   </label>
                                   <select
                                     required
@@ -2565,7 +2565,7 @@ function Employee() {
           {/* <!-- /.content --> */}
         </div>
       </div>
-    </body>
+    </div>
   );
 }
 

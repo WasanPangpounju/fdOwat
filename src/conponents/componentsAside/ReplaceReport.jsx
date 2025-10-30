@@ -218,7 +218,7 @@ function ReplaceReport({ employeeList, workplaceList }) {
   console.log('data', data);
 
   return (
-    <body class="hold-transition sidebar-mini" className="editlaout">
+    <div class="hold-transition sidebar-mini" className="editlaout">
       <div class="wrapper">
         <div class="content-wrapper">
           {/* <!-- Content Header (Page header) --> */}
@@ -336,7 +336,7 @@ function ReplaceReport({ employeeList, workplaceList }) {
                       </tbody>
                     </table>
                   </div> */}
-                  <table className="table table-bordered">
+                  <table className="table table-bordered ">
                     <thead>
                       <tr>
                         <th>หน่วยงาน</th>
@@ -411,7 +411,7 @@ function ReplaceReport({ employeeList, workplaceList }) {
         </div>
 
       </div>
-    </body>
+    </div>
     // </div>
   );
 }

@@ -19,7 +19,7 @@ const SendEmployeePDF = ({employeeList}) => {
       }, []); 
     return (
         <div>
-            <body class="hold-transition sidebar-mini" className='editlaout'>
+            <div class="hold-transition sidebar-mini" className='editlaout'>
                 <div class="wrapper">
                     <div class="content-wrapper">
                         {/* <!-- Content Header (Page header) --> */}
@@ -75,7 +75,7 @@ const SendEmployeePDF = ({employeeList}) => {
                         {/* <!-- /.content --> */}
                     </div>
                 </div>
-            </body>
+            </div>
 
         </div>
     );

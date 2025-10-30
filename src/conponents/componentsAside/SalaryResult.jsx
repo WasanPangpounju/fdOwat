@@ -41,6 +41,8 @@ function Salaryresult() {
   const [bankCustom, setBankCustom] = useState(0); //ค่าทำเนียม
   const [sumDeduct, setSumDeduct] = useState(0); //sum deduct immedate
   const [sumDeductInstallment, setSumDeductInstallment] = useState(0); //sum deduct installment
+  const [localPublicHolidayCash, setLocalPublicHolidayCash] = useState(0);
+
 
   const [employeeId, setEmployeeId] = useState(""); //รหัสหน่วยงาน
   const [name, setName] = useState(""); //ชื่อหน่วยงาน
@@ -212,14 +214,24 @@ function Salaryresult() {
     setRemainComment(event.target.value);
   };
 
+  const [usedLeaveCounts, setUsedLeaveCounts] = useState({});
+
+  useEffect(() => {
+  const counts = {};
+  options.forEach(option => {
+    counts[option.id] = remainArray.filter(item => item.welfareType === option.id).length;
+  });
+  setUsedLeaveCounts(counts);
+}, [remainArray]);
+
   const handleAddData = () => {
     // alert(selectedName2.name )
     // Create a new object with the input values
     const newData = {
       startDay: selectedThaiDate || "",
       endDay: selectedThaiDate || "",
-      welfareType: selectedName2.id || "",
-      welfareTypeEn: selectedName2.name || "",
+      welfareType: selectedLeaveType || "",
+      welfareTypeEn: selectedLeaveType || "",
       id: remainCode || "",
       name: remainName || "",
       SpSalary: remainSalary || "",
@@ -247,6 +259,7 @@ function Salaryresult() {
     setRemainName("");
     setRemainSalary("");
     setRemainComment("");
+    setSelectedLeaveType("");
   };
 
   const handleDeleteData = (index) => {
@@ -387,7 +400,7 @@ function Salaryresult() {
               tmpRemainArray.push(...item.record);
             });
             setRemainArray(tmpRemainArray);
-            // alert(tmpRemainArray.length  )
+
             // setRemainArray(result.data[0].record);
           } else {
             // If no records found, set remainArray to empty
@@ -622,7 +635,7 @@ function Salaryresult() {
                 response.data[0].accountingRecord[0].countOtHourWork
               );
 
-              await setAddSalaryList(response.data[0].addSalary);
+              await setAddSalaryList(response.data[0].addSalary ?? []);
               // if (response.data[0].addSalary) {
               //   let tmp = 0;
               //   response.data[0].addSalary.map((item) => {
@@ -633,7 +646,6 @@ function Salaryresult() {
 
               if (response.data[0].addSalary) {
                 let tmp = 0;
-
                 // Calculate the sum of SpSalary from response data
                 response.data[0].addSalary.map((item) => {
                   tmp += parseFloat(item.SpSalary);
@@ -746,10 +758,15 @@ function Salaryresult() {
     setWsAmountSpecialDay(Number(e.target.value));
   };
 
-  const handleUpdateStatus = (updateStatus) => {
-    setUpdateStatus(updateStatus);
-    // alert(updateStatus );
-  };
+ const handleUpdateStatus = (status) => {
+  setUpdateStatus(status);
+  
+  // เรียกใช้ handleReLoad ทันทีหลังจากอัพเดทสถานะ
+  setTimeout(() => {
+    handleReLoad();
+    alert("อัพเดทข้อมูลเรียบร้อยแล้ว");
+  }, 100); // delay เล็กน้อยเพื่อให้ state อัพเดทก่อน
+};
 
   //sum salary before deduct
   useEffect(() => {
@@ -801,7 +818,15 @@ function Salaryresult() {
   }, [wsSocialSecurity, wsTax]);
 
 
-  const createDate = calsalarylist ? calsalarylist[0]?.createDate : null;
+  // const createDate = calsalarylist ? calsalarylist[0]?.createDate : null;
+  const createDate = new Date().toLocaleString('th-TH', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false
+});
 
   const countDay = calsalarylist
     ? calsalarylist[0]?.accountingRecord.countDay
@@ -916,6 +941,78 @@ function Salaryresult() {
   };
 
   // console.error('workplaceList', workplaceList);
+    
+    // เพิ่ม state ใหม่สำหรับจัดการ dropdown
+  const [leaveOptions, setLeaveOptions] = useState({
+    'ลากิจ': [
+      { id: '1428', name: 'ลากิจธุระจำเป็น(ประกันสังคม)' },
+      { id: '1429', name: 'ลากิจธุระจำเป็น(ปกส)รับล่วงหน้า' }
+    ],
+    'ลาป่วย': [
+      { id: '1231', name: 'จ่ายลาป่วยมีใบแพทย์' },
+      { id: '1234', name: 'จ่ายลาป่วยมีใบรับรองแพทย์(รับล่วงหน้า)' },
+      { id: '1235', name: 'ค่าจ้างวันลาป่วย' }
+    ],
+    'ลาพักร้อน': [
+      { id: '1422', name: 'จ่ายคืนพักร้อน(ครบปี/ใช้สิทธิไม่หมด)' },
+      { id: '1423', name: 'ชดเชยวันลาพักร้อน (ประกันสังคม)' },
+      { id: '1425', name: 'ค่าจ้างในวันลาพักร้อน' },
+      { id: '1426', name: 'จ่ายคืนค่าจ้างพักร้อน(ครบปี/ใช้สิทธิไม่หมด)' },
+      { id: '1427', name: 'ชดเชยวันลาพักร้อน(ประกันสังคม)รับล่วงหน้า' },
+      { id: '1435', name: 'จ่ายคืนพักร้อน(ครบปี/ใช้สิทธิไม่หมด)รับล่วงหน้า' }
+    ],
+    'ลาคลอด': [
+      { id: '1233', name: 'ชดเชยค่าแรงลาคลอด' }
+    ],
+    'ลาเกณฑ์ทหาร': [],
+    'ลาเพื่อทำหมัน': [],
+    'ลาเพื่อฝึกอบรม': []
+  });
+
+  const [selectedLeaveType, setSelectedLeaveType] = useState('');
+  const [availableLeaveDetails, setAvailableLeaveDetails] = useState([]);
+  const [showLeaveDetailsDropdown, setShowLeaveDetailsDropdown] = useState(false);
+
+  // ฟังก์ชันเมื่อเลือกประเภทการลา
+  const handleLeaveTypeChange = (event) => {
+    const selectedType = event.target.value;
+    setSelectedLeaveType(selectedType);
+    
+    // ตั้งค่าข้อมูลเริ่มต้นตามประเภทการลา
+    const details = leaveOptions[selectedType] || [];
+    setAvailableLeaveDetails(details);
+    
+    // ถ้ามีรายการให้เลือก ให้แสดง dropdown, ถ้าไม่มีให้ซ่อน
+    setShowLeaveDetailsDropdown(details.length > 0);
+    
+    // รีเซ็ตค่าที่เกี่ยวข้อง
+    if (details.length === 0) {
+      setRemainCode('');
+      setRemainName('');
+    }
+  };
+
+  // ฟังก์ชันเมื่อเลือกรายละเอียดการลา
+  const handleLeaveDetailChange = (detail) => {
+    setRemainCode(detail.id);
+    setRemainName(detail.name);
+    setShowLeaveDetailsDropdown(false); // ซ่อน dropdown หลังจากเลือก
+  };
+
+  // ฟังก์ชันเมื่อคลิก outside dropdown
+  const handleClickOutside = (event) => {
+    if (!event.target.closest('.leave-details-dropdown')) {
+      setShowLeaveDetailsDropdown(false);
+    }
+  };
+
+  // เพิ่ม event listener สำหรับคลิก outside
+  useEffect(() => {
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
 
   const [modalIsOpen, setModalIsOpen] = useState(false);
@@ -1139,14 +1236,6 @@ function Salaryresult() {
   const thaiMonthName = getThaiMonthName(parseInt(CheckMonth, 10));
   const thaiMonthLowerName = getThaiMonthName(parseInt(countdownMonth, 10));
 
-  async function handleSearchAccounting() {
-    let tmp = await staffId;
-    await setStaffId("");
-    setTimeout(async () => {
-      await setStaffId(tmp);
-      // alert('Hi');
-    }, 1000); // Adjust the delay time as needed (1000 ms = 1 second)
-  }
 
   async function handleSearch(event) {
     event.preventDefault();
@@ -1808,15 +1897,278 @@ function Salaryresult() {
     setSelectedName2(selectedOption ? selectedOption : "");
     // alert(selectedOption.name );
   };
+
+
+  //latest code
+  const [accountingResult, setAccountingResult] = useState([]); // Store search results
+  const [loading, setLoading] = useState(false); // Track loading state
+  const [error, setError] = useState(null); // Store errors
+  const [pageLoading, setPageLoading] = useState(true); // Track page loading state
+  const [initialDataLoaded, setInitialDataLoaded] = useState(false); // Track if initial data is loaded
+
+  const [localSocialSecurity , setLocalSocialSecurity] = useState(0);
+  const [totalAddSalary, setTotalAddSalary] = useState(0); // เก็บยอดรวมเงินเพิ่ม
+  const [totalDeductSalary, setTotalDeductSalary] = useState(0); // เก็บยอดรวมเงินหัก
+
+
+  const updateData = async () => {
+    if (accountingResult.length > 0) {
+      // เริ่ม loading
+      setLoading(true);
+      setPageLoading(true);
+
+      try {
+        const updatedResult = [...accountingResult];
+    
+        // คำนวณยอดรวมเงินเพิ่มจาก addSalaryList
+        const calculatedTotalAddSalary = accountingResult?.[0]?.addSalaryList?.reduce(
+          (total, item) => total + parseFloat(item.SpSalary || '0'), 
+          0
+        ) || 0;
+
+        // คำนวณยอดรวมเงินหักจาก deductSalaryList
+        const calculatedTotalDeductSalary = accountingResult?.[0]?.deductSalaryList?.reduce(
+          (total, item) => total + parseFloat(item.amount || '0'), 
+          0
+        ) || 0;
+
+        // อัปเดตค่าภายใน object
+        updatedResult[0] = {
+          ...updatedResult[0],
+          socialSecurity: localSocialSecurity,
+          publicHolidayCash: localPublicHolidayCash,
+          totalAddSalary: calculatedTotalAddSalary, // เพิ่มยอดรวมเงินเพิ่ม
+          totalDeductSalary: calculatedTotalDeductSalary, // เพิ่มยอดรวมเงินหัก
+        };
+    
+        setAccountingResult(updatedResult);
+        setTotalAddSalary(calculatedTotalAddSalary); // อัปเดต state
+        setTotalDeductSalary(calculatedTotalDeductSalary); // อัปเดต state เงินหัก
+  
+      // เตรียมข้อมูลสำหรับส่ง API
+      const updatePayload = {
+        _id: updatedResult[0]._id, // ต้องมี _id เพื่อให้อัปเดตถูก document
+        updates: {
+          socialSecurity: localSocialSecurity,
+          publicHolidayCash: localPublicHolidayCash,
+          totalAddSalary: calculatedTotalAddSalary, // เพิ่มยอดรวมเงินเพิ่มลงใน payload
+          totalDeductSalary: calculatedTotalDeductSalary, // เพิ่มยอดรวมเงินหักลงใน payload
+        },
+      };
+  
+      try {
+        const response = await axios.post(
+          endpoint + "/accounting/updatetimerecord",
+          updatePayload
+        );
+  
+        if (response.data?.updatedRecord) {
+          alert("บันทึกข้อมูลสำเร็จ 🎉");
+        } else {
+          alert("ไม่สามารถอัปเดตข้อมูลได้");
+        }
+      } catch (error) {
+        console.error("เกิดข้อผิดพลาดขณะอัปเดตข้อมูล:", error);
+        alert("เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง");
+      }
+      } catch (error) {
+        console.error("เกิดข้อผิดพลาดในการประมวลผลข้อมูล:", error);
+        alert("เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง");
+      } finally {
+        setLoading(false);
+        setPageLoading(false);
+      }
+    }
+  };
+
+useEffect(() => {
+  if(accountingResult?.[0]?.socialSecurity ){
+    const ssBase = parseFloat(accountingResult?.[0]?.socialSecurity || 0);
+    const cash = parseFloat(localPublicHolidayCash || 0);
+    const ss = ssBase + cash * 0.05;
+    let roundedSS = Math.round(ss); // เปลี่ยนจาก const เป็น let
+    if(roundedSS > 750) {
+      roundedSS = 750;
+    }
+    setLocalSocialSecurity(roundedSS);
+  }
+}, [localPublicHolidayCash]);
+
+// useEffect สำหรับอัปเดตยอดรวมเงินเพิ่มเมื่อ addSalaryList เปลี่ยนแปลง
+useEffect(() => {
+  if(accountingResult?.[0]?.addSalaryList) {
+    const calculatedTotal = accountingResult[0].addSalaryList.reduce(
+      (total, item) => total + parseFloat(item.SpSalary || '0'), 
+      0
+    );
+    setTotalAddSalary(calculatedTotal);
+  }
+}, [accountingResult]);
+
+// useEffect สำหรับอัปเดตยอดรวมเงินหักเมื่อ deductSalaryList เปลี่ยนแปลง
+useEffect(() => {
+  if(accountingResult?.[0]?.deductSalaryList) {
+    const calculatedTotal = accountingResult[0].deductSalaryList.reduce(
+      (total, item) => total + parseFloat(item.amount || '0'), 
+      0
+    );
+    setTotalDeductSalary(calculatedTotal);
+  }
+}, [accountingResult]);
+
+// useEffect สำหรับจัดการ page loading
+useEffect(() => {
+  // ตรวจสอบว่าข้อมูลพื้นฐานโหลดเสร็จแล้วหรือไม่
+  const checkInitialDataReady = () => {
+    // เช็คว่ามีข้อมูลที่จำเป็นสำหรับการแสดงผลหรือไม่
+    if (employeeList && employeeList.length > 0) {
+      setInitialDataLoaded(true);
+      setPageLoading(false);
+    }
+  };
+
+  // เรียกใช้ timeout เพื่อให้เวลาข้อมูลโหลด
+  const timer = setTimeout(checkInitialDataReady, 1000);
+
+  // Cleanup timer
+  return () => clearTimeout(timer);
+}, [employeeList]);
+
+// useEffect สำหรับตรวจสอบเมื่อ loading เปลี่ยน
+useEffect(() => {
+  if (loading) {
+    setPageLoading(true);
+  }
+}, [loading]);
+
+  async function handleSearchAccounting() {
+    event.preventDefault();
+
+setAccountingResult({});
+setLoading(true);
+setPageLoading(true); // เพิ่ม page loading เมื่อค้นหา
+setError(null);
+setLocalPublicHolidayCash(0);
+setLocalSocialSecurity(0);
+setTotalAddSalary(0); // รีเซ็ตยอดรวมเงินเพิ่ม
+setTotalDeductSalary(0); // รีเซ็ตยอดรวมเงินหัก
+
+if(staffId !== '') {
+
+const data = {
+  employeeId: staffId,
+  month: month,
+  year: year,
+};
+
+// alert(JSON.stringify(data ,null,2));
+
+try {
+  const response = await axios.post(
+    endpoint + "/accounting/searchtimerecordemployee",
+    data
+  );
+
+  if (response.data?.result?.length > 0) {
+    await setAccountingResult(response.data.result);
+    let cash = await parseFloat(response.data.result[0]?.publicHolidayCash || 0);
+    let ss = await parseFloat(response.data.result[0]?.socialSecurity || 0) + cash * 0.05;
+    
+    // คำนวณยอดรวมเงินเพิ่มจากข้อมูลที่ได้
+    const calculatedTotalAddSalary = response.data.result[0]?.addSalaryList?.reduce(
+      (total, item) => total + parseFloat(item.SpSalary || '0'), 
+      0
+    ) || 0;
+    
+    // คำนวณยอดรวมเงินหักจากข้อมูลที่ได้
+    const calculatedTotalDeductSalary = response.data.result[0]?.deductSalaryList?.reduce(
+      (total, item) => total + parseFloat(item.amount || '0'), 
+      0
+    ) || 0;
+    
+  if(ss  > 750) {
+    ss  = 750;
+  }
+    await setLocalPublicHolidayCash(cash);
+    await setLocalSocialSecurity(Math.round(ss) );
+    await setTotalAddSalary(calculatedTotalAddSalary); // ตั้งค่ายอดรวมเงินเพิ่ม
+    await setTotalDeductSalary(calculatedTotalDeductSalary); // ตั้งค่ายอดรวมเงินหัก
+    // alert(JSON.stringify(accountingResult[0].addSalaryList,null,2));
+// alert('hi' + accountingResult[0].addSalaryList[0].SpSalary)
+    // alert(JSON.stringify(response.data?.result[0]?.employee_record[0].addSalaryDaily, null, 2));
+  } else {
+    // alert("Conclude is null");
+  }
+
+} catch (e) {
+  setError("An error occurred while fetching data.");
+  console.error(e);
+} finally {
+  setLoading(false);
+  setPageLoading(false); // ปิด page loading เมื่อเสร็จ
+}
+
+} else {
+  setLoading(false);
+  setPageLoading(false);
+}
+
+
+    // let tmp = await staffId;
+    // await setStaffId("");
+    // setTimeout(async () => {
+    //   await setStaffId(tmp);
+    //   alert('Hi');
+    // }, 1000); // Adjust the delay time as needed (1000 ms = 1 second)
+
+  }
+
   return (
-    // <div>
+    <div className="hold-transition sidebar-mini editlaout">
+      <div className="wrapper">
+        <div className="content-wrapper">
+          {/* แสดง Loading เมื่อข้อมูลยังไม่พร้อม */}
+          {pageLoading && (
+            <div
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                zIndex: 9999,
+                flexDirection: 'column'
+              }}
+            >
+              <div
+                style={{
+                  border: '4px solid #f3f3f3',
+                  borderTop: '4px solid #3498db',
+                  borderRadius: '50%',
+                  width: '50px',
+                  height: '50px',
+                  animation: 'spin 2s linear infinite'
+                }}
+              />
+              <p style={{ marginTop: '20px', fontSize: '16px', color: '#666' }}>
+                {loading ? 'กำลังโหลดข้อมูล...' : 'กำลังเตรียมข้อมูล...'}
+              </p>
+              <style jsx>{`
+                @keyframes spin {
+                  0% { transform: rotate(0deg); }
+                  100% { transform: rotate(360deg); }
+                }
+              `}</style>
+            </div>
+          )}
 
-    // </div>
-    // <div>
+          {/* เนื้อหาหลัก */}
 
-    <body class="hold-transition sidebar-mini" className="editlaout">
-      <div class="wrapper">
-        <div class="content-wrapper">
+
           {/* <!-- Content Header (Page header) --> */}
           <ol class="breadcrumb">
             <li class="breadcrumb-item">
@@ -1942,8 +2294,21 @@ function Salaryresult() {
                         type="button"
                         class="btn b_save"
                         onClick={handleSearchAccounting}
+                        disabled={loading}
+                        style={{ 
+                          opacity: loading ? 0.6 : 1, 
+                          cursor: loading ? 'not-allowed' : 'pointer' 
+                        }}
                       >
-                        <i class="nav-icon fas fa-search"></i> &nbsp; ค้นหา
+                        {loading ? (
+                          <>
+                            <i class="fas fa-spinner fa-spin"></i> &nbsp; กำลังค้นหา...
+                          </>
+                        ) : (
+                          <>
+                            <i class="nav-icon fas fa-search"></i> &nbsp; ค้นหา
+                          </>
+                        )}
                       </button>
                     </div>
                   </form>
@@ -1958,8 +2323,8 @@ function Salaryresult() {
               <section class="Frame">
                 {staffFullName ? (
                   <div class="row">
-                    <div class="col-md-10">ชื่อ: {staffFullName}</div>
-                    <div class="col-md-2">คำนวณเมื่อ {createDate}</div>
+                    <div class="">ชื่อ: {staffFullName}</div>
+                    <div class="text-right">คำนวณเมื่อ {createDate}</div>
                   </div>
                 ) : (
                   <div>
@@ -1989,23 +2354,20 @@ function Salaryresult() {
                     <table border="1" style={tableStyle}>
                       <thead>
                         <tr>
-                          <th style={headerCellStyle}>รวมวันทำงาน</th>
-                          <th style={headerCellStyle}>รวมชั่วโมงทำงาน</th>
-                          <th style={headerCellStyle}>รวมชั่วโมงOT</th>
+                          <th style={{...headerCellStyle,width:'34%'}} >รวมวันทำงาน</th>
+                          <th style={{...headerCellStyle,width:'33%'}}>รวมชั่วโมงทำงาน</th>
+                          <th style={{...headerCellStyle,width:'35%'}}>รวมชั่วโมงOT</th>
                         </tr>
                       </thead>
                       <tbody>
                         <tr>
-                          <td style={cellStyle}>{wsCountDayWork}</td>
-                          <td style={cellStyle}>
-                            {Number(wsCountHourWork).toFixed(2)}
-                          </td>
-                          <td style={cellStyle}>
-                            {Number(wsCountOtHourWork).toFixed(2)}
-                          </td>
-
-                          {/* <td style={cellStyle}>{(overallAllTimesSum123).toFixed(2)}</td> */}
-                          {/* <td style={cellStyle}>{(overallOtTimesSum123).toFixed(2)}</td> */}
+                          <th style={cellStyle}>{accountingResult?.[0]?.dayWorkCount || '0'}</th>
+                          <th style={cellStyle}>
+                          {accountingResult?.[0]?.sumTimeWork || '0'}
+                                                    </th>
+                          <th style={cellStyle}>
+                          {accountingResult?.[0]?.sumTimeOt || '0'}
+                          </th>
                         </tr>
                       </tbody>
                     </table>
@@ -2017,47 +2379,100 @@ function Salaryresult() {
                     <table border="1" style={tableStyle}>
                       <thead>
                         <tr>
-                          <th style={headerCellStyle}>เงินค่าจ้างปกติ</th>
-                          <th style={headerCellStyle}>เงินค่าล่วงเวลา</th>
-                          <th style={headerCellStyle}>เงินเพิ่ม</th>
-                          {/* <th style={headerCellStyle}>เงินบวกอื่นๆ</th> */}
-                          <th style={headerCellStyle}>รวมเงินได้</th>
-                          <th style={headerCellStyle}>แก้ไข</th>
+                          <th style={{...headerCellStyle, width: '20%'}}>เงินค่าจ้างปกติ</th>
+                          <th style={{...headerCellStyle, width: '20%'}}>เงินค่าล่วงเวลา</th>
+                          <th style={{...headerCellStyle, width: '20%'}}>เงินเพิ่ม</th>
+                          <th style={{...headerCellStyle, width: '20%'}}>รวมเงินได้</th>
+                          <th style={{...headerCellStyle, width: '10%'}}>แก้ไข</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {/* sumSpSalary */}
                         <tr>
-                          {/* <td style={cellStyle}>{(overWorkRateSum).toFixed(2)}</td>
-                          <td style={cellStyle}>{(overWorkRateOTSum).toFixed(2)}</td> */}
 
-                          <td style={cellStyle}>
-                            {/* {isNaN(Number(wsAmountCountDayWork))
-                              ? 0.0
-                              : Number(wsAmountCountDayWork).toFixed(2)} */}
-                            {
-                              isNaN(Number(wsAmountCountDayWork))
-                                ? "0.00"
-                                : Number(wsAmountCountDayWork)
-                                  .toFixed(2)
-                                  .replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-                            }
-                          </td>
-                          <td style={cellStyle}>
-                            {isNaN(Number(wsAmountCountDayWorkOt))
-                              ? 0.0
-                              : Number(wsAmountCountDayWorkOt).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
-                          </td>
+                          <th style={cellStyle}>
+                            {parseFloat(accountingResult?.[0]?.sumCashWork || '0').toLocaleString('th-TH', {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2
+                            })}
+                          </th>
+                          <th style={cellStyle}>
+                            <span onClick={togglePopup}
+                            style={{ color: color, cursor: "pointer" }}>
+                            {(() => {
+                              const overtimeAmount = parseFloat(accountingResult?.[0]?.sumCashOt || 0);
+                              const specialShiftAmount = parseFloat(accountingResult?.[0]?.specialShiftTotalSalary || 0);
+                              const customDayoffAmount = parseFloat(accountingResult?.[0]?.cashcustomizeDayoff || 0);
+                              
+                              // ถ้าเป็นพนักงานรายเดือนให้เพิ่ม publicHolidayCash ด้วย
+                              const employee = employeeList.find(emp => emp.employeeId === staffId);
+                              const publicHolidayAmount = employee?.jobtype === "รายเดือน" 
+                                ? parseFloat(accountingResult?.[0]?.publicHolidayCash || 0) 
+                                : 0;
+                              
+                              const total = overtimeAmount + specialShiftAmount + customDayoffAmount + publicHolidayAmount;
+                              return total.toLocaleString('th-TH', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2
+                              });
+                            })()}
+                            </span>
+                            
 
-                          {/* <td style={cellStyle}>{(overAddSalaryDaySum).toFixed(2) + (sumSpSalary).toFixed(2)}</td> */}
-                          {/* <td style={cellStyle}>{(overAddSalaryDaySum + sumSpSalaryResult).toFixed(2) + `(` + (overAddSalaryDaySum).toFixed(2) + `+` + (sumSpSalaryResult).toFixed(2) + `)`}</td> */}
-                          <td style={cellStyle}>
+                          { showPopup && (
+                            <div className="popup">
+                              <h4>รายการเงินล่วงเวลา</h4>
+                              <ul style={{ listStyleType: "none", padding: 0, margin: 0 }}>
+                                {accountingResult?.[0]?.sumCashWorkMul &&
+                                  Object.entries(accountingResult[0].sumCashWorkMul)
+                                    .filter(([rate, amount]) => rate !== "1" && amount > 0)
+                                    .sort(([a], [b]) => parseFloat(a) - parseFloat(b))
+                                    .map(([rate, amount], index) => (
+                                      <li key={index} style={{ marginBottom: "10px" }}>
+                                        อัตรา {rate} เท่า - จำนวน: {Number(amount).toLocaleString('th-TH', {
+                                          minimumFractionDigits: 2,
+                                          maximumFractionDigits: 2
+                                        })} บาท
+                                      </li>
+                                    ))}
+                                    {accountingResult?.[0]?.specialShiftTotalSalary && 
+                                     parseFloat(accountingResult[0].specialShiftTotalSalary) > 0 && (
+                                      <li>ค่าทำงานในวันหยุดสด -  {accountingResult[0].specialShiftTotalSalary} บาท</li>
+                                    )}
+                                    {accountingResult?.[0]?.cashcustomizeDayoff && 
+                                     parseFloat(accountingResult[0].cashcustomizeDayoff) > 0 && (
+                                      <li>ค่าทำงานในวันหยุด - {Number(accountingResult[0].cashcustomizeDayoff).toLocaleString('th-TH', {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2
+                                      })} บาท</li>
+                                    )}
+                                    {(() => {
+                                      // ถ้าเป็นพนักงานรายเดือนและมีค่า publicHolidayCash ให้แสดงรายการทำงานวันนักขัตฤกษ์
+                                      const employee = employeeList.find(emp => emp.employeeId === staffId);
+                                      if (employee?.jobtype === "รายเดือน" && 
+                                          accountingResult?.[0]?.publicHolidayCash && 
+                                          parseFloat(accountingResult[0].publicHolidayCash) > 0) {
+                                        return (
+                                          <li>ทำงานวันนักขัตฤกษ์ - {Number(accountingResult[0].publicHolidayCash).toLocaleString('th-TH', {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2
+                                          })} บาท</li>
+                                        );
+                                      }
+                                      return null;
+                                    })()}
+                              </ul>
+                              <button className="btn btn-danger" onClick={togglePopup}>Close</button>
+                            </div>
+                          )}
+
+                          </th>
+
+                          <th style={cellStyle}>
                             <span
                               onClick={togglePopup}
                               style={{ color: color, cursor: "pointer" }}
                             >
-                              {/* {isNaN(Number(addAmountBeforeTax + addAmountAfterTax)) ? 0.00 : Number(addAmountBeforeTax + addAmountAfterTax).toFixed(2)}  */}
-                              {sumAddSalaryList.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+                              {totalAddSalary.toFixed(2)}
                             </span>
                             {showPopup && (
                               <div className="popup">
@@ -2069,8 +2484,8 @@ function Salaryresult() {
                                     margin: 0,
                                   }}
                                 >
-                                  {addSalaryList &&
-                                    addSalaryList.map(
+                                  {accountingResult?.[0]?.addSalaryList&&
+                                    accountingResult?.[0]?.addSalaryList.map(
                                       (addsalary, index) =>
                                         addsalary.name !== "" && (
                                           <li
@@ -2079,15 +2494,16 @@ function Salaryresult() {
                                           >
                                             {addsalary.name} - จำนวน:{" "}
                                             {addsalary.SpSalary}{" "}
-                                            {addsalary.roundOfSalary ==
+
+                                            {/* {addsalary.roundOfSalary ==
                                               "daily" && (
                                                 <>* {addsalary.message} วัน</>
-                                              )}
+                                              )} */}
                                           </li>
                                         )
                                     )}
                                 </ul>
-                                <button onClick={togglePopup}>Close</button>
+                                <button className="btn btn-danger" onClick={togglePopup}>Close</button>
                               </div>
                             )}
 
@@ -2100,7 +2516,7 @@ function Salaryresult() {
                               </tr>
                             ))} */}
                             {/* {isNaN(Number(addAmountBeforeTax + addAmountAfterTax)) ? 0.00 : Number(addAmountBeforeTax + addAmountAfterTax).toFixed(2)} */}
-                          </td>
+                          </th>
                           {/* <td style={cellStyle}>
                             <input
                               type="text"
@@ -2113,36 +2529,43 @@ function Salaryresult() {
                             />
                           </td> */}
                           {/* <td style={cellStyle}>{(overWorkRateSum + overWorkRateOTSum + overAddSalaryDaySum + sumSpSalaryResult).toFixed(2)}</td> */}
-                          <td style={cellStyle}>
-                            {/* {(amountDay + amountOt + addAmountBeforeTax + addAmountAfterTax).toFixed(2)} */}
-                            {/* {isNaN( Number(wsAmountDay) + Number(wsAmountOt) + Number(wsAmountSpecialDay) +  Number(sumAddSalaryList)) ?
-                              '0' :
-                              (Number(wsAmountDay) + Number(wsAmountOt) + Number(wsAmountSpecialDay) + Number(sumAddSalaryList)).toFixed(2)
 
-                            } */}
-                            {isNaN(
-                              Number(wsAmountDay) +
-                              Number(wsAmountOt) +
-                              Number(sumAddSalaryList)
-                            )
-                              ? "0"
-                              : (
-                                Number(wsAmountDay) +
-                                Number(wsAmountOt) +
-                                Number(sumAddSalaryList)
-                              ).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
-                          </td>
+                         <th style={cellStyle}>
+                         {(() => {
+  // ตรวจสอบประเภทพนักงาน ถ้าเป็นรายเดือนให้รวม publicHolidayCash ด้วย
+  const employee = employeeList.find(emp => emp.employeeId === staffId);
+  const publicHolidayAmount = employee?.jobtype === "รายเดือน" 
+    ? parseFloat(accountingResult?.[0]?.publicHolidayCash || '0') 
+    : 0;
 
-                          <td style={cellStyle}>
+  const total = 
+    parseFloat(accountingResult?.[0]?.sumCashWork || '0') + 
+    parseFloat(accountingResult?.[0]?.sumCashOt || '0') + 
+    parseFloat(accountingResult?.[0]?.specialShiftTotalSalary || '0') + 
+    parseFloat(accountingResult?.[0]?.cashcustomizeDayoff || '0') + 
+    parseFloat(totalAddSalary || '0') + 
+    publicHolidayAmount; // เพิ่ม publicHolidayCash สำหรับพนักงานรายเดือน
+
+  return isNaN(total)
+    ? ''
+    : total.toLocaleString('th-TH', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+})()}
+
+</th>
+
+                          <th style={cellStyle}>
                             <button
                               type="button"
                               onClick={handleAddSalary}
-                              class="btn btn-danger"
+                              class="btn btn-warning"
                               style={{ width: "4rem" }}
                             >
-                              แก้ไข
+                              <i class="bi bi-pencil-square"></i>
                             </button>
-                          </td>
+                          </th>
                         </tr>
                       </tbody>
                     </table>
@@ -2155,28 +2578,28 @@ function Salaryresult() {
                     <table border="1" style={tableStyle}>
                       <thead>
                         <tr>
-                          <th style={headerCellStyle}>หักภาษี</th>
-                          <th style={headerCellStyle}>หักประกันสังคม</th>
-                          {/* <th style={headerCellStyle}>ธรรมเนียมธนาคาร</th> */}
-                          <th style={headerCellStyle}>เงินหัก</th>
-                          <th style={headerCellStyle}>รวมเงินหัก</th>
-                          <th style={headerCellStyle}>แก้ไข</th>
+                          <th style={{...headerCellStyle, width: '20%'}}>หักภาษี</th>
+                          <th style={{...headerCellStyle, width: '20%'}}>หักประกันสังคม</th>
+                          <th style={{...headerCellStyle, width: '20%'}}>เงินหัก</th>
+                          <th style={{...headerCellStyle, width: '20%'}}>รวมเงินหัก</th>
+                          <th style={{...headerCellStyle, width: '10%'}}>แก้ไข</th>
                         </tr>
                       </thead>
                       <tbody>
                         <tr>
-                          <td style={cellStyle}>
-                            {isNaN(Number(wsTax))
-                              ? 0.0
-                              : Number(wsTax).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
-                          </td>
-                          {/* <td style={cellStyle}>{((overWorkRateSum + overWorkRateOTSum + overAddSalaryDaySum + sumSpSalaryResult + anySpSalary) * socialSecurity).toFixed(2)}</td> */}
-                          {/* <td style={cellStyle}>{isNaN(Number(socialSecurity)) ? 0 : Number(socialSecurity).toFixed(0)}</td> */}
-                          <td style={cellStyle}>
-                            {isNaN(Number(wsSocialSecurity))
-                              ? 0
-                              : Math.ceil(Number(wsSocialSecurity))}
-                          </td>
+                          <th style={cellStyle}>
+                          {parseFloat(accountingResult?.[0]?.tax || '0').toLocaleString('th-TH', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                          })}
+                          </th>
+                          <th style={cellStyle}>
+                          {/*accountingResult?.[0]?.socialSecurity || '0'*/}
+                            {parseFloat(accountingResult?.[0]?.socialSecurity  || '0').toLocaleString('th-TH', {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2
+                            })}
+                          </th> 
                           {/* <td style={cellStyle}>{isNaN(Number(bank)) ? 0.00 : Number(bank).toFixed(2)}</td> */}
                           {/* <td style={cellStyle}>
                             <input
@@ -2189,19 +2612,12 @@ function Salaryresult() {
                               onChange={handleAnyMinusChange}
                             />
                           </td> */}
-                          <td style={cellStyle}>
+                           <th style={cellStyle}>
                             <span
                               onClick={togglePopup}
                               style={{ color: color, cursor: "pointer" }}
                             >
-                              {isNaN(
-                                Number(deductBeforeTax) + Number(deductAfterTax)
-                              )
-                                ? 0.0
-                                : (
-                                  Number(deductBeforeTax) +
-                                  Number(deductAfterTax)
-                                ).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+                              {totalDeductSalary.toFixed(2)}
                             </span>
                             {showPopup && (
                               <div className="popup">
@@ -2213,52 +2629,67 @@ function Salaryresult() {
                                     margin: 0,
                                   }}
                                 >
-                                  {deductSalaryList &&
-                                    deductSalaryList.map(
-                                      (deductSalary, index2) =>
-                                        deductSalary.name !== "" && (
+                                  {accountingResult?.[0]?.deductSalaryList&&
+                                    accountingResult?.[0]?.deductSalaryList.map(
+                                      (deductsalary, index) =>
+                                        deductsalary.name !== "" && (
                                           <li
-                                            key={index2}
+                                            key={index}
                                             style={{ marginBottom: "10px" }}
                                           >
-                                            {deductSalary.name} - จำนวน:{" "}
-                                            {deductSalary.amount}
+                                            {deductsalary.name} - จำนวน:{" "}
+                                            {deductsalary.amount}{" "}
+
+                                            {/* {addsalary.roundOfSalary ==
+                                              "daily" && (
+                                                <>* {addsalary.message} วัน</>
+                                              )} */}
                                           </li>
                                         )
                                     )}
                                 </ul>
-                                {/* <button onClick={togglePopup}>Close</button> */}
+                                <button className="btn btn-danger" onClick={togglePopup}>Close</button>
                               </div>
                             )}
-                            {/* {isNaN(Number(deductBeforeTax) + Number(deductAfterTax)) ? 0.00 : (Number(deductBeforeTax) + Number(deductAfterTax)).toFixed(2)} */}
-                          </td>
-                          <td style={cellStyle}>
-                            {" "}
-                            {isNaN(
-                              Number(wsTax) +
-                              Number(wsSocialSecurity) +
-                              Number(deductBeforeTax) +
-                              Number(deductAfterTax)
-                            )
-                              ? 0.0
-                              : Math.ceil(
-                                Number(wsTax) +
-                                Number(wsSocialSecurity) +
-                                Number(deductBeforeTax) +
-                                Number(deductAfterTax)
-                              ).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
-                          </td>
-                          {/* <td style={cellStyle}>({anyMinus} + {tax} + {((overWorkRateSum + overWorkRateOTSum + overAddSalaryDaySum + sumSpSalaryResult + anySpSalary) * socialSecurity).toFixed()} + {bankCustom} + {sumDeduct} + {sumDeductInstallment})</td> */}
-                          <td style={cellStyle}>
+
+                            {/* {(overAddSalaryDaySum + sumSpSalaryResult).toFixed(2)} */}
+
+                            {/* {namelist.map((employee, index) => (
+                              <tr key={index}>
+                                <th style={headerCellStyle}>{employee.name}</th>
+                                <td style={cellStyle}>{employee.salary}</td>
+                              </tr>
+                            ))} */}
+                            {/* {isNaN(Number(addAmountBeforeTax + addAmountAfterTax)) ? 0.00 : Number(addAmountBeforeTax + addAmountAfterTax).toFixed(2)} */}
+                          </th>
+                          <th style={cellStyle}>
+                          {(() => {
+  const total =
+
+    parseFloat(accountingResult?.[0]?.socialSecurity  || '0')+
+    parseFloat(accountingResult?.[0]?.tax || '0') +
+    parseFloat(totalDeductSalary || '0'); // ใช้ totalDeductSalary แทน
+
+  return isNaN(total)
+    ? ''
+    : total.toLocaleString('th-TH', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+})()}
+
+
+                          </th>
+                          <th style={cellStyle}>
                             <button
                               type="button"
                               onClick={handleAddSalary}
-                              class="btn btn-danger"
+                              class="btn btn-warning"
                               style={{ width: "4rem" }}
                             >
-                              แก้ไข
+                              <i class="bi bi-pencil-square"></i>
                             </button>
-                          </td>
+                          </th>
                         </tr>
                       </tbody>
                     </table>
@@ -2274,36 +2705,73 @@ function Salaryresult() {
                     <table border="1" style={tableStyle}>
                       <thead>
                         <tr>
-                          <th style={headerCellStyle}>วันหยุดนักขัตฤกษ์</th>
-                          <th style={headerCellStyle}>สวัสดิการ</th>
+                          <th style={{...headerCellStyle,width:'34%'}}>วันหยุดนักขัตฤกษ์</th>
+                          <th style={{...headerCellStyle,width:'33%'}}>สวัสดิการ</th>
                           <th style={headerCellStyle}>ยอดรวม</th>
                         </tr>
                       </thead>
                       <tbody>
                         <tr>
-                          {/* <td style={cellStyle}>{isNaN((countSpecialDay - specialDayListWork) * specialDayRate) ? 0.00 : ((countSpecialDay - specialDayListWork) * specialDayRate).toFixed(2)}</td> */}
-                          {/* <td style={cellStyle}>{workHoliday}</td> */}
-                          <td style={cellStyle}>
-                            {/* {amountSpecialDay} */}
+                          <th style={cellStyle}>
                             <div class="row">
-                              <div class="col-md-6">
-                                <input
-                                  type="number"
-                                  className="form-control"
-                                  id="staffId"
-                                  placeholder=""
-                                  value={wsAmountSpecialDay || ""}
-                                  onChange={handleTmpamountChange}
-                                />
+                              <div >
+   <input
+  type="number"
+  className="form-control text-center" 
+  id="specialDay"
+  placeholder="0.00"
+  step="0.01"
+  min="0"
+  value={(() => {
+    // ตรวจสอบประเภทพนักงาน ถ้าเป็นรายเดือนให้แสดง 0 เสมอ
+    const employee = employeeList.find(emp => emp.employeeId === staffId);
+    return employee?.jobtype === "รายเดือน" ? "0" : localPublicHolidayCash;
+  })()}
+  disabled={(() => {
+    // ปิดการแก้ไขสำหรับพนักงานรายเดือน
+    const employee = employeeList.find(emp => emp.employeeId === staffId);
+    return employee?.jobtype === "รายเดือน";
+  })()}
+  onChange={(e) => {
+    const newValue = e.target.value;
+    
+    // ตรวจสอบประเภทพนักงาน ถ้าเป็นรายเดือนให้ค่าเป็น 0
+    const employee = employeeList.find(emp => emp.employeeId === staffId);
+    if (employee?.jobtype === "รายเดือน") {
+      return; // ไม่ให้แก้ไขถ้าเป็นรายเดือน
+    }
+
+    setLocalPublicHolidayCash(newValue); // เปลี่ยนเป็น setLocalPublicHolidayCash
+
+    // แปลงค่าก่อนเก็บใน accountingResult ให้เป็น float
+    setAccountingResult((prev) => {
+      const updated = [...prev];
+      updated[0] = {
+        ...updated[0],
+        publicHolidayCash: parseFloat(newValue || 0), // เปลี่ยนเป็น publicHolidayCash
+      };
+      return updated;
+    });
+  }}
+/>
                               </div>
                             </div>
-                          </td>
-                          <td style={cellStyle}></td>
-                          <td style={cellStyle}>
-                            {isNaN(Number(wsAmountSpecialDay))
-                              ? 0.0
-                              : Number(wsAmountSpecialDay).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
-                          </td>
+                          </th>
+
+                          
+                          
+                          <th style={cellStyle}></th>
+                          <th style={cellStyle}>
+                            {(() => {
+                              // ตรวจสอบประเภทพนักงาน ถ้าเป็นรายเดือนให้แสดง 0
+                              const employee = employeeList.find(emp => emp.employeeId === staffId);
+                              if (employee?.jobtype === "รายเดือน") {
+                                return '0';
+                              }
+                              return accountingResult?.[0]?.publicHolidayCash || '0';
+                            })()}
+                          </th>
+
                         </tr>
                       </tbody>
                     </table>
@@ -2316,8 +2784,8 @@ function Salaryresult() {
                     <table border="1" style={tableStyle}>
                       <thead>
                         <tr>
-                          <th style={headerCellStyle}>รวมเงินได้</th>
-                          <th style={headerCellStyle}>รวมเงินหัก</th>
+                          <th style={{...headerCellStyle,width:'34%'}}>รวมเงินได้</th>
+                          <th style={{...headerCellStyle,width:'33%'}}>รวมเงินหัก</th>
                           <th style={headerCellStyle}>เงินสุทธิ</th>
                         </tr>
                       </thead>
@@ -2331,46 +2799,73 @@ function Salaryresult() {
                           <td style={cellStyle}>{isNaN(totalSumDeduct) ? 0.00 : (totalSumDeduct).toFixed(2)}</td>
                           <td style={cellStyle}>{isNaN(amountDay + amountOt + sumAddSalaryList - totalSumDeduct) ? 0.00 : (amountDay + amountOt + sumAddSalaryList - totalSumDeduct).toFixed(2)}</td> */}
 
-                          <td style={cellStyle}>{wsTotalSum}</td>
+                          <th style={cellStyle}>
+                          {(() => {
+  const total = 
+    parseFloat(accountingResult?.[0]?.sumCashWork || '0') + 
+    parseFloat(accountingResult?.[0]?.sumCashOt || '0') +
+    parseFloat(accountingResult?.[0]?.publicHolidayCash || '0') + 
+    parseFloat(accountingResult?.[0]?.specialShiftTotalSalary || '0') + 
+    parseFloat(accountingResult?.[0]?.cashcustomizeDayoff || '0') + 
+    parseFloat(totalAddSalary || '0'); // ใช้ totalAddSalary แทน
+
+  return isNaN(total)
+    ? ''
+    : total.toLocaleString('th-TH', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+})()}
+
+                          </th>
                           {/* <td style={cellStyle}>{Math.ceil(wsTotalSumDeduct) }</td> */}
-                          <td style={cellStyle}>
-                            {isNaN(
-                              Number(wsTax) +
-                              Number(wsSocialSecurity) +
-                              Number(deductBeforeTax) +
-                              Number(deductAfterTax)
-                            )
-                              ? 0.0
-                              : Math.ceil(
-                                Number(wsTax) +
-                                Number(wsSocialSecurity) +
-                                Number(deductBeforeTax) +
-                                Number(deductAfterTax)
-                              ).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
-                          </td>
+                          <th style={cellStyle}>
+                                                      {(() => {
+  const total =
+    parseFloat(accountingResult?.[0]?.socialSecurity  || '0') +
+    parseFloat(accountingResult?.[0]?.tax || '0') +
+    parseFloat(accountingResult?.[0]?.tax || '0') +
+    parseFloat(totalDeductSalary || '0'); // เพิ่ม totalDeductSalary
+    
+  return isNaN(total)
+    ? ''
+    : total.toLocaleString('th-TH', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+})()}
+
+                          </th>
                           {/* <td style={cellStyle}>{totalSum - totalSumDeduct}</td> */}
-                          <td style={cellStyle}>
-                            {/* {isNaN(Number(total)) ? 0.00 : Number(total).toFixed(2)} */}
-                            {/* {isNaN(Number(total)) ? 0.00 : (Math.ceil(Number(total) * 100) / 100).toFixed(2)} */}
-                            {/* {isNaN(Number(wsTotal)) ? 0.00 : (Number(wsTotal)).toFixed(2)} */}
-                            {/* {(Number(wsTotalSum) - Math.ceil(Number(wsTotalSumDeduct)) ).toFixed(2) || 0} */}
-                            {(
-                              Number(wsTotalSum) -
-                              (isNaN(
-                                Number(wsTax) +
-                                Number(wsSocialSecurity) +
-                                Number(deductBeforeTax) +
-                                Number(deductAfterTax)
-                              )
-                                ? 0.0
-                                : Math.ceil(
-                                  Number(wsTax) +
-                                  Number(wsSocialSecurity) +
-                                  Number(deductBeforeTax) +
-                                  Number(deductAfterTax)
-                                ).toFixed(2))
-                            ).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",") || 0}
-                          </td>
+                          <th style={cellStyle}>
+                          {(() => {
+  const incomeTotal = 
+    parseFloat(accountingResult?.[0]?.sumCashWork || '0') + 
+    parseFloat(accountingResult?.[0]?.sumCashOt || '0') +
+    parseFloat(accountingResult?.[0]?.publicHolidayCash || '0') + 
+    parseFloat(accountingResult?.[0]?.specialShiftTotalSalary || '0') + 
+    parseFloat(accountingResult?.[0]?.cashcustomizeDayoff || '0') + 
+    parseFloat(totalAddSalary || '0'); // ใช้ totalAddSalary แทน
+
+  const deductionTotal =
+    parseFloat(accountingResult?.[0]?.socialSecurity || '0') +
+    parseFloat(accountingResult?.[0]?.tax || '0') +
+    parseFloat(accountingResult?.[0]?.total || '0') +
+    parseFloat(totalDeductSalary || '0'); // เพิ่ม totalDeductSalary
+    
+ 
+  const netTotal = incomeTotal - deductionTotal;
+
+  return isNaN(netTotal)
+    ? ''
+    : netTotal.toLocaleString('th-TH', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+})()}
+
+                            
+                          </th>
                         </tr>
                       </tbody>
                     </table>
@@ -2383,10 +2878,13 @@ function Salaryresult() {
                     <div class="line_btn">
                       <button
                         type="button"
-                        onClick={() => handleUpdateStatus("update")}
-                        class="btn b_save"
+                        onClick={() => {
+                          handleUpdateStatus("update");
+                          setTimeout(() => handleReLoad(), 100);
+                        }}
+                        className="btn b_save"
                       >
-                        <i class=""></i> &nbsp;คำนวณใหม่
+                        <i className=""></i> &nbsp;คำนวณใหม่
                       </button>
                     </div>
                   </div>
@@ -2395,19 +2893,42 @@ function Salaryresult() {
               <div class="line_btn">
                 <button
                   type="button"
-                  onClick={handleSaveAccounting}
+                  onClick={updateData}
                   class="btn b_save"
+                  disabled={loading}
+                  style={{ 
+                    opacity: loading ? 0.6 : 1, 
+                    cursor: loading ? 'not-allowed' : 'pointer' 
+                  }}
                 >
-                  <i class="nav-icon fas fa-save"></i> &nbsp;บันทึก
+                  {loading ? (
+                    <>
+                      <i class="fas fa-spinner fa-spin"></i> &nbsp;กำลังบันทึก...
+                    </>
+                  ) : (
+                    <>
+                      <i class="nav-icon fas fa-save"></i> &nbsp;บันทึก
+                    </>
+                  )}
                 </button>
 
                 {/* <Link to="/Salaryresult"> */}
-                <button type="button" onClick={handleReLoad} class="btn clean">
+                <button 
+                  type="button" 
+                  onClick={handleReLoad} 
+                  class="btn clean"
+                  disabled={loading}
+                  style={{ 
+                    opacity: loading ? 0.6 : 1, 
+                    cursor: loading ? 'not-allowed' : 'pointer' 
+                  }}
+                >
                   <i class="far fa-window-close"></i> &nbsp;ยกเลิก
                 </button>
                 {/* </Link > */}
               </div>
               {/* {JSON.stringify(employee.addSalary,null,2)} */}
+              
               <h2 class="title">สรุปวันลา</h2>
               <section class="Frame">
                 <div class="row">
@@ -2446,18 +2967,19 @@ function Salaryresult() {
                               empDataSelect[option.name] !== undefined
                               ? empDataSelect[option.name]
                               : 0;
-                          const welfareTypeCount =
-                            welfareTypeCountMap[option.name] || 0;
+                          // const welfareTypeCount =
+                          //   welfareTypeCountMap[option.name] || 0;
+                          const welfareTypeCount = usedLeaveCounts[option.id] || 0;
 
                           return (
                             <tr key={option.id}>
-                              <td style={cellStyle}>{option.id}</td>
-                              <td style={cellStyle}>{empDataValue}</td>
-                              <td style={cellStyle}>{welfareTypeCount}</td>
-                              <td style={cellStyle}>
+                              <th style={cellStyle}>{option.id}</th>
+                              <th style={cellStyle}>{empDataValue}</th>
+                              <th style={cellStyle}>{welfareTypeCount}</th>
+                              <th style={cellStyle}>
                                 {/* Display the subtraction result */}
                                 {empDataValue - welfareTypeCount}
-                              </td>
+                              </th>
                             </tr>
                           );
                         })}
@@ -2531,56 +3053,103 @@ function Salaryresult() {
                       )}
                     </div>
                   </div>
-                  <div class="col-md-2">
-                    <select
-                      onChange={handleSelectChange2}
-                      className="form-control"
-                    >
-                      <option value="">เลือกตัวเลือก</option>
-                      {options.map((option) => (
-                        <option key={option.id} value={option.name}>
-                          {option.id}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div class="col-md-2">
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={remainCode}
-                      onChange={handleRemainCodeChange}
-                      placeholder="รหัส"
-                    />
-                  </div>
-                  <div class="col-md-2">
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={remainName}
-                      onChange={handleRemainNameChange}
-                      placeholder="ชื่อ"
-                    />
-                  </div>
-                  <div class="col-md-2">
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={remainSalary}
-                      onChange={handleRemainSalaryChange}
-                      placeholder="บาท"
-                    />
-                  </div>
-                  <div class="col-md-2">
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={remainComment}
-                      onChange={handleRemainCommentChange}
-                      placeholder="หมายเหตุ"
-                    />
-                  </div>
-                </div>
+                  {/* ประเภทการลา - แก้ไขส่วนนี้ */}
+  <div class="col-md-2" style={{ position: 'relative' }}>
+    <select
+      value={selectedLeaveType}
+      onChange={handleLeaveTypeChange}
+      className="form-control"
+    >
+      <option value="">เลือกประเภทการลา</option>
+      {Object.keys(leaveOptions).map((leaveType) => (
+        <option key={leaveType} value={leaveType}>
+          {leaveType}
+        </option>
+      ))}
+    </select>
+    
+    {/* Dropdown สำหรับเลือกรายละเอียดการลา */}
+    {showLeaveDetailsDropdown && availableLeaveDetails.length > 0 && (
+      <div 
+        className="leave-details-dropdown"
+        style={{
+          position: 'absolute',
+          top: '100%',
+          left: 0,
+          right: 0,
+          backgroundColor: 'white',
+          border: '1px solid #ccc',
+          borderRadius: '4px',
+          maxHeight: '200px',
+          overflowY: 'auto',
+          zIndex: 1000,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+        }}
+      >
+        {availableLeaveDetails.map((detail, index) => (
+          <div
+            key={index}
+            onClick={() => handleLeaveDetailChange(detail)}
+            style={{
+              padding: '8px 12px',
+              cursor: 'pointer',
+              borderBottom: '1px solid #eee'
+            }}
+            onMouseEnter={(e) => e.target.style.backgroundColor = '#f5f5f5'}
+            onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
+          >
+            <div style={{ fontWeight: 'bold' }}>{detail.id}</div>
+            <div style={{ fontSize: '0.9em', color: '#666' }}>{detail.name}</div>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+  
+  {/* รหัสเงินเพิ่มเงินหัก */}
+  <div class="col-md-2">
+    <input
+      type="text"
+      className="form-control"
+      value={remainCode}
+      onChange={handleRemainCodeChange}
+      placeholder="รหัส"
+      readOnly={showLeaveDetailsDropdown} // ไม่ให้แก้ไขเมื่อมี dropdown แสดง
+    />
+  </div>
+  
+  {/* ชื่อ */}
+  <div class="col-md-2">
+    <input
+      type="text"
+      className="form-control"
+      value={remainName}
+      onChange={handleRemainNameChange}
+      placeholder="ชื่อ"
+      readOnly={showLeaveDetailsDropdown} // ไม่ให้แก้ไขเมื่อมี dropdown แสดง
+    />
+  </div>
+  
+  <div class="col-md-2">
+    <input
+      type="text"
+      className="form-control"
+      value={remainSalary}
+      onChange={handleRemainSalaryChange}
+      placeholder="บาท"
+    />
+  </div>
+  <div class="col-md-2">
+    <input
+      type="text"
+      className="form-control"
+      value={remainComment}
+      onChange={handleRemainCommentChange}
+      placeholder="หมายเหตุ"
+    />
+  </div>
+</div>
+              
                 <br />
                 <div class="row">
                   <div class="col-md-2"></div>
@@ -2666,9 +3235,10 @@ function Salaryresult() {
               </section>
             </div>
           </section>
-        </div>
+        </div>    
       </div>
-    </body>
+    {/* </body> */}
+    </div>
   );
 }
 

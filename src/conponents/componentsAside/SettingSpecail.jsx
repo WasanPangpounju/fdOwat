@@ -824,7 +824,7 @@ function SettingSpecial() {
 
 
     return (
-        <body class="hold-transition sidebar-mini" className='editlaout'>
+        <div class="hold-transition sidebar-mini" className='editlaout'>
             <div class="wrapper">
 
                 <div class="content-wrapper">
@@ -1244,7 +1244,7 @@ function SettingSpecial() {
 
             </div >
             {/* {JSON.stringify(workTimeDayPersonList, null, 2)} */}
-        </body >
+        </div >
     );
 }
 

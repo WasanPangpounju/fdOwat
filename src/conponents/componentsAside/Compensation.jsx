@@ -1,9 +1,12 @@
 import endpoint from "../../config";
 import { Link } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import "../editwindowcss.css";
 
 import axios from "axios";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 
+// import { PencilSquare } from "react-bootstrap-icons"; // Bootstrap icons
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
@@ -39,6 +42,7 @@ function Compensation() {
   const [sumWorkRateOtX, setSumWorkRateOtX] = useState(0);
 
   const [statusEditSum, setStatusEditSum] = useState(false);
+  const [loadStatus, setLoadStatus] = useState(null);
 
   const [dataTable, setDataTable] = useState([]);
 
@@ -179,8 +183,8 @@ function Compensation() {
         await setStaffId(savedEmployeeId);
         // setStaffFullName(savedEmployeeName);
 
-        const event = await new Event("submit"); // Creating a synthetic event object
-        await handleSearch(event); // Call handleSearch with the event
+        // const event = await new Event("submit"); // Creating a synthetic event object
+        // await handleSearch(event); // Call handleSearch with the event
 
         await localStorage.removeItem("employeeId");
       }
@@ -221,12 +225,35 @@ function Compensation() {
       });
   }, []); // The empty array [] ensures that the effect runs only once after the initial render
 
+  // Fetch workplace data based on employee's workplace
+  const fetchWorkplaceData = useCallback(async (workplaceId) => {
+    if (!workplaceId) return;
+    
+    try {
+      const response = await fetch(endpoint + `/workplace/${workplaceId}`);
+      const data = await response.json();
+      
+      // Set the workplace data as an array to maintain compatibility
+      setWorkplaceList([data]);
+    } catch (error) {
+      console.error("Error fetching workplace data:", error);
+      // Fallback to list endpoint if specific workplace fails
+      fetch(endpoint + "/workplace/list")
+        .then((response) => response.json())
+        .then((data) => {
+          setWorkplaceList(data);
+        })
+        .catch((error) => {
+          console.error("Error fetching workplace list:", error);
+        });
+    }
+  }, []);
+
   useEffect(() => {
-    // Fetch data from the API when the component mounts
+    // Initial fetch of all workplaces for compatibility
     fetch(endpoint + "/workplace/list")
       .then((response) => response.json())
       .then((data) => {
-        // Update the state with the fetched data
         setWorkplaceList(data);
       })
       .catch((error) => {
@@ -234,9 +261,9 @@ function Compensation() {
       });
   }, []);
 
-  console.error("workplaceList", workplaceList);
+  // console.error("workplaceList", workplaceList);
 
-  console.log(employeeList);
+  // console.log(employeeList);
 
   const [modalIsOpen, setModalIsOpen] = useState(false);
 
@@ -362,7 +389,7 @@ function Compensation() {
   const daysInMonth = getDaysInMonth(countdownMonth, CheckYear);
   const startDay = 21;
   // Create an array from startDay to daysInMonth
-  const firstPart = Array.from(
+  const firstPart = useMemo(() => Array.from(
     { length: daysInMonth - startDay + 1 },
     (_, index) =>
       startDay +
@@ -371,10 +398,10 @@ function Compensation() {
       countdownMonth +
       "/" +
       (parseInt(countdownYear, 10) + parseInt(base, 10))
-  );
+  ), [daysInMonth, startDay, countdownMonth, countdownYear, base]);
 
   // Create an array from 1 to 20
-  const secondPart = Array.from(
+  const secondPart = useMemo(() => Array.from(
     { length: 20 },
     (_, index) =>
       index +
@@ -383,22 +410,22 @@ function Compensation() {
       CheckMonth +
       "/" +
       (parseInt(CheckYear, 10) + parseInt(base, 10))
-  );
+  ), [CheckMonth, CheckYear, base]);
 
   // Concatenate the two arrays
-  const resultArray = [...firstPart, ...secondPart];
+  const resultArray = useMemo(() => [...firstPart, ...secondPart], [firstPart, secondPart]);
 
-  const firstPart2 = Array.from(
+  const firstPart2 = useMemo(() => Array.from(
     { length: daysInMonth - startDay + 1 },
     (_, index) => startDay + index
-  );
+  ), [daysInMonth, startDay]);
 
   // Create an array from 1 to 20
-  const secondPart2 = Array.from({ length: 20 }, (_, index) => index + 1);
+  const secondPart2 = useMemo(() => Array.from({ length: 20 }, (_, index) => index + 1), []);
 
   // Concatenate the two arrays
-  const resultArray2 = [...firstPart2, ...secondPart2];
-  console.log("resultArray2", resultArray2);
+  const resultArray2 = useMemo(() => [...firstPart2, ...secondPart2], [firstPart2, secondPart2]);
+  // console.log("resultArray2", resultArray2);
   function getDaysInMonth2(month, year) {
     // Months are 0-based, so we subtract 1 from the provided month
     return new Date(year, month, 0).getDate();
@@ -444,29 +471,48 @@ function Compensation() {
 
   //recreate conclude
   async function recal() {
-    const serchConclude = await {
-      year: year,
-      month: month,
-      concludeDate: "",
-      employeeId: searchEmployeeId,
-      employeeName: searchEmployeeName,
+    const data = await {
+      employeeId: searchEmployeeId, 
+      month: month, 
+      year: year 
     };
-    // alert(serchConclude .month)
+      
     try {
-      //create conclude
-      const response = await axios.post(
-        endpoint + "/conclude/autocreate",
-        serchConclude
-      );
-      // alert(response .data);
-      alert("กำลังประมวลผล กรุณาค้นหาอีกครั้งหากยังไม่พบกรุณาตรวจสอบการลงเวลา");
+      const response = await axios.post(endpoint + "/conclude/searchtimerecordemployee/", data);
+      alert('hi')
+
+      if (response) {
+        alert("บันทึกสำเร็จ");
+      }
+
     } catch (e) {
-      console.log(e);
+      alert("บันทึกไม่สำเร็จ");
       alert(e);
     }
+
+    // const serchConclude = await {
+    //   year: year,
+    //   month: month,
+    //   concludeDate: "",
+    //   employeeId: searchEmployeeId,
+    //   employeeName: searchEmployeeName,
+    // };
+    // // alert(serchConclude .month)
+    // try {
+    //   //create conclude
+    //   const response = await axios.post(
+    //     endpoint + "/conclude/autocreate",
+    //     serchConclude
+    //   );
+    //   // alert(response .data);
+    //   alert("กำลังประมวลผล กรุณาค้นหาอีกครั้งหากยังไม่พบกรุณาตรวจสอบการลงเวลา");
+    // } catch (e) {
+    //   console.log(e);
+    //   alert(e);
+    // }
   }
 
-  async function handleSearch(event) {
+  async function backup_handleSearch(event) {
     event.preventDefault();
     await localStorage.setItem("employeeId", searchEmployeeId);
     await localStorage.setItem("employeeName", searchEmployeeName);
@@ -764,31 +810,36 @@ function Compensation() {
     }
   }
 
-  useEffect(() => {
-    setDataTable(concludeResult);
-    setAddSalaryList(addSalaryResult || []);
-    // alert(JSON.stringify(addSalaryResult ,null,2));
-
+  const concludeResultData = useMemo(() => {
     let ans = 0;
     let ans1 = 0;
 
-    const s = concludeResult.map((item, index) => {
+    const calculatedResults = concludeResult.map((item, index) => {
       if (!isNaN(item.workRate)) {
         ans = ans + parseFloat(item.workRate, 10) || 0;
-        // ans1 = ans1 + parseFloat(item.workRateOT, 10) || 0;
-        // setSumRateOT(ans1);
       }
       if (item.workRateOT && !isNaN(item.workRateOT) && item.workRateOT !== 0) {
         ans1 = ans1 + parseFloat(item.workRateOT, 10);
-        setSumRateOT(ans1);
       }
       return ans;
     });
-    //ccss
-    setSumRate(ans);
-    // setSumRateOT(ans1);
-    // alert(sumRateOT);
-  }, [concludeResult]);
+
+    return {
+      dataTable: concludeResult,
+      addSalaryList: addSalaryResult || [],
+      sumRate: ans,
+      sumRateOT: ans1
+    };
+  }, [concludeResult, addSalaryResult]);
+
+  useEffect(() => {
+    if (concludeResultData) {
+      setDataTable(concludeResultData.dataTable);
+      setAddSalaryList(concludeResultData.addSalaryList);
+      setSumRate(concludeResultData.sumRate);
+      setSumRateOT(concludeResultData.sumRateOT);
+    }
+  }, [concludeResultData]);
   // console.log("dataTable", dataTable);
 
   const findEmployeeById = (id) => {
@@ -816,55 +867,54 @@ function Compensation() {
     return total;
   };
 
-  useEffect(() => {
-    // alert(employee?.addSalary?.length );
+  const addSalaryDayData = useMemo(() => {
+    if (!employee?.addSalary?.length) {
+      return {
+        addSalaryDay: 0,
+        addSalaryDayList: [],
+        addSalaryList: []
+      };
+    }
 
-    const getAddSalaryDay = async () => {
-      await setAddSalaryDay(0);
-      await setAddSalaryDayList([]);
+    let tmpAddSalaryList = [];
+    let sum = 0;
 
-      if (employee?.addSalary?.length > 0) {
-        let tmpAddSalaryList = [];
-
-        const sum = await employee.addSalary.reduce(
-          async (accumulator, item) => {
-            if (item.roundOfSalary === "daily") {
-              await tmpAddSalaryList.push(item);
-              if (parseFloat(item.SpSalary) < 100) {
-                return (await accumulator) + parseFloat(item.SpSalary, 10);
-              } else {
-                let r = (await accumulator) + parseFloat(item.SpSalary, 10);
-                r = (await r) / 30;
-                return await r;
-              }
-            } else {
-              return accumulator;
-            }
-          },
-          0
-        );
-        await setAddSalaryDayList(tmpAddSalaryList);
-
-        await setAddSalaryDay(sum);
-
-        // Create addSalaryList array
-        const addSalaryList = Array(dataTable.length).fill(tmpAddSalaryList);
-
-        // Update state with the created addSalaryList
-        if (loadStatus !== "load") {
-          setAddSalaryList(addSalaryList);
+    employee.addSalary.forEach((item) => {
+      if (item.roundOfSalary === "daily") {
+        tmpAddSalaryList.push(item);
+        if (parseFloat(item.SpSalary) < 100) {
+          sum += parseFloat(item.SpSalary, 10);
+        } else {
+          sum += parseFloat(item.SpSalary, 10) / 30;
         }
       }
-    };
+    });
 
-    if (addSalaryList != []) {
-      getAddSalaryDay();
+    // Create addSalaryList array
+    const addSalaryList = Array(dataTable.length).fill(tmpAddSalaryList);
+
+    return {
+      addSalaryDay: sum,
+      addSalaryDayList: tmpAddSalaryList,
+      addSalaryList: addSalaryList
+    };
+  }, [employee?.addSalary, dataTable.length]);
+
+  useEffect(() => {
+    if (addSalaryDayData) {
+      setAddSalaryDay(addSalaryDayData.addSalaryDay);
+      setAddSalaryDayList(addSalaryDayData.addSalaryDayList);
+      
+      // Only update addSalaryList if loadStatus is not "load"
+      if (loadStatus !== "load") {
+        setAddSalaryList(addSalaryDayData.addSalaryList);
+      }
     }
 
     if (employee) {
       setWorkplaceIdEMP(employee.workplace ? employee.workplace : "");
     }
-  }, [employee]);
+  }, [addSalaryDayData, employee, loadStatus]);
 
   // Function to remove an addSalary array from addSalaryList
   const removeAddSalaryArray = async (listIndex, subArrayIndex) => {
@@ -890,7 +940,7 @@ function Compensation() {
     removeAddSalaryArray(listIndex, subArrayIndex);
   };
 
-  const allwork = [...alldayworkLower, ...alldaywork];
+  const allwork = useMemo(() => [...alldayworkLower, ...alldaywork], [alldayworkLower, alldaywork]);
 
   const result = resultArray2.map((number) => {
     const matchingEntry = alldaywork.find(
@@ -909,29 +959,35 @@ function Compensation() {
   //     ...item,
   //     dates: parseInt(item.dates, 10)
   // }));
-  const allworkFlattened = allwork.flat();
+  const allworkFlattened = useMemo(() => allwork.flat(), [allwork]);
 
   // Filter unique entries based on 'workplaceId' and 'dates'
-  const uniqueEntries = allworkFlattened.reduce((acc, curr) => {
-    const key = `${curr.workplaceId}-${curr.dates}`;
-    if (!acc[key]) {
-      acc[key] = curr;
-    }
-    return acc;
-  }, {});
+  const uniqueEntries = useMemo(() => {
+    return allworkFlattened.reduce((acc, curr) => {
+      const key = `${curr.workplaceId}-${curr.dates}`;
+      if (!acc[key]) {
+        acc[key] = curr;
+      }
+      return acc;
+    }, {});
+  }, [allworkFlattened]);
 
   // Extract values from the object to get the final array
-  const resultAllwork = Object.values(uniqueEntries);
+  const resultAllwork = useMemo(() => {
+    return Object.values(uniqueEntries);
+  }, [uniqueEntries]);
 
-  const resultArrayWithWorkplaceRecords = resultArray2.map((date) => {
-    const matchingRecord = resultAllwork.find((record) => record.dates == date);
-    return matchingRecord ? { ...matchingRecord } : "";
-  });
+  const resultArrayWithWorkplaceRecords = useMemo(() => {
+    return resultArray2.map((date) => {
+      const matchingRecord = resultAllwork.find((record) => record.dates == date);
+      return matchingRecord ? { ...matchingRecord } : "";
+    });
+  }, [resultArray2, resultAllwork]);
 
-  console.log(
-    "resultArrayWithWorkplaceRecords",
-    resultArrayWithWorkplaceRecords
-  );
+  // console.log(
+  //   "resultArrayWithWorkplaceRecords",
+  //   resultArrayWithWorkplaceRecords
+  // );
 
   const combinedArray = resultArray.map((date, index) => {
     const workplaceRecord = resultArrayWithWorkplaceRecords[index];
@@ -951,6 +1007,9 @@ function Compensation() {
       // setStaffLastname(selectedEmployee.lastName);
       setStaffFullName(selectedEmployee.name + " " + selectedEmployee.lastName);
       setWorkplaceIdEMP(selectedEmployee.workplace);
+      
+      // Fetch workplace data for this specific employee
+      fetchWorkplaceData(selectedEmployee.workplace);
     } else {
       setStaffName("");
       setStaffFullName("");
@@ -987,6 +1046,9 @@ function Compensation() {
       setStaffId(selectedEmployee.employeeId);
       setSearchEmployeeId(selectedEmployee.employeeId);
       setWorkplaceIdEMP(selectedEmployee.workplace);
+      
+      // Fetch workplace data for this specific employee
+      fetchWorkplaceData(selectedEmployee.workplace);
     } else {
       setStaffId("");
       // searchEmployeeId('');
@@ -1024,136 +1086,154 @@ function Compensation() {
     (workplace) => workplace.workplaceId === workplaceIdEMP
   );
 
+  function getDaysInBetween(startDay, endDay) {
+    const weekdays = [
+      "จันทร์",
+      "อังคาร",
+      "พุธ",
+      "พฤหัส",
+      "ศุกร์",
+      "เสาร์",
+      "อาทิตย์",
+    ];
+    const startIndex = weekdays.indexOf(startDay);
+    const endIndex = weekdays.indexOf(endDay);
+
+    if (startIndex === -1 || endIndex === -1) {
+      return [];
+    }
+
+    return weekdays.slice(startIndex, endIndex + 1);
+  }
+
   // const monthTest = "09"; // Assuming "09" represents September
-  const commonNumbers123 = new Set();
+  const { commonNumbers123, commonNumbers123_2nd, commonNumbers, commonNumbersArray } = useMemo(() => {
+    const commonNumbers123 = new Set();
 
-  if (workplace) {
-    const matchingDays = workplace.daysOff.filter((date) => {
-      const dateObj = new Date(date);
-      return (dateObj.getMonth() + 1).toString().padStart(2, "0") === month; // +1 because getMonth() returns zero-based month index
-    });
-
-    // Iterate over matchingDays and add day numbers to commonNumbers set
-
-    matchingDays.forEach((date) => {
-      const dateObj = new Date(date);
-      const day = dateObj.getDate(); // Get the day number (1-31)
-      commonNumbers123.add(day); // Add day number to the set
-    });
-
-    const filteredNumbers = new Set();
-
-    // Filter day numbers less than 20 and add them to filteredNumbers set
-    commonNumbers123.forEach((day) => {
-      if (day < 21) {
-        filteredNumbers.add(day);
-      }
-    });
-
-    // Update commonNumbers123_2nd with filtered day numbers
-    commonNumbers123.clear(); // Clear the original set
-    filteredNumbers.forEach((day) => {
-      commonNumbers123.add(day); // Add filtered day numbers back to commonNumbers123_2nd
-    });
-  } else {
-    console.error("Workplace not found");
-  }
-
-  const commonNumbers123_2nd = new Set();
-
-  let monthSet;
-  if (workplace) {
-    const matchingDays = workplace.daysOff.filter((date) => {
-      if (month == "01") {
-        monthSet == "12";
-      } else {
-        // Convert the month string to a number, subtract 1, and convert it back to a string
-        const currentMonthNumber = parseInt(month, 10); // Parse month string to integer
-        const previousMonthNumber = currentMonthNumber - 1;
-
-        // Handle the case when previousMonthNumber is 0 (transition from January to December)
-        if (previousMonthNumber === 0) {
-          monthSet = "12"; // Set monthSet to '12' for December
-        } else {
-          // Convert the previous month number back to a string with leading zero if necessary
-          monthSet = previousMonthNumber.toString().padStart(2, "0");
-        }
-      }
-      const dateObj = new Date(date);
-      return (dateObj.getMonth() + 1).toString().padStart(2, "0") === monthSet; // +1 because getMonth() returns zero-based month index
-    });
-
-    // Iterate over matchingDays and add day numbers to commonNumbers set
-
-    matchingDays.forEach((date) => {
-      const dateObj = new Date(date);
-      const day = dateObj.getDate(); // Get the day number (1-31)
-      commonNumbers123_2nd.add(day); // Add day number to the set
-    });
-
-    // Create a new Set to store filtered day numbers (< 20)
-    const filteredNumbers = new Set();
-
-    // Filter day numbers less than 20 and add them to filteredNumbers set
-    commonNumbers123_2nd.forEach((day) => {
-      if (day > 20) {
-        filteredNumbers.add(day);
-      }
-    });
-
-    // Update commonNumbers123_2nd with filtered day numbers
-    commonNumbers123_2nd.clear(); // Clear the original set
-    filteredNumbers.forEach((day) => {
-      commonNumbers123_2nd.add(day); // Add filtered day numbers back to commonNumbers123_2nd
-    });
-  } else {
-    console.error("Workplace not found");
-  }
-
-  const commonNumbers = new Set();
-
-  if (workplace) {
-    const stopWorkTimeDay = workplace.workTimeDay.find(
-      (day) => day.workOrStop === "stop"
-    );
-
-    if (stopWorkTimeDay) {
-      const { startDay, endDay } = stopWorkTimeDay;
-
-      const daysInBetween = getDaysInBetween(startDay, endDay);
-
-      daysInBetween.forEach((day) => {
-        const englishDayArray = thaiToEnglishDayMap[day];
-
-        englishDayArray.forEach((englishDay) => {
-          // Use forEach to add each element to commonNumbers
-          // commonNumbers.add(...array1[englishDayArray]);
-          array1[englishDay].forEach((value) => commonNumbers.add(value));
-          array2[englishDay].forEach((value) => commonNumbers.add(value));
-        });
+    if (workplace && workplace.daysOff && Array.isArray(workplace.daysOff)) {
+      const matchingDays = workplace.daysOff.filter((date) => {
+        const dateObj = new Date(date);
+        return (dateObj.getMonth() + 1).toString().padStart(2, "0") === month; // +1 because getMonth() returns zero-based month index
       });
 
-      // setHoliday(commonNumbers);
-      // console.log("Common Numbers:", commonNumbers);
-    } else {
-      console.log("No stop workTimeDay found.");
+      // Iterate over matchingDays and add day numbers to commonNumbers set
+      matchingDays.forEach((date) => {
+        const dateObj = new Date(date);
+        const day = dateObj.getDate(); // Get the day number (1-31)
+        commonNumbers123.add(day); // Add day number to the set
+      });
+
+      const filteredNumbers = new Set();
+
+      // Filter day numbers less than 20 and add them to filteredNumbers set
+      commonNumbers123.forEach((day) => {
+        if (day < 21) {
+          filteredNumbers.add(day);
+        }
+      });
+
+      // Update commonNumbers123_2nd with filtered day numbers
+      commonNumbers123.clear(); // Clear the original set
+      filteredNumbers.forEach((day) => {
+        commonNumbers123.add(day); // Add filtered day numbers back to commonNumbers123_2nd
+      });
     }
-  } else {
-    console.log("Workplace not found.");
-  }
 
-  commonNumbers123.forEach((number) => {
-    commonNumbers.add(number);
-  });
+    const commonNumbers123_2nd = new Set();
 
-  commonNumbers123_2nd.forEach((number) => {
-    commonNumbers.add(number);
-  });
+    let monthSet;
+    if (workplace) {
+      const matchingDays = workplace.daysOff.filter((date) => {
+        if (month == "01") {
+          monthSet == "12";
+        } else {
+          // Convert the month string to a number, subtract 1, and convert it back to a string
+          const currentMonthNumber = parseInt(month, 10); // Parse month string to integer
+          const previousMonthNumber = currentMonthNumber - 1;
 
-  // const commonNumbersArray = [...commonNumbers];
-  const commonNumbersArray = [...commonNumbers].map((value) =>
-    value.toString()
-  );
+          // Handle the case when previousMonthNumber is 0 (transition from January to December)
+          if (previousMonthNumber === 0) {
+            monthSet = "12"; // Set monthSet to '12' for December
+          } else {
+            // Convert the previous month number back to a string with leading zero if necessary
+            monthSet = previousMonthNumber.toString().padStart(2, "0");
+          }
+        }
+        const dateObj = new Date(date);
+        return (dateObj.getMonth() + 1).toString().padStart(2, "0") === monthSet; // +1 because getMonth() returns zero-based month index
+      });
+
+      // Iterate over matchingDays and add day numbers to commonNumbers set
+      matchingDays.forEach((date) => {
+        const dateObj = new Date(date);
+        const day = dateObj.getDate(); // Get the day number (1-31)
+        commonNumbers123_2nd.add(day); // Add day number to the set
+      });
+
+      // Create a new Set to store filtered day numbers (< 20)
+      const filteredNumbers = new Set();
+
+      // Filter day numbers less than 20 and add them to filteredNumbers set
+      commonNumbers123_2nd.forEach((day) => {
+        if (day > 20) {
+          filteredNumbers.add(day);
+        }
+      });
+
+      // Update commonNumbers123_2nd with filtered day numbers
+      commonNumbers123_2nd.clear(); // Clear the original set
+      filteredNumbers.forEach((day) => {
+        commonNumbers123_2nd.add(day); // Add filtered day numbers back to commonNumbers123_2nd
+      });
+    }
+
+    const commonNumbers = new Set();
+
+    if (workplace) {
+      const stopWorkTimeDay = workplace.workTimeDay.find(
+        (day) => day.workOrStop === "stop"
+      );
+
+      if (stopWorkTimeDay) {
+        const { startDay, endDay } = stopWorkTimeDay;
+
+        const daysInBetween = getDaysInBetween(startDay, endDay);
+
+        daysInBetween.forEach((day) => {
+          const englishDayArray = thaiToEnglishDayMap[day];
+
+          englishDayArray.forEach((englishDay) => {
+            // Use forEach to add each element to commonNumbers
+            // commonNumbers.add(...array1[englishDayArray]);
+            array1[englishDay].forEach((value) => commonNumbers.add(value));
+            array2[englishDay].forEach((value) => commonNumbers.add(value));
+          });
+        });
+
+        // setHoliday(commonNumbers);
+        // console.log("Common Numbers:", commonNumbers);
+      } else {
+        // console.log("No stop workTimeDay found.");
+      }
+    } else {
+      // console.log("Workplace not found.");
+    }
+
+    commonNumbers123.forEach((number) => {
+      commonNumbers.add(number);
+    });
+
+    commonNumbers123_2nd.forEach((number) => {
+      commonNumbers.add(number);
+    });
+
+    // const commonNumbersArray = [...commonNumbers];
+    const commonNumbersArray = [...commonNumbers].map((value) =>
+      value.toString()
+    );
+
+    return { commonNumbers123, commonNumbers123_2nd, commonNumbers, commonNumbersArray };
+  }, [workplace, month, array1, array2]);
 
   function getDaysInBetween(startDay, endDay) {
     const weekdays = [
@@ -1235,9 +1315,8 @@ function Compensation() {
     workType: "",
   });
   const [editIndex, setEditIndex] = useState(null);
-  const [loadStatus, setLoadStatus] = useState(null);
 
-  const handleInputChange = (e) => {
+  const handleInputChange_back = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
@@ -1294,15 +1373,16 @@ function Compensation() {
   const [sumRateOT, setSumRateOT] = useState(0);
   const [sumAddSalary, setSumAddSalary] = useState(0);
 
-  const calculatedArray = resultArrayWithWorkplaceRecords.map((record) => {
-    const numericDate = parseInt(record.dates, 10);
-    if (
-      !isNaN(numericDate) &&
-      commonNumbersArray.includes(numericDate.toString())
-    ) {
-      if (commonNumbers123.has(numericDate)) {
-        // const workOfHour = parseFloat(record.workOfHour) || 0;
-        const workOfHour = parseFloat(record.workOfHour) || 0;
+  const calculatedArray = useMemo(() => {
+    return resultArrayWithWorkplaceRecords.map((record) => {
+      const numericDate = parseInt(record.dates, 10);
+      if (
+        !isNaN(numericDate) &&
+        commonNumbersArray.includes(numericDate.toString())
+      ) {
+        if (commonNumbers123.has(numericDate)) {
+          // const workOfHour = parseFloat(record.workOfHour) || 0;
+          const workOfHour = parseFloat(record.workOfHour) || 0;
 
         const workRate = parseFloat(record.workRate) || 0;
         const otTimes = parseFloat(record.otTimes) || 0;
@@ -1415,8 +1495,9 @@ function Compensation() {
     // If the condition is not met, return the original object
     return record;
   });
+  }, [resultArrayWithWorkplaceRecords, commonNumbers123, commonNumbersArray]);
 
-  useEffect(() => {
+  const processedDataTable = useMemo(() => {
     let ans = 0;
     let ans1 = 0;
     let ans2 = 0;
@@ -1424,28 +1505,16 @@ function Compensation() {
     const updatedDataTable = calculatedArray.map((item, index) => {
       let addSalaryDay1 = "";
       if (item !== "") {
-        // if (addSalaryDay < 100) {
         addSalaryDay1 = addSalaryDay;
-        // } else {
-        // addSalaryDay1 = (addSalaryDay / 30).toFixed(2);
-        // }
       }
-      // commonNumbersArray
-
-      // const workRateOT2 = !isNaN(item.workRate) && !isNaN(item.workOfHour) && !isNaN(item.workRateOT) ?
-      //     `${(((item.workRate / item.workOfHour) * item.workRateOT) * item.otTimes).toFixed(2)} (${item.workRateOT})` : '';
 
       let workRateOT2 = "";
       if (item.shift == "specialt_shift" && item.cashSalary == "") {
-        // Apply special shift logic if needed
-        // workRateOT2 = !isNaN(item.workRate) && !isNaN(item.workOfHour) && !isNaN(item.workRateOT) ?
-        //     `${item.specialtSalaryOT.toFixed(2)} (${item.workRateOT})` : '';
         workRateOT2 =
           !isNaN(item.specialtSalaryOT) && !isNaN(item.workRateOT)
             ? `${parseFloat(item.specialtSalaryOT).toFixed(2)}`
             : "";
       } else {
-        // Apply regular shift logic
         workRateOT2 =
           !isNaN(item.workRate) &&
           !isNaN(item.workOfHour) &&
@@ -1458,31 +1527,20 @@ function Compensation() {
             : "";
       }
 
-      // const workRateOT2 = !isNaN(item.workRate) && !isNaN(item.workOfHour) && !isNaN(item.workRateOT) ?
-      //     `${(((item.workRate / item.workOfHour) * item.workRateOT) * item.otTimes).toFixed(2)} (${item.workRateOT})` :
-      //     ''; // If any of the values are not numbers, workRateOT will be an empty string
-
       const hasCalculatedValues =
         typeof item === "object" && "calculatedValue" in item;
       const hasCalculatedValuesOT =
         typeof item === "object" && "calculatedValueOT" in item;
 
-      // if (item.cashSalary == '' && item.shift == 'specialt_shift') {
-
-      // }
-      // Update workRate and workRateOT based on the presence of calculated values
-      // const workRate = hasCalculatedValues ? item.calculatedValue : item.workRate;
       let workRate = "";
       if (item.shift == "specialt_shift" && item.cashSalary == "") {
-        // Apply special shift logic if needed
         workRate = item.specialtSalary;
       } else {
         workRate = hasCalculatedValues ? item.calculatedValue : item.workRate;
       }
+      
       let workRateOT = "";
-
       if (commonNumbers123.has(parseInt(item.dates, 10))) {
-        // Check if commonNumbers123 contains the date from item holidayOT
         workRateOT = hasCalculatedValuesOT
           ? item.calculatedValueOT + " (" + item.holidayOT + ")"
           : workRateOT2;
@@ -1491,23 +1549,19 @@ function Compensation() {
           ? item.calculatedValueOT + " (" + item.dayoffRateOT + ")"
           : workRateOT2;
       }
-      // const workRateOT = hasCalculatedValuesOT ? item.calculatedValueOT + ' ' + '(' + item.dayoffRateOT + ')' : workRateOT2;
 
       const tmp = {
         day: resultArray[index],
         workplaceId: item.workplaceId,
         allTimes: item.allTimes,
-        // workRate: item.workRate,
         workRate: workRate,
         otTimes: item.otTimes,
         workRateOT: workRateOT,
-        // workRateOT: item.workRateOT,
         addSalaryDay: addSalaryDay1,
       };
-      // console.log('tmp',tmp);
+      
       if (!isNaN(item.workRate)) {
         ans = ans + parseFloat(workRate);
-        // parseFloat(item.workRate, 10);
         ans1 = ans1 + parseFloat(workRateOT, 10);
         ans2 = ans2 + parseFloat(addSalaryDay1, 10);
       }
@@ -1515,30 +1569,37 @@ function Compensation() {
       return tmp;
     });
 
-    if (loadStatus == null) {
-      setSumRate(ans);
-      setSumRateOT(ans1);
-      setSumAddSalary(ans2);
-      setDataTable(updatedDataTable);
+    return {
+      dataTable: updatedDataTable,
+      sumRate: ans,
+      sumRateOT: ans1,
+      sumAddSalary: ans2
+    };
+  }, [calculatedArray, addSalaryDay, resultArray, commonNumbers123]);
+
+  useEffect(() => {
+    if (loadStatus == null && processedDataTable) {
+      setSumRate(processedDataTable.sumRate);
+      setSumRateOT(processedDataTable.sumRateOT);
+      setSumAddSalary(processedDataTable.sumAddSalary);
+      setDataTable(processedDataTable.dataTable);
     }
-
-    console.log("updatedDataTable", updatedDataTable);
-    console.log("sumAddSalary", sumAddSalary);
-
-    //ccaa
-  }, [resultArrayWithWorkplaceRecords]);
+  }, [processedDataTable, loadStatus]);
 
   // console.log("sumRate", sumRate);
-  console.log("dataTable", dataTable);
+  // console.log("dataTable", dataTable);
 
-  const extractDayNumber = (dateString) => {
+  const extractDayNumber = useCallback((dateString) => {
     const [day] = dateString.split("/");
     return parseInt(day, 10);
-  };
+  }, []);
 
-  const resultArray22 = dataTable.map((entry) => extractDayNumber(entry.day));
+  const resultArray22 = useMemo(() => 
+    dataTable.map((entry) => extractDayNumber(entry.day)), 
+    [dataTable, extractDayNumber]
+  );
 
-  console.log("resultArray22", resultArray22);
+  // console.log("resultArray22", resultArray22);
 
   const createBy = localStorage.getItem("user");
   const [update, setUpdate] = useState(null);
@@ -1552,6 +1613,73 @@ function Compensation() {
       .padStart(2, "0"); // Note: Month starts from 0
     const tmpyear = tmpcurrentDate.getFullYear();
     const formattedDate = `${tmpday}-${tmpmonth}-${tmpyear}`;
+
+    // ใช้ข้อมูลจาก concludeResultx ที่มีการแก้ไขแล้ว แทนที่จะใช้ dataTable
+    let concludeRecord = [];
+    
+    console.log("🔍 === การสร้าง concludeRecord ===");
+    console.log("📊 ConcludeResultx.length:", concludeResultx.length);
+    console.log("📊 EditedData keys:", Object.keys(editedData));
+    console.log("📊 EditedData content:", JSON.stringify(editedData, null, 2));
+    
+    if (concludeResultx.length > 0) {
+      console.log("📋 Using concludeResultx data");
+      console.log("📋 Original employee_record count:", concludeResultx[0].employee_record.length);
+      
+      // ใช้ข้อมูลที่แก้ไขแล้วจาก concludeResultx ที่ได้ผ่านการอัพเดทจาก handleSave
+      concludeRecord = concludeResultx[0].employee_record;
+      
+      // ไม่ต้องทำการแก้ไขซ้ำ เพราะ handleSave ได้อัพเดทข้อมูลใน concludeResultx แล้ว
+      // แต่ถ้ามีข้อมูลใน editedData ที่ยังไม่ได้บันทึก ให้อัพเดทเพิ่มเติม
+      concludeRecord = concludeRecord.map((record, recordIndex) => {
+        const updatedRecord = { ...record };
+        
+        console.log(`🔍 Processing record ${recordIndex}:`, {
+          workplaceId: record.workplaceId,
+          date: record.date,
+          originalAddSalaryDaily: record.addSalaryDaily?.length || 0,
+          originalSalaryValue: record.addSalaryDaily?.[0]?.SpSalary
+        });
+        
+        // ค้นหาข้อมูลที่แก้ไขสำหรับ record นี้
+        Object.keys(editedData).forEach((key) => {
+          const match = key.match(/^(\d+)-(\d+)-(\d+)_(.+)_table$/);
+          if (match) {
+            const [, index, subIndex, idx, field] = match;
+            
+            // Debug: แสดงข้อมูลการจับคู่
+            console.log(`🔍 Matching key: ${key}, idx: ${idx}, recordIndex: ${recordIndex}, field: ${field}`, editedData[key]);
+            
+            // ตรวจสอบว่าเป็น record ที่ถูกต้องหรือไม่ โดยเทียบ idx กับ recordIndex
+            if (parseInt(idx) === recordIndex && editedData[key] !== undefined) {
+              console.log(`✅ Applying edit for record ${recordIndex}, field: ${field}`, editedData[key]);
+              if (field === 'addSalaryDaily') {
+                // สำหรับ addSalaryDaily ให้ใช้ข้อมูลจาก editedData
+                updatedRecord[field] = Array.isArray(editedData[key]) ? editedData[key] : [];
+                console.log(`💾 Updated addSalaryDaily for record ${recordIndex}:`, updatedRecord[field]);
+              } else {
+                // สำหรับฟิลด์อื่นๆ
+                updatedRecord[field] = editedData[key];
+                console.log(`💾 Updated ${field} for record ${recordIndex}:`, updatedRecord[field]);
+              }
+            }
+          }
+        });
+        
+        console.log(`✅ Final record ${recordIndex} addSalaryDaily:`, updatedRecord.addSalaryDaily?.[0]?.SpSalary);
+        return updatedRecord;
+      });
+    } else {
+      console.log("📋 Using dataTable as fallback");
+      // ถ้าไม่มี concludeResultx ให้ใช้ dataTable แทน
+      concludeRecord = dataTable;
+    }
+    
+    console.log("🎯 Final concludeRecord count:", concludeRecord.length);
+    concludeRecord.forEach((record, index) => {
+      console.log(`🎯 Final record ${index} addSalaryDaily:`, record.addSalaryDaily?.[0]?.SpSalary);
+    });
+    console.log("================================");
 
     await dataTable.map(async (item, index) => {
       if (!item.workplaceId) {
@@ -1567,40 +1695,270 @@ function Compensation() {
       month: month,
       concludeDate: formattedDate,
       employeeId: staffId,
-      concludeRecord: dataTable,
+      concludeRecord: concludeRecord, // ใช้ข้อมูลที่แก้ไขแล้ว
       addSalary: addSalaryList,
       createBy: jsonObject.name,
       sumWorkHour: sumWorkHourX,
       sumWorkRate: sumWorkRateX,
       sumWorkHourOt: sumWorkHourOtX,
       sumWorkRateOt: sumWorkRateOtX,
+      status: editStatus,
     };
+
+    // Debug: แสดงข้อมูลที่จะส่งไปยัง API
+    console.log("🔍 EditedData before save:", JSON.stringify(editedData, null, 2));
+    console.log("🔍 ConcludeResultx before processing:", JSON.stringify(concludeResultx, null, 2));
+    
+    // ตรวจสอบข้อมูล concludeRecord แต่ละ record
+    console.log("🔍 ConcludeRecord details:", concludeRecord.length, "records");
+    concludeRecord.forEach((record, index) => {
+      console.log(`📋 Record ${index}:`, {
+        addSalaryDaily: record.addSalaryDaily,
+        workplaceId: record.workplaceId,
+        date: record.date
+      });
+      
+      if (record.addSalaryDaily && record.addSalaryDaily.length > 0) {
+        console.log(`💰 Record ${index} salary details:`, record.addSalaryDaily[0]);
+      }
+    });
+    
+    console.log("🔍 Final data to be sent to server:", JSON.stringify(data, null, 2));
+    console.log("🔍 ConcludeRecord being sent:", JSON.stringify(concludeRecord, null, 2));
+    
+    // ตรวจสอบข้อมูลแต่ละ record ที่จะส่งไป
+    console.log("📝 === การตรวจสอบข้อมูลก่อนส่ง ===");
+    if (concludeRecord && concludeRecord.length > 0) {
+      concludeRecord.forEach((record, index) => {
+        console.log(`📋 Record ${index}:`, {
+          workplaceId: record.workplaceId,
+          date: record.date,
+          hasAddSalaryDaily: !!record.addSalaryDaily,
+          addSalaryCount: record.addSalaryDaily?.length || 0
+        });
+        
+        if (record.addSalaryDaily && record.addSalaryDaily.length > 0) {
+          record.addSalaryDaily.forEach((item, itemIndex) => {
+            console.log(`  💰 Salary item ${itemIndex}:`, {
+              id: item.id,
+              name: item.name,
+              SpSalary: item.SpSalary,
+              valueType: typeof item.SpSalary,
+              isOriginalValue: item.SpSalary === "30",
+              isEditedValue: item.SpSalary !== "30"
+            });
+          });
+        }
+      });
+    } else {
+      console.log("⚠️ Warning: No concludeRecord data to send!");
+    }
+    console.log("===============================");
+    // console.log("🔍 Data to save:", JSON.stringify(data, null, 2));
+    // console.log("🔍 Conclude Record:", JSON.stringify(concludeRecord, null, 2));
+    // console.log("🔍 Original concludeResultx:", JSON.stringify(concludeResultx, null, 2));
+    // console.log("🔍 EditedData:", JSON.stringify(editedData, null, 2));
+    // console.log("🔍 Update ID:", update);
+    // console.log("🔍 Edit Status:", editStatus);
 
     //ccc
     if (update == null && editStatus == "") {
       //create new conclude record
       try {
+        console.log("📤 Creating new conclude record...");
         const response = await axios.post(endpoint + "/conclude/create", data);
 
         if (response) {
+          console.log("✅ Create response:", response.data);
+          
+          // รอสักครู่ให้เซิร์ฟเวอร์ประมวลผลข้อมูลเสร็จก่อน
+          console.log("⏳ Waiting 2 seconds for server to process...");
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          // ล้างข้อมูลที่แก้ไขใน localStorage หลังบันทึกสำเร็จ
+          const editedDataKey = `editedData_${staffId}_${month}_${year}`;
+          localStorage.removeItem(editedDataKey);
+          console.log("🧹 Cleared localStorage key:", editedDataKey);
+          setEditedData({}); // ล้างข้อมูลที่แก้ไขใน state ด้วย
+          console.log("🧹 Cleared editedData state");
+          
+          // โหลดข้อมูลใหม่หลังบันทึกสำเร็จ
+          console.log("🔄 Calling refreshData after create...");
+          await refreshData();
+          
           alert("บันทึกสำเร็จ");
         }
       } catch (e) {
+        console.error("❌ Create error:", e);
         alert("บันทึกไม่สำเร็จ");
         alert(e);
       }
     } else {
       try {
+        console.log("📤 Updating conclude record with ID:", update);
+        console.log("🔍 Data being sent for update:", JSON.stringify(data, null, 2));
+        
+        // ตรวจสอบข้อมูล addSalaryDaily ในแต่ละ record ก่อนส่ง
+        if (data.concludeRecord && data.concludeRecord.length > 0) {
+          console.log("🔍 Records to update:", data.concludeRecord.length);
+          data.concludeRecord.forEach((record, index) => {
+            if (record.addSalaryDaily) {
+              console.log(`💰 Update Record ${index} addSalaryDaily:`, record.addSalaryDaily);
+              // ตรวจสอบค่าแต่ละ item ในรายละเอียด
+              record.addSalaryDaily.forEach((salaryItem, salaryIndex) => {
+                console.log(`  💸 Salary item ${salaryIndex} being sent to server:`, {
+                  id: salaryItem.id,
+                  name: salaryItem.name,
+                  SpSalary: salaryItem.SpSalary,
+                  valueType: typeof salaryItem.SpSalary,
+                  isString: typeof salaryItem.SpSalary === 'string',
+                  numericValue: parseFloat(salaryItem.SpSalary),
+                  originalExpected: "30",
+                  hasBeenModified: salaryItem.SpSalary !== "30",
+                  entireObject: JSON.stringify(salaryItem)
+                });
+              });
+            }
+          });
+          
+          // แสดง Raw JSON ที่จะส่งไป
+          console.log("📄 Raw JSON payload for server:");
+          console.log(JSON.stringify(data.concludeRecord, null, 2));
+        }
+        
         const response = await axios.put(
-          endpoint + "/conclude/update/" + update,
+          endpoint + "/conclude/update1/" + update,
           data
         );
-        if (response) {
+
+        const updatedDoc = response?.data?.data;
+        if (updatedDoc) {
+          console.log("✅ ข้อมูลหลังอัปเดต:", updatedDoc);
+          console.log("🔍 Server response analysis:");
+          console.log("  - Response status:", response.status);
+          console.log("  - Response data:", JSON.stringify(response.data, null, 2));
+          
+          // ตรวจสอบข้อมูลที่เซิร์ฟเวอร์ส่งกลับมา
+          if (updatedDoc.concludeRecord && updatedDoc.concludeRecord.length > 0) {
+            console.log("📊 Updated records from server:", updatedDoc.concludeRecord.length);
+            
+            let shouldRetry = false;
+            
+            updatedDoc.concludeRecord.forEach((record, index) => {
+              if (record.addSalaryDaily) {
+                console.log(`🎯 Server returned record ${index} addSalaryDaily:`, record.addSalaryDaily);
+                
+                // ตรวจสอบว่าค่าที่ server ส่งกลับตรงกับที่เราส่งไปหรือไม่
+                record.addSalaryDaily.forEach((salaryItem, salaryIndex) => {
+                  const sentItem = data.concludeRecord[index]?.addSalaryDaily?.[salaryIndex];
+                  
+                  if (sentItem && salaryItem.SpSalary !== sentItem.SpSalary) {
+                    console.log(`⚠️ Mismatch in record ${index}, salary ${salaryIndex}:`);
+                    console.log(`  - Sent: ${sentItem.SpSalary}`);
+                    console.log(`  - Received: ${salaryItem.SpSalary}`);
+                    shouldRetry = true;
+                  }
+                });
+              }
+            });
+            
+            // ถ้าพบความไม่ตรงกัน ให้ retry
+            if (shouldRetry) {
+              console.log("🔄 Server data doesn't match sent data. Attempting retry...");
+              await new Promise(resolve => setTimeout(resolve, 2000)); // รอ 2 วินาที
+              
+              const retryResponse = await axios.put(
+                endpoint + "/conclude/update1/" + update,
+                data
+              );
+              
+              console.log("🔄 Retry response:", JSON.stringify(retryResponse.data, null, 2));
+            }
+          }
+          
+          // ตรวจสอบทันทีว่าข้อมูลถูกบันทึกจริงหรือไม่
+          console.log("🔍 Verifying save operation...");
+          try {
+            const verifyData = {
+              employeeId: searchEmployeeId,
+              month: month,
+              year: year,
+              _verify: Date.now()
+            };
+            
+            const verifyResponse = await axios.post(
+              endpoint + "/conclude/searchtimerecordemployee",
+              verifyData
+            );
+            
+            if (verifyResponse.data?.result?.length > 0) {
+              const verifyRecord = verifyResponse.data.result[0]?.employee_record[0];
+              console.log("✅ Verification: Data immediately after save:", verifyRecord?.addSalaryDaily);
+              
+              if (verifyRecord?.addSalaryDaily?.[0]?.SpSalary) {
+                console.log("🎯 Verification: Server has salary value:", verifyRecord.addSalaryDaily[0].SpSalary);
+              }
+            }
+          } catch (verifyError) {
+            console.warn("⚠️ Could not verify save operation:", verifyError);
+          }
+          
+          // รอสักครู่ให้เซิร์ฟเวอร์ประมวลผลข้อมูลเสร็จก่อน
+          console.log("⏳ Waiting 2 seconds for server to process...");
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          // ล้างข้อมูลที่แก้ไขใน localStorage หลังบันทึกสำเร็จ
+          const editedDataKey = `editedData_${staffId}_${month}_${year}`;
+          localStorage.removeItem(editedDataKey);
+          console.log("🧹 Cleared localStorage key:", editedDataKey);
+          setEditedData({}); // ล้างข้อมูลที่แก้ไขใน state ด้วย
+          console.log("🧹 Cleared editedData state");
+          
+          // โหลดข้อมูลใหม่หลังบันทึกสำเร็จ
+          console.log("🔄 Calling refreshData after update...");
+          await refreshData();
+          
           alert("บันทึกสำเร็จ");
-          window.location.reload();
+          // window.location.reload(); // หรือเรียก fetch ใหม่แทน reload
+        } else {
+          alert("❌ บันทึกล้มเหลว: ไม่พบข้อมูลที่อัปเดต");
         }
+        // if (response) {
+        //   alert("บันทึกสำเร็จ");
+        //   // window.location.reload();
+        // }
       } catch (error) {
-        alert("กรุณาตรวจสอบข้อมูลในช่องกรอกข้อมูล");
+        console.error("❌ Axios PUT error:", error.response?.data || error.message);
+        
+        // ตรวจสอบ error type
+        if (error.response?.status === 404) {
+          console.log("🔍 404 Error - Record not found. Checking if ID is correct...");
+          console.log("🔍 Current update ID:", update);
+          console.log("🔍 ConcludeResultx ID:", concludeResultx[0]?._id);
+          
+          // พยายามใช้ ID จาก concludeResultx แทน
+          if (concludeResultx[0]?._id && concludeResultx[0]._id !== update) {
+            console.log("🔄 Trying with correct ID from concludeResultx...");
+            try {
+              const retryResponse = await axios.put(
+                endpoint + "/conclude/update1/" + concludeResultx[0]._id,
+                dataToSend
+              );
+              console.log("✅ Retry with correct ID successful:", retryResponse.data);
+              
+              // อัปเดต state ด้วย ID ที่ถูกต้อง
+              setUpdate(concludeResultx[0]._id);
+              
+              alert("บันทึกสำเร็จ (ใช้ ID ที่ถูกต้อง)");
+              await refreshData();
+              return;
+            } catch (retryError) {
+              console.error("❌ Retry with correct ID also failed:", retryError.response?.data || retryError.message);
+            }
+          }
+        }
+        
+        alert("กรุณาตรวจสอบข้อมูลในช่องกรอกข้อมูล\nError: " + (error.response?.data?.message || error.message));
         // window.location.reload();
       }
     }
@@ -1617,39 +1975,507 @@ function Compensation() {
     specialt_shift: "กะพิเศษ",
   };
 
+
+  //latest code
+  const [concludeResultx, setConcludeResultx] = useState([]); // Store search results
+  const [loading, setLoading] = useState(false); // Track loading state
+  const [error, setError] = useState(null); // Store errors
+
+  // ฟังก์ชันสำหรับรีเฟรชข้อมูลหลังบันทึกสำเร็จ
+  const refreshData = useCallback(async () => {
+    console.log("🔄 Starting refreshData...", { searchEmployeeId, month, year });
+    
+    if (!searchEmployeeId || !month || !year) {
+      console.log("❌ RefreshData cancelled - missing search parameters");
+      return;
+    }
+
+    const data = {
+      employeeId: searchEmployeeId,
+      month: month,
+      year: year,
+      _timestamp: Date.now() // เพิ่ม timestamp เพื่อป้องกัน cache
+    };
+
+    try {
+      console.log("📡 Refreshing data with:", data);
+      
+      // ดึงข้อมูลพนักงานเพื่อเช็ค salary และ workplace
+      const employeeSearchData = {
+        employeeId: searchEmployeeId
+      };
+      
+      const employeeResponse = await axios.post(
+        endpoint + "/employee/search",
+        employeeSearchData
+      );
+      
+      let employeeSalary = 0;
+      let isMonthlyEmployee = false;
+      
+      if (employeeResponse.data?.employees?.length > 0) {
+        const employee = employeeResponse.data.employees[0];
+        employeeSalary = parseFloat(employee.salary) || 0;
+        isMonthlyEmployee = employeeSalary > 1680;
+      }
+
+      // ใช้ POST temporarily until backend is restarted
+      const response = await axios.post(
+        endpoint + "/conclude/searchtimerecordemployee",
+        data
+      );
+
+      if (response.data?.result?.length > 0) {
+        console.log("📦 Fresh data received:", response.data.result[0]?.employee_record[0]?.addSalaryDaily);
+        console.log("🔍 Full employee_record structure:", JSON.stringify(response.data.result[0]?.employee_record[0], null, 2));
+        console.log("🔍 All employee_records:", response.data.result[0]?.employee_record?.length, "records");
+        
+        // ตรวจสอบ addSalaryDaily ในทุก record
+        response.data.result[0]?.employee_record?.forEach((record, index) => {
+          console.log(`📋 Record ${index} addSalaryDaily:`, record.addSalaryDaily);
+        });
+        
+        // ตรวจสอบว่าข้อมูลที่ได้รับกลับมาตรงกับที่เราแก้ไขหรือไม่
+        const firstRecord = response.data.result[0]?.employee_record[0];
+        if (firstRecord?.addSalaryDaily?.length > 0) {
+          const firstSalaryItem = firstRecord.addSalaryDaily[0];
+          console.log("🔍 Server returned salary value:", firstSalaryItem?.SpSalary);
+          
+          // ถ้าข้อมูลยังเป็นค่าเดิม (30) แทนที่จะเป็นค่าที่แก้ไข ให้แสดงคำเตือน
+          if (firstSalaryItem?.SpSalary === "30") {
+            console.warn("⚠️ Warning: Server returned original value (30) instead of edited value. This might indicate:");
+            console.warn("  1. Save operation was not successful");
+            console.warn("  2. Server database was not actually updated");
+            console.warn("  3. Server is returning cached data");
+            console.warn("  4. There's a delay in database update propagation");
+          }
+        }
+        
+        // เพิ่มข้อมูล salary ลงใน employee_record ของแต่ละ record
+        const updatedResult = response.data.result.map(record => ({
+          ...record,
+          employee_record: record.employee_record.map(empRecord => ({
+            ...empRecord,
+            salary: employeeSalary,
+            isMonthlyEmployee: isMonthlyEmployee
+          }))
+        }));
+        
+        setConcludeResultx(updatedResult);
+        setUpdate(response.data?.result[0]?._id);
+        console.log("🔄 ข้อมูลถูกรีเฟรชเรียบร้อยแล้ว - Updated concludeResultx");
+        console.log("🎯 New addSalaryDaily values:", updatedResult[0]?.employee_record[0]?.addSalaryDaily);
+        console.log("🎯 Total records after refresh:", updatedResult[0]?.employee_record?.length);
+        console.log("✅ Data successfully refreshed with", updatedResult.length, "records");
+      } else {
+        console.log("❌ No data received from API during refresh");
+      }
+    } catch (e) {
+      console.error("❌ Error refreshing data:", e);
+    }
+  }, [searchEmployeeId, month, year]);
+
+  // Monitor concludeResultx changes for debugging
+  useEffect(() => {
+    if (concludeResultx.length > 0) {
+      console.log("🔔 ConcludeResultx state updated:", {
+        totalRecords: concludeResultx.length,
+        firstRecordEmployeeRecords: concludeResultx[0]?.employee_record?.length,
+        firstEmployeeRecord: concludeResultx[0]?.employee_record[0]?.addSalaryDaily?.length,
+        timestamp: new Date().toISOString()
+      });
+    }
+  }, [concludeResultx]);
+
+  async function handleSearch(event) {
+    event.preventDefault();
+
+    // Save search values in localStorage
+    localStorage.setItem("employeeId", searchEmployeeId);
+    localStorage.setItem("employeeName", searchEmployeeName);
+    localStorage.setItem("month", month);
+    localStorage.setItem("year", year);
+
+    // Reset previous results
+    setConcludeResultx([]);
+    setLoading(true);
+    setError(null);
+
+    const data = {
+      employeeId: searchEmployeeId,
+      month: month,
+      year: year,
+    };
+
+    try {
+      // ดึงข้อมูลพนักงานเพื่อเช็ค salary และ workplace
+      const employeeSearchData = {
+        employeeId: searchEmployeeId
+      };
+      
+      const employeeResponse = await axios.post(
+        endpoint + "/employee/search",
+        employeeSearchData
+      );
+      
+      let employeeSalary = 0;
+      let isMonthlyEmployee = false;
+      
+      if (employeeResponse.data?.employees?.length > 0) {
+        const employee = employeeResponse.data.employees[0];
+        employeeSalary = parseFloat(employee.salary) || 0;
+        isMonthlyEmployee = employeeSalary > 1680;
+        // console.log("salary from employee/search:", employeeSalary);
+      }
+
+      const response = await axios.post(
+        endpoint + "/conclude/searchtimerecordemployee",
+        data
+      );
+
+      if (response.data?.result?.length > 0) {
+        // เพิ่มข้อมูล salary ลงใน employee_record ของแต่ละ record
+        const updatedResult = response.data.result.map(record => ({
+          ...record,
+          employee_record: record.employee_record.map(empRecord => ({
+            ...empRecord,
+            salary: employeeSalary,
+            isMonthlyEmployee: isMonthlyEmployee
+          }))
+        }));
+        
+        await setConcludeResultx(updatedResult);
+        await setUpdate(response.data?.result[0]?._id)
+        // alert(JSON.stringify(response.data?.result[0]?.employee_record[0].addSalaryDaily, null, 2));
+      } else {
+        // alert("Conclude is null");
+      }
+    } catch (e) {
+      setError("An error occurred while fetching data.");
+      console.error(e);
+    } finally {
+      setLoading(false);
+      
+    }
+  }
+
+
+  //sum concludeResultx
+  const [dataTotals , setDataTotals ] = useState({});
+
+  //edit table 
+  const [editingIndex, setEditingIndex] = useState(null);
+  const [editedData, setEditedData] = useState({});
+
+  const dataTotalsCalculation = useMemo(() => {
+    const sum = (data) => {
+      if (!data || !data.employee_record) return {
+        totalTime: 0,
+        beforeTotalOtTime: 0,
+        totalOtTime: 0,
+        cashBeforeOt: 0,
+        cashWork: 0,
+        cashOt: 0,
+        addSalaryTotal: 0
+      };
+  
+      return data.employee_record.reduce((acc, record, recordIndex) => {
+        // Check for edited data for this specific record
+        const getEditedValue = (field) => {
+          // Find edited data that matches this record
+          for (const key of Object.keys(editedData)) {
+            const match = key.match(/^(\d+)-(\d+)-(\d+)_(.+)_table$/);
+            if (match) {
+              const [, index, subIndex, idx, editedField] = match;
+              if (parseInt(idx) === recordIndex && editedField === field) {
+                return editedData[key];
+              }
+            }
+          }
+          return record[field]; // Return original if no edited value found
+        };
+
+        // Use edited values if available, otherwise use original values
+        const totalTime = parseFloat(getEditedValue('totalTime')) || 0;
+        const beforeTotalOtTime = parseFloat(getEditedValue('beforeTotalOtTime')) || 0;
+        const totalOtTime = parseFloat(getEditedValue('totalOtTime')) || 0;
+        const cashBeforeOt = parseFloat(getEditedValue('cashBeforeOt')) || 0;
+        const cashWork = parseFloat(getEditedValue('cashWork')) || 0;
+        const cashOt = parseFloat(getEditedValue('cashOt')) || 0;
+
+        // Sum the values
+        acc.totalTime += totalTime;
+        acc.beforeTotalOtTime += beforeTotalOtTime;
+        acc.totalOtTime += totalOtTime;
+        acc.cashBeforeOt += cashBeforeOt;
+        acc.cashWork += cashWork;
+        acc.cashOt += cashOt;
+
+        // Calculate addSalaryDaily sum
+        let addSalarySum = 0;
+        
+        // Check for edited addSalaryDaily first
+        for (const key of Object.keys(editedData)) {
+          const match = key.match(/^(\d+)-(\d+)-(\d+)_addSalaryDaily_table$/);
+          if (match) {
+            const [, index, subIndex, idx] = match;
+            if (parseInt(idx) === recordIndex) {
+              const editedSalaryData = editedData[key] || [];
+              addSalarySum = editedSalaryData.reduce((sum, salary) => sum + parseFloat(salary.SpSalary || 0), 0);
+              break; // Found edited data, stop looking
+            }
+          }
+        }
+        
+        // If no edited data found, use original addSalaryDaily
+        if (addSalarySum === 0 && record.addSalaryDaily) {
+          addSalarySum = record.addSalaryDaily.reduce((sum, salary) => sum + parseFloat(salary.SpSalary || 0), 0);
+        }
+        
+        acc.addSalaryTotal += addSalarySum;
+
+        return acc; 
+      }, {
+        totalTime: 0,
+        beforeTotalOtTime: 0,
+        totalOtTime: 0,
+        cashBeforeOt: 0,
+        cashWork: 0,
+        cashOt: 0,
+        addSalaryTotal: 0
+      });
+    };
+  
+    if (concludeResultx.length > 0) {
+      return sum(concludeResultx[0]);
+    }
+    return {
+      totalTime: 0,
+      beforeTotalOtTime: 0,
+      totalOtTime: 0,
+      cashBeforeOt: 0,
+      cashWork: 0,
+      cashOt: 0,
+      addSalaryTotal: 0
+    };
+  }, [concludeResultx, editedData]);
+
+  useEffect(() => {
+    // เปรียบเทียบด้วย JSON.stringify เพื่อป้องกัน infinite loop
+    const newTotals = dataTotalsCalculation;
+    const currentTotalsString = JSON.stringify(dataTotals);
+    const newTotalsString = JSON.stringify(newTotals);
+    
+    if (currentTotalsString !== newTotalsString) {
+      setDataTotals(newTotals);
+    }
+  }, [dataTotalsCalculation, dataTotals]);
+
+  
+// โหลดข้อมูลที่แก้ไขจาก localStorage เมื่อ component mount
+useEffect(() => {
+  const editedDataKey = `editedData_${staffId}_${month}_${year}`;
+  const savedEditedData = localStorage.getItem(editedDataKey);
+  if (savedEditedData && staffId && month && year) {
+    try {
+      const parsedData = JSON.parse(savedEditedData);
+      setEditedData(parsedData);
+      // console.log("🔄 Loaded edited data from localStorage:", parsedData);
+    } catch (e) {
+      console.error("❌ Error parsing saved edited data:", e);
+    }
+  }
+}, [staffId, month, year]); // เพิ่ม dependency array
+
+// Save editedData to localStorage when it changes
+useEffect(() => {
+  if (staffId && month && year && Object.keys(editedData).length > 0) {
+    const editedDataKey = `editedData_${staffId}_${month}_${year}`;
+    localStorage.setItem(editedDataKey, JSON.stringify(editedData));
+  }
+}, [editedData, staffId, month, year]);
+
+// Handle input change
+const handleInputChange = useCallback((event, field, index, subIndex, idx) => {
+  const newValue = event.target.value;
+  const key = `${index}-${subIndex}-${idx}_${field}_table`;
+
+  setEditedData((prev) => ({
+    ...prev,
+    [key]: newValue,
+  }));
+}, []);
+
+// Handle input change for addSalaryDaily items
+const handleAddSalaryInputChange = useCallback((index, subIndex, idx, salaryIndex, field, value) => {
+  const key = `${index}-${subIndex}-${idx}_addSalaryDaily_table`;
+  
+  setEditedData(prev => {
+    const updatedSalaries = [...(prev[key] || [])];
+    if (!updatedSalaries[salaryIndex]) {
+      updatedSalaries[salaryIndex] = {};
+    }
+    updatedSalaries[salaryIndex] = {
+      ...updatedSalaries[salaryIndex],
+      [field]: value
+    };
+    
+    return {
+      ...prev,
+      [key]: updatedSalaries
+    };
+  });
+}, []);
+
+
+// Handle delete for salary items
+const handleDeleteSalary = (index, subIndex, idx, salaryIndex) => {
+  // alert(" index " + index + " subIndex " + " idx " + idx + " salaryIndex " + salaryIndex)
+  setEditedData((prev) => {
+    const key = `${index}-${subIndex}-${idx}_addSalaryDaily_table`;
+    const updatedSalaries = [...(prev[key] || [])];
+    updatedSalaries.splice(salaryIndex, 1);
+    return {
+      ...prev,
+      [key]: updatedSalaries,
+    };
+  });
+};
+
+// Handle add new salary item
+const handleAddSalaryItem = (index, subIndex, idx) => {
+  const key = `${index}-${subIndex}-${idx}_addSalaryDaily_table`;
+  setEditedData(prev => {
+    const updatedSalaries = [...(prev[key] || [])];
+    updatedSalaries.push({ 
+      id: "", 
+      name: "", 
+      SpSalary: "0",
+      roundOfSalary: "daily",
+      StaffType: "",
+      nameType: "",
+      _id: ""
+    });
+    return {
+      ...prev,
+      [key]: updatedSalaries
+    };
+  });
+};
+const handleSave = (index, subIndex, idx) => {
+  setEditStatus("update");
+  // console.log("🔍 Before save - editedData:", JSON.stringify(editedData, null, 2));
+  
+  setConcludeResultx((prevData) => {
+    const updatedData = JSON.parse(JSON.stringify(prevData));
+
+    const updatedRecord = updatedData[index]?.employee_record?.[idx];
+    if (updatedRecord) {
+      // console.log("🔍 Original record before update:", JSON.stringify(updatedRecord, null, 2));
+      
+      Object.keys(editedData).forEach((key) => {
+        const match = key.match(/^(\d+)-(\d+)-(\d+)_(.+)_table$/);
+        if (match) {
+          const [, i, j, k, field] = match;
+
+          if (`${i}-${j}-${k}` === `${index}-${subIndex}-${idx}`) {
+            // console.log(`🔄 Updating field ${field} with value:`, editedData[key]);
+            
+            // Special handling for addSalaryDaily field
+            if (field === "addSalaryDaily") {
+              // Ensure we have valid data structure
+              const editedSalaryData = editedData[key] || [];
+              
+              // Map the edited data back to the proper addSalaryDaily structure
+              updatedRecord["addSalaryDaily"] = editedSalaryData.map((item, salaryIndex) => ({
+                id: item.id || (updatedRecord.addSalaryDaily[salaryIndex]?.id || ""),
+                name: item.name || "",
+                SpSalary: item.SpSalary || "0",
+                roundOfSalary: item.roundOfSalary || "daily",
+                StaffType: item.StaffType || "",
+                nameType: item.nameType || "",
+                _id: item._id || (updatedRecord.addSalaryDaily[salaryIndex]?._id || "")
+              }));
+              
+              // console.log("💰 Updated addSalaryDaily:", updatedRecord["addSalaryDaily"]);
+            } else {
+              // Map other fields normally
+              updatedRecord[field] = editedData[key];
+            }
+          }
+        }
+      });
+      
+      // console.log("🔍 Record after update:", JSON.stringify(updatedRecord, null, 2));
+    }
+
+    // console.log("🔍 Full updated data:", JSON.stringify(updatedData, null, 2));
+    
+    return updatedData;
+  });
+
+  setEditingIndex(null); // Exit edit mode
+};
+
+// Handle save and update concludeResultx
+const handleSave_back = (index, subIndex, idx) => {
+  setConcludeResultx((prevData) => {
+    // Clone the array to trigger a re-render
+    const updatedData = JSON.parse(JSON.stringify(prevData));
+
+    // Find the correct record
+    const updatedRecord = updatedData[index]?.employee_record?.[idx];
+    if (updatedRecord) {
+      Object.keys(editedData).forEach((key) => {
+        const field = key.replace(/_\d+-\d+-sd+_table/, ""); // Remove index and "_table" suffix
+        if (updatedRecord[field] !== undefined) {
+          updatedRecord[field] = editedData[key]; // Update modified fields
+        }
+      });
+    }
+// alert(JSON.stringify(updatedData,null,2))
+    return updatedData; // Return the new state
+  });
+
+  setEditingIndex(null); // Exit edit mode
+};
+
   return (
     // <div>
-    <body class="hold-transition sidebar-mini" className="editlaout">
-      <div class="wrapper">
-        <div class="content-wrapper">
+    // <body class="hold-transition sidebar-mini" className="editlaout">
+    //   <div class="wrapper">
+    //     <div class="content-wrapper">
+    <div className="hold-transition sidebar-mini editlaout">
+    <div className="wrapper">
+      <div className="content-wrapper">
           {/* <!-- Content Header (Page header) --> */}
-          <ol class="breadcrumb">
-            <li class="breadcrumb-item">
-              <i class="fas fa-home"></i> <a href="index.php">หน้าหลัก</a>
+          <ol className="breadcrumb">
+            <li className="breadcrumb-item">
+              <i className="fas fa-home"></i> <a href="index.php">หน้าหลัก</a>
             </li>
-            <li class="breadcrumb-item">
+            <li className="breadcrumb-item">
               <a href="#"> การตั้งค่า</a>
             </li>
-            <li class="breadcrumb-item active">ตารางค่าตอบแทน</li>
+            <li className="breadcrumb-item active">ตารางค่าตอบแทน</li>
           </ol>
-          <div class="content-header">
-            <div class="container-fluid">
-              <div class="row mb-2">
-                <h1 class="m-0">
-                  <i class="far fa-arrow-alt-circle-right"></i> ตารางค่าตอบแทน
+          <div className="content-header">
+            <div className="container-fluid">
+              <div className="row mb-2">
+                <h1 className="m-0">
+                  <i className="far fa-arrow-alt-circle-right"></i> ตารางค่าตอบแทน
                 </h1>
               </div>
             </div>
           </div>
-          <section class="content">
-            <div class="container-fluid">
-              <h2 class="title">ตารางค่าตอบแทน</h2>
-              <section class="Frame">
-                <div class="col-md-12">
+          <section className="content">
+            <div className="container-fluid">
+              <h2 className="title">ตารางค่าตอบแทน</h2>
+              <section className="Frame">
+                <div className="col-md-12">
                   <form onSubmit={handleSearch}>
-                    <div class="row">
-                      <div class="col-md-6">
-                        <div class="form-group">
+                    <div className="row">
+                      <div className="col-md-6">
+                        <div className="form-group">
                           <label role="searchEmployeeId">รหัสพนักงาน</label>
                           {/* <input type="text" class="form-control" id="searchEmployeeId" placeholder="รหัสพนักงาน" value={searchEmployeeId} onChange={(e) => setSearchEmployeeId(e.target.value)} /> */}
                           <input
@@ -1678,8 +2504,8 @@ function Compensation() {
                           </datalist>
                         </div>
                       </div>
-                      <div class="col-md-6">
-                        <div class="form-group">
+                      <div className="col-md-6">
+                        <div className="form-group">
                           <label role="searchname">ชื่อพนักงาน</label>
                           {/* <input type="text" class="form-control" id="searchname" placeholder="ชื่อพนักงาน" value={searchEmployeeName} onChange={(e) => setSearchEmployeeName(e.target.value)} /> */}
                           <input
@@ -1703,9 +2529,9 @@ function Compensation() {
                       </div>
                     </div>
 
-                    <div class="row">
-                      <div class="col-md-6">
-                        <div class="form-group">
+                    <div className="row">
+                      <div className="col-md-6">
+                        <div className="form-group">
                           <label role="agencyname">เดือน</label>
                           <select
                             className="form-control"
@@ -1727,8 +2553,8 @@ function Compensation() {
                           </select>
                         </div>
                       </div>
-                      <div class="col-md-6">
-                        <div class="form-group">
+                      <div className="col-md-6">
+                        <div className="form-group">
                           <label>ปี</label>
                           <select
                             className="form-control"
@@ -1744,9 +2570,9 @@ function Compensation() {
                         </div>
                       </div>
                     </div>
-                    <div class="d-flex justify-content-center">
-                      <button class="btn b_save" onClick={handleSearch()}>
-                        <i class="nav-icon fas fa-search"></i> &nbsp; ค้นหา
+                    <div className="d-flex justify-content-center">
+                      <button className="btn b_save" type="submit">
+                        <i className="nav-icon fas fa-search"></i> &nbsp; ค้นหา
                       </button>
                     </div>
                   </form>
@@ -1774,10 +2600,10 @@ function Compensation() {
                                     </div> */}
                 </div>
               </section>
-              <section class="Frame">
+              <section className="Frame">
                 {staffFullName ? (
-                  <div class="row">
-                    <div class="col-md-12">ชื่อ: {staffFullName}</div>
+                  <div className="row">
+                    <div className="col-md-12">ชื่อ: {staffFullName}</div>
                   </div>
                 ) : (
                   <div>
@@ -1795,606 +2621,384 @@ function Compensation() {
                                     </div>
                                 )} */}
 
-                <div class="row">
-                  <div class="col-md-2">
+                <div className="d-flex justify-content-between ">
+                  <td className="">
                     ตั้งแต่วันที่ 21 {thaiMonthLowerName} - 20 {thaiMonthName}{" "}
                     ปี {parseInt(year, 10) + 543}
-                  </div>
-                  <div class="col-md-8"></div>
-                  <div class="col-md-2">
-                    <div class="d-flex justify-content-center">
-                      <button type="button" onClick={recal} class="btn b_save">
+                  </td>
+                  <div className=""></div>
+                  <div className="">
+                    <div className="">
+                      <button type="button" onClick={recal} className="btn b_save " >
                         {" "}
                         คำนวณใหม่
                       </button>
                     </div>
                   </div>
                 </div>
-                <br />
-                <div class="row">
-                  <div class="col-md-12">
-                    <div class="form-group">
-                      <table border="1" style={tableStyle}>
-                        <thead>
-                          <tr>
-                            <th style={headerCellStyle}>วันที่</th>
-                            <th style={headerCellStyle}>หน่วยงาน</th>
-                            <th style={headerCellStyle}>กะ</th>
-                            <th style={headerCellStyle}>ชั่วโมงทำงาน</th>
-                            <th style={headerCellStyle}>ค่าจ้างปกติ</th>
-                            <th style={headerCellStyle}>ชั่วโมง OT</th>
-                            <th style={headerCellStyle}>ค่าล่วงเวลา OT</th>
-                            <th style={headerCellStyle}>เงินเพิ่ม</th>
-                            <th style={headerCellStyle}>แก้/ลบ</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {dataTable.map((workplaceRecord, index) => (
-                            <tr key={index}>
-                              <td
-                                style={
-                                  commonNumbers.has(resultArray22[index])
-                                    ? {
-                                        ...cellStyle,
-                                        backgroundColor: "yellow",
-                                      }
-                                    : cellStyle
-                                }
-                              >
-                                {editIndex === index ? (
-                                  <input
-                                    type="text"
-                                    className="form-control"
-                                    value={formData.day}
-                                    onChange={handleInputChange}
-                                    name="day"
-                                    readOnly
-                                  />
-                                ) : (
-                                  workplaceRecord.day
-                                )}
-                              </td>
-                              {/* <td style={commonNumbers.has(resultArray2[index]) ? { ...cellStyle, backgroundColor: 'yellow' } : cellStyle}>
-                                                                {editIndex === index ?
-                                                                    <input type="text" className="form-control" value={formData.day} onChange={handleInputChange} name="day" readOnly /> :
-                                                                    workplaceRecord.shift}
-                                                            </td> */}
-                              <td
-                                style={
-                                  commonNumbers.has(resultArray22[index])
-                                    ? {
-                                        ...cellStyle,
-                                        backgroundColor: "yellow",
-                                      }
-                                    : cellStyle
-                                }
-                              >
-                                {editIndex === index ? (
-                                  <input
-                                    type="text"
-                                    className="form-control"
-                                    value={formData.workplaceId}
-                                    onChange={handleInputChange}
-                                    name="workplaceId"
-                                    readOnly
-                                  />
-                                ) : (
-                                  workplaceRecord.workplaceId
-                                )}
-                              </td>
-                              <td
-                                style={
-                                  commonNumbers.has(resultArray22[index])
-                                    ? {
-                                        ...cellStyle,
-                                        backgroundColor: "yellow",
-                                      }
-                                    : cellStyle
-                                }
-                              >
-                                {editIndex === index ? (
-                                  <input
-                                    type="text"
-                                    className="form-control"
-                                    value={formData.shift}
-                                    onChange={handleInputChange}
-                                    name="shift"
-                                  />
-                                ) : (
-                                  // workplaceRecord.shift
-                                  shiftMapping[workplaceRecord.shift] ||
-                                  workplaceRecord.shift
-                                )}
-                              </td>
-                              <td
-                                style={
-                                  commonNumbers.has(resultArray22[index])
-                                    ? {
-                                        ...cellStyle,
-                                        backgroundColor: "yellow",
-                                      }
-                                    : cellStyle
-                                }
-                              >
-                                {editIndex === index ? (
-                                  <input
-                                    type="text"
-                                    className="form-control"
-                                    value={formData.allTimes}
-                                    onChange={handleInputChange}
-                                    name="allTimes"
-                                  />
-                                ) : (
-                                  workplaceRecord.allTimes
-                                )}
-                              </td>
-                              <td
-                                style={
-                                  commonNumbers.has(resultArray22[index])
-                                    ? {
-                                        ...cellStyle,
-                                        backgroundColor: "yellow",
-                                      }
-                                    : cellStyle
-                                }
-                              >
-                                {editIndex === index ? (
-                                  <>
-                                    <input
-                                      type="text"
-                                      className="form-control"
-                                      value={formData.workRate}
-                                      onChange={handleInputChange}
-                                      name="workRate"
-                                    />
-                                    <input
-                                      type="hidden"
-                                      className="form-control"
-                                      value={formData.workRateMultiply}
-                                      onChange={handleInputChange}
-                                      name="workRateMultiply"
-                                    />
-                                    <input
-                                      type="hidden"
-                                      className="form-control"
-                                      value={formData.shift}
-                                      onChange={handleInputChange}
-                                      name="shift"
-                                    />
-                                    <input
-                                      type="hidden"
-                                      className="form-control"
-                                      value={formData.workType}
-                                      onChange={handleInputChange}
-                                      name="workType"
-                                    />
-                                  </>
-                                ) : (
-                                  workplaceRecord.workRate
-                                )}
-                              </td>
-                              <td
-                                style={
-                                  commonNumbers.has(resultArray22[index])
-                                    ? {
-                                        ...cellStyle,
-                                        backgroundColor: "yellow",
-                                      }
-                                    : cellStyle
-                                }
-                              >
-                                {editIndex === index ? (
-                                  <input
-                                    type="text"
-                                    className="form-control"
-                                    value={formData.otTimes}
-                                    onChange={handleInputChange}
-                                    name="otTimes"
-                                  />
-                                ) : (
-                                  workplaceRecord.otTimes
-                                )}
-                              </td>
 
-                              <td
-                                style={
-                                  commonNumbers.has(resultArray22[index])
-                                    ? {
-                                        ...cellStyle,
-                                        backgroundColor: "yellow",
-                                      }
-                                    : cellStyle
+      {/* Error Message */}
+      {error && <div className="alert alert-danger mt-3">{error}</div>}
+
+      {/* Loading Indicator */}
+      {loading && <div className="mt-3 alert alert-info">Loading data...</div>}
+
+{/* Results Table */}
+{concludeResultx.length > 0 && (
+
+      <div className="mt-4">
+      <div className="table-responsive">
+        <table className="table table-bordered fw text-center">
+          <thead>
+            <tr >
+              <th >วันที่</th>
+              <th>รหัส</th>
+              <th>ชื่อ</th>
+              <th>กลุ่ม</th>
+              <th>กะ</th>
+              <th>OT ก่อน</th>
+              <th>ค่าจ้าง</th>
+              <th>เวลาทำงาน</th>
+              <th>ค่าจ้าง</th>
+              <th>OT หลัง</th>
+              <th>ค่าจ้าง</th>
+              <th>เงินเพิ่ม</th>
+              <th>แก้ไข</th>
+            </tr>
+          </thead>
+          <tbody className="">
+          
+            {concludeResultx.map((record, index) => (
+              <>
+                {dataTable.map((workplaceRecord, subIndex) => {
+                  const day = workplaceRecord.day.split("/")[0];
+                  const matchedRecords = record.employee_record.filter((item) => item.date === day);
+
+                  return matchedRecords.length > 0 ? (
+                    matchedRecords.map((matchedRecord, idx) => {
+                      const isEditing = editingIndex === `${index}-${subIndex}-${idx}`;
+
+                      return (
+                        <tr className="fw-normal" key={`${index}-${subIndex}-${idx}`}>
+                          <th className="fw-normal" >{day}</th>
+                          <th className="fw-normal">{matchedRecord.workplaceId}</th>
+                          <th className="fw-normal">{matchedRecord.workplaceName}</th>
+                          <th className="fw-normal">{matchedRecord.wGroup}</th>
+                          <th className="fw-normal">{shiftMapping[matchedRecord.shift]}</th>
+
+                          {/* Editable Fields */}
+                          {["beforeTotalOtTime", "cashBeforeOt", "totalTime", "cashWork", "totalOtTime", "cashOt"].map(
+                            (field) => {
+                              // เช็คว่าเป็นพนักงานเงินเดือนหรือไม่จากข้อมูล salary ที่ดึงมา
+                              const isMonthlyEmployee = matchedRecord.isMonthlyEmployee;
+                              const employeeSalary = parseFloat(matchedRecord.salary) || 0;
+                              
+                              // คำนวณค่าสำหรับพนักงานเงินเดือน
+                              let displayValue = matchedRecord[field];
+                              
+                              // ตรวจสอบว่ามีค่าที่แก้ไขแล้วหรือไม่ (ลำดับความสำคัญสูงสุด)
+                              const editedKey = `${index}-${subIndex}-${idx}_${field}_table`;
+                              if (editedData[editedKey] !== undefined && !isEditing) {
+                                // ใช้ค่าที่แก้ไขแล้ว โดยไม่คำนวณใหม่
+                                displayValue = editedData[editedKey];
+                                
+                                // Format ค่าที่แก้ไขแล้วให้เป็นทศนิยม 2 ตำแหน่ง
+                                if (field === 'cashBeforeOt' || field === 'cashWork' || field === 'cashOt') {
+                                  displayValue = parseFloat(displayValue || 0).toFixed(2);
+                                } else if (field === 'beforeTotalOtTime' || field === 'totalTime' || field === 'totalOtTime') {
+                                  displayValue = parseFloat(displayValue || 0).toFixed(2);
                                 }
-                              >
-                                {editIndex === index ? (
-                                  <>
+                              } else if (!isEditing) {
+                                // เฉพาะเมื่อไม่มีการแก้ไขและไม่ได้อยู่ในโหมดแก้ไข ถึงจะคำนวณใหม่
+                                
+                                // Format time fields to 2 decimal places
+                                if (field === 'beforeTotalOtTime' || field === 'totalTime' || field === 'totalOtTime') {
+                                  displayValue = parseFloat(displayValue || 0).toFixed(2);
+                                }
+                                
+                                // Format cash fields to 2 decimal places และคำนวณสำหรับพนักงานเงินเดือน
+                                if (field === 'cashBeforeOt' || field === 'cashWork' || field === 'cashOt') {
+                                  // เช็คกะพิเศษก่อน
+                                  if (field === 'cashWork' && matchedRecord.shift === 'cash_holiday') {
+                                    // ถ้าเป็นกะพิเศษ ให้ใช้ specialtSalary
+                                    displayValue = parseFloat(matchedRecord.cashOfHoliday || 0).toFixed(2);
+                                  } else if (field === 'cashOt' && matchedRecord.shift === 'cash_holiday') {
+                                    // ถ้าเป็นกะพิเศษ ให้ใช้ specialtSalaryOT
+                                    displayValue = parseFloat(matchedRecord.cashOfHolidayOt || 0).toFixed(2);
+                                  } else if (isMonthlyEmployee && employeeSalary > 1680) {
+                                    if (field === 'cashWork') {
+                                      // สำหรับพนักงานเงินเดือน แสดง salary/30
+                                      displayValue = (employeeSalary / 30).toFixed(2);
+                                    } else if (field === 'cashBeforeOt') {
+                                      // คำนวณ cashBeforeOt สำหรับพนักงานเงินเดือน
+                                      const workRate = employeeSalary; // ใช้ salary จาก API employee/search
+                                      // ตรวจสอบประเภทพนักงาน: ถ้าเงินเดือน > 1680 = พนักงานเงินเดือน, ถ้าไม่ = พนักงานรายวัน
+                                      const dayPerHour = employeeSalary > 1680 ? (workRate / 30) / 8 : workRate / 8;
+                                      const beforeTotalOtTime = parseFloat(matchedRecord.beforeTotalOtTime) || 0;
+                                      
+                                      // ตรวจสอบประเภทวันหยุดหรือการทำงานล่วงเวลา
+                                      let otRate = 1.5; // ค่าเริ่มต้น 1.5 เท่า
+                                      
+                                      if (matchedRecord.isPublicHoliday) {
+                                        otRate = 2; // วันหยุดนักขัตฤกษ์ 2 เท่า
+                                      } else if (matchedRecord.isSpecialHoliday) {
+                                        otRate = 3; // วันหยุดพิเศษ 3 เท่า
+                                      }
+                                      
+                                      const dayPerHourOt = dayPerHour * otRate;
+                                      displayValue = (dayPerHourOt * beforeTotalOtTime).toFixed(2);
+                                    } else if (field === 'cashOt') {
+                                      // คำนวณ cashOt สำหรับพนักงานเงินเดือน
+                                      const workRate = employeeSalary; // ใช้ salary จาก API employee/search
+                                      // ตรวจสอบประเภทพนักงาน: ถ้าเงินเดือน > 1680 = พนักงานเงินเดือน, ถ้าไม่ = พนักงานรายวัน
+                                      const dayPerHour = employeeSalary > 1680 ? (workRate / 30) / 8 : workRate / 8;
+                                      const totalOtTime = parseFloat(matchedRecord.totalOtTime) || 0;
+                                      
+                                      // ตรวจสอบประเภทวันหยุดหรือการทำงานล่วงเวลา
+                                      let otRate = 1.5; // ค่าเริ่มต้น 1.5 เท่า
+                                      
+                                      if (matchedRecord.isPublicHoliday) {
+                                        otRate = 2; // วันหยุดนักขัตฤกษ์ 2 เท่า
+                                      } else if (matchedRecord.isSpecialHoliday) {
+                                        otRate = 3; // วันหยุดพิเศษ 3 เท่า
+                                      }
+                                      
+                                      const dayPerHourOt = dayPerHour * otRate;
+                                      displayValue = (dayPerHourOt * totalOtTime).toFixed(2);
+                                    }
+                                  } else {
+                                    // สำหรับพนักงานรายวัน ใช้ค่าเดิม
+                                    displayValue = parseFloat(displayValue || 0).toFixed(2);
+                                  }
+                                }
+                              }
+                              
+                              return (
+                                <th className="fw-normal" key={field}>
+                                  {isEditing ? (
                                     <input
-                                      type="text"
-                                      className="form-control"
-                                      value={formData.workRateOT}
-                                      onChange={handleInputChange}
-                                      name="workRateOT"
+                                      type="number"
+                                      step="0.01"
+                                      className="form-control " 
+                                      style={{ width: "6rem", margin: "0 auto" }} 
+            
+                                      value={
+                                        editedData[`${index}-${subIndex}-${idx}_${field}_table`] ??
+                                        displayValue
+                                      }
+                                      onChange={(e) => handleInputChange(e, field, index, subIndex, idx)}
                                     />
-                                    <input
-                                      type="hidden"
-                                      className="form-control"
-                                      value={formData.workRateOTMultiply}
-                                      onChange={handleInputChange}
-                                      name="workRateOTMultiply"
-                                    />{" "}
-                                  </>
-                                ) : (
-                                  workplaceRecord.workRateOT
-                                )}
-                              </td>
-                              <td
-                                style={
-                                  commonNumbers.has(resultArray22[index])
-                                    ? {
-                                        ...cellStyle,
-                                        backgroundColor: "yellow",
-                                      }
-                                    : cellStyle
-                                }
-                              >
-                                {editIndex === index ? (
-                                  <div className="popup">
-                                    <h4>รายการเงินเพิ่ม</h4>
-                                    <ul
-                                      style={{
-                                        listStyleType: "none",
-                                        padding: 0,
-                                        margin: 0,
-                                      }}
-                                    >
-                                      {addSalaryList[index] &&
-                                        addSalaryList[index].map(
-                                          (addsalary, index1) =>
-                                            addsalary.name !== "" && (
-                                              <li
-                                                key={index1}
-                                                style={{ marginBottom: "10px" }}
-                                              >
-                                                {addsalary.name} - จำนวน:{" "}
-                                                {addsalary.SpSalary > 100
-                                                  ? (
-                                                      addsalary.SpSalary / 30
-                                                    ).toFixed(2)
-                                                  : addsalary.SpSalary}{" "}
-                                                {addsalary.roundOfSalary ==
-                                                  "daily" && (
-                                                  <>/ {addsalary.message} วัน</>
-                                                )}
-                                                <button
-                                                  type="button"
-                                                  onClick={() =>
-                                                    handleRemoveAddSalaryArray(
-                                                      index,
-                                                      index1
-                                                    )
-                                                  }
-                                                >
-                                                  ลบ
-                                                </button>
-                                              </li>
-                                            )
-                                        )}
-                                    </ul>
-                                  </div>
-                                ) : // workplaceRecord.addSalaryDay
-                                addSalaryList[index] &&
-                                  addSalaryList[index].length > 0 &&
-                                  workplaceRecord.workplaceId !== "" &&
-                                  workplaceRecord.workplaceId !== undefined ? (
-                                  addSalaryList[index].reduce(
-                                    (acc, addsalary) => {
-                                      if (
-                                        addsalary.name !== "" &&
-                                        addsalary.roundOfSalary === "daily"
-                                      ) {
-                                        if (addsalary.SpSalary > 100) {
-                                          acc += parseFloat(
-                                            (addsalary.SpSalary / 30).toFixed(2)
-                                          );
-                                        } else {
-                                          acc += parseFloat(addsalary.SpSalary);
-                                        }
-                                      }
-                                      return acc;
-                                    },
-                                    0
-                                  )
-                                ) : (
+                                  ) : (
+                                    <span style={{ cursor: "pointer" }} title="กดปุ่มแก้ไขเพื่อแก้ไขค่านี้">
+                                      {displayValue}
+                                    </span>
+                                  )}
+                                </th>
+                              );
+                            }
+                          )}
+
+                          {/* เงินเพิ่ม (Show sum or detailed list) */}
+                          <th className="fw-normal">
+                          {matchedRecord.shift === 'cash_holiday' ? (
+                            <span>รวมแล้ว</span>
+                          ) : (
+                            isEditing ? (
+                              <div>
+                                <p>รายการเงินเพิ่ม</p>
+                                <ul style={{ listStyleType: "none", padding: 0, margin: 0 }}>
+                                  {(editedData[`${index}-${subIndex}-${idx}_addSalaryDaily_table`] || []).map((addSalaryDay, salaryIndex) => (
+                                    <li key={salaryIndex} style={{ marginBottom: "10px", display: "flex", flexDirection: "column", gap: "5px" }}>
+                                      <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                                        <input
+                                          type="text"
+                                          className="form-control form-control-sm"
+                                          style={{ width: "120px", fontSize: "12px" }}
+                                          value={addSalaryDay.name || ""}
+                                          onChange={(e) => handleAddSalaryInputChange(index, subIndex, idx, salaryIndex, 'name', e.target.value)}
+                                          placeholder="ชื่อรายการ"
+                                        />
+                                        <input
+                                          type="number"
+                                          step="0.01"
+                                          className="form-control form-control-sm"
+                                          style={{ width: "80px", fontSize: "12px" }}
+                                          value={addSalaryDay.SpSalary || ""}
+                                          onChange={(e) => handleAddSalaryInputChange(index, subIndex, idx, salaryIndex, 'SpSalary', e.target.value)}
+                                          placeholder="จำนวน"
+                                        />
+                                        <span style={{ fontSize: "12px" }}>บาท</span>
+                                        <button
+                                          type="button"
+                                          className="btn btn-danger btn-sm"
+                                          style={{ padding: "2px 6px", fontSize: "10px" }}
+                                          onClick={() => handleDeleteSalary(index, subIndex, idx, salaryIndex)}
+                                        >
+                                          <i className="bi bi-trash3"></i>
+                                        </button>
+                                      </div>
+                                    </li>
+                                  ))}
+                                </ul>
+                                <button
+                                  type="button"
+                                  className="btn btn-success btn-sm mt-2"
+                                  style={{ padding: "2px 8px", fontSize: "11px" }}
+                                  onClick={() => handleAddSalaryItem(index, subIndex, idx)}
+                                >
+                                  + เพิ่มรายการ
+                                </button>
+                              </div>
+                            ) : (
+                              (() => {
+                                // Check if there's edited data for addSalaryDaily
+                                const editedKey = `${index}-${subIndex}-${idx}_addSalaryDaily_table`;
+                                const salaryData = editedData[editedKey] || matchedRecord.addSalaryDaily || [];
+                                
+                                // Calculate sum using the most current data (edited or original)
+                                const totalSum = salaryData.reduce(
+                                  (sum, salary) => sum + parseFloat(salary.SpSalary || 0),
                                   0
-                                )}
-                              </td>
-                              <td
-                                style={
-                                  commonNumbers.has(resultArray22[index])
-                                    ? {
-                                        ...cellStyle,
-                                        backgroundColor: "yellow",
-                                      }
-                                    : cellStyle
+                                );
+                                
+                                // If no items, show only the total
+                                if (salaryData.length === 0) {
+                                  return totalSum.toFixed(2) + " บาท";
                                 }
+                                
+                                // Show detailed list with subtotal
+                                return (
+                                  <div style={{ textAlign: 'left', fontSize: '12px' }}>
+                                    {salaryData.map((item, i) => (
+                                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+                                        <span>{item.name || 'ไม่ระบุชื่อ'}</span>
+                                        <span>{parseFloat(item.SpSalary || 0).toFixed(2)} บาท</span>
+                                      </div>
+                                    ))}
+                                    <div style={{ 
+                                      borderTop: '1px solid #ddd', 
+                                      marginTop: '4px', 
+                                      paddingTop: '4px', 
+                                      fontWeight: 'bold',
+                                      display: 'flex',
+                                      justifyContent: 'space-between'
+                                    }}>
+                                      <span>รวม:</span>
+                                      <span>{totalSum.toFixed(2)} บาท</span>
+                                    </div>
+                                  </div>
+                                );
+                              })()
+                            )
+                          )}
+                          </th>
+
+                          {/* แก้ไข / บันทึก */}
+                          <th className="fw-normal">
+                            {isEditing ? (
+                              <>
+                                <button className="btn btn-success btn-sm"  style={{ padding: "0.3rem", width: "3rem" }} onClick={() => handleSave(index, subIndex, idx)}>
+                                  ✅
+                                </button>
+                              
+                              </>
+                            ) : (
+                              
+                              <button
+                                className="btn btn-warning btn-sm"
+                                style={{ padding: "0.3rem", width: "3rem" }}
+                                onClick={() => {
+                                  setEditingIndex(`${index}-${subIndex}-${idx}`);
+                                  setEditedData((prev) => ({
+                                    ...prev,
+                                    [`${index}-${subIndex}-${idx}_beforeTotalOtTime_table`]: matchedRecord.beforeTotalOtTime,
+                                    [`${index}-${subIndex}-${idx}_cashBeforeOt_table`]: matchedRecord.cashBeforeOt,
+                                    [`${index}-${subIndex}-${idx}_totalTime_table`]: matchedRecord.totalTime,
+                                    [`${index}-${subIndex}-${idx}_cashWork_table`]: matchedRecord.cashWork,
+                                    [`${index}-${subIndex}-${idx}_totalOtTime_table`]: matchedRecord.totalOtTime,
+                                    [`${index}-${subIndex}-${idx}_cashOt_table`]: matchedRecord.cashOt,
+                                    [`${index}-${subIndex}-${idx}_addSalaryDaily_table`]: matchedRecord.addSalaryDaily,
+                                  }));
+                                }}
                               >
-                                {/* <a href="https://example.com" class="link1" style={{ color: 'red' }}><b>ลบ</b></a> / <a href="#" class="link2" style={{ color: 'blue' }} onClick={openModal}><b>แก้ไข</b></a> */}
+                               <i className="bi bi-pencil-square"></i>
+                              </button>
+                            )}
+                          </th>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr key={`${index}-${subIndex}-no-record`}>
+                      <th className="fw-normal">{day}</th>
+                      <th className="fw-normal">-</th>
+                      <th className="fw-normal">-</th>
+                      <th className="fw-normal">-</th>
+                      <th className="fw-normal">-</th>
+                      <th className="fw-normal">0.00</th>
+                      <th className="fw-normal">0.00</th>
+                      <th className="fw-normal">0.00</th>
+                      <th className="fw-normal">0.00</th>
+                      <th className="fw-normal">0.00</th>
+                      <th className="fw-normal">0.00</th>
+                      <th className="fw-normal">0.00</th>
+                      <th className="fw-normal">
+                        <button
+                          className="btn btn-warning btn-sm"
+                          style={{ padding: "0.3rem", width: "3rem" }}
+                          onClick={() => {
+                            alert("ไม่อนุญาตให้แก้ไขเนื่องจากอาจเกิดความผิดพลาด กรุณาไปแก้ไขที่ระบบลงเวลา");
+                          }}
+                        >
+                         <i className="bi bi-pencil-square"></i>
+                        </button>
+                      </th>
+                    </tr>
+                  );
+                })}
+              </>
+            ))}
 
-                                {editIndex === index ? (
-                                  <button
-                                    class="btn btn-info"
-                                    style={{ width: "4rem" }}
-                                    onClick={saveFormData}
-                                  >
-                                    Save
-                                  </button>
-                                ) : (
-                                  // <button class="btn btn-danger" style={{ width: '3rem' }} onClick={() => editData(index)}>แก้ไข</button>
-                                  <button
-                                    class="btn btn-danger"
-                                    style={{
-                                      width: "4rem",
-                                      textAlign: "center",
-                                    }}
-                                    onClick={() => editData(index)}
-                                  >
-                                    แก้ไข
-                                  </button>
-                                )}
+<tr>
+<th colSpan={3} style={{ textAlign: "center", verticalAlign: "middle" }}> รวม </th>
 
-                                <Modal
-                                  isOpen={modalIsOpen}
-                                  onRequestClose={closeModal}
-                                  contentLabel="Example Modal"
-                                  style={{
-                                    overlay: {
-                                      backgroundColor:
-                                        "rgba(100, 100, 100, 0.5)",
-                                      zIndex: 10,
-                                    },
-                                    content: {
-                                      width: "50rem",
-                                      margin: "auto",
-                                      borderRadius: "8px",
-                                      boxShadow: "0 0 10px rgba(0, 0, 0, 0.3)",
-                                    },
-                                  }}
-                                >
-                                  {/* Your form content goes here */}
-                                  <form>
-                                    {/* <label>
-                                      Form Input:
-                                      <input type="text" />
-                                    </label>
-                                    <button type="submit">Submit</button> */}
-                                    {workTimeDayPerson.allTimesPerson.map(
-                                      (time, index) => (
-                                        <div key={index} className="row">
-                                          <div className="col-md-3">
-                                            <select
-                                              name="CodeSalary"
-                                              className="form-control"
-                                              value={time.CodeSalary}
-                                              onChange={(e) =>
-                                                handleInputChangePerson(
-                                                  e,
-                                                  index
-                                                )
-                                              }
-                                            >
-                                              <option value="">
-                                                เลือกตำแหน่ง
-                                              </option>
 
-                                              {positionWork.map(
-                                                (position, positionIndex) => (
-                                                  <option
-                                                    key={positionIndex}
-                                                    value={position}
-                                                  >
-                                                    {position}
-                                                  </option>
-                                                )
-                                              )}
-                                            </select>
-                                          </div>
+<th style={{ textAlign: "center", verticalAlign: "middle" }}></th>
+<th style={{ textAlign: "center", verticalAlign: "middle" }}></th>
+<th style={{ textAlign: "center", verticalAlign: "middle" }}>{(parseFloat(dataTotals.beforeTotalOtTime || 0).toFixed(2))} ชั่วโมง</th>
+<th style={{ textAlign: "center", verticalAlign: "middle" }}>{(parseFloat(dataTotals.cashBeforeOt || 0).toFixed(2))} บาท</th>
+<th style={{ textAlign: "center", verticalAlign: "middle" }}>{(parseFloat(dataTotals.totalTime || 0).toFixed(2))} ชั่วโมง</th>
+<th style={{ textAlign: "center", verticalAlign: "middle" }}>{(parseFloat(dataTotals.cashWork || 0).toFixed(2))} บาท</th>
+<th style={{ textAlign: "center", verticalAlign: "middle" }}>{(parseFloat(dataTotals.totalOtTime || 0).toFixed(2))} ชั่วโมง</th>
+<th style={{ textAlign: "center", verticalAlign: "middle" }}>{(parseFloat(dataTotals.cashOt || 0).toFixed(2))} บาท</th>
+<th style={{ textAlign: "center", verticalAlign: "middle" }}>{(parseFloat(dataTotals.addSalaryTotal || 0).toFixed(2))} บาท</th>
+<th style={{ textAlign: "center", verticalAlign: "middle" }}></th>
 
-                                          <div className="col-md-3">
-                                            <select
-                                              name="positionWork"
-                                              className="form-control"
-                                              value={time.positionWork}
-                                              onChange={(e) =>
-                                                handleInputChangePerson(
-                                                  e,
-                                                  index
-                                                )
-                                              }
-                                            >
-                                              <option value="">
-                                                เลือกตำแหน่ง
-                                              </option>
+</tr>
 
-                                              {positionWork.map(
-                                                (position, positionIndex) => (
-                                                  <option
-                                                    key={positionIndex}
-                                                    value={position}
-                                                  >
-                                                    {position}
-                                                  </option>
-                                                )
-                                              )}
-                                            </select>
-                                          </div>
-                                          <div className="col-md-3">
-                                            {/* <input
-                                                            type="text"
-                                                            className="form-control"
-                                                            placeholder={`Person ${index + 1}`}
-                                                            value={time.countPerson}
-                                                            onChange={(e) => handleInputChangePerson(e, index)}
-                                                        /> */}
-                                            <input
-                                              type="text"
-                                              className="form-control"
-                                              placeholder={`Person ${
-                                                index + 1
-                                              }`}
-                                              name="countPerson" // Make sure the name attribute is set to "countPerson"
-                                              value={time.countPerson}
-                                              onChange={(e) =>
-                                                handleInputChangePerson(
-                                                  e,
-                                                  index
-                                                )
-                                              }
-                                            />
-                                          </div>
-                                          <div class="col-md-2">
-                                            {index >= 1 ? (
-                                              <button
-                                                type="button"
-                                                onClick={() =>
-                                                  handleRemoveTimePerson(index)
-                                                }
-                                                style={{ width: "2.5rem" }}
-                                                className="btn btn-danger ml-auto"
-                                              >
-                                                ลบ
-                                              </button>
-                                            ) : (
-                                              <>
-                                                <button
-                                                  type="button"
-                                                  aria-label="เพิ่ม"
-                                                  onClick={handleAddTimePerson}
-                                                  className="btn btn-primary"
-                                                  style={{ width: "2.5rem" }}
-                                                >
-                                                  <i className="fa">&#xf067;</i>
-                                                </button>
-                                              </>
-                                            )}
-                                          </div>
-                                          <br />
-                                          <br />
-                                          <br />
-                                        </div>
-                                      )
-                                    )}
-                                    <button
-                                      type="button"
-                                      class="btn btn-secondary"
-                                      style={{ width: "3rem" }}
-                                      onClick={closeModal}
-                                    >
-                                      Close
-                                    </button>
-                                  </form>
-                                </Modal>
-                              </td>
-                            </tr>
-                          ))}
-                          <tr>
-                            <td style={cellStyle}>สรุป</td>
-                            <td></td>
-                            <td></td>
-                            <td style={cellStyle}>
-                              {statusEditSum ? (
-                                <input
-                                  type="text"
-                                  className="form-control"
-                                  value={sumWorkHourX}
-                                  onChange={handleChangeSumWorkHourX}
-                                  name=""
-                                />
-                              ) : (
-                                Number(sumWorkHourX).toFixed(2) || 0
-                              )}
-                            </td>
-                            <td style={cellStyle}>
-                              {statusEditSum ? (
-                                <input
-                                  type="text"
-                                  className="form-control"
-                                  value={sumWorkRateX}
-                                  onChange={handleChangeSumWorkRateX}
-                                  name=""
-                                />
-                              ) : (
-                                Number(sumWorkRateX).toFixed(2) || 0
-                              )}
-                            </td>
-                            <td style={cellStyle}>
-                              {statusEditSum ? (
-                                <input
-                                  type="text"
-                                  className="form-control"
-                                  value={sumWorkHourOtX}
-                                  onChange={handleChangeSumWorkHourOtX}
-                                  name=""
-                                />
-                              ) : (
-                                Number(sumWorkHourOtX).toFixed(2) || 0
-                              )}
-                            </td>
-                            <td style={cellStyle}>
-                              {statusEditSum ? (
-                                <input
-                                  type="text"
-                                  className="form-control"
-                                  value={sumWorkRateOtX}
-                                  onChange={handleChangeSumWorkRateOtX}
-                                  name=""
-                                />
-                              ) : (
-                                Number(sumWorkRateOtX).toFixed(2) || 0
-                              )}
-                            </td>
-                            <td style={cellStyle}>
-                              {/* {sumAddSalary} */}
-                              {calculateTotalSalary().toFixed(2)}
-                            </td>
-                            <td style={cellStyle}>
-                              {statusEditSum ? (
-                                <button
-                                  class="btn btn-info"
-                                  style={{ width: "4rem", textAlign: "center" }}
-                                  onClick={handleClickEditSum}
-                                >
-                                  Save
-                                </button>
-                              ) : (
-                                <button
-                                  class="btn btn-danger"
-                                  style={{ width: "4rem", textAlign: "center" }}
-                                  onClick={handleClickEditSum}
-                                >
-                                  แก้ไข
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
+          </tbody>
+        </table>
+      </div>
+    </div>
 
-                      <br />
-                    </div>
-                  </div>
-                </div>
+)}
 
-                <div class="line_btn">
+                <br />
+
+                
+                <div className="line_btn">
+                {! loading && 
                   <button
                     type="button"
                     onClick={saveconclude}
-                    class="btn b_save"
+                    className="btn b_save"
                   >
-                    <i class="nav-icon fas fa-save"></i> &nbsp;บันทึก
+                    <i className="nav-icon fas fa-save"></i> &nbsp;บันทึก
                   </button>
+}
 
                   <Link to="/Salaryresult">
-                    <button type="button" class="btn clean">
+                    <button type="button" className="btn clean">
                       <i>&gt;</i> &nbsp;ถัดไป
                     </button>
                   </Link>
@@ -2406,8 +3010,10 @@ function Compensation() {
         </div>
       </div>
       {/* {JSON.stringify( dataTable[30])}{dataTable.length} */}
-    </body>
+    {/* </body> */}
+</div>
     // </div>  )
   );
 }
 export default Compensation;
+ 

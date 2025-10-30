@@ -1,13 +1,20 @@
 import endpoint from "../../config";
-import { json, Link } from "react-router-dom";
+import { Await, json, Link } from "react-router-dom";
 
 import axios from "axios";
 import React, { useEffect, useRef, useState } from "react";
+import Swal from 'sweetalert2';
 
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import EmployeesSelected from "./EmployeesSelected";
+
+// Helper function to safely get the first element from a filtered array
+const safeGetFirstShift = (filteredArray) => {
+  return filteredArray.length > 0 ? filteredArray[0] : null;
+};
 
 function AddsettimeEmployee() {
   const [isDataTrue, setIsDataTrue] = useState(false);
@@ -25,9 +32,332 @@ function AddsettimeEmployee() {
     borderLeft: "2px solid #000",
   };
 
+  // Function to generate PDF report
+const generatePDFReport = async () => {
+  try {
+    setLoading(true);
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    let tableElement = null;
+    const allTables = document.querySelectorAll('table');
+    console.log('Found tables:', allTables.length);
+    
+    // เลือกตารางที่สอง (ตารางล่าง) ซึ่งมีปุ่มจัดการ
+    for (let i = 0; i < allTables.length; i++) {
+      const table = allTables[i];
+      const hasActionButtons = table.querySelector('button[title="แก้ไข"], button[title="ลบ"]');
+      const hasManageColumn = table.textContent.includes('จัดการ');
+      
+      if (hasActionButtons || hasManageColumn) {
+        tableElement = table;
+        console.log('Found data table at index:', i);
+        break;
+      }
+    }
+
+    if (!tableElement && allTables.length >= 2) {
+      tableElement = allTables[1];
+    }
+
+    if (!tableElement) {
+      Swal.fire({
+        icon: 'error',
+        title: 'ไม่พบตารางข้อมูล',
+        text: 'กรุณาตรวจสอบว่ามีข้อมูลในตารางหรือไม่',
+      });
+      return;
+    }
+
+    // สร้าง container ชั่วคราวสำหรับรายงาน PDF
+    const reportContainer = document.createElement('div');
+    reportContainer.style.position = 'absolute';
+    reportContainer.style.left = '-9999px';
+    reportContainer.style.top = '0';
+    reportContainer.style.width = '190mm';
+    reportContainer.style.padding = '20px';
+    reportContainer.style.backgroundColor = 'white';
+    reportContainer.style.fontFamily = "'Sarabun', 'TH Sarabun New', Arial, sans-serif";
+
+    // สร้างหัวเอกสารตามรูปแบบที่ต้องการ
+    const documentHeader = document.createElement('div');
+    documentHeader.style.marginBottom = '20px';
+    documentHeader.style.position = 'relative';
+
+    // ส่วนหัวด้านขวาบน (วันที่ออกเอกสาร) - เพิ่มกรอบสี่เหลี่ยม
+    const dateSection = document.createElement('div');
+    dateSection.style.position = 'absolute';
+    dateSection.style.top = '0';
+    dateSection.style.right = '0';
+    dateSection.style.textAlign = 'center';
+    dateSection.style.fontSize = '12px';
+    dateSection.style.border = '1px solid #000';
+    dateSection.style.padding = '10px';
+    dateSection.style.width = '150px';
+    dateSection.style.backgroundColor = '#f8f9fa';
+    dateSection.style.top = '-60px';
+    
+    const generatedDate = new Date().toLocaleDateString('th-TH', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    
+    const dateLabel = document.createElement('div');
+    dateLabel.textContent = 'วันที่ออกเอกสาร';
+    dateLabel.style.marginBottom = '5px';
+    
+    const dateValue = document.createElement('div');
+    dateValue.textContent = generatedDate;
+    
+    dateSection.appendChild(dateLabel);
+    dateSection.appendChild(dateValue);
+    documentHeader.appendChild(dateSection);
+
+   // ส่วนโลโก้และข้อมูลบริษัท (ตรงกลางทั้งหมด)
+    const companySection = document.createElement('div');
+    companySection.style.marginTop = '40px';
+    companySection.style.display = 'flex';
+    companySection.style.flexDirection = 'column'; // ✅ เรียงแนวตั้ง
+    companySection.style.alignItems = 'center';    // ✅ จัดทุกอย่างให้อยู่ตรงกลาง
+    companySection.style.textAlign = 'center';     // ✅ ข้อความกลาง
+
+    // เพิ่มโลโก้บริษัท
+    const logoContainer = document.createElement('div');
+    logoContainer.style.marginBottom = '10px'; // ✅ เพิ่มช่องว่างระหว่างโลโก้กับข้อความ
+
+    const logoImg = document.createElement('img');
+    logoImg.src = '/src/assets/images/OwatIcon.png';
+    logoImg.alt = 'Owat Maid Logo';
+    logoImg.style.width = '150px';
+    logoImg.style.height = '70px';
+    logoImg.style.objectFit = 'contain';
+
+    // ถ้ารูปไม่โหลด ให้ใช้ fallback
+    logoImg.onerror = function() {
+      console.log('Logo not found, using fallback');
+      this.style.display = 'none';
+      const fallbackDiv = document.createElement('div');
+      fallbackDiv.style.width = '80px';
+      fallbackDiv.style.height = '80px';
+      fallbackDiv.style.backgroundColor = '#e9ecef';
+      fallbackDiv.style.border = '1px solid #dee2e6';
+      fallbackDiv.style.display = 'flex';
+      fallbackDiv.style.alignItems = 'center';
+      fallbackDiv.style.justifyContent = 'center';
+      fallbackDiv.style.fontSize = '10px';
+      fallbackDiv.style.color = '#6c757d';
+      fallbackDiv.textContent = 'โลโก้';
+      logoContainer.appendChild(fallbackDiv);
+    };
+
+    logoContainer.appendChild(logoImg);
+
+    // ข้อมูลบริษัท
+    const companyInfo = document.createElement('div');
+    companyInfo.style.maxWidth = '600px'; // ✅ จำกัดความกว้างให้อ่านง่าย
+
+    const companyName = document.createElement('div');
+    companyName.textContent = 'บริษัท โอวาทเมด จํากัด (OWAT PRO AND QUICK COMPANY LIMITED)';
+    companyName.style.fontWeight = 'bold';
+    companyName.style.fontSize = '14px';
+    companyName.style.marginBottom = '5px';
+
+    const companyAddress = document.createElement('div');
+    companyAddress.textContent = '20,22,24,26 ซอยสีหบุรานุกิจ 4 ถนนสีหบุรานุกิจ แขวงมีนบุรี เขตมีนบุรี กรุงเทพมหานคร 10510';
+    companyAddress.style.fontSize = '12px';
+    companyAddress.style.marginBottom = '10px';
+
+    const reportTitle = document.createElement('div');
+    reportTitle.textContent = `รายงานระบบลงเวลาของพนักงาน ${name} ${lastName} รหัสพนักงาน ${employeeId}`;
+    reportTitle.style.fontWeight = 'bold';
+    reportTitle.style.fontSize = '14px';
+    reportTitle.style.marginBottom = '5px';
+
+    const periodInfo = document.createElement('div');
+
+    companyInfo.appendChild(companyName);
+    companyInfo.appendChild(companyAddress);
+    companyInfo.appendChild(reportTitle);
+    companyInfo.appendChild(periodInfo);
+
+    companySection.appendChild(logoContainer);
+    companySection.appendChild(companyInfo);
+    documentHeader.appendChild(companySection);
+
+    reportContainer.appendChild(documentHeader);
+
+
+        // สร้างตารางใหม่สำหรับ PDF โดยทำการ merge เซลล์ให้ถูกต้อง
+        const pdfTable = document.createElement('table');
+        pdfTable.style.width = '100%';
+        pdfTable.style.borderCollapse = 'collapse';
+        pdfTable.style.fontSize = '10px';
+        pdfTable.style.border = '1px solid #000';
+        pdfTable.style.textAlign = 'center';
+        pdfTable.style.marginTop = '20px';
+
+        // สร้าง thead สำหรับ PDF
+        const pdfThead = document.createElement('thead');
+        
+        // แถวแรกของหัวตาราง (merge เซลล์)
+        const firstHeaderRow = document.createElement('tr');
+        
+        const headers = [
+          { text: 'หน่วยงาน', rowSpan: 2, colSpan: 1 },
+          { text: 'ชื่อหน่วยงาน', rowSpan: 2, colSpan: 1 },
+          { text: 'กลุ่มงาน', rowSpan: 2, colSpan: 1 },
+          { text: 'วันที่', rowSpan: 2, colSpan: 1 },
+          { text: 'กะ', rowSpan: 2, colSpan: 1 },
+          { text: 'OT (ก่อนเวลาทำงาน)', rowSpan: 1, colSpan: 3 },
+          { text: 'เวลาทำงาน', rowSpan: 1, colSpan: 3 },
+          { text: 'OT (หลังเวลาทำงาน)', rowSpan: 1, colSpan: 3 },
+          { text: 'เงินจ้าง', rowSpan: 2, colSpan: 1 }
+        ];
+
+        headers.forEach(header => {
+          const th = document.createElement('th');
+          th.textContent = header.text;
+          th.style.border = '1px solid #000';
+          th.style.padding = '8px';
+          th.style.backgroundColor = '#f8f9fa';
+          th.style.fontWeight = 'bold';
+          th.style.textAlign = 'center';
+          th.style.verticalAlign = 'middle';
+          
+          if (header.rowSpan > 1) th.rowSpan = header.rowSpan;
+          if (header.colSpan > 1) th.colSpan = header.colSpan;
+          
+          firstHeaderRow.appendChild(th);
+        });
+        
+        pdfThead.appendChild(firstHeaderRow);
+
+        // แถวที่สองของหัวตาราง
+        const secondHeaderRow = document.createElement('tr');
+        const subHeaders = [
+          'เข้า OT', 'ออก OT', 'ชั่วโมง OT',
+          'เข้างาน', 'ออกงาน', 'ชั่วโมงทำงาน',
+          'เข้า OT', 'ออก OT', 'ชั่วโมง OT'
+        ];
+
+        subHeaders.forEach(subHeader => {
+          const th = document.createElement('th');
+          th.textContent = subHeader;
+          th.style.border = '1px solid #000';
+          th.style.padding = '8px';
+          th.style.backgroundColor = '#f8f9fa';
+          th.style.fontWeight = 'bold';
+          th.style.textAlign = 'center';
+          th.style.verticalAlign = 'middle';
+          secondHeaderRow.appendChild(th);
+        });
+
+        pdfThead.appendChild(secondHeaderRow);
+        pdfTable.appendChild(pdfThead);
+
+        // สร้าง tbody สำหรับ PDF
+        const pdfTbody = document.createElement('tbody');
+        
+        // คัดลอกข้อมูลจากตารางเดิม (ยกเว้นคอลัมน์จัดการ)
+        const bodyRows = tableElement.querySelectorAll('tbody tr');
+        bodyRows.forEach(row => {
+          if (row.children.length > 0) {
+            const newRow = document.createElement('tr');
+            const cells = row.querySelectorAll('td, th');
+            
+            cells.forEach((cell, cellIndex) => {
+              // ข้ามคอลัมน์ "จัดการ" (คอลัมน์สุดท้าย)
+              if (cellIndex < cells.length - 1) {
+                const newCell = document.createElement('td');
+                newCell.textContent = cell.textContent.trim();
+                newCell.style.border = '1px solid #000';
+                newCell.style.padding = '6px';
+                newCell.style.textAlign = 'center';
+                newCell.style.verticalAlign = 'middle';
+                
+                // ถ้าเป็นคอลัมล์เงินจ้าง ให้จัดรูปแบบ
+                if (cellIndex === cells.length - 2) {
+                  const salaryText = cell.textContent.trim();
+                  if (salaryText.includes('บาท')) {
+                    newCell.style.fontWeight = 'bold';
+                    newCell.style.color = '#d9534f';
+                  }
+                }
+                
+                newRow.appendChild(newCell);
+              }
+            });
+            
+            pdfTbody.appendChild(newRow);
+          }
+        });
+
+        pdfTable.appendChild(pdfTbody);
+        reportContainer.appendChild(pdfTable);
+        // เพิ่ม container ลงใน body ชั่วคราว
+        document.body.appendChild(reportContainer);
+
+        // ใช้ html2canvas เพื่อแปลง HTML เป็น canvas
+        const canvas = await html2canvas(reportContainer, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          scrollY: -window.scrollY,
+          backgroundColor: '#ffffff'
+        });
+
+        // ลบ container ชั่วคราว
+        document.body.removeChild(reportContainer);
+
+        // สร้าง PDF
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const imgWidth = 190;
+        const pageHeight = 280;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        let heightLeft = imgHeight;
+        let position = 0;
+
+        // เพิ่มรูปภาพจาก canvas
+        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 10, 10, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+
+        // เพิ่มหน้าต่อไปหากเนื้อหายาว
+        while (heightLeft >= 0) {
+          position = heightLeft - imgHeight + 10;
+          pdf.addPage();
+          pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 10, position, imgWidth, imgHeight);
+          heightLeft -= pageHeight;
+        }
+
+        // บันทึก PDF
+        pdf.save(`รายงานการทำงาน_${employeeId}_${month}_${year}.pdf`);
+        
+        Swal.fire({
+          icon: 'success',
+          title: 'สร้างเอกสารสำเร็จ',
+          text: 'ไฟล์ PDF ได้ถูกดาวน์โหลดแล้ว',
+          timer: 2000,
+          showConfirmButton: false
+        });
+        
+      } catch (error) {
+        console.error('Error generating PDF:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'เกิดข้อผิดพลาด',
+          text: 'ไม่สามารถสร้างเอกสาร PDF ได้: ' + error.message,
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
   const [cashSalary, setCashSalary] = useState(false);
   const [specialtSalary, setSpecialtSalary] = useState("");
   const [specialtSalaryOT, setSpecialtSalaryOT] = useState("");
+  
+  const [cashOfHoliday, setCashOfHoliday] = useState("");
+  const [cashOfHolidayOt, setCashOfHolidayOt] = useState("");
 
   const [messageSalary, setMessageSalary] = useState("");
 
@@ -42,6 +372,10 @@ function AddsettimeEmployee() {
 
   const [updateButton, setUpdateButton] = useState(false); // Initially, set to false
   const [timeRecord_id, setTimeRecord_id] = useState("");
+
+  // Edit mode states
+  const [editMode, setEditMode] = useState({}); // Object to track which rows are in edit mode
+  const [editData, setEditData] = useState({}); // Object to store edit data for each row
 
   const [newWorkplace, setNewWorkplace] = useState(true);
 
@@ -69,20 +403,48 @@ function AddsettimeEmployee() {
     }
   }, [month, year]);
 
-  const options = [];
+  const [options , setOptions] = useState([]);
+  const [lastDate , setLastDate] = useState(31);
   const [groupOptions , setGroupOptions ] = useState([]);
   const [groupOptions1 , setGroupOptions1 ] = useState();
 
+  const getLastMonthLastDate = (year, month) => {
+    let date = new Date(year, month - 1, 1); // JavaScript months are 0-based
+    date.setDate(0); // Moves to the last day of the previous month
+    return date.getDate();
+};
 
-  for (let i = 1; i <= 31; i++) {
-    // Use padStart to add leading zeros to numbers less than 10
-    const formattedValue = i.toString().padStart(2, "0");
-    options.push(
-      <option key={i} value={formattedValue}>
+const generateOptions = async (year, month) => {
+    const lastDay = await getLastMonthLastDate(year, month);
+let tmp = [];
+
+setLastDate(lastDay);
+    for (let i = 21; i <= lastDay; i++) {
+      const formattedValue = await i.toString().padStart(2, "0");
+      await tmp.push(
+        <option key={i} value={formattedValue}>
+          {formattedValue}
+        </option>
+      );
+    }
+
+      // Add 1 to 20 of the current month
+  for (let j = 1; j <= 20; j++) {
+    // const formattedValue = await j.toString().padStart(2, "0");
+    const formattedValue = await j.toString();
+
+    await tmp.push(
+      <option key={j} value={formattedValue}>
         {formattedValue}
       </option>
     );
+
   }
+
+await setOptions(tmp);
+tmp = [];
+};
+
 
   const [checkaddData, setCheckaddData] = useState("");
 
@@ -113,6 +475,7 @@ function AddsettimeEmployee() {
   //////////////////////////////
   const [employeeList, setEmployeeList] = useState([]);
   const [workplaceList, setWorkplaceList] = useState([]);
+const [customWorkplace , setCustomWorkplace] = useState({});
 
   useEffect(() => {
     // Fetch data from the API when the component mounts
@@ -127,23 +490,78 @@ function AddsettimeEmployee() {
       });
   }, []); // The empty array [] ensures that the effect runs only once after the initial render
 
-  console.log(employeeList);
+
 
   useEffect(() => {
     // Fetch data from the API when the component mounts
     fetch(endpoint + "/workplace/list")
       .then((response) => response.json())
       .then((data) => {
-        // Update the state with the fetched data
-        setWorkplaceList(data);
-        // alert(data[0].workplaceName);
+        // Add test specialWorkTimeDay data to workplaces
+        const dataWithSpecialDays = data.map(workplace => {
+          // Get current date info for testing
+          const today = new Date();
+          const currentDay = today.getDate();
+          const currentMonth = today.getMonth() + 1; // JavaScript months are 0-based
+          const currentYear = today.getFullYear();
+          const buddhistYear = currentYear + 543;
+          
+          // Keep existing specialWorkTimeDay and add new test data
+          const existingSpecialDays = workplace.specialWorkTimeDay || [];
+          
+          console.log(`🏢 Processing workplace ${workplace.workplaceId}:`, workplace.workplaceName);
+          
+          // Add test data for ALL workplaces to ensure it works
+          const newSpecialDays = [
+            ...existingSpecialDays, // เก็บข้อมูลเดิมไว้
+            
+            {
+              "day_specialwork": `${currentDay}/${currentMonth}/${buddhistYear}`, // Today's date
+              "shift_specialwork": "กะพิเศษ",
+              "startTime_specialwork": "09.00",
+              "endTime_specialwork": "18.00",
+              "startTimeOT_specialwork": "18.00",
+              "endTimeOT_specialwork": "20.00",
+              "payment_specialwork": 1500,
+              "paymentOT_specialwork": 750,
+              "workDetail_specialwork": `งานพิเศษวันที่ ${currentDay} (ทดสอบ)`,
+              "employees_specialwork": [
+                {
+                  "positionWork_specialwork": "ทั้งหมด",
+                  "countPerson_specialwork": 5,
+                  "_id": "test003"
+                }
+              ],
+              "_id": "test003"
+            }
+          ];
+          
+          console.log(`✅ Total special days after adding test data:`, newSpecialDays.length);
+          
+          return {
+            ...workplace,
+            specialWorkTimeDay: newSpecialDays
+          };
+        });
+        
+        // Update the state with the enhanced data
+        setWorkplaceList(dataWithSpecialDays);
+        console.log('🎯 Enhanced workplaceList with specialWorkTimeDay:', dataWithSpecialDays);
+        
+        // Debug: Check specific workplace 1001
+        const workplace1001 = dataWithSpecialDays.find(w => w.workplaceId === "1001");
+        if (workplace1001) {
+          console.log('🔬 Workplace 1001 enhanced data:');
+          console.log('- specialWorkTimeDay count:', workplace1001.specialWorkTimeDay?.length || 0);
+          console.log('- specialWorkTimeDay dates:', workplace1001.specialWorkTimeDay?.map(d => d.day_specialwork) || []);
+        }
       })
       .catch((error) => {
         console.error("Error fetching data:", error);
       });
   }, []); // The empty array [] ensures that the effect runs only once after the initial render
 
-  console.log(workplaceList);
+
 
   /////////////////////////////////////////////
   const [tmpIndex, setTmpIndex] = useState(0);
@@ -158,6 +576,14 @@ function AddsettimeEmployee() {
   const [wOtTime, setWOtTime] = useState("");
   const [wSelectOtTime, setWSelectOtTime] = useState("");
   const [wSelectOtTimeout, setWSelectOtTimeout] = useState("");
+
+  //OT before time
+  const [wBeforeSelectOtTime, setWBeforeSelectOtTime] = useState("");
+  const [wBeforeSelectOtTimeout, setWBeforeSelectOtTimeout] = useState("");
+  const [wBeforeOtTime, setWBeforeOtTime] = useState("");
+
+  // State for "จ่ายเต็มวัน" checkbox
+  const [payFullDay, setPayFullDay] = useState(false);
 
   // Get the number of days in the specified month
   const numberOfDaysInMonth = new Date(2024, 2, 0).getDate();
@@ -220,13 +646,176 @@ function AddsettimeEmployee() {
     const timeDiffFormatted = `${cappedHours}.${cappedMinutes}`;
 
     if (isNaN(timeDiffFormatted)) {
-      return "0";
+      return "";
     }
 
     return timeDiffFormatted;
   }
 
+  // Function to check and apply special work time day data
+  const checkSpecialWorkTimeDay = async () => {
+    if (wDate && wId) {
+      try {
+        console.log(`🔍 Checking special work time day for wDate: ${wDate}, wId: ${wId}, month: ${month}, year: ${year}`);
+        
+        // Always prioritize workplaceList (which has enhanced test data) over customWorkplace
+        let workplacesearch = workplaceList.find((workplace) => workplace.workplaceId === wId);
+        
+        // If not found in workplaceList, fallback to customWorkplace
+        if (!workplacesearch && Object.keys(customWorkplace).length !== 0) {
+          workplacesearch = customWorkplace;
+        }
+        
+        if (workplacesearch && workplacesearch.specialWorkTimeDay) {
+          console.log(`📅 Found workplace with ${workplacesearch.specialWorkTimeDay.length} special work days:`, 
+            workplacesearch.specialWorkTimeDay.map(d => d.day_specialwork));
+          
+          // Format the current date for comparison (DD/MM/YYYY in Buddhist year)
+          const currentDay = parseInt(wDate);
+          let currentMonth = parseInt(month);
+          let currentYear = parseInt(year);
+          
+          // ระบบบัญชี: เดือน 21-20 (เช่น 21/7 - 20/8 = เดือนบัญชี 8)
+          // การแปลง: วันที่ในเดือนบัญชี -> วันที่ปฏิทิน
+          let actualMonth, actualYear;
+          
+          if (currentDay >= 21) {
+            // วันที่ 21-31: อยู่ในช่วงแรกของเดือนบัญชี
+            // เดือนปฏิทิน = เดือนบัญชี - 1
+            if (currentMonth === 1) {
+              actualMonth = 12;
+              actualYear = currentYear - 1;
+            } else {
+              actualMonth = currentMonth - 1;
+              actualYear = currentYear;
+            }
+          } else {
+            // วันที่ 1-20: อยู่ในช่วงหลังของเดือนบัญชี  
+            // เดือนปฏิทิน = เดือนบัญชี
+            actualMonth = currentMonth;
+            actualYear = currentYear;
+          }
+          
+          const buddhistYear = actualYear + 543;
+          const formattedDate = `${currentDay}/${actualMonth}/${buddhistYear}`;
+          
+          console.log(`📅 Date conversion: Accounting date ${currentDay}/${currentMonth}/${currentYear} -> Calendar date ${currentDay}/${actualMonth}/${buddhistYear}`);
+          
+          // Also try alternative date formats to ensure matching
+          const alternatives = [
+            `${currentDay}/${actualMonth}/${buddhistYear}`,
+            `${currentDay.toString().padStart(2, '0')}/${actualMonth}/${buddhistYear}`,
+            `${currentDay}/${actualMonth.toString().padStart(2, '0')}/${buddhistYear}`,
+            `${currentDay.toString().padStart(2, '0')}/${actualMonth.toString().padStart(2, '0')}/${buddhistYear}`
+          ];
+          
+          console.log(`🎯 Looking for dates:`, alternatives);
+          
+          // Find matching special work day
+          const specialDay = workplacesearch.specialWorkTimeDay.find(
+            item => alternatives.includes(item.day_specialwork)
+          );
+          
+          if (specialDay) {
+            console.log(`✅ Found matching special day:`, specialDay);
+            
+            // Show notification only - no auto switch
+            alert(`📅 พบวันพิเศษ วันที่ ${formattedDate}\nรายละเอียด: ${specialDay.workDetail_specialwork || 'งานพิเศษ'}\nเวลาทำงาน: ${specialDay.startTime_specialwork} - ${specialDay.endTime_specialwork}\nเวลา OT: ${specialDay.startTimeOT_specialwork} - ${specialDay.endTimeOT_specialwork}\nเงิน: ${specialDay.payment_specialwork} บาท\nOT: ${specialDay.paymentOT_specialwork} บาท\n\n💡 สามารถเปลี่ยนเป็นกะพิเศษได้ด้วยตนเอง`);
+            
+            return specialDay; // Return special day data
+          } else {
+            console.log(`❌ No matching special day found for dates:`, alternatives);
+          }
+        } else {
+          console.log(`❌ No workplace found or no special work time day data for wId: ${wId}`);
+        }
+      } catch (error) {
+        console.error('❌ Error checking special work time day:', error);
+      }
+    }
+    return null; // No special day found
+  };
+
+  // Function to apply special work day data when manually switching to special shift
+  const applySpecialWorkDayData = async () => {
+    if (wDate && wId && wShift === "specialt_shift") {
+      try {
+        const specialDay = await checkSpecialWorkTimeDay();
+        
+        if (specialDay) {
+          console.log(`🔧 Applying special work day data for manual shift change`);
+          
+          // Set work times
+          await setWStartTime(specialDay.startTime_specialwork || "");
+          await setWEndTime(specialDay.endTime_specialwork || "");
+          
+          // Set OT times
+          await setWSelectOtTime(specialDay.startTimeOT_specialwork || "");
+          await setWSelectOtTimeout(specialDay.endTimeOT_specialwork || "");
+          
+          // Set payment amounts
+          await setSpecialtSalary(specialDay.payment_specialwork?.toString() || "");
+          await setSpecialtSalaryOT(specialDay.paymentOT_specialwork?.toString() || "");
+          
+          // Calculate work hours
+          if (specialDay.startTime_specialwork && specialDay.endTime_specialwork) {
+            const workHours = calTime(
+              specialDay.startTime_specialwork,
+              specialDay.endTime_specialwork,
+              8
+            );
+            await setWAllTime(workHours);
+          }
+          
+          // Calculate OT hours
+          if (specialDay.startTimeOT_specialwork && specialDay.endTimeOT_specialwork) {
+            const otHours = calTime(
+              specialDay.startTimeOT_specialwork,
+              specialDay.endTimeOT_specialwork,
+              4
+            );
+            await setWOtTime(otHours);
+          }
+          
+          console.log(`✅ Successfully applied special work day data`);
+        } else {
+          console.log(`ℹ️ No special work day data found for this date, using default special shift settings`);
+        }
+      } catch (error) {
+        console.error('❌ Error applying special work day data:', error);
+      }
+    }
+  };
+
+  // useEffect to clear salary fields when switching shifts
   useEffect(() => {
+    // Clear appropriate salary fields based on current shift
+    if (wShift === "specialt_shift") {
+      // Clear cash holiday fields when switching to special shift
+      setCashOfHoliday("");
+      setCashOfHolidayOt("");
+      
+      // Apply special work day data if available
+      applySpecialWorkDayData();
+    } else if (wShift === "cash_holiday") {
+      // Clear special salary fields when switching to cash holiday
+      setSpecialtSalary("");
+      setSpecialtSalaryOT("");
+    } else {
+      // Clear both when switching to normal shifts
+      setSpecialtSalary("");
+      setSpecialtSalaryOT("");
+      setCashOfHoliday("");
+      setCashOfHolidayOt("");
+    }
+  }, [wShift]);
+
+  useEffect(() => {
+    // Wait for workplaceList to be loaded
+    if (workplaceList.length === 0) {
+      return;
+    }
+    
     try {
       setWStartTime("");
       setWEndTime("");
@@ -235,6 +824,18 @@ function AddsettimeEmployee() {
       setWSelectOtTime("");
       setWSelectOtTimeout("");
 
+      setWBeforeSelectOtTime("");
+      setWBeforeSelectOtTimeout("");
+      setWBeforeOtTime("");
+
+      const runAsync = async () => {
+        // Check for special work time day (notification only)
+        await checkSpecialWorkTimeDay();
+        
+        // Always proceed with normal logic
+        await timeOfWork();
+      };
+
       const timeOfWork = async () => {
         await setWStartTime("");
         await setWEndTime("");
@@ -242,13 +843,26 @@ function AddsettimeEmployee() {
         await setWOtTime("");
         await setWSelectOtTime("");
         await setWSelectOtTimeout("");
-        const workplaceUsed = await {};
 
+        await setWBeforeSelectOtTime("");
+        await setWBeforeSelectOtTimeout("");
+        await setWBeforeOtTime("");
+
+        const workplaceUsed = await {};
+        
         if (wId !== "" && wName !== "") {
-          const workplacesearch = await workplaceList.find(
-            (workplace) => workplace.workplaceId === wId
-          );
+          // const workplacesearch = await workplaceList.find(
+          //   (workplace) => workplace.workplaceId === wId
+          // );
+
+          const workplacesearch =
+  Object.keys(customWorkplace).length !== 0
+    ? customWorkplace
+    : await workplaceList.find((workplace) => workplace.workplaceId === wId);
+
           if (workplacesearch) {
+                        // alert(JSON.stringify(customWorkplace,null,2))
+
             // alert('wId ' + wId);
             // alert(workplacesearch.workplaceGroup.length);
 
@@ -278,9 +892,18 @@ function AddsettimeEmployee() {
                 ศุกร์: 5,
                 เสาร์: 6,
               };
+              if(wDate >= 21 && wDate <= 31 ) {
+                if(month === '01') {
+month = 12;
+year = year -1;
+                } else {
+month = parseInt((month ,10) -1).toString().padStart(2, '0');
+
+                }
+              }
               let date = await new Date(year, month - 1, wDate); // Subtract 1 from the month since months are zero-indexed
               let dayOfWeek = await date.getDay(); // This will give you the day of the week, where 0 is Sunday, 1 is
-
+// alert(date )
 
               // await workplacesearch.workplaceGroup[
               //   parseInt(searchResult[0].department || 0) - 1
@@ -306,79 +929,121 @@ await workplacesearch.workplaceGroup[departmentIndex]
                         (time) => time.shift === "กะเช้า"
                       );
 
-                      await setWStartTime(morningTimes[0].startTime || "");
-                      await setWEndTime(morningTimes[0].endTime || "");
-                      await setWAllTime(
-                        calTime(
-                          morningTimes[0].startTime || "",
-                          morningTimes[0].endTime || "",
-                          workplacesearch.workOfHour
-                        ) || ""
-                      );
-                      await setWOtTime(
-                        calTime(
-                          morningTimes[0].startTimeOT || "",
-                          morningTimes[0].endTimeOT || "",
-                          workplacesearch.workOfOT || ""
-                        ) || ""
-                      );
-                      await setWSelectOtTime(morningTimes[0].startTimeOT || "");
-                      await setWSelectOtTimeout(
-                        morningTimes[0].endTimeOT || ""
-                      );
+                      if (morningTimes.length > 0) {
+                        await setWStartTime(morningTimes[0].startTime || "");
+                        await setWEndTime(morningTimes[0].endTime || "");
+                        await setWAllTime(
+                          calTime(
+                            morningTimes[0].startTime || "",
+                            morningTimes[0].endTime || "",
+                            workplacesearch.workOfHour
+                          ) || ""
+                        );
+                        await setWOtTime(
+                          calTime(
+                            morningTimes[0].startTimeOT || "",
+                            morningTimes[0].endTimeOT || "",
+                            workplacesearch.workOfOT || ""
+                          ) || ""
+                        );
+                        await setWSelectOtTime(morningTimes[0].startTimeOT || "");
+                        await setWSelectOtTimeout(morningTimes[0].endTimeOT || "");
+
+                        await setWBeforeSelectOtTime(morningTimes[0].beforeStartTimeOT || "");
+                        await setWBeforeSelectOtTimeout(morningTimes[0].beforeEndTimeOT || "");
+                        await setWBeforeOtTime(
+                          calTime(
+                            morningTimes[0]?.beforeStartTimeOT || "",
+                            morningTimes[0]?.beforeEndTimeOT || "",
+                            workplacesearch?.beforeWorkOfOT || ""
+                          ) || ""
+                        );
+                      }
                       break;
                     case "afternoon_shift":
                       const afternoonTimes = await item.allTimes.filter(
                         (time) => time.shift === "กะบ่าย"
                       );
 
-                      await setWStartTime(afternoonTimes[0].startTime || "");
-                      await setWEndTime(afternoonTimes[0].endTime || "");
-                      await setWAllTime(
-                        calTime(
-                          afternoonTimes[0].startTime || "",
-                          afternoonTimes[0].endTime || "",
-                          workplacesearch.workOfHour
-                        ) || ""
-                      );
-                      await setWOtTime(
-                        calTime(
-                          afternoonTimes[0].startTimeOT || "",
-                          afternoonTimes[0].endTimeOT || "",
-                          workplacesearch.workOfOT || ""
-                        ) || ""
-                      );
-                      await setWSelectOtTime(
-                        afternoonTimes[0].startTimeOT || ""
-                      );
-                      await setWSelectOtTimeout(
-                        afternoonTimes[0].endTimeOT || ""
-                      );
+                      if (afternoonTimes.length > 0) {
+                        await setWStartTime(afternoonTimes[0].startTime || "");
+                        await setWEndTime(afternoonTimes[0].endTime || "");
+                        await setWAllTime(
+                          calTime(
+                            afternoonTimes[0].startTime || "",
+                            afternoonTimes[0].endTime || "",
+                            workplacesearch.workOfHour
+                          ) || ""
+                        );
+                        await setWOtTime(
+                          calTime(
+                            afternoonTimes[0].startTimeOT || "",
+                            afternoonTimes[0].endTimeOT || "",
+                            workplacesearch.workOfOT || ""
+                          ) || ""
+                        );
+                        await setWSelectOtTime(
+                          afternoonTimes[0].startTimeOT || ""
+                        );
+                        await setWSelectOtTimeout(
+                          afternoonTimes[0].endTimeOT || ""
+                        );
+
+                        await setWBeforeSelectOtTime(
+                          afternoonTimes[0]?.beforeStartTimeOT || ""
+                        );
+                        await setWBeforeSelectOtTimeout(
+                          afternoonTimes[0]?.beforeEndTimeOT || ""
+                        );
+                        await setWBeforeOtTime(
+                          calTime(
+                            afternoonTimes[0]?.beforeStartTimeOT || "",
+                            afternoonTimes[0]?.beforeEndTimeOT || "",
+                            workplacesearch?.beforeWorkOfOT || ""
+                          ) || ""
+                        );
+                      }
 
                       break;
+
+                    case "specialt_shift":
+
+                    
                     case "night_shift":
                       const nightTimes = await item.allTimes.filter(
                         (time) => time.shift === "กะดึก"
                       );
 
-                      await setWStartTime(nightTimes[0].startTime || "");
-                      await setWEndTime(nightTimes[0].endTime || "");
-                      await setWAllTime(
-                        calTime(
-                          nightTimes[0].startTime || "",
-                          nightTimes[0].endTime || "",
-                          workplacesearch.workOfHour
-                        ) || ""
-                      );
-                      await setWOtTime(
-                        calTime(
-                          nightTimes[0].startTimeOT || "",
-                          nightTimes[0].endTimeOT || "",
-                          workplacesearch.workOfOT || ""
-                        ) || ""
-                      );
-                      await setWSelectOtTime(nightTimes[0].startTimeOT || "");
-                      await setWSelectOtTimeout(nightTimes[0].endTimeOT || "");
+                      if (nightTimes.length > 0) {
+                        await setWStartTime(nightTimes[0].startTime || "");
+                        await setWEndTime(nightTimes[0].endTime || "");
+                        await setWAllTime(
+                          calTime(
+                            nightTimes[0].startTime || "",
+                            nightTimes[0].endTime || "",
+                            workplacesearch.workOfHour
+                          ) || ""
+                        );
+                        await setWOtTime(
+                          calTime(
+                            nightTimes[0].startTimeOT || "",
+                            nightTimes[0].endTimeOT || "",
+                            workplacesearch.workOfOT || ""
+                          ) || ""
+                        );
+                        await setWSelectOtTime(nightTimes[0].startTimeOT || "");
+                        await setWSelectOtTimeout(nightTimes[0].endTimeOT || "");
+
+                        await setWBeforeSelectOtTime(nightTimes[0]?.beforeStartTimeOT || "");
+                        await setWBeforeSelectOtTimeout(nightTimes[0]?.beforeEndTimeOT || "");
+                        await setWBeforeOtTime(
+                          calTime(
+                            nightTimes[0]?.beforeStartTimeOT || "",
+                            nightTimes[0]?.beforeEndTimeOT || "",
+                            workplacesearch?.beforeWorkOfOT || ""
+                          ) || ""
+                        );
+                      }
 
                       break;
                     case "specialt_shift":
@@ -391,28 +1056,45 @@ await workplacesearch.workplaceGroup[departmentIndex]
                       const specialt_shift = await item.allTimes.filter(
                         (time) => time.shift === "กะเช้า"
                       );
-                      await setWStartTime(specialt_shift[0].startTime || "");
-                      await setWEndTime(specialt_shift[0].endTime || "");
-                      await setWAllTime(
-                        calTime(
-                          specialt_shift[0].startTime || "",
-                          specialt_shift[0].endTime || "",
-                          workplacesearch.workOfHour
-                        ) || ""
-                      );
-                      await setWOtTime(
-                        calTime(
-                          specialt_shift[0].startTimeOT || "",
-                          specialt_shift[0].endTimeOT || "",
-                          workplacesearch.workOfOT || ""
-                        ) || ""
-                      );
-                      await setWSelectOtTime(
-                        specialt_shift[0].startTimeOT || ""
-                      );
-                      await setWSelectOtTimeout(
-                        specialt_shift[0].endTimeOT || ""
-                      );
+                      
+                      if (specialt_shift.length > 0) {
+                        await setWStartTime(specialt_shift[0].startTime || "");
+                        await setWEndTime(specialt_shift[0].endTime || "");
+                        await setWAllTime(
+                          calTime(
+                            specialt_shift[0].startTime || "",
+                            specialt_shift[0].endTime || "",
+                            workplacesearch.workOfHour
+                          ) || ""
+                        );
+                        await setWOtTime(
+                          calTime(
+                            specialt_shift[0].startTimeOT || "",
+                            specialt_shift[0].endTimeOT || "",
+                            workplacesearch.workOfOT || ""
+                          ) || ""
+                        );
+                        await setWSelectOtTime(
+                          specialt_shift[0].startTimeOT || ""
+                        );
+                        await setWSelectOtTimeout(
+                          specialt_shift[0].endTimeOT || ""
+                        );
+
+                        await setWBeforeSelectOtTime(
+                          specialt_shift[0]?.beforeStartTimeOT || ""
+                        );
+                        await setWBeforeSelectOtTimeout(
+                          specialt_shift[0]?.beforeEndTimeOT || ""
+                        );
+                        await setWBeforeOtTime(
+                          calTime(
+                            specialt_shift[0]?.beforeStartTimeOT || "",
+                            specialt_shift[0]?.beforeEndTimeOT || "",
+                            workplacesearch?.beforeWorkOfOT || ""
+                          ) || ""
+                        );
+                      }
 
                       break;
                     default:
@@ -422,6 +1104,9 @@ await workplacesearch.workplaceGroup[departmentIndex]
                       setWOtTime("");
                       setWSelectOtTime("");
                       setWSelectOtTimeout("");
+                      setWBeforeSelectOtTime("");
+                      setWBeforeSelectOtTimeout("");
+                      setWBeforeOtTime("");
                   }
                 }
 
@@ -436,27 +1121,39 @@ await workplacesearch.workplaceGroup[departmentIndex]
                       const morningTimes = await item.allTimes.filter(
                         (time) => time.shift === "กะเช้า"
                       );
-                      // await alert(morningTimes[0].startTime );
-                      await setWAllTime(
-                        calTime(
-                          morningTimes[0].startTime || "",
-                          morningTimes[0].endTime || "",
-                          workplacesearch.workOfHour
-                        ) || ""
-                      );
-                      await setWStartTime(morningTimes[0].startTime || "");
-                      await setWEndTime(morningTimes[0].endTime || "");
-                      await setWOtTime(
-                        calTime(
-                          morningTimes[0].startTimeOT || "",
-                          morningTimes[0].endTimeOT || "",
-                          workplacesearch.workOfOT || ""
-                        ) || ""
-                      );
-                      await setWSelectOtTime(morningTimes[0].startTimeOT || "");
-                      await setWSelectOtTimeout(
-                        morningTimes[0].endTimeOT || ""
-                      );
+                      
+                      const morningShift = safeGetFirstShift(morningTimes);
+                      if (morningShift) {
+                        // await alert(morningTimes[0].startTime );
+                        await setWAllTime(
+                          calTime(
+                            morningShift.startTime || "",
+                            morningShift.endTime || "",
+                            workplacesearch.workOfHour
+                          ) || ""
+                        );
+                        await setWStartTime(morningShift.startTime || "");
+                        await setWEndTime(morningShift.endTime || "");
+                        await setWOtTime(
+                          calTime(
+                            morningShift.startTimeOT || "",
+                            morningShift.endTimeOT || "",
+                            workplacesearch.workOfOT || ""
+                          ) || ""
+                        );
+                        await setWSelectOtTime(morningShift.startTimeOT || "");
+                        await setWSelectOtTimeout(morningShift.endTimeOT || "");
+                        await setWBeforeSelectOtTime(morningShift?.beforeStartTimeOT || "");
+                        await setWBeforeSelectOtTimeout(morningShift?.beforeEndTimeOT || "");
+                        await setWBeforeOtTime(
+                          calTime(
+                            morningShift?.beforeStartTimeOT || "",
+                            morningShift?.beforeEndTimeOT || "",
+                            workplacesearch?.beforeWorkOfOT || ""
+                          ) || ""
+                        );
+                      }
+
                       break;
                     case "afternoon_shift":
                       const afternoonTimes = await item.allTimes.filter(
@@ -486,6 +1183,16 @@ await workplacesearch.workplaceGroup[departmentIndex]
                         afternoonTimes[0].endTimeOT || ""
                       );
 
+                      await setWBeforeSelectOtTime(afternoonTimes[0]?.beforeStartTimeOT || "");
+                      await setWBeforeSelectOtTimeout(afternoonTimes[0]?.beforeEndTimeOT || "");
+                      await setWBeforeOtTime(
+                        calTime(
+                          afternoonTimes[0]?.beforeStartTimeOT || "",
+                          afternoonTimes[0]?.beforeEndTimeOT || "",
+                          workplacesearch?.beforeWorkOfOT || ""
+                        ) || ""
+                      );
+
                       break;
                     case "night_shift":
                       const nightTimes = await item.allTimes.filter(
@@ -510,6 +1217,16 @@ await workplacesearch.workplaceGroup[departmentIndex]
                       );
                       await setWSelectOtTime(nightTimes[0].startTimeOT || "");
                       await setWSelectOtTimeout(nightTimes[0].endTimeOT || "");
+
+                      await setWBeforeSelectOtTime(nightTimes[0]?.beforeStartTimeOT || "");
+                      await setWBeforeSelectOtTimeout(nightTimes[0]?.beforeEndTimeOT || "");
+                      await setWBeforeOtTime(
+                        calTime(
+                          nightTimes[0]?.beforeStartTimeOT || "",
+                          nightTimes[0]?.beforeEndTimeOT || "",
+                          workplacesearch?.beforeWorkOfOT || ""
+                        ) || ""
+                      );
 
                       break;
                     case "specialt_shift":
@@ -545,6 +1262,17 @@ await workplacesearch.workplaceGroup[departmentIndex]
                       await setWSelectOtTimeout(
                         specialt_shift[0].endTimeOT || ""
                       );
+
+                      await setWBeforeSelectOtTime(specialt_shift[0]?.beforeStartTimeOT || "");
+                      await setWBeforeSelectOtTimeout(specialt_shift[0]?.beforeEndTimeOT || "");
+                      await setWBeforeOtTime(
+                        calTime(
+                          specialt_shift[0]?.beforeStartTimeOT || "",
+                          specialt_shift[0]?.beforeEndTimeOT || "",
+                          workplacesearch?.beforeWorkOfOT || ""
+                        ) || ""
+                      );
+
                       break;
                     default:
                       await setWStartTime("");
@@ -553,6 +1281,10 @@ await workplacesearch.workplaceGroup[departmentIndex]
                       await setWOtTime("");
                       await setWSelectOtTime("");
                       await setWSelectOtTimeout("");
+                      await setWBeforeSelectOtTime("");
+                      await setWBeforeSelectOtTimeout("");
+                      await setWBeforeOtTime("");
+
                   }
                 }
 
@@ -590,6 +1322,19 @@ await workplacesearch.workplaceGroup[departmentIndex]
                       await setWSelectOtTimeout(
                         morningTimes[0].endTimeOT || ""
                       );
+
+                      await setWBeforeSelectOtTime(morningTimes[0]?.beforeStartTimeOT || "");
+                      await setWBeforeSelectOtTimeout(
+                        morningTimes[0]?.beforeEndTimeOT || ""
+                      );
+                      await setWBeforeOtTime(
+                        calTime(
+                          morningTimes[0]?.beforeStartTimeOT || "",
+                          morningTimes[0]?.beforeEndTimeOT || "",
+                          workplacesearch?.beforeWorkOfOT || ""
+                        ) || ""
+                      );
+
                       break;
                     case "afternoon_shift":
                       const afternoonTimes = await item.allTimes.filter(
@@ -619,6 +1364,18 @@ await workplacesearch.workplaceGroup[departmentIndex]
                         afternoonTimes[0].endTimeOT || ""
                       );
 
+                      await setWBeforeSelectOtTime(afternoonTimes[0]?.beforeStartTimeOT || "");
+                      await setWBeforeSelectOtTimeout(
+                        afternoonTimes[0]?.beforeEndTimeOT || ""
+                      );
+                      await setWBeforeOtTime(
+                        calTime(
+                          afternoonTimes[0]?.beforeStartTimeOT || "",
+                          afternoonTimes[0]?.beforeEndTimeOT || "",
+                          workplacesearch?.beforeWorkOfOT || ""
+                        ) || ""
+                      );
+
                       break;
                     case "night_shift":
                       const nightTimes = await item.allTimes.filter(
@@ -643,6 +1400,18 @@ await workplacesearch.workplaceGroup[departmentIndex]
                       );
                       await setWSelectOtTime(nightTimes[0].startTimeOT || "");
                       await setWSelectOtTimeout(nightTimes[0].endTimeOT || "");
+
+                      await setWBeforeSelectOtTime(nightTimes[0]?.beforeStartTimeOT || "");
+                      await setWBeforeSelectOtTimeout(
+                        nightTimes[0]?.beforeEndTimeOT || ""
+                      );
+                      await setWBeforeOtTime(
+                        calTime(
+                          nightTimes[0]?.beforeStartTimeOT || "",
+                          nightTimes[0]?.beforeEndTimeOT || "",
+                          workplacesearch?.beforeWorkOfOT || ""
+                        ) || ""
+                      );
 
                       break;
                     case "specialt_shift":
@@ -678,6 +1447,19 @@ await workplacesearch.workplaceGroup[departmentIndex]
                       await setWSelectOtTimeout(
                         specialt_shift[0].endTimeOT || ""
                       );
+
+                      await setWBeforeSelectOtTime(specialt_shift[0]?.beforeStartTimeOT || "");
+                      await setWBeforeSelectOtTimeout(
+                        specialt_shift[0]?.beforeEndTimeOT || ""
+                      );
+                      await setWBeforeOtTime(
+                        calTime(
+                          specialt_shift[0]?.beforeStartTimeOT || "",
+                          specialt_shift[0]?.beforeEndTimeOT || "",
+                          workplacesearch?.beforeWorkOfOT || ""
+                        ) || ""
+                      );
+
                       break;
                     default:
                       await setWStartTime("");
@@ -686,6 +1468,9 @@ await workplacesearch.workplaceGroup[departmentIndex]
                       await setWOtTime("");
                       await setWSelectOtTime("");
                       await setWSelectOtTimeout("");
+                      await setWBeforeSelectOtTime("");
+                      await setWBeforeSelectOtTimeout("");
+                      await setWBeforeOtTime("");
                   }
                 }
 
@@ -709,9 +1494,32 @@ await workplacesearch.workplaceGroup[departmentIndex]
                 ศุกร์: 5,
                 เสาร์: 6,
               };
-              let date = await new Date(year, month - 1, wDate); // Subtract 1 from the month since months are zero-indexed
-              let dayOfWeek = await date.getDay(); // This will give you the day of the week, where 0 is Sunday, 1 is
 
+              // let date = await new Date(year, month - 1, wDate); // Subtract 1 from the month since months are zero-indexed
+              // let dayOfWeek = await date.getDay(); // This will give you the day of the week, where 0 is Sunday, 1 is
+              let m = '';
+let y = '';
+              if (wDate >= 21 && wDate <= 31) {
+                if (parseInt(month, 10) === 1) {
+                  // month = '12';  // Change '01' to '12'
+m = '12';
+                  y= await year - 1; // Decrease the year
+                } else {
+                  m =  parseInt(month, 10) - 1;
+                  m = m.toString().padStart(2, '0')
+                  y = year;
+                  // alert(m);
+                }
+
+              } else {
+m = month;
+y = year
+              }
+              
+              
+              let date = new Date(y, parseInt(m, 10) - 1, wDate); // Ensure month is a number
+              let dayOfWeek = date.getDay(); // Get day of the week
+              
               // alert(JSON.stringify('hi') );
 
               await workplacesearch.workTimeDay.map(async (item, index) => {
@@ -730,54 +1538,83 @@ await workplacesearch.workplaceGroup[departmentIndex]
                         (time) => time.shift === "กะเช้า"
                       );
 
-                      await setWStartTime(morningTimes[0].startTime || "");
-                      await setWEndTime(morningTimes[0].endTime || "");
-                      await setWAllTime(
-                        calTime(
-                          morningTimes[0].startTime || "",
-                          morningTimes[0].endTime || "",
-                          workplacesearch.workOfHour
-                        ) || ""
-                      );
-                      await setWOtTime(
-                        calTime(
-                          morningTimes[0].startTimeOT || "",
-                          morningTimes[0].endTimeOT || "",
-                          workplacesearch.workOfOT || ""
-                        ) || ""
-                      );
-                      await setWSelectOtTime(morningTimes[0].startTimeOT || "");
-                      await setWSelectOtTimeout(
-                        morningTimes[0].endTimeOT || ""
-                      );
+                      if (morningTimes.length > 0) {
+                        await setWStartTime(morningTimes[0].startTime || "");
+                        await setWEndTime(morningTimes[0].endTime || "");
+                        await setWAllTime(
+                          calTime(
+                            morningTimes[0].startTime || "",
+                            morningTimes[0].endTime || "",
+                            workplacesearch.workOfHour
+                          ) || ""
+                        );
+                        await setWOtTime(
+                          calTime(
+                            morningTimes[0].startTimeOT || "",
+                            morningTimes[0].endTimeOT || "",
+                            workplacesearch.workOfOT || ""
+                          ) || ""
+                        );
+                        await setWSelectOtTime(morningTimes[0].startTimeOT || "");
+                        await setWSelectOtTimeout(
+                          morningTimes[0].endTimeOT || ""
+                        );
+
+                        await setWBeforeOtTime(
+                          calTime(
+                            morningTimes[0]?.beforeStartTimeOT || "",
+                            morningTimes[0]?.beforeEndTimeOT || "",
+                            workplacesearch?.beforeWorkOfOT || ""
+                          ) || ""
+                        );
+                        await setWBeforeSelectOtTime(morningTimes[0]?.beforeStartTimeOT || "");
+                        await setWBeforeSelectOtTimeout(
+                          morningTimes[0]?.beforeEndTimeOT || ""
+                        );
+                      }
+
                       break;
                     case "afternoon_shift":
                       const afternoonTimes = await item.allTimes.filter(
                         (time) => time.shift === "กะบ่าย"
                       );
 
-                      await setWStartTime(afternoonTimes[0].startTime || "");
-                      await setWEndTime(afternoonTimes[0].endTime || "");
-                      await setWAllTime(
-                        calTime(
-                          afternoonTimes[0].startTime || "",
-                          afternoonTimes[0].endTime || "",
-                          workplacesearch.workOfHour
-                        ) || ""
-                      );
-                      await setWOtTime(
-                        calTime(
-                          afternoonTimes[0].startTimeOT || "",
-                          afternoonTimes[0].endTimeOT || "",
-                          workplacesearch.workOfOT || ""
-                        ) || ""
-                      );
-                      await setWSelectOtTime(
-                        afternoonTimes[0].startTimeOT || ""
-                      );
-                      await setWSelectOtTimeout(
-                        afternoonTimes[0].endTimeOT || ""
-                      );
+                      if (afternoonTimes.length > 0) {
+                        await setWStartTime(afternoonTimes[0].startTime || "");
+                        await setWEndTime(afternoonTimes[0].endTime || "");
+                        await setWAllTime(
+                          calTime(
+                            afternoonTimes[0].startTime || "",
+                            afternoonTimes[0].endTime || "",
+                            workplacesearch.workOfHour
+                          ) || ""
+                        );
+                        await setWOtTime(
+                          calTime(
+                            afternoonTimes[0].startTimeOT || "",
+                            afternoonTimes[0].endTimeOT || "",
+                            workplacesearch.workOfOT || ""
+                          ) || ""
+                        );
+                        await setWSelectOtTime(
+                          afternoonTimes[0].startTimeOT || ""
+                        );
+                        await setWSelectOtTimeout(
+                          afternoonTimes[0].endTimeOT || ""
+                        );
+
+                        await setWBeforeOtTime(
+                          calTime(
+                            afternoonTimes[0]?.beforeStartTimeOT || "",
+                            afternoonTimes[0]?.beforeEndTimeOT || "",
+                            workplacesearch?.beforeWorkOfOT || ""
+                          ) || ""
+                        );
+                        await setWBeforeSelectOtTime(afternoonTimes[0]?.beforeStartTimeOT || "");
+                        await setWBeforeSelectOtTimeout(
+                          afternoonTimes[0]?.beforeEndTimeOT || ""
+                        );
+                      }
 
                       break;
                     case "night_shift":
@@ -804,6 +1641,18 @@ await workplacesearch.workplaceGroup[departmentIndex]
                       await setWSelectOtTime(nightTimes[0].startTimeOT || "");
                       await setWSelectOtTimeout(nightTimes[0].endTimeOT || "");
 
+                      await setWBeforeOtTime(
+                        calTime(
+                          nightTimes[0]?.beforeStartTimeOT || "",
+                          nightTimes[0]?.beforeEndTimeOT || "",
+                          workplacesearch?.beforeWorkOfOT || ""
+                        ) || ""
+                      );
+                      await setWBeforeSelectOtTime(nightTimes[0]?.beforeStartTimeOT || "");
+                      await setWBeforeSelectOtTimeout(
+                        nightTimes[0]?.beforeEndTimeOT || ""
+                      );
+
                       break;
                     case "specialt_shift":
                       // setWStartTime("");
@@ -815,28 +1664,47 @@ await workplacesearch.workplaceGroup[departmentIndex]
                       const specialt_shift = await item.allTimes.filter(
                         (time) => time.shift === "กะเช้า"
                       );
-                      await setWStartTime(specialt_shift[0].startTime || "");
-                      await setWEndTime(specialt_shift[0].endTime || "");
-                      await setWAllTime(
-                        calTime(
-                          specialt_shift[0].startTime || "",
-                          specialt_shift[0].endTime || "",
-                          workplacesearch.workOfHour
-                        ) || ""
+                      
+                      if (specialt_shift.length > 0) {
+                        await setWStartTime(specialt_shift[0].startTime || "");
+                        await setWEndTime(specialt_shift[0].endTime || "");
+                        await setWAllTime(
+                          calTime(
+                            specialt_shift[0].startTime || "",
+                            specialt_shift[0].endTime || "",
+                            workplacesearch.workOfHour
+                          ) || ""
+                        );
+                        await setWOtTime(
+                          calTime(
+                            specialt_shift[0].startTimeOT || "",
+                            specialt_shift[0].endTimeOT || "",
+                            workplacesearch.workOfOT || ""
+                          ) || ""
+                        );
+                        await setWSelectOtTime(
+                          specialt_shift[0].startTimeOT || ""
+                        );
+                        await setWSelectOtTimeout(
+                          specialt_shift[0].endTimeOT || ""
+                        );
+
+                        await setWBeforeOtTime(
+                          calTime(
+                            specialt_shift[0]?.beforeStartTimeOT || "",
+                            specialt_shift[0]?.beforeEndTimeOT || "",
+                            workplacesearch?.beforeWorkOfOT || ""
+                          ) || ""
+                        );
+                        await setWBeforeSelectOtTime(specialt_shift[0]?.beforeStartTimeOT || "");
+                        await setWBeforeSelectOtTimeout(
+                          specialt_shift[0]?.beforeEndTimeOT || ""
+                        );
+                      }
+                      await setWBeforeSelectOtTimeout(
+                        specialt_shift[0]?.beforeEndTimeOT || ""
                       );
-                      await setWOtTime(
-                        calTime(
-                          specialt_shift[0].startTimeOT || "",
-                          specialt_shift[0].endTimeOT || "",
-                          workplacesearch.workOfOT || ""
-                        ) || ""
-                      );
-                      await setWSelectOtTime(
-                        specialt_shift[0].startTimeOT || ""
-                      );
-                      await setWSelectOtTimeout(
-                        specialt_shift[0].endTimeOT || ""
-                      );
+
                       break;
                     default:
                       setWStartTime("");
@@ -845,6 +1713,10 @@ await workplacesearch.workplaceGroup[departmentIndex]
                       setWOtTime("");
                       setWSelectOtTime("");
                       setWSelectOtTimeout("");
+                      setWBeforeOtTime("");
+                      setWBeforeSelectOtTime("");
+                      setWBeforeSelectOtTimeout("");
+
                   }
                 }
 
@@ -880,6 +1752,19 @@ await workplacesearch.workplaceGroup[departmentIndex]
                       await setWSelectOtTimeout(
                         morningTimes[0].endTimeOT || ""
                       );
+
+                      await setWBeforeOtTime(
+                        calTime(
+                          morningTimes[0]?.beforeStartTimeOT || "",
+                          morningTimes[0]?.beforeEndTimeOT || "",
+                          workplacesearch?.beforeWorkOfOT || ""
+                        ) || ""
+                      );
+                      await setWBeforeSelectOtTime(morningTimes[0]?.beforeStartTimeOT || "");
+                      await setWBeforeSelectOtTimeout(
+                        morningTimes[0]?.beforeEndTimeOT || ""
+                      );
+
                       break;
                     case "afternoon_shift":
                       const afternoonTimes = await item.allTimes.filter(
@@ -909,6 +1794,18 @@ await workplacesearch.workplaceGroup[departmentIndex]
                         afternoonTimes[0].endTimeOT || ""
                       );
 
+                      await setWBeforeOtTime(
+                        calTime(
+                          afternoonTimes[0]?.beforeStartTimeOT || "",
+                          afternoonTimes[0]?.beforeEndTimeOT || "",
+                          workplacesearch?.beforeWorkOfOT || ""
+                        ) || ""
+                      );
+                      await setWBeforeSelectOtTime(afternoonTimes[0]?.beforeStartTimeOT || "");
+                      await setWBeforeSelectOtTimeout(
+                        afternoonTimes[0]?.beforeEndTimeOT || ""
+                      );
+
                       break;
                     case "night_shift":
                       const nightTimes = await item.allTimes.filter(
@@ -933,6 +1830,18 @@ await workplacesearch.workplaceGroup[departmentIndex]
                       );
                       await setWSelectOtTime(nightTimes[0].startTimeOT || "");
                       await setWSelectOtTimeout(nightTimes[0].endTimeOT || "");
+
+                      await setWBeforeOtTime(
+                        calTime(
+                          nightTimes[0]?.beforeStartTimeOT || "",
+                          nightTimes[0]?.beforeEndTimeOT || "",
+                          workplacesearch?.beforeWorkOfOT || ""
+                        ) || ""
+                      );
+                      await setWBeforeSelectOtTime(nightTimes[0]?.beforeStartTimeOT || "");
+                      await setWBeforeSelectOtTimeout(
+                        nightTimes[0]?.beforeEndTimeOT || ""
+                      );
 
                       break;
                     case "specialt_shift":
@@ -968,6 +1877,19 @@ await workplacesearch.workplaceGroup[departmentIndex]
                       await setWSelectOtTimeout(
                         specialt_shift[0].endTimeOT || ""
                       );
+
+                      await setWBeforeOtTime(
+                        calTime(
+                          specialt_shift[0]?.beforeStartTimeOT || "",
+                          specialt_shift[0]?.beforeEndTimeOT || "",
+                          workplacesearch?.beforeWorkOfOT || ""
+                        ) || ""
+                      );
+                      await setWBeforeSelectOtTime(specialt_shift[0]?.beforeStartTimeOT || "");
+                      await setWBeforeSelectOtTimeout(
+                        specialt_shift[0]?.beforeEndTimeOT || ""
+                      );
+
                       break;
                     default:
                       await setWStartTime("");
@@ -976,6 +1898,9 @@ await workplacesearch.workplaceGroup[departmentIndex]
                       await setWOtTime("");
                       await setWSelectOtTime("");
                       await setWSelectOtTimeout("");
+                      await setWBeforeOtTime("");
+                      await setWBeforeSelectOtTime("");
+                      await setWBeforeSelectOtTimeout("");
                   }
                 }
 
@@ -1013,6 +1938,19 @@ await workplacesearch.workplaceGroup[departmentIndex]
                       await setWSelectOtTimeout(
                         morningTimes[0].endTimeOT || ""
                       );
+
+                      await setWBeforeOtTime(
+                        calTime(
+                          morningTimes[0]?.beforeStartTimeOT || "",
+                          morningTimes[0]?.beforeEndTimeOT || "",
+                          workplacesearch?.beforeWorkOfOT || ""
+                        ) || ""
+                      );
+                      await setWBeforeSelectOtTime(
+                        morningTimes[0]?.beforeStartTimeOT || "");
+                      await setWBeforeSelectOtTimeout(
+                        morningTimes[0]?.beforeEndTimeOT || "");
+
                       break;
                     case "afternoon_shift":
                       const afternoonTimes = await item.allTimes.filter(
@@ -1042,6 +1980,18 @@ await workplacesearch.workplaceGroup[departmentIndex]
                         afternoonTimes[0].endTimeOT || ""
                       );
 
+                      await setWBeforeOtTime(
+                        calTime(
+                          afternoonTimes[0]?.beforeStartTimeOT || "",
+                          afternoonTimes[0]?.beforeEndTimeOT || "",
+                          workplacesearch?.beforeWorkOfOT || ""
+                        ) || ""
+                      );
+                      await setWBeforeSelectOtTime(
+                        afternoonTimes[0]?.beforeStartTimeOT || "");
+                      await setWBeforeSelectOtTimeout(
+                        afternoonTimes[0]?.beforeEndTimeOT || "");
+
                       break;
                     case "night_shift":
                       const nightTimes = await item.allTimes.filter(
@@ -1066,6 +2016,18 @@ await workplacesearch.workplaceGroup[departmentIndex]
                       );
                       await setWSelectOtTime(nightTimes[0].startTimeOT || "");
                       await setWSelectOtTimeout(nightTimes[0].endTimeOT || "");
+
+                      await setWBeforeOtTime(
+                        calTime(
+                          nightTimes[0]?.beforeStartTimeOT || "",
+                          nightTimes[0]?.beforeEndTimeOT || "",
+                          workplacesearch?.beforeWorkOfOT || ""
+                        ) || ""
+                      );
+                      await setWBeforeSelectOtTime(
+                        nightTimes[0]?.beforeStartTimeOT || "");
+                      await setWBeforeSelectOtTimeout(
+                        nightTimes[0]?.beforeEndTimeOT || "");
 
                       break;
                     case "specialt_shift":
@@ -1101,6 +2063,20 @@ await workplacesearch.workplaceGroup[departmentIndex]
                       await setWSelectOtTimeout(
                         specialt_shift[0].endTimeOT || ""
                       );
+
+                      await setWBeforeOtTime(
+                        calTime(
+                          specialt_shift[0]?.beforeStartTimeOT || "",
+                          specialt_shift[0]?.beforeEndTimeOT || "",
+                          workplacesearch?.beforeWorkOfOT || ""
+                        ) || ""
+                      );
+                      await setWBeforeSelectOtTime(
+                        specialt_shift[0]?.beforeStartTimeOT || "");
+                      await setWBeforeSelectOtTimeout(
+                        specialt_shift[0]?.beforeEndTimeOT || "");
+
+
                       break;
                     default:
                       await setWStartTime("");
@@ -1109,6 +2085,9 @@ await workplacesearch.workplaceGroup[departmentIndex]
                       await setWOtTime("");
                       await setWSelectOtTime("");
                       await setWSelectOtTimeout("");
+                      await setWBeforeOtTime("");
+                      await setWBeforeSelectOtTime("");
+                      await setWBeforeSelectOtTimeout("");
                   }
                 }
 
@@ -1122,11 +2101,11 @@ await workplacesearch.workplaceGroup[departmentIndex]
         }
       };
 
-      timeOfWork();
+      runAsync();
     } catch (err) {
       console("err", err);
     }
-  }, [wShift, wDate]);
+  }, [wShift, wDate, workplaceList]);
 
   //calculate time of work
   useEffect(() => {
@@ -1143,7 +2122,7 @@ await workplacesearch.workplaceGroup[departmentIndex]
               workplacesearch.workOfHour || ""
             )
           );
-          if (wShift == "specialt_shift") {
+          if (wShift == "specialt_shift" || wShift == "cash_holiday") {
             setWAllTime(calTime(wStartTime || "", wEndTime || "", 24));
           } else {
             setWAllTime(
@@ -1168,7 +2147,7 @@ await workplacesearch.workplaceGroup[departmentIndex]
           (workplace) => workplace.workplaceId === wId
         );
         if (workplacesearch) {
-          if (wShift == "specialt_shift") {
+          if (wShift == "specialt_shift" || wShift == "cash_holiday") {
             setWOtTime(
               calTime(wSelectOtTime || "", wSelectOtTimeout || "", 24)
             );
@@ -1184,11 +2163,37 @@ await workplacesearch.workplaceGroup[departmentIndex]
         }
       }
     } else {
-      setWOtTime(0);
+      setWOtTime('');
     }
   }, [wSelectOtTime, wSelectOtTimeout]);
 
 
+  useEffect(() => {
+    if (wBeforeSelectOtTime !== "" && wBeforeSelectOtTimeout !== "") {
+      if (wId !== "" && wName !== "") {
+        const workplacesearch = workplaceList.find(
+          (workplace) => workplace.workplaceId === wId
+        );
+        if (workplacesearch) {
+          if (wShift == "specialt_shift" || wShift == "cash_holiday") {
+            setWBeforeOtTime(
+              calTime(wBeforeSelectOtTime || "", wBeforeSelectOtTimeout || "", 24)
+            );
+          } else {
+            setWBeforeOtTime(
+              calTime(
+                wBeforeSelectOtTime || "",
+                wBeforeSelectOtTimeout || "",
+                workplacesearch.workOfOT || ""
+              )
+            );
+          }
+        }
+      }
+    } else {
+      setWBeforeOtTime('');
+    }
+  }, [wBeforeSelectOtTime, wBeforeSelectOtTimeout]);
 
   // search employee Name by employeeId
   useEffect(() => {
@@ -1202,7 +2207,7 @@ await workplacesearch.workplaceGroup[departmentIndex]
           //department: employee department process
           if (
             searchResult[0].workplace === wId &&
-            searchResult[0].department !== "" &&
+            // searchResult[0].department !== "" &&
             workplacesearch.workplaceGroup.length > 0
           ) {
             // alert(searchResult[0].workplace );
@@ -1221,7 +2226,6 @@ await workplacesearch.workplaceGroup[departmentIndex]
             //   workplacesearch.workplaceGroup[
             //     parseInt(searchResult[0].department || 0) - 1
             //   ].workplaceComplexName || "";
-
             let dep =
               workplacesearch.workplaceGroup?.[
                 parseInt(searchResult[0].department || 0) - 1
@@ -1233,7 +2237,6 @@ await workplacesearch.workplaceGroup[departmentIndex]
             } else {
               setWName(dep);
               setWGroup(workplacesearch?.wGroup || '');
-
             }
           } else {
             setWName(workplacesearch.workplaceName);
@@ -1290,6 +2293,8 @@ await workplacesearch.workplaceGroup[departmentIndex]
     cashSalary: "",
     specialtSalary: "",
     specialtSalaryOT: "",
+    cashOfHoliday: "",
+    cashOfHolidayOt: "",
     messageSalary: "",
   };
 
@@ -1464,6 +2469,27 @@ await workplacesearch.workplaceGroup[departmentIndex]
                   ["selectotTimeOut"]: workplaceIdSearch.workEndOt1 || "" + "",
                 };
                 break;
+              case "cash_holiday":
+                newDataList2[index2] = {
+                  ...newDataList2[index2],
+                  ["startTime"]: workplaceIdSearch.workStart1 || "" + "",
+                  ["endTime"]: workplaceIdSearch.workEnd1 || "" + "",
+                  ["allTime"]:
+                    calTime(
+                      workplaceIdSearch.workStart1 || "",
+                      workplaceIdSearch.workEnd1 || "",
+                      workplaceIdSearch.workOfHour || ""
+                    ) || "" + "",
+                  ["otTime"]:
+                    calTime(
+                      workplaceIdSearch.workStartOt1 || "",
+                      workplaceIdSearch.workEndOt1 || "",
+                      workplaceIdSearch.workOfOT || ""
+                    ) || "" + "",
+                  ["selectotTime"]: workplaceIdSearch.workStartOt1 || "" + "",
+                  ["selectotTimeOut"]: workplaceIdSearch.workEndOt1 || "" + "",
+                };
+                break;
               default:
                 newDataList2[index2] = {
                   ...newDataList2[index2],
@@ -1503,7 +2529,7 @@ await workplacesearch.workplaceGroup[departmentIndex]
           );
           if (workplaceIdSearch) {
             //check specialt_shift
-            if (newDataList2[index2].shift !== "specialt_shift") {
+            if (newDataList2[index2].shift !== "specialt_shift" && newDataList2[index2].shift !== "cash_holiday") {
               //     newDataList2[index2] = {
               //         ...newDataList2[index2],
               //         ['startTime']: newDataList2[index2].startTime + '',
@@ -1650,7 +2676,10 @@ await workplacesearch.workplaceGroup[departmentIndex]
   const [searchWorkplaceName, setSearchWorkplaceName] = useState(""); //ชื่อหน่วยงาน
 
   async function handleSearch(event) {
-    event.preventDefault();
+    if (event && event.preventDefault) {
+      event.preventDefault();
+    }
+    setCustomWorkplace({});
 
     // get value from form search
     const data = await {
@@ -1685,6 +2714,12 @@ await workplacesearch.workplaceGroup[departmentIndex]
         setName(response.data.employees[0].name);
         setLastname(response.data.employees[0].lastName);
 
+        //ตรวจสอบและเรียกข้อมูล customWorkplace ตั้งค่าการทำงานเฉพาะบุคคล
+if(response?.data?.employees?.[0]?.customWorkplace) {
+// alert(JSON.stringify(response?.data?.employees?.[0]?.customWorkplace,null,2))
+setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
+}
+
         // setSearchEmployeeId(response.data.employees[0].employeeId);
         // setSearchEmployeeName(response.data.employees[0].name);
 
@@ -1700,18 +2735,20 @@ await workplacesearch.workplaceGroup[departmentIndex]
       employeeId: employeeId,
       employeeName: name,
       month: month,
-      timerecordId: year,
+      year: year,
     };
     setRowDataList2([]);
+    generateOptions(year , month);
+
     if (!checkaddData) {
       try {
         const response = await axios.post(
-          endpoint + "/timerecord/searchemp",
+          endpoint + "/timerecord/searchtimerecordemployee",
           data
         );
         // alert(JSON.stringify(response ,null,2));
 
-        if (response.data.recordworkplace.length < 1) {
+        if (response.data.result.length < 1) {
           alert("ไม่พบข้อมูล");
           // Set the state to false if no data is found
           setUpdateButton(false);
@@ -1719,13 +2756,32 @@ await workplacesearch.workplaceGroup[departmentIndex]
           setRowDataList2([]);
         } else {
           // Set the state to true if data is found
-          setUpdateButton(true);
+          await setUpdateButton(true);
           // alert(response.data.recordworkplace[0].employee_workplaceRecord[1].workplaceId);
-          setTimeRecord_id(response.data.recordworkplace[0]._id);
+          await setTimeRecord_id(response.data.result[0]._id);
 
           // setRowDataList2(response.data.recordworkplace[0].employee_workplaceRecord);
           if (name != "") {
-            // setRowDataList2(response.data.recordworkplace[0].employee_workplaceRecord);
+            
+            setRowDataList2(
+              response?.data?.result?.[0]?.employee_record
+                .sort((a, b) => {
+                  const dateA = parseInt(a.date, 10);
+                  const dateB = parseInt(b.date, 10);
+            
+                  // Prioritize dates from 21-30 first, then 01-20
+                  if ((dateA >= 21 && dateB >= 21) || (dateA <= 20 && dateB <= 20)) {
+                    return dateA - dateB; // Sort normally within each group
+                  }
+                  return dateA >= 21 ? -1 : 1; // Move 21-30 to the front
+                })
+                .map((item, index) => ({
+                  ...item,
+                  tmpIndex: index,
+                }))
+            );
+            
+            // setRowDataList2(response.data.result[0].employee_record);
             // setRowDataList2(
             //   response.data.recordworkplace[0].employee_workplaceRecord.map(
             //     (item, index) => ({
@@ -1735,24 +2791,19 @@ await workplacesearch.workplaceGroup[departmentIndex]
             //   )
             // );
             //111
-            setRowDataList2(
-              response.data.recordworkplace[0].employee_workplaceRecord
-                .sort((a, b) => parseInt(a.date) - parseInt(b.date)) // Sort by date (ascending order)
-                .map((item, index) => ({
-                  ...item,
-                  tmpIndex: index,
-                }))
-            );
+            // setRowDataList2(
+            //   response.data.recordworkplace[0].employee_workplaceRecord
+            //     .sort((a, b) => parseInt(a.date) - parseInt(b.date)) // Sort by date (ascending order)
+            //     .map((item, index) => ({
+            //       ...item,
+            //       tmpIndex: index,
+            //     }))
+            // );
           } else {
             setRowDataList2([]);
           }
 
           // alert(JSON.stringify( rowDataList[0] ) );
-          //count work of time and set to table
-          // for (let i = 0; i < response.data.recordworkplace[0].employeeRecord.length; i++) {
-          // alert(response.data.recordworkplace[0].employeeRecord[i].shift );
-          // handleFieldChange(i, 'shift', response.data.recordworkplace[0].employeeRecord[i].shift);
-          // }
         }
       } catch (error) {
         alert("กรุณาตรวจสอบข้อมูลในช่องค้นหา");
@@ -1765,10 +2816,11 @@ await workplacesearch.workplaceGroup[departmentIndex]
   async function handleManageWorkplace(event) {
     event.preventDefault();
     //get data from input in useState to data
+    // Removed condition: if(wAllTime == 0) return; - Now allows adding with 0 work hours
 
     const newRowData = await {
-      tmpIndex: tmpIndex || "",
-      timerecordId: year || "",
+      tmpIndex    : tmpIndex || "",
+      year: year || "",
       workplaceId: wId || "",
       workplaceName: wName || "",
       wGroup: wGroup  || "",
@@ -1776,31 +2828,78 @@ await workplacesearch.workplaceGroup[departmentIndex]
       shift: wShift || "",
       startTime: wStartTime || "",
       endTime: wEndTime || "",
-      allTime: wAllTime || "",
-      otTime: wOtTime || "",
-      selectotTime: wSelectOtTime || "",
-      selectotTimeOut: wSelectOtTimeout || "",
+      totalTime: wAllTime || "",
+      totalOtTime: wOtTime || "",
+      startOtTime: wSelectOtTime || "",
+      endOtTime: wSelectOtTimeout || "",
+      beforeTotalOtTime: wBeforeOtTime || "",
+      beforeStartOtTime: wBeforeSelectOtTime || "",
+      beforeEndOtTime: wBeforeSelectOtTimeout || "",
       cashSalary: cashSalary || "",
       specialtSalary: specialtSalary || "",
       specialtSalaryOT: specialtSalaryOT || "",
-
+      cashOfHoliday: cashOfHoliday || "",
+      cashOfHolidayOt: cashOfHolidayOt || "",
+      payFullDay: payFullDay || false, // Add payFullDay flag
       messageSalary: messageSalary || "",
     };
 
     await addRow(newRowData);
 
+    // Scroll to bottom when date is 20 or greater
+    if (parseInt(wDate) >= 20) {
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }
+
     await setTmpIndex(tmpIndex + 1);
+    
+    // เก็บค่า OT ที่ผู้ใช้กรอกไว้ก่อนที่ useEffect จะ reset
+    const preservedOtValues = {
+      wSelectOtTime: wSelectOtTime,
+      wSelectOtTimeout: wSelectOtTimeout,
+      wOtTime: wOtTime,
+      wBeforeSelectOtTime: wBeforeSelectOtTime,
+      wBeforeSelectOtTimeout: wBeforeSelectOtTimeout,
+      wBeforeOtTime: wBeforeOtTime
+    };
+    
+    // รอให้ useEffect ทำงานเสร็จแล้วค่อยเซ็ตค่า OT กลับ
+    setTimeout(() => {
+      setWSelectOtTime(preservedOtValues.wSelectOtTime);
+      setWSelectOtTimeout(preservedOtValues.wSelectOtTimeout);
+      setWOtTime(preservedOtValues.wOtTime);
+      setWBeforeSelectOtTime(preservedOtValues.wBeforeSelectOtTime);
+      setWBeforeSelectOtTimeout(preservedOtValues.wBeforeSelectOtTimeout);
+      setWBeforeOtTime(preservedOtValues.wBeforeOtTime);
+    }, 100);
+    
+    // Reset payFullDay checkbox
+    setPayFullDay(false);
+    
+    // ไม่ล้างค่าในฟิลด์เพื่อให้ผู้ใช้สามารถเพิ่มข้อมูลต่อเนื่องได้โดยไม่ต้องกรอกซ้ำ
+    // เพียงแค่เปลี่ยนวันที่ไปวันถัดไป แต่จำค่าอื่นๆ ไว้ทั้งหมด รวมถึง OT
     // await setWId('');
     // await setWName('');
+    // await setWGroup('');
     // await setWStartTime('');
     // await setWEndTime('');
     // await setWAllTime('');
+    // 
+    // OT (หลังเวลาทำงาน) - จำค่าไว้
     // await setWOtTime('');
     // await setWSelectOtTime('');
     // await setWSelectOtTimeout('');
+    //
+    // OT (ก่อนเวลาทำงาน) - จำค่าไว้
+    // await setWBeforeSelectOtTime('');
+    // await setWBeforeSelectOtTimeout('');
+    // await setWBeforeOtTime('');
+    //
     // await setCashSalary("");
     // await setSpecialtSalary("");
     // await setSpecialtSalaryOT("");
+    // await setCashOfHoliday("");
+    // await setCashOfHolidayOt("");
     // await setMessageSalary("");
   }
 
@@ -1862,16 +2961,20 @@ await workplacesearch.workplaceGroup[departmentIndex]
     setRowDataList2(newDataList);
 
   
-    const currentDate = parseInt(wDate, 10);
+    // const currentDate = parseInt(wDate, 10);
+    const currentDate = parseInt(wDate);
+
     let nextDate = currentDate + 1;
 
-    if (nextDate > 31) {
+
+    if (nextDate > parseInt(lastDate) ) {
       nextDate = 1;
     }
 
-    const formattedNextDate = nextDate.toString().padStart(2, "0");
+    const formattedNextDate = nextDate.toString();
     setWDate(formattedNextDate);
   };
+
   // Function to handle editing a row
   const handleEditRow = async (index) => {
     // You can implement the edit logic here, e.g., open a modal for editing
@@ -1883,6 +2986,109 @@ await workplacesearch.workplaceGroup[departmentIndex]
     await setWGroup(tmp.wGroup || '');
   };
 
+  // New functions for inline editing
+  const handleStartEdit = (index) => {
+    const rowData = rowDataList2[index];
+    setEditMode({ ...editMode, [index]: true });
+    setEditData({ 
+      ...editData, 
+      [index]: { 
+        ...rowData,
+        beforeStartOtTime: rowData.beforeStartOtTime || '',
+        beforeEndOtTime: rowData.beforeEndOtTime || '',
+        beforeTotalOtTime: rowData.beforeTotalOtTime || '',
+        startTime: rowData.startTime || '',
+        endTime: rowData.endTime || '',
+        totalTime: rowData.totalTime || '',
+        startOtTime: rowData.startOtTime || '',
+        endOtTime: rowData.endOtTime || '',
+        totalOtTime: rowData.totalOtTime || '',
+        specialtSalary: rowData.specialtSalary || '',
+        specialtSalaryOT: rowData.specialtSalaryOT || '',
+        cashOfHoliday: rowData.cashOfHoliday || '',
+        cashOfHolidayOt: rowData.cashOfHolidayOt || '',
+        payFullDay: rowData.payFullDay || false
+      } 
+    });
+  };
+
+  const handleCancelEdit = (index) => {
+    setEditMode({ ...editMode, [index]: false });
+    const newEditData = { ...editData };
+    delete newEditData[index];
+    setEditData(newEditData);
+  };
+
+  const handleSaveEdit = async (index) => {
+    // Ask user if they want to apply changes to all days using SweetAlert2
+    const result = await Swal.fire({
+      title: 'เลือกการปรับเปลี่ยนข้อมูล',
+      text: 'คุณต้องการปรับเปลี่ยนข้อมูลนี้อย่างไร?',
+      icon: 'question',
+      showCancelButton: true,
+      showDenyButton: true,
+      confirmButtonText: 'เปลี่ยนทุกวัน',
+      denyButtonText: 'เปลี่ยนแค่วันนี้',
+      cancelButtonText: 'ยกเลิก',
+      confirmButtonColor: '#3085d6',
+      denyButtonColor: '#28a745',
+      cancelButtonColor: '#6c757d'
+    });
+    
+    // If user clicks X, ESC, or Cancel button, do nothing
+    if (result.isDismissed || result.dismiss === 'cancel') {
+      return;
+    }
+    
+    const applyToAllDays = result.isConfirmed; // true if "เปลี่ยนทุกวัน", false if "เปลี่ยนแค่วันนี้"
+    const newDataList = [...rowDataList2];
+    const editedData = editData[index];
+    
+    if (applyToAllDays) {
+      // Apply changes to all days with same employee
+      const currentEmployeeId = newDataList[index].employeeId;
+      
+      for (let i = 0; i < newDataList.length; i++) {
+        if (newDataList[i].employeeId === currentEmployeeId) {
+          // เก็บข้อมูลที่ไม่ควรเปลี่ยนแปลงไว้
+          const preservedData = {
+            date: newDataList[i].date, // เก็บวันที่เดิม
+            recordDate: newDataList[i].recordDate,
+            tmpIndex: newDataList[i].tmpIndex,
+            workplaceId: newDataList[i].workplaceId, // เก็บรหัสหน่วยงานเดิม
+            workplaceName: newDataList[i].workplaceName, // เก็บชื่อหน่วยงานเดิม
+            employeeId: newDataList[i].employeeId // เก็บรหัสพนักงานเดิม
+          };
+          
+          newDataList[i] = { 
+            ...newDataList[i], 
+            ...editedData,
+            ...preservedData // ใช้ข้อมูลที่เก็บไว้ทับข้อมูลที่แก้ไข
+          };
+        }
+      }
+    } else {
+      // Apply changes only to current row (when isDenied = true)
+      newDataList[index] = { ...newDataList[index], ...editedData };
+    }
+    
+    setRowDataList2(newDataList);
+    setEditMode({ ...editMode, [index]: false });
+    const newEditData = { ...editData };
+    delete newEditData[index];
+    setEditData(newEditData);
+  };
+
+  const handleEditFieldChange = (index, fieldName, value) => {
+    setEditData({
+      ...editData,
+      [index]: {
+        ...editData[index],
+        [fieldName]: value
+      }
+    });
+  };
+
   // Function to handle deleting a row
   const handleDeleteRow = (index) => {
     // Create a copy of the current state
@@ -1890,7 +3096,7 @@ await workplacesearch.workplaceGroup[departmentIndex]
     // Remove the row at the specified index
     const updatedList = newDataList.filter((entry) => entry.tmpIndex !== index);
     // alert(index);
-    // newDataList.splice(index, 1);
+    newDataList.splice(index, 1);
     // Update the state with the new data
     setRowDataList2(updatedList);
   };
@@ -1901,27 +3107,62 @@ await workplacesearch.workplaceGroup[departmentIndex]
     event.preventDefault();
     // alert('test');
 
+    // Calculate special shift total salary
+    const specialShiftTotalSalary = rowDataList2
+      .filter(item => item.shift === "specialt_shift" && item.workplaceId)
+      .reduce((total, item) => {
+        const specialtSalary = parseFloat(item.specialtSalary || '0');
+        const specialtSalaryOT = parseFloat(item.specialtSalaryOT || '0');
+        return total + specialtSalary + specialtSalaryOT;
+      }, 0);
+
     //get data from input in useState to data
     const data = {
-      timerecordId: year,
+      year: year,
       employeeId: employeeId,
       employeeName: name,
       month: month,
-      employee_workplaceRecord: rowDataList2,
+      employee_record: rowDataList2,
+      specialShiftTotalSalary: specialShiftTotalSalary.toString(), // Add this field
     };
 
     try {
       const response = await axios.post(
-        endpoint + "/timerecord/createemp",
+        endpoint + "/timerecord/createtimerecordemployee",
         data
       );
       // setEmployeesResult(response.data.employees);
       if (response) {
+        // Send specialShiftTotalSalary to accounting endpoint
+        try {
+          const accountingData = {
+            employeeId: employeeId,
+            month: month,
+            year: year,
+            specialShiftTotalSalary: specialShiftTotalSalary.toString()
+          };
+          
+          console.log("CREATE: Sending to accounting API:", accountingData);
+          const accountingResponse = await axios.post(
+            "http://10.10.110.7:3000/accounting/searchtimerecordemployee",
+            accountingData
+          );
+          console.log("CREATE: Accounting API response:", accountingResponse.data);
+        } catch (accountingError) {
+          console.error("CREATE: Error sending to accounting API:", accountingError);
+          console.error("CREATE: Accounting error details:", accountingError.response?.data);
+        }
+
         alert("บันทึกสำเร็จ");
+        // Scroll to top of the page
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         // window.location.reload();
+        handleCheckTimerecord();
+
       }
     } catch (error) {
       alert("กรุณาตรวจสอบข้อมูลในช่องกรอกข้อมูล");
+      // alert(error)
       // window.location.reload();
     } finally {
       setLoading(false); // Set loading to false to unblock the button
@@ -1930,35 +3171,84 @@ await workplacesearch.workplaceGroup[departmentIndex]
 
   async function handleUpdateWorkplaceTimerecord(event) {
     event.preventDefault();
-    // alert('hi');
-    //get data from input in useState to data
+    
+    // Calculate special shift total salary
+    const specialShiftTotalSalary = rowDataList2
+      .filter(item => item.shift === "cash_holiday" && item.workplaceId)
+      .reduce((total, item) => {
+        const specialtSalary = parseFloat(item.cashOfHoliday || '0');
+        const specialtSalaryOT = parseFloat(item.cashOfHolidayOt || '0');
+        return total + specialtSalary + specialtSalaryOT;
+      }, 0);
 
+    //get data from input in useState to data
     const data = {
-      timerecordId: year,
+      year: year,
       employeeId: employeeId,
-      employeeName: name,
+      employeeName: staffFullName,
       month: month,
-      employee_workplaceRecord: rowDataList2,
+      employee_record: rowDataList2,
+      specialShiftTotalSalary: specialShiftTotalSalary.toString(), // Add this field
     };
     try {
       const response = await axios.put(
-        endpoint + "/timerecord/updateemp/" + timeRecord_id,
+        endpoint + "/timerecord/updatetimerecordemployee/" + timeRecord_id,
         data
       );
       // setEmployeesResult(response.data.employees);
-      if (response?.data?.employee_workplaceRecord.length > 1) {
-        alert("บันทึกสำเร็จ");
+      if (response?.status === 201) {
+        // Send specialShiftTotalSalary to accounting endpoint
+        try {
+          const accountingData = {
+            employeeId: employeeId,
+            month: month,
+            year: year,
+            specialShiftTotalSalary: specialShiftTotalSalary.toString()
+          };
+          
+          console.log("UPDATE: Sending to accounting API:", accountingData);
+          const accountingResponse = await axios.post(
+            "http://10.10.110.7:3000/accounting/searchtimerecordemployee",
+            accountingData
+          );
+          console.log("UPDATE: Accounting API response:", accountingResponse.data);
+        } catch (accountingError) {
+          console.error("UPDATE: Error sending to accounting API:", accountingError);
+          console.error("UPDATE: Accounting error details:", accountingError.response?.data);
+        }
 
+        alert("บันทึกสำเร็จ");
+        // Scroll to top of the page
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+// handleCheckTimerecord();
         setUpdateButton(true);
         // alert(response.data.recordworkplace[0].employee_workplaceRecord[1].workplaceId);
-        setTimeRecord_id(response?.data?.employee_workplaceRecord._id);
+        setTimeRecord_id(response?.data?.employee_record._id);
         setRowDataList2(
-          response?.data?.employee_workplaceRecord.sort((a, b) => parseInt(a.date) - parseInt(b.date)) // Sort by date (ascending order)
+          response?.data?.employee_record
+            .sort((a, b) => {
+              const dateA = parseInt(a.date, 10);
+              const dateB = parseInt(b.date, 10);
+        
+              // Prioritize dates from 21-30 first, then 01-20
+              if ((dateA >= 21 && dateB >= 21) || (dateA <= 20 && dateB <= 20)) {
+                return dateA - dateB; // Sort normally within each group
+              }
+              return dateA >= 21 ? -1 : 1; // Move 21-30 to the front
+            })
             .map((item, index) => ({
               ...item,
               tmpIndex: index,
             }))
         );
+        
+        // setRowDataList2(
+        //   response?.data?.employee_record.sort((a, b) => parseInt(a.date) - parseInt(b.date)) // Sort by date (ascending order)
+        //     .map((item, index) => ({
+        //       ...item,
+        //       tmpIndex: index,
+        //     }))
+        // );
 
       //   //get data from conclude data then check edit data
       //   const serchConclude = await {
@@ -2165,7 +3455,7 @@ await workplacesearch.workplaceGroup[departmentIndex]
                         </div>
                       </div>
                       <div class="d-flex justify-content-center">
-                        <button class="btn b_save" onClick={handleSearch()}>
+                        <button class="btn b_save" onClick={handleSearch}>
                           <i class="nav-icon fas fa-search"></i> &nbsp; ค้นหา
                         </button>
                       </div>
@@ -2298,27 +3588,40 @@ await workplacesearch.workplaceGroup[departmentIndex]
               </div>
 
               <section className="Frame">
+                
   <div className="table-responsive">
     <table className="table table-bordered table-sm text-center align-middle">
       <thead>
         <tr>
-          <th>รหัสหน่วยงาน</th>
-          <th>ชื่อหน่วยงาน</th>
-          <th>กลุ่มที่</th>
-          <th>วันที่</th>
-          <th>กะทำงาน</th>
-          <th>เวลาเข้างาน</th>
-          <th>เวลาออกงาน</th>
-          <th>ชั่วโมงทำงาน</th>
+          <th rowSpan="2">หน่วยงาน</th>
+          <th rowSpan="2">ชื่อหน่วยงาน</th>
+          <th rowSpan="2">กลุ่มที่</th>
+          <th rowSpan="2">วันที่</th>
+          <th rowSpan="2">กะ</th>
+          <th colSpan="3">OT (ก่อนเวลาทำงาน)</th>
+        <th colSpan="3">เวลาทำงาน</th>
+        <th colSpan="3">OT (หลังเวลาทำงาน)</th>
+        {(wShift === "specialt_shift" || wShift === "cash_holiday") && <th colSpan="3">จ่ายสด</th>}
+        </tr>
+      {/* Second Row - Detailed Headers */}
+      <tr>
+
+          <th>เข้า OT</th>
+          <th>ออก OT</th>
           <th>ชั่วโมง OT</th>
-          <th>เวลาเข้า OT</th>
-          <th>เวลาออก OT</th>
-          {wShift === "specialt_shift" && (
+          <th>เข้างาน</th>
+          <th>ออกงาน</th>
+          <th>ชั่วโมงทำงาน</th>
+          <th>เข้า OT</th>
+          <th>ออก OT</th>
+          <th>ชั่วโมง OT</th>
+
+          {(wShift === "specialt_shift" || wShift === "cash_holiday") && (
             <>
-              <th>จ่ายสด</th>
-              <th>เป็นเงิน</th>
-              <th>เป็นเงิน OT</th>
-              <th>หมายเหตุ</th>
+       
+              <th>เงิน</th>
+              <th>เงิน OT</th>
+              {/* <th>หมายเหตุ</th> */}
             </>
           )}
         </tr>
@@ -2397,7 +3700,44 @@ await workplacesearch.workplaceGroup[departmentIndex]
               <option value="afternoon_shift">กะบ่าย</option>
               <option value="night_shift">กะดึก</option>
               <option value="specialt_shift">กะพิเศษ</option>
+              <option value="cash_holiday">เงินสด</option>
             </select>
+          </td>
+
+          {/* OT Start Time */}
+          <td>
+            <input
+              type="text"
+              className="form-control text-center"
+              id="wBeforeSelectOtTime"
+              placeholder="เข้า OT"
+              value={wBeforeSelectOtTime}
+              onChange={(e) => setWBeforeSelectOtTime(e.target.value)}
+            />
+          </td>
+
+          {/* OT End Time */}
+          <td>
+            <input
+              type="text"
+              className="form-control text-center"
+              id="wBeforeSelectOtTimeout"
+              placeholder="ออก OT"
+              value={wBeforeSelectOtTimeout}
+              onChange={(e) => setWBeforeSelectOtTimeout(e.target.value)}
+            />
+          </td>
+
+          {/* OT Hours */}
+          <td>
+            <input
+              type="text"
+              className="form-control text-center"
+              id="wOtTime"
+              placeholder="ชั่วโมง OT"
+              value={wBeforeOtTime}
+              onChange={(e) => setBeforeWOtTime(e.target.value)}
+            />
           </td>
 
           {/* Work Start Time */}
@@ -2406,7 +3746,7 @@ await workplacesearch.workplaceGroup[departmentIndex]
               type="text"
               className="form-control text-center"
               id="wStartTime"
-              placeholder="เวลาเข้างาน"
+              placeholder="เข้างาน"
               value={wStartTime}
               onChange={(e) => setWStartTime(e.target.value)}
             />
@@ -2418,7 +3758,7 @@ await workplacesearch.workplaceGroup[departmentIndex]
               type="text"
               className="form-control text-center"
               id="wEndTime"
-              placeholder="เวลาออกงาน"
+              placeholder="ออกงาน"
               value={wEndTime}
               onChange={(e) => setWEndTime(e.target.value)}
             />
@@ -2434,6 +3774,47 @@ await workplacesearch.workplaceGroup[departmentIndex]
               value={wAllTime}
               onChange={(e) => setWAllTime(e.target.value)}
             />
+            {/* Show checkbox when work hours < 8 */}
+            {wAllTime && parseFloat(wAllTime) < 8 && (
+              <div className="mt-2">
+                <div className="form-check">
+                  <input
+                    type="checkbox"
+                    className="form-check-input"
+                    id="payFullDayCheckbox"
+                    checked={payFullDay}
+                    onChange={(e) => setPayFullDay(e.target.checked)}
+                  />
+                  <label className="form-check-label text-center" htmlFor="payFullDayCheckbox">
+                    จ่ายเต็มวัน
+                  </label>
+                </div>
+              </div>
+            )}
+          </td>
+
+          {/* OT Start Time */}
+          <td>
+            <input
+              type="text"
+              className="form-control text-center"
+              id="wSelectOtTime"
+              placeholder="เข้า OT"
+              value={wSelectOtTime}
+              onChange={(e) => setWSelectOtTime(e.target.value)}
+            />
+          </td>
+
+          {/* OT End Time */}
+          <td>
+            <input
+              type="text"
+              className="form-control text-center"
+              id="wSelectOtTimeout"
+              placeholder="ออก OT"
+              value={wSelectOtTimeout}
+              onChange={(e) => setWSelectOtTimeout(e.target.value)}
+            />
           </td>
 
           {/* OT Hours */}
@@ -2448,62 +3829,33 @@ await workplacesearch.workplaceGroup[departmentIndex]
             />
           </td>
 
-          {/* OT Start Time */}
-          <td>
-            <input
-              type="text"
-              className="form-control text-center"
-              id="wSelectOtTime"
-              placeholder="เวลาเข้า OT"
-              value={wSelectOtTime}
-              onChange={(e) => setWSelectOtTime(e.target.value)}
-            />
-          </td>
-
-          {/* OT End Time */}
-          <td>
-            <input
-              type="text"
-              className="form-control text-center"
-              id="wSelectOtTimeout"
-              placeholder="เวลาออก OT"
-              value={wSelectOtTimeout}
-              onChange={(e) => setWSelectOtTimeout(e.target.value)}
-            />
-          </td>
-
           {/* Special Shift Salary Fields (Only for กะพิเศษ) */}
-          {wShift === "specialt_shift" && (
+          {(wShift === "specialt_shift" || wShift === "cash_holiday") && (
             <>
-              <td>
-                <input
-                  type="checkbox"
-                  className="form-control"
-                  checked={cashSalary}
-                  onChange={handleCheckboxChange}
-                />
-              </td>
+              
               <td>
                 <input
                   type="text"
-                  className="form-control text-center"
-                  id="specialtSalary"
+                  className="form-control text-center input"
+                  id={wShift === "specialt_shift" ? "specialtSalary" : "cashOfHoliday"}
                   placeholder="เป็นเงิน"
-                  value={specialtSalary}
-                  onChange={(e) => setSpecialtSalary(e.target.value)}
+                  value={wShift === "specialt_shift" ? specialtSalary : cashOfHoliday}
+                  style={{ width: "100px" }}
+                  onChange={(e) => wShift === "specialt_shift" ? setSpecialtSalary(e.target.value) : setCashOfHoliday(e.target.value)}
                 />
               </td>
               <td>
                 <input
                   type="text"
                   className="form-control text-center"
-                  id="specialtSalaryOT"
+                  id={wShift === "specialt_shift" ? "specialtSalaryOT" : "cashOfHolidayOt"}
                   placeholder="OT เป็นเงิน"
-                  value={specialtSalaryOT}
-                  onChange={(e) => setSpecialtSalaryOT(e.target.value)}
+                  style={{ width: "100px" }}
+                  value={wShift === "specialt_shift" ? specialtSalaryOT : cashOfHolidayOt}
+                  onChange={(e) => wShift === "specialt_shift" ? setSpecialtSalaryOT(e.target.value) : setCashOfHolidayOt(e.target.value)}
                 />
               </td>
-              <td>
+              {/* <td>
                 <input
                   type="text"
                   className="form-control text-center"
@@ -2512,7 +3864,7 @@ await workplacesearch.workplaceGroup[departmentIndex]
                   value={messageSalary}
                   onChange={(e) => setMessageSalary(e.target.value)}
                 />
-              </td>
+              </td> */}
             </>
           )}
         </tr>
@@ -2536,19 +3888,51 @@ await workplacesearch.workplaceGroup[departmentIndex]
     <table className="table table-bordered table-sm text-center align-middle">
       <thead>
         <tr>
-          <th className="text-center" style={{ backgroundColor: "transparent" }}>รหัสหน่วยงาน</th>
+          {/* <th className="text-center" style={{ backgroundColor: "transparent" }}>หน่วยงาน</th>
           <th className="text-center" style={{ backgroundColor: "transparent" }}>ชื่อหน่วยงาน</th>
           <th className="text-center" style={{ backgroundColor: "transparent" }}>กลุ่มงาน</th>
           <th className="text-center" style={{ backgroundColor: "transparent" }}>วันที่</th>
-          <th className="text-center" style={{ backgroundColor: "transparent" }}>กะการทำงาน</th>
-          <th className="text-center" style={{ backgroundColor: "transparent" }}>เวลาเข้างาน</th>
-          <th className="text-center" style={{ backgroundColor: "transparent" }}>เวลาออกงาน</th>
-          <th className="text-center" style={{ backgroundColor: "transparent" }}>ชั่วโมงทำงาน</th>
-          <th className="text-center" style={{ backgroundColor: "transparent" }}>ชั่วโมง OT</th>
+          <th className="text-center" style={{ backgroundColor: "transparent" }}>กะ</th>
           <th className="text-center" style={{ backgroundColor: "transparent" }}>เวลาเข้า OT</th>
           <th className="text-center" style={{ backgroundColor: "transparent" }}>เวลาออก OT</th>
+          <th className="text-center" style={{ backgroundColor: "transparent" }}>ชั่วโมง OT</th>
+
+
+          <th className="text-center" style={{ backgroundColor: "transparent" }}>เข้างาน</th>
+          <th className="text-center" style={{ backgroundColor: "transparent" }}>ออกงาน</th>
+          <th className="text-center" style={{ backgroundColor: "transparent" }}>ชั่วโมงทำงาน</th>
+          <th className="text-center" style={{ backgroundColor: "transparent" }}>เข้า OT</th>
+          <th className="text-center" style={{ backgroundColor: "transparent" }}>ออก OT</th>
+          <th className="text-center" style={{ backgroundColor: "transparent" }}>ชั่วโมง OT</th>
           <th className="text-center" style={{ backgroundColor: "transparent" }}>เงินพิเศษ</th>
-          <th className="text-center" style={{ backgroundColor: "transparent" }}>ลบ</th>
+          <th className="text-center" style={{ backgroundColor: "transparent" }}>ลบ</th> */}
+
+<th rowSpan="2" className="text-center">หน่วยงาน</th>
+          <th rowSpan="2" className="text-center">ชื่อหน่วยงาน</th>
+          <th rowSpan="2" className="text-center">กลุ่มงาน</th>
+          <th rowSpan="2" className="text-center">วันที่</th>
+          <th rowSpan="2" className="text-center">กะ</th>
+          <th colSpan="3" className="text-center">OT (ก่อนเวลาทำงาน)</th>
+        <th colSpan="3" className="text-center">เวลาทำงาน</th>
+        <th colSpan="3" className="text-center">OT (หลังเวลาทำงาน)</th>
+        <th rowSpan="2" className="text-center">เงินจ้าง</th>
+        <th rowSpan="2" className="text-center">จัดการ</th>
+
+
+        </tr><tr>
+
+          <th className="text-center" style={{ backgroundColor: "transparent" }}>เวลาเข้า OT</th>
+          <th className="text-center" style={{ backgroundColor: "transparent" }}>เวลาออก OT</th>
+          <th className="text-center" style={{ backgroundColor: "transparent" }}>ชั่วโมง OT</th>
+
+
+          <th className="text-center" style={{ backgroundColor: "transparent" }}>เข้างาน</th>
+          <th className="text-center" style={{ backgroundColor: "transparent" }}>ออกงาน</th>
+          <th className="text-center" style={{ backgroundColor: "transparent" }}>ชั่วโมงทำงาน</th>
+          <th className="text-center" style={{ backgroundColor: "transparent" }}>เข้า OT</th>
+          <th className="text-center" style={{ backgroundColor: "transparent" }}>ออก OT</th>
+          <th className="text-center" style={{ backgroundColor: "transparent" }}>ชั่วโมง OT</th>
+
         </tr>
       </thead>
       <tbody>
@@ -2556,66 +3940,394 @@ await workplacesearch.workplaceGroup[departmentIndex]
           (rowData2, index) =>
             rowData2.workplaceId && (
               <tr key={index} className="align-middle text-center">
-                <td>{rowData2.workplaceId}</td>
-                <td>{rowData2.workplaceName}</td>
-                 <td>{groupOptions[parseInt(rowData2.wGroup) -1 ] || ""}</td> 
+                <th>{rowData2.workplaceId}</th>
+                <th>{rowData2.workplaceName}</th>
+                <th>{groupOptions[parseInt(rowData2.wGroup) -1 ] || ""}</th> 
+                <th>{rowData2.date}</th>
+                <th>
+                  {editMode[index] ? (
+                    <select
+                      className="form-control form-control-sm"
+                      value={editData[index]?.shift || rowData2.shift}
+                      onChange={(e) => handleEditFieldChange(index, 'shift', e.target.value)}
+                      style={{ width: "100px", fontSize: "12px" }}
+                    >
+                      <option value="morning_shift">กะเช้า</option>
+                      <option value="afternoon_shift">กะบ่าย</option>
+                      <option value="night_shift">กะดึก</option>
+                      <option value="specialt_shift">กะพิเศษ</option>
+                      <option value="cash_holiday">เงินสด</option>
+                    </select>
+                  ) : (
+                    rowData2.shift === "morning_shift"
+                      ? "กะเช้า"
+                      : rowData2.shift === "afternoon_shift"
+                      ? "กะบ่าย"
+                      : rowData2.shift === "night_shift"
+                      ? "กะดึก"
+                      : rowData2.shift === "specialt_shift"
+                      ? "กะพิเศษ"
+                      : rowData2.shift === "cash_holiday"
+                      ? "เงินสด"
+                      : ""
+                  )}
+                </th>
+                
+                {/* OT Before Work */}
+                <th>
+                  {editMode[index] ? (
+                    <input
+                      type="text"
+                      className="form-control form-control-sm"
+                      value={editData[index]?.beforeStartOtTime || ''}
+                      onChange={(e) => handleEditFieldChange(index, 'beforeStartOtTime', e.target.value)}
+                      style={{ width: "80px", fontSize: "12px" }}
+                    />
+                  ) : (
+                    rowData2.beforeStartOtTime
+                  )}
+                </th>
+                <th>
+                  {editMode[index] ? (
+                    <input
+                      type="text"
+                      className="form-control form-control-sm"
+                      value={editData[index]?.beforeEndOtTime || ''}
+                      onChange={(e) => handleEditFieldChange(index, 'beforeEndOtTime', e.target.value)}
+                      style={{ width: "80px", fontSize: "12px" }}
+                    />
+                  ) : (
+                    rowData2.beforeEndOtTime
+                  )}
+                </th>
+                <th>
+                  {editMode[index] ? (
+                    <input
+                      type="text"
+                      className="form-control form-control-sm"
+                      value={editData[index]?.beforeTotalOtTime || ''}
+                      onChange={(e) => handleEditFieldChange(index, 'beforeTotalOtTime', e.target.value)}
+                      style={{ width: "80px", fontSize: "12px" }}
+                    />
+                  ) : (
+                    rowData2.beforeTotalOtTime
+                  )}
+                </th>
 
-                <td>{rowData2.date}</td>
-                <td>
-                  {rowData2.shift === "morning_shift"
-                    ? "กะเช้า"
-                    : rowData2.shift === "afternoon_shift"
-                    ? "กะบ่าย"
-                    : rowData2.shift === "night_shift"
-                    ? "กะดึก"
-                    : rowData2.shift === "specialt_shift"
-                    ? "กะพิเศษ"
-                    : ""}
-                </td>
-                <td>{rowData2.startTime}</td>
-                <td>{rowData2.endTime}</td>
-                <td>{rowData2.allTime}</td>
-                <td>{rowData2.otTime}</td>
-                <td>{rowData2.selectotTime}</td>
-                <td>{rowData2.selectotTimeOut}</td>
-                <td>
-                  {rowData2.cashSalary === "true" || rowData2.cashSalary === true
-                    ? `${rowData2.specialtSalary} บาท`
-                    : ""}
-                </td>
-                <td className="text-center">
-                  <button
-                    type="button"
-                    className="btn btn-danger btn-sm"
-                    style={{ padding: "0.2rem", width: "6rem" }}
-                    onClick={() => handleDeleteRow(rowData2.tmpIndex)}
-                  >
-                    Delete
-                  </button>
-                </td>
+                {/* Work Time */}
+                <th>
+                  {editMode[index] ? (
+                    <input
+                      type="text"
+                      className="form-control form-control-sm"
+                      value={editData[index]?.startTime || ''}
+                      onChange={(e) => handleEditFieldChange(index, 'startTime', e.target.value)}
+                      style={{ width: "80px", fontSize: "12px" }}
+                    />
+                  ) : (
+                    rowData2.startTime
+                  )}
+                </th>
+                <th>
+                  {editMode[index] ? (
+                    <input
+                      type="text"
+                      className="form-control form-control-sm"
+                      value={editData[index]?.endTime || ''}
+                      onChange={(e) => handleEditFieldChange(index, 'endTime', e.target.value)}
+                      style={{ width: "80px", fontSize: "12px" }}
+                    />
+                  ) : (
+                    rowData2.endTime
+                  )}
+                </th>
+                <th>
+                  {editMode[index] ? (
+                    <div>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        value={editData[index]?.totalTime || ''}
+                        onChange={(e) => handleEditFieldChange(index, 'totalTime', e.target.value)}
+                        style={{ width: "80px", fontSize: "12px" }}
+                      />
+                      {editData[index]?.totalTime && parseFloat(editData[index]?.totalTime) < 8 && (
+                        <div className="form-check mt-1">
+                          <input
+                            type="checkbox"
+                            className="form-check-input"
+                            id={`editPayFullDay${index}`}
+                            checked={editData[index]?.payFullDay || false}
+                            onChange={(e) => handleEditFieldChange(index, 'payFullDay', e.target.checked)}
+                            style={{ fontSize: "10px" }}
+                          />
+                          <label className="form-check-label" htmlFor={`editPayFullDay${index}`} style={{ fontSize: "10px" }}>
+                            จ่ายเต็มวัน
+                          </label>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div>
+                      {rowData2.totalTime}
+                      {rowData2.payFullDay && (
+                        <div>
+                          <span className="badge badge-success" style={{ fontSize: "10px" }}>
+                            จ่ายเต็มวัน
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </th>
+                
+                {/* OT After Work */}
+                <th>
+                  {editMode[index] ? (
+                    <input
+                      type="text"
+                      className="form-control form-control-sm"
+                      value={editData[index]?.startOtTime || ''}
+                      onChange={(e) => handleEditFieldChange(index, 'startOtTime', e.target.value)}
+                      style={{ width: "80px", fontSize: "12px" }}
+                    />
+                  ) : (
+                    rowData2.startOtTime
+                  )}
+                </th>
+                <th>
+                  {editMode[index] ? (
+                    <input
+                      type="text"
+                      className="form-control form-control-sm"
+                      value={editData[index]?.endOtTime || ''}
+                      onChange={(e) => handleEditFieldChange(index, 'endOtTime', e.target.value)}
+                      style={{ width: "80px", fontSize: "12px" }}
+                    />
+                  ) : (
+                    rowData2.endOtTime
+                  )}
+                </th>
+                <th>
+                  {editMode[index] ? (
+                    <input
+                      type="text"
+                      className="form-control form-control-sm"
+                      value={editData[index]?.totalOtTime || ''}
+                      onChange={(e) => handleEditFieldChange(index, 'totalOtTime', e.target.value)}
+                      style={{ width: "80px", fontSize: "12px" }}
+                    />
+                  ) : (
+                    rowData2.totalOtTime
+                  )}
+                </th>
+
+                {/* Salary */}
+                <th>
+                  {editMode[index] ? (
+                    <div className="d-flex flex-column" style={{ gap: "2px" }}>
+                      {((editData[index]?.shift || rowData2.shift) === "specialt_shift" || (editData[index]?.shift || rowData2.shift) === "cash_holiday") && (
+                        <>
+                          <input
+                            type="number"
+                            className="form-control form-control-sm"
+                            placeholder="เงินหลัก"
+                            value={(editData[index]?.shift || rowData2.shift) === "specialt_shift" ? 
+                              (editData[index]?.specialtSalary || '') : 
+                              (editData[index]?.cashOfHoliday || '')}
+                            onChange={(e) => handleEditFieldChange(index, 
+                              (editData[index]?.shift || rowData2.shift) === "specialt_shift" ? 'specialtSalary' : 'cashOfHoliday', 
+                              e.target.value)}
+                            style={{ width: "80px", fontSize: "11px" }}
+                          />
+                          <input
+                            type="number"
+                            className="form-control form-control-sm"
+                            placeholder="เงิน OT"
+                            value={(editData[index]?.shift || rowData2.shift) === "specialt_shift" ? 
+                              (editData[index]?.specialtSalaryOT || '') : 
+                              (editData[index]?.cashOfHolidayOt || '')}
+                            onChange={(e) => handleEditFieldChange(index, 
+                              (editData[index]?.shift || rowData2.shift) === "specialt_shift" ? 'specialtSalaryOT' : 'cashOfHolidayOt', 
+                              e.target.value)}
+                            style={{ width: "80px", fontSize: "11px" }}
+                          />
+                        </>
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                      {rowData2.specialtSalary !== "" 
+                        ? `${parseFloat(rowData2.specialtSalary || '0') + parseFloat(rowData2.specialtSalaryOT || '0')} บาท`
+                        : rowData2.cashOfHoliday !== ""
+                        ? `${parseFloat(rowData2.cashOfHoliday || '0') + parseFloat(rowData2.cashOfHolidayOt || '0')} บาท`
+                        : ""}
+                    </>
+                  )}
+                </th>
+                
+                {/* Action Buttons */}
+                <th className="text-center">
+                  {editMode[index] ? (
+                    <div className="d-flex gap-1 justify-content-center">
+                      <button 
+                        type="button"
+                        className="btn btn-success btn-sm"
+                        style={{ padding: "0.25rem 0.5rem" }}
+                        onClick={() => handleSaveEdit(index)}
+                        title="บันทึก"
+                      >
+                        <i className="fas fa-check"></i>
+                      </button>
+                      <button 
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        style={{ padding: "0.25rem 0.5rem" }}
+                        onClick={() => handleCancelEdit(index)}
+                        title="ยกเลิก"
+                      >
+                        <i className="fas fa-times"></i>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="d-flex gap-1 justify-content-center">
+                      <button 
+                        type="button"
+                        className="btn btn-warning btn-sm"
+                        style={{ width: "2.5rem", padding: "0.25rem 0.5rem" }}
+                        onClick={() => handleStartEdit(index)}
+                        title="แก้ไข"
+                      >
+                        <i className="fas fa-edit"></i>
+                      </button>
+                      <button 
+                        type="button"
+                        className="btn btn-danger btn-sm"
+                        style={{ width: "2.5rem", padding: "0.25rem 0.5rem" }}
+                        onClick={() => handleDeleteRow(rowData2.tmpIndex)}
+                        title="ลบ"
+                      >
+                        <i className="fas fa-trash-alt"></i>
+                      </button>
+                    </div>
+                  )}
+                </th>
               </tr>
             )
         )}
       </tbody>
     </table>
   </div>
+
+  {/* สรุปสถิติ */}
+  {rowDataList2.length > 0 && (() => {
+    // Calculate special shift totals
+    const specialShiftData = rowDataList2.filter(item => item.shift === "specialt_shift" && item.workplaceId);
+    const specialShiftDays = specialShiftData.length;
+    const specialShiftTotalSalary = specialShiftData.reduce((total, item) => {
+      const specialtSalary = parseFloat(item.specialtSalary || '0');
+      const specialtSalaryOT = parseFloat(item.specialtSalaryOT || '0');
+      return total + specialtSalary + specialtSalaryOT;
+    }, 0);
+
+    return (
+      <div className="mt-3 p-3" style={{ backgroundColor: "#f8f9fa", borderRadius: "5px" }}>
+        <h5 className="text-center mb-3">สรุปสถิติการทำงาน</h5>
+        <div className="row text-center">
+          <div className="col-md-3">
+            <div className="card">
+              <div className="card-body">
+                <h6 className="card-title">รวมทั้งหมด</h6>
+                <h4 className="text-primary">
+                  {rowDataList2.filter(item => item.workplaceId).length} วัน
+                </h4>
+              </div>
+            </div>
+          </div>
+          <div className="col-md-3">
+            <div className="card">
+              <div className="card-body">
+                <h6 className="card-title">กะเช้า</h6>
+                <h4 className="text-success">
+                  {rowDataList2.filter(item => item.shift === "morning_shift" && item.workplaceId).length} วัน
+                </h4>
+              </div>
+            </div>
+          </div>
+          <div className="col-md-3">
+            <div className="card">
+              <div className="card-body">
+                <h6 className="card-title">กะบ่าย</h6>
+                <h4 className="text-warning">
+                  {rowDataList2.filter(item => item.shift === "afternoon_shift" && item.workplaceId).length} วัน
+                </h4>
+              </div>
+            </div>
+          </div>
+          <div className="col-md-3">
+            <div className="card">
+              <div className="card-body">
+                <h6 className="card-title">กะพิเศษ</h6>
+                <h4 className="text-danger">
+                  {specialShiftDays} วัน
+                </h4>
+                <p className="text-muted mb-0">
+                  รวม: {specialShiftTotalSalary.toLocaleString()} บาท
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* แสดงรายละเอียดวันที่เป็นกะพิเศษ */}
+        {specialShiftDays > 0 && (
+          <div className="mt-3">
+            <h6>รายละเอียดวันที่ทำงานกะพิเศษ:</h6>
+            <div className="row">
+              {specialShiftData.map((item, index) => (
+                <div key={index} className="col-md-2 mb-2">
+                  <span className="badge badge-danger p-2">
+                    วันที่ {item.date} - {item.workplaceName}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  })()}
 </section>
 
               <div class="form-group">
-                {/* <button class="btn b_save" onClick={handleCreateWorkplaceTimerecord}><i class="nav-icon fas fa-save"></i> &nbsp; บันทึก</button> */}
                 {updateButton ? (
-                  <button
-                    class="btn b_save"
-                    onClick={handleUpdateWorkplaceTimerecord}
-                    disabled={loading} // Disable the button if loading is true
-                  >
-                    <i class="nav-icon fas fa-save"></i> &nbsp; อัพเดท
-                  </button>
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <button
+                      class="btn b_save"
+                      onClick={handleUpdateWorkplaceTimerecord}
+                      disabled={loading}
+                    >
+                      <i class="nav-icon fas fa-save"></i> &nbsp; อัพเดท
+                    </button>
+                    <button
+                      class="btn btn-info"
+                      onClick={generatePDFReport}
+                      disabled={loading || rowDataList2.length === 0}
+                      style={{
+                        backgroundColor: '#17a2b8',
+                        borderColor: '#17a2b8',
+                        color: 'white'
+                      }}
+                    >
+                      <i class="nav-icon fas fa-file-pdf"></i> &nbsp; ออกเอกสาร
+                      
+                    </button>
+                  </div>
                 ) : (
                   <button
                     class="btn b_save"
                     onClick={handleCreateWorkplaceTimerecord}
-                    disabled={loading} // Disable the button if loading is true
+                    disabled={loading}
                   >
                     <i class="nav-icon fas fa-save"></i> &nbsp; บันทึก
                   </button>
@@ -2648,426 +4360,3 @@ await workplacesearch.workplaceGroup[departmentIndex]
 
 export default AddsettimeEmployee;
 
-// <section class="Frame">
-// <div class="row">
-//   <div class="col-md-12">
-//     <div class="row">
-//       <div class="col-md-1"> รหัสหน่วยงาน</div>
-//       <div class="col-md-1"> ชื่อหน่วยงาน </div>
-//       <div class="col-md-1"> กลุ่มงาน</div>
-//       <div class="col-md-1"> วันที่</div>
-//       <div class="col-md-1"> กะการทำงาน </div>
-//       <div class="col-md-1"> เวลาเข้างาน </div>
-//       <div class="col-md-1"> เวลาออกงาน </div>
-//       <div class="col-md-1"> ชั่วโมงทำงาน </div>
-//       <div class="col-md-1"> ชั่วโมง OT</div>
-//       <div class="col-md-1"> เวลาเข้า OT </div>
-//       <div class="col-md-1"> เวลาออก OT</div>
-//     </div>
-//   </div>
-// </div>
-// <div class="row">
-//   <div class="col-md-12">
-//     {rowDataList2.map(
-//       (rowData2, index) =>
-//         rowData2.workplaceId && (
-//           <div key={index}>
-//             <input
-//               type="hidden"
-//               id="hiddenField"
-//               name=""
-//               value={index}
-//             />
-
-//             <div
-//               class="row"
-//               style={{
-//                 marginBottom: "1rem",
-//                 borderBottom: "2px solid #000",
-//               }}
-//             >
-//               <div class="col-md-1" style={bordertable}>
-//                 {" "}
-//                 {rowData2.workplaceId}
-//               </div>
-//               <div class="col-md-1" style={bordertable}>
-//                 {" "}
-//                 {rowData2.workplaceName}{" "}
-//               </div>
-//               <div class="col-md-1" style={bordertable}>
-//                   {rowData2.workplaceName?.match(/\((.*?)\)/)?.[1] || ""}
-//               </div>
-
-//               <div class="col-md-1" style={bordertable}>
-//                 {" "}
-//                 {rowData2.date}{" "}
-//               </div>
-//               <div class="col-md-1" style={bordertable}>
-//                 {rowData2.shift === "morning_shift" ? (
-//                   <p>กะเช้า</p>
-//                 ) : rowData2.shift === "afternoon_shift" ? (
-//                   <p>กะบ่าย</p>
-//                 ) : rowData2.shift === "night_shift" ? (
-//                   <p>กะดึก</p>
-//                 ) : rowData2.shift === "specialt_shift" ? (
-//                   <p>กะพิเศษ</p>
-//                 ) : (
-//                   <div></div>
-//                 )}
-//               </div>
-//               <div class="col-md-1" style={bordertable}>
-//                 {" "}
-//                 {rowData2.startTime}{" "}
-//               </div>
-//               <div class="col-md-1" style={bordertable}>
-//                 {" "}
-//                 {rowData2.endTime}{" "}
-//               </div>
-//               <div class="col-md-1" style={bordertable}>
-//                 {" "}
-//                 {rowData2.allTime}{" "}
-//               </div>
-//               <div class="col-md-1" style={bordertable}>
-//                 {" "}
-//                 {rowData2.otTime}{" "}
-//               </div>
-//               <div class="col-md-1" style={bordertable}>
-//                 {" "}
-//                 {rowData2.selectotTime}{" "}
-//               </div>
-//               <div class="col-md-1" style={bordertable}>
-//                 {" "}
-//                 {rowData2.selectotTimeOut}{" "}
-//               </div>
-//               {rowData2.cashSalary === "true" ||
-//                 rowData2.cashSalary === true ? (
-//                 // <div style={{ marginBottom: '1rem', borderBottom: '2px solid #000', width: '10rem' }}>
-//                 <div class="col-md-1" style={bordertable}>
-//                   {rowData2.specialtSalary} บาท
-//                 </div>
-//               ) : (
-//                 // </div>
-
-//                 <div class="col-md-1" style={bordertable}></div>
-//               )}
-//               <div class="col-md-1" style={bordertable}>
-//                 {/* <button onClick={() => handleEditRow(index)}>Edit</button> */}
-//                 <button
-//                   type="button"
-//                   class="btn btn-xs btn-danger"
-//                   style={{ padding: "0.3rem ", width: "8rem" }}
-//                   onClick={() =>
-//                     handleDeleteRow(rowData2.tmpIndex)
-//                   }
-//                 >
-//                   Delete
-//                 </button>
-//               </div>
-//             </div>
-//           </div>
-//         )
-//     )}
-//   </div>
-// </div>
-// </section>
-
-// =========
-
-// <section class="Frame">
-// <div class="row">
-//   <div class="col-md-1">
-//     <div class="form-group">
-//       <label role="wId">รหัสหน่วยงาน</label>
-//     </div>
-//   </div>
-
-//   <div class="col-md-2">
-//     <div class="form-group">
-//       <label role="wName">ชื่อหน่วยงาน</label>
-//     </div>
-//   </div>
-
-//   <div class="col-md-1">
-//     <label role="wDate">กลุ่มที่</label>
-//   </div>
-
-//   <div class="col-md-1">
-//     <label role="wDate">วันที่</label>
-//   </div>
-
-//   <div class="col-md-1">
-//     <label role="wShift">กะทำงาน</label>
-//   </div>
-
-//   <div class="col-md-1">
-//     <div class="form-group">
-//       <label role="wStartTime">เวลาเข้างาน</label>
-//     </div>
-//   </div>
-
-//   <div class="col-md-1">
-//     <div class="form-group">
-//       <label role="wEndTime">เวลาออกงาน</label>
-//     </div>
-//   </div>
-
-//   <div class="col-md-1">
-//     <div class="form-group">
-//       <label role="wAllTime">ชั่วโมงทำงาน</label>
-//     </div>
-//   </div>
-
-//   <div class="col-md-1">
-//     <div class="form-group">
-//       <label role="wOtTime">ชั่วโมง OT</label>
-//     </div>
-//   </div>
-
-//   <div class="col-md-1">
-//     <div class="form-group">
-//       <label role="wSelectOtTime">เวลาเข้า OT</label>
-//     </div>
-//   </div>
-
-//   <div class="col-md-1">
-//     <div class="form-group">
-//       <label role="wSelectOtTimeout">เวลาออก OT</label>
-//     </div>
-//   </div>
-
-//   <div class="col-md-1">
-//     <label role="button"></label>
-//   </div>
-// </div>
-// <div class="row">
-//   <div class="col-md-1">
-//     <div class="form-group">
-//       {/* <label role="wId">รหัสหน่วยงาน</label> */}
-//       <input
-//         type="text"
-//         class="form-control"
-//         id="wId"
-//         placeholder="รหัสหน่วยงาน"
-//         value={wId}
-//         onChange={(e) => setWId(e.target.value)}
-//         list="workplaces"
-//       />
-//       <datalist id="workplaces">
-//         <option value="">ยังไม่ระบุหน่วยงาน</option>
-//         {workplaceList.map((wp) => (
-//           <option key={wp._id} value={wp.workplaceId}>
-//             {wp.workplaceName}
-//           </option>
-//         ))}
-//       </datalist>
-//     </div>
-//   </div>
-
-//   <div class="col-md-2">
-//     <div class="form-group">
-//       {/* <label role="wName">ชื่อหน่วยงาน</label> */}
-//       <input
-//         type="text"
-//         class="form-control"
-//         id="wName"
-//         placeholder="ชื่อหน่วยงาน"
-//         value={wName}
-//         onChange={(e) => setWName(e.target.value)}
-//       />
-//     </div>
-//   </div>
-
-//   <div class="col-md-1">
-    
-//     <select
-//       className="form-control"
-//       value={wGroup}
-//       onChange={(e) => setWGroup(e.target.value)}
-//       style={{ width: "5.5rem" }}
-//     >
-//       <option value="">หน่วยงานหลัก</option>
-
-//       {groupOptions1 && groupOptions1.map((item) => (
-
-// <option key={item.workplaceComplexId} value={item.workplaceComplexId}>
-// {item.workplaceComplexName}
-// </option>
-// ))}
-//     </select>
-//   </div> 
-
-//   <div class="col-md-1">
-//     {/* <label role="wDate">วันที่</label> */}
-//     <select
-//       className="form-control"
-//       value={wDate}
-//       onChange={(e) => setWDate(e.target.value)}
-//       style={{ width: "5.5rem" }}
-//     >
-//       <option value="">เลือกวัน</option>
-//       {options}
-//     </select>
-//   </div>
-
-//   <div class="col-md-1">
-//     {/* <label role="wShift">กะทำงาน</label> */}
-//     <select
-//       className="form-control"
-//       value={wShift}
-//       onChange={(e) => setWShift(e.target.value)}
-//       style={{ width: "5.5rem" }}
-//     >
-//       {/* <option value="">เลือกกะ</option> */}
-//       <option value="morning_shift">กะเช้า</option>
-//       <option value="afternoon_shift">กะบ่าย</option>
-//       <option value="night_shift">กะดึก</option>
-//       <option value="specialt_shift">กะพิเศษ</option>
-//     </select>
-//   </div>
-
-//   <div class="col-md-1">
-//     <div class="form-group">
-//       {/* <label role="wStartTime">เวลาเข้างาน</label> */}
-//       <input
-//         type="text"
-//         class="form-control"
-//         id="wStartTime"
-//         placeholder="เวลาเข้างาน"
-//         value={wStartTime}
-//         onChange={(e) => setWStartTime(e.target.value)}
-//       />
-//     </div>
-//   </div>
-
-//   <div class="col-md-1">
-//     <div class="form-group">
-//       {/* <label role="wEndTime">เวลาออกงาน</label> */}
-//       <input
-//         type="text"
-//         class="form-control"
-//         id="wEndTime"
-//         placeholder="เวลาออกงาน"
-//         value={wEndTime}
-//         onChange={(e) => setWEndTime(e.target.value)}
-//       />
-//     </div>
-//   </div>
-
-//   <div class="col-md-1">
-//     <div class="form-group">
-//       {/* <label role="wAllTime">ชั่วโมงทำงาน</label> */}
-//       <input
-//         type="text"
-//         class="form-control"
-//         id="wAllTime"
-//         placeholder="ชั่วโมงทำงาน"
-//         value={wAllTime}
-//         onChange={(e) => setWAllTime(e.target.value)}
-//       />
-//     </div>
-//   </div>
-
-//   <div class="col-md-1">
-//     <div class="form-group">
-//       {/* <label role="wOtTime">ชั่วโมง OT</label> */}
-//       <input
-//         type="text"
-//         class="form-control"
-//         id="wOtTime"
-//         placeholder="ชั่วโมง OT"
-//         value={wOtTime}
-//         onChange={(e) => setWOtTime(e.target.value)}
-//       />
-//     </div>
-//   </div>
-
-//   <div class="col-md-1">
-//     <div class="form-group">
-//       {/* <label role="wSelectOtTime">เวลาเข้า OT</label> */}
-//       <input
-//         type="text"
-//         class="form-control"
-//         id="wSelectOtTime"
-//         placeholder="เวลาเข้า OT"
-//         value={wSelectOtTime}
-//         onChange={(e) => setWSelectOtTime(e.target.value)}
-//       />
-//     </div>
-//   </div>
-
-//   <div class="col-md-1">
-//     <div class="form-group">
-//       {/* <label role="wSelectOtTimeout">เวลาออก OT</label> */}
-//       <input
-//         type="text"
-//         class="form-control"
-//         id="wSelectOtTimeout"
-//         placeholder="เวลาออก OT"
-//         value={wSelectOtTimeout}
-//         onChange={(e) => setWSelectOtTimeout(e.target.value)}
-//       />
-//     </div>
-//   </div>
-
-//   {wShift === "specialt_shift" && (
-//     <div>
-//       <div class="row">
-//         <div class="col-md-2">
-//           <label>จ่ายสด</label>
-//         </div>
-//         <div class="col-md-3">
-//           <label role="specialtSalary">เป็นเงิน</label>
-//         </div>
-//         <div class="col-md-3">
-//           <label role="specialtSalaryOT">เป็นเงินOT</label>
-//         </div>
-//         <div class="col-md-3">
-//           <label role="messageSalary">หมายเหตุ</label>
-//         </div>
-//       </div>
-//       <div class="row">
-//         <div class="col-md-2">
-//           <input
-//             type="checkbox"
-//             class="form-control"
-//             checked={cashSalary}
-//             onChange={handleCheckboxChange}
-//           />
-//         </div>
-//         <div class="col-md-3">
-//           <input
-//             type="text"
-//             class="form-control"
-//             id="specialtSalary"
-//             placeholder="เป็นเงิน"
-//             value={specialtSalary}
-//             onChange={(e) => setSpecialtSalary(e.target.value)}
-//           />
-//         </div>
-//         <div class="col-md-3">
-//           <input
-//             type="text"
-//             class="form-control"
-//             id="specialtSalaryOT"
-//             placeholder="OT เป็นเงิน"
-//             value={specialtSalaryOT}
-//             onChange={(e) =>
-//               setSpecialtSalaryOT(e.target.value)
-//             }
-//           />
-//         </div>
-//         <div class="col-md-3">
-//           <input
-//             type="text"
-//             class="form-control"
-//             id="messageSalary"
-//             placeholder="หมายเหตุ"
-//             value={messageSalary}
-//             onChange={(e) => setMessageSalary(e.target.value)}
-//           />
-//         </div>
-//       </div>
-//     </div>
-//   )}
-// </div>
-// </section>

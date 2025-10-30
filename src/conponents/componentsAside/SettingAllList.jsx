@@ -74,13 +74,20 @@ function SettingAllList({ workplaceList, employeeList }) {
   };
 
   // Filter the extracted data based on search term
+ // ...existing code...
+  // Filter the extracted data based on search term
   const filteredData = extractedData.filter(
     (data) =>
       data.workplaceId.toLowerCase().includes(searchTerm.toLowerCase()) ||
       data.workplaceName.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  filteredData.sort((a, b) => a.workplaceId.localeCompare(b.workplaceId));
+  // Sort by number of digits first, then by numeric value
+ // ...existing code...
+// Sort by number of digits first, then by numeric value
+
+// ...existing code...
+// ...existing code...
 
   // Check if employeeList is defined and is an array
   //   const employeeCountMap = {};
@@ -137,9 +144,14 @@ if (unmatchedWorkplaceIds.length > 0) {
 }
 
   return (
-    <body class="hold-transition sidebar-mini" className="editlaout">
-      <div class="wrapper">
-        <div class="content-wrapper">
+    // <body class="hold-transition sidebar-mini" className="editlaout">
+    //   <div class="wrapper">
+    //     <div class="content-wrapper">
+    <div className="hold-transition sidebar-mini editlaout">
+    <div className="wrapper">
+      <div className="content-wrapper">
+
+
           {/* <!-- Content Header (Page header) --> */}
           <ol class="breadcrumb">
             <li class="breadcrumb-item">
@@ -154,7 +166,7 @@ if (unmatchedWorkplaceIds.length > 0) {
             <div class="container-fluid">
               <div class="row mb-2">
                 <h1 class="m-0">
-                  <i class="far fa-arrow-alt-circle-right"></i> ตั้งค่าหน่วยงานที่หมด
+                  <i class="far fa-arrow-alt-circle-right"></i> ตั้งค่าหน่วยงานทั้งหมด
                 </h1>
               </div>
             </div>
@@ -258,7 +270,8 @@ if (unmatchedWorkplaceIds.length > 0) {
           </section>
         </div>
       </div>
-    </body>
+    {/* </body> */}
+    </div>
   );
 }
 

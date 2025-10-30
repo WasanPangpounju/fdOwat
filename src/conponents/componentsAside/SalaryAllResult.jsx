@@ -1,43 +1,45 @@
 import endpoint from "../../config";
+import '../../fonts/THSarabunNew-normal'
+import '../../fonts/THSarabunNew Bold-normal'
 
 import axios from "axios";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useMemo} from "react";
 import { jsPDF } from "jspdf";
 import "jspdf-autotable";
 import { ThaiDatePicker } from "thaidatepicker-react";
 import { FaCalendarAlt } from "react-icons/fa"; // You can use any icon library
-
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-
 import moment from "moment";
 import "moment/locale/th"; // Import the Thai locale data
-
 import th from "date-fns/locale/th"; // Import Thai locale data from date-fns
 import en from "date-fns/locale/en-US";
-
-import { addYears } from "date-fns";
-
+import { addYears, set } from "date-fns";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
+
+
 function SalaryAllResult({ employeeList, workplaceList }) {
-
-  const [workplacrId, setWorkplacrId] = useState(""); //รหัสหน่วยงาน
   const [workplacrName, setWorkplacrName] = useState(""); //รหัสหน่วยงาน
+  const [sumCashWork, setSumCashWork] = useState(0);
 
+  const [workplaces, setWorkplaces] = useState([]);
   const [searchWorkplaceId, setSearchWorkplaceId] = useState("");
-  const [workplaceListAll, setWorkplaceListAll] = useState([workplaceList]);
+  const [workplaceListAll, setWorkplaceListAll] = useState([]);
   console.log('workplaceListAll', workplaceListAll);
-
   const [responseDataAll, setResponseDataAll] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [displayEmployees, setDisplayEmployees] = useState([]); // State สำหรับเก็บข้อมูลที่จะแสดงในตาราง
   const [leaveSalary, setLeaveSalary] = useState([]);
-
-
+  const [workplacrId, setWorkplacrId] = useState('');
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [loadingEmployees, setLoadingEmployees] = useState(false);
+  const [pdfReady, setPdfReady] = useState(false);
   const [month, setMonth] = useState("01");
   // const [year, setYear] = useState('');
   const [year, setYear] = useState(new Date().getFullYear().toString()); // Set the year initially to the current year
-
   const [workDate, setWorkDate] = useState(new Date());
   const formattedWorkDate = moment(workDate).format("DD/MM/YYYY");
   // const handleWorkDateChange = (date) => {
@@ -53,7 +55,6 @@ function SalaryAllResult({ employeeList, workplaceList }) {
   // const formattedWorkDateDD = moment(workDate).format('DD');
   // const formattedWorkDateMM = moment(workDate).format('MM');
   // const formattedWorkDateYYYY = moment(workDate).format('YYYY');
-
   const formattedDate = workDate.toLocaleString("en-TH", {
     weekday: "long",
     year: "numeric",
@@ -65,17 +66,53 @@ function SalaryAllResult({ employeeList, workplaceList }) {
     timeZone: "Asia/Bangkok", // Thailand timezone
   });
 
-  useEffect(() => {
-    fetch(endpoint + "/workplace/list")
-      .then((response) => response.json())
-      .then((data) => {
-        // Update the state with the fetched data
-        setWorkplaceListAll(data);
-        // alert(data[0].workplaceName);
-      })
-      .catch((error) => {
-        console.error("Error fetching data:", error);
-      });
+  
+
+useEffect(() => {
+    const fetchWorkplaces = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.post('http://10.10.110.7:3000/timerecord/searchtimerecordmonthyear');
+        
+        let allEmployeeRecords = [];
+        if (response.data && response.data.result && Array.isArray(response.data.result)) {
+          response.data.result.forEach(item => {
+            if (item.employee_record && Array.isArray(item.employee_record)) {
+              allEmployeeRecords = [...allEmployeeRecords, ...item.employee_record];
+            }
+          });
+          
+          // ใช้ Set แทนการใช้ filter เพื่อเพิ่มประสิทธิภาพ
+          const workplaceIds = new Set();
+          const uniqueWorkplaces = [];
+          
+          allEmployeeRecords.forEach(record => {
+            if (record.workplaceId && !workplaceIds.has(record.workplaceId)) {
+              workplaceIds.add(record.workplaceId);
+              uniqueWorkplaces.push({
+                workplaceId: record.workplaceId,
+                workplaceName: record.workplaceName
+              });
+            }
+          });
+          
+          setWorkplaces(uniqueWorkplaces);
+          setWorkplaceListAll(uniqueWorkplaces);
+        }
+        setLoading(false);
+      } catch (err) {
+        setError('ไม่สามารถดึงข้อมูลหน่วยงานได้');
+        setLoading(false);
+        console.error('เกิดข้อผิดพลาดในการดึงข้อมูล:', err);
+      }
+    };
+
+    fetchWorkplaces();
+
+    // ตั้งค่าเริ่มต้นของวันที่
+    const today = new Date();
+    const formattedToday = `${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear() + 543}`;
+    setFormattedDate321(formattedToday);
   }, []);
 
   const EndYear = 2010;
@@ -140,14 +177,11 @@ function SalaryAllResult({ employeeList, workplaceList }) {
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
-  const [formattedDate321, setFormattedDate] = useState(null);
+  
+    const [formattedDate321, setFormattedDate321] = useState('');
 
-  const handleDatePickerChange = (date) => {
-    setSelectedDate(date);
-    setShowDatePicker(false); // Hide date picker after selecting a date
-    const newDate = new Date(date);
-    setWorkDate(newDate);
-  };
+ 
+
 
   //   useEffect(() => {
   //     if (selectedDate) {
@@ -165,37 +199,653 @@ function SalaryAllResult({ employeeList, workplaceList }) {
   //       setFormattedDate(formattedDate);
   //     }
   //   }, [selectedDate]);
-  useEffect(() => {
-    // Function to format a given date
-    const formatDate = (date) => {
-      const day = date.getDate().toString().padStart(2, "0");
-      const month = (date.getMonth() + 1).toString().padStart(2, "0");
-      const year = (date.getFullYear() + 543).toString();
-      return `${day}/${month}/${year}`;
-    };
+  
 
-    if (selectedDate) {
-      // Convert the selected date string to a Date object and format it
-      const date = new Date(selectedDate);
-      const formattedDate = formatDate(date);
-      setFormattedDate(formattedDate);
-    } else {
-      // If selectedDate is null, use the current date
-      const currentDate = new Date();
-      const formattedCurrentDate = formatDate(currentDate);
-      setFormattedDate(formattedCurrentDate);
-      setSelectedDate(currentDate); // Set the initial selected date to the current date
-    }
-  }, [selectedDate]);
 
-  console.log("selectedDate", selectedDate);
-  const toggleDatePicker = () => {
-    setShowDatePicker(!showDatePicker);
-  };
+   const toggleDatePicker = useCallback(() => {
+            setShowDatePicker(prev => !prev);
+    }, []);
+    const handleDatePickerChange = useCallback((date) => {
+    setSelectedDate(date);
+    const day = date.getDate();
+    const month = date.getMonth() + 1;
+    const thaiYear = date.getFullYear() + 543;
+    setFormattedDate321(`${day}/${month}/${thaiYear}`);
+    setShowDatePicker(false);
+  }, []);
+
+   const formatNumber = useCallback((num) => {
+    if (num === undefined || num === null) return "0.00";
+    return parseFloat(num).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  }, []);
+
+  // ฟังก์ชันสำหรับบวกตัวเลขที่ถูก format แล้ว
+  const addFormattedNumbers = useCallback((formattedNum1, num2) => {
+    const cleanNum1 = parseFloat(formattedNum1.replace(/,/g, ''));
+    const cleanNum2 = parseFloat(num2 || 0);
+    return formatNumber(cleanNum1 + cleanNum2);
+  }, [formatNumber]);
+
+  // แปลงชื่อเดือนภาษาไทย
+  const getThaiMonth = useCallback((month) => {
+    const thaiMonths = [
+      'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 
+      'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 
+      'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+    ];
+    return thaiMonths[parseInt(month) - 1] || '';
+  }, []);
 
   const formattedWorkDateDD = moment(workDate).format("DD");
   const formattedWorkDateMM = moment(workDate).format("MM");
   const formattedWorkDateYYYY = moment(workDate).format("YYYY");
+
+  console.log({
+  formattedWorkDateDD,
+  formattedWorkDateMM,
+  formattedWorkDateYYYY,
+  present,
+  presentfilm
+});
+
+const fetchEmployeeData = useCallback(async () => {
+  if (!month || !year) {
+    alert('กรุณาเลือกเดือนและปี');
+    return null;
+  }
+
+  try {
+    setLoadingEmployees(true);
+    setPdfReady(false);
+    
+    const requestData = {
+      month: month,
+      year: year
+    };
+
+    // เพิ่ม workplaceId เข้าไปในคำขอเฉพาะเมื่อมีการระบุ
+    if (workplacrId) {
+      requestData.workplaceId = workplacrId;
+    }
+    
+    // เปลี่ยนมาใช้ API เส้นใหม่
+    const response = await axios.post(
+      'http://10.10.110.7:3000/timerecord/searchtimerecordmonthyear', 
+      requestData
+    );
+    
+    let filteredEmployees = [];
+    
+    if (response.data && response.data.result) {
+      console.log("Response data:", response.data);
+      
+      // ข้อมูลจาก API ใหม่จะอยู่ในรูปแบบ result array
+      const resultData = response.data.result;
+      
+      // กรองข้อมูลตามเงื่อนไข
+      let filteredRecords = resultData;
+      
+      // ถ้ามีการระบุรหัสหน่วยงาน ให้กรองตามรหัสนั้น
+      if (workplacrId) {
+        filteredRecords = resultData.filter(record => {
+          // ดึง workplaceId จาก employee_record แรก
+          const firstEmployeeRecord = record.employee_record && record.employee_record[0];
+          if (!firstEmployeeRecord) return false;
+          
+          const recordId = String(firstEmployeeRecord.workplaceId || '').trim();
+          const inputId = String(workplacrId || '').trim();
+          
+          return recordId.includes(inputId) || inputId.includes(recordId);
+        });
+      }
+      
+     
+filteredEmployees = filteredRecords.map(record => {
+  // ดึง addSalaryList และ deductSalaryList จากข้อมูลพนักงาน
+  const addSalaryList = record.addSalaryList || [];
+  const deductSalaryList = record.deductSalaryList || [];
+  
+  // คำนวณค่าต่างๆ จาก addSalaryList
+  let transportAllowance = 0;
+  let diligenceAllowance = 0;
+  
+  const transportAllowanceIds = ["1535","1536"];
+ 
+  addSalaryList.forEach(item => {
+    if (transportAllowanceIds.includes(item.id)) {
+      const spSalary = parseFloat(item.SpSalary || 0);
+      const days = parseFloat(record.dayWorkCount || 0);
+      
+      if (item.roundOfSalary === "daily") {
+        transportAllowance += spSalary ; // คูณด้วยจำนวนวันที่ทำงาน
+      } else if (item.roundOfSalary === "monthly") {
+        transportAllowance += spSalary;
+      }
+    }
+  });
+
+  let wageRevisePlus = 0;
+  const wageReviseIdsPlus = [1531,1525,1526]
+  addSalaryList.forEach(item => {
+    if (wageReviseIdsPlus.includes(item.id)) {
+      const spSalary = parseFloat(item.SpSalary || 0);
+      const days = parseFloat(record.dayWorkCount || 0);
+      
+      if (item.roundOfSalary === "daily") {
+        wageRevisePlus += spSalary * days;
+      } else if (item.roundOfSalary === "monthly") {
+        wageRevisePlus += spSalary;
+      }
+    }
+  });
+
+
+  let wageReviseMinus = 0;
+  const wageReviseIdsMinus = [2111,2120,2430]
+  deductSalaryList.forEach(item => {
+    if (wageReviseIdsMinus.includes(item.id)) {
+      const spSalary = parseFloat(item.SpSalary || 0);
+      const days = parseFloat(record.dayWorkCount || 0);
+      
+      if (item.roundOfSalary === "daily") {
+        wageReviseMinus += spSalary * days;
+      } else if (item.roundOfSalary === "monthly") {
+        wageReviseMinus += spSalary;
+      }
+    }
+  });
+
+  let wageRevise = wageRevisePlus - wageReviseMinus;
+
+
+  let leaveInLieuPlus = 0;
+  const leaveInLieuIdsPlus = [1231,1233,1242,1423,1428,1435,1429,1427,1234]
+  addSalaryList.forEach(item => {
+    if (leaveInLieuIdsPlus.includes(item.id)) {
+      const spSalary = parseFloat(item.SpSalary || 0);
+      const days = parseFloat(record.dayWorkCount || 0);
+      
+      if (item.roundOfSalary === "daily") {
+        leaveInLieuPlus += spSalary * days;
+      } else if (item.roundOfSalary === "monthly") {
+        leaveInLieuPlus += spSalary;
+      }
+    }
+  });
+
+  let leaveInLieuMinus = 0;
+  const leaveInLieuIdsMinus = [2160];
+  deductSalaryList.forEach(item => {
+    if (leaveInLieuIdsMinus.includes(item.id)) {
+      const spSalary = parseFloat(item.SpSalary || 0);
+      const days = parseFloat(record.dayWorkCount || 0);
+      
+      if (item.roundOfSalary === "daily") {
+        leaveInLieuMinus += spSalary * days;
+      } else if (item.roundOfSalary === "monthly") {
+        leaveInLieuMinus += spSalary;
+      }
+    }
+  });
+
+  let leaveInLieu = leaveInLieuPlus - leaveInLieuMinus;
+
+
+  let transportWithSocial = 0
+  addSalaryList.forEach(item => {
+    if (item.id === "1520") {
+      const spSalary = parseFloat(item.SpSalary || 0);
+      const days = parseFloat(record.dayWorkCount || 0);  
+      if (item.roundOfSalary === "daily") {
+        transportWithSocial += spSalary * days; // คูณด้วยจำนวนวันที่ทำงาน
+      } else if (item.roundOfSalary === "monthly") {
+        transportWithSocial += spSalary;
+      }
+    }
+  });
+
+  let tax = 0;
+  
+
+
+
+
+
+  let otherDeduct = 0;
+const deductIds = [
+  "2116", // หักคืนอื่นๆ (คำนวณ ปกส)
+  "2117", // หักคืนอื่นๆ (ไม่คำนวณ ปกส)
+  "2331", //หักคืนทำงานวันหยุด
+  "2312", // หักผิดกฎระเบียบ
+
+];
+
+deductSalaryList.forEach(item => {
+  if (deductIds.includes(item.id)) {
+    const amount = parseFloat(item.amount || 0);
+    
+    // สำหรับ deductSalaryList ไม่มี roundOfSalary ให้ใช้ amount โดยตรง
+    otherDeduct += amount;
+    
+    console.log(`Deduct - ID: ${item.id}, Name: ${item.name || 'N/A'}, Amount: ${amount}, Calculated: ${amount}`);
+  }
+});
+console.log(`Final Deduct for employee ${record.employeeId}: ${otherDeduct}`);
+
+let payinAdvance = 0;
+deductSalaryList.forEach(item => {
+      console.log('deductSalaryList item:', item); // ดูว่ามีข้อมูลอะไรบ้าง
+
+    if (item.id === "2330" ){ 
+      const spSalary = parseFloat(item.SpSalary || 0);
+      const days = parseFloat(record.dayWorkCount || 0);
+      
+      if (item.roundOfSalary === "daily") {
+        payinAdvance += spSalary * days; // คูณด้วยจำนวนวันที่ทำงาน
+      } else if (item.roundOfSalary === "monthly") {
+        payinAdvance += spSalary;
+      }
+    }
+  });
+  console.log('Final payInAdvance:', payinAdvance);
+
+
+
+  let plusOther = 0;
+const targetIds = [
+  "1241", // ค่าวิชาชีพ
+  "1251", // ค่าโรยตัว/ค่าขับรถ
+  "1330", // ค่าอาหาร
+  "1440", // โบนัส
+  "1447", // โบนัสรับล่วงหน้า
+  "1560", // เงินเพิ่มพิเศษ
+  "1210", // ค่ากะ
+  "1540", // ค่าคอมมิชชั่น
+  "1541", // ค่าสรรหา
+  "1542", // ค่าสรรหา(รับล่วงหน้า)
+  "1550", // เงินได้อื่นๆ
+  "1561", // เงินเพิ่มพิเศษ(รับล่วงหน้า)
+  "1610", // ปรับปรุงคืนอื่น ๆ (ไม่คิดปกส)
+  "1611", // เงินได้อื่น (ไม่หัก ปกส)
+  "1612", // ปรับปรุงคืนค่าเครื่องแบบจ่ายเกิน
+  "1613", // ปรับปรุงคืนค่าเครื่องแบบจ่ายเกิน/อื่นๆ(รับล่วงหน้า)
+  "1245"  // ค่าวิชาชีพ(รับล่วงหน้า)
+];
+
+
+addSalaryList.forEach(item => {
+  if (targetIds.includes(item.id)) {
+    const spSalary = parseFloat(item.SpSalary || 0);
+    const days = parseFloat(record.dayWorkCount || 0);
+    
+    let calculatedAmount = 0;
+    if (item.roundOfSalary === "daily") {
+      calculatedAmount = spSalary * days;
+      plusOther += calculatedAmount;
+    } else if (item.roundOfSalary === "monthly") {
+      calculatedAmount = spSalary;
+      plusOther += calculatedAmount;
+    }
+    
+    console.log(`plusOther - ID: ${item.id}, Name: ${item.SpName || 'N/A'}, SpSalary: ${spSalary}, Days: ${days}, RoundOfSalary: ${item.roundOfSalary}, Calculated: ${calculatedAmount}`);
+  }
+});
+
+console.log(`Final plusOther for employee ${record.employeeId}: ${plusOther}`);
+
+  let positionAndTransportationWithSocialPlus = 0;
+  const positionAndTransportationIds = ["1230", "1520"];
+
+  addSalaryList.forEach(item => {
+      console.log('addSalaryList item:', item); // ดูว่ามีข้อมูลอะไรบ้าง
+
+    if (positionAndTransportationIds.includes(item.id)) {
+      const spSalary = parseFloat(item.SpSalary || 0);
+      const days = parseFloat(record.dayWorkCount || 0);
+      
+      if (item.roundOfSalary === "daily") {
+        positionAndTransportationWithSocialPlus += spSalary * days; // คูณด้วยจำนวนวันที่ทำงาน
+      } else if (item.roundOfSalary === "monthly") {
+        positionAndTransportationWithSocialPlus += spSalary;
+      }
+    }
+  });
+  console.log('Final positionAndTransportationWithSocialPlus:', positionAndTransportationWithSocialPlus);
+
+  let positionAndTransportationWithSocialMinus = 0;
+  const positionAndTransportationMinusIds = ["2124","0000"]
+  deductSalaryList.forEach(item => {
+    if (positionAndTransportationMinusIds.includes(item.id)) {
+      const spSalary = parseFloat(item.SpSalary || 0);
+      const days = parseFloat(record.dayWorkCount || 0);  
+
+      if (item.roundOfSalary === "daily") {
+        positionAndTransportationWithSocialMinus += spSalary * days;
+      } else if (item.roundOfSalary === "monthly") {
+        positionAndTransportationWithSocialMinus += spSalary;
+      }
+    }
+  });
+  console.log('Final positionAndTransportationWithSocialMinus:', positionAndTransportationWithSocialMinus);
+
+  let positionAndTransportationWithSocial = positionAndTransportationWithSocialPlus - positionAndTransportationWithSocialMinus;
+
+  // คำนวณเบี้ยขยัน (ID 1410) - ไม่เปลี่ยนแปลง
+  addSalaryList.forEach(item => {
+    if (item.id === "1410") {
+      const spSalary = parseFloat(item.SpSalary || 0);
+      const days = parseFloat(record.dayWorkCount || 0);
+      
+      if (item.roundOfSalary === "daily") {
+        diligenceAllowance += spSalary * days;
+      } else if (item.roundOfSalary === "monthly") {
+        diligenceAllowance += spSalary;
+      }
+    }
+  });
+
+  let otplusOther = 0;
+  const otTargetIds = [
+    "1441", // ค่าจ้างล่วงเวลา
+    "1446", // ค่าจ้าง
+    "1444", // ปรับปรุงค่าจ้างเพิ่ม
+    "1528", // ค่าจ้างค่ากะ
+    "1442", // ค่าจ้างวันลาป่วย
+    "1159" ]; // ค่าจ้างค่าตำแหน่ง
+  addSalaryList.forEach(item => {
+    if (otTargetIds.includes(item.id)) {
+      const spSalary = parseFloat(item.SpSalary || 0);
+      const days = parseFloat(record.dayWorkCount || 0);  
+      if (item.roundOfSalary === "daily") {
+        otplusOther += spSalary * days; // คูณด้วยจำนวนวันที่ทำงาน
+      } else if (item.roundOfSalary === "monthly") {
+        otplusOther += spSalary;
+      }
+    }
+  });
+
+  let otherPublicHoliday = 0;
+  const publicHolidayIds = ["1533"]
+  addSalaryList.forEach(item => {
+    if (publicHolidayIds.includes(item.id)) {
+      const spSalary = parseFloat(item.SpSalary || 0);
+      const days = parseFloat(record.dayWorkCount || 0);  
+      if (item.roundOfSalary === "daily") {
+        otherPublicHoliday += spSalary * days; // คูณด้วยจำนวนวันที่ทำงาน
+      } else if (item.roundOfSalary === "monthly") {
+        otherPublicHoliday += spSalary;
+      }
+    }
+  });
+
+  let additionalAfterTax = 0;
+  
+  
+  const additionalAfterTaxIds = [
+    "2250",
+    "2310",
+    "2340"];
+ deductSalaryList.forEach(item => {
+  if (additionalAfterTaxIds.includes(item.id)) {
+    const amount = parseFloat(item.amount || 0);
+    
+    // สำหรับ deductSalaryList ไม่มี roundOfSalary ให้ใช้ amount โดยตรง
+    additionalAfterTax += amount;
+    
+    console.log(`Deduct - ID: ${item.id}, Name: ${item.name || 'N/A'}, Amount: ${amount}, Calculated: ${amount}`);
+  }
+});
+
+  // let deductionAfterTax = 0; // ลบบรรทัดนี้ออกเพราะ declare ไว้ข้างบนแล้ว
+  let deductionAfterTax = 0; // ย้าย declaration มาไว้ข้างบน
+  const deductionAfterTaxIds = [
+    "2230",
+    "2333",
+    "2261",
+    "2311"];
+ deductSalaryList.forEach(item => {
+  if (deductionAfterTaxIds.includes(item.id)) {
+    const amount = parseFloat(item.amount || 0);
+    
+    // สำหรับ deductSalaryList ไม่มี roundOfSalary ให้ใช้ amount โดยตรง
+    deductionAfterTax += amount;
+    
+    console.log(`Deduct - ID: ${item.id}, Name: ${item.name || 'N/A'}, Amount: ${amount}, Calculated: ${amount}`);
+  }
+});
+
+  // ดึงข้อมูล workplaceId และ workplaceName จาก employee_record แรก
+  const firstEmployeeRecord = record.employee_record && record.employee_record[0];
+  const workplaceId = firstEmployeeRecord ? firstEmployeeRecord.workplaceId : '';
+  const workplaceName = firstEmployeeRecord ? firstEmployeeRecord.workplaceName : '';
+  
+  return {
+    employeeId: record.employeeId || '',
+    prefix: record.prefix || '',
+    firstName: (record.employeeName || '').split(' ')[0] || '',
+    lastName: (record.employeeName || '').split(' ').slice(1).join(' ') || '',
+    workplaceId: workplaceId,
+    workplaceName: workplaceName,
+    typeOfemployee: record.typeOfemployee || '', // เพิ่มฟิลด์ typeOfemployee
+    dayWorkCount: record.dayWorkCount || '0',
+    sumCashWork: formatNumber(record.sumCashWork || 0),
+    wageRevise: formatNumber(wageRevise), // ใช้ค่าที่คำนวณจาก wageRevise
+    leaveInLieu: formatNumber(leaveInLieu), // ใช้ค่าที่คำนวณจาก leaveInLieu
+    sumCashOt: addFormattedNumbers(formatNumber(record.sumCashOt || 0), otplusOther), // ใช้ค่าที่คำนวณจาก sumCashOt และ otplusOther
+    transportAllowance: formatNumber(transportAllowance), // ใช้ค่าที่คำนวณจาก ID "1230"
+
+    positionAndTransportationWithSocial: formatNumber(positionAndTransportationWithSocial),
+    diligenceAllowance: formatNumber(diligenceAllowance),
+    publicHolidayCash: addFormattedNumbers(formatNumber(record.publicHolidayCash || 0), otherPublicHoliday),
+    additionalBeforeTax: formatNumber(plusOther || 0), // ใช้ plusOther แทน 0
+    deductionBeforeTax: formatNumber(otherDeduct || 0), // ใช้ otherDeduct แทน 0
+    tax: formatNumber(record.tax || 0),
+    socialSecurity: formatNumber(record.socialSecurity || 0),
+    additionalAfterTax: formatNumber(additionalAfterTax),
+    deductionAfterTax: formatNumber(deductionAfterTax),
+    advancePayment: formatNumber(payinAdvance || 0), // ใช้ payinAdvance แทน 0
+    total: formatNumber(
+      (record.sumCashWork || 0) + 
+      wageRevise + leaveInLieu +
+      (record.sumCashOt) + 
+      transportAllowance + 
+      
+      
+      diligenceAllowance + 
+      positionAndTransportationWithSocial +
+      (record.publicHolidayCash || 0) + 
+      plusOther + otherDeduct + // เพิ่ม plusOther ในการคำนวณ total
+      (record.tax || 0) - 
+      (record.payinAdvance || 0) -
+      (record.socialSecurity || 0)
+    )-deductionAfterTax
+  };
+});
+      
+      console.log("จำนวนพนักงานที่พบ:", filteredEmployees.length);
+    }
+    
+    setEmployees(filteredEmployees);
+    setDisplayEmployees(filteredEmployees);
+    setLoadingEmployees(false);
+    setPdfReady(true);
+    
+    return filteredEmployees;
+    
+  } catch (err) {
+    console.error('เกิดข้อผิดพลาดในการดึงข้อมูลพนักงาน:', err);
+    setLoadingEmployees(false);
+    setEmployees([]);
+    return null;
+  }
+}, [workplacrId, month, year, formatNumber]);
+const fetchAllWorkplaceData = useCallback(async () => {
+  if (!month || !year) {
+    alert('กรุณาเลือกเดือนและปี');
+    return null;
+  }
+  
+  try {
+    setLoadingEmployees(true);
+    
+    const requestData = {
+      month: month,
+      year: year
+    };
+    
+    // เปลี่ยนมาใช้ API เส้นใหม่
+    const response = await axios.post(
+      'http://10.10.110.7:3000/timerecord/searchtimerecordmonthyear', 
+      requestData
+    );
+    
+    if (!response.data || !response.data.result) {
+      alert('ไม่พบข้อมูล');
+      setLoadingEmployees(false);
+      return null;
+    }
+    
+    const resultData = response.data.result;
+    console.log("Result data:", resultData);
+    
+    // จัดกลุ่มข้อมูลตาม workplaceId
+    const groupedByWorkplace = {};
+    
+    resultData.forEach(record => {
+      // ดึง workplaceId จาก employee_record แรก
+      const firstEmployeeRecord = record.employee_record && record.employee_record[0];
+      if (!firstEmployeeRecord) return;
+      
+      const workplaceId = firstEmployeeRecord.workplaceId;
+      const workplaceName = firstEmployeeRecord.workplaceName;
+      
+      if (!groupedByWorkplace[workplaceId]) {
+        groupedByWorkplace[workplaceId] = {
+          workplaceId: workplaceId,
+          workplaceName: workplaceName,
+          employees: [],
+          totalSalary: 0,
+          totalAmountOt: 0,
+          totalAddSalary: 0,
+          totalBenefitNonSocial: 0,
+          totalAmountHardWorking: 0,
+          totalAmountSpecialDay: 0,
+          totalSumAddSalaryBeforeTax: 0,
+          totalSumDeductBeforeTaxWithSocial: 0,
+          totalSumAddSalaryBeforeTaxNonSocial: 0,
+          totalSumDeductBeforeTax: 0,
+          totalTax: 0,
+          totalSocialSecurity: 0,
+          totalSumAddSalaryAfterTax: 0,
+          totalAdvancePayment: 0,
+          totalSumDeductAfterTax: 0,
+          totalTotal: 0,
+          totalEmp: 0
+        };
+      }
+      
+      // ดึง addSalaryList จากข้อมูลพนักงาน
+      const addSalaryList = record.addSalaryList || [];
+      
+      // คำนวณค่าต่างๆ จาก addSalaryList
+      let transportAllowance = 0;
+     
+      
+      // คำนวณค่าตำแหน่ง (ID 1230) สำหรับ transportAllowance
+      addSalaryList.forEach(item => {
+        if (item.id === "1245") {
+          const spSalary = parseFloat(item.SpSalary || 0);
+          const days = parseFloat(record.dayWorkCount || 0);
+          
+          if (item.roundOfSalary === "daily") {
+            transportAllowance += spSalary * days;
+          } else if (item.roundOfSalary === "monthly") {
+            transportAllowance += spSalary;
+          }
+        }
+      });
+
+
+       let diligenceAllowance = 0;
+       const diligenceAllowanceIds = ["1410","1412"];
+      // คำนวณเบี้ยขยัน (ID 1410)
+      addSalaryList.forEach(item => {
+        if (diligenceAllowanceIds.includes(item.id)) {
+          const spSalary = parseFloat(item.SpSalary || 0);
+          const days = parseFloat(record.dayWorkCount || 0);
+          
+          if (item.roundOfSalary === "daily") {
+            diligenceAllowance += spSalary * days;
+          } else if (item.roundOfSalary === "monthly") {
+            diligenceAllowance += spSalary;
+          }
+        }
+      });
+      
+      // เพิ่มพนักงานเข้าไปในกลุ่ม
+      groupedByWorkplace[workplaceId].employees.push({
+        ...record,
+        firstName: (record.employeeName || '').split(' ')[0] || '',
+        lastName: (record.employeeName || '').split(' ').slice(1).join(' ') || '',
+        typeOfemployee: record.typeOfemployee || '' // เพิ่มฟิลด์ typeOfemployee
+      });
+      
+      // คำนวณยอดรวมของหน่วยงาน
+      groupedByWorkplace[workplaceId].totalSalary += parseFloat(record.sumCashWork || 0);
+      groupedByWorkplace[workplaceId].totalAddWageRevise += wageRevise|| 0; // ใช้ wageRevisePlus แทน 0
+      groupedByWorkplace[workplaceId].totalLeaveInLieu += leaveInLieu || 0; // ใช้ leaveInLieu แทน 0
+      groupedByWorkplace[workplaceId].totalAmountOt += parseFloat(record.sumCashOt || 0);
+      groupedByWorkplace[workplaceId].totalAddSalary += transportAllowance;
+      groupedByWorkplace[workplaceId].totalBenefitNonSocial += parseFloat(record.welfare || 0);
+      groupedByWorkplace[workplaceId].totalAmountHardWorking += diligenceAllowance;
+      groupedByWorkplace[workplaceId].totalAmountSpecialDay += parseFloat(record.publicHolidayCash || 0);
+      groupedByWorkplace[workplaceId].totalSumAddSalaryBeforeTax += plusOther || 0.00; // ใช้ plusOther แทน 0
+      groupedByWorkplace[workplaceId].totalSumDeductBeforeTaxWithSocial += otherDeduct || 0.00;
+      groupedByWorkplace[workplaceId].totalTax += parseFloat(record.tax || 0);
+      groupedByWorkplace[workplaceId].totalSocialSecurity += parseFloat(record.socialSecurity || 0);
+      groupedByWorkplace[workplaceId].totalSumAddSalaryAfterTax += parseFloat(record.additionalAfterTax || 0);
+       groupedByWorkplace[workplaceId].totalSumDeductAfterTax += parseFloat(record.deductionAfterTax || 0);
+      groupedByWorkplace[workplaceId].totalAdvancePayment += payinAdvance || 0;
+     
+      
+      // คำนวณยอดสุทธิ
+      const netTotal = 
+        (parseFloat(record.sumCashWork || 0)) + 
+        wageRevise + leaveInLieu +
+        (parseFloat(record.sumCashOt || 0)) + 
+        transportAllowance + 
+        
+        positionAndTransportationWithSocial +
+        plusOther +
+        otherDeduct
+        diligenceAllowance + 
+        (parseFloat(record.publicHolidayCash || 0)) - 
+        (parseFloat(record.tax || 0)) - 
+        (parseFloat(record.payinAdvance || 0)) -
+        (parseFloat(record.socialSecurity || 0));
+        - deductionAfterTax;
+        
+      groupedByWorkplace[workplaceId].totalTotal += netTotal;
+      groupedByWorkplace[workplaceId].totalEmp += 1;
+    });
+    
+    setLoadingEmployees(false);
+    
+    // ส่งคืนข้อมูลที่จัดกลุ่มแล้ว
+    const sortedWorkplaceIds = Object.keys(groupedByWorkplace).sort();
+    return {
+      groups: sortedWorkplaceIds,
+      data: groupedByWorkplace
+    };
+    
+  } catch (err) {
+    console.error('เกิดข้อผิดพลาดในการดึงข้อมูลพนักงานทุกหน่วยงาน:', err);
+    setLoadingEmployees(false);
+    return null;
+  }
+}, [month, year, formatNumber]);
+
+
 
   // const fetchData = () => {
 
@@ -256,74 +906,53 @@ function SalaryAllResult({ employeeList, workplaceList }) {
   //     fetchData();
   // }, [year, month, searchWorkplaceId]);
 
-  useEffect(() => {
-    const fetchData = () => {
-      const dataTest = {
-        year: year,
-        month: month,
-      };
+  // useEffect(() => {
+  //   const fetchData = () => {
+  //     const dataTest = {
+  //       year: year,
+  //       month: month,
+  //     };
 
-      axios
-        .post(endpoint + "/accounting/calsalarylist", dataTest)
-        .then((response) => {
-          const responseData = response.data;
+  //     axios
+  //       .post(endpoint + "/accounting/calsalarylist", dataTest)
+  //       .then((response) => {
+  //         const responseData = response.data;
 
-          console.log("searchWorkplaceId", searchWorkplaceId);
-          console.log("responseData", responseData);
+  //         console.log("searchWorkplaceId", searchWorkplaceId);
+  //         console.log("responseData", responseData);
 
-          // Filter the data by workplace and also ensure name and lastName exist
-          const filteredData = responseData
-            .filter((item) =>
-              searchWorkplaceId ? item.workplace === searchWorkplaceId : true
-            )
-            .filter((item) => item.name && item.lastName); // Only include items with both name and lastName
+  //         // Filter the data by workplace and also ensure name and lastName exist
+  //         const filteredData = responseData
+  //           .filter((item) =>
+  //             searchWorkplaceId ? item.workplace === searchWorkplaceId : true
+  //           )
+  //           .filter((item) => item.name && item.lastName); // Only include items with both name and lastName
 
-          // const updatedData = filteredData.map((item) => {
-          //   const matchingEmployee = employeeList.find(
-          //     (emp) => emp.employeeId === item.employeeId
-          //   );
+  //         // const updatedData = filteredData.map((item) => {
+  //         //   const matchingEmployee = employeeList.find(
+  //         //     (emp) => emp.employeeId === item.employeeId
+  //         //   );
 
-          //   if (matchingEmployee && matchingEmployee.costtype === "ภ.ง.ด.3") {
-          //     // Modify the workplace by changing the first digit to '2'
-          //     item.workplace = "2" + item.workplace.slice(1);
-          //   }
+  //         //   if (matchingEmployee && matchingEmployee.costtype === "ภ.ง.ด.3") {
+  //         //     // Modify the workplace by changing the first digit to '2'
+  //         //     item.workplace = "2" + item.workplace.slice(1);
+  //         //   }
 
-          //   return item;
-          // });
-          setResponseDataAll(filteredData);
-        })
-        .catch((error) => {
-          console.error("Error:", error);
-        });
-    };
+  //         //   return item;
+  //         // });
+  //         setResponseDataAll(filteredData);
+  //       })
+  //       .catch((error) => {
+  //         console.error("Error:", error);
+  //       });
+  //   };
 
-    fetchData();
-  }, [year, month, searchWorkplaceId]);
+  //   fetchData();
+  // }, [year, month, searchWorkplaceId]);
 
-  console.log("responseDataAll", responseDataAll);
+  // console.log("responseDataAll", responseDataAll);
 
 
-  useEffect(() => {
-    // Fetch data from the API when the component mounts
-    fetch(endpoint + "/leave/list")
-      .then((response) => response.json())
-      .then((data) => {
-        // Filter the data based on year, month, and employeeId array
-        const filteredData = data.filter((item) =>
-          item.year === year &&
-          item.month === month &&
-          responseDataAll.some((employee) => employee.employeeId === item.employeeId)
-        );
-
-        // Update the state with the filtered data
-        setLeaveSalary(filteredData);
-      })
-      .catch((error) => {
-        console.error("Error fetching data:", error);
-      });
-  }, [year, month, responseDataAll]);
-
-  console.log('leaveSalary', leaveSalary);
 
   // Create a new array with updated responseDataAll values
   const responseDataAllLeaveSalary = responseDataAll.map((employee) => {
@@ -508,7 +1137,1466 @@ function SalaryAllResult({ employeeList, workplaceList }) {
   //   setResponseDataAll(employeesssss);
   // }, []); // Empty dependency array to run once on component mount
 
-  const generatePDF01 = () => {
+
+const generatePDF01 = async () => {
+  try {
+    // ตรวจสอบว่ามีการกรอกเดือนและปีครบถ้วนหรือไม่ (ไม่จำเป็นต้องมี workplacrId)
+    if (!month || !year) {
+      alert('กรุณากรอกเดือนและปี');
+      return;
+    }
+
+    // แสดง loading indicator
+    setLoadingEmployees(true);
+    
+    // ดึงข้อมูลพนักงานตามเงื่อนไข
+    const fetchedEmployeeData = await fetchEmployeeData();
+    
+    if (!fetchedEmployeeData || fetchedEmployeeData.length === 0) {
+      alert('ไม่พบข้อมูลพนักงานที่ตรงกับเงื่อนไข');
+      setLoadingEmployees(false);
+      return;
+    }
+    
+    // ถ้าไม่ได้ระบุ workplacrId ให้จัดกลุ่มข้อมูลตามหน่วยงาน
+    if (!workplacrId) {
+      // จัดกลุ่มข้อมูลตามหน่วยงาน
+      const groupedData = fetchedEmployeeData.reduce((acc, emp) => {
+        const wpId = emp.workplaceId || 'unknown';
+        if (!acc[wpId]) {
+          acc[wpId] = [];
+        }
+        acc[wpId].push(emp);
+        return acc;
+      }, {});
+      
+      // สร้าง PDF สำหรับแต่ละกลุ่มหน่วยงาน
+      const doc = new jsPDF({ 
+        orientation: "landscape", 
+        unit: 'mm', 
+        format: 'a4'
+      });
+
+      let currentPage = 1;
+      let overallY = 10; // ตำแหน่ง Y เริ่มต้นบนหน้าแรก
+      let grandTotal = {
+        days: 0,
+        salary: 0,
+        ot: 0,
+        transportation: 0,
+        welfare: 0,
+        diligence: 0,
+        holiday: 0,
+        addBeforeTax: 0,
+        deductBeforeTax: 0,
+        addNoTax: 0,
+        deductNoTax: 0,
+        tax: 0,
+        socialSecurity: 0,
+        addAfterTax: 0,
+        deductAfterTax: 0,
+        advance: 0,
+        net: 0,
+        employees: 0
+      };
+      
+      // ฟังก์ชันสำหรับวาดเซลล์ (ถ้ายังไม่มี)
+      const cellHeight = 9; // ความสูงของเซลล์หัวตาราง
+      const dataCellHeight = 6; // ความสูงของเซลล์ข้อมูล
+      
+      // กำหนดความกว้างของแต่ละคอลัมน์
+      const colWidths = [
+        12,  // รหัส (ลดจาก 15)
+        60,  // ชื่อ-สกุล (ขยายจาก 40)
+        5,   // วัน (เหมือนเดิม)
+        18,  // เงินเดือน (ลดจาก 20)
+        14,  // ค่าล่วงเวลา (ลดจาก 15)
+        14,  // ค่ารถ/โทร/ตน. (ลดจาก 15)
+        14,  // สวัสดิการ(ไม่คิด ปกส.) (ลดจาก 15)
+        14,  // เบี้ยขยัน (ลดจาก 15)
+        14,  // นักขัตฤกษ์ (ลดจาก 15)
+        14,  // บวกอื่นๆ(คิด ปกส) (ลดจาก 15)
+        14,  // หักอื่นๆ(คิด ปกส) (ลดจาก 15)
+        14,  // หักภาษี (ลดจาก 15)
+        13,  // หัก ปกส (ลดจาก 14)
+        13,  // บวกอื่นๆ (ลดจาก 14)
+        13,  // หักอื่นๆ (ลดจาก 14)
+        14,  // เบิกล่วงหน้า
+        15   // สุทธิ
+      ];
+      
+      // คำนวณตำแหน่ง x ของแต่ละคอลัมน์
+      const colPositions = [];
+      let currentX = 15; // ตำแหน่ง X เริ่มต้น
+      colWidths.forEach(width => {
+        colPositions.push(currentX);
+        currentX += width;
+      });
+      
+      // ฟังก์ชันสำหรับวาดเซลล์
+      const drawCell = (x, y, width, height, text, options = {}) => {
+        // วาดขอบเซลล์ (เฉพาะเมื่อ drawBorder=true หรือไม่ได้ระบุ)
+        if (options.drawBorder !== false) {
+          doc.rect(x, y, width, height);
+        }
+
+        // ถ้าไม่มีข้อความให้แสดง ไม่ต้องวาดข้อความ
+        if (text === undefined || text === null || text === '') {
+          return;
+        }
+        
+        // คำนวณจุดกึ่งกลางของเซลล์
+        const centerX = x + width / 2;
+        
+        // เพิ่ม paddingTop สำหรับหัวตาราง
+        const paddingTop = options.isHeader ? 2 : 0;
+        const centerY = y + height / 3;
+
+        // กำหนดขนาดตัวอักษรตามที่ระบุ หรือใช้ค่าเริ่มต้น
+        const fontSize = options.fontSize || 10;
+        doc.setFontSize(fontSize);
+        
+        // ตั้งค่าฟอนต์ - เฉพาะหัวตารางเท่านั้นที่เป็นตัวหนา
+        if (options.isHeader) {
+          doc.setFont("THSarabunNew Bold");
+        } else {
+          doc.setFont("THSarabunNew");
+        }
+
+        // กำหนด alignment (default: center)
+        const align = options.align || 'center';
+        const textOptions = { align: align, baseline: "middle" };
+
+        // ปรับตำแหน่งข้อความตาม alignment
+        if (align === 'right') {
+          doc.text(text, x + width - 2, centerY, textOptions);
+        } else if (align === 'left') {
+          doc.text(text, x + 2, centerY, textOptions);
+        } else {
+          doc.text(text, centerX, centerY, textOptions);
+        }
+      };
+      
+      // กำหนดหัวตาราง
+      const headers = [
+        "รหัส", "ชื่อ - สกุล", "วัน", "เงินเดือน", "ค่าล่วงเวลา", 
+        "สวัสดิการพิเศษ/\nตน.", "สวัสดิการ\n(ไม่คิด ปกส.)", "เบี้ยขยัน", "นักขัติ", 
+        "บวกอื่นๆ\n(คิด ปกส)", "หักอื่นๆ\n(คิด ปกส)", "บวกอื่นๆ\n(ไม่คิด ปกส)", 
+        "หักอื่นๆ\n(ไม่คิด ปกส)", "หักภาษี", "หัก ปกส", "บวกอื่นๆ", "หักอื่นๆ", 
+        "เบิกล่วงหน้า", "สุทธิ"
+      ];
+      
+      // วาดหัวตารางก่อนเริ่มวนลูป (สำคัญ!)
+      headers.forEach((header, index) => {
+        drawCell(colPositions[index], overallY, colWidths[index], cellHeight, header, {
+          isHeader: true,
+          fontSize: 10
+        });
+      });
+      
+      // เพิ่ม Y หลังจากวาดหัวตาราง
+      overallY += cellHeight;
+      
+      // เริ่มวนลูปสำหรับแต่ละหน่วยงาน
+      for (const [wpId, employees] of Object.entries(groupedData)) {
+        // ถ้าไม่ใช่หน้าแรกและจำเป็นต้องขึ้นหน้าใหม่
+        if (overallY > 180) { // ถ้า Y มากกว่า 180mm (ใกล้ท้ายกระดาษ)
+          // เพิ่มเลขหน้าก่อนขึ้นหน้าใหม่
+          doc.setFont("THSarabunNew");
+          doc.setFontSize(10);
+          doc.text(`หน้า ${currentPage}`, 280, 200, { align: 'right' });
+          
+          // เพิ่มหน้าใหม่
+          doc.addPage();
+          currentPage++;
+          overallY = 10; // รีเซ็ต Y เมื่อขึ้นหน้าใหม่
+          
+          // วาดหัวตารางใหม่เฉพาะเมื่อขึ้นหน้าใหม่เท่านั้น
+          headers.forEach((header, index) => {
+            drawCell(colPositions[index], overallY, colWidths[index], cellHeight, header, {
+              isHeader: true,
+              fontSize: 10
+            });
+          });
+          
+          overallY += cellHeight; // เพิ่ม Y หลังจากวาดหัวตาราง
+        }
+        
+        // หาชื่อหน่วยงาน
+        const workplace = workplaceListAll.find(w => w.workplaceId === wpId) || {};
+        const wpName = workplace.workplaceName || 'ไม่ระบุชื่อ';
+        
+        // สร้างตารางข้อมูลสำหรับหน่วยงานนี้
+        const { newY, totalValues } = createWorkplaceTable(doc, wpId, wpName, employees, overallY);
+        overallY = newY + 1; // เพิ่มระยะห่างระหว่างตาราง
+      }
+      
+      // เพิ่มเลขหน้าสุดท้าย
+      doc.setFont("THSarabunNew");
+      doc.setFontSize(10);
+      doc.text(`หน้า ${currentPage}`, 280, 200, { align: 'right' });
+      
+      // เพิ่มข้อมูลส่วนท้าย
+      doc.setFont("THSarabunNew");
+      doc.setFontSize(10);
+      doc.text(`พิมพ์วันที่ ${formattedWorkDateDD}/${formattedWorkDateMM}/${parseInt(formattedWorkDateYYYY, 10) + 543}`, 5, 200);
+      doc.text(`รายงานโดย ${present}`, 100, 200);
+      doc.text(`แฟ้มรายงาน ${presentfilm}`, 200, 200);
+      
+      // บันทึกไฟล์ PDF
+
+      const pdfBlob = doc.output('blob');
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+      window.open(pdfUrl, '_blank');
+      // doc.save(`รายงานพนักงานทุกหน่วยงาน_${month}_${year}.pdf`);
+    } else {
+      // กรณีมีการระบุ workplacrId ทำเหมือนเดิม (สร้าง PDF เฉพาะหน่วยงานที่ระบุ)
+      const doc = new jsPDF({ 
+        orientation: "landscape", 
+        unit: 'mm', 
+        format: 'a4'
+      });
+
+      // เพิ่มฟอนต์ไทย (ต้องมีการโหลดฟอนต์ก่อนใช้งาน)
+      doc.setFont("THSarabunNew");
+      doc.setFontSize(16);
+      
+      // ฟังก์ชันสำหรับวาดเซลล์ และโค้ดส่วนที่เหลือเหมือนเดิม...
+      const drawCell = (x, y, width, height, text, options = {}) => {
+        // วาดขอบเซลล์ (เฉพาะเมื่อ drawBorder=true หรือไม่ได้ระบุ)
+        if (options.drawBorder !== false) {
+          doc.rect(x, y, width, height);
+        }
+
+        // ถ้าไม่มีข้อความให้แสดง ไม่ต้องวาดข้อความ
+        if (text === undefined || text === null || text === '') {
+          return;
+        }
+        
+        // คำนวณจุดกึ่งกลางของเซลล์
+        const centerX = x + width / 2;
+        const centerY = y + height / 2; // แก้ไขให้อยู่กึ่งกลางจริงๆ
+
+        // กำหนดขนาดตัวอักษรตามที่ระบุ หรือใช้ค่าเริ่มต้น
+        const fontSize = options.fontSize || 10;
+        doc.setFontSize(fontSize);
+        
+        // ตั้งค่าฟอนต์ - เฉพาะหัวตารางเท่านั้นที่เป็นตัวหนา
+        if (options.isHeader) {
+          doc.setFont("THSarabunNew Bold"); // ใช้ฟอนต์ตัวหนาสำหรับหัวตาราง
+        } else {
+          doc.setFont("THSarabunNew"); // ใช้ฟอนต์ปกติสำหรับข้อมูลอื่น
+        }
+
+        // กำหนด alignment (default: center)
+        const align = options.align || 'center';
+        const textOptions = { align: align, baseline: "middle" };
+
+        // ปรับตำแหน่งข้อความตาม alignment
+        if (align === 'right') {
+          doc.text(text, x + width - 2, centerY, textOptions);
+        } else if (align === 'left') {
+          // เพิ่ม padding ด้านซ้าย 2 mm สำหรับข้อความที่ชิดซ้าย
+          doc.text(text, x + 0, centerY, textOptions); 
+        } else {
+          doc.text(text, centerX, centerY, textOptions);
+        }
+      };
+
+      // ตำแหน่งเริ่มต้น
+      const startY = 10;
+      const cellHeight = 9; // ความสูงของเซลล์หัวตาราง
+      const dataCellHeight = 6; // ความสูงของเซลล์ข้อมูล
+      const tableWidth = 280; // ความกว้างทั้งหมดของตาราง
+      
+      // กำหนดความกว้างของแต่ละคอลัมน์ (ไม่รวมช่องลำดับ)
+      const colWidths = [
+        10,  // รหัส
+        32,  // ชื่อ-สกุล
+        5,   // วัน
+        18,  // เงินเดือน
+        17,  // ปรับปรุงค่าจ้าง
+        15,  // ชดเชยวันลา
+        17,  // ค่าล่วงเวลา
+        16,  // ค่ารถ/โทร/ตน.
+        15,  // สวัสดิการ(ไม่คิด ปกส.)
+        15,  // เบี้ยขยัน
+        15,  // นักขัตฤกษ์
+        15,  // บวกอื่นๆ(คิด ปกส)
+        15,  // หักอื่นๆ(คิด ปกส)
+        15,  // บวกอื่นๆ(ไม่คิด ปกส)
+        15,  // หักอื่นๆ(ไม่คิด ปกส)
+        15,  // หักภาษี
+        14,  // หัก ปกส
+        14,  // บวกอื่นๆ
+        14,  // หักอื่นๆ
+        14,  // เบิกล่วงหน้า
+        25   // สุทธิ
+      ];
+      
+      // คำนวณตำแหน่ง x ของแต่ละคอลัมน์
+      const colPositions = [];
+      let currentX = 2; // เริ่มที่ตำแหน่ง x = 3 เพื่อให้ชิดซ้ายมากขึ้น
+      colWidths.forEach(width => {
+        colPositions.push(currentX);
+        currentX += width;
+      });
+      
+      // วาดหัวตาราง     // กำหนดชื่อหน่วยงานและรหัสหน่วยงาน
+      const headers = [
+        "รหัส", "ชื่อ - สกุล", "วัน", "เงินเดือน","ปรับปรุงค่าจ้าง","ชดเชยวันลา","ค่าล่วงเวลา",
+        "สวัสดิการพิเศษ", "ตำแหน่ง", "เบี้ยขยัน", "นักขัติ", 
+        "บวกอื่นๆ", "หักอื่นๆ", "หักภาษี","หัก ปกส", "บวกอื่นๆ",
+        
+         "หักอื่นๆ","เบิกล่วงหน้า", 
+       
+        "สุทธิ"
+      ];
+      
+      // วาดหัวตาราง (มีเส้นตาราง)
+      headers.forEach((header, index) => {
+        drawCell(colPositions[index], startY, colWidths[index], cellHeight, header, {
+          isHeader: true, // ระบุว่าเป็นหัวตาราง
+          fontSize: 10,
+          align: 'center' // จัดข้อความให้อยู่กึ่งกลาง
+        });
+      });
+      
+      // ตำแหน่งเริ่มต้นสำหรับข้อมูลพนักงาน
+      let currentY = startY + cellHeight;
+      
+      // แสดงชื่อหน่วยงานระหว่างหัวตารางกับข้อมูลในตาราง (ที่คอลัมน์ 2)
+      doc.setFontSize(10);
+      doc.setFont("THSarabunNew"); // ใช้ฟอนต์ปกติ
+      doc.text(`${workplacrName || '-'} ${workplacrId || '-'}`, colPositions[1], currentY + 5, { align: 'left' });
+      
+      // เพิ่มระยะห่างสำหรับชื่อหน่วยงาน
+      currentY += 8;
+      
+      // เตรียมข้อมูลพนักงาน
+      // เตรียมข้อมูลพนักงาน
+const employeeData = displayEmployees.map((emp) => {
+
+  // แปลงข้อมูลตัวเลขให้เป็นตัวเลขทั้งหมด (ลบ comma และแปลงเป็น float)
+  const salary = parseFloat(emp.sumCashWork.replace(/,/g, '') || 0);
+  const wageRevise = parseFloat(emp.wageRevise?.replace(/,/g, '') || 0);
+  const leaveInLieu = parseFloat(emp.leaveInLieu?.replace(/,/g, '') || 0);
+  const ot = parseFloat(emp.sumCashOt.replace(/,/g, '') || 0);
+  const transportation = parseFloat(emp.transportAllowance?.replace(/,/g, '') || 0); //
+  const positionAndTransportationWithSocial = parseFloat(emp.positionAndTransportationWithSocial?.replace(/,/g, '') || 0); //ตำแหน่ง
+    console.log('positionAndTransportationWithSocial in map:', positionAndTransportationWithSocial); // เพิ่มบรรทัดนี้
+
+  const diligence = parseFloat(emp.diligenceAllowance?.replace(/,/g, '') || 0);
+  const holiday = parseFloat(emp.publicHolidayCash?.replace(/,/g, '') || 0);
+  const addBeforeTax = parseFloat(emp.additionalBeforeTax?.replace(/,/g, '') || 0); // เปลี่ยนจาก plusOther เป็น additionalBeforeTax
+  const deductBeforeTax = parseFloat(emp.deductionBeforeTax?.replace(/,/g, '') || 0);  const tax = parseFloat(emp.tax?.replace(/,/g, '') || 0);
+  const socialSecurity = parseFloat(emp.socialSecurity?.replace(/,/g, '') || 0);
+  const addAfterTax = parseFloat(emp.additionalAfterTax?.replace(/,/g, '') || 0);
+  const deductAfterTax = parseFloat(emp.deductionAfterTax?.replace(/,/g, '') || 0);
+  const advance = parseFloat(emp.advancePayment?.replace(/,/g, '') || 0);
+
+  // คำนวณยอดสุทธิโดยรวมทุกช่องเงิน (บวกรายรับ ลบรายจ่าย)
+  const netCalculated = 
+    salary + wageRevise + leaveInLieu + ot + transportation + positionAndTransportationWithSocial + diligence + holiday + 
+    addBeforeTax +   addAfterTax - 
+    deductBeforeTax  - tax - socialSecurity - deductAfterTax - advance;
+  
+  // ฟอร์แมตเป็นสตริงที่มี , คั่นหลักพัน และทศนิยม 2 ตำแหน่ง
+  const netFormatted = formatNumber(netCalculated);
+
+  return {
+    id: emp.employeeId || "-",
+    name:`${emp.prefix || ''} ${emp.firstName || ""} ${emp.lastName || ""}`,
+    days: emp.typeOfemployee === 'รายเดือน' ? '30' : (emp.dayWorkCount || '0'),
+    salary: emp.sumCashWork || '0',
+    wageRevise: emp.wageRevise || '0',
+    leaveInLieu: emp.leaveInLieu || '0',
+    ot: emp.sumCashOt || '0',
+    transportation: emp.transportAllowance || '0',
+    positionAndTransportationWithSocial: emp.positionAndTransportationWithSocial || '54',
+    diligence: emp.diligenceAllowance || '0',
+    holiday: emp.publicHolidayCash || '0',
+    addBeforeTax: emp.additionalBeforeTax || '0', // เปลี่ยนจาก plusOther เป็น additionalBeforeTax
+    deductBeforeTax: emp.deductionBeforeTax || '0',
+    tax: emp.tax || '0',
+    socialSecurity: emp.socialSecurity || '0',
+    addAfterTax: emp.additionalAfterTax || '0',
+    deductAfterTax: emp.deductionAfterTax || '0',
+    advance: emp.advancePayment || '0',
+    net: netFormatted, // ใช้ค่าที่คำนวณได้แทน emp.netSalary || '0'
+    netRaw: netCalculated // เก็บค่าดิบไว้สำหรับคำนวณรวมภายหลัง
+  };
+});
+      
+      // วาดข้อมูลพนักงาน
+      let pageCount = 1;
+      const maxRowsPerPage = 26; // จำนวนแถวสูงสุดต่อหน้า
+      
+      // สร้างตัวแปรสำหรับเก็บผลรวม
+      let totals = {
+        days: 0,
+        salary: 0,
+        wageRevise: 0,
+        leaveInLieu: 0,
+        ot: 0,
+        transportation: 0,
+        positionAndTransportationWithSocial: 0,
+        diligence: 0,
+        holiday: 0,
+        addBeforeTax: 0,
+        deductBeforeTax: 0,
+    
+        tax: 0,
+        socialSecurity: 0,
+        addAfterTax: 0,
+        deductAfterTax: 0,
+        advance: 0,
+        net: 0
+      };
+      
+      employeeData.forEach((emp, index) => {
+        // ถ้าถึงขอบเขตสูงสุดของหน้า ให้เพิ่มหน้าใหม่
+        if (index > 0 && index % maxRowsPerPage === 0) {
+          // เพิ่มเลขหน้าที่มุมล่างขวา
+          doc.setFontSize(10);
+          doc.setFont("THSarabunNew"); // ใช้ฟอนต์ปกติสำหรับเลขหน้า
+          doc.text(`หน้า ${pageCount}`, 280, 200, { align: 'right' });
+          
+          // สร้างหน้าใหม่
+          doc.addPage();
+          pageCount++;
+          
+          // วาดหัวตารางใหม่
+          headers.forEach((header, i) => {
+            drawCell(colPositions[i], startY, colWidths[i], cellHeight, header, {
+              isHeader: true, // ระบุว่าเป็นหัวตาราง
+              fontSize: 10
+            });
+          });
+          
+          // รีเซ็ต currentY และแสดงชื่อหน่วยงานในหน้าใหม่
+          currentY = startY + cellHeight;
+          doc.setFontSize(14);
+          doc.setFont("THSarabunNew"); // ใช้ฟอนต์ปกติ
+          doc.text(`รายงานเงินเดือนพนักงาน หน่วยงาน: ${workplacrName || '-'} (${workplacrId || '-'})`, colPositions[1], currentY + 5, { align: 'left' });
+          currentY += 10;
+        }
+        
+        // ข้อมูลในแถวนี้
+        const rowData = [
+          emp.id,
+          emp.name,
+          emp.days.toString(),
+          emp.salary,
+          emp.wageRevise,
+          emp.leaveInLieu,
+          emp.ot,
+          emp.transportation,
+          emp.positionAndTransportationWithSocial,
+          emp.diligence,
+          emp.holiday,
+          emp.addBeforeTax,
+          emp.deductBeforeTax,
+
+          emp.tax,
+          emp.socialSecurity,
+          emp.addAfterTax,
+          emp.deductAfterTax,
+          emp.advance,
+          emp.net
+        ];
+        
+        // บวกรวมค่าสำหรับการคำนวณผลรวม
+        totals.days += parseFloat(emp.days);
+        totals.salary += parseFloat(emp.salary.replace(/,/g, ''));
+        totals.wageRevise += parseFloat(emp.wageRevise.replace(/,/g, ''));
+        totals.leaveInLieu += parseFloat(emp.leaveInLieu.replace(/,/g, ''));
+        totals.ot += parseFloat(emp.ot.replace(/,/g, ''));
+        totals.transportation += parseFloat(emp.transportation.replace(/,/g, ''));
+        totals.positionAndTransportationWithSocial += parseFloat(emp.positionAndTransportationWithSocial.replace(/,/g, ''));
+        totals.diligence += parseFloat(emp.diligence.replace(/,/g, ''));
+        totals.holiday += parseFloat(emp.holiday.replace(/,/g, ''));
+        totals.addBeforeTax += parseFloat(emp.addBeforeTax.replace(/,/g, ''));
+        totals.deductBeforeTax += parseFloat(emp.deductBeforeTax.replace(/,/g, ''));
+        totals.tax += parseFloat(emp.tax.replace(/,/g, ''));
+        totals.socialSecurity += parseFloat(emp.socialSecurity.replace(/,/g, ''));
+        totals.addAfterTax += parseFloat(emp.addAfterTax.replace(/,/g, ''));
+        totals.deductAfterTax += parseFloat(emp.deductAfterTax.replace(/,/g, ''));
+        totals.advance += parseFloat(emp.advance.replace(/,/g, ''));
+        totals.net += parseFloat(emp.net.replace(/,/g, ''));
+        
+        // วาดข้อมูลในแต่ละช่อง (ไม่มีเส้นตาราง)
+        rowData.forEach((data, cellIndex) => {
+          // จัดวางข้อความให้ชิดขวาสำหรับข้อมูลตัวเลข
+          let alignment;
+          if (cellIndex === 0 || cellIndex === 1) {
+            alignment = 'left'; // รหัสและชื่อชิดซ้าย
+          } else if (cellIndex >= 3) {
+            alignment = 'right'; // ตัวเลขชิดขวา
+          } else {
+            alignment = 'center'; // อื่นๆ กลาง
+          }
+          
+          drawCell(
+            colPositions[cellIndex], 
+            currentY, 
+            colWidths[cellIndex], 
+            dataCellHeight, 
+            data, 
+            { align: alignment, drawBorder: false } // ไม่วาดเส้นขอบ
+          );
+        });
+        
+        // เลื่อนไปแถวถัดไป
+        currentY += dataCellHeight;
+      });
+      
+      // วาดแถวสรุปผลรวม
+      // วาดเส้นคั่นก่อน
+      doc.setLineWidth(0.3);
+      const lastColIndex = colPositions.length - 1;
+      const endOfTable = colPositions[1] 
+      doc.line(colPositions[19], currentY +0.5, endOfTable, currentY +0.5);
+      currentY += 1; // เว้นระยะ
+      
+      // วาดแถวสรุปผลรวม (ไม่มีเส้นตาราง)
+      doc.setFont("THSarabunNew Bold"); // ใช้ฟอนต์ตัวหนาสำหรับผลรวม
+      drawCell(colPositions[0], currentY, colPositions[2] - colPositions[0], dataCellHeight, 
+        `รวมแผนก     ${workplacrId || '-'}`, { drawBorder: false, align: 'left' });
+      drawCell(colPositions[2], currentY, colWidths[2], dataCellHeight, 
+        displayEmployees.length + " คน", { drawBorder: false });  
+      
+      // วาดผลรวมของแต่ละคอลัมน์ (ไม่มีเส้นตาราง)
+      [
+        { col: 3, value: formatNumber(totals.salary) },
+        { col: 4, value: formatNumber(totals.wageRevise) },
+        { col: 5, value: formatNumber(totals.leaveInLieu) },
+        { col: 6, value: formatNumber(totals.ot) },
+        { col: 7, value: formatNumber(totals.transportation) },
+        { col: 8, value: formatNumber(totals.positionAndTransportationWithSocial) },
+        { col: 9, value: formatNumber(totals.diligence) },
+        { col: 10, value: formatNumber(totals.holiday) },
+        { col: 11, value: formatNumber(totals.addBeforeTax) },
+        { col: 12, value: formatNumber(totals.deductBeforeTax) },
+        { col: 13, value: formatNumber(totals.tax) },
+        { col: 14, value: formatNumber(totals.socialSecurity) },
+        { col: 15, value: formatNumber(totals.addAfterTax) },
+        { col: 16, value: formatNumber(totals.deductAfterTax) },
+        { col: 17, value: formatNumber(totals.advance) },
+        { col: 18, value: formatNumber(totals.net) }
+      ].forEach(item => {
+        drawCell(colPositions[item.col], currentY, colWidths[item.col], dataCellHeight, 
+          item.value, { align: 'right', drawBorder: false });
+      });
+      
+      // เพิ่มข้อมูลส่วนท้าย
+      currentY += dataCellHeight + 5;
+      doc.setFont("THSarabunNew"); // กลับไปใช้ฟอนต์ปกติสำหรับส่วนท้าย
+      doc.setFontSize(10);
+      doc.text(`พิมพ์วันที่ ${formattedWorkDateDD}/${formattedWorkDateMM}/${parseInt(formattedWorkDateYYYY, 10) + 543}`, 5, currentY);
+      doc.text(`รายงานโดย ${present}`, 100, currentY);
+      doc.text(`แฟ้มรายงาน ${presentfilm}`, 200, currentY);
+      
+      // เพิ่มเลขหน้าที่มุมล่างขวา
+      doc.setFontSize(10);
+      doc.text(`หน้า ${pageCount}`, 280, 200, { align: 'right' });
+      
+      // บันทึกไฟล์ PDF
+      // doc.save(`รายงานพนักงาน_${workplacrName || workplacrId || ''}_${month}_${year}.pdf`);
+       const pdfBlob = doc.output('blob');
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+      window.open(pdfUrl, '_blank');
+    
+     
+    }
+    
+    // ซ่อน loading indicator เมื่อสร้าง PDF เสร็จสิ้น
+    setLoadingEmployees(false);
+    
+  } catch (error) {
+    console.error('เกิดข้อผิดพลาดในการสร้าง PDF:', error);
+    alert('เกิดข้อผิดพลาดในการสร้าง PDF');
+    setLoadingEmployees(false);
+  }
+};
+const generatePDFAudit = async () => {
+  try {
+    // ตรวจสอบว่ามีการกรอกเดือนและปีครบถ้วนหรือไม่ (ไม่จำเป็นต้องมี workplacrId)
+    if (!month || !year) {
+      alert('กรุณากรอกเดือนและปี');
+      return;
+    }
+
+    // แสดง loading indicator
+    setLoadingEmployees(true);
+    
+    // ดึงข้อมูลพนักงานตามเงื่อนไข
+    const fetchedEmployeeData = await fetchEmployeeData();
+    
+    if (!fetchedEmployeeData || fetchedEmployeeData.length === 0) {
+      alert('ไม่พบข้อมูลพนักงานที่ตรงกับเงื่อนไข');
+      setLoadingEmployees(false);
+      return;
+    }
+    
+    // ถ้าไม่ได้ระบุ workplacrId ให้จัดกลุ่มข้อมูลตามหน่วยงาน
+    if (!workplacrId) {
+      // จัดกลุ่มข้อมูลตามหน่วยงาน
+      const groupedData = fetchedEmployeeData.reduce((acc, emp) => {
+        const wpId = emp.workplaceId || 'unknown';
+        if (!acc[wpId]) {
+          acc[wpId] = [];
+        }
+        acc[wpId].push(emp);
+        return acc;
+      }, {});
+      
+      // สร้าง PDF สำหรับแต่ละกลุ่มหน่วยงาน
+      const doc = new jsPDF({ 
+        orientation: "landscape", 
+        unit: 'mm', 
+        format: 'a4'
+      });
+
+      let currentPage = 1;
+      let overallY = 10; // ตำแหน่ง Y เริ่มต้นบนหน้าแรก
+      let grandTotal = {
+        days: 0,
+        salary: 0,
+        ot: 0,
+        transportation: 0,
+        welfare: 0,
+        diligence: 0,
+        holiday: 0,
+        addBeforeTax: 0,
+        deductBeforeTax: 0,
+        addNoTax: 0,
+        deductNoTax: 0,
+        tax: 0,
+        socialSecurity: 0,
+        addAfterTax: 0,
+        deductAfterTax: 0,
+        advance: 0,
+        net: 0,
+        employees: 0
+      };
+      
+      // ฟังก์ชันสำหรับวาดเซลล์ (ถ้ายังไม่มี)
+      const cellHeight = 9; // ความสูงของเซลล์หัวตาราง
+      const dataCellHeight = 6; // ความสูงของเซลล์ข้อมูล
+      
+      // กำหนดความกว้างของแต่ละคอลัมน์
+      const colWidths = [
+        15,  // รหัส
+        18,  // ชื่อ-สกุล
+        5,   // วัน
+        20,  // เงินเดือน
+        15,  // ค่าล่วงเวลา
+        15,  // ค่ารถ/โทร/ตน.
+        15,  // สวัสดิการ(ไม่คิด ปกส.)
+        15,  // เบี้ยขยัน
+        15,  // นักขัตฤกษ์
+        15,  // บวกอื่นๆ(คิด ปกส)
+        15,  // หักอื่นๆ(คิด ปกส)
+        15,  // บวกอื่นๆ(ไม่คิด ปกส)
+        15,  // หักอื่นๆ(ไม่คิด ปกส)
+        15,  // หักภาษี
+        14,  // หัก ปกส
+        14,  // บวกอื่นๆ
+        14,  // หักอื่นๆ
+        14,  // เบิกล่วงหน้า
+        15   // สุทธิ
+      ];
+      
+      // คำนวณตำแหน่ง x ของแต่ละคอลัมน์
+      const colPositions = [];
+      let currentX = 3; 
+      colWidths.forEach(width => {
+        colPositions.push(currentX);
+        currentX += width;
+      });
+      
+      // ฟังก์ชันสำหรับวาดเซลล์
+      const drawCell = (x, y, width, height, text, options = {}) => {
+        // วาดขอบเซลล์ (เฉพาะเมื่อ drawBorder=true หรือไม่ได้ระบุ)
+        if (options.drawBorder !== false) {
+          doc.rect(x, y, width, height);
+        }
+
+        // ถ้าไม่มีข้อความให้แสดง ไม่ต้องวาดข้อความ
+        if (text === undefined || text === null || text === '') {
+          return;
+        }
+        
+        // คำนวณจุดกึ่งกลางของเซลล์
+        const centerX = x + width / 2;
+        
+        // เพิ่ม paddingTop สำหรับหัวตาราง
+        const paddingTop = options.isHeader ? 2 : 0;
+        const centerY = y + height / 3;
+
+        // กำหนดขนาดตัวอักษรตามที่ระบุ หรือใช้ค่าเริ่มต้น
+        const fontSize = options.fontSize || 10;
+        doc.setFontSize(fontSize);
+        
+        // ตั้งค่าฟอนต์ - เฉพาะหัวตารางเท่านั้นที่เป็นตัวหนา
+        if (options.isHeader) {
+          doc.setFont("THSarabunNew Bold");
+        } else {
+          doc.setFont("THSarabunNew");
+        }
+
+        // กำหนด alignment (default: center)
+        const align = options.align || 'center';
+        const textOptions = { align: align, baseline: "middle" };
+
+        // ปรับตำแหน่งข้อความตาม alignment
+        if (align === 'right') {
+          doc.text(text, x + width - 2, centerY, textOptions);
+        } else if (align === 'left') {
+          doc.text(text, x + 2, centerY, textOptions);
+        } else {
+          doc.text(text, centerX, centerY, textOptions);
+        }
+      };
+      
+      // กำหนดหัวตาราง
+      const headers = [
+        "รหัส", "ชื่อ - สกุล", "วัน", "เงินเดือน", "ค่าล่วงเวลา", 
+        "ค่าจ.", "สวัสดิการ\n(ไม่คิด ปกส.)", "เบี้ยขยัน", "นักขัติ", 
+        "บวกอื่นๆ\n(คิด ปกส)", "หักอื่นๆ\n(คิด ปกส)", "บวกอื่นๆ\n(ไม่คิด ปกส)", 
+        "หักอื่นๆ\n(ไม่คิด ปกส)", "หักภาษี", "หัก ปกส", "บวกอื่นๆ", "หักอื่นๆ", 
+   , "สุทธิ"
+      ];
+      
+      // วาดหัวตารางก่อนเริ่มวนลูป (สำคัญ!)
+      headers.forEach((header, index) => {
+        drawCell(colPositions[index], overallY, colWidths[index], cellHeight, header, {
+          isHeader: true,
+          fontSize: 10
+        });
+      });
+      
+      // เพิ่ม Y หลังจากวาดหัวตาราง
+      overallY += cellHeight;
+      
+      // เริ่มวนลูปสำหรับแต่ละหน่วยงาน
+      for (const [wpId, employees] of Object.entries(groupedData)) {
+        // ถ้าไม่ใช่หน้าแรกและจำเป็นต้องขึ้นหน้าใหม่
+        if (overallY > 180) { // ถ้า Y มากกว่า 180mm (ใกล้ท้ายกระดาษ)
+          // เพิ่มเลขหน้าก่อนขึ้นหน้าใหม่
+          doc.setFont("THSarabunNew");
+          doc.setFontSize(10);
+          doc.text(`หน้า ${currentPage}`, 280, 200, { align: 'right' });
+          
+          // เพิ่มหน้าใหม่
+          doc.addPage();
+          currentPage++;
+          overallY = 10; // รีเซ็ต Y เมื่อขึ้นหน้าใหม่
+          
+          // วาดหัวตารางใหม่เฉพาะเมื่อขึ้นหน้าใหม่เท่านั้น
+          headers.forEach((header, index) => {
+            drawCell(colPositions[index], overallY, colWidths[index], cellHeight, header, {
+              isHeader: true,
+              fontSize: 10
+            });
+          });
+          
+          overallY += cellHeight; // เพิ่ม Y หลังจากวาดหัวตาราง
+        }
+        
+        // หาชื่อหน่วยงาน
+        const workplace = workplaceListAll.find(w => w.workplaceId === wpId) || {};
+        const wpName = workplace.workplaceName || 'ไม่ระบุชื่อ';
+        
+        // สร้างตารางข้อมูลสำหรับหน่วยงานนี้
+        const { newY, totalValues } = createWorkplaceTable(doc, wpId, wpName, employees, overallY);
+        overallY = newY + 1; // เพิ่มระยะห่างระหว่างตาราง
+      }
+      
+      // เพิ่มเลขหน้าสุดท้าย
+      doc.setFont("THSarabunNew");
+      doc.setFontSize(10);
+      doc.text(`หน้า ${currentPage}`, 280, 200, { align: 'right' });
+      
+      // เพิ่มข้อมูลส่วนท้าย
+      doc.setFont("THSarabunNew");
+      doc.setFontSize(10);
+      doc.text(`พิมพ์วันที่ ${formattedWorkDateDD}/${formattedWorkDateMM}/${parseInt(formattedWorkDateYYYY, 10) + 543}`, 5, 200);
+      doc.text(`รายงานโดย ${present}`, 100, 200);
+      doc.text(`แฟ้มรายงาน ${presentfilm}`, 200, 200);
+      
+      // บันทึกไฟล์ PDF
+
+      const pdfBlob = doc.output('blob');
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+      window.open(pdfUrl, '_blank');
+      // doc.save(`รายงานพนักงานทุกหน่วยงาน_${month}_${year}.pdf`);
+    } else {
+      // กรณีมีการระบุ workplacrId ทำเหมือนเดิม (สร้าง PDF เฉพาะหน่วยงานที่ระบุ)
+      const doc = new jsPDF({ 
+        orientation: "landscape", 
+        unit: 'mm', 
+        format: 'a4'
+      });
+
+      // เพิ่มฟอนต์ไทย (ต้องมีการโหลดฟอนต์ก่อนใช้งาน)
+      doc.setFont("THSarabunNew");
+      doc.setFontSize(16);
+      
+      // ฟังก์ชันสำหรับวาดเซลล์ และโค้ดส่วนที่เหลือเหมือนเดิม...
+      // ฟังก์ชันสำหรับวาดเซลล์
+      const drawCell = (x, y, width, height, text, options = {}) => {
+        // วาดขอบเซลล์ (เฉพาะเมื่อ drawBorder=true หรือไม่ได้ระบุ)
+        if (options.drawBorder !== false) {
+          doc.rect(x, y, width, height);
+        }
+
+  // ถ้าไม่มีข้อความให้แสดง ไม่ต้องวาดข้อความ
+  if (text === undefined || text === null || text === '') {
+    return;
+  }
+  
+  // คำนวณจุดกึ่งกลางของเซลล์
+  const centerX = x + width / 2;
+  
+  // ปรับ centerY ให้อยู่กึ่งกลางจริงๆ
+  const centerY = y + height / 2;
+
+  // กำหนดขนาดตัวอักษรตามที่ระบุ หรือใช้ค่าเริ่มต้น
+  const fontSize = options.fontSize || 8; // ลดขนาดจาก 10 เป็น 8
+  doc.setFontSize(fontSize);
+  
+  // ตั้งค่าฟอนต์ - เฉพาะหัวตารางเท่านั้นที่เป็นตัวหนา
+  if (options.isHeader) {
+    doc.setFont("THSarabunNew Bold");
+  } else {
+    doc.setFont("THSarabunNew");
+  }
+
+  // กำหนด alignment (default: center)
+  const align = options.align || 'center';
+  const textOptions = { align: align, baseline: "middle" };
+
+  // ปรับตำแหน่งข้อความตาม alignment
+  if (align === 'right') {
+    doc.text(text, x + width - 1, centerY, textOptions); // ลด padding จาก 2 เป็น 1
+  } else if (align === 'left') {
+    doc.text(text, x + 1, centerY, textOptions); // ลด padding จาก 2 เป็น 1
+  } else {
+    doc.text(text, centerX, centerY, textOptions);
+  }
+};
+
+      // ตำแหน่งเริ่มต้น
+      const startY = 10;
+      const cellHeight = 9; // ความสูงของเซลล์หัวตาราง
+      const dataCellHeight = 6; // ความสูงของเซลล์ข้อมูล
+      const tableWidth = 280; // ความกว้างทั้งหมดของตาราง
+      
+  // คำนวณความกว้างอัตโนมัติให้เต็มกระดาษ
+const totalWidth = 275; // ความกว้างทั้งหมดที่ต้องการ
+const numCols = 14; // จำนวนคอลัมน์
+const avgWidth = Math.floor(totalWidth / numCols);
+
+const colWidths = [
+  15,  // รหัส (ลดจาก 15)
+  45,  // ชื่อ-สกุล (ขยายจาก 40) - รวม 275
+  10,   // วัน (ลดจาก 10)
+  20,  // เงินเดือน (ลดจาก 25)
+  18,  // ค่าล่วงเวลา (ลดจาก 20)
+  18,  // ค่ารถ/โทร/ตน. (ลดจาก 20)
+  18,  // สวัสดิการ(ไม่คิด ปกส.) (ลดจาก 20)
+  16,  // เบี้ยขยัน (ลดจาก 18)
+  16,  // นักขัตฤกษ์ (ลดจาก 18)
+  18,  // บวกอื่นๆ(คิด ปกส) (ลดจาก 20)
+  18,  // หักอื่นๆ(คิด ปกส) (ลดจาก 20)
+  16,  // หักภาษี (ลดจาก 18)
+  16,  // หัก ปกส (ลดจาก 18)
+  27   // สุทธิ (ลดจาก 27)
+]; 
+      const colPositions = [];
+      let currentX = 10; // เริ่มที่ตำแหน่ง x = 3 เพื่อให้ชิดซ้ายมากขึ้น
+      colWidths.forEach(width => {
+        colPositions.push(currentX);
+        currentX += width;
+      });
+      
+      // วาดหัวตาราง     // กำหนดชื่อหน่วยงานและรหัสหน่วยงาน
+      const headers = [
+        "รหัส", "ชื่อ - สกุล", "วัน", "เงินเดือน", "ค่าล่วงเวลา", 
+        "ค่าตำแหน่ง", "ค่าพาหนะ", "เบี้ยขยัน", "นักขัติฤกษ์", 
+         "บวกอื่นๆ", 
+        "หักอื่นๆ", "หักภาษี", "หัก ปกส",  
+         "สุทธิ"
+      ];
+      
+      // วาดหัวตาราง (มีเส้นตาราง)
+      headers.forEach((header, index) => {
+        drawCell(colPositions[index], startY, colWidths[index], cellHeight, header, {
+          isHeader: true, // ระบุว่าเป็นหัวตาราง
+          fontSize: 10
+        });
+      });
+      
+      // ตำแหน่งเริ่มต้นสำหรับข้อมูลพนักงาน
+      let currentY = startY + cellHeight;
+      
+      // แสดงชื่อหน่วยงานระหว่างหัวตารางกับข้อมูลในตาราง (ที่คอลัมน์ 2)
+      doc.setFontSize(12);
+      doc.setFont("THSarabunNew"); // ใช้ฟอนต์ปกติ
+      doc.text(`${workplacrName || '-'} ${workplacrId || '-'}`, colPositions[1], currentY + 5, { align: 'left' });
+      
+      // เพิ่มระยะห่างสำหรับชื่อหน่วยงาน
+      currentY += 8;
+      
+      // เตรียมข้อมูลพนักงาน
+      // เตรียมข้อมูลพนักงาน
+const employeeData = displayEmployees.map((emp) => {
+  // แปลงข้อมูลตัวเลขให้เป็นตัวเลขทั้งหมด (ลบ comma และแปลงเป็น float)
+  const salary = parseFloat(emp.sumCashWork.replace(/,/g, '') || 0);
+  const wageRevise = parseFloat(emp.wageRevise?.replace(/,/g, '') || 0);
+  const leaveInLieu = parseFloat(emp.leaveInLieu?.replace(/,/g, '') || 0);
+  const ot = parseFloat(emp.sumCashOt.replace(/,/g, '') || 0);
+  const transportation = parseFloat(emp.transportAllowance?.replace(/,/g, '') || 0);
+  const positionAndTransportationWithSocial = parseFloat(emp.positionAndTransportationWithSocial?.replace(/,/g, '') || 0);
+  const welfare = parseFloat(emp.welfare?.replace(/,/g, '') || 0);
+  const diligence = parseFloat(emp.diligenceAllowance?.replace(/,/g, '') || 0);
+  const holiday = parseFloat(emp.publicHolidayCash?.replace(/,/g, '') || 0);
+  const addBeforeTax = parseFloat(emp.additionalBeforeTax?.replace(/,/g, '') || 0);
+  const deductBeforeTax = parseFloat(emp.deductionBeforeTax?.replace(/,/g, '') || 0);
+  const addNoTax = parseFloat(emp.additionalNoTax?.replace(/,/g, '') || 0);
+  const deductNoTax = parseFloat(emp.deductionNoTax?.replace(/,/g, '') || 0);
+  const tax = parseFloat(emp.tax?.replace(/,/g, '') || 0);
+  const socialSecurity = parseFloat(emp.socialSecurity?.replace(/,/g, '') || 0);
+  const addAfterTax = parseFloat(emp.additionalAfterTax?.replace(/,/g, '') || 0);
+  const deductAfterTax = parseFloat(emp.deductionAfterTax?.replace(/,/g, '') || 0);
+  const advance = parseFloat(emp.advancePayment?.replace(/,/g, '') || 0);
+
+  // คำนวณยอดสุทธิโดยรวมทุกช่องเงิน (บวกรายรับ ลบรายจ่าย)
+  const netCalculated = 
+    salary + ot + transportation + welfare + diligence + holiday + 
+    addBeforeTax + addNoTax + addAfterTax - 
+    deductBeforeTax - deductNoTax - tax - socialSecurity - deductAfterTax - advance;
+  
+  // ฟอร์แมตเป็นสตริงที่มี , คั่นหลักพัน และทศนิยม 2 ตำแหน่ง
+  const netFormatted = formatNumber(netCalculated);
+
+  return {
+    id: emp.employeeId || "-",
+    name: `${emp.prefix} ${emp.firstName || ""} ${emp.lastName || ""}`,
+    days: emp.typeOfemployee === 'รายเดือน' ? '30' : (emp.dayWorkCount || '0'),
+    salary: emp.sumCashWork || '0',
+    wageRevise: emp.wageRevise || '0',
+    leaveInLieu: emp.leaveInLieu || '0',
+    ot: emp.sumCashOt || '0',
+    transportation: emp.transportAllowance || '0',
+    welfare: emp.welfare || '0',
+    diligence: emp.diligenceAllowance || '0',
+    holiday: emp.publicHolidayCash || '0',
+    addBeforeTax: emp.additionalBeforeTax || '0',
+    deductBeforeTax: emp.deductionBeforeTax || '0',
+    addNoTax: emp.additionalNoTax || '0',
+    deductNoTax: emp.deductionNoTax || '0',
+    tax: emp.tax || '0',
+    socialSecurity: emp.socialSecurity || '0',
+    addAfterTax: emp.additionalAfterTax || '0',
+    deductAfterTax: emp.deductionAfterTax || '0',
+    advance: emp.advancePayment || '0',
+    net: netFormatted, // ใช้ค่าที่คำนวณได้แทน emp.netSalary || '0'
+    netRaw: netCalculated // เก็บค่าดิบไว้สำหรับคำนวณรวมภายหลัง
+  };
+});
+      
+      // วาดข้อมูลพนักงาน
+      let pageCount = 1;
+      const maxRowsPerPage = 26; // จำนวนแถวสูงสุดต่อหน้า
+      
+      // สร้างตัวแปรสำหรับเก็บผลรวม
+      let totals = {
+        days: 0,
+        salary: 0,
+        ot: 0,
+        transportation: 0,
+        welfare: 0,
+        diligence: 0,
+        holiday: 0,
+        addBeforeTax: 0,
+        deductBeforeTax: 0,
+        addNoTax: 0,
+        deductNoTax: 0,
+        tax: 0,
+        socialSecurity: 0,
+        addAfterTax: 0,
+        deductAfterTax: 0,
+        advance: 0,
+        net: 0
+      };
+      
+      employeeData.forEach((emp, index) => {
+        // ถ้าถึงขอบเขตสูงสุดของหน้า ให้เพิ่มหน้าใหม่
+        if (index > 0 && index % maxRowsPerPage === 0) {
+          // เพิ่มเลขหน้าที่มุมล่างขวา
+          doc.setFontSize(10);
+          doc.setFont("THSarabunNew"); // ใช้ฟอนต์ปกติสำหรับเลขหน้า
+          doc.text(`หน้า ${pageCount}`, 280, 200, { align: 'right' });
+          
+          // สร้างหน้าใหม่
+          doc.addPage();
+          pageCount++;
+          
+          // วาดหัวตารางใหม่
+          headers.forEach((header, i) => {
+            drawCell(colPositions[i], startY, colWidths[i], cellHeight, header, {
+              isHeader: true, // ระบุว่าเป็นหัวตาราง
+              fontSize: 12
+            });
+          });
+          
+          // รีเซ็ต currentY และแสดงชื่อหน่วยงานในหน้าใหม่
+          currentY = startY + cellHeight;
+          doc.setFontSize(14);
+          doc.setFont("THSarabunNew"); // ใช้ฟอนต์ปกติ
+          doc.text(`รายงานเงินเดือนพนักงาน หน่วยงาน: ${workplacrName || '-'} (${workplacrId || '-'})`, colPositions[1], currentY + 5, { align: 'left' });
+          currentY += 10;
+        }
+        
+        // ข้อมูลในแถวนี้
+        const rowData = [
+          emp.id,
+          emp.name,
+          emp.days.toString(),
+          emp.salary,
+          emp.ot,
+          emp.transportation,
+          emp.welfare,
+          emp.diligence,
+          emp.holiday,
+          emp.addBeforeTax,
+          emp.deductBeforeTax,
+
+          emp.tax,
+          emp.socialSecurity,
+     
+  
+          emp.net
+        ];
+        
+        // บวกรวมค่าสำหรับการคำนวณผลรวม
+        totals.days += parseFloat(emp.days);
+        totals.salary += parseFloat(emp.salary.replace(/,/g, ''));
+        totals.ot += parseFloat(emp.ot.replace(/,/g, ''));
+        totals.transportation += parseFloat(emp.transportation.replace(/,/g, ''));
+        totals.welfare += parseFloat(emp.welfare.replace(/,/g, ''));
+        totals.diligence += parseFloat(emp.diligence.replace(/,/g, ''));
+        totals.holiday += parseFloat(emp.holiday.replace(/,/g, ''));
+        totals.addBeforeTax += parseFloat(emp.addBeforeTax.replace(/,/g, ''));
+        totals.deductBeforeTax += parseFloat(emp.deductBeforeTax.replace(/,/g, ''));
+        totals.addNoTax += parseFloat(emp.addNoTax.replace(/,/g, ''));
+        totals.deductNoTax += parseFloat(emp.deductNoTax.replace(/,/g, ''));
+        totals.tax += parseFloat(emp.tax.replace(/,/g, ''));
+        totals.socialSecurity += parseFloat(emp.socialSecurity.replace(/,/g, ''));
+        totals.addAfterTax += parseFloat(emp.addAfterTax.replace(/,/g, ''));
+        totals.deductAfterTax += parseFloat(emp.deductAfterTax.replace(/,/g, ''));
+        totals.advance += parseFloat(emp.advance.replace(/,/g, ''));
+        totals.net += parseFloat(emp.net.replace(/,/g, ''));
+        
+        // วาดข้อมูลในแต่ละช่อง (ไม่มีเส้นตาราง)
+rowData.forEach((data, cellIndex) => {
+  // จัดวางข้อความให้ชิดขวาสำหรับข้อมูลตัวเลข
+  let alignment;
+  if (cellIndex === 0 || cellIndex === 1) {
+    alignment = 'left'; // รหัสและชื่อชิดซ้าย
+  } else if (cellIndex === 2) {
+    alignment = 'center'; // วันกลาง
+  } else {
+    alignment = 'right'; // ตัวเลขชิดขวา
+  }
+  
+  drawCell(
+    colPositions[cellIndex], 
+    currentY, 
+    colWidths[cellIndex], 
+    dataCellHeight, 
+    data, 
+    { 
+      align: alignment, 
+      drawBorder: false,
+      fontSize: 12 // ปรับขนาดตัวอักษร
+    }
+  );
+});
+        
+        // เลื่อนไปแถวถัดไป
+        currentY += dataCellHeight;
+      });
+      
+      // วาดแถวสรุปผลรวม
+      // วาดเส้นคั่นก่อน
+      doc.setLineWidth(0.3);
+      const lastColIndex = colPositions.length - 1;
+      const endOfTable = colPositions[lastColIndex] + colWidths[lastColIndex];
+      doc.line(colPositions[2], currentY + 1, endOfTable, currentY +1 );
+      currentY += 1; // เว้นระยะ
+      
+      // วาดแถวสรุปผลรวม (ไม่มีเส้นตาราง)
+      // วาดแถวสรุปผลรวม (ไม่มีเส้นตาราง)
+        doc.setFont("THSarabunNew Bold"); // ใช้ฟอนต์ตัวหนาสำหรับผลรวม
+        drawCell(colPositions[0], currentY, colPositions[2] - colPositions[0], dataCellHeight, 
+          `รวมแผนก ${workplacrId || '-'}`, { drawBorder: false, align: 'left', fontSize: 12 });
+        drawCell(colPositions[2], currentY, colWidths[2], dataCellHeight, 
+          displayEmployees.length + " คน", { drawBorder: false, fontSize: 12});  
+
+        [
+          { col: 3, value: formatNumber(totals.salary) },
+          { col: 4, value: formatNumber(totals.ot) },
+          { col: 5, value: formatNumber(totals.transportation) },
+          { col: 6, value: formatNumber(totals.welfare) },
+          { col: 7, value: formatNumber(totals.diligence) },
+          { col: 8, value: formatNumber(totals.holiday) },
+          { col: 9, value: formatNumber(totals.addBeforeTax) },
+          { col: 10, value: formatNumber(totals.deductBeforeTax) },
+          { col: 11, value: formatNumber(totals.tax) },
+          { col: 12, value: formatNumber(totals.socialSecurity) },
+          { col: 13, value: formatNumber(totals.net) }
+        ].forEach(item => {
+          drawCell(colPositions[item.col], currentY, colWidths[item.col], dataCellHeight, 
+            item.value, { align: 'right', drawBorder: false, fontSize: 12 });
+        });
+              
+      // เพิ่มข้อมูลส่วนท้าย
+currentY += dataCellHeight + 10; // เพิ่มระยะห่าง
+doc.setFont("THSarabunNew");
+doc.setFontSize(12);
+
+// จัดวางข้อมูลส่วนท้ายให้เป็นระเบียบมากขึ้น
+const footerY = 195; // กำหนดตำแหน่ง Y คงที่สำหรับส่วนท้าย
+doc.text(`พิมพ์วันที่ ${formattedWorkDateDD}/${formattedWorkDateMM}/${parseInt(formattedWorkDateYYYY, 10) + 543}`, 5, footerY);
+doc.text(`รายงานโดย ${present}`, 80, footerY);
+doc.text(`แฟ้มรายงาน ${presentfilm}`, 160, footerY);
+
+// เพิ่มเลขหน้าที่มุมล่างขวา
+doc.setFontSize(8);
+doc.text(`หน้า ${pageCount}`, 285, footerY, { align: 'right' });
+      
+      // บันทึกไฟล์ PDF
+      // doc.save(`รายงานพนักงาน_${workplacrName || workplacrId || ''}_${month}_${year}.pdf`);
+       const pdfBlob = doc.output('blob');
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+      window.open(pdfUrl, '_blank');
+    
+     
+    }
+    
+    // ซ่อน loading indicator เมื่อสร้าง PDF เสร็จสิ้น
+    setLoadingEmployees(false);
+    
+  } catch (error) {
+    console.error('เกิดข้อผิดพลาดในการสร้าง PDF:', error);
+    alert('เกิดข้อผิดพลาดในการสร้าง PDF');
+    setLoadingEmployees(false);
+  }
+};
+
+const createWorkplaceTable = (doc, wpId, wpName, employees, startY) => {
+  // กำหนดขนาดของตาราง
+  const cellHeight = 9; // ความสูงของเซลล์หัวตาราง
+  const dataCellHeight = 6; // ความสูงของเซลล์ข้อมูล
+  
+  // กำหนดความกว้างของแต่ละคอลัมน์
+  const colWidths = [
+    15,  // รหัส
+    30,  // ชื่อ-สกุล
+    8,   // วัน
+    22,  // เงินเดือน
+    18,  // ค่าล่วงเวลา
+    18,  // ค่าตำแหน่ง
+    18,  // ค่าพาหนะ
+    15,  // เบี้ยขยัน
+    15,  // นักขัติ
+    18,  // บวกอื่นๆ
+    18,  // หักอื่นๆ
+    18,  // หักภาษี
+    18,  // หัก ปกส
+    20   // สุทธิ
+  ];
+  
+  // คำนวณตำแหน่ง x ของแต่ละคอลัมน์
+  const colPositions = [];
+  let currentX = 3; 
+  colWidths.forEach(width => {
+    colPositions.push(currentX);
+    currentX += width;
+  });
+  
+  // ฟังก์ชันสำหรับวาดเซลล์
+  const drawCell = (x, y, width, height, text, options = {}) => {
+    // วาดขอบเซลล์ (เฉพาะเมื่อ drawBorder=true หรือไม่ได้ระบุ)
+    if (options.drawBorder !== false) {
+      doc.rect(x, y, width, height);
+    }
+
+    // ถ้าไม่มีข้อความให้แสดง ไม่ต้องวาดข้อความ
+    if (text === undefined || text === null || text === '') {
+      return;
+    }
+    
+    // คำนวณจุดกึ่งกลางของเซลล์
+    const centerX = x + width / 2;
+    
+    // เพิ่ม paddingTop สำหรับหัวตาราง
+    const paddingTop = options.isHeader ? 2 : 0;
+    const centerY = y + height / 3;
+
+    // กำหนดขนาดตัวอักษรตามที่ระบุ หรือใช้ค่าเริ่มต้น
+    const fontSize = options.fontSize || 10;
+    doc.setFontSize(fontSize);
+    
+    // ตั้งค่าฟอนต์ - เฉพาะหัวตารางเท่านั้นที่เป็นตัวหนา
+    if (options.isHeader) {
+      doc.setFont("THSarabunNew Bold");
+    } else {
+      doc.setFont("THSarabunNew");
+    }
+
+    // กำหนด alignment (default: center)
+    const align = options.align || 'center';
+    const textOptions = { align: align, baseline: "middle" };
+
+    // ปรับตำแหน่งข้อความตาม alignment
+    if (align === 'right') {
+      doc.text(text, x + width - 2, centerY, textOptions);
+    } else if (align === 'left') {
+      doc.text(text, x + 2, centerY, textOptions);
+    } else {
+      doc.text(text, centerX, centerY, textOptions);
+    }
+  };
+  
+  // เก็บ headers ไว้เพื่ออ้างอิง แต่ไม่วาดในฟังก์ชันนี้
+  const headers = [
+    "รหัส", "ชื่อ - สกุล", "วัน", "เงินเดือน", "ค่าล่วงเวลา", 
+    "ค่าตำแหน่ง","ค่าพาหนะ  ",  "เบี้ยขยัน", "นักขัติ", 
+    "บวกอื่นๆ", "หักอื่นๆ", "หักภาษี", "หัก ปกส", "สุทธิ"
+  ];
+  
+  // *** ลบโค้ดส่วนนี้ออก - ไม่วาดหัวตาราง ***
+  // headers.forEach((header, index) => {
+  //   drawCell(colPositions[index], startY, colWidths[index], cellHeight, header, {
+  //     isHeader: true,
+  //     fontSize: 10
+  //   });
+  // });
+  
+  // ตำแหน่งเริ่มต้นสำหรับข้อมูลพนักงาน - ปรับให้เป็น startY เลย ไม่ต้องบวก cellHeight
+  let currentY = startY;
+  
+  // แสดงชื่อหน่วยงาน
+  doc.setFontSize(10);
+  doc.setFont("THSarabunNew");
+  doc.text(`${wpName || '-'} ${wpId || '-'}`, colPositions[1], currentY + 5, { align: 'left' });
+  
+  // เพิ่มระยะห่างสำหรับชื่อหน่วยงาน
+  currentY += 8;
+  
+  // เตรียมข้อมูลพนักงาน
+  const employeeData = employees.map((emp) => {
+    // แปลงข้อมูลตัวเลขให้เป็นตัวเลขทั้งหมด (ลบ comma และแปลงเป็น float)
+    const salary = parseFloat(emp.sumCashWork.replace(/,/g, '') || 0);
+    const wageRevise = parseFloat(emp.wageRevise?.replace(/,/g, '') || 0);
+    const leaveInLieu = parseFloat(emp.leaveInLieu?.replace(/,/g, '') || 0);
+    const ot = parseFloat(emp.sumCashOt.replace(/,/g, '') || 0);
+    const transportation = parseFloat(emp.transportAllsowance?.replace(/,/g, '') || 0);
+    const welfare = parseFloat(emp.welfare?.replace(/,/g, '') || 0);
+    const diligence = parseFloat(emp.diligenceAllowance?.replace(/,/g, '') || 0);
+    const holiday = parseFloat(emp.publicHolidayCash?.replace(/,/g, '') || 0);
+    const addBeforeTax = parseFloat(emp.additionalBeforeTax?.replace(/,/g, '') || 0);
+    const deductBeforeTax = parseFloat(emp.deductionBeforeTax?.replace(/,/g, '') || 0);
+    const addNoTax = parseFloat(emp.additionalNoTax?.replace(/,/g, '') || 0);
+    const deductNoTax = parseFloat(emp.deductionNoTax?.replace(/,/g, '') || 0);
+    const tax = parseFloat(emp.tax?.replace(/,/g, '') || 0);
+    const socialSecurity = parseFloat(emp.socialSecurity?.replace(/,/g, '') || 0);
+    const addAfterTax = parseFloat(emp.additionalAfterTax?.replace(/,/g, '') || 0);
+    const deductAfterTax = parseFloat(emp.deductionAfterTax?.replace(/,/g, '') || 0);
+    const advance = parseFloat(emp.advancePayment?.replace(/,/g, '') || 0);
+
+    // คำนวณยอดสุทธิโดยรวมทุกช่องเงิน (บวกรายรับ ลบรายจ่าย)
+    const netCalculated = 
+      salary + ot + transportation + welfare + diligence + holiday + 
+      addBeforeTax + addNoTax + addAfterTax - 
+      deductBeforeTax - deductNoTax - tax - socialSecurity - deductAfterTax - advance;
+    
+    // ฟอร์แมตเป็นสตริงที่มี , คั่นหลักพัน และทศนิยม 2 ตำแหน่ง
+    const netFormatted = formatNumber(netCalculated);
+
+    return {
+      id: emp.employeeId || "-",
+      name: `${emp.firstName || ""} ${emp.lastName || ""}`,
+      days: emp.typeOfemployee === 'รายเดือน' ? '30' : (emp.dayWorkCount || '0'),
+      salary: emp.sumCashOt || '0',
+      wageRevise: emp.wageRevise || '0',
+      leaveInLieu: emp.leaveInLieu || '0',
+      ot: emp.sumCashOt || '0',
+      transportation: emp.transportAllowance || '0',
+      welfare: emp.welfare || '0',
+      diligence: emp.diligenceAllowance || '0',
+      holiday: emp.publicHolidayCash || '0',
+      addBeforeTax: emp.additionalBeforeTax || '0',
+      deductBeforeTax: emp.deductionBeforeTax || '0',
+      addNoTax: emp.additionalNoTax || '0',
+      deductNoTax: emp.deductionNoTax || '0',
+      tax: emp.tax || '0',
+      socialSecurity: emp.socialSecurity || '0',
+      addAfterTax: emp.additionalAfterTax || '0',
+      deductAfterTax: emp.deductionAfterTax || '0',
+      advance: emp.advancePayment || '0',
+      net: netFormatted, // ใช้ค่าที่คำนวณได้
+      netRaw: netCalculated // เก็บค่าดิบไว้สำหรับคำนวณรวมภายหลัง
+    };
+  });
+  
+  // สร้างตัวแปรสำหรับเก็บผลรวม
+  let totals = {
+    days: 0,
+    salary: 0,
+    ot: 0,
+    transportation: 0,
+    welfare: 0,
+    diligence: 0,
+    holiday: 0,
+    addBeforeTax: 0,
+    deductBeforeTax: 0,
+    addNoTax: 0,
+    deductNoTax: 0,
+    tax: 0,
+    socialSecurity: 0,
+    addAfterTax: 0,
+    deductAfterTax: 0,
+    advance: 0,
+    net: 0
+  };
+  
+  // วาดข้อมูลพนักงานและคำนวณผลรวม
+  employeeData.forEach((emp, index) => {
+    // ข้อมูลในแถวนี้
+    const rowData = [
+      emp.id,
+      emp.name,
+      emp.days.toString(),
+      emp.salary,
+      emp.ot,
+      emp.transportation,
+      emp.welfare,
+      emp.diligence,
+      emp.holiday,
+      emp.addBeforeTax,
+      emp.deductBeforeTax,
+      emp.addNoTax,
+      emp.deductNoTax,
+      emp.tax,
+      emp.socialSecurity,
+      emp.addAfterTax,
+      emp.deductAfterTax,
+      emp.advance,
+      emp.net
+    ];
+    
+    // บวกรวมค่าสำหรับการคำนวณผลรวม
+    totals.days += parseFloat(emp.days);
+    totals.salary += parseFloat(emp.salary.replace(/,/g, ''));
+    totals.ot += parseFloat(emp.ot.replace(/,/g, ''));
+    totals.transportation += parseFloat(emp.transportation.replace(/,/g, ''));
+    totals.welfare += parseFloat(emp.welfare.replace(/,/g, ''));
+    totals.diligence += parseFloat(emp.diligence.replace(/,/g, ''));
+    totals.holiday += parseFloat(emp.publicHolidayCash.replace(/,/g, ''));
+    totals.addBeforeTax += parseFloat(emp.addBeforeTax.replace(/,/g, ''));
+    totals.deductBeforeTax += parseFloat(emp.deductBeforeTax.replace(/,/g, ''));
+    totals.addNoTax += parseFloat(emp.addNoTax.replace(/,/g, ''));
+    totals.deductNoTax += parseFloat(emp.deductNoTax.replace(/,/g, ''));
+    totals.tax += parseFloat(emp.tax.replace(/,/g, ''));
+    totals.socialSecurity += parseFloat(emp.socialSecurity.replace(/,/g, ''));
+    totals.addAfterTax += parseFloat(emp.addAfterTax.replace(/,/g, ''));
+    totals.deductAfterTax += parseFloat(emp.deductAfterTax.replace(/,/g, ''));
+    totals.advance += parseFloat(emp.advance.replace(/,/g, ''));
+    totals.net += emp.netRaw; // ใช้ค่าดิบในการคำนวณผลรวม
+    
+    // วาดข้อมูลในแต่ละช่อง
+    rowData.forEach((data, cellIndex) => {
+      // จัดวางข้อความให้ชิดขวาสำหรับข้อมูลตัวเลข
+      let alignment;
+      if (cellIndex === 0 || cellIndex === 1) {
+        alignment = 'left'; // รหัสและชื่อชิดซ้าย
+      } else if (cellIndex >= 3) {
+        alignment = 'right'; // ตัวเลขชิดขวา
+      } else {
+        alignment = 'center'; // อื่นๆ กลาง
+      }
+      
+      drawCell(
+        colPositions[cellIndex], 
+        currentY, 
+        colWidths[cellIndex], 
+        dataCellHeight, 
+        data, 
+        { align: alignment, drawBorder: false }
+      );
+    });
+    
+    // เลื่อนไปแถวถัดไป
+    currentY += dataCellHeight;
+  });
+  
+  // วาดแถวสรุปผลรวม
+  // วาดเส้นคั่นก่อน
+  doc.setLineWidth(0.3);
+  const lastColIndex = colPositions.length - 1;
+  const endOfTable = colPositions[lastColIndex] + colWidths[lastColIndex];
+  doc.line(colPositions[2], currentY - 1, endOfTable, currentY - 1);
+  currentY += 1; // เว้นระยะ
+  
+  // วาดแถวสรุปผลรวม (ไม่มีเส้นตาราง)
+  doc.setFont("THSarabunNew Bold"); // ใช้ฟอนต์ตัวหนาสำหรับผลรวม
+  drawCell(colPositions[0], currentY, colPositions[2] - colPositions[0], dataCellHeight, 
+    `รวมแผนก     ${wpId || '-'}`, { drawBorder: false, align: 'left' });
+  drawCell(colPositions[2], currentY, colWidths[2], dataCellHeight, 
+    employees.length + " คน", { drawBorder: false });  
+  
+  // วาดผลรวมของแต่ละคอลัมน์ (ไม่มีเส้นตาราง)
+  [
+    { col: 3, value: formatNumber(totals.salary) },
+    { col: 4, value: formatNumber(totals.ot) },
+    { col: 5, value: formatNumber(totals.transportation) },
+    { col: 6, value: formatNumber(totals.welfare) },
+    { col: 7, value: formatNumber(totals.diligence) },
+    { col: 8, value: formatNumber(totals.holiday) },
+    { col: 9, value: formatNumber(totals.addBeforeTax) },
+    { col: 10, value: formatNumber(totals.deductBeforeTax) },
+    { col: 11, value: formatNumber(totals.addNoTax) },
+    { col: 12, value: formatNumber(totals.deductNoTax) },
+    { col: 13, value: formatNumber(totals.tax) },
+    { col: 14, value: formatNumber(totals.socialSecurity) },
+    { col: 15, value: formatNumber(totals.addAfterTax) },
+    { col: 16, value: formatNumber(totals.deductAfterTax) },
+    { col: 17, value: formatNumber(totals.advance) },
+    { col: 18, value: formatNumber(totals.net) }
+  ].forEach(item => {
+    drawCell(colPositions[item.col], currentY, colWidths[item.col], dataCellHeight, 
+      item.value, { align: 'right', drawBorder: false });
+  });
+  
+  // คืนค่าตำแหน่ง Y ล่าสุดและผลรวม
+  return {
+    newY: currentY + dataCellHeight,
+    totalValues: totals
+  };
+};
+
+
+
+
+
+
+  const generatePDF0 = () => {
     const pdf = new jsPDF({ orientation: "landscape" });
 
     const fontPath = "/assets/fonts/THSarabunNew.ttf";
@@ -522,11 +2610,14 @@ function SalaryAllResult({ employeeList, workplaceList }) {
 
     const pageWidth = pdf.internal.pageSize.width;
 
+
+    console.log("มีข้อมูลพนักงานหรือไม่:", employees);
+
     const numRows = 7;
     const numCols = 1;
     const cellWidth = 10;
     const cellHeight = 3.5;
-    const startX = 1; // Adjust the starting X-coordinate as needed
+    const startX = 20; // Adjust the starting X-coordinate as needed
     const startY = 55; // Adjust the starting Y-coordinate as needed
     const borderWidth = 0.5; // Adjust the border width as needed
 
@@ -737,6 +2828,7 @@ function SalaryAllResult({ employeeList, workplaceList }) {
         }
       }
     };
+    
 
     const cellWidthAddBeforeDeductTax = 16;
     // const startXAddBeforeDeductTax = 170; // Adjust the starting X-coordinate as needed
@@ -941,7 +3033,7 @@ function SalaryAllResult({ employeeList, workplaceList }) {
           const y = startYTop + i * cellHeightTop;
 
           // Add text for each cell
-          const cellText = `เบิกบ่วงหน้า`;
+          const cellText = `เบิกล่วงหน้า`;
           drawCell(x, y, cellWidthAdvancePayment, cellHeightTop, cellText);
           const cellText2 = ``;
           // drawCell(x, 195, cellWidth, cellHeightTop, cellText2);
@@ -1217,7 +3309,8 @@ function SalaryAllResult({ employeeList, workplaceList }) {
     let sumNewamountOt = 0;
     let previousFirstChar = null;
     // Loop through the grouped data and add content to the PDF
-    // Object.keys(groupedByWorkplace).forEach((workplaceKey, index) => {
+    // Object.keys(groupedByWorkplace).forEac h((workplaceKey, index) => {
+  
     Object.keys(groupedByWorkplace)
       .sort((a, b) => a.localeCompare(b)) // Sort keys in ascending order
       .forEach((workplaceKey, index) => {
@@ -1276,6 +3369,9 @@ function SalaryAllResult({ employeeList, workplaceList }) {
 
         console.log("workplaceDetails", workplaceDetails);
 
+        
+
+    
         const workplaceName = workplaceDetails.workplaceName || "Unknown"; // Use a default value if 'name' is not available
 
         const currentFirstChar = workplaceKey[0]; // Get the first character
@@ -1651,12 +3747,12 @@ function SalaryAllResult({ employeeList, workplaceList }) {
               { align: "right" }
             );
 
-            // หักภาษี
+            // หักภาษี ทดล
             const formattedTax = Number(
-              accountingRecord?.[0]?.tax ?? 0
+              sumCashWork
             ).toLocaleString("en-US", {
-              minimumFractionDigits: 0,
-              maximumFractionDigits: 0,
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
             });
             pdf.text(
               `${formattedTax}`,
@@ -1751,7 +3847,7 @@ function SalaryAllResult({ employeeList, workplaceList }) {
             currentY += 5;
 
             pdf.text(
-              `พิมพ์วันที่ ${formattedWorkDateDD}/${formattedWorkDateMM}/${parseInt(formattedWorkDateYYYY, 10) + 543
+              `พิมพ์วัหกด่ฟหรสร่นที่ ${formattedWorkDateDD}/${formattedWorkDateMM}/${parseInt(formattedWorkDateYYYY, 10) + 543
               }`,
               10,
               200
@@ -2081,9 +4177,548 @@ function SalaryAllResult({ employeeList, workplaceList }) {
     // Save or display the PDF
     window.open(pdf.output("bloburl"), "_blank");
   };
+  ////////////////////////////////////////////////////////////////////////////////////////
+
+const generatePDF02 = async () => {
+  try {
+    // ตรวจสอบว่ามีการกรอกเดือนและปีครบถ้วนหรือไม่ (ไม่จำเป็นต้องมี workplacrId)
+    if (!month || !year) {
+      alert('กรุณากรอกเดือนและปี');
+      return;
+    }
+
+    // แสดง loading indicator
+    setLoadingEmployees(true);
+    
+    let fetchedData;
+    
+    // ถ้ามีการระบุ workplacrId ให้ดึงข้อมูลเฉพาะหน่วยงานนั้น
+    // มิฉะนั้นดึงข้อมูลทั้งหมด
+    if (workplacrId) {
+      fetchedData = await fetchEmployeeData();
+      
+      if (!fetchedData || fetchedData.length === 0) {
+        alert('ไม่พบข้อมูลพนักงานที่ตรงกับเงื่อนไข');
+        setLoadingEmployees(false);
+        return;
+      }
+    } else {
+      // ดึงข้อมูลทุกหน่วยงาน
+      fetchedData = await fetchAllWorkplaceData();
+      
+      if (!fetchedData || !fetchedData.groups || fetchedData.groups.length === 0) {
+        alert('ไม่พบข้อมูลที่ตรงกับเงื่อนไข');
+        setLoadingEmployees(false);
+        return;
+      }
+      
+      // เพิ่มการ log เพื่อตรวจสอบข้อมูลที่ได้
+      console.log('fetchedData for all workplaces:', fetchedData);
+      
+      // แสดงจำนวนข้อมูลที่พบ
+      console.log(`พบข้อมูลทั้งสิ้น ${fetchedData.groups.length} หน่วยงาน`);
+    }
+
+    // สร้างไฟล์ PDF
+    const doc = new jsPDF({
+      orientation: "landscape",
+      unit: 'mm',
+      format: 'a4'
+    });
+    
+    // เพิ่มฟอนต์ไทย
+    doc.setFont("THSarabunNew");
+    doc.setFontSize(16);
+
+    // กำหนดค่าตัวแปรสำหรับตาราง
+    const startY = 10;
+    const cellHeight = 9;
+    const dataCellHeight = 6;
+   // คำนวณความกว้างอัตโนมัติให้เต็มกระดาษ
+const totalWidth = 275; // ความกว้างทั้งหมดที่ต้องการ
+const numCols = 14; // จำนวนคอลัมน์
+const avgWidth = Math.floor(totalWidth / numCols);
+
+const colWidths = [
+  12,  // รหัส (ลดจาก 15)
+  60,  // ชื่อ-สกุล (ขยายจาก 40) - รวม 275
+  8,   // วัน (ลดจาก 10)
+  20,  // เงินเดือน (ลดจาก 25)
+  18,  // ค่าล่วงเวลา (ลดจาก 20)
+  18,  // ค่ารถ/โทร/ตน. (ลดจาก 20)
+  18,  // สวัสดิการ(ไม่คิด ปกส.) (ลดจาก 20)
+  16,  // เบี้ยขยัน (ลดจาก 18)
+  16,  // นักขัตฤกษ์ (ลดจาก 18)
+  18,  // บวกอื่นๆ(คิด ปกส) (ลดจาก 20)
+  18,  // หักอื่นๆ(คิด ปกส) (ลดจาก 20)
+  16,  // หักภาษี (ลดจาก 18)
+  16,  // หัก ปกส (ลดจาก 18)
+  21   // สุทธิ (ลดจาก 27)
+]; // รวม = 275mm
+    
+    // คำนวณตำแหน่ง x ของแต่ละคอลัมน์
+    const colPositions = [];
+    let currentX = 3;
+    colWidths.forEach(width => {
+      colPositions.push(currentX);
+      currentX += width;
+    });
+    
+    // ฟังก์ชันสำหรับวาดเซลล์
+    const drawCell = (x, y, width, height, text, options = {}) => {
+      // วาดขอบเซลล์ (เฉพาะเมื่อ drawBorder=true หรือไม่ได้ระบุ)
+      if (options.drawBorder !== false) {
+        doc.rect(x, y, width, height);
+      }
+
+      // ถ้าไม่มีข้อความให้แสดง ไม่ต้องวาดข้อความ
+      if (text === undefined || text === null || text === '') {
+        return;
+      }
+      
+      // คำนวณจุดกึ่งกลางของเซลล์
+      const centerX = x + width / 2;
+      
+      // เพิ่ม paddingTop สำหรับหัวตาราง
+      const paddingTop = options.isHeader ? 2 : 0;
+      const centerY = y + height / 3;
+
+      // กำหนดขนาดตัวอักษรตามที่ระบุ หรือใช้ค่าเริ่มต้น
+      const fontSize = options.fontSize || 10;
+      doc.setFontSize(fontSize);
+      
+      // ตั้งค่าฟอนต์ - เฉพาะหัวตารางเท่านั้นที่เป็นตัวหนา
+      if (options.isHeader) {
+        doc.setFont("THSarabunNew Bold");
+      } else {
+        doc.setFont("THSarabunNew");
+      }
+
+      // กำหนด alignment (default: center)
+      const align = options.align || 'center';
+      const textOptions = { align: align, baseline: "middle" };
+
+      // ปรับตำแหน่งข้อความตาม alignment
+      if (align === 'right') {
+        doc.text(text, x + width - 2, centerY, textOptions);
+      } else if (align === 'left') {
+        doc.text(text, x + 2, centerY, textOptions);
+      } else {
+        doc.text(text, centerX, centerY, textOptions);
+      }
+    };
+    
+    // วาดหัวตาราง
+    const headers = [
+      "รหัส", "ชื่อหน่วยงาน", "เงินเดือน", "ค่าล่วงเวลา", 
+      "ค่ารถ/โทร/\nตน.", "สวัสดิการ\n(ไม่คิด ปกส.)", "เบี้ยขยัน", "นักขัติ", 
+      "บวกอื่นๆ\n(คิด ปกส)", "หักอื่นๆ\n(คิด ปกส)", "บวกอื่นๆ\n(ไม่คิด ปกส)", 
+      "หักอื่นๆ\n(ไม่คิด ปกส)", "หักภาษี", "หัก ปกส", "บวกอื่นๆ", "หักอื่นๆ", 
+      "เบิกล่วงหน้า", "สุทธิ"
+    ];
+    
+    // วาดหัวเรื่อง
+    doc.setFontSize(14);
+    
+    // วาดหัวตาราง
+    headers.forEach((header, index) => {
+      drawCell(colPositions[index], startY, colWidths[index], cellHeight, header, {
+        isHeader: true,
+        fontSize: 10
+      });
+    });
+    
+    // ตำแหน่งเริ่มต้นสำหรับข้อมูล
+    let currentY = startY + cellHeight;
+    let pageCount = 1;
+    const maxRowsPerPage = 30;
+    let rowCount = 0;
+    
+    // สร้างตัวแปรสำหรับเก็บผลรวมทั้งหมด
+    let grandTotals = {
+      employees: 0,
+      salary: 0,
+      ot: 0,
+      transportation: 0,
+      welfare: 0,
+      diligence: 0,
+      holiday: 0,
+      addBeforeTax: 0,
+      deductBeforeTax: 0,
+      addNoTax: 0,
+      deductNoTax: 0,
+      tax: 0,
+      socialSecurity: 0,
+      addAfterTax: 0,
+      deductAfterTax: 0,
+      advance: 0,
+      net: 0
+    };
+    
+    // ฟังก์ชันเพิ่มหน้าใหม่
+    const addNewPage = () => {
+      // เพิ่มเลขหน้าที่มุมล่างขวา
+      doc.setFontSize(10);
+      doc.setFont("THSarabunNew");
+      doc.text(`หน้า ${pageCount}`, 280, 200, { align: 'right' });
+      
+      // สร้างหน้าใหม่
+      doc.addPage();
+      pageCount++;
+      
+      // วาดหัวตารางใหม่
+      doc.setFontSize(14);
+      
+      headers.forEach((header, i) => {
+        drawCell(colPositions[i], startY, colWidths[i], cellHeight, header, {
+          isHeader: true,
+          fontSize: 10
+        });
+      });
+      
+      // รีเซ็ตตำแหน่ง Y
+      currentY = startY + cellHeight;
+      rowCount = 0;
+    };
+
+    if (workplacrId) {
+      // กรณีมีการระบุ workplacrId ทำเหมือนเดิม (แสดงเฉพาะหน่วยงานที่ระบุ)
+      const workplace = workplaceListAll.find(w => w.workplaceId === workplacrId) || { workplaceName: 'ไม่ระบุชื่อ' };
+      
+      // คำนวณค่ารวมต่างๆ
+      let totals = {
+        employees: displayEmployees.length,
+        salary: 0,
+        ot: 0,
+        transportation: 0,
+        welfare: 0,
+        diligence: 0,
+        holiday: 0,
+        addBeforeTax: 0,
+        deductBeforeTax: 0,
+        addNoTax: 0,
+        deductNoTax: 0,
+        tax: 0,
+        socialSecurity: 0,
+        addAfterTax: 0,
+        deductAfterTax: 0,
+        advance: 0,
+        net: 0
+      };
+      
+      // คำนวณผลรวมจากข้อมูลพนักงาน
+      displayEmployees.forEach(emp => {
+        totals.salary += parseFloat(emp.sumCashWork.replace(/,/g, '') || 0);
+        totals.wageRevise += parseFloat(emp.wageRevise?.replace(/,/g, '') || 0);
+        totals.leaveInLieu += parseFloat(emp.leaveInLieu?.replace(/,/g, '') || 0);
+        totals.ot += parseFloat(emp.sumCashOt.replace(/,/g, '') || 0);
+        totals.transportation += parseFloat(emp.transportAllowance?.replace(/,/g, '') || 0);
+        totals.welfare += parseFloat(emp.welfare?.replace(/,/g, '') || 0);
+        totals.diligence += parseFloat(emp.diligenceAllowance?.replace(/,/g, '') || 0);
+        totals.holiday += parseFloat(emp.publicHolidayCash?.replace(/,/g, '') || 0);
+        totals.addBeforeTax += parseFloat(emp.additionalBeforeTax?.replace(/,/g, '') || 0);
+        totals.deductBeforeTax += parseFloat(emp.deductionBeforeTax?.replace(/,/g, '') || 0);
+        totals.addNoTax += parseFloat(emp.additionalNoTax?.replace(/,/g, '') || 0);
+        totals.deductNoTax += parseFloat(emp.deductionNoTax?.replace(/,/g, '') || 0);
+        totals.tax += parseFloat(emp.tax?.replace(/,/g, '') || 0);
+        totals.socialSecurity += parseFloat(emp.socialSecurity?.replace(/,/g, '') || 0);
+        totals.addAfterTax += parseFloat(emp.additionalAfterTax?.replace(/,/g, '') || 0);
+        totals.deductAfterTax += parseFloat(emp.deductionAfterTax?.replace(/,/g, '') || 0);
+        totals.advance += parseFloat(emp.advancePayment?.replace(/,/g, '') || 0);
+        
+        // คำนวณยอดเงินสุทธิ
+        const salary = parseFloat(emp.sumCashWork.replace(/,/g, '') || 0);
+        const wageRevise = parseFloat(emp.wageRevise?.replace(/,/g, '') || 0);
+        const leaveInLieu = parseFloat(emp.leaveInLieu?.replace(/,/g, '') || 0);
+        const ot = parseFloat(emp.sumCashOt.replace(/,/g, '') || 0);
+        const transportation = parseFloat(emp.transportAllowance?.replace(/,/g, '') || 0);
+        const welfare = parseFloat(emp.welfare?.replace(/,/g, '') || 0);
+        const diligence = parseFloat(emp.diligenceAllowance?.replace(/,/g, '') || 0);
+        const holiday = parseFloat(emp.publicHolidayCash?.replace(/,/g, '') || 0);
+        const addBeforeTax = parseFloat(emp.additionalBeforeTax?.replace(/,/g, '') || 0);
+        const deductBeforeTax = parseFloat(emp.deductionBeforeTax?.replace(/,/g, '') || 0);
+        const addNoTax = parseFloat(emp.additionalNoTax?.replace(/,/g, '') || 0);
+        const deductNoTax = parseFloat(emp.deductionNoTax?.replace(/,/g, '') || 0);
+        const tax = parseFloat(emp.tax?.replace(/,/g, '') || 0);
+        const socialSecurity = parseFloat(emp.socialSecurity?.replace(/,/g, '') || 0);
+        const addAfterTax = parseFloat(emp.additionalAfterTax?.replace(/,/g, '') || 0);
+        const deductAfterTax = parseFloat(emp.deductionAfterTax?.replace(/,/g, '') || 0);
+        const advance = parseFloat(emp.advancePayment?.replace(/,/g, '') || 0);
+
+        const net = salary + ot + transportation + welfare + diligence + holiday + 
+          addBeforeTax + addNoTax + addAfterTax - 
+          deductBeforeTax - deductNoTax - tax - socialSecurity - deductAfterTax - advance;
+          
+        totals.net += net;
+      });
+      
+      // แสดงข้อมูลหน่วยงาน
+      // ตรวจสอบว่าต้องเพิ่มหน้าใหม่หรือไม่
+      if (rowCount >= maxRowsPerPage) {
+        addNewPage();
+      }
+      
+      // วาดข้อมูลหน่วยงาน
+      const rowData = [
+        workplacrId || "-",
+        workplace.workplaceName || "-",
+        formatNumber(totals.salary),
+        formatNumber(totals.ot),
+        formatNumber(totals.transportation),
+        formatNumber(totals.welfare),
+        formatNumber(totals.diligence),
+        formatNumber(totals.holiday),
+        formatNumber(totals.addBeforeTax),
+        formatNumber(totals.deductBeforeTax),
+        formatNumber(totals.addNoTax),
+        formatNumber(totals.deductNoTax),
+        formatNumber(totals.tax),
+        formatNumber(totals.socialSecurity),
+        formatNumber(totals.addAfterTax),
+        formatNumber(totals.deductAfterTax),
+        formatNumber(totals.advance),
+        formatNumber(totals.net)
+      ];
+      
+      // วาดข้อมูลในแต่ละช่อง
+      rowData.forEach((data, cellIndex) => {
+        // จัดวางข้อความให้ชิดขวาสำหรับข้อมูลตัวเลข
+        let alignment = 'center';
+        if (cellIndex === 1) {
+          alignment = 'left'; // ชื่อหน่วยงานชิดซ้าย
+        } else if (cellIndex >= 2) {
+          alignment = 'right'; // ตัวเลขชิดขวา
+        }
+        
+        // ไม่แสดงเส้นขอบ
+        drawCell(
+          colPositions[cellIndex], 
+          currentY, 
+          colWidths[cellIndex], 
+          dataCellHeight, 
+          data, 
+          { align: alignment, drawBorder: false }
+        );
+      });
+      
+      // เลื่อนไปแถวถัดไป
+      currentY += dataCellHeight;
+      rowCount++;
+      
+      // เพิ่มเข้าไปในยอดรวมทั้งหมด
+      Object.keys(grandTotals).forEach(key => {
+        if (key !== 'workplaceCount') {
+          grandTotals[key] += totals[key];
+        }
+      });
+      
+      // บรรทัดผลรวมทั้งหมด (รวมทุกหน่วยงาน)
+      grandTotals.employees = displayEmployees.length; // จำนวนพนักงาน
+      
+    } else {
+      // กรณีไม่มีการระบุ workplacrId ให้แสดงทุกหน่วยงาน
+      // คำนวณจำนวนหน่วยงานทั้งหมด
+      const workplaceCount = fetchedData.groups.length;
+      
+      // สร้างตัวแปรสำหรับเก็บผลรวมทั้งหมดของทุกหน่วยงาน
+      let totalForAllWorkplaces = {
+        salary: 0,
+        ot: 0,
+        transportation: 0,
+        welfare: 0,
+        diligence: 0,
+        holiday: 0,
+        addBeforeTax: 0,
+        deductBeforeTax: 0,
+        addNoTax: 0,
+        deductNoTax: 0, 
+        tax: 0,
+        socialSecurity: 0,
+        addAfterTax: 0,
+        deductAfterTax: 0,
+        advance: 0,
+        net: 0,
+        employees: 0
+      };
+      
+      // วนลูปสร้างข้อมูลของแต่ละหน่วยงาน
+      for (const workplaceId of fetchedData.groups) {
+        // ค้นหาข้อมูลหน่วยงานและพนักงาน
+        const workplaceData = fetchedData.data[workplaceId] || {};
+        const workplace = workplaceListAll.find(w => w.workplaceId == workplaceId) || { workplaceName: 'ไม่ระบุชื่อ' };
+        
+        console.log(`กำลังแสดงข้อมูลหน่วยงาน: ${workplace.workplaceName} (${workplaceId})`);
+        console.log('ข้อมูลของหน่วยงานนี้:', workplaceData);
+        
+        // ตรวจสอบว่าต้องเพิ่มหน้าใหม่หรือไม่
+        if (rowCount >= maxRowsPerPage) {
+          addNewPage();
+        }
+        
+        // ข้อมูลต่างๆของหน่วยงาน
+        const employees = workplaceData.employees || [];
+        
+        // ดึงข้อมูลค่าต่างๆจาก workplaceData (ถ้าไม่มีให้ใช้ 0)
+        const { 
+          totalSalary = 0, 
+          totalAmountOt = 0, 
+          totalAddSalary = 0, 
+          totalBenefitNonSocial = 0,
+          totalAmountHardWorking = 0, 
+          totalAmountSpecialDay = 0,
+          totalSumAddSalaryBeforeTax = 0, 
+          totalSumDeductBeforeTaxWithSocial = 0,
+          totalSumAddSalaryBeforeTaxNonSocial = 0, 
+          totalSumDeductBeforeTax = 0,
+          totalTax = 0, 
+          totalSocialSecurity = 0, 
+          totalSumAddSalaryAfterTax = 0,
+          totalAdvancePayment = 0, 
+          totalSumDeductAfterTax = 0, 
+          totalTotal = 0, 
+          totalEmp = 0 
+        } = workplaceData;
+        
+        // คำนวณยอดเงินสุทธิ (ถ้ายังไม่มีค่า)
+        const netTotal = totalTotal || (
+          (totalSalary || 0) +
+          (totalAmountOt || 0) +
+          (totalAddSalary || 0) +
+          (totalBenefitNonSocial || 0) +
+          (totalAmountHardWorking || 0) +
+          (totalAmountSpecialDay || 0) +
+          (totalSumAddSalaryBeforeTax || 0) +
+          (totalSumAddSalaryBeforeTaxNonSocial || 0) +
+          (totalSumAddSalaryAfterTax || 0) -
+          (totalSumDeductBeforeTaxWithSocial || 0) -
+          (totalSumDeductBeforeTax || 0) -
+          (totalTax || 0) -
+          (totalSocialSecurity || 0) -
+          (totalSumDeductAfterTax || 0) -
+          (totalAdvancePayment || 0)
+        );
+        
+        // สะสมค่าลงในตัวแปรผลรวมทั้งหมด
+        totalForAllWorkplaces.salary += totalSalary || 0;
+        totalForAllWorkplaces.ot += totalAmountOt || 0;
+        totalForAllWorkplaces.transportation += totalAddSalary || 0;
+        totalForAllWorkplaces.welfare += totalBenefitNonSocial || 0;
+        totalForAllWorkplaces.diligence += totalAmountHardWorking || 0;
+        totalForAllWorkplaces.holiday += totalAmountSpecialDay || 0;
+        totalForAllWorkplaces.addBeforeTax += totalSumAddSalaryBeforeTax || 0;
+        totalForAllWorkplaces.deductBeforeTax += totalSumDeductBeforeTaxWithSocial || 0;
+        totalForAllWorkplaces.addNoTax += totalSumAddSalaryBeforeTaxNonSocial || 0;
+        totalForAllWorkplaces.deductNoTax += totalSumDeductBeforeTax || 0;
+        totalForAllWorkplaces.tax += totalTax || 0;
+        totalForAllWorkplaces.socialSecurity += totalSocialSecurity || 0;
+        totalForAllWorkplaces.addAfterTax += totalSumAddSalaryAfterTax || 0;
+        totalForAllWorkplaces.deductAfterTax += totalSumDeductAfterTax || 0;
+        totalForAllWorkplaces.advance += totalAdvancePayment || 0;
+        totalForAllWorkplaces.net += netTotal || 0;
+        totalForAllWorkplaces.employees += totalEmp || employees.length || 0;
+        
+        // แสดงข้อมูลรวมของหน่วยงาน
+        console.log(`ยอดรวมเงินเดือนของหน่วยงาน: ${totalSalary}`);
+        console.log(`ยอดรวมค่าล่วงเวลาของหน่วยงาน: ${totalAmountOt}`);
+        console.log(`ยอดรวมเงินสุทธิของหน่วยงาน: ${netTotal}`);
+        
+        // วาดข้อมูลหน่วยงาน
+        const rowData = [
+          workplaceId,
+          workplace.workplaceName || "ไม่ระบุชื่อ",
+          formatNumber(totalSalary || 0),
+          formatNumber(totalAmountOt || 0),
+          formatNumber(totalAddSalary || 0),
+          formatNumber(totalBenefitNonSocial || 0),
+          formatNumber(totalAmountHardWorking || 0),
+          formatNumber(totalAmountSpecialDay || 0),
+          formatNumber(totalSumAddSalaryBeforeTax || 0),
+          formatNumber(totalSumDeductBeforeTaxWithSocial || 0),
+          formatNumber(totalSumAddSalaryBeforeTaxNonSocial || 0),
+          formatNumber(totalSumDeductBeforeTax || 0),
+          formatNumber(totalTax || 0),
+          formatNumber(totalSocialSecurity || 0),
+          formatNumber(totalSumAddSalaryAfterTax || 0),
+          formatNumber(totalSumDeductAfterTax || 0),
+          formatNumber(totalAdvancePayment || 0),
+          formatNumber(netTotal || 0)
+        ];
+        
+        // วาดข้อมูลในแต่ละช่อง
+        rowData.forEach((data, cellIndex) => {
+          // จัดวางข้อความให้ชิดขวาสำหรับข้อมูลตัวเลข
+          let alignment = 'center';
+          if (cellIndex === 1) {
+            alignment = 'left'; // ชื่อหน่วยงานชิดซ้าย
+          } else if (cellIndex >= 2) {
+            alignment = 'right'; // ตัวเลขชิดขวา
+          }
+          
+          // ไม่แสดงเส้นขอบ
+          drawCell(
+            colPositions[cellIndex], 
+            currentY, 
+            colWidths[cellIndex], 
+            dataCellHeight, 
+            data, 
+            { align: alignment, drawBorder: false }
+          );
+        });
+        
+        // เลื่อนไปแถวถัดไป
+        currentY += dataCellHeight;
+        rowCount++;
+      }
+      
+      // กำหนดค่า grandTotals ให้เท่ากับ totalForAllWorkplaces
+      grandTotals = totalForAllWorkplaces;
+    }
+    
+    // ข้ามไปทำส่วนท้ายของรายงานโดยตรง ไม่แสดงผลรวมทั้งสิ้น
+    doc.setFont("THSarabunNew");
+    doc.setFontSize(10);
+    doc.text(`พิมพ์วันที่ ${formattedWorkDateDD}/${formattedWorkDateMM}/${parseInt(formattedWorkDateYYYY, 10) + 543}`, 5, 200);
+    doc.text(`รายงานโดย ${present}`, 100, 200);
+    doc.text(`แฟ้มรายงาน ${presentfilm}`, 200, 200);
+    
+    // เพิ่มเลขหน้าสุดท้าย
+    doc.setFontSize(10);
+    doc.text(`หน้า ${pageCount}`, 280, 200, { align: 'right' });
+    const pdfBlob = doc.output('blob');
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+    window.open(pdfUrl, '_blank');
+
+    
+    // บันทึกไฟล์ PDF
+    // doc.save(`สรุปรายงานเงินเดือนหน่วยงาน_${month}_${year}.pdf`);
+    
+    // ซ่อน loading indicator
+    setLoadingEmployees(false);
+    
+  } catch (error) {
+    console.error('เกิดข้อผิดพลาดในการสร้าง PDF:', error);
+    alert('เกิดข้อผิดพลาดในการสร้าง PDF');
+    setLoadingEmployees(false);
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
-  const generatePDF02 = () => {
+  const generatePDF03 = () => {
     const pdf = new jsPDF({ orientation: "landscape" });
 
     const fontPath = "/assets/fonts/THSarabunNew.ttf";
@@ -2763,40 +5398,37 @@ function SalaryAllResult({ employeeList, workplaceList }) {
     let totalSumDeductAfterTaxAll = 0;
 
     Object.keys(groupedByWorkplace)
-      .sort((a, b) => a.localeCompare(b)) // Sort keys in ascending order
-      .forEach((workplaceKey, index) => {
-        const {
-          employees,
-          totalSalary,
-          totalAmountOt,
-          totalAmountSpecial,
-          // totalAmountPosition,
-
-          totalAmountPosition,
-          totalTel,
-          totalTravel,
-          totalAddSalary,
-
-          totalAmountHardWorking,
-          totalAmountHoliday,
-          totalAmountSpecialDay,
-          totalAddAmountBeforeTax,
-          totalDeductBeforeTax,
-          totalTax,
-          totalSocialSecurity,
-          totalAddAmountAfterTax,
-          totalAdvancePayment,
-          totalDeductAfterTax,
-          totalBank,
-          totalTotal,
-          totalEmp,
-          totalSumAddSalaryBeforeTax,
-          totalSumAddSalaryBeforeTaxNonSocial,
-          totalSumDeductBeforeTaxWithSocial,
-          totalSumDeductBeforeTax,
-          totalSumAddSalaryAfterTax,
-          totalSumDeductAfterTax,
-        } = groupedByWorkplace[workplaceKey];
+  .sort((a, b) => a.localeCompare(b)) // Sort keys in ascending order
+  .forEach((workplaceKey, index) => {
+    // ใช้การกำหนดค่าแบบ destructuring และกำหนดค่า default เป็น 0 หรือ [] หากไม่มีข้อมูล
+    const {
+      // ข้อมูลหลักที่ต้องมี
+      employees = [],
+      // ข้อมูลตัวเลขต่างๆ
+      totalSalary = 0,
+      totalAmountOt = 0,
+      totalAmountSpecial = 0,
+      totalAmountPosition = 0,
+      totalTel = 0,
+      totalTravel = 0,
+      totalAddSalary = 0,
+      totalAmountHardWorking = 0,
+      totalAmountHoliday = 0,
+      totalAmountSpecialDay = 0,
+      totalEmp = 0,
+      // ข้อมูลเกี่ยวกับภาษีและการหัก
+      totalSumAddSalaryBeforeTax = 0,
+      totalSumAddSalaryBeforeTaxNonSocial = 0,
+      totalSumDeductBeforeTaxWithSocial = 0,
+      totalSumDeductBeforeTax = 0,
+      totalTax = 0,
+      totalSocialSecurity = 0,
+      totalSumAddSalaryAfterTax = 0,
+      totalSumDeductAfterTax = 0,
+      totalAdvancePayment = 0,
+      totalDeductAfterTax = 0,
+      totalTotal = 0,
+    } = groupedByWorkplace[workplaceKey] || {};
 
         // const workplaceDetails = workplaceListAll.find(
         //   (w) => w.workplaceId == workplaceKey
@@ -2997,7 +5629,7 @@ function SalaryAllResult({ employeeList, workplaceList }) {
 
         // หักภาษี
         pdf.text(
-          `${totalTax.toFixed(0)}`,
+          `${totalTax.toFixed(2)}`,
           startXDeductTax + cellWidthDeductTax,
           currentY,
           { align: "right" }
@@ -3005,7 +5637,7 @@ function SalaryAllResult({ employeeList, workplaceList }) {
 
         // หักปกส
         pdf.text(
-          `${totalSocialSecurity.toFixed(0)}`,
+          `${totalSocialSecurity.toFixed(2)}`,
           startXDeductTaxSocialSecurity + cellWidthDeductTaxSocialSecurity,
           currentY,
           { align: "right" }
@@ -3170,7 +5802,7 @@ function SalaryAllResult({ employeeList, workplaceList }) {
     ); // Adjust coordinates as needed
     // หักภาษี
     pdf.text(
-      `${totalTaxSum.toFixed(0)}`,
+      `${totalTaxSum.toFixed(2)}`,
       startXDeductTax + cellWidthDeductTax,
       currentY,
       { align: "right" }
@@ -3178,7 +5810,7 @@ function SalaryAllResult({ employeeList, workplaceList }) {
 
     // หักปกส
     pdf.text(
-      `${totalSocialSecuritySum.toFixed(0)}`,
+      `${totalSocialSecuritySum.toFixed(2)}`,
       startXDeductTaxSocialSecurity + cellWidthDeductTaxSocialSecurity,
       currentY,
       { align: "right" }
@@ -3217,7 +5849,7 @@ function SalaryAllResult({ employeeList, workplaceList }) {
     // Save or display the PDF
     window.open(pdf.output("bloburl"), "_blank");
   };
-  const handleStaffIdChange = (e) => {
+  const handleStaffIdChange2 = (e) => {
     const selectWorkPlaceId = e.target.value;
     setWorkplacrId(selectWorkPlaceId);
     setSearchWorkplaceId(selectWorkPlaceId);
@@ -3234,6 +5866,47 @@ function SalaryAllResult({ employeeList, workplaceList }) {
       setWorkplacrName("");
     }
   };
+
+   const workplaceNameOptions = useMemo(() => {
+    // ใช้ workplaceListAll ถ้ามีข้อมูล ไม่เช่นนั้นใช้ workplaceList จาก props
+    const workplaceData = workplaceListAll.length > 0 ? workplaceListAll : workplaceList;
+    return workplaceData.map((workplace) => (
+      <option key={workplace.workplaceId} value={workplace.workplaceName} />
+    ));
+  }, [workplaceListAll, workplaceList]);
+
+    // ปรับปรุงฟังก์ชัน handleStaffIdChange ให้เรียกใช้ fetchEmployeeData หลังกรอกรหัสหน่วยงาน
+const handleStaffIdChange = useCallback((e) => {
+  const id = e.target.value;
+  setWorkplacrId(id);
+  
+  console.log("รหัสหน่วยงานที่ป้อน:", id);
+  console.log("ข้อมูลหน่วยงานทั้งหมด workplaces:", workplaces);
+  console.log("ข้อมูลหน่วยงานทั้งหมด workplaceListAll:", workplaceListAll);
+  console.log("ข้อมูลหน่วยงานทั้งหมด workplaceList:", workplaceList);
+  
+  // ใช้ workplaceListAll ก่อน ถ้าไม่มีใช้ workplaceList หรือ workplaces
+  const workplaceData = workplaceListAll.length > 0 ? workplaceListAll : 
+                       workplaceList.length > 0 ? workplaceList : workplaces;
+  
+  // ค้นหาชื่อหน่วยงานจากรหัส (เพิ่มการแปลงเป็น string เพื่อให้แน่ใจว่าการเปรียบเทียบถูกต้อง)
+  const selectedWorkplace = workplaceData.find(wp => String(wp.workplaceId) === String(id));
+  if (selectedWorkplace) {
+    setWorkplacrName(selectedWorkplace.workplaceName);
+    
+    console.log("พบหน่วยงาน:", {
+      รหัส: id,
+      ชื่อหน่วยงาน: selectedWorkplace.workplaceName
+    });
+    
+    // ดึงข้อมูลพนักงานอัตโนมัติเมื่อรหัสหน่วยงานและเดือน/ปีครบถ้วน
+    
+  } else {
+    // ถ้าไม่พบหน่วยงาน ล้างค่าชื่อหน่วยงาน
+    setWorkplacrName('');
+    console.log("ไม่พบข้อมูลหน่วยงานสำหรับรหัส:", id);
+  }
+}, [workplaces, workplaceListAll, workplaceList, month, year, fetchEmployeeData]);
 
   // const handleStaffNameChange = (e) => {
   //     const selectWorkPlaceId = e.target.value;
@@ -3257,28 +5930,31 @@ function SalaryAllResult({ employeeList, workplaceList }) {
   //     setSearchEmployeeName(selectedEmployeeFName);
   // };
   /////////////////
-  const handleStaffNameChange = (e) => {
-    const selectWorkplaceName = e.target.value;
-
-    // Find the corresponding employee and set the staffId and staffName
-    const selectedEmployee = workplaceListAll.find(
-      (workplace) => workplace.workplaceName == selectWorkplaceName
-    );
-    const selectedEmployeeFName = workplaceListAll.find(
-      (workplace) => workplace.workplaceName === selectWorkplaceName
-    );
-
-    if (selectedEmployee) {
-      setWorkplacrId(selectedEmployee.workplaceId);
-      setSearchWorkplaceId(selectedEmployee.workplaceId);
-      // setWorkplacrName(selectedEmployee.workplaceName);
-    } else {
-      setWorkplacrId("");
-      // setSearchWorkplaceId('');
-      // setWorkplacrName('');
+ const handleStaffNameChange = useCallback((e) => {
+    const name = e.target.value;
+    setWorkplacrName(name);
+    
+    // ใช้ workplaceListAll ก่อน ถ้าไม่มีใช้ workplaceList หรือ workplaces
+    const workplaceData = workplaceListAll.length > 0 ? workplaceListAll : 
+                         workplaceList.length > 0 ? workplaceList : workplaces;
+    
+    const selectedWorkplace = workplaceData.find(wp => wp.workplaceName === name);
+    if (selectedWorkplace) {
+      setWorkplacrId(selectedWorkplace.workplaceId);
     }
-    setWorkplacrName(selectWorkplaceName);
-  };
+  }, [workplaces, workplaceListAll, workplaceList]);
+
+   const workplaceIdOptions = useMemo(() => {
+    // ใช้ workplaceListAll ถ้ามีข้อมูล ไม่เช่นนั้นใช้ workplaceList จาก props
+    const workplaceData = workplaceListAll.length > 0 ? workplaceListAll : workplaceList;
+    return workplaceData.map((workplace) => (
+      <option key={workplace.workplaceId} value={workplace.workplaceId} />
+    ));
+  }, [workplaceListAll, workplaceList]);
+
+   
+
+ 
 
   const groupedByWorkplace = responseDataAllLeaveSalary.reduce((acc, employee) => {
     const { workplace } = employee;
@@ -3444,7 +6120,578 @@ function SalaryAllResult({ employeeList, workplaceList }) {
 
   console.log("groupedByWorkplace", groupedByWorkplace);
 
-  const exportToExcel = () => {
+const exportToExcel = async () => {
+  try {
+    // ตรวจสอบว่ามีการกรอกเดือนและปีครบถ้วนหรือไม่
+    if (!month || !year) {
+      alert('กรุณากรอกเดือนและปี');
+      return;
+    }
+
+    // แสดง loading indicator
+    setLoadingEmployees(true);
+    
+    // ดึงข้อมูลพนักงานตามเงื่อนไข
+    let fetchedData;
+    
+    if (workplacrId) {
+      // กรณีมีการระบุ workplacrId ให้ดึงข้อมูลเฉพาะหน่วยงานนั้น
+      fetchedData = await fetchEmployeeData();
+      
+      if (!fetchedData || fetchedData.length === 0) {
+        alert('ไม่พบข้อมูลพนักงานที่ตรงกับเงื่อนไข');
+        setLoadingEmployees(false);
+        return;
+      }
+    } else {
+      // กรณีไม่ระบุ workplacrId ให้ดึงข้อมูลทั้งหมดในเดือนที่เลือก
+      const result = await fetchAllWorkplaceData();
+      
+      if (!result || !result.data) {
+        alert('ไม่พบข้อมูลพนักงานที่ตรงกับเงื่อนไข');
+        setLoadingEmployees(false);
+        return;
+      }
+      
+      fetchedData = await fetchEmployeeData(); // ดึงข้อมูลพนักงานทั้งหมด
+    }
+    
+    if (!fetchedData || fetchedData.length === 0) {
+      alert('ไม่พบข้อมูลพนักงานที่ตรงกับเงื่อนไข');
+      setLoadingEmployees(false);
+      return;
+    }
+    
+    // สร้าง workbook
+    const wb = XLSX.utils.book_new();
+    
+    // สร้างหัวเอกสาร
+    const headerData = [
+      ["รายงานเงินเดือนพนักงาน"],
+      [`หน่วยงาน: ${workplacrId ? `${workplacrName} (${workplacrId})` : "ทุกหน่วยงาน"}`],
+      [`ประจำเดือน: ${getThaiMonth(month)} ${parseInt(year) + 543}`],
+      [`พิมพ์รายงานวันที่: ${formattedWorkDateDD}/${formattedWorkDateMM}/${parseInt(formattedWorkDateYYYY, 10) + 543}`],
+      [""]
+    ];
+    
+    if (!workplacrId) {
+      // จัดกลุ่มข้อมูลตามหน่วยงาน
+      const groupedData = fetchedData.reduce((acc, emp) => {
+        const wpId = emp.workplaceId || 'unknown';
+        if (!acc[wpId]) {
+          acc[wpId] = [];
+        }
+        acc[wpId].push(emp);
+        return acc;
+      }, {});
+      
+      // สร้าง sheet เปล่าสำหรับทั้งหมด
+      const wsAll = XLSX.utils.aoa_to_sheet(headerData);
+      
+      // จัดระยะห่างแถว
+      const merges = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 18 } }, // รายงานเงินเดือนพนักงาน
+        { s: { r: 1, c: 0 }, e: { r: 1, c: 18 } }, // หน่วยงาน
+        { s: { r: 2, c: 0 }, e: { r: 2, c: 18 } }, // ประจำเดือน
+        { s: { r: 3, c: 0 }, e: { r: 3, c: 18 } }, // วันที่พิมพ์รายงาน
+      ];
+      
+      wsAll['!merges'] = merges;
+      
+      // เริ่มที่แถวที่ 5 (หลังจากหัวข้อ)
+      let rowIndex = headerData.length;
+      let grandTotals = {
+        days: 0,
+        salary: 0,
+        ot: 0,
+        transportation: 0,
+        welfare: 0,
+        diligence: 0,
+        holiday: 0,
+        addBeforeTax: 0,
+        deductBeforeTax: 0,
+        addNoTax: 0,
+        deductNoTax: 0,
+        tax: 0,
+        socialSecurity: 0,
+        addAfterTax: 0,
+        deductAfterTax: 0,
+        advance: 0,
+        net: 0,
+        employees: 0
+      };
+      
+      // สร้างข้อมูลแยกตามหน่วยงาน
+      for (const [wpId, employees] of Object.entries(groupedData)) {
+        if (employees.length === 0) continue; // ข้ามหน่วยงานที่ไม่มีพนักงาน
+        
+        // หาชื่อหน่วยงาน
+        const workplace = workplaceListAll.find(w => w.workplaceId === wpId) || {};
+        const wpName = workplace.workplaceName || 'ไม่ระบุชื่อ';
+        
+        // เพิ่มหัวข้อหน่วยงาน
+        XLSX.utils.sheet_add_aoa(wsAll, [[`หน่วยงาน: ${wpName} (${wpId})`]], { origin: { r: rowIndex, c: 0 } });
+        
+        // เพิ่ม merge cells สำหรับหัวข้อหน่วยงาน
+        merges.push({ s: { r: rowIndex, c: 0 }, e: { r: rowIndex, c: 18 } });
+        
+        // เพิ่มหัวตาราง
+        rowIndex++;
+        const headers = [
+          "รหัส", "ชื่อ - สกุล", "วัน", "เงินเดือน", "ค่าล่วงเวลา", 
+          "ค่ารถ/โทร/\nตน.", "สวัสดิการ\n(ไม่คิด ปกส.)", "เบี้ยขยัน", "นักขัติ", 
+          "บวกอื่นๆ\n(คิด ปกส)", "หักอื่นๆ\n(คิด ปกส)", "บวกอื่นๆ\n(ไม่คิด ปกส)", 
+          "หักอื่นๆ\n(ไม่คิด ปกส)", "หักภาษี", "หัก ปกส", "บวกอื่นๆ", "หักอื่นๆ", 
+          "เบิกล่วงหน้า", "สุทธิ"
+        ];
+        
+        XLSX.utils.sheet_add_aoa(wsAll, [headers], { origin: { r: rowIndex, c: 0 } });
+        
+        // สร้างตัวแปรสำหรับเก็บผลรวม
+        let totals = {
+          days: 0,
+          salary: 0,
+          ot: 0,
+          transportation: 0,
+          welfare: 0,
+          diligence: 0,
+          holiday: 0,
+          addBeforeTax: 0,
+          deductBeforeTax: 0,
+          addNoTax: 0,
+          deductNoTax: 0,
+          tax: 0,
+          socialSecurity: 0,
+          addAfterTax: 0,
+          deductAfterTax: 0,
+          advance: 0,
+          net: 0
+        };
+        
+        // เพิ่มข้อมูลพนักงานในหน่วยงาน
+        employees.forEach(emp => {
+          rowIndex++;
+          
+          // แปลงข้อมูลตัวเลขให้เป็นตัวเลขทั้งหมด (ลบ comma และแปลงเป็น float)
+          const salary = parseFloat(emp.sumCashWork?.replace(/,/g, '') || 0);
+          const wageRevise = parseFloat(emp.wageRevise?.replace(/,/g, '') || 0);
+
+          const ot = parseFloat(emp.sumCashOt?.replace(/,/g, '') || 0);
+          const transportation = parseFloat(emp.transportAllowance?.replace(/,/g, '') || 0);
+          const welfare = parseFloat(emp.welfare?.replace(/,/g, '') || 0);
+          const diligence = parseFloat(emp.diligenceAllowance?.replace(/,/g, '') || 0);
+          const holiday = parseFloat(emp.publicHolidayCash?.replace(/,/g, '') || 5);
+          const addBeforeTax = parseFloat(emp.additionalBeforeTax?.replace(/,/g, '') || 0);
+          const deductBeforeTax = parseFloat(emp.deductionBeforeTax?.replace(/,/g, '') || 0);
+          const addNoTax = parseFloat(emp.additionalNoTax?.replace(/,/g, '') || 0);
+          const deductNoTax = parseFloat(emp.deductionNoTax?.replace(/,/g, '') || 0);
+          const tax = parseFloat(emp.tax?.replace(/,/g, '') || 0);
+          const socialSecurity = parseFloat(emp.socialSecurity?.replace(/,/g, '') || 0);
+          const addAfterTax = parseFloat(emp.additionalAfterTax?.replace(/,/g, '') || 0);
+          const deductAfterTax = parseFloat(emp.deductionAfterTax?.replace(/,/g, '') || 0);
+          const advance = parseFloat(emp.advancePayment?.replace(/,/g, '') || 0);
+          const days = parseFloat(emp.typeOfemployee === 'รายเดือน' ? '30' : (emp.dayWorkCount || '0'));
+
+          // คำนวณยอดสุทธิ
+          const netCalculated = 
+            salary + ot + transportation + welfare + diligence + holiday + 
+            addBeforeTax + addNoTax + addAfterTax - 
+            deductBeforeTax - deductNoTax - tax - socialSecurity - deductAfterTax - advance;
+          
+          // บวกรวมค่าสำหรับการคำนวณผลรวม
+          totals.days += days;
+          totals.salary += salary;
+          totals.ot += ot;
+          totals.transportation += transportation;
+          totals.welfare += welfare;
+          totals.diligence += diligence;
+          totals.holiday += holiday;
+          totals.addBeforeTax += addBeforeTax;
+          totals.deductBeforeTax += deductBeforeTax;
+          totals.addNoTax += addNoTax;
+          totals.deductNoTax += deductNoTax;
+          totals.tax += tax;
+          totals.socialSecurity += socialSecurity;
+          totals.addAfterTax += addAfterTax;
+          totals.deductAfterTax += deductAfterTax;
+          totals.advance += advance;
+          totals.net += netCalculated;
+          
+          // เพิ่มข้อมูลพนักงานลงในตาราง
+          const employeeRow = [
+            emp.employeeId || "-",
+            `${emp.firstName || ""} ${emp.lastName || ""}`,
+            days,
+            salary || 0,
+            ot || 0,
+            transportation || 0,
+            welfare || 0,
+            diligence || 0,
+            holiday || 0,
+            addBeforeTax || 0,
+            deductBeforeTax || 0,
+            addNoTax || 0,
+            deductNoTax || 0,
+            tax || 0,
+            socialSecurity || 0,
+            addAfterTax || 0,
+            deductAfterTax || 0,
+            advance || 0,
+            netCalculated || 0
+          ];
+          
+          XLSX.utils.sheet_add_aoa(wsAll, [employeeRow], { origin: { r: rowIndex, c: 0 } });
+        });
+        
+        // เพิ่มแถวสรุปรวมของหน่วยงาน
+        rowIndex += 2; // เพิ่มอีก 1 แถวว่าง
+        
+        const totalsRow = [
+          `รวมแผนก ${wpId}`,
+          `${employees.length} คน`,
+          totals.days,
+          totals.salary,
+          totals.ot,
+          totals.transportation,
+          totals.welfare,
+          totals.diligence,
+          totals.holiday,
+          totals.addBeforeTax,
+          totals.deductBeforeTax,
+          totals.addNoTax,
+          totals.deductNoTax,
+          totals.tax,
+          totals.socialSecurity,
+          totals.addAfterTax,
+          totals.deductAfterTax,
+          totals.advance,
+          totals.net
+        ];
+        
+        XLSX.utils.sheet_add_aoa(wsAll, [totalsRow], { origin: { r: rowIndex, c: 0 } });
+        
+        // อัปเดต grandTotals
+        grandTotals.days += totals.days;
+        grandTotals.salary += totals.salary;
+        grandTotals.ot += totals.ot;
+        grandTotals.transportation += totals.transportation;
+        grandTotals.welfare += totals.welfare;
+        grandTotals.diligence += totals.diligence;
+        grandTotals.holiday += totals.holiday;
+        grandTotals.addBeforeTax += totals.addBeforeTax;
+        grandTotals.deductBeforeTax += totals.deductBeforeTax;
+        grandTotals.addNoTax += totals.addNoTax;
+        grandTotals.deductNoTax += totals.deductNoTax;
+        grandTotals.tax += totals.tax;
+        grandTotals.socialSecurity += totals.socialSecurity;
+        grandTotals.addAfterTax += totals.addAfterTax;
+        grandTotals.deductAfterTax += totals.deductAfterTax;
+        grandTotals.advance += totals.advance;
+        grandTotals.net += totals.net;
+        grandTotals.employees += employees.length;
+        
+        rowIndex += 2; // เพิ่มแถวว่างระหว่างหน่วยงาน
+      }
+      
+      // อัปเดต merges สำหรับ worksheet
+      wsAll['!merges'] = merges;
+      
+      // กำหนดความกว้างของคอลัมน์
+      const colWidths = [
+        { wch: 10 }, // รหัส
+        { wch: 25 }, // ชื่อ-สกุล
+        { wch: 5 },  // วัน
+        { wch: 12 }, // เงินเดือน
+        { wch: 12 }, // ค่าล่วงเวลา
+        { wch: 12 }, // ค่ารถ/โทร
+        { wch: 18 }, // สวัสดิการ
+        { wch: 12 }, // เบี้ยขยัน
+        { wch: 12 }, // นักขัตฤกษ์
+        { wch: 15 }, // บวกอื่นๆ(คิด ปกส)
+        { wch: 15 }, // หักอื่นๆ(คิด ปกส)
+        { wch: 15 }, // บวกอื่นๆ(ไม่คิด ปกส)
+        { wch: 15 }, // หักอื่นๆ(ไม่คิด ปกส)
+        { wch: 10 }, // หักภาษี
+        { wch: 10 }, // หัก ปกส
+        { wch: 12 }, // บวกอื่นๆ
+        { wch: 12 }, // หักอื่นๆ
+        { wch: 12 }, // เบิกล่วงหน้า
+        { wch: 12 }  // สุทธิ
+      ];
+      
+      wsAll['!cols'] = colWidths;
+      
+      // เพิ่มแผ่นงานลงใน workbook
+      XLSX.utils.book_append_sheet(wb, wsAll, "รายงานเงินเดือนพนักงาน");
+      
+    } else {
+      // กรณีเลือกเฉพาะหน่วยงาน
+      const workplace = workplaceListAll.find(w => w.workplaceId === workplacrId) || { workplaceName: 'ไม่ระบุชื่อ' };
+      
+      // สร้างตาราง Excel
+      const wsData = [
+        ["รายงานเงินเดือนพนักงาน"],
+        [`หน่วยงาน: ${workplace.workplaceName} (${workplacrId})`],
+        [`ประจำเดือน: ${getThaiMonth(month)} ${parseInt(year) + 543}`],
+        [`พิมพ์รายงานวันที่: ${formattedWorkDateDD}/${formattedWorkDateMM}/${parseInt(formattedWorkDateYYYY, 10) + 543}`],
+        [""],
+        [
+          "รหัส", "ชื่อ - สกุล", "วัน", "เงินเดือน", "ค่าล่วงเวลา", 
+          "ค่ารถ/โทร/ตน.", "สวัสดิการ(ไม่คิด ปกส.)", "เบี้ยขยัน", "นักขัติ", 
+          "บวกอื่นๆ(คิด ปกส)", "หักอื่นๆ(คิด ปกส)", "บวกอื่นๆ(ไม่คิด ปกส)", 
+          "หักอื่นๆ(ไม่คิด ปกส)", "หักภาษี", "หัก ปกส", "บวกอื่นๆ", "หักอื่นๆ", 
+          "เบิกล่วงหน้า", "สุทธิ"
+        ]
+      ];
+      
+      // สร้างตัวแปรสำหรับเก็บผลรวม
+      let totals = {
+        days: 0,
+        salary: 0,
+        ot: 0,
+        transportation: 0,
+        welfare: 0,
+        diligence: 0,
+        holiday: 0,
+        addBeforeTax: 0,
+        deductBeforeTax: 0,
+        addNoTax: 0,
+        deductNoTax: 0,
+        tax: 0,
+        socialSecurity: 0,
+        addAfterTax: 0,
+        deductAfterTax: 0,
+        advance: 0,
+        net: 0
+      };
+      
+      // เพิ่มข้อมูลพนักงาน
+      displayEmployees.forEach(emp => {
+        const salary = parseFloat(emp.sumCashWork?.replace(/,/g, '') || 0);
+        const wageRevise = parseFloat(emp.wageRevise?.replace(/,/g, '') || 0);
+        const ot = parseFloat(emp.sumCashOt?.replace(/,/g, '') || 0);
+        const transportation = parseFloat(emp.transportAllowance?.replace(/,/g, '') || 0);
+        const welfare = parseFloat(emp.welfare?.replace(/,/g, '') || 0);
+        const diligence = parseFloat(emp.diligenceAllowance?.replace(/,/g, '') || 0);
+        const holiday = parseFloat(emp.publicHolidayCash?.replace(/,/g, '') || 0);
+        const addBeforeTax = parseFloat(emp.additionalBeforeTax?.replace(/,/g, '') || 0);
+        const deductBeforeTax = parseFloat(emp.deductionBeforeTax?.replace(/,/g, '') || 0);
+        const addNoTax = parseFloat(emp.additionalNoTax?.replace(/,/g, '') || 0);
+        const deductNoTax = parseFloat(emp.deductionNoTax?.replace(/,/g, '') || 0);
+        const tax = parseFloat(emp.tax?.replace(/,/g, '') || 0);
+        const socialSecurity = parseFloat(emp.socialSecurity?.replace(/,/g, '') || 0);
+        const addAfterTax = parseFloat(emp.additionalAfterTax?.replace(/,/g, '') || 0);
+        const deductAfterTax = parseFloat(emp.deductionAfterTax?.replace(/,/g, '') || 0);
+        const advance = parseFloat(emp.advancePayment?.replace(/,/g, '') || 0);
+        const days = parseFloat(emp.typeOfemployee === 'รายเดือน' ? '30' : (emp.dayWorkCount || '0'));
+
+        // คำนวณยอดสุทธิ
+        const netCalculated = 
+          salary + wageRevise + ot + transportation + welfare + diligence + holiday + 
+          addBeforeTax + addNoTax + addAfterTax - 
+          deductBeforeTax - deductNoTax - tax - socialSecurity - deductAfterTax - advance;
+        
+        // บวกรวมค่าสำหรับการคำนวณผลรวม
+        totals.days += days;
+        totals.salary += salary;
+        totals.wageRevise += wageRevise;
+        totals.ot += ot;
+        totals.transportation += transportation;
+        totals.positionAndTransportationWithSocial += positionAndTransportationWithSocial;
+        totals.diligence += diligence;
+        totals.holiday += holiday;
+        totals.addBeforeTax += addBeforeTax;
+        totals.deductBeforeTax += deductBeforeTax;
+        totals.addNoTax += addNoTax;
+        totals.deductNoTax += deductNoTax;
+        totals.tax += tax;
+        totals.socialSecurity += socialSecurity;
+        totals.addAfterTax += addAfterTax;
+        totals.deductAfterTax += deductAfterTax;
+        totals.advance += advance;
+        totals.net += netCalculated;
+        
+        // เพิ่มข้อมูลพนักงาน
+        wsData.push([
+          emp.employeeId || "-",
+          `${emp.firstName || ""} ${emp.lastName || ""}`,
+          days,
+          salary || 0,
+          wageRevise || 0,
+          ot || 0,
+          transportation || 0,
+          welfare || 0,
+          diligence || 0,
+          holiday || 0,
+          addBeforeTax || 0,
+          deductBeforeTax || 0,
+          addNoTax || 0,
+          deductNoTax || 0,
+          tax || 0,
+          socialSecurity || 0,
+          addAfterTax || 0,
+          deductAfterTax || 0,
+          advance || 0,
+          netCalculated || 0
+        ]);
+      });
+      
+      // เพิ่มแถวว่าง
+      wsData.push([]);
+      
+      // เพิ่มแถวผลรวม
+      wsData.push([
+        `รวมแผนก ${workplacrId}`,
+        `${displayEmployees.length} คน`,
+        totals.days,
+        totals.salary,
+        totals.wageRevise,
+        totals.ot,
+        totals.transportation,
+        totals.welfare,
+        totals.diligence,
+        totals.holiday,
+        totals.addBeforeTax,
+        totals.deductBeforeTax,
+        totals.addNoTax,
+        totals.deductNoTax,
+        totals.tax,
+        totals.socialSecurity,
+        totals.addAfterTax,
+        totals.deductAfterTax,
+        totals.advance,
+        totals.net
+      ]);
+      
+      // สร้าง worksheet
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+      
+      // กำหนดความกว้างของคอลัมน์
+      const colWidths = [
+        { wch: 10 }, // รหัส
+        { wch: 25 }, // ชื่อ-สกุล
+        { wch: 5 },  // วัน
+        { wch: 12 }, // เงินเดือน
+        { wch: 12 }, // ค่าล่วงเวลา
+        { wch: 12 }, // ค่ารถ/โทร
+        { wch: 18 }, // สวัสดิการ
+        { wch: 12 }, // เบี้ยขยัน
+        { wch: 12 }, // นักขัตฤกษ์
+        { wch: 15 }, // บวกอื่นๆ(คิด ปกส)
+        { wch: 15 }, // หักอื่นๆ(คิด ปกส)
+        { wch: 15 }, // บวกอื่นๆ(ไม่คิด ปกส)
+        { wch: 15 }, // หักอื่นๆ(ไม่คิด ปกส)
+        { wch: 10 }, // หักภาษี
+        { wch: 10 }, // หัก ปกส
+        { wch: 12 }, // บวกอื่นๆ
+        { wch: 12 }, // หักอื่นๆ
+        { wch: 12 }, // เบิกล่วงหน้า
+        { wch: 12 }  // สุทธิ
+      ];
+      
+      ws['!cols'] = colWidths;
+      
+      // จัดการ merge cells สำหรับหัวเรื่อง
+      const merges = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 18 } }, // รายงานเงินเดือนพนักงาน
+        { s: { r: 1, c: 0 }, e: { r: 1, c: 18 } }, // หน่วยงาน
+        { s: { r: 2, c: 0 }, e: { r: 2, c: 18 } }, // ประจำเดือน
+        { s: { r: 3, c: 0 }, e: { r: 3, c: 18 } }, // วันที่พิมพ์รายงาน
+      ];
+      
+      ws['!merges'] = merges;
+      
+      // เพิ่ม worksheet ลงใน workbook
+      XLSX.utils.book_append_sheet(wb, ws, `${workplacrId}`);
+    }
+    
+    // จัดการกับสไตล์ทั้งหมดของตาราง
+    const sheetNames = wb.SheetNames;
+    for (let i = 0; i < sheetNames.length; i++) {
+      const ws = wb.Sheets[sheetNames[i]];
+      
+      if (ws['!ref']) {
+        // กำหนดให้ทุกเซลล์มีเส้นกรอบ
+        const range = XLSX.utils.decode_range(ws['!ref']);
+        
+        for (let R = range.s.r; R <= range.e.r; R++) {
+          for (let C = range.s.c; C <= range.e.c; C++) {
+            const cellRef = XLSX.utils.encode_cell({r: R, c: C});
+            if (!ws[cellRef]) ws[cellRef] = { t: 's', v: '' };
+            if (!ws[cellRef].s) ws[cellRef].s = {};
+            
+            // กำหนดเส้นขอบให้ทุกเซลล์
+            ws[cellRef].s.border = {
+              top: { style: 'thin', color: { rgb: '000000' } },
+              left: { style: 'thin', color: { rgb: '000000' } },
+              bottom: { style: 'thin', color: { rgb: '000000' } },
+              right: { style: 'thin', color: { rgb: '000000' } }
+            };
+            
+            // กำหนดสไตล์พิเศษสำหรับแถวหัวตาราง (แถวที่ 5 หรือ R = 5)
+            if (R === 5) {
+              ws[cellRef].s.fill = { fgColor: { rgb: 'E2EFDA' } }; // สีพื้นหลังหัวตาราง
+              ws[cellRef].s.font = { bold: true };
+              ws[cellRef].s.alignment = { horizontal: 'center', vertical: 'center', wrapText: true };
+            }
+            
+            // จัดวางตัวเลขชิดขวา
+            if (C >= 3 && C <= 18 && R > 5) { // คอลัมน์ที่เป็นตัวเลข (เงินเดือน ถึง สุทธิ)
+              ws[cellRef].s.alignment = { horizontal: 'right', vertical: 'center' };
+            }
+            
+            // จัดวางข้อความชิดซ้าย
+            if (C <= 1 && R > 5) { // คอลัมน์ รหัส และ ชื่อ-สกุล
+              ws[cellRef].s.alignment = { horizontal: 'left', vertical: 'center' };
+            }
+            
+            // จัดวางตัวเลข วัน ให้อยู่กลาง
+            if (C === 2 && R > 5) {
+              ws[cellRef].s.alignment = { horizontal: 'center', vertical: 'center' };
+            }
+          }
+        }
+      }
+    }
+    
+    // บันทึกไฟล์ Excel
+    const filename = workplacrId
+      ? `รายงานเงินเดือนหน่วยงาน_${workplacrName || workplacrId}_${month}_${year}.xlsx`
+      : `รายงานเงินเดือนพนักงาน_${month}_${year}.xlsx`;
+    
+    XLSX.writeFile(wb, filename);
+    
+    // ซ่อน loading indicator
+    setLoadingEmployees(false);
+    
+  } catch (error) {
+    console.error('เกิดข้อผิดพลาดในการสร้างไฟล์ Excel:', error);
+    alert('เกิดข้อผิดพลาดในการสร้างไฟล์ Excel');
+    setLoadingEmployees(false);
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  const exportToExcel2 = () => {
     const headers = [
       "รหัส",
       "หน่วยงาน",
@@ -3482,8 +6729,8 @@ function SalaryAllResult({ employeeList, workplaceList }) {
           Number(item.totalSumDeductBeforeTaxWithSocial.toFixed(2) || 0),
         "บวกอื่นๆ(ไม่คิด ปกส)": Number(item.totalSumAddSalaryBeforeTaxNonSocial.toFixed(2) || 0),
         "หักอื่นๆ(ไม่คิด ปกส)": Number(item.totalSumDeductBeforeTax.toFixed(2) || 0),
-        "หักภาษี": Number(item.totalTax.toFixed(0) || 0),
-        "หักปกส": Number(item.totalSocialSecurity.toFixed(0) || 0),
+        "หักภาษี": Number(item.totalTax.toFixed(2) || 0),
+        "หักปกส": Number(item.totalSocialSecurity.toFixed(2) || 0),
         "บวกอื่นๆ": Number(item.totalSumAddSalaryAfterTax.toFixed(2) || 0),
         "เบิกบ่วงหน้า": Number(item.totalAdvancePayment.toFixed(2) || 0),
         "หักอื่นๆ": Number(item.totalSumDeductAfterTax.toFixed(2) || 0),
@@ -3547,8 +6794,8 @@ function SalaryAllResult({ employeeList, workplaceList }) {
       "หักอื่นๆ(ก่อนภาษี)": totals.totalSumDeductBeforeTaxWithSocial.toFixed(2),
       "บวกอื่นๆ(หลังภาษี)": totals.totalSumAddSalaryBeforeTaxNonSocial.toFixed(2),
       "หักอื่นๆ(หลังภาษี)": totals.totalSumDeductBeforeTax.toFixed(2),
-      "หักภาษี": totals.totalTax.toFixed(0),
-      "หักปกส": totals.totalSocialSecurity.toFixed(0),
+      "หักภาษี": totals.totalTax.toFixed(2),
+      "หักปกส": totals.totalSocialSecurity.toFixed(2),
       "บวกอื่นๆ": totals.totalSumAddSalaryAfterTax.toFixed(2),
       "เบิกบ่วงหน้า": totals.totalAdvancePayment.toFixed(2),
       "หักอื่นๆ": totals.totalSumDeductAfterTax.toFixed(2),
@@ -3594,9 +6841,13 @@ function SalaryAllResult({ employeeList, workplaceList }) {
   };
 
   return (
-    <body class="hold-transition sidebar-mini" className="editlaout">
-      <div class="wrapper">
-        <div class="content-wrapper">
+    // <body class="hold-transition sidebar-mini" className="editlaout">
+    //   <div class="wrapper">
+    //     <div class="content-wrapper">
+    <div className="hold-transition sidebar-mini editlaout">
+    <div className="wrapper">
+      <div className="content-wrapper">
+
           {/* <!-- Content Header (Page header) --> */}
           <ol class="breadcrumb">
             <li class="breadcrumb-item">
@@ -3624,28 +6875,24 @@ function SalaryAllResult({ employeeList, workplaceList }) {
                 <div class="col-md-12">
                   <div class="row">
                     <div class="col-md-3">
-                      <label role="searchEmployeeId">รหัสหน่อยงาน</label>
+                      <label role="searchEmployeeId">รหัสหน่วยงาน</label>
                       {/* <input type="text" class="form-control" id="searchEmployeeId" placeholder="รหัสพนักงาน" value={searchEmployeeId} onChange={(e) => setSearchWorkplaceId(e.target.value)} /> */}
-                      <input
+                     <input
                         type="text"
                         className="form-control"
-                        id="staffId"
+                        id="workplaceId"
+                        name="workplaceId"
                         placeholder="รหัสหน่อยงาน"
                         value={workplacrId}
                         onChange={handleStaffIdChange}
-                        onInput={(e) => {
-                          // Remove any non-digit characters
-                          e.target.value = e.target.value.replace(/\D/g, "");
+                        onFocus={(e) => {
+                          e.target.click();
                         }}
                         list="WorkplaceIdList"
+                        autoComplete="on"
                       />
-                      <datalist id="WorkplaceIdList">
-                        {workplaceListAll.map((workplace) => (
-                          <option
-                            key={workplace.workplaceId}
-                            value={workplace.workplaceId}
-                          />
-                        ))}
+                       <datalist id="WorkplaceIdList">
+                              {workplaceIdOptions}
                       </datalist>
                     </div>
                     <div class="col-md-3">
@@ -3668,22 +6915,22 @@ function SalaryAllResult({ employeeList, workplaceList }) {
                                             </datalist> */}
                       <input
                         type="text"
-                        className="form-control"
-                        id="staffName"
-                        placeholder="ชื่อหน่วยงาน"
-                        value={workplacrName}
-                        onChange={handleStaffNameChange}
-                        list="WorkplaceNameList"
+                          className="form-control"
+                          id="workplaceName"
+                          name="workplaceName"
+                          placeholder="ชื่อหน่วยงาน"
+                          value={workplacrName}
+                          onChange={handleStaffNameChange}
+                          onFocus={(e) => {
+                            e.target.click();
+                          }}
+                          list="WorkplaceNameList"
+                          autoComplete="on"
                       />
-
                       <datalist id="WorkplaceNameList">
-                        {workplaceListAll.map((workplace) => (
-                          <option
-                            key={workplace.workplaceId}
-                            value={workplace.workplaceName}
-                          />
-                        ))}
+                          {workplaceNameOptions}
                       </datalist>
+                      
                     </div>
                     <div class="col-md-2">
                       <div class="form-group">
@@ -3805,25 +7052,98 @@ function SalaryAllResult({ employeeList, workplaceList }) {
                     </div>
                   </div>
                   <br />
+                  <button 
+                      className="btn btn-primary form-control" 
+                      onClick={fetchEmployeeData}
+                      style={{ marginRight: "1rem",}}
+                    >
+                      ค้นหาข้อมูล
+                    </button>
 
                   <button
-                    class="btn btn-success"
+                    class="btn btn-success mr-3"
                     style={{ width: "10rem" }}
                     onClick={generatePDF01}
                   >
                     PDF รายหน่วยงาน
                   </button>
-                  <button
+                  {/* <button
                     class="btn btn-success"
                     style={{ marginLeft: "1rem", width: "11rem" }}
                     onClick={generatePDF02}
                   >
                     PDF หน่วยงานทั้งหมด
-                  </button>
+                  </button> */}
+                  <button  class="btn btn-danger ," onClick={generatePDFAudit}>PDF ออดิท</button>
+
                 </div>
-                <br />
+           
                 <div class="col-md-12">
-                  <button class="btn btn-success" onClick={exportToExcel}>Export to Excel</button>
+                  {/* <button class="btn btn-success" onClick={exportToExcel}>Export to Excel</button> */}
+                </div>
+                
+                {/* เพิ่มตารางแสดงข้อมูลพนักงาน */}
+                <div className="col-md-12 mt-4">
+                  {/* <div className="card">
+                    <div className="card-header">
+                      <h3 className="card-title">ข้อมูลพนักงานในหน่วยงาน {workplacrName} ({workplacrId})</h3>
+                    </div>
+                    <div className="card-body">
+                      {loadingEmployees ? (
+                        <div className="text-center">
+                          <div className="spinner-border text-primary" role="status">
+                            <span className="sr-only">กำลังโหลด...</span>
+                          </div>
+                          <p className="mt-2">กำลังโหลดข้อมูลพนักงาน...</p>
+                        </div>
+                      ) : displayEmployees.length > 0 ? (
+                        <div className="table-responsive">
+                          <table className="table table-bordered table-striped">
+                            <thead>
+                              <tr>
+                                <th className="text-center">ลำดับ</th>
+                                <th className="text-center">รหัสพนักงาน</th>
+                                <th className="text-center">ชื่อ-นามสกุล</th>
+                                <th className="text-center">เงินเดือน</th>
+                                <th className="text-center">ค่าล่วงเวลา</th>
+                                <th className="text-center">จำนวนวันทำงาน</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {displayEmployees.map((employee, index) => (
+                                <tr key={employee.employeeId}>
+                                  <td className="text-center">{index + 1}</td>
+                                  <td className="text-center">{employee.employeeId}</td>
+                                  <td>{`${employee.firstName || ''} ${employee.lastName || ''}`}</td>
+                                  <td className="text-right">{employee.sumCashWork}</td>
+                                  <td className="text-right">{employee.sumCashOt}</td>
+                                  <td className="text-center">{employee.dayWorkCount}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                            <tfoot>
+                              <tr className="bg-light">
+                                <th colSpan="3" className="text-right">รวมทั้งหมด {displayEmployees.length} คน</th>
+                                <th className="text-right">
+                                  {formatNumber(displayEmployees.reduce((sum, emp) => 
+                                    sum + (parseFloat(emp.sumCashWork.replace(/,/g, '')) || 0), 0))}
+                                </th>
+                                <th className="text-right">
+                                  {formatNumber(displayEmployees.reduce((sum, emp) => 
+                                    sum + (parseFloat(emp.sumCashOt.replace(/,/g, '')) || 0), 0))}
+                                </th>
+                                <th></th>
+                              </tr>
+                            </tfoot>
+                          </table>
+                        </div>
+                      ) : (
+                        <div className="alert alert-info">
+                          {workplacrId ? 'ดึงข้อมูลสำเร็จ แต่ไม่พบข้อมูลพนักงานที่ตรงกับเงื่อนไข' : 'กรุณาเลือกหน่วยงาน เดือน และปี เพื่อแสดงข้อมูลพนักงาน'}
+                        </div>
+                      )}
+                    </div>
+                  </div> */}
                 </div>
                 {/* <label>Thai Date:</label> */}
                 {/* <DatePicker
@@ -3845,8 +7165,8 @@ function SalaryAllResult({ employeeList, workplaceList }) {
           </section>
         </div>
       </div>
-    </body>
-    // </div>
+    {/* </body> */}
+     </div>
   );
 }
 

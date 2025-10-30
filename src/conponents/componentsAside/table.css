@@ -1,0 +1,86 @@
+@import url('https://fonts.googleapis.com/css2?family=Arimo:ital,wght@0,400..700;1,400..700&family=Prompt:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto&family=Sarabun:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800&display=swap');
+
+.excel-style-table th,
+.excel-style-table td {
+  border: 1px solid #000 !important;
+  padding: 4px;
+  text-align: center;
+}
+
+.excel-style-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    font-family: "Prompt", serif;
+
+  }
+
+  thead{
+    font-family: "Prompt", serif;
+    font-weight: 500;
+   font-style: normal;
+  }
+
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+   
+  }
+
+  .vertical-text {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    text-align: left !important;
+
+  }
+
+  th, td {
+    padding: 2px !important;
+  }
+
+  td {
+    height: 25px;
+  }
+
+  th[rowSpan="4"] {
+    text-align: center;
+    width: 20px !important;
+    min-width: 20px !important;
+    max-width: 20px !important;
+  }
+
+
+
+
+
+ 
+
+.no-x-border {
+    border-top: none !important;
+   
+  }
+  
+/* .no-tbody-borders tbody td {
+  border: none !important;
+}
+
+tbody td,
+tbody tr td,
+tbody tr {
+  border-top: 0 !important;
+ 
+} */
+
+.excel-style-table tbody td,
+.excel-style-table tbody tr td {
+  border: 1px solid #000 !important;
+}

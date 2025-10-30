@@ -1,5 +1,7 @@
 const connectionString = require('../config');
 
+const {Workplace} = require('./models/workplaceModel');
+
 var express = require('express');
 var router = express.Router();
 const mongoose = require('mongoose');
@@ -19,271 +21,6 @@ mongoose.connect(connectionString, {
 const db = mongoose.connection;
 db.on('error', console.error.bind(console, 'MongoDB connection error:'));
 
-// ✅ Define Employee Schema
-const EmployeeSchema = new mongoose.Schema({
-    positionWork_specialwork: { type: String, required: true }, // Job Position
-    countPerson_specialwork: { type: Number, required: true }, // Number of People
-  });
-  
-  // ✅ Define Special Work Time Schema
-  const SpecialWorkTimeSchema = new mongoose.Schema({
-    day_specialwork: { type: String, required: true }, // Work Date (Format: dd/MM/yyyy)
-    shift_specialwork: { type: String, enum: ["กะเช้า", "กะบ่าย", "กะดึก", "กะพิเศษ"], required: true }, // Shift Type
-    startTime_specialwork: { type: String, required: true }, // Start Work Time
-    endTime_specialwork: { type: String, required: true }, // End Work Time
-    startTimeOT_specialwork: { type: String }, // OT Start Time
-    endTimeOT_specialwork: { type: String }, // OT End Time
-    payment_specialwork: { type: Number, required: true }, // Payment per Shift
-    paymentOT_specialwork: { type: Number }, // OT Payment
-    workDetail_specialwork: { type: String }, // Work Details
-    employees_specialwork: [EmployeeSchema], // Employees Assigned
-  });
-
-// Define workplace schema
-const workplaceSchema = new mongoose.Schema({
-    workplaceId: {
-        type: String,
-        required: true,
-        unique: true
-    },
-    workplaceName: {
-        type: String
-    },
-    workplaceGroup: [{
-        workplaceComplexId: String,
-        workplaceComplexName: String,
-        workplaceComplexData: {}
-}],
-    workplaceArea: {
-        type: String
-    },
-    workOfWeek: {
-        type: String
-    },
-    workStart1: {
-        type: String
-    },
-    workEnd1: {
-        type: String
-    },
-    workStart2: {
-        type: String
-    },
-    workEnd2: {
-        type: String
-    },
-    workStart3: {
-        type: String
-    },
-    workEnd3: {
-        type: String
-    },
-    workStartOt1: String,
-    workEndOt1: String,
-    workStartOt2: String,
-    workEndOt2: String,
-    workStartOt3: String,
-    workEndOt3: String,
-    workOfHour: {
-        type: String
-    },
-    workOfOT: {
-        type: String
-    },
-    workOfHour_subHour: { 
-        type: String
-    },
-    workOfHour_subMinute: { 
-        type: String
-    },
-    workOfOT_subHour: { 
-        type: String
-    },
-    workOfOT_subMinute: {
-        type: String
-    },
-    workOfOT_breakHour: {
-        type: String
-    },
-    workOfOT_breakMinute: {
-        type: String
-    },
-    workRate: {
-        type: String
-    },
-    addWorkRate: {
-        type: String
-    },
-    workRateOT: {
-        type: String
-    },
-    workTotalPeople: {
-        type: String,
-    },
-    dayoffRate: {
-        type: String
-    },
-    dayoffRateOT: {
-        type: String
-    },
-    dayoffRateHour: {
-        type: String
-    },
-    holiday: {
-        type: String
-    },
-    holidayOT: {
-        type: String
-    },
-    holidayHour: {
-        type: String
-    },
-    workRateChange: Date,
-
-    salaryadd1: {
-        type: String
-    },
-    salaryadd2: {
-        type: String
-    },
-    salaryadd3: {
-        type: String
-    },
-    salaryadd4: {
-        type: String
-    },
-    salaryadd5: {
-        type: String
-    },
-    salaryadd6: {
-        type: String
-    },
-    personalLeave: {
-        type: String
-    },
-    personalLeaveNumber: {
-        type: String
-    },
-    personalLeaveRate: {
-        type: String
-    },
-    sickLeave: {
-        type: String
-    },
-    sickLeaveNumber: {
-        type: String
-    },
-    sickLeaveRate: {
-        type: String
-    },
-    workRateDayoff: {
-        type: String
-    },
-    workRateDayoffNumber: {
-        type: String
-    },
-    workRateDayoffRate: {
-        type: String
-    },
-    daysOff: [{
-        type: Date
-    }],
-    workplaceAddress: {
-        type: String
-    },
-    reason: {
-        type: String
-    },
-    employeeIdList: [],
-    employeeNameList: [],
-
-    workday1: String,
-    workday2: String,
-    workday3: String,
-    workday4: String,
-    workday5: String,
-    workday6: String,
-    workday7: String,
-
-    workcount1: String,
-    workcount2: String,
-    workcount3: String,
-    workcount4: String,
-    workcount5: String,
-    workcount6: String,
-    workcount7: String,
-
-    addSalary: [{
-        name: String,
-        codeSpSalary: String,
-        SpSalary: String,
-        roundOfSalary: String,
-        StaffType: String,
-        nameType: String,
-    }],
-
-    listEmployeeDay: [{
-        day: String,
-        position: String,
-        employees: String,
-    }],
-    listSpecialWorktime: [{
-        day: String,
-        spWorkStart1: String,
-        spWorkEnd1: String,
-        spWorkStart2: String,
-        spWorkEnd2: String,
-        spWorkStart3: String,
-        spWorkEnd3: String,
-    }],
-
-    workTimeDay: [{
-        startDay: String,
-        endDay: String,
-        workOrStop: String,
-        allTimes: [{
-             shift: String, 
-             startTime: String, 
-             endTime: String, 
-             resultTime: String, 
-             startTimeOT: String, 
-             endTimeOT: String, 
-             resultTimeOT: String }]
-    }
-    ],
-
-    workTimeDayPerson:[{
-        startDay: String,
-        endDay: String,
-        allTimesPerson: [{
-            shift: String,
-            positionWork: String,
-            countPerson: String
-        }]
-    }],
-
-    // specialWorkTimeDay: [{
-    //     day: String,
-    //     shift: String,
-    //     startTime: String,
-    //     endTime: String,
-    //     startTimeOT: String,
-    //     endTimeOT: String,
-    //     payment: String,
-    //     paymentOT: String,
-    //     workDetail: String,
-    //     employees: [{
-    //         positionWork: String,
-    //         countPerson: String
-    //     }]
-    // }],
-
-      // ✅ New Special Work Time Field
-      specialWorkTimeDay: [SpecialWorkTimeSchema],
-});
-
-// Create the workplace model based on the schema
-const Workplace = mongoose.model('Workplace', workplaceSchema);
 
 
 // Get list of workplaces
@@ -291,6 +28,16 @@ router.get('/list', async (req, res) => {
     const workplaces = await Workplace.find();
     res.json(workplaces);
 });
+
+router.get('/sevenday', async (req, res) => {
+    try {
+        const workplaces = await Workplace.find({ workOfWeek: 6 }, 'workplaceId workplaceName -_id');
+        res.json(workplaces);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 
 // Get list id name and address of workplaces
 router.get('/listselect', async (req, res) => {
@@ -511,6 +258,8 @@ router.post('/create', async (req, res) => {
         workOfOT,
         workOfHour_subHour,
         workOfHour_subMinute,
+        startWorkOfOT_subHour,
+        startWorkOfOT_subMinute,
         workOfOT_subHour,
         workOfOT_subMinute,
         workOfOT_breakHour,
@@ -542,6 +291,8 @@ router.post('/create', async (req, res) => {
         workRateDayoffNumber,
         workRateDayoffRate,
         daysOff,
+        daysOffMap,
+        dayoffWorkplace,
         workplaceAddress,
         reason,
         employeeIdList,
@@ -592,6 +343,8 @@ router.post('/create', async (req, res) => {
         workOfOT,
         workOfHour_subHour,
         workOfHour_subMinute,
+        startWorkOfOT_subHour,
+        startWorkOfOT_subMinute,
         workOfOT_subHour,
         workOfOT_subMinute,
         workOfOT_breakHour,
@@ -623,6 +376,8 @@ router.post('/create', async (req, res) => {
         workRateDayoffNumber,
         workRateDayoffRate,
         daysOff,
+                daysOffMap,
+        dayoffWorkplace,
         workplaceAddress,
         reason,
         employeeIdList,
@@ -831,6 +586,15 @@ const specialDaylist = [];
 data.workplaceDayOffList = workplaceDayOffList || [];
 data.specialDaylist = specialDaylist || [];
 
+// ✅ Update dayoffWorkplace in database
+if (workplaceDayOffList.length > 0) {
+    await Workplace.findByIdAndUpdate(
+        workplace._id,
+        { dayoffWorkplace: workplaceDayOffList },
+        { new: true }
+    );
+}
+
 data.workRate = workplace.workRate || 0;
 data.addWorkRate = workplace.addWorkRate || 0;
 data.workRateOT = workplace.workRateOT || 0;
@@ -844,6 +608,8 @@ data.workOfHour= workplace.workOfHour||0;
 data.workOfOT = workplace.workOfOT||0;
 data.workOfHour_subHour = workplace.workOfHour_subHour || 0;
 data.workOfHour_subMinute = workplace.workOfHour_subMinute || 0;
+data.startWorkOfOT_subHour = workplace.startWorkOfOT_subHour || 0;
+data.startWorkOfOT_subMinute = workplace.startWorkOfOT_subMinute || 0;
 data.workOfOT_subHour = workplace.workOfOT_subHour || 0;
 data.workOfOT_subMinute = workplace.workOfOT_subMinute || 0;
 data.workOfOT_breakHour = workplace.workOfOT_breakHour  || 0;

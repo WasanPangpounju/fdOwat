@@ -86,6 +86,10 @@ function AddsettimeWorkplace({ workplaceList, employeeList }) {
   const [selectotTime, setSelectotTime] = useState("");
   const [selectotTimeOut, setSelectotTimeOut] = useState("");
 
+  const [beforeOtTime, setBeforeOtTime] = useState(""); //รหัสหน่วยงาน
+  const [beforeSelectotTime, setBeforeSelectotTime] = useState("");
+  const [beforeSelectotTimeOut, setBeforeSelectotTimeOut] = useState("");
+
   const [cashSalary, setCashSalary] = useState(false);
   const [specialtSalary, setSpecialtSalary] = useState("");
   const [specialtSalaryOT, setSpecialtSalaryOT] = useState("");
@@ -379,8 +383,8 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
     const cappedHours = Math.floor(cappedTotalMinutes / 60);
     const cappedMinutes = cappedTotalMinutes % 60;
     const timeDiffFormatted = `${cappedHours}.${cappedMinutes}`;
-    if (isNaN(timeDiffFormatted)) {
-      return "0";
+    if (isNaN(timeDiffFormatted) || parseFloat(timeDiffFormatted || '0') === 0 ) {
+      return "";
     }
 
     return timeDiffFormatted;
@@ -498,10 +502,10 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
         shift == "morning_shift"
       ) {
         const ot =
-          calTime(selectotTime || 0, selectotTimeOut || 0, workOfOT || 0) || 0;
+          calTime(selectotTime || 0, selectotTimeOut || 0, workOfOT || 0) || '';
         setOtTime(ot);
       } else {
-        const ot = calTime(selectotTime || 0, selectotTimeOut || 0, 24) || 0;
+        const ot = calTime(selectotTime || 0, selectotTimeOut || 0, 24) || '';
         setOtTime(ot);
       }
     } catch (error) {
@@ -510,6 +514,29 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
       //   alert(error);
     }
   }, [selectotTime, selectotTimeOut, workOfOT]);
+
+  //cal before ot time 
+  useEffect(() => {
+    try {
+      if (
+        shift == "night_shift" ||
+        shift == "afternoon_shift" ||
+        shift == "morning_shift"
+      ) {
+        const ot =
+          calTime(beforeSelectotTime || 0, beforeSelectotTimeOut || 0, workOfOT || 0) || 0;
+        setBeforeOtTime(ot);
+      } else {
+        const ot = calTime(beforeSelectotTime || 0, beforeSelectotTimeOut || 0, 24) || '';
+        setBeforeOtTime(ot);
+      }
+    } catch (error) {
+      // Handle the error here, you can log it or show an error message.
+      console.error(error);
+      //   alert(error);
+    }
+  }, [beforeSelectotTime, beforeSelectotTimeOut, workOfOT]);
+
 
   //     useEffect(() => {
   // const ot = calTime( selectotTime || 0, selectotTimeOut || 0 , workOfOT  || 0) || 0;
@@ -558,9 +585,6 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
     // Push a new row with specific data
     // newDataList.push({ ...initialRowData, ...newRowData });
 
-
-
-
     
     newDataList.unshift(newRowData);
 
@@ -583,13 +607,36 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
 
   // Function to handle deleting a row
   const handleDeleteRow = (index) => {
-    // Create a copy of the current state
-    const newDataList = [...rowDataList];
-    // Remove the row at the specified index
-    newDataList.splice(index, 1);
-    // Update the state with the new data
-    setRowDataList(newDataList);
+    // alert("Attempting to delete index:", index); // Debugging
+    
+    setRowDataList((prevList) => {
+      if (!Array.isArray(prevList) || prevList.length === 0) {
+        console.error("❌ rowDataList is empty or not an array.");
+        return prevList; // Prevent resetting state to empty
+      }
+  
+      if (index < 0 || index >= prevList.length) {
+        console.error("❌ Invalid index:", index);
+        return prevList;
+      }
+  
+      // Create a new array without modifying the original
+      const updatedList = prevList.filter((_, i) => i !== index);
+      
+      console.log("✅ Updated List:", updatedList); // Debugging
+      return updatedList;
+    });
   };
+  
+  // const handleDeleteRow = (index) => {
+  //   alert(index)
+  //   // Create a copy of the current state
+  //   const newDataList = [...rowDataList];
+  //   // Remove the row at the specified index
+  //   newDataList.splice(index, 1);
+  //   // Update the state with the new data
+  //   setRowDataList(newDataList);
+  // };
 
   const handleWorkDateChange = (date) => {
     setWorkDate(date);
@@ -608,8 +655,9 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
     setStartjob3(date);
   };
 
+  //create template data 
   // const numberOfRows = 30; // Fixed number of rows
-  const numberOfRows = 1; // Fixed number of rows
+  const numberOfRows = 0; // Fixed number of rows
 
   const initialRowData = {
     staffId: "",
@@ -621,6 +669,10 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
     otTime: "",
     selectotTime: "",
     selectotTimeOut: "",
+    beforeOtTime: "",
+    beforeSelectotTime: "",
+    beforeSelectotTimeOut: "",
+
   };
 
   const [rowDataList, setRowDataList] = useState(
@@ -876,7 +928,7 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
       ) {
         otTimeFormatted2 = `${otHoursDiff}.${otMinutesDiff}`;
       } else {
-        otTimeFormatted2 = "0";
+        otTimeFormatted2 = "";
       }
 
       newDataList[index] = {
@@ -1073,7 +1125,8 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
     await setShift("morning");
 
     try {
-      const response = await axios.post(endpoint + "/timerecord/search", data);
+      const response = await axios.post(
+        endpoint + "/timerecord/searchworkplacetimerecords", data);
 
       if (response.data.recordworkplace.length < 1) {
         // alert('ไม่พบข้อมูล');
@@ -1124,11 +1177,11 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
       wGroup: wGroup || '',
       date: convertBuddhistToGregorian(formattedDate),
       employeeRecord: rowDataList,
-      timerecordId: yearSelectedDate.toString(),
+      year: yearSelectedDate.toString(),
     };
   
     try {
-      const response = await axios.post(endpoint + "/timerecord/create", data);
+      const response = await axios.post(endpoint + "/timerecord/createworkplacetimerecords", data);
   
       if (response.status === 200) {
         alert("บันทึกสำเร็จ");
@@ -1154,32 +1207,35 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
 
   async function handleUpdateWorkplaceTimerecord(event) {
     event.preventDefault();
-  
+    const [dd, mm, yyyy] = convertBuddhistToGregorian(formattedDate).split('/'); // Split the date string
+    const xdate = `${parseInt(dd, 10)}/${mm}/${yyyy}`; // Convert dd to an integer to remove leading zero
+
     const data = {
       workplaceId: workplaceId,
       workplaceName: workplaceName,
       wGroup: wGroup || '',
-      date: convertBuddhistToGregorian(formattedDate),
+      date: xdate,
       employeeRecord: rowDataList,
     };
   
     try {
-      const response = await axios.put(endpoint + "/timerecord/update/" + timeRecord_id, data);
+      const response = await axios.put(endpoint + "/timerecord/updateworkplacetimerecords/" + timeRecord_id, data);
   
-      if (response.status === 200) {
+      if (response.status === 201) {
         alert("บันทึกสำเร็จ");
   
         // Assuming API returns updated data
         if (response.data) {
-          setRowDataList(response.data.employeeRecord); // Update state
-          setTimeRecord_id(response.data._id); // Set new timeRecord_id for next update
-          setUpdateButton(true); // Enable update button
-          setWorkplaceId(response.data.workplaceId); // Update workplaceId
-          setWorkplaceName(response.data.workplaceName); // Update workplaceName
-          setWGroup(response.data.wGroup || '');
-          setFormattedDate(response.data.date); // Update formattedDate
+          handleCheckTimerecord();
+          // setRowDataList(response.data.employeeRecord); // Update state
+          // setTimeRecord_id(response.data._id); // Set new timeRecord_id for next update
+          // setUpdateButton(true); // Enable update button
+          // setWorkplaceId(response.data.workplaceId); // Update workplaceId
+          // setWorkplaceName(response.data.workplaceName); // Update workplaceName
+          // setWGroup(response.data.wGroup || '');
+          // setFormattedDate(response.data.date); // Update formattedDate
         }
-      }
+      }   
     } catch (error) {
       console.error("Error updating timerecord: ", error);
       alert("กรุณาตรวจสอบข้อมูลในช่องกรอกข้อมูล");
@@ -1191,15 +1247,20 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
     event.preventDefault();
 
     const newRowData = {
-      staffId: staffId || "",
-      staffName: staffName + " " + staffLastname || "",
+      employeeId: staffId || "",
+      employeeName: staffFullName,
+      // staffName + " " + staffLastname || "",
       shift: shift || "",
       startTime: startTime || "",
       endTime: endTime || "",
-      allTime: allTime || "",
-      otTime: otTime || "",
-      selectotTime: selectotTime || "",
-      selectotTimeOut: selectotTimeOut || "",
+      totalTime: allTime || "",
+      totalOtTime: otTime || "",
+      startOtTime: selectotTime || "",
+      endOtTime: selectotTimeOut || "",
+      beforeTotalOtTime: beforeOtTime || "",
+      beforeStartOtTime: beforeSelectotTime || "",
+      beforeEndOtTime: beforeSelectotTimeOut || "",
+
       cashSalary: cashSalary || "",
       specialtSalary: specialtSalary || "",
       specialtSalaryOT: specialtSalaryOT || "",
@@ -1567,25 +1628,44 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
             <form onSubmit={handleManageWorkplace}>
 
             <section className="Frame">
+              
   <div className="table-responsive">
     <table className="table table-bordered table-sm text-center align-middle">
       <thead>
         <tr>
-          <th>รหัสพนักงาน</th>
-          <th>ชื่อพนักงาน</th>
-          <th>กะการทำงาน</th>
-          <th>เวลาเข้างาน</th>
-          <th>เวลาออกงาน</th>
-          <th>ชั่วโมงทำงาน</th>
-          <th>เวลาเข้า OT</th>
-          <th>เวลาออก OT</th>
-          <th>ชั่วโมง OT</th>
+
+<th rowSpan="2">พนักงาน</th>
+        <th rowSpan="2">ชื่อพนักงาน</th>
+        <th rowSpan="2">กะ</th>
+        <th colSpan="3">OT (ก่อนเวลาทำงาน)</th>
+        <th colSpan="3">เวลาทำงาน</th>
+        <th colSpan="3">OT (หลังเวลาทำงาน)</th>
+        {shift === "specialt_shift" && <th colSpan="3">ข้อมูลพิเศษ</th>}
+        </tr>
+      {/* Second Row - Detailed Headers */}
+      <tr>
+        {/* OT (รอบแรก) */}
+        <th>เข้า OT</th>
+        <th>ออก OT</th>
+        <th>ชั่วโมง OT</th>
+
+        {/* เวลาทำงาน */}
+        <th>เข้างาน</th>
+        <th>ออกงาน</th>
+        <th>ชั่วโมงทำงาน</th>
+
+        {/* OT (รอบสอง) */}
+        <th>เข้า OT</th>
+        <th>ออก OT</th>
+        <th>ชั่วโมง OT</th>
+
+
           {shift === "specialt_shift" && (
             <>
               <th>จ่ายสด</th>
               <th>เป็นเงิน</th>
               <th>เป็นเงิน OT</th>
-              <th>หมายเหตุ</th>
+              {/* <th>หมายเหตุ</th> */}
             </>
           )}
         </tr>
@@ -1598,7 +1678,7 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
               type="text"
               className="form-control text-center"
               id="staffId"
-              placeholder="รหัสพนักงาน"
+              placeholder="พนักงาน"
               value={staffId}
               onChange={handleStaffIdChange}
               list="staffIdList"
@@ -1645,13 +1725,49 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
             </select>
           </td>
 
+          {/* OT Start Time */}
+          <td>
+            <input
+              type="text"
+              className="form-control text-center"
+              id="selectotTime"
+              placeholder="เข้า OT"
+              value={beforeSelectotTime}
+              onChange={(e) => setBeforeSelectotTime(e.target.value)}
+            />
+          </td>
+
+          {/* OT End Time */}
+          <td>
+            <input
+              type="text"
+              className="form-control text-center"
+              id="selectotTimeOut"
+              placeholder="ออก OT"
+              value={beforeSelectotTimeOut}
+              onChange={(e) => setBeforeSelectotTimeOut(e.target.value)}
+            />
+          </td>
+
+          {/* OT Hours */}
+          <td>
+            <input
+              type="text"
+              className="form-control text-center"
+              id="otTime"
+              placeholder="ชั่วโมง OT"
+              value={beforeOtTime}
+              onChange={(e) => setBeforeOtTime(e.target.value)}
+            />
+          </td>
+
           {/* Work Start Time */}
           <td>
             <input
               type="text"
               className="form-control text-center"
               id="startTime"
-              placeholder="เวลาเข้างาน"
+              placeholder="เข้างาน"
               value={startTime}
               onChange={(e) => setStartTime(e.target.value)}
             />
@@ -1663,7 +1779,7 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
               type="text"
               className="form-control text-center"
               id="endTime"
-              placeholder="เวลาออกงาน"
+              placeholder="ออกงาน"
               value={endTime}
               onChange={(e) => setEndTime(e.target.value)}
             />
@@ -1687,7 +1803,7 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
               type="text"
               className="form-control text-center"
               id="selectotTime"
-              placeholder="เวลาเข้า OT"
+              placeholder="เข้า OT"
               value={selectotTime}
               onChange={(e) => setSelectotTime(e.target.value)}
             />
@@ -1699,7 +1815,7 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
               type="text"
               className="form-control text-center"
               id="selectotTimeOut"
-              placeholder="เวลาออก OT"
+              placeholder="ออก OT"
               value={selectotTimeOut}
               onChange={(e) => setSelectotTimeOut(e.target.value)}
             />
@@ -1748,7 +1864,7 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
                   onChange={(e) => setSpecialtSalaryOT(e.target.value)}
                 />
               </td>
-              <td>
+              {/* <td>
                 <input
                   type="text"
                   className="form-control text-center"
@@ -1757,7 +1873,7 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
                   value={messageSalary}
                   onChange={(e) => setMessageSalary(e.target.value)}
                 />
-              </td>
+              </td> */}
             </>
           )}
         </tr>
@@ -1786,27 +1902,46 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
   <table className="table table-bordered">
     <thead>
       <tr>
-        <th>รหัสพนักงาน</th>
-        <th>ชื่อพนักงาน</th>
-        <th>กะการทำงาน</th>
-        <th>เวลาเข้างาน</th>
-        <th>เวลาออกงาน</th>
-        <th>ชั่วโมงทำงาน</th>
-        <th>เวลาเข้า OT</th>
-        <th>เวลาออก OT</th>
+
+<th rowSpan="2" className="text-center">พนักงาน</th>
+        <th rowSpan="2" className="text-center">ชื่อพนักงาน</th>
+        <th rowSpan="2" className="text-center">กะ</th>
+        <th colSpan="3" className="text-center">OT (ก่อนเวลาทำงาน)</th>
+        <th colSpan="3" className="text-center">เวลาทำงาน</th>
+        <th colSpan="3" className="text-center">OT (หลังเวลาทำงาน)</th>
+        <th rowSpan="2" className="text-center">เงินจ้าง</th>
+        <th rowSpan="2" className="text-center">ลบ</th>
+
+</tr><tr>
+        {/* OT (รอบแรก) */}
+        <th>เข้า OT</th>
+        <th>ออก OT</th>
         <th>ชั่วโมง OT</th>
-        <th>จ่ายเงินสด</th>
-        <th>ลบ</th>
+
+        {/* เวลาทำงาน */}
+        <th>เข้างาน</th>
+        <th>ออกงาน</th>
+        <th>ชั่วโมงทำงาน</th>
+
+        {/* OT (รอบสอง) */}
+        <th>เข้า OT</th>
+        <th>ออก OT</th>
+        <th>ชั่วโมง OT</th>
+
+
+
+        {/* <th>จ่ายเงินสด</th>
+        <th>ลบ</th> */}
       </tr>
     </thead>
     <tbody>
       {rowDataList.map(
         (rowData, index) =>
-          rowData.staffId !== "" && ( // ตรวจสอบว่ามี staffId
+          rowData.employeeId !== "" && ( // ตรวจสอบว่ามี staffId
             <tr key={index}>
-              <td>{rowData.staffId}</td>
-              <td>{rowData.staffName}</td>
-              <td>
+              <td className="text-center">{rowData.employeeId}</td>
+              <td className="text-center">{rowData.employeeName}</td>
+              <td className="text-center">
                 {rowData.shift === "morning_shift" ? (
                   "กะเช้า"
                 ) : rowData.shift === "afternoon_shift" ? (
@@ -1819,25 +1954,37 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
                   ""
                 )}
               </td>
-              <td>{rowData.startTime}</td>
-              <td>{rowData.endTime}</td>
-              <td>{rowData.allTime}</td>
-              <td>{rowData.selectotTime}</td>
-              <td>{rowData.selectotTimeOut}</td>
-              <td>{rowData.otTime}</td>
-              <td>
-                {rowData.cashSalary === "true" || rowData.cashSalary === true
-                  ? `${rowData.specialtSalary} บาท`
+              <td className="text-center">{rowData.beforeStartOtTime}</td>
+              <td className="text-center">{rowData.beforeEndOtTime}</td>
+              <td className="text-center">{rowData.beforeTotalOtTime}</td>
+
+              <td className="text-center">{rowData.startTime}</td>
+              <td className="text-center">{rowData.endTime}</td>
+              <td className="text-center">{rowData.totalTime}</td>
+              <td className="text-center">{rowData.startOtTime}</td>
+              <td className="text-center">{rowData.endOtTime}</td>
+              <td className="text-center">{rowData.totalOtTime}</td>
+              <td className="text-center">
+                {rowData.specialtSalary !== "" 
+                  ? `${parseFloat(rowData.specialtSalary || '0') + parseFloat(rowData.specialtSalaryOT || '0')} บาท`
                   : ""}
               </td>
-              <td>
-                <button
+              <td className="text-center">
+                {/* <button type="button"
                   className="btn btn-xs btn-danger"
                   style={{ padding: "0.3rem", width: "8rem" }}
-                  onClick={() => handleDeleteRow(index)}
+                  onClick={() => handleDeleteRow(parseInt(index))}
                 >
                   Delete
-                </button>
+                </button> */}
+                <button
+  type="button"
+  className="btn btn-xs btn-danger"
+  style={{ padding: "0.3rem", width: "3rem", alignItems: "center", justifyContent: "center" }}
+  onClick={() => handleDeleteRow(parseInt(index))}
+>
+  <i className="fas fa-trash-alt"></i> 
+</button>
               </td>
             </tr>
           )

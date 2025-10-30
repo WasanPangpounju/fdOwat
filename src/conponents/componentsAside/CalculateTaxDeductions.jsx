@@ -12,7 +12,7 @@ function Calculate_tax_deductions() {
         // return () => { /* cleanup code */ };
     }, []);
     return (
-        <body class="hold-transition sidebar-mini" className='editlaout'>
+        <div class="hold-transition sidebar-mini" className='editlaout'>
             <div class="wrapper">
                 <div class="content-wrapper">
                     {/* <!-- Content Header (Page header) --> */}
@@ -399,7 +399,7 @@ function Calculate_tax_deductions() {
                     {/* <!-- /.content --> */}
                 </div>
             </div>
-        </body>
+        </div>
     )
 }
 

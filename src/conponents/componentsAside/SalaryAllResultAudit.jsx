@@ -3475,9 +3475,9 @@ function SalaryAllResultAudit({ employeeList, workplaceList }) {
   };
 
   return (
-    <body class="hold-transition sidebar-mini" className="editlaout">
-      <div class="wrapper">
-        <div class="content-wrapper">
+    <div className="hold-transition sidebar-mini editlaout">
+      <div className="wrapper">
+        <div className="content-wrapper">
           {/* <!-- Content Header (Page header) --> */}
           <ol class="breadcrumb">
             <li class="breadcrumb-item">
@@ -3505,13 +3505,13 @@ function SalaryAllResultAudit({ employeeList, workplaceList }) {
                 <div class="col-md-12">
                   <div class="row">
                     <div class="col-md-3">
-                      <label role="searchEmployeeId">รหัสหน่อยงาน</label>
+                      <label role="searchEmployeeId">รหัสหน่วยงาน</label>
                       {/* <input type="text" class="form-control" id="searchEmployeeId" placeholder="รหัสพนักงาน" value={searchEmployeeId} onChange={(e) => setSearchWorkplaceId(e.target.value)} /> */}
                       <input
                         type="text"
                         className="form-control"
                         id="staffId"
-                        placeholder="รหัสหน่อยงาน"
+                        placeholder="รหัสหน่วยงาน"
                         value={workplacrId}
                         onChange={handleStaffIdChange}
                         onInput={(e) => {
@@ -3729,7 +3729,7 @@ function SalaryAllResultAudit({ employeeList, workplaceList }) {
           </section>
         </div>
       </div>
-    </body>
+    </div>
     // </div>
   );
 }

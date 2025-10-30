@@ -249,7 +249,8 @@ function Examine() {
         localStorage.setItem('staffFullName', staffFullName);
     }, [staffFullName]); 
 
-    async function handleSearch(event) {
+
+    async function backup_handleSearch(event) {
         event.preventDefault();
 
         await localStorage.setItem('employeeId', searchEmployeeId);
@@ -262,8 +263,8 @@ function Examine() {
             // employeeName: searchEmployeeName,
             month: month,
             timerecordId: year,
-
         };
+
         const dataLower = await {
             employeeId: searchEmployeeId,
             // name: searchEmployeeName,
@@ -789,12 +790,323 @@ let r = {};
 
     }
 
+    //latest code
+
+    const [groupOptions , setGroupOptions ] = useState([]);
+    const [groupOptions1 , setGroupOptions1 ] = useState();
+  
+    const [updateButton  , setUpdateButton ] = useState(false);
+const [loading , setLoading] = useState(true);
+const [timeRecord_id, setTimeRecord_id] = useState('');
+const [ rowDataList2, setRowDataList2] = useState([]);
+
+const [editingIndex, setEditingIndex] = useState(null); // Track which row is being edited
+
+// Handle click on "แก้ไข" button (Start Editing)
+const handleEditRow = (index) => {
+  setEditingIndex(index);
+};
+
+// Handle input changes dynamically for any field
+const handleInputChange = (e, index, field) => {
+  const updatedRows = [...rowDataList2];
+  updatedRows[index] = { ...updatedRows[index], [field]: e.target.value };
+  setRowDataList2(updatedRows);
+};
+
+// Handle click on "บันทึก" button (Save)
+const handleSaveRow = () => {
+  setEditingIndex(null); // Exit edit mode
+};
+
+const cleanRowDataList2 = async () => {
+    // Filter out rows where `workplaceId` is empty or null
+    const cleanedData = await rowDataList2.filter((row) => row.workplaceId?.trim() !== "");
+    // Update state with cleaned data
+    await setRowDataList2(cleanedData);
+  };
+  
+async function handleUpdateWorkplaceTimerecord () {
+    const data = {
+        year: year,
+        employeeId: staffId,
+        employeeName: "",
+        month: month,
+        employee_record: rowDataList2,
+      };
+//   alert(JSON.stringify(data , null,2) );
+    try {
+        setLoading(true); // Start loading state
+        await cleanRowDataList2();
+
+        const response = await axios.put(
+            endpoint + "/timerecord/updatetimerecordemployee/" + timeRecord_id,
+            data
+          );
+
+          if (response?.status === 201) {
+            alert("บันทึกสำเร็จ");
+            // handleCheckTimerecord();
+                    setUpdateButton(true);
+                    // alert(response.data.recordworkplace[0].employee_workplaceRecord[1].workplaceId);
+                    setTimeRecord_id(response?.data?.employee_record._id);
+                    let apiData = response?.data?.employee_record || [];
+
+                    // Extract existing dates from API response
+                    const existingDates = new Set(apiData.map((item) => parseInt(item.date, 10)));
+        
+                    // Create an array to store sorted data
+                    let sortedData = [...apiData];
+        
+                    // Function to create an empty record
+                    const emptyRecord = (date) => ({
+                        workplaceId: "",
+                        workplaceName: "",
+                        wGroup: "",
+                        date: date.toString(), // Ensure it's always a string
+                        shift: "",
+                        startTime: "",
+                        endTime: "",
+                        totalTime: "",
+                        beforeStartOtTime: "",
+                        beforeEndOtTime: "",
+                        beforeTotalOtTime: "",
+                        startOtTime: "",
+                        endOtTime: "",
+                        totalOtTime: "",
+                        cashBeforeOt: "",
+                        cashBeforeOtMul: "",
+                        cashWork: "",
+                        cashWorkMul: "",
+                        cashOt: "",
+                        cashOtMul: "",
+                        cashSalary: "",
+                        specialtSalary: "",
+                        specialtSalaryOT: "",
+                        messageSalary: "",
+                        dayType: "",
+                        addSalary: [],
+                    });
+        
+                    // Loop through 21-31 and add missing dates
+                    for (let i = 21; i <= 31; i++) {
+                        if (!existingDates.has(i)) { 
+                            sortedData.push(emptyRecord(i));
+                        }
+                    }
+        
+                    // Loop through 1-20 and add missing dates
+                    for (let i = 1; i <= 20; i++) {
+                        if (!existingDates.has(i)) { 
+                            sortedData.push(emptyRecord(i));
+                        }
+                    }
+        
+                    // Sort the final list: 21-31 first, then 1-20
+                    sortedData = sortedData.sort((a, b) => {
+                        const dateA = parseInt(a.date, 10);
+                        const dateB = parseInt(b.date, 10);
+        
+                        // Ensure valid dates only
+                        if (isNaN(dateA) || isNaN(dateB)) return 0;
+        
+                        // Sort within groups: (21-31 first, then 1-20)
+                        if ((dateA >= 21 && dateB >= 21) || (dateA <= 20 && dateB <= 20)) {
+                            return dateA - dateB;
+                        }
+                        return dateA >= 21 ? -1 : 1;
+                    });
+        
+                    // Assign temporary indices after sorting
+                    setRowDataList2(sortedData.map((item, index) => ({ ...item, tmpIndex: index })));
+    setLoading(false);
+    
+          }
+
+    } catch (error) {
+        console.error("Error updating data:", error);
+        alert("❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์");
+      } finally {
+        setLoading(false); // Stop loading state
+      }    
+
+}    
+
+
+    async function handleSearch(event) {
+        event.preventDefault();
+
+        await localStorage.setItem('employeeId', searchEmployeeId);
+        await localStorage.setItem('month', month);
+        await localStorage.setItem('year', year);
+
+        await setUpdateButton(false);
+        await setLoading(true);
+
+        await setRowDataList2([]);
+        
+        //data for search timerecordEmployee
+        const data = await {
+            employeeId: searchEmployeeId,
+            month: month,
+            year: year,
+        };
+
+
+        try {
+            const response = await axios.post(
+              endpoint + "/timerecord/searchtimerecordemployee",
+              data
+            );
+            // alert(JSON.stringify(response ,null,2));
+    
+            if (response.data.result.length < 1) {
+              alert("ไม่พบข้อมูล");
+              // Set the state to false if no data is found
+              setUpdateButton(false);
+              setTimeRecord_id("");
+              setRowDataList2([]);
+            } else {
+              // Set the state to true if data is found
+              await setUpdateButton(true);
+
+              // alert(response.data.recordworkplace[0].employee_workplaceRecord[1].workplaceId);
+              await setTimeRecord_id(response.data.result[0]._id);
+
+            //   setRowDataList2(response.data.recordworkplace[0].employee_workplaceRecord);
+              if (response?.data?.result?.[0]?.employee_record) {
+
+                let apiData = response?.data?.result?.[0]?.employee_record || [];
+
+                // Extract existing dates from API response
+                const existingDates = new Set(apiData.map((item) => parseInt(item.date, 10)));
+    
+                // Create an array to store sorted data
+                let sortedData = [...apiData];
+    
+                // Function to create an empty record
+                const emptyRecord = (date) => ({
+                    workplaceId: "",
+                    workplaceName: "",
+                    wGroup: "",
+                    date: date.toString(), // Ensure it's always a string
+                    shift: "",
+                    startTime: "",
+                    endTime: "",
+                    totalTime: "",
+                    beforeStartOtTime: "",
+                    beforeEndOtTime: "",
+                    beforeTotalOtTime: "",
+                    startOtTime: "",
+                    endOtTime: "",
+                    totalOtTime: "",
+                    cashBeforeOt: "",
+                    cashBeforeOtMul: "",
+                    cashWork: "",
+                    cashWorkMul: "",
+                    cashOt: "",
+                    cashOtMul: "",
+                    cashSalary: "",
+                    specialtSalary: "",
+                    specialtSalaryOT: "",
+                    messageSalary: "",
+                    dayType: "",
+                    addSalary: [],
+                });
+    
+                // Loop through 21-31 and add missing dates
+                for (let i = 21; i <= 31; i++) {
+                    if (!existingDates.has(i)) { 
+                        sortedData.push(emptyRecord(i));
+                    }
+                }
+    
+                // Loop through 1-20 and add missing dates
+                for (let i = 1; i <= 20; i++) {
+                    if (!existingDates.has(i)) { 
+                        sortedData.push(emptyRecord(i));
+                    }
+                }
+    
+                // Sort the final list: 21-31 first, then 1-20
+                sortedData = sortedData.sort((a, b) => {
+                    const dateA = parseInt(a.date, 10);
+                    const dateB = parseInt(b.date, 10);
+    
+                    // Ensure valid dates only
+                    if (isNaN(dateA) || isNaN(dateB)) return 0;
+    
+                    // Sort within groups: (21-31 first, then 1-20)
+                    if ((dateA >= 21 && dateB >= 21) || (dateA <= 20 && dateB <= 20)) {
+                        return dateA - dateB;
+                    }
+                    return dateA >= 21 ? -1 : 1;
+                });
+    
+                // Assign temporary indices after sorting
+                setRowDataList2(sortedData.map((item, index) => ({ ...item, tmpIndex: index })));
+setLoading(false);
+
+                // setRowDataList2(
+                //   response?.data?.result?.[0]?.employee_record
+                //     .sort((a, b) => {
+                //       const dateA = parseInt(a.date, 10);
+                //       const dateB = parseInt(b.date, 10);
+                
+                //       // Prioritize dates from 21-30 first, then 01-20
+                //       if ((dateA >= 21 && dateB >= 21) || (dateA <= 20 && dateB <= 20)) {
+                //         return dateA - dateB; // Sort normally within each group
+                //       }
+                //       return dateA >= 21 ? -1 : 1; // Move 21-30 to the front
+                //     })
+                //     .map((item, index) => ({
+                //       ...item,
+                //       tmpIndex: index,
+                //     }))
+                // );
+                
+                // setRowDataList2(response.data.result[0].employee_record);
+                // setRowDataList2(
+                //   response.data.recordworkplace[0].employee_workplaceRecord.map(
+                //     (item, index) => ({
+                //       ...item,
+                //       tmpIndex: index,
+                //     })
+                //   )
+                // );
+                //111
+                // setRowDataList2(
+                //   response.data.recordworkplace[0].employee_workplaceRecord
+                //     .sort((a, b) => parseInt(a.date) - parseInt(b.date)) // Sort by date (ascending order)
+                //     .map((item, index) => ({
+                //       ...item,
+                //       tmpIndex: index,
+                //     }))
+                // );
+              } else {
+                setRowDataList2([]);
+              }
+    
+            }
+          } catch (error) {
+            alert("กรุณาตรวจสอบข้อมูลในช่องค้นหา");
+            alert(error.message);
+            window.location.reload();
+          }
+    
+    }
+
+
     return (
         // <div>
-        <body class="hold-transition sidebar-mini" className='editlaout' id='test123'>
-            <div class="wrapper">
+        // <body class="hold-transition sidebar-mini" className='editlaout' id='test123'>
+        //     <div class="wrapper">
 
-                <div class="content-wrapper">
+        //         <div class="content-wrapper">
+        <div className="hold-transition sidebar-mini editlaout">
+        <div className="wrapper">
+          <div className="content-wrapper">
+    
                     {/* <!-- Content Header (Page header) --> */}
                     <ol class="breadcrumb">
                         <li class="breadcrumb-item"><i class="fas fa-home"></i> <a href="index.php">หน้าหลัก</a></li>
@@ -949,115 +1261,177 @@ let r = {};
                                     </div>
                                 </div>
                                 <br />
-                                <div class="row">
-                                    <div class="col-md-12">
 
-                                        <table border="1" class="table table-bordered">
-                                            <thead>
-                                                <tr>
-                                                    <th scope="col" class="text-center" style={headerCellStyle}>วันที่</th>
-                                                    <th scope="col" class="text-center" style={headerCellStyle}>หน่วยงาน</th>
-                                                    <th scope="col" class="text-center" style={headerCellStyle}>เวลาเข้า</th>
-                                                    <th scope="col" class="text-center" style={headerCellStyle}>เวลาออก</th>
-                                                    <th scope="col" class="text-center" style={headerCellStyle}>เวลาเข้า OT</th>
-                                                    <th scope="col" class="text-center" style={headerCellStyle}>เวลาออก OT</th>
-                                                    <th scope="col" class="text-center" style={headerCellStyle}>ชั่วโมงทำงาน</th>
-                                                    <th class="text-center" style={headerCellStyle}>ชั่วโมง OT</th>
-                                                    {/* <th style={headerCellStyle}>แก้/ลบ</th> */}
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {/* {resultArray.map((value, index) => (
-                                                        // <tr key={index}>
-                                                        //     <td>{resultArray{$index}}</td>
-                                                        // </tr>
-                                                        <tr key={index}>
-                                                            <td style={cellStyle}>{value}</td>
-                                                        </tr>
-                                                    ))} */}
+                                <form >
+                                <section className="Frame">
+      <div className="table-responsive">
+      <table className="table table-bordered">
+        {/* <table className="table table-bordered table-sm text-center align-middle"> */}
+          <thead>
+            <tr>
+              <th className="text-center">หน่วยงาน</th>
+              <th className="text-center">ชื่อหน่วยงาน</th>
+              <th className="text-center">กลุ่มงาน</th>
+              <th className="text-center">วันที่</th>
+              <th className="text-center">กะ</th>
+              <th className="text-center">เวลาเข้า OT</th>
+              <th className="text-center">เวลาออก OT</th>
+              <th className="text-center">ชั่วโมง OT</th>
+              <th className="text-center">เข้างาน</th>
+              <th className="text-center">ออกงาน</th>
+              <th className="text-center">ชั่วโมงทำงาน</th>
+              <th className="text-center">เข้า OT</th>
+              <th className="text-center">ออก OT</th>
+              <th className="text-center">ชั่วโมง OT</th>
+              <th className="text-center">แก้ไข</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rowDataList2.map((rowData2, index) => (
+              <tr key={index} className="align-middle text-center">
+                {/* Editable Columns */}
+                <th>
+                  {editingIndex === index ? (
+                    <input
+                      type="text"
+                      value={rowData2.workplaceId}
+                      onChange={(e) => handleInputChange(e, index, "workplaceId")}
+                      className="form-control"
+                    />
+                  ) : (
+                    rowData2.workplaceId
+                  )}
+                </th>
+                <th>
+                  {editingIndex === index ? (
+                    <input
+                      type="text"
+                      value={rowData2.workplaceName}
+                      onChange={(e) => handleInputChange(e, index, "workplaceName")}
+                      className="form-control"
+                    />
+                  ) : (
+                    rowData2.workplaceName
+                  )}
+                </th>
+                <th>
+                  {editingIndex === index ? (
+                    <input
+                      type="text"
+                      value={rowData2.wGroup}
+                      onChange={(e) => handleInputChange(e, index, "wGroup")}
+                      className="form-control"
+                    />
+                  ) : (
+                    groupOptions[parseInt(rowData2.wGroup) - 1] || ""
+                  )}
+                </th>
+                <th>
+                  {editingIndex === index ? (
+                    <input
+                      type="text"
+                      value={rowData2.date}
+                      onChange={(e) => handleInputChange(e, index, "date")}
+                      className="form-control"
+                    readOnly />
+                  ) : (
+                    rowData2.date
+                  )}
+                </th>
+                <th>
+                  {editingIndex === index ? (
+                    <select
+                      value={rowData2.shift}
+                      onChange={(e) => handleInputChange(e, index, "shift")}
+                      className="form-control"
+                    >
+                      <option value="morning_shift">กะเช้า</option>
+                      <option value="afternoon_shift">กะบ่าย</option>
+                      <option value="night_shift">กะดึก</option>
+                      <option value="specialt_shift">กะพิเศษ</option>
+                    </select>
+                  ) : rowData2.shift === "morning_shift"
+                    ? "กะเช้า"
+                    : rowData2.shift === "afternoon_shift"
+                    ? "กะบ่าย"
+                    : rowData2.shift === "night_shift"
+                    ? "กะดึก"
+                    : rowData2.shift === "specialt_shift"
+                    ? "กะพิเศษ"
+                    : ""}
+                </th>
 
-                                                {/* {resultArray.map((value, index) => (
-                                                        <tr key={index}>
-                                                            <td style={commonNumbers.has(resultArray2[index]) ? { ...cellStyle, backgroundColor: 'yellow' } : cellStyle}>
-                                                                {value}
-                                                            </td>
-                                                            <td style={commonNumbers.has(resultArray2[index]) ? { ...cellStyle, backgroundColor: 'yellow' } : cellStyle}>
-                                                                399-689
-                                                            </td>
-                                                            <td style={commonNumbers.has(resultArray2[index]) ? { ...cellStyle, backgroundColor: 'yellow' } : cellStyle}>
-                                                                07.00
-                                                            </td>
-                                                            <td style={commonNumbers.has(resultArray2[index]) ? { ...cellStyle, backgroundColor: 'yellow' } : cellStyle}>
-                                                                16.00
-                                                            </td>
-                                                            <td style={commonNumbers.has(resultArray2[index]) ? { ...cellStyle, backgroundColor: 'yellow' } : cellStyle}>
-                                                                16.00
-                                                            </td>
-                                                            <td style={commonNumbers.has(resultArray2[index]) ? { ...cellStyle, backgroundColor: 'yellow' } : cellStyle}>
-                                                                17.00
-                                                            </td>
-                                                            <td style={commonNumbers.has(resultArray2[index]) ? { ...cellStyle, backgroundColor: 'yellow' } : cellStyle}>
-                                                                8
-                                                            </td>
-                                                            <td style={commonNumbers.has(resultArray2[index]) ? { ...cellStyle, backgroundColor: 'yellow' } : cellStyle}>
-                                                                1
-                                                            </td>
-                                                            <td style={commonNumbers.has(resultArray2[index]) ? { ...cellStyle, backgroundColor: 'yellow' } : cellStyle}>
-                                                                ลบ/แก้ไข
-                                                            </td>
-                                                        </tr>
-                                                    ))} */}
+                {/* Editable Time Fields */}
+                {[
+                  "beforeStartOtTime",
+                  "beforeEndOtTime",
+                  "beforeTotalOtTime",
+                  "startTime",
+                  "endTime",
+                  "totalTime",
+                  "startOtTime",
+                  "endOtTime",
+                  "totalOtTime",
+                ].map((field, i) => (
+                  <th key={i}>
+                    {editingIndex === index ? (
+                      <input
+                        type="text"
+                        value={rowData2[field]}
+                        onChange={(e) => handleInputChange(e, index, field)}
+                        className="form-control"
+                      />
+                    ) : (
+                      rowData2[field]
+                    )}
+                  </th>
+                ))}
 
-                                                {resultArrayWithWorkplaceRecords.map((workplaceRecord, index) => (
+                {/* Edit & Save Button */}
+                <th className="text-center">
+                  {editingIndex === index ? (
+                    <button
+                      type="button"
+                      className="btn btn-success btn-sm"
+                      style={{ padding: "0.3rem", width: "3rem" }}
+                      onClick={handleSaveRow}
+                    >
+                      ✅
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn btn-warning btn-sm"
+                      style={{ padding: "0.3rem", width: "3rem" }}
+                      onClick={() => handleEditRow(index)}
+                    >
+                      ✏️
+                    </button>
+                  )}
+                </th>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
 
-                                                    workplaceRecord.editdata == true ? (
-                                                        <tr>
-                                                            <td><input type="text" /></td>
-                                                        </tr>
-                                                    ) : (
-<>                                                    {rowData(workplaceRecord , resultArray[index] , resultArray2[index] , commonNumbersArray , commonNumbers)}
-</>                                                        
-//                                                         <tr key={index}>
-//                                                             {/* <td style={commonNumbers.has(resultArray2[index]) ? { ...cellStyle, backgroundColor: 'yellow' } : cellStyle}> */}
-//                                                             {/* <td style={[...commonNumbers].includes(resultArray2[index]) ? { ...cellStyle, backgroundColor: 'yellow' } : cellStyle}> */}
+<div class="form-group">
+                {updateButton ? (
+                  <button type='button'
+                    class="btn b_save"
+                    onClick={handleUpdateWorkplaceTimerecord}
+                    disabled={loading} // Disable the button if loading is true
+                  >
+                    <i class="nav-icon fas fa-save"></i> &nbsp; อัพเดท
+                  </button>
+                ) : (
+                    <p></p>
+                )}
+              </div>
 
-//                                                             <td style={commonNumbersArray.includes(resultArray2[index].toString()) ? { ...cellStyle, backgroundColor: 'yellow' } : cellStyle}>
-                                                                //  {resultArray[index]} 
-//                                                             </td>
-//                                                             <td style={[...commonNumbers].includes(resultArray2[index]) ? { ...cellStyle, backgroundColor: 'yellow' } : cellStyle}>
-//                                                                 {workplaceRecord.workplaceId}
-//                                                             </td>
-//                                                             <td style={[...commonNumbers].includes(resultArray2[index]) ? { ...cellStyle, backgroundColor: 'yellow' } : cellStyle}>
-//                                                                 {workplaceRecord.startTime}
-//                                                             </td>
-//                                                             <td style={[...commonNumbers].includes(resultArray2[index]) ? { ...cellStyle, backgroundColor: 'yellow' } : cellStyle}>
-//                                                                 {workplaceRecord.endTime}
-//                                                             </td>
-//                                                             <td style={[...commonNumbers].includes(resultArray2[index]) ? { ...cellStyle, backgroundColor: 'yellow' } : cellStyle}>
-//                                                                 {workplaceRecord.selectotTime}
-//                                                             </td>
-//                                                             <td style={[...commonNumbers].includes(resultArray2[index]) ? { ...cellStyle, backgroundColor: 'yellow' } : cellStyle}>
-//                                                                 {workplaceRecord.selectotTimeOut}
-//                                                             </td>
-//                                                             <td style={[...commonNumbers].includes(resultArray2[index]) ? { ...cellStyle, backgroundColor: 'yellow' } : cellStyle}>
-//                                                                 {workplaceRecord.allTimes}
-//                                                             </td>
-//                                                             <td style={[...commonNumbers].includes(resultArray2[index]) ? { ...cellStyle, backgroundColor: 'yellow' } : cellStyle}>
-//                                                                 {workplaceRecord.otTimes}
-//                                                             </td>
-//                                                             {/* <td style={commonNumbers.has(resultArray2[index]) ? { ...cellStyle, backgroundColor: 'yellow' } : cellStyle}>
-//                                                                     <a href="https://example.com" class="link1" style={{ color: 'red' }}><b>ลบ</b></a> / <a href="#" onClick={(e) => editdata(index, workplaceRecord)} class="link2" style={{ color: 'blue' }}><b>แก้ไข</b></a>
-//                                                                 </td> */}
-//                                                         </tr>
-                                                    )
+            </form>
 
-
-                                                ))}
-                                            </tbody>
-                                        </table>
-
-                                    </div>
-                                </div>
 
                                 <div class="line_btn">
                                     {/* {newWorkplace ? (
@@ -1067,10 +1441,10 @@ let r = {};
 
                                     )}
                                     <button class="btn clean"><i class="far fa-window-close"></i> &nbsp;ยกเลิก</button> */}
-                                    <Link to="/Addsettime">
+                                    {/* <Link to="/Addsettime">
 
                                         <button type="button" class="btn b_save"><i class="nav-icon fas fa-save"></i> &nbsp;แก้ไข</button>
-                                    </Link>
+                                    </Link> */}
 
                                     <Link to="/compensation">
                                         <button class="btn clean"><i>&gt;</i> &nbsp;ถัดไป</button>
@@ -1084,8 +1458,8 @@ let r = {};
                 </div>
             </div>
 {/* {JSON.stringify(AlldayworkLower || '' ,null,2)} */}
-        </body>
-        // </div>
+        {/* </body> */}
+        </div>
     )
 }
 

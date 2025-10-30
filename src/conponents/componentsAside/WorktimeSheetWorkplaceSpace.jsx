@@ -14,6 +14,7 @@ import { useTable } from "react-table";
 import th from "date-fns/locale/th"; // Import Thai locale data from date-fns
 import en from "date-fns/locale/en-US";
 
+
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
@@ -8759,9 +8760,14 @@ function WorktimeSheetWorkplaceSpace({ employeeList }) {
 
   return (
     // <div>
-    <body class="hold-transition sidebar-mini" className="editlaout">
-      <div class="wrapper">
-        <div class="content-wrapper">
+    // <body class="hold-transition sidebar-mini" className="editlaout">
+    //   <div class="wrapper">
+    //     <div class="content-wrapper">
+    <div className="hold-transition sidebar-mini editlaout">
+    <div className="wrapper">
+      <div className="content-wrapper">
+
+
           {/* <!-- Content Header (Page header) --> */}
           <ol class="breadcrumb">
             <li class="breadcrumb-item">
@@ -9081,7 +9087,8 @@ function WorktimeSheetWorkplaceSpace({ employeeList }) {
       </div>
 
       {/* {JSON.stringify(listDayOff,null,2)} */}
-    </body>
+    {/* </body> */}
+</div>
   );
 }
 

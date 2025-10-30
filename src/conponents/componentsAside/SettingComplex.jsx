@@ -1,5 +1,5 @@
 import endpoint from "../../config";
-
+import Swal from 'sweetalert2'
 import axios from "axios";
 import React, { useEffect, useState } from "react";
 
@@ -12,16 +12,16 @@ import "../editwindowcss.css";
 import EmployeeWorkDay from "./componentsetting/EmployeeWorkDay";
 import { useLocation } from "react-router-dom";
 
-function SettingComplex({ workplaceList }) {
+function SettingComplex({ workplaceList, employeeList }) {
   // Use useLocation hook to access query parameters from URL
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const workplaceIdSend = queryParams.get("workplaceId");
   const workplaceNameSend = queryParams.get("workplaceName");
 
-  console.log("workplaceId123", workplaceIdSend);
-  console.log("workplaceName123", workplaceNameSend);
-
+  // console.log("workplaceId123", workplaceIdSend);
+  // console.log("workplaceName123", workplaceNameSend);
+  console.log("workplaceList", workplaceList);
   const tableStyle = {
     borderCollapse: "collapse",
     width: "100%",
@@ -39,7 +39,7 @@ function SettingComplex({ workplaceList }) {
   };
 
   const [file, setFile] = useState(null);
-  const [preview, setPreview] = useState(null);
+ const [preview, setPreview] = useState(null);
 
   // State for selected values
   const [selectedDay, setSelectedDay] = useState("");
@@ -67,14 +67,14 @@ function SettingComplex({ workplaceList }) {
 
   // Options for dropdowns
   const daysOfWeek = [
- "อาทิตย์",  
-  "จันทร์",
+    "อาทิตย์",
+    "จันทร์",
     "อังคาร",
     "พุธ",
     "พฤหัส",
     "ศุกร์",
     "เสาร์",
-    
+
   ];
   const positions = ["หัวหน้างาน", "พนักงานทำความสะอาด"];
 
@@ -82,7 +82,7 @@ function SettingComplex({ workplaceList }) {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (selectedDates && selectedPosition && numberOfEmployees !== "") {
+    if (selectedDay && selectedPosition && numberOfEmployees !== "") {
       const newData = {
         day: selectedDay,
         position: selectedPosition,
@@ -263,6 +263,12 @@ function SettingComplex({ workplaceList }) {
       [name]: value,
     }));
   };
+  const handleInlineEdit_specialwork = (listIndex, empIndex, newValue) => {
+  const updatedList = [...workTimeDayList_specialwork];
+  updatedList[listIndex].employees_specialwork[empIndex].countPerson_specialwork = newValue;
+  setWorkTimeDayList_specialwork(updatedList);
+};
+
 
   const handleInputChangePerson = (e, index) => {
     const { name, value } = e.target;
@@ -379,7 +385,7 @@ function SettingComplex({ workplaceList }) {
         }
         // await alert(JSON.stringify(response.data.employees[0].addSalary ,null,2 ));
         // await alert(JSON.stringify(response.data.employees[0].deductSalary ,null,2 ));
-      } catch (e) {}
+      } catch (e) { }
     };
 
     getMaster();
@@ -454,6 +460,7 @@ function SettingComplex({ workplaceList }) {
     });
   }, [listEmployeeDay, listSpecialWorktime]);
 
+
   const handleSearchAndDelete = (searchDay, searchPosition) => {
     const updatedList = listEmployeeDay.filter(
       (entry) => entry.day !== searchDay || entry.position !== searchPosition
@@ -479,15 +486,41 @@ function SettingComplex({ workplaceList }) {
   const [newWorkplace, setNewWorkplace] = useState(true);
 
   const [selectedDates, setSelectedDates] = useState([]);
+  const [publicHolidayDates, setPublicHolidayDates] = useState([]); // วันหยุดนักขัตฤกษ์
   const [reason, setReason] = useState("");
 
   const [day, setDay] = useState("");
   const [month, setMonth] = useState("");
   const [year, setYear] = useState(new Date().getFullYear());
 
-  // const handleDateChange = (date) => {
-  //     setSelectedDates((prevDates) => [...prevDates, date]);
-  // };
+  // ตัวแปรสำหรับวันหยุดนักขัตฤกษ์
+  const [publicHolidayDay, setPublicHolidayDay] = useState("");
+  const [publicHolidayMonth, setPublicHolidayMonth] = useState("");
+  const [publicHolidayYear, setPublicHolidayYear] = useState(new Date().getFullYear());
+  const [publicHolidayNote, setPublicHolidayNote] = useState(""); // เพิ่มสำหรับหมายเหตุ
+
+  const [workRateChange, setWorkRateChange] = useState('');
+  const [workRateDayChange, setWorkRateDayChange] = useState("");
+  const [workRateMonthChange, setWorkRateMonthChange] = useState("");
+  const [workRateYearChange, setWorkRateYearChange] = useState(new Date().getFullYear());
+
+  //set day month year to WorkRate change
+  useEffect(() => {
+    if (workRateDayChange && workRateMonthChange && workRateYearChange) {
+      const selectedDate = new Date(`${workRateMonthChange }/${workRateDayChange }/${workRateYearChange}`);
+      setWorkRateChange(selectedDate || null);
+    }
+  }, [ workRateDayChange , workRateMonthChange , workRateYearChange] );
+
+  useEffect(() => {
+    const currentDate = new Date(workRateChange); // Get the workRateChange date
+
+    setWorkRateDayChange(currentDate.getDate()); // Day of the month (1-31) 
+   setWorkRateMonthChange(currentDate.getMonth() + 1); // Month (0-11) - Add 1 to get 1-12
+   setWorkRateYearChange( currentDate.getFullYear()); // Year (e.g., 2025)
+}, [workRateChange ] );
+
+
   const handleAddDate = () => {
     if (day && month && year) {
       const selectedDate = new Date(`${month}/${day}/${year}`);
@@ -504,21 +537,21 @@ function SettingComplex({ workplaceList }) {
           // Show alert for duplicate date selection
           alert(
             day +
-              "/" +
-              month +
-              "/" +
-              year +
-              "  Selected date already exists in the list."
+            "/" +
+            month +
+            "/" +
+            year +
+            "  Selected date already exists in the list."
           );
         }
-        setDay("");
-        setMonth("");
+        // setDay('');
+        // setMonth('');
         setYear(new Date().getFullYear());
       } else {
         // Show alert for invalid date selection
         alert(
           day / month / year +
-            "Invalid date selection. Please select a valid day, month, and year."
+          "Invalid date selection. Please select a valid day, month, and year."
         );
       }
     } else {
@@ -535,6 +568,213 @@ function SettingComplex({ workplaceList }) {
 
   const handleReasonChange = (event) => {
     setReason(event.target.value);
+  };
+
+  // ฟังก์ชันสำหรับวันหยุดนักขัตฤกษ์ - แก้ไขให้เก็บข้อมูลไว้ใน state เหมือนวันหยุดหน่วยงาน
+  const handleAddPublicHoliday = () => {
+    if (publicHolidayDay && publicHolidayMonth && publicHolidayYear) {
+      const selectedDate = new Date(`${publicHolidayMonth}/${publicHolidayDay}/${publicHolidayYear}`);
+      if (!isNaN(selectedDate.getTime())) {
+        // ตรวจสอบว่ามีวันที่นี้อยู่แล้วหรือไม่
+        const isDuplicate = publicHolidayDates.some((holiday) => {
+          try {
+            const existingDate = holiday.date || holiday; // รองรับทั้งแบบ object และ Date
+            if (existingDate instanceof Date && !isNaN(existingDate.getTime())) {
+              return existingDate.getDate() === selectedDate.getDate() && 
+                     existingDate.getMonth() === selectedDate.getMonth() && 
+                     existingDate.getFullYear() === selectedDate.getFullYear();
+            }
+            return false;
+          } catch (error) {
+            console.error("Error comparing dates:", error);
+            return false;
+          }
+        });
+        
+        if (!isDuplicate) {
+          // เพิ่มข้อมูลแบบ object ที่มีทั้งวันที่และหมายเหตุ (เก็บไว้ใน state เท่านั้น)
+          const newHoliday = {
+            date: selectedDate,
+            note: publicHolidayNote || ""
+          };
+          
+          const updatedDates = [...publicHolidayDates, newHoliday];
+          setPublicHolidayDates(updatedDates);
+          
+          // ล้างค่าหลังเพิ่มใน state แล้ว
+          setPublicHolidayNote("");
+          setPublicHolidayDay("");
+          setPublicHolidayMonth("");
+          setPublicHolidayYear(new Date().getFullYear());
+          
+          // แสดงข้อความสำเร็จ (ไม่ส่ง API ทันที)
+          
+        
+        }
+      } else {
+        Swal.fire({
+          title: "ข้อมูลไม่ถูกต้อง",
+          text: "วันที่ไม่ถูกต้อง กรุณาเลือกวัน เดือน และปีที่ถูกต้อง",
+          icon: "error"
+        });
+      }
+    } else {
+      Swal.fire({
+        title: "ข้อมูลไม่ครบถ้วน",
+        text: "กรุณาเลือกวัน เดือน และปี สำหรับวันหยุดนักขัตฤกษ์",
+        icon: "warning"
+      });
+    }
+  };
+
+const handleRemovePublicHoliday = async (holidayToRemove) => {
+  try {
+    // กรองออกเฉพาะรายการที่ไม่ใช่รายการที่ต้องการลบ
+    const updatedDates = publicHolidayDates.filter(holiday => {
+      if (holidayToRemove === holiday) return false;
+      
+      // ถ้าต้องเปรียบเทียบวันที่ (ในกรณีที่อาจมีการอ้างอิงวัตถุใหม่แต่เป็นวันที่เดียวกัน)
+      if (holiday.date && holidayToRemove.date) {
+        const date1 = holiday.date;
+        const date2 = holidayToRemove.date;
+        return !(date1.getDate() === date2.getDate() && 
+                date1.getMonth() === date2.getMonth() && 
+                date1.getFullYear() === date2.getFullYear() &&
+                holiday.note === holidayToRemove.note);
+      }
+      
+      return true;
+    });
+    
+    setPublicHolidayDates(updatedDates);
+    
+    // ส่งข้อมูลไป API
+    await updatePublicHolidayToAPI(updatedDates);
+    
+  } catch (error) {
+    console.error("Error removing public holiday:", error);
+    // แสดงข้อความ error เฉพาะเมื่อเกิดข้อผิดพลาดจริง ๆ เท่านั้น
+    Swal.fire({
+      title: "เกิดข้อผิดพลาด",
+      text: "เกิดข้อผิดพลาดในการลบวันหยุดนักขัตฤกษ์",
+      icon: "error"
+    });
+  }
+};
+
+  // ฟังก์ชันส่งข้อมูลวันหยุดนักขัตฤกษ์ไป API
+  const updatePublicHolidayToAPI = async (holidayDates) => {
+    if (!workplaceId) {
+      Swal.fire({
+        title: "ข้อมูลไม่ครบถ้วน",
+        text: "กรุณาเลือกหน่วยงานก่อน",
+        icon: "warning"
+      });
+      return;
+    }
+
+    try {
+      // แปลงข้อมูลให้เป็นรูปแบบที่ API ต้องการ
+      const formattedDates = holidayDates
+        .filter(holiday => {
+          // กรองข้อมูลวันที่ไม่ถูกต้องออก
+          const date = holiday.date || holiday;
+          return date instanceof Date && !isNaN(date.getTime());
+        })
+        .map(holiday => {
+          try {
+            if (holiday.date) {
+              // ข้อมูลใหม่ที่มีทั้ง date และ note
+              const date = holiday.date;
+              if (date instanceof Date && !isNaN(date.getTime())) {
+                // แปลงเป็น string เพื่อส่งไป API
+                return {
+                  date: date.toISOString(),
+                  note: holiday.note || ""
+                };
+              }
+              return null;
+            } else {
+              // ข้อมูลเก่าที่เป็นแค่วันที่
+              if (holiday instanceof Date && !isNaN(holiday.getTime())) {
+                return {
+                  date: holiday.toISOString(),
+                  note: ""
+                };
+              }
+              return null;
+            }
+          } catch (error) {
+            console.error("Error formatting holiday date:", error);
+            return null;
+          }
+        })
+        .filter(item => item !== null);
+
+      console.log("วันหยุดนักขัตฤกษ์ที่กำลังส่งไป API:", formattedDates);
+      
+      // ตรวจสอบว่ามีหมายเหตุถูกส่งไปหรือไม่
+      const holidaysWithNotes = formattedDates.filter(h => h.note && h.note.trim() !== "");
+      console.log(`มีวันหยุด ${holidaysWithNotes.length} รายการที่มีหมายเหตุ`);
+
+      const data = {
+        workplaceId: workplaceId,
+        publicHoliday: formattedDates
+      };
+
+      // ใช้ endpoint ใหม่ที่จะส่งข้อมูลไปอัปเดตใน dayOffOnly
+      const response = await axios.post(
+        `${endpoint}/workplace/sync-public-holidays/${workplaceId}`,
+        data
+      );
+
+      if (response.status === 200) {
+        console.log("อัปเดตวันหยุดนักขัตฤกษ์สำเร็จ และซิงค์ไป dayOffOnly แล้ว", response.data);
+        
+        // หลังจากอัปเดตสำเร็จ เรียกข้อมูลใหม่จาก server เพื่อให้ข้อมูลที่แสดงตรงกับฐานข้อมูล
+        try {
+          const workplace = await axios.get(`${endpoint}/workplace/${workplaceId}`);
+          if (workplace.data && workplace.data.publicHoliday) {
+            // อัปเดต state ด้วยข้อมูลล่าสุด
+            const freshPublicHolidays = workplace.data.publicHoliday
+              .map(holiday => {
+                try {
+                  if (typeof holiday === 'object' && holiday.date) {
+                    console.log("โหลดข้อมูลวันหยุด:", holiday.date, "หมายเหตุ:", holiday.note || "(ไม่มี)");
+                    return {
+                      date: new Date(holiday.date),
+                      note: holiday.note || ""
+                    };
+                  } else {
+                    return {
+                      date: new Date(holiday),
+                      note: ""
+                    };
+                  }
+                } catch (err) {
+                  console.error("Error parsing fresh public holiday:", err);
+                  return null;
+                }
+              })
+              .filter(h => h !== null && h.date instanceof Date && !isNaN(h.date.getTime()));
+            
+            console.log("ข้อมูลวันหยุดนักขัตฤกษ์หลังอัปเดต:", 
+              freshPublicHolidays.map(h => ({
+                วันที่: `${h.date.getDate()}/${h.date.getMonth() + 1}/${h.date.getFullYear()}`,
+                หมายเหตุ: h.note || "(ไม่มี)"
+              }))
+            );
+            
+            setPublicHolidayDates(freshPublicHolidays);
+          }
+        } catch (refreshError) {
+          console.error("ไม่สามารถดึงข้อมูลล่าสุดหลังอัปเดต:", refreshError);
+        }
+      }
+    } catch (error) {
+      console.error("เกิดข้อผิดพลาดในการอัปเดตวันหยุดนักขัตฤกษ์:", error);
+      
+    }
   };
 
   // const [daysOff, setDaysOff] = useState(Array(10).fill(''));
@@ -580,13 +820,6 @@ function SettingComplex({ workplaceList }) {
   const [_id, set_id] = useState("");
   const [workplaceId, setWorkplaceId] = useState(""); //รหัสหน่วยงาน
   const [workplaceName, setWorkplaceName] = useState(""); //ชื่อหน่วยงาน
-
-  const [workplaceComplexId, setWorkplaceComplexId] = useState(""); //รหัสกลุ่มงานย่อย
-  const [workplaceComplexName, setWorkplaceComplexName] = useState(""); //ชื่อกลุ่มงานย่อย
-  const [workplacesComplex, setWorkplacesComplex] = useState([]);
-  const [standardWorkplace, setStandardWorkplace] = useState({});
-  const [checkSetStandard, setCheckSetStandard] = useState("");
-
   const [workplaceArea, setWorkplaceArea] = useState(""); //สถานที่ปฏิบัติงาน
   const [workOfWeek, setWorkOfWeek] = useState(""); //วันทำงานต่อสัปดาห์
 
@@ -604,11 +837,10 @@ function SettingComplex({ workplaceList }) {
   const [workStartOt3, setWorkStartOt3] = useState(""); //เวลาเข้ากะเย็น
   const [workEndOt3, setWorkEndOt3] = useState(""); //เวลาออกกะเย็น
 
-  // const [workOfHour, setWorkOfHour] = useState(""); //ชั่วโมงทำงานต่อสัปดาห์
-  // const [workOfOT, setWorkOfOT] = useState(""); //ชั่วโมง OT ต่อสัปดาห์
-
   const [workOfHour, setWorkOfHour] = useState(""); //ชั่วโมงทำงานต่อสัปดาห์
   const [workOfMinute, setWorkOfMinute] = useState(""); //ชั่วโมงทำงานต่อสัปดาห์
+  const [startWorkOfOT, setStartWorkOfOT] = useState(""); //ชั่วโมง OT ต่อสัปดาห์
+  const [startWorkOfOTMinute, setStartWorkOfOTMinute] = useState(""); //ชั่วโมง OT ต่อสัปดาห์
   const [workOfOT, setWorkOfOT] = useState(""); //ชั่วโมง OT ต่อสัปดาห์
   const [workOfOTMinute, setWorkOfOTMinute] = useState(""); //ชั่วโมง OT ต่อสัปดาห์
   const [breakOfOT, setBreakOfOT] = useState(""); //ชั่วโมง OT ต่อสัปดาห์
@@ -625,6 +857,8 @@ function SettingComplex({ workplaceList }) {
   };
 
   const [workRate, setWorkRate] = useState(""); //ค่าจ้างต่อวัน
+  const [addWorkRate, setAddWorkRate] = useState(""); //ค่าจ้างต่อวัน
+
   const [workRateOT, setWorkRateOT] = useState(""); //ค่าจ้าง OT ต่อชั่วโมง
   const [workTotalPeople, setWorkTotalPeople] = useState(""); //จำนวนคนในหน่วยงาน
   const [dayoffRate, setDayoffRate] = useState(""); //ค่าจ้างวันหยุดรายวันต่อชั่วโมง
@@ -718,79 +952,6 @@ function SettingComplex({ workplaceList }) {
     });
   };
 
-  // const handleChangeSpSalary = (e, index, key) => {
-  //     const newAddSalary = [...formData.addSalary];
-  //     newAddSalary[index] = {
-  //         ...newAddSalary[index],
-  //         [key]: e.target.value,
-  //     };
-
-  //     setFormData({
-  //         ...formData,
-  //         addSalary: newAddSalary
-  //     });
-  // };
-
-  const handleAddWorkplaceComplex = () => {
-    // e.preventDefault();
-
-    if (workplaceComplexId && workplaceComplexName) {
-      const newWorkplace = {
-        id: workplaceComplexId,
-        name: workplaceComplexName,
-      };
-      // setWorkplacesComplex([...workplacesComplex, newWorkplace]);
-      // setWorkplaceComplexId('');
-      // setWorkplaceComplexName('');
-    }
-  };
-
-  const handleSelectChange = async (e) => {
-    // setSelectedDay(e.target.value);
-    // setWorkplaceComplexName(`Complex Name ${e.target.value}`);
-    await setWorkplaceComplexId(e.target.value);
-  };
-
-  useEffect(() => {
-    setWorkplaceComplexName("");
-
-    const setGroupData = async () => {
-      if (workplaceComplexId === "") {
-        //no selection group
-        // alert('No selection group');
-        await setCheckSetStandard("seted");
-        await handleClickResult(standardWorkplace);
-      } else {
-        if (workplacesComplex.length == 0) {
-          //No data set to workplace group
-          alert("No data set to workplace group " + workplacesComplex.length);
-          await setCheckSetStandard("seted");
-          await handleClickResult(standardWorkplace);
-        } else {
-          //set data to workplace group
-          let dataSelect = workplacesComplex.find(
-            (item) => item.workplaceComplexId === workplaceComplexId
-          );
-          if (dataSelect) {
-            await setWorkplaceComplexName(
-              dataSelect.workplaceComplexName || ""
-            );
-            await setCheckSetStandard("seted");
-            await setFormDataGroup(dataSelect.workplaceComplexData);
-          } else {
-            await setFormDataGroup(standardWorkplace);
-          }
-          // await setWorkplaceComplexName(standardWorkplace.workplaceGroup[c].workplaceComplexName || '');
-          // await setCheckSetStandard('seted');
-          // await setFormDataGroup (        standardWorkplace.workplaceGroup[c].workplaceComplexData);
-        }
-      }
-    };
-
-    setGroupData();
-    // alert(workplaceComplexId);
-  }, [workplaceComplexId]);
-
   // const handleAddInput = () => {
   //     setFormData([...formData, { name: '', SpSalary: '', StaffType: '', nameType: '' }]);
   //     setShowAdditionalInput([...showAdditionalInput, false]);
@@ -837,11 +998,138 @@ function SettingComplex({ workplaceList }) {
     setShowAdditionalInput(newShowAdditionalInput);
   };
 
+  const [employeeListResult, setEmployeeListResult] = useState([]);
   const [showEmployeeListResult, setShowEmployeeListResult] = useState([]);
+  const [searchResult, setSearchResult] = useState([]);
+
+  // async function handleSearch(event) {
+  //   event.preventDefault();
+
+  //   //clean list employee
+  //   setShowEmployeeListResult([]);
+
+  //   //get value from form search
+  //   const data = {
+  //     searchWorkplaceId: searchWorkplaceId,
+  //     searchWorkplaceName: searchWorkplaceName,
+  //   };
+
+  //   try {
+  //     const response = await axios.post(endpoint + "/workplace/search", data);
+  //     setSearchResult(response.data.workplaces);
+  //     console.log("response", response);
+
+  //     if (response.data.workplaces.length < 1) {
+  //       window.location.reload();
+  //     } else {
+  //       const data1 = {
+  //         employeeId: "",
+  //         name: "",
+  //         idCard: "",
+  //         //   workPlace: searchWorkplaceId,
+  //         workPlace: searchResult.workplaceId,
+  //       };
+
+  //       const response1 = await axios.post(
+  //         endpoint + "/employee/search",
+  //         data1
+  //       );
+
+  //       const filteredEmployees = response1.data.employees.filter(
+  //         (employee) => employee.workplace === searchWorkplaceId
+  //       );
+
+  //       // await setEmployeeListResult(response1.data.employees);
+  //       await setEmployeeListResult(filteredEmployees);
+
+  //       // await alert(JSON.stringify(response1.data.employees , null ,2));
+  //       // alert(response1.data );
+  //       // alert(employeeListResult.length);
+  //     }
+  //   } catch (error) {
+  //     // setMessage('ไม่พบผลการค้นหา กรุณาตรวจสอบข้อมูลที่ใช้ในการค้นหาอีกครั้ง');
+  //     alert("กรุณาตรวจสอบข้อมูลในช่องค้นหา");
+  //     window.location.reload();
+  //   }
+  // }
+  const [filteredWorkplaceList, setFilteredWorkplaceList] = useState([]);
+  const [searchWorkplaceId, setSearchWorkplaceId] = useState(""); //รหัสหน่วยงาน
+  const [searchWorkplaceName, setSearchWorkplaceName] = useState(""); //ชื่อหน่วยงาน
+  
+  async function handleSearch(event) {
+    event.preventDefault();
+    //clean list employee
+    setShowEmployeeListResult([]);
+    // setWorkTimeDay_specialwork([]);
+
+    //get value from form search
+    const data = {
+      searchWorkplaceId: searchWorkplaceId,
+      searchWorkplaceName: searchWorkplaceName,
+    };
+
+    try {
+      const response = await axios.post(endpoint + "/workplace/search", data);
+      setSearchResult(response.data.workplaces);
+      // console.log("response", response);
+      const filteredList = workplaceList.filter((workplace) => {
+        const idMatch = workplace.workplaceId
+          .toString()
+          .includes(searchWorkplaceId);
+        const nameMatch = workplace.workplaceName
+          .toLowerCase()
+          .includes(searchWorkplaceName.toLowerCase());
+        return idMatch && nameMatch;
+      });
+      setSearchResult(filteredList);
+      setFilteredWorkplaceList(filteredList);
+      console.log("filteredList", filteredList);
+      if (response.data.workplaces.length < 1) {
+        window.location.reload();
+      } else {
+        const data1 = {
+          employeeId: "",
+          name: "",
+          idCard: "",
+          //   workPlace: searchWorkplaceId,
+          workPlace: searchResult.workplaceId,
+        };
+
+        // const response1 = await axios.post(
+        //   endpoint + "/employee/search",
+        //   data1
+        // );
+
+        // const filteredEmployees = response1.data.employees.filter(
+        //   (employee) => employee.workplace === searchWorkplaceId
+        // );
+
+        // await setEmployeeListResult(response1.data.employees);
+        // employeeList
+        // searchWorkplaceId
+        const filteredEmployees = employeeList.filter(
+          (employee) => employee.workplace === searchWorkplaceId
+        );
+        // console.log('searchWorkplaceId',searchWorkplaceId);
+        await setEmployeeListResult(filteredEmployees);
+
+        // await alert(JSON.stringify(response1.data.employees , null ,2));
+        // alert(response1.data );
+        // alert(employeeListResult.length);
+      }
+    } catch (error) {
+      // setMessage('ไม่พบผลการค้นหา กรุณาตรวจสอบข้อมูลที่ใช้ในการค้นหาอีกครั้ง');
+      // alert("กรุณาตรวจสอบข้อมูลในช่องค้นหา" , error);
+      // window.location.reload();
+    }
+  }
+  // console.log("EmployeeListResult", employeeListResult);
 
   //set data to form
   function handleClickResult(workplace) {
     setNewWorkplace(false);
+// alert(JSON.stringify(workplace,null,2))
+alert(JSON.stringify(workplace.workplaceGroup[1].workplaceComplexData.workTimeDay) )
     if (checkSetStandard == "seted") {
       setWorkplacesComplex(standardWorkplace.workplaceGroup);
       setStandardWorkplace(standardWorkplace);
@@ -851,9 +1139,23 @@ function SettingComplex({ workplaceList }) {
     }
     setCheckSetStandard("");
 
-    setShowEmployeeListResult(employeeListResult);
     set_id(workplace._id);
     setWorkplaceId(workplace.workplaceId);
+
+    // const filteredEmployees = employeeList.filter(
+    //   (employee) => employee.workplace === searchWorkplaceId
+    // );
+    // console.log("searchWorkplaceId", searchWorkplaceId);
+    // setEmployeeListResult(filteredEmployees);
+    // alert(workplace.workplaceName)
+
+    alert(workplace.workplaceGroup.length)
+    // ถ้ามีหน่วยงานย่อยในหน่วยงานหลัก
+    if(workplace.workplaceGroup.length > 0 ) {
+
+    }
+
+    // setShowEmployeeListResult(filteredEmployees);
     setWorkplaceName(workplace.workplaceName);
     setWorkplaceArea(workplace.workplaceArea);
     setWorkOfWeek(workplace.workOfWeek);
@@ -872,9 +1174,20 @@ function SettingComplex({ workplaceList }) {
     setWorkStartOt3(workplace.workStartOt3);
     setWorkEndOt3(workplace.workEndOt3);
 
-    setWorkOfHour(workplace.workOfHour);
-    setWorkOfOT(workplace.workOfOT);
+    setWorkOfHour(workplace.workOfHour_subHour || workplace.workOfHour);
+    setWorkOfMinute(workplace.workOfHour_subMinute || 0);
+    setStartWorkOfOT(workplace.startWorkOfOT_subHour || 0);
+    setStartWorkOfOTMinute(workplace.startWorkOfOT_subMinute || 0);
+    setWorkOfOT(workplace.workOfOT_subHour || workplace.workOfOT);
+    setWorkOfOTMinute(workplace.workOfOT_subMinute || 0);
+    setBreakOfOT(workplace.workOfOT_breakMinute || 0);
+    if (parseInt(workplace.workOfOT_breakMinute) == 20 || parseInt(workplace.workOfOT_breakMinute) == 30) {
+      setIsCustom(false);
+    } else {
+      setIsCustom(true);
+    }
     setWorkRate(workplace.workRate);
+    setAddWorkRate(workplace.addWorkRate);
     setWorkRateOT(workplace.workRateOT);
     setWorkTotalPeople(workplace.workTotalPeople);
     setDayoffRate(workplace.dayoffRate);
@@ -900,6 +1213,8 @@ function SettingComplex({ workplaceList }) {
     setworkRateDayoffRate(workplace.workRateDayoffRate);
     setWorkplaceAddress(workplace.workplaceAddress);
     //setSelectedDates([...selectedDates, workplace.daysOff]);
+setWorkTimeDayList_specialwork(workplace.specialWorkTimeDay || []);
+// alert(JSON.stringify(workplace.specialWorkTimeDay ))
 
     ////////work day
     if (workplace.workday1 == "false") {
@@ -946,8 +1261,74 @@ function SettingComplex({ workplaceList }) {
     setWorkcount6(workplace.workcount6);
     setWorkcount7(workplace.workcount7);
     const dates = workplace.daysOff.map((dateString) => new Date(dateString));
-
     setSelectedDates(dates);
+    
+    // ดึงข้อมูลวันหยุดนักขัตฤกษ์จาก workplace
+    if (workplace.publicHoliday && workplace.publicHoliday.length > 0) {
+      try {
+        console.log("กำลังโหลดข้อมูลวันหยุดนักขัตฤกษ์:", workplace.publicHoliday);
+        
+        const publicHolidayDatesFromDB = workplace.publicHoliday
+          .map((holiday) => {
+            try {
+              if (typeof holiday === 'object' && holiday.date) {
+                // ข้อมูลใหม่ที่มีทั้ง date และ note
+                const dateStr = typeof holiday.date === 'string' ? holiday.date : holiday.date;
+                const dateObj = new Date(dateStr);
+                
+                console.log("วันหยุดที่โหลด:", dateStr, "หมายเหตุ:", holiday.note || "(ไม่มี)");
+                
+                if (!isNaN(dateObj.getTime())) {
+                  return {
+                    date: dateObj,
+                    note: holiday.note || ""
+                  };
+                }
+                console.warn('วันที่ไม่ถูกต้องใน publicHoliday:', holiday.date);
+                return null;
+              } else if (holiday instanceof Date) {
+                // ถ้าเป็น Date object อยู่แล้ว
+                console.log("วันหยุดที่เป็น Date object:", holiday);
+                return {
+                  date: holiday,
+                  note: ""
+                };
+              } else {
+                // ข้อมูลเก่าที่เป็นแค่วันที่ (string)
+                const dateObj = new Date(holiday);
+                console.log("วันหยุดที่เป็น string:", holiday);
+                if (!isNaN(dateObj.getTime())) {
+                  return {
+                    date: dateObj,
+                    note: ""
+                  };
+                }
+                console.warn('วันที่ไม่ถูกต้องใน publicHoliday:', holiday);
+                return null;
+              }
+            } catch (error) {
+              console.error('Error parsing holiday date:', error, holiday);
+              return null;
+            }
+          })
+          .filter(item => item !== null); // กรองข้อมูลวันที่ไม่ถูกต้องออก
+        
+        console.log("วันหยุดนักขัตฤกษ์ที่แปลงแล้ว:", 
+          publicHolidayDatesFromDB.map(h => ({
+            วันที่: `${h.date.getDate()}/${h.date.getMonth() + 1}/${h.date.getFullYear()}`,
+            หมายเหตุ: h.note || "(ไม่มี)"
+          }))
+        );
+        
+        setPublicHolidayDates(publicHolidayDatesFromDB);
+      } catch (error) {
+        console.error('Error processing public holidays:', error);
+        setPublicHolidayDates([]);
+      }
+    } else {
+      setPublicHolidayDates([]);
+    }
+    
     setReason(workplace.reason);
 
     // employeeIdLists
@@ -978,148 +1359,12 @@ function SettingComplex({ workplaceList }) {
     setListSpecialWorktime(workplace.listSpecialWorktime);
     setWorkTimeDayList(workplace.workTimeDay);
     setWorkTimeDayPersonList(workplace.workTimeDayPerson);
-
+setWorkRateChange(workplace.workRateChange)
     // console.log(workplace);
     // // console.log(initialFormData);
     // console.log("formData", formData);
   }
   console.log("showEmployeeListResult", showEmployeeListResult);
-
-  const setFormDataGroup = async (workplace) => {
-    setShowEmployeeListResult(employeeListResult);
-    // setWorkplacesComplex(workplace.workplaceGroup);
-
-    set_id(workplace._id);
-    setWorkplaceId(workplace.workplaceId);
-    setWorkplaceName(workplace.workplaceName);
-    setWorkplaceArea(workplace.workplaceArea);
-    setWorkOfWeek(workplace.workOfWeek);
-
-    setWorkStart1(workplace.workStart1);
-    setWorkEnd1(workplace.workEnd1);
-    setWorkStart2(workplace.workStart2);
-    setWorkEnd2(workplace.workEnd2);
-    setWorkStart3(workplace.workStart3);
-    setWorkEnd3(workplace.workEnd3);
-
-    setWorkStartOt1(workplace.workStartOt1);
-    setWorkEndOt1(workplace.workEndOt1);
-    setWorkStartOt2(workplace.workStartOt2);
-    setWorkEndOt2(workplace.workEndOt2);
-    setWorkStartOt3(workplace.workStartOt3);
-    setWorkEndOt3(workplace.workEndOt3);
-
-    setWorkOfHour(workplace.workOfHour);
-    setWorkOfOT(workplace.workOfOT);
-    setWorkRate(workplace.workRate);
-    setWorkRateOT(workplace.workRateOT);
-    setWorkTotalPeople(workplace.workTotalPeople);
-    setDayoffRate(workplace.dayoffRate);
-    setDayoffRateOT(workplace.dayoffRateOT);
-    setDayoffRateHour(workplace.dayoffRateHour);
-    setHoliday(workplace.holiday);
-    setHolidayOT(workplace.holidayOT);
-    setHolidayHour(workplace.holidayHour);
-    setSalaryadd1(workplace.salaryadd1);
-    setSalaryadd2(workplace.salaryadd2);
-    setSalaryadd3(workplace.salaryadd3);
-    setSalaryadd4(workplace.salaryadd4);
-    setSalaryadd5(workplace.salaryadd5);
-    setSalaryadd6(workplace.salaryadd6);
-    setPersonalLeave(workplace.personalLeave);
-    setPersonalLeaveNumber(workplace.personalLeaveNumber);
-    setPersonalLeaveRate(workplace.personalLeaveRate);
-    setSickLeave(workplace.sickLeave);
-    setSickLeaveNumber(workplace.sickLeaveNumber);
-    setSickLeaveRate(workplace.sickLeaveRate);
-    setWorkRateDayoff(workplace.workRateDayoff);
-    setWorkRateDayoffNumber(workplace.workRateDayoffNumber);
-    setworkRateDayoffRate(workplace.workRateDayoffRate);
-    setWorkplaceAddress(workplace.workplaceAddress);
-    //setSelectedDates([...selectedDates, workplace.daysOff]);
-
-    ////////work day
-    if (workplace.workday1 == "false") {
-      setWorkday1(false);
-    } else {
-      setWorkday1(workplace.workday1);
-    }
-    if (workplace.workday2 == "false") {
-      setWorkday2(false);
-    } else {
-      setWorkday2(workplace.workday2);
-    }
-    if (workplace.workday3 == "false") {
-      setWorkday3(false);
-    } else {
-      setWorkday3(workplace.workday3);
-    }
-    if (workplace.workday4 == "false") {
-      setWorkday4(false);
-    } else {
-      setWorkday4(workplace.workday4);
-    }
-    if (workplace.workday5 == "false") {
-      setWorkday5(false);
-    } else {
-      setWorkday5(workplace.workday5);
-    }
-    if (workplace.workday6 == "false") {
-      setWorkday6(false);
-    } else {
-      setWorkday6(workplace.workday6);
-    }
-    if (workplace.workday7 == "false") {
-      setWorkday7(false);
-    } else {
-      setWorkday7(workplace.workday7);
-    }
-
-    setWorkcount1(workplace.workcount1);
-    setWorkcount2(workplace.workcount2);
-    setWorkcount3(workplace.workcount3);
-    setWorkcount4(workplace.workcount4);
-    setWorkcount5(workplace.workcount5);
-    setWorkcount6(workplace.workcount6);
-    setWorkcount7(workplace.workcount7);
-    const dates = workplace.daysOff.map((dateString) => new Date(dateString));
-
-    setSelectedDates(dates);
-    setReason(workplace.reason);
-
-    // employeeIdLists
-
-    const initialFormData = {
-      addSalary: workplace.addSalary.map((item) => ({
-        name: item.name || "",
-        codeSpSalary: item.codeSpSalary || "",
-        SpSalary: item.SpSalary || "",
-        roundOfSalary: item.roundOfSalary || "",
-        StaffType: item.StaffType || "",
-        nameType: item.nameType || "",
-      })),
-    };
-
-    setFormData(initialFormData);
-    // setFormData(workplace.addSalary);
-
-    const employeeIdLists = workplace.employeeIdList.map((item) => [...item]);
-    setEmployeeIdList(employeeIdLists);
-
-    const employeeNameLists = workplace.employeeNameList.map((item) => [
-      ...item,
-    ]);
-    setEmployeeNameList(employeeNameLists);
-
-    setListEmployeeDay(workplace.listEmployeeDay);
-    setListSpecialWorktime(workplace.listSpecialWorktime);
-    setWorkTimeDayList(workplace.workTimeDay);
-    setWorkTimeDayPersonList(workplace.workTimeDayPerson);
-
-    // console.log(workplace);
-    // // console.log(initialFormData);
-    // console.log("formData", formData);
-  };
 
   const handleCheckboxChange1 = () => {
     setWorkday1(!workday1);
@@ -1144,83 +1389,41 @@ function SettingComplex({ workplaceList }) {
   };
 
   //data for search
-  const [searchWorkplaceId, setSearchWorkplaceId] = useState(""); //รหัสหน่วยงาน
-  const [searchWorkplaceName, setSearchWorkplaceName] = useState(""); //ชื่อหน่วยงาน
-  const [searchResult, setSearchResult] = useState([]);
-  const [employeeListResult, setEmployeeListResult] = useState([]);
+
+  // const [employeeListResult, setEmployeeListResult] = useState([]);
+
+  // useEffect(() => {
+  //   if (workplaceIdSend && workplaceNameSend) {
+  //     setSearchWorkplaceId(workplaceIdSend);
+  //     setSearchWorkplaceName(workplaceNameSend);
+  //   } else {
+  //     setSearchWorkplaceId("");
+  //     setSearchWorkplaceName("");
+  //   }
+  // }, [workplaceIdSend, workplaceNameSend]); // Depend on the URL parameter
 
   useEffect(() => {
-    if (workplaceIdSend && workplaceNameSend) {
-      setSearchWorkplaceId(workplaceIdSend);
-      setSearchWorkplaceName(workplaceNameSend);
-    } else {
-      setSearchWorkplaceId("");
-      setSearchWorkplaceName("");
+    // If either workplaceIdSend or workplaceNameSend is present, call handleSearch
+    if (workplaceIdSend || workplaceNameSend) {
+      setSearchWorkplaceId(workplaceIdSend || "");
+      setSearchWorkplaceName(workplaceNameSend || "");
+
+      // Call the handleSearch function
+      handleSearch(workplaceIdSend, workplaceNameSend);
     }
-  }, [workplaceIdSend, workplaceNameSend]); // Depend on the URL parameter
+  }, [workplaceIdSend, workplaceNameSend, handleSearch]);
 
-  const [filteredWorkplaceList, setFilteredWorkplaceList] = useState([]);
-
-  async function handleSearch(event) {
-    event.preventDefault();
-
-    //clean list employee
-    setShowEmployeeListResult([]);
-
-    //get value from form search
-    const data = {
-      searchWorkplaceId: searchWorkplaceId,
-      searchWorkplaceName: searchWorkplaceName,
-    };
-
-    try {
-      // const response = await axios.post(endpoint + '/workplace/search', data);
-      // setSearchResult(response.data.workplaces);
-
-      const filteredList = workplaceList.filter((workplace) => {
-        const idMatch = workplace.workplaceId
-          .toString()
-          .includes(searchWorkplaceId);
-        const nameMatch = workplace.workplaceName
-          .toLowerCase()
-          .includes(searchWorkplaceName.toLowerCase());
-        return idMatch && nameMatch;
-      });
-      setSearchResult(filteredList);
-      setFilteredWorkplaceList(filteredList);
-      console.log("filteredList", filteredList);
-
-      if (response.data.workplaces.length < 1) {
-        window.location.reload();
-      } else {
-        const data1 = {
-          employeeId: "",
-          name: "",
-          idCard: "",
-          workPlace: searchWorkplaceId,
-        };
-
-        const response1 = await axios.post(
-          endpoint + "/employee/search",
-          data1
-        );
-        await setEmployeeListResult(response1.data.employees);
-        // await alert(JSON.stringify(response1.data.employees , null ,2));
-        // alert(response1.data );
-        // alert(employeeListResult.length);
-      }
-    } catch (error) {
-      // setMessage('ไม่พบผลการค้นหา กรุณาตรวจสอบข้อมูลที่ใช้ในการค้นหาอีกครั้ง');
-      // alert('กรุณาตรวจสอบข้อมูลในช่องค้นหา');
-      // window.location.reload();
-    }
+  function handleFormSubmit(event) {
+    event.preventDefault(); // Prevent the form from submitting on Enter key press
   }
 
   async function handleManageWorkplace(event) {
     event.preventDefault();
+//set WorkRateChange
+
 
     //get data from input in useState to data
-    const dataTmp = await {
+    const data = {
       workplaceId: workplaceId,
       workplaceName: workplaceName,
       workplaceArea: workplaceArea,
@@ -1240,11 +1443,26 @@ function SettingComplex({ workplaceList }) {
       workStartOt3: workStartOt3,
       workEndOt3: workEndOt3,
 
-      workOfHour: workOfHour,
-      workOfOT: workOfOT,
+      workOfHour: (parseInt(workOfHour || '0') + (parseFloat(workOfMinute || '0') / 60)),
+      // workOfOT: (parseInt(workOfOT || '0') + ((parseFloat(workOfOTMinute || '0')- parseInt(breakOfOT || '0')) / 60)),
+      workOfOT: parseFloat(workOfOTMinute || '0') === 0
+        ? ((parseInt(workOfOT || '0') * 60 - parseInt(breakOfOT || '0')) / 60).toFixed(4)
+        : (parseInt(workOfOT || '0') + (parseFloat(workOfOTMinute || '0') - parseInt(breakOfOT || '0')) / 60).toFixed(4),
+
+      workOfHour_subHour: workOfHour || 0,
+      workOfHour_subMinute: workOfMinute || 0,
+      startWorkOfOT_subHour: startWorkOfOT || 0,
+      startWorkOfOT_subMinute: startWorkOfOTMinute || 0,
+      workOfOT_subHour: workOfOT || 0,
+      workOfOT_subMinute: workOfOTMinute || 0,
+      workOfOT_breakHour: '',
+      workOfOT_breakMinute: breakOfOT || 0,
+
       workRate: workRate,
+      addWorkRate: addWorkRate,
       workRateOT: workRateOT,
       workTotalPeople: workTotalPeople,
+      countEmployee: showEmployeeListResult.length.toString(),
       dayoffRate: dayoffRate,
       dayoffRateOT: dayoffRateOT,
       dayoffRateHour: dayoffRateHour,
@@ -1267,7 +1485,37 @@ function SettingComplex({ workplaceList }) {
       workRateDayoffNumber: workRateDayoffNumber,
       workRateDayoffRate: workRateDayoffRate,
       // workplaceAddress: workplaceAddress,
-      daysOff: selectedDates,
+      // แก้ไขการส่งข้อมูลวันที่ไป API เพื่อให้วันที่ตรงกับหน้าบ้าน
+      daysOff: selectedDates.map(date => {
+        // แปลง Date เป็น ISO string ที่เวลาเป็น 00:00:00 ตาม local timezone
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        const day = date.getDate();
+        return new Date(Date.UTC(year, month, day));
+      }),
+      // เพิ่มข้อมูลวันหยุดนักขัตฤกษ์
+      publicHoliday: publicHolidayDates
+        .filter(holiday => {
+          const date = holiday.date || holiday;
+          return date instanceof Date && !isNaN(date.getTime());
+        })
+        .map(holiday => {
+          try {
+            const date = holiday.date || holiday;
+            if (date instanceof Date && !isNaN(date.getTime())) {
+              return {
+                date: date.toISOString(), // แปลงเป็น ISO string เพื่อส่งไป API
+                note: holiday.note || ""
+              };
+            }
+            return null;
+          } catch (error) {
+            console.error("Error converting date for API:", error);
+            return null;
+          }
+        })
+        .filter(item => item !== null),
+      workRateChange: workRateChange,
       reason: reason,
 
       employeeIdList: employeeIdList,
@@ -1293,83 +1541,196 @@ function SettingComplex({ workplaceList }) {
       listSpecialWorktime: listSpecialWorktime,
       workTimeDay: workTimeDayList,
       workTimeDayPerson: workTimeDayPersonList,
+      specialWorkTimeDay: workTimeDayList_specialwork || []
     };
 
-    // let data = { ...dataTmp };
-    let data = standardWorkplace;
-    const _id = standardWorkplace._id;
-    // alert('_id = '+ _id)
-
-    if (workplaceComplexId !== "") {
-      let check = workplacesComplex.find(
-        (item) => item.workplaceComplexId === workplaceComplexId
-      );
-      // if (workplaceComplexId >= workplacesComplex.length) {
-
-      if (!check) {
-        // new group
-        const tmpG = {
-          workplaceComplexId: workplaceComplexId,
-          workplaceComplexName: workplaceComplexName,
-          workplaceComplexData: dataTmp,
-        };
-
-        const newGroup = [...workplacesComplex, tmpG];
-        data = {
-          ...dataTmp,
-          workplaceGroup: newGroup,
-        };
-      } else {
-        // update existing group
-        // alert(' update existing group ');
-        const updatedGroup = workplacesComplex.map((group) =>
-          group.workplaceComplexId === workplaceComplexId
-            ? {
-                ...group,
-                workplaceComplexName: workplaceComplexName,
-                workplaceComplexData: dataTmp,
-              }
-            : group
-        );
-        data = {
-          ...dataTmp,
-          workplaceGroup: updatedGroup,
-        };
-      }
-    }
-
-    // alert(data.workplaceGroup.length );
+    // if (file) {
+    //     data.append('reason', file);
+    // }
+    // await alert(JSON.stringify(formData.addSalary,null,2));
 
     //check create or update Employee
-    if (newWorkplace) {
-      // alert('Create Workplace');
-      try {
-        const response = await axios.post(endpoint + "/workplace/create", data);
-        // setEmployeesResult(response.data.employees);
-        if (response) {
-          alert("บันทึกสำเร็จ");
-        }
-      } catch (error) {
-        alert("กรุณาตรวจสอบข้อมูลในช่องกรอกข้อมูล");
-        // window.location.reload();
+    //check create or update Employee
+if (newWorkplace) {
+  // เพิ่มก่อน try block
+  const requiredFields = {
+    workplaceId: "รหัสหน่วยงาน",
+    workplaceName: "ชื่อหน่วยงาน", 
+    workplaceArea: "สถานที่ปฏิบัติงาน",
+    workOfWeek: "จำนวนวันทำงานต่อสัปดาห์",
+    workOfHour: "ชั่วโมงทำงาน",
+    workRate: "ค่าจ้างรายวัน"
+  };
+
+  const missingFields = [];
+  Object.entries(requiredFields).forEach(([key, label]) => {
+    if (!data[key] || data[key].toString().trim() === "") {
+      missingFields.push(label);
+    }
+  });
+
+  if (missingFields.length > 0) {
+  Swal.fire({
+    icon: "error",
+    title: "บันทึกไม่สำเร็จ",
+    text: `กรุณากรอกข้อมูลต่อไปนี้: ${missingFields.join(", ")}`,
+    footer: '<a href="#" id="scroll-to-missing-field">คลิกที่นี่เพื่อไปยังฟิลด์ที่ขาดหายไป</a>',
+    didOpen: () => {
+      const footerLink = document.getElementById('scroll-to-missing-field');
+      if (footerLink) {
+        footerLink.addEventListener('click', (e) => {
+          e.preventDefault();
+          
+          const requiredFieldKeys = Object.keys(requiredFields);
+          for (const fieldKey of requiredFieldKeys) {
+            if (!data[fieldKey] || data[fieldKey].toString().trim() === "") {
+              // ลองหาด้วย id ก่อน
+              let element = document.getElementById(fieldKey);
+              
+              // ถ้าไม่เจอ ลองหาด้วย name attribute
+              if (!element) {
+                element = document.querySelector(`input[name="${fieldKey}"]`);
+              }
+              
+              // ถ้ายังไม่เจอ ลองหาด้วย placeholder
+              if (!element) {
+                const placeholderMap = {
+                  workplaceId: "รหัสหน่วยงาน",
+                  workplaceName: "ชื่อหน่วยงาน",
+                  workplaceArea: "สถานที่ปฏิบัติงาน",
+                  workOfWeek: "จำนวนวันทำงานต่อสัปดาห์",
+                  workOfHour: "ชั่วโมงทำงาน",
+                  workRate: "บาท"
+                };
+                element = document.querySelector(`input[placeholder="${placeholderMap[fieldKey]}"]`);
+              }
+              
+              console.log(`Field: ${fieldKey}, Element found:`, element);
+              
+              if (element) {
+                element.scrollIntoView({ 
+                  behavior: 'smooth', 
+                  block: 'center' 
+                });
+                
+                setTimeout(() => {
+                  element.focus();
+                  element.style.border = '3px solid red';
+                  element.style.backgroundColor = '#ffe6e6';
+                  
+                  setTimeout(() => {
+                    element.style.border = '';
+                    element.style.backgroundColor = '';
+                  }, 3000);
+                }, 500);
+                
+                break;
+              }
+            }
+          }
+          
+          Swal.close();
+        });
+      }
+    }
+  });
+  return;
+}
+
+  // ตรวจสอบรหัสหน่วยงานซ้ำ
+  const existingWorkplace = workplaceList.find(workplace => 
+    workplace.workplaceId === data.workplaceId
+  );
+  
+  if (existingWorkplace) {
+    alert(`รหัสหน่วยงาน ${data.workplaceId} มีอยู่แล้วในระบบ กรุณาใช้รหัสอื่น`);
+    return;
+  }
+      
+  try {
+    const response = await axios.post(endpoint + "/workplace/create", data);
+    if (response) {
+      Swal.fire({
+        title: "บันทึกสำเร็จ",
+        text: "ข้อมูลหน่วยงานถูกบันทึกเรียบร้อยแล้ว",
+        icon: "success",
+        draggable: true
+      });
+      
+      // sync วันหยุดนักขัตฤกษ์ไป API หลังจากสร้างหน่วยงานสำเร็จ
+      if (publicHolidayDates.length > 0) {
+        await updatePublicHolidayToAPI(publicHolidayDates);
+      }
+    }
+  } catch (error) {
+    console.error("Error details:", error);
+    console.log("Response data:", error.response?.data);
+    console.log("Status code:", error.response?.status);
+    
+    // แสดง error message จาก API response (ถ้ามี)
+    if (error.response && error.response.data) {
+      const apiErrorMessage = error.response.data.message || 
+                             error.response.data.error || 
+                             error.response.data.details ||
+                             JSON.stringify(error.response.data);
+      
+      // ตรวจสอบ duplicate key error
+      if (apiErrorMessage.includes("E11000") && apiErrorMessage.includes("workplaceId")) {
+        alert(`รหัสหน่วยงาน ${data.workplaceId} มีอยู่แล้วในระบบ กรุณาใช้รหัสอื่น`);
+      } else {
+        alert(`เกิดข้อผิดพลาดจาก Server: ${apiErrorMessage}`);
+      }
+      
+      // ถ้า API ส่ง validation errors มา (เช่น required fields)
+      if (error.response.data.validationErrors) {
+        console.log("Validation errors:", error.response.data.validationErrors);
+        const validationErrors = error.response.data.validationErrors;
+        const errorList = Object.keys(validationErrors).map(key => 
+          `${key}: ${validationErrors[key]}`
+        ).join('\n');
+        alert(`ข้อมูลที่จำเป็นต้องกรอก:\n${errorList}`);
       }
     } else {
-      //update workplace data
+      // Network error หรือ error อื่นๆ
+    
+    }
+    
+    // แสดงข้อมูลที่ส่งไปให้ API เพื่อช่วยในการ debug
+    console.log("Data sent to API:", data);
+  }
+} else {
+  //update workplace data
 
-      // Make the API call to update the resource by ID
-      try {
-        const response = await axios.put(
-          endpoint + "/workplace/update/" + _id,
-          data
-        );
-        // setEmployeesResult(response.data.employees);
-        if (response) {
-          alert("บันทึกสำเร็จ");
-          window.location.reload();
-        }
+  // Make the API call to update the resource by ID
+  try {
+    const response = await axios.put(
+      endpoint + "/workplace/update/" + _id,
+      data
+    );
+    // setEmployeesResult(response.data.employees);
+    if (response) {
+      Swal.fire({
+        title: "บันทึกสำเร็จ",
+        text: "ข้อมูลหน่วยงานถูกบันทึกเรียบร้อยแล้ว",
+        icon: "success",
+        draggable: true
+      });
+      
+      // sync วันหยุดนักขัตฤกษ์ไป API หลังจากอัปเดตหน่วยงานสำเร็จ
+      if (publicHolidayDates.length > 0) {
+        await updatePublicHolidayToAPI(publicHolidayDates);
+      }
+      
+      // Clear the query parameters
+      const newUrl = window.location.origin + window.location.pathname; // Removes the query string
+
+      // Update the URL without reloading the page
+      window.history.replaceState({}, document.title, newUrl);
+      window.location.reload();
+    }
       } catch (error) {
         alert("กรุณาตรวจสอบข้อมูลในช่องกรอกข้อมูล");
-        // window.location.reload();
+        window.location.reload();
       }
     }
   }
@@ -1397,7 +1758,7 @@ function SettingComplex({ workplaceList }) {
       wrh = 0; // If result is NaN, set it to 0
     }
 
-    setHolidayHour(wrh);
+    // setHolidayHour(wrh);
   }, [holiday, workOfHour, workRate]);
 
   function handleChange(e) {
@@ -1427,8 +1788,183 @@ function SettingComplex({ workplaceList }) {
   //     }
   // }
 
+  //Specail work 
+  const [workDate_specialwork, setWorkDate_specialwork] = useState(null);
+  const [workTimeDay_specialwork, setWorkTimeDay_specialwork] = useState({
+    shift_specialwork: "",
+    startTime_specialwork: "",
+    endTime_specialwork: "",
+    startTimeOT_specialwork: "",
+    endTimeOT_specialwork: "",
+    payment_specialwork: "",
+    paymentOT_specialwork: "",
+    workDetail_specialwork: "",
+    employees_specialwork: [],
+  });
+
+  const [workTimeDayList_specialwork, setWorkTimeDayList_specialwork] = useState([]);
+  const shiftWork_specialwork = ["กะเช้า", "กะบ่าย", "กะดึก", "กะพิเศษ"];
+  const positionWork_specialwork = [
+    "ทั้งหมด",
+"หัวหน้าควบคุมงาน",
+"ผู้ช่วยผู้ควบคุมงาน",
+"พนักงานทำความสะอาด",
+"พนักงานทำความสะอาดรอบนอก",
+"พนักงานเสิร์ฟ",
+"พนักงานคนสวน",
+"พนักงานแรงงานชาย",
+"กรรมการผู้จัดการ",
+"ผู้จัดการทั่วไป",
+"ผู้จัดการฝ่ายการตลาด",
+"ผู้จัดการฝ่ายบัญชี/การเงิน",
+"ผู้จัดการฝ่ายบุคคล",
+"เจ้าหน้าที่ฝ่ายบัญชี/การเงิน",
+"เจ้าหน้าที่ฝ่ายบุคคล",
+"เจ้าหน้าที่ฝ่ายจัดซื้อ",
+"เจ้าหน้าที่ธุรการฝ่ายขาย",
+"เจ้าหน้าที่ฝ่ายการตลาด",
+"เจ้าหน้าที่ฝ่ายปฏิบัติการ",
+"เจ้าหน้าที่ฝ่ายปฏิบัติการ(สายตรวจ)",
+"เจ้าหน้าที่ฝ่ายยานพาหนะ",
+"เจ้าหน้าที่ฝ่ายไอที",
+"เจ้าหน้าที่ฝ่ายสโตร์",
+"เจ้าหน้าที่ความปลอดภัยในการทำงาน(จป)",
+"ธุรการทั่วไป",
+"หัวหน้าฝ่ายปฏิบัติการ",
+"หัวหน้าฝ่ายบัญชี/การเงิน",
+"หัวหน้าฝ่ายสโตร์"
+];
+
+  // Handle input changes for the main form
+  const handleInputChange_specialwork = (e) => {
+    const { name, value } = e.target;
+    setWorkTimeDay_specialwork((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // Handle input changes for employees
+  const handleInputChangePerson_specialwork = (e, index) => {
+    const { name, value } = e.target;
+    const updatedEmployees_specialwork = [...workTimeDay_specialwork.employees_specialwork];
+    updatedEmployees_specialwork[index][name] = value;
+    setWorkTimeDay_specialwork((prev) => ({ ...prev, employees_specialwork: updatedEmployees_specialwork }));
+  };
+   // ฟังก์ชั่นแก้ไขข้อมูลใน workTimeDayPersonList
+  const handleEditTimePersonList = (index) => {
+    // ดึงข้อมูลที่ต้องการแก้ไขจาก list
+    const itemToEdit = workTimeDayPersonList[index];
+    // นำข้อมูลไปใส่ใน state หลักเพื่อให้ฟอร์มกรอกข้อมูลแสดงข้อมูลเดิม
+    setWorkTimeDayPerson({ ...itemToEdit });
+    // ลบรายการเดิมออกจาก list เพื่อรอการบันทึกใหม่
+    setWorkTimeDayPersonList(function(prevList) {
+      const updatedList = [...prevList];
+      updatedList.splice(index, 1);
+      return updatedList;
+    });
+  };
+
+  // Add a new employee row
+  const handleAddTimePerson_specialwork = () => {
+    setWorkTimeDay_specialwork((prev) => ({
+      ...prev,
+      employees_specialwork: [...prev.employees_specialwork, { positionWork_specialwork: "", countPerson_specialwork: "" }],
+    }));
+  };
+
+  // Remove an employee row
+  const handleRemoveTimePerson_specialwork = (index) => {
+    const updatedEmployees_specialwork = workTimeDay_specialwork.employees_specialwork.filter((_, i) => i !== index);
+    setWorkTimeDay_specialwork((prev) => ({ ...prev, employees_specialwork: updatedEmployees_specialwork }));
+  };
+
+  // ✅ Add work time to the list (FIXED ISSUE)
+  
+    const handleAddTimeList_specialwork = () => {
+  if (!workDate_specialwork) {
+    alert("กรุณาเลือกวันที่ก่อนเพิ่มรายการ");
+    return;
+  }
+
+    // ✅ Ensure data is properly saved before updating state
+    const newEntry = {
+      ...workTimeDay_specialwork,
+      day_specialwork: workDate_specialwork.toLocaleDateString("th-TH"),
+      employees_specialwork: [...workTimeDay_specialwork.employees_specialwork], // ✅ Copy employees list
+    };
+
+    setWorkTimeDayList_specialwork((prev) => [...prev, newEntry]);
+
+    // Reset input fields
+    // ✅ Modified: Keep values and only reset specific fields
+    setWorkTimeDay_specialwork((prev) => ({
+      ...prev, // Keep all existing values
+      employees_specialwork: [], // Only reset employees list
+    }));
+    setWorkDate_specialwork(null); // Only reset date
+  };
+
+  // ✅ Remove a work time row
+  const handleRemoveTimeList_specialwork = (index) => {
+    setWorkTimeDayList_specialwork((prev) => prev.filter((_, i) => i !== index));
+  };
+
+
+    //เพิ่มโค้ดจาก setting
+    const [workplaceComplexId, setWorkplaceComplexId] = useState(""); //รหัสกลุ่มงานย่อย
+  const [workplaceComplexName, setWorkplaceComplexName] = useState(""); //ชื่อกลุ่มงานย่อย
+  const [workplacesComplex, setWorkplacesComplex] = useState([]);
+  const [standardWorkplace, setStandardWorkplace] = useState({});
+  const [checkSetStandard, setCheckSetStandard] = useState("");
+
+  const handleSelectChange = async (e) => {
+    // setSelectedDay(e.target.value);
+    // setWorkplaceComplexName(`Complex Name ${e.target.value}`);
+    await setWorkplaceComplexId(e.target.value);
+  };
+
+
+    useEffect(() => {
+    setWorkplaceComplexName("");
+
+    const setGroupData = async () => {
+      if (workplaceComplexId === "") {
+        //no selection group
+        // alert('No selection group');
+        await setCheckSetStandard("seted");
+        await handleClickResult(standardWorkplace);
+      } else {
+        if (workplacesComplex.length == 0) {
+          //No data set to workplace group
+          alert("No data set to workplace group " + workplacesComplex.length);
+          await setCheckSetStandard("seted");
+          await handleClickResult(standardWorkplace);
+        } else {
+          //set data to workplace group
+          let dataSelect = workplacesComplex.find(
+            (item) => item.workplaceComplexId === workplaceComplexId
+          );
+          if (dataSelect) {
+            await setWorkplaceComplexName(
+              dataSelect.workplaceComplexName || ""
+            );
+            await setCheckSetStandard("seted");
+            await setFormDataGroup(dataSelect.workplaceComplexData);
+          } else {
+            await setFormDataGroup(standardWorkplace);
+          }
+          // await setWorkplaceComplexName(standardWorkplace.workplaceGroup[c].workplaceComplexName || '');
+          // await setCheckSetStandard('seted');
+          // await setFormDataGroup (        standardWorkplace.workplaceGroup[c].workplaceComplexData);
+        }
+      }
+    };
+
+    setGroupData();
+    // alert(workplaceComplexId);
+  }, [workplaceComplexId]);
+
+  
   return (
-    <body class="hold-transition sidebar-mini" className="editlaout">
+    <div class="hold-transition sidebar-mini" className="editlaout">
       <div class="wrapper">
         <div class="content-wrapper">
           {/* <!-- Content Header (Page header) --> */}
@@ -1445,8 +1981,7 @@ function SettingComplex({ workplaceList }) {
             <div class="container-fluid">
               <div class="row mb-2">
                 <h1 class="m-0">
-                  <i class="far fa-arrow-alt-circle-right"></i>{" "}
-                  ตั้งค่าหน่วยงานพิเศษ
+                  <i class="far fa-arrow-alt-circle-right"></i> ตั้งค่าหน่วยงาน
                 </h1>
               </div>
             </div>
@@ -1455,7 +1990,7 @@ function SettingComplex({ workplaceList }) {
                     <!-- Main content --> */}
           <section class="content">
             <div class="container-fluid">
-              <h2 class="title">ตั้งค่าหน่วยงานพิเศษ</h2>
+              <h2 class="title">ตั้งค่าหน่วยงาน</h2>
               <section class="Frame">
                 <div class="col-md-12">
                   <form onSubmit={handleSearch}>
@@ -1463,12 +1998,22 @@ function SettingComplex({ workplaceList }) {
                       <div class="col-md-6">
                         <div class="form-group">
                           <label role="searchWorkplaceId">รหัสหน่วยงาน</label>
-                          <input
+                          {/* <input
                             type="text"
                             class="form-control"
                             id="searchWorkplaceId"
                             placeholder="รหัสหน่วยงาน"
-                            list="workplaceIds"
+                            value={searchWorkplaceId}
+                            onChange={(e) =>
+                              setSearchWorkplaceId(e.target.value)
+                            }
+                          /> */}
+                          <input
+                            type="text"
+                            className="form-control"
+                            id="searchWorkplaceId"
+                            list="workplaceIds" // Associate the datalist with the input
+                            placeholder="รหัสหน่วยงาน"
                             value={searchWorkplaceId}
                             onChange={(e) =>
                               setSearchWorkplaceId(e.target.value)
@@ -1476,15 +2021,9 @@ function SettingComplex({ workplaceList }) {
                             onInput={(e) => {
                               // Remove any non-digit characters
                               e.target.value = e.target.value.replace(
-                              /[^0-9.]/g,
-                              ""
-                            );
-
-                            // Ensure only one '.' is allowed
-                            const parts = e.target.value.split(".");
-                            if (parts.length > 2) {
-                              e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
-                            }
+                                /\D/g,
+                                ""
+                              );
                             }}
                           />
                           <datalist id="workplaceIds">
@@ -1545,6 +2084,7 @@ function SettingComplex({ workplaceList }) {
                               <li
                                 key={workplace.id}
                                 onClick={() => handleClickResult(workplace)}
+                                style={{ cursor: "pointer" }}
                               >
                                 รหัส {workplace.workplaceId} หน่วยงาน{" "}
                                 {workplace.workplaceName}
@@ -1558,14 +2098,15 @@ function SettingComplex({ workplaceList }) {
                 </div>
               </section>
               {/* <!--Frame--> */}
-              <form onSubmit={handleManageWorkplace}>
+              {/* <form onSubmit={handleManageWorkplace}> */}
+              <form onSubmit={handleFormSubmit}>
                 <h2 class="title">ตั้งค่าหน่วยงาน</h2>
                 <section class="Frame">
                   <div class="col-md-12">
                     <div class="row">
-                      <div class="col-md-3">
+                      <div class="col-md-6">
                         <div class="form-group">
-                          <label role="workplaceId">รหัสหน่วยงาน</label>
+                          <label role="workplaceId">รหัสหน่วยงาน<span style={{ color: "red" }}>*</span></label>
                           <input
                             type="text"
                             class="form-control"
@@ -1576,22 +2117,16 @@ function SettingComplex({ workplaceList }) {
                             onInput={(e) => {
                               // Remove any non-digit characters
                               e.target.value = e.target.value.replace(
-                              /[^0-9.]/g,
-                              ""
-                            );
-
-                            // Ensure only one '.' is allowed
-                            const parts = e.target.value.split(".");
-                            if (parts.length > 2) {
-                              e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
-                            }
+                                /\D/g,
+                                ""
+                              );
                             }}
                           />
                         </div>
                       </div>
-                      <div class="col-md-3">
+                      <div class="col-md-6">
                         <div class="form-group">
-                          <label role="workplaceName">ชื่อหน่วยงาน</label>
+                          <label role="workplaceName">ชื่อหน่วยงาน<span style={{ color: "red" }}>*</span></label>
                           <input
                             type="text"
                             class="form-control"
@@ -1602,7 +2137,8 @@ function SettingComplex({ workplaceList }) {
                           />
                         </div>
                       </div>
-                      <div class="col-md-3">
+
+                                                                  <div class="col-md-3">
                         <div class="form-group">
                           <label role="selectGroup">เลือกกลุ่มงาน</label>
                           <select
@@ -1625,6 +2161,7 @@ function SettingComplex({ workplaceList }) {
                           </select>
                         </div>
                       </div>
+
                       <div className="col-md-3">
                         <label role="workplaceName">ชื่อกลุ่มงาน</label>
                         <input
@@ -1637,11 +2174,13 @@ function SettingComplex({ workplaceList }) {
                           }
                         />
                       </div>
+
                     </div>
+
                     <div class="row">
-                      <div class="col-md-3">
+                      <div class="col-md-6">
                         <div class="form-group">
-                          <label role="workplaceArea">สถานที่ปฏิบัติงาน</label>
+                          <label role="workplaceArea">สถานที่ปฏิบัติงาน<span style={{ color: "red" }}>*</span></label>
                           <input
                             type="text"
                             class="form-control"
@@ -1652,10 +2191,10 @@ function SettingComplex({ workplaceList }) {
                           />
                         </div>
                       </div>
-                      <div class="col-md-3">
+                      <div class="col-md-6">
                         <div class="form-group">
                           <label role="workOfWeek">
-                            จำนวนวันทำงานต่อสัปดาห์
+                            จำนวนวันทำงานต่อสัปดาห์<span style={{ color: "red" }}>*</span>
                           </label>
                           <input
                             type="text"
@@ -1667,15 +2206,9 @@ function SettingComplex({ workplaceList }) {
                             onInput={(e) => {
                               // Remove any non-digit characters
                               e.target.value = e.target.value.replace(
-                              /[^0-9.]/g,
-                              ""
-                            );
-
-                            // Ensure only one '.' is allowed
-                            const parts = e.target.value.split(".");
-                            if (parts.length > 2) {
-                              e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
-                            }
+                                /\D/g,
+                                ""
+                              );
                             }}
                           />
                         </div>
@@ -1686,68 +2219,48 @@ function SettingComplex({ workplaceList }) {
                 {/* <!--Frame--> */}
 
                 <h2 class="title">เวลาทำงาน</h2>
-                {/* <section class="Frame">
-                  <div class="row">
-                    <div class="col-md-6">
+                <section class="Frame">
+                <div class="row align-items-end">
+                    <div class="col-md-3">
                       <div class="form-group">
-                        <label role="workOfHour">ชั่วโมงทำงาน</label>
+                        <label role="startOT">ชั่วโมงทำงาน OT ก่อนเริ่มงาน</label>
                         <input
                           type="text"
                           class="form-control"
-                          id="workOfHour"
-                          placeholder="ชั่วโมงทำงาน"
-                          value={workOfHour}
-                          onChange={(e) => setWorkOfHour(e.target.value)}
+                          id="startOT"
+                          placeholder="ชั่วโมงทำงาน OT"
+                          value={startWorkOfOT}
+                          onChange={(e) => setStartWorkOfOT(e.target.value)}
                           onInput={(e) => {
-                            // Remove any non-digit characters
-                            e.target.value = e.target.value.replace(
-                              /[^0-9.]/g,
-                              ""
-                            );
-
-                            // Ensure only one '.' is allowed
-                            const parts = e.target.value.split(".");
-                            if (parts.length > 2) {
-                              e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
-                            }
+                            // Remove any non-digit characters, including '.'
+                            e.target.value = e.target.value.replace(/[^0-9]/g, "");
                           }}
                         />
                       </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-3">
                       <div class="form-group">
-                        <label role="workOfOT">ชั่วโมง OT</label>
+                        {/* <label role="workOfOT">-</label> */}
                         <input
                           type="text"
                           class="form-control"
-                          id="workOfOT"
-                          placeholder="ชั่วโมง OT"
-                          value={workOfOT}
-                          onChange={(e) => setWorkOfOT(e.target.value)}
+                          id="startOT"
+                          placeholder="นาที"
+                          value={startWorkOfOTMinute}
+                          onChange={(e) => setStartWorkOfOTMinute(e.target.value)}
                           onInput={(e) => {
-                            // Remove any non-digit characters
-                            e.target.value = e.target.value.replace(
-                              /[^0-9.]/g,
-                              ""
-                            );
-
-                            // Ensure only one '.' is allowed
-                            const parts = e.target.value.split(".");
-                            if (parts.length > 2) {
-                              e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
-                            }
+                            // Remove any non-digit characters, including '.'
+                            e.target.value = e.target.value.replace(/[^0-9]/g, "");
                           }}
                         />
                       </div>
                     </div>
-                  </div>
-                </section> */}
+</div>
 
-<section class="Frame">
                   <div class="row align-items-end">
                     <div class="col-md-3">
                       <div class="form-group">
-                        <label role="workOfHour">ชั่วโมงทำงาน</label>
+                        <label role="workOfHour">ชั่วโมงทำงาน<span style={{ color: "red" }}>*</span></label>
                         <input
                           type="text"
                           class="form-control"
@@ -1769,7 +2282,7 @@ function SettingComplex({ workplaceList }) {
                           type="text"
                           // style={{ marginBottom: "0rem" }}
                           class="form-control "
-                          id="workOfOT"
+                          id="workOfHour"
                           placeholder="นาที"
                           value={workOfMinute}
                           onChange={(e) => setWorkOfMinute(e.target.value)}
@@ -1784,11 +2297,11 @@ function SettingComplex({ workplaceList }) {
                   <div class="row align-items-end">
                     <div class="col-md-3">
                       <div class="form-group">
-                        <label role="workOfHour">ชั่วโมงทำงาน OT</label>
+                        <label role="endOT">ชั่วโมงทำงาน OT</label>
                         <input
                           type="text"
                           class="form-control"
-                          id="workOfHour"
+                          id="endOT"
                           placeholder="ชั่วโมงทำงาน OT"
                           value={workOfOT}
                           onChange={(e) => setWorkOfOT(e.target.value)}
@@ -1805,7 +2318,7 @@ function SettingComplex({ workplaceList }) {
                         <input
                           type="text"
                           class="form-control"
-                          id="workOfOT"
+                          id="endOT"
                           placeholder="นาที"
                           value={workOfOTMinute}
                           onChange={(e) => setWorkOfOTMinute(e.target.value)}
@@ -1818,11 +2331,11 @@ function SettingComplex({ workplaceList }) {
                     </div>
                     <div class="col-md-6">
                       <div class="form-group">
-                        
+
                         <div class="row align-items-end">
                           <label>เวลาพัก</label>
                           <div class="col-md-4">
-                          
+
                             <label>
                               <input
                                 type="radio"
@@ -1873,14 +2386,13 @@ function SettingComplex({ workplaceList }) {
                     </div>
                   </div>
                 </section>
-                
                 {/* <!--Frame--> */}
                 <h2 class="title">ค่าจ้าง</h2>
                 <section class="Frame">
-                  <div class="row">
-                    <div class="col-md-4">
+                <div class="row">
+                <div class="col-md-3">
                       <div class="form-group">
-                        <label role="workRate">อัตราค่าจ้าง รายวัน</label>
+                        <label role="workRate">ค่าจ้าง รายวัน<span style={{ color: "red" }}>*</span></label>
                         <input
                           type="text"
                           class="form-control"
@@ -1904,10 +2416,22 @@ function SettingComplex({ workplaceList }) {
                         />
                       </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
+                      <div class="form-group">
+                        <label role="workRate">รายชั่วโมง</label>
+                        <input
+                          type="text"
+                          class="form-control"
+                          id="workRate"
+                          placeholder="บาท"
+                          value={(parseFloat(workRate ||  0) /8) || ''} readOnly />
+                      </div>
+                    </div>
+
+                    <div class="col-md-3">
                       <div class="form-group">
                         <label role="workRateOT">
-                          อัตราค่าจ้าง OT รายชั่วโมง
+                          OT รายชั่วโมง
                         </label>
                         <input
                           type="text"
@@ -1932,46 +2456,27 @@ function SettingComplex({ workplaceList }) {
                         />
                       </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                       <div class="form-group">
-                        <label role="workTotalPeople">
-                          จำนวนพนักงานที่ปฏิบัติงาน
+                        <label role="workRateOT">
+                          OT รายชั่วโมง
                         </label>
                         <input
                           type="text"
                           class="form-control"
-                          id="workTotalPeople"
-                          placeholder="คน"
-                          value={workTotalPeople}
-                          onChange={(e) => setWorkTotalPeople(e.target.value)}
-                          onInput={(e) => {
-                            // Remove any non-digit characters
-                            e.target.value = e.target.value.replace(
-                              /[^0-9.]/g,
-                              ""
-                            );
-
-                            // Ensure only one '.' is allowed
-                            const parts = e.target.value.split(".");
-                            if (parts.length > 2) {
-                              e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
-                            }
-                          }}
-                        />
+                          id="workRateOT"
+                          placeholder="กี่บาท"
+                          value={ ((parseFloat(workRate || '0')/ 8)* parseFloat(workRateOT || '0')) || '' }
+                        readOnly/>
                       </div>
                     </div>
-                  </div>
-                  <div class="row">
-                    {/* <div class="col-md-4">
-                                            <div class="form-group">
-                                                <label role="dayoffRate">อัตราค่าจ้างวันหยุดประจำสัปดาห์</label>
-                                                <input type="text" class="form-control" id="dayoffRate" placeholder="บาท" value={dayoffRate} onChange={(e) => setDayoffRate(e.target.value)} />
-                                            </div>
-                                        </div> */}
-                    <div class="col-md-4">
+                </div>
+
+                <div class="row">
+                <div class="col-md-3">
                       <div class="form-group">
                         <label role="dayoffRateHour">
-                          อัตราค่าจ้างวันหยุดประจำสัปดาห์รายชั่วโมง
+                          วันหยุดประจำสัปดาห์รายชั่วโมง
                         </label>
                         <input
                           type="text"
@@ -1996,10 +2501,24 @@ function SettingComplex({ workplaceList }) {
                         />
                       </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
+                      <div class="form-group">
+                        <label role="dayoffRateHour">
+                          วันหยุดประจำสัปดาห์รายชั่วโมง
+                        </label>
+                        <input
+                          type="text"
+                          class="form-control"
+                          id="dayoffRateHour"
+                          placeholder="กี่บาท"
+                          value={ ((parseFloat(workRate || '0')/ 8)* parseFloat(dayoffRateHour || '0')) || '' }
+                                                readOnly />
+                      </div>
+                    </div>
+                    <div class="col-md-3">
                       <div class="form-group">
                         <label role="dayoffRateOT">
-                          อัตราค่าจ้าง OT วันหยุดประจำสัปดาห์รายชั่วโมง
+                          OT วันหยุดประจำสัปดาห์รายชั่วโมง
                         </label>
                         <input
                           type="text"
@@ -2024,39 +2543,27 @@ function SettingComplex({ workplaceList }) {
                         />
                       </div>
                     </div>
-
-                    {/* <div class="col-md-4">
+                    <div class="col-md-3">
                       <div class="form-group">
-                        <label role="holiday">
-                          อัตราค่าจ้างวันหยุดนักขัตฤกษ์ รายวัน
+                        <label role="dayoffRateOT">
+                          OT วันหยุดประจำสัปดาห์รายชั่วโมง
                         </label>
                         <input
                           type="text"
                           class="form-control"
-                          id="holiday"
-                          placeholder="กี่เท่า"
-                          value={holiday}
-                          onChange={(e) => setHoliday(e.target.value)}
-                          onInput={(e) => {
-                            // Remove any non-digit characters
-                            e.target.value = e.target.value.replace(
-                              /[^0-9.]/g,
-                              ""
-                            );
-
-                            // Ensure only one '.' is allowed
-                            const parts = e.target.value.split(".");
-                            if (parts.length > 2) {
-                              e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
-                            }
-                          }}
-                        />
+                          id="dayoffRateOT"
+                          placeholder="กี่บาท"
+                          value={ ((parseFloat(workRate || '0')/ 8)* parseFloat(dayoffRateOT || '0')) || '' }
+                        readOnly />
                       </div>
-                    </div> */}
-                    <div class="col-md-4">
+                    </div>
+                </div>
+
+                <div class="row">
+                <div class="col-md-3">
                       <div class="form-group">
                         <label role="holidayHour">
-                          อัตราค่าจ้างวันหยุดนักขัตฤกษ์ รายชั่วโมง
+                          วันหยุดนักขัตฤกษ์ รายชั่วโมง
                         </label>
                         <input
                           type="text"
@@ -2081,10 +2588,24 @@ function SettingComplex({ workplaceList }) {
                         />
                       </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
+                      <div class="form-group">
+                        <label role="holidayHour">
+                          วันหยุดนักขัตฤกษ์ รายชั่วโมง
+                        </label>
+                        <input
+                          type="text"
+                          class="form-control"
+                          id="holidayHour"
+                          placeholder=""
+                          value={ ((parseFloat(workRate || '0')/ 8)* parseFloat(holidayHour || '0')) || '' }
+                        readOnly />
+                      </div>
+                    </div>
+                    <div class="col-md-3">
                       <div class="form-group">
                         <label role="holidayOT">
-                          อัตราค่าจ้างวันหยุดนักขัตฤกษ์ OT รายชั่วโมง
+                          วันหยุดนักขัตฤกษ์ OT รายชั่วโมง
                         </label>
                         <input
                           type="text"
@@ -2109,7 +2630,127 @@ function SettingComplex({ workplaceList }) {
                         />
                       </div>
                     </div>
-                  </div>
+                    <div class="col-md-3">
+                      <div class="form-group">
+                        <label role="holidayOT">
+                          วันหยุดนักขัตฤกษ์ OT รายชั่วโมง
+                        </label>
+                        <input
+                          type="text"
+                          class="form-control"
+                          id="holidayOT"
+                          placeholder="กี่บาท"
+                          value={ ((parseFloat(workRate || '0')/ 8)* parseFloat(holidayOT || '0')) || '' }
+                        readOnly />
+                      </div>
+                    </div>
+                </div>
+                <br/>
+
+                <div class="row">
+                    <div class="col-md-3">
+                      <div class="form-group">
+                        <label role="addWorkRate">ปรับเพิ่ม</label>
+                        <input
+                          type="text"
+                          class="form-control"
+                          id="addWorkRate"
+                          placeholder="บาท"
+                          value={addWorkRate}
+                          onChange={(e) => setAddWorkRate(e.target.value)}
+                          onInput={(e) => {
+                            // Remove any non-digit characters
+                            e.target.value = e.target.value.replace(
+                              /[^0-9.]/g,
+                              ""
+                            );
+
+                            // Ensure only one '.' is allowed
+                            const parts = e.target.value.split(".");
+                            if (parts.length > 2) {
+                              e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div class="col-md-3">
+                      <div class="form-group">
+                        <label role="addWorkRate">ค่าจ้างใหม่</label>
+                        <input
+                          type="text"
+                          class="form-control"
+                          id="addWorkRate"
+                          placeholder="บาท"
+                          value={parseFloat(addWorkRate || '0')+ parseFloat(workRate || '0') }
+                        />
+                      </div>
+                    </div>
+
+<div class="col-md-6">
+
+<div>
+                    <label>วันเริ่มต้นคำนวณ:</label>
+
+                    <div>
+                      <div className="row">
+                        <div className="col-md-3">
+                          <select
+                            className="form-control"
+                            value={workRateDayChange}
+                            onChange={(e) => setWorkRateDayChange(e.target.value)}
+                          >
+                            <option value="">Select day</option>
+                            {Array.from({ length: 31 }, (_, i) => i + 1).map(
+                              (workRateDayChange) => (
+                                <option key={workRateDayChange} value={workRateDayChange}>
+                                  {workRateDayChange}
+                                </option>
+                              )
+                            )}
+                          </select>
+                        </div>
+                        <div className="col-md-3">
+                          <select
+                            className="form-control"
+                            value={workRateMonthChange}
+                            onChange={(e) => setWorkRateMonthChange(e.target.value)}
+                          >
+                            <option value="">Select month</option>
+                            {Array.from({ length: 12 }, (_, i) => i + 1).map(
+                              (workRateMonthChange) => (
+                                <option key={workRateMonthChange} value={workRateMonthChange}>
+                                  {workRateMonthChange}
+                                </option>
+                              )
+                            )}
+                          </select>
+                        </div>
+
+                        <div className="col-md-3">
+                          <select
+                            className="form-control"
+                            value={workRateYearChange}
+                            onChange={(e) => setWorkRateYearChange(e.target.value)}
+                          >
+                            <option value="">Select year</option>
+                            {Array.from(
+                              { length: 7 },
+                              (_, i) => new Date().getFullYear() + 3 - i
+                            ).map((workRateYearChange) => (
+                              <option key={workRateYearChange} value={workRateYearChange}>
+                                {workRateYearChange + 543}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div></div>
+                      </div>
+                      </div>
+
+
+                </div>
+
                 </section>
                 {/* <!--Frame--> */}
                 <h2 class="title">สวัสดิการเงินเพิ่มพนักงาน</h2>
@@ -2132,9 +2773,15 @@ function SettingComplex({ workplaceList }) {
                               onInput={(e) => {
                                 // Remove any non-digit characters
                                 e.target.value = e.target.value.replace(
-                                  /\D/g,
+                                  /[^0-9.]/g,
                                   ""
                                 );
+
+                                // Ensure only one '.' is allowed
+                                const parts = e.target.value.split(".");
+                                if (parts.length > 2) {
+                                  e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
+                                }
                               }}
                             />
                           </div>
@@ -2173,9 +2820,15 @@ function SettingComplex({ workplaceList }) {
                               onInput={(e) => {
                                 // Remove any non-digit characters
                                 e.target.value = e.target.value.replace(
-                                  /\D/g,
+                                  /[^0-9.]/g,
                                   ""
                                 );
+
+                                // Ensure only one '.' is allowed
+                                const parts = e.target.value.split(".");
+                                if (parts.length > 2) {
+                                  e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
+                                }
                               }}
                             />
                           </div>
@@ -2288,6 +2941,12 @@ function SettingComplex({ workplaceList }) {
                                     <option value="หัวหน้าฝ่ายสโตร์">
                                       หัวหน้าฝ่ายสโตร์
                                     </option>
+                                     <option value="พนักงานคัดแยกขยะ">
+                                       พนักงานคัดแยกขยะ
+                                     </option>
+                              <option value="พนักงานคัดแยกสารเคมี">
+                                      พนักงานคัดแยกสารเคมี
+                              </option>
 
                             </select>
                           </div>
@@ -2367,15 +3026,15 @@ function SettingComplex({ workplaceList }) {
                                 onInput={(e) => {
                                   // Remove any non-digit characters
                                   e.target.value = e.target.value.replace(
-                              /[^0-9.]/g,
-                              ""
-                            );
+                                    /[^0-9.]/g,
+                                    ""
+                                  );
 
-                            // Ensure only one '.' is allowed
-                            const parts = e.target.value.split(".");
-                            if (parts.length > 2) {
-                              e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
-                            }
+                                  // Ensure only one '.' is allowed
+                                  const parts = e.target.value.split(".");
+                                  if (parts.length > 2) {
+                                    e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
+                                  }
                                 }}
                               />
                             </div>
@@ -2396,15 +3055,15 @@ function SettingComplex({ workplaceList }) {
                                 onInput={(e) => {
                                   // Remove any non-digit characters
                                   e.target.value = e.target.value.replace(
-                              /[^0-9.]/g,
-                              ""
-                            );
+                                    /[^0-9.]/g,
+                                    ""
+                                  );
 
-                            // Ensure only one '.' is allowed
-                            const parts = e.target.value.split(".");
-                            if (parts.length > 2) {
-                              e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
-                            }
+                                  // Ensure only one '.' is allowed
+                                  const parts = e.target.value.split(".");
+                                  if (parts.length > 2) {
+                                    e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
+                                  }
                                 }}
                               />
                             </div>
@@ -2427,15 +3086,15 @@ function SettingComplex({ workplaceList }) {
                                 onInput={(e) => {
                                   // Remove any non-digit characters
                                   e.target.value = e.target.value.replace(
-                              /[^0-9.]/g,
-                              ""
-                            );
+                                    /[^0-9.]/g,
+                                    ""
+                                  );
 
-                            // Ensure only one '.' is allowed
-                            const parts = e.target.value.split(".");
-                            if (parts.length > 2) {
-                              e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
-                            }
+                                  // Ensure only one '.' is allowed
+                                  const parts = e.target.value.split(".");
+                                  if (parts.length > 2) {
+                                    e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
+                                  }
                                 }}
                               />
                             </div>
@@ -2458,15 +3117,15 @@ function SettingComplex({ workplaceList }) {
                                 onInput={(e) => {
                                   // Remove any non-digit characters
                                   e.target.value = e.target.value.replace(
-                              /[^0-9.]/g,
-                              ""
-                            );
+                                    /[^0-9.]/g,
+                                    ""
+                                  );
 
-                            // Ensure only one '.' is allowed
-                            const parts = e.target.value.split(".");
-                            if (parts.length > 2) {
-                              e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
-                            }
+                                  // Ensure only one '.' is allowed
+                                  const parts = e.target.value.split(".");
+                                  if (parts.length > 2) {
+                                    e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
+                                  }
                                 }}
                               />
                             </div>
@@ -2485,15 +3144,15 @@ function SettingComplex({ workplaceList }) {
                                 onInput={(e) => {
                                   // Remove any non-digit characters
                                   e.target.value = e.target.value.replace(
-                              /[^0-9.]/g,
-                              ""
-                            );
+                                    /[^0-9.]/g,
+                                    ""
+                                  );
 
-                            // Ensure only one '.' is allowed
-                            const parts = e.target.value.split(".");
-                            if (parts.length > 2) {
-                              e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
-                            }
+                                  // Ensure only one '.' is allowed
+                                  const parts = e.target.value.split(".");
+                                  if (parts.length > 2) {
+                                    e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
+                                  }
                                 }}
                               />
                             </div>
@@ -2516,15 +3175,15 @@ function SettingComplex({ workplaceList }) {
                                 onInput={(e) => {
                                   // Remove any non-digit characters
                                   e.target.value = e.target.value.replace(
-                              /[^0-9.]/g,
-                              ""
-                            );
+                                    /[^0-9.]/g,
+                                    ""
+                                  );
 
-                            // Ensure only one '.' is allowed
-                            const parts = e.target.value.split(".");
-                            if (parts.length > 2) {
-                              e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
-                            }
+                                  // Ensure only one '.' is allowed
+                                  const parts = e.target.value.split(".");
+                                  if (parts.length > 2) {
+                                    e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
+                                  }
                                 }}
                               />
                             </div>
@@ -2543,19 +3202,20 @@ function SettingComplex({ workplaceList }) {
                                 value={workRateDayoffNumber}
                                 onChange={(e) =>
                                   setWorkRateDayoffNumber(e.target.value)
+                                  
                                 }
                                 onInput={(e) => {
                                   // Remove any non-digit characters
                                   e.target.value = e.target.value.replace(
-                              /[^0-9.]/g,
-                              ""
-                            );
+                                    /[^0-9.]/g,
+                                    ""
+                                  );
 
-                            // Ensure only one '.' is allowed
-                            const parts = e.target.value.split(".");
-                            if (parts.length > 2) {
-                              e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
-                            }
+                                  // Ensure only one '.' is allowed
+                                  const parts = e.target.value.split(".");
+                                  if (parts.length > 2) {
+                                    e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
+                                  }
                                 }}
                               />
                             </div>
@@ -2576,15 +3236,15 @@ function SettingComplex({ workplaceList }) {
                                 onInput={(e) => {
                                   // Remove any non-digit characters
                                   e.target.value = e.target.value.replace(
-                              /[^0-9.]/g,
-                              ""
-                            );
+                                    /[^0-9.]/g,
+                                    ""
+                                  );
 
-                            // Ensure only one '.' is allowed
-                            const parts = e.target.value.split(".");
-                            if (parts.length > 2) {
-                              e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
-                            }
+                                  // Ensure only one '.' is allowed
+                                  const parts = e.target.value.split(".");
+                                  if (parts.length > 2) {
+                                    e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
+                                  }
                                 }}
                               />
                             </div>
@@ -2596,28 +3256,27 @@ function SettingComplex({ workplaceList }) {
                                 จำนวนเงินต่อวัน
                               </label>
                               <input
-                                type="text"
-                                class="form-control"
-                                id="workRateDayoffRate"
-                                placeholder="จำนวนเงินต่อวัน"
-                                value={workRateDayoffRate}
-                                onChange={(e) =>
-                                  setworkRateDayoffRate(e.target.value)
-                                }
-                                onInput={(e) => {
-                                  // Remove any non-digit characters
-                                  e.target.value = e.target.value.replace(
-                              /[^0-9.]/g,
-                              ""
-                            );
+                                  type="text"
+                                  className="form-control"
+                                  id="workRateDayoffRate"
+                                  placeholder="จำนวนเงินต่อวัน"
+                                  value={workRateDayoffRate}
+                                  onChange={(e) => {
+                                    let input = e.target.value;
 
-                            // Ensure only one '.' is allowed
-                            const parts = e.target.value.split(".");
-                            if (parts.length > 2) {
-                              e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
-                            }
-                                }}
-                              />
+                                    // Remove characters that are not digits or "."
+                                    input = input.replace(/[^0-9.]/g, '');
+
+                                    // Ensure only one "." is allowed
+                                    const parts = input.split('.');
+                                    if (parts.length > 2) {
+                                      input = `${parts[0]}.${parts[1]}`;
+                                    }
+
+                                    setworkRateDayoffRate(input);
+                                  }}
+                                />
+
                             </div>
                           </div>
                         </div>
@@ -2728,15 +3387,15 @@ function SettingComplex({ workplaceList }) {
                                 onInput={(e) => {
                                   // Remove any non-digit characters
                                   e.target.value = e.target.value.replace(
-                              /[^0-9.]/g,
-                              ""
-                            );
+                                    /[^0-9.]/g,
+                                    ""
+                                  );
 
-                            // Ensure only one '.' is allowed
-                            const parts = e.target.value.split(".");
-                            if (parts.length > 2) {
-                              e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
-                            }
+                                  // Ensure only one '.' is allowed
+                                  const parts = e.target.value.split(".");
+                                  if (parts.length > 2) {
+                                    e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
+                                  }
                                 }}
                               />
                             </div>
@@ -2754,21 +3413,14 @@ function SettingComplex({ workplaceList }) {
                                   )
                                 }
                                 onInput={(e) => {
-                                  // Remove any non-digit characters
-                                  e.target.value = e.target.value.replace(
-                              /[^0-9.]/g,
-                              ""
-                            );
-
-                            // Ensure only one '.' is allowed
-                            const parts = e.target.value.split(".");
-                            if (parts.length > 2) {
-                              e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
-                            }
+                                  // Ensure only one '.' is allowed
+                                  const parts = e.target.value.split(".");
+                                  if (parts.length > 2) {
+                                    e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
+                                  }
                                 }}
                               />
                             </div>
-                            {/* <span>Result Time: {time.resultTime}</span> */}
                             <div class="col-md-2">
                               <input
                                 type="text"
@@ -2783,17 +3435,11 @@ function SettingComplex({ workplaceList }) {
                                   )
                                 }
                                 onInput={(e) => {
-                                  // Remove any non-digit characters
-                                  e.target.value = e.target.value.replace(
-                              /[^0-9.]/g,
-                              ""
-                            );
-
-                            // Ensure only one '.' is allowed
-                            const parts = e.target.value.split(".");
-                            if (parts.length > 2) {
-                              e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
-                            }
+                                  // Ensure only one '.' is allowed
+                                  const parts = e.target.value.split(".");
+                                  if (parts.length > 2) {
+                                    e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
+                                  }
                                 }}
                               />
                             </div>
@@ -2811,17 +3457,11 @@ function SettingComplex({ workplaceList }) {
                                   )
                                 }
                                 onInput={(e) => {
-                                  // Remove any non-digit characters
-                                  e.target.value = e.target.value.replace(
-                              /[^0-9.]/g,
-                              ""
-                            );
-
-                            // Ensure only one '.' is allowed
-                            const parts = e.target.value.split(".");
-                            if (parts.length > 2) {
-                              e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
-                            }
+                                  // Ensure only one '.' is allowed
+                                  const parts = e.target.value.split(".");
+                                  if (parts.length > 2) {
+                                    e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
+                                  }
                                 }}
                               />
                             </div>
@@ -3035,11 +3675,97 @@ function SettingComplex({ workplaceList }) {
                             >
                               <option value="">เลือกตำแหน่ง</option>
 
-                              {positionWork.map((position, positionIndex) => (
+                              {/* {positionWork.map((position, positionIndex) => (
                                 <option key={positionIndex} value={position}>
                                   {position}
                                 </option>
-                              ))}
+                              ))} */}
+                              <option value="" disabled>
+                                เลือกตำแหน่ง
+                              </option>
+                              <option value="หัวหน้าควบคุมงาน">
+                                หัวหน้าควบคุมงาน
+                              </option>
+                              <option value="ผู้ช่วยผู้ควบคุมงาน">
+                                ผู้ช่วยผู้ควบคุมงาน
+                              </option>
+                              <option value="พนักงานทำความสะอาด">
+                                พนักงานทำความสะอาด
+                              </option>
+                              <option value="พนักงานทำความสะอาดรอบนอก">
+                                พนักงานทำความสะอาดรอบนอก
+                              </option>
+                              <option value="พนักงานเสิร์ฟ">
+                                พนักงานเสิร์ฟ
+                              </option>
+                              <option value="พนักงานคนสวน">พนักงานคนสวน</option>
+                              <option value="พนักงานแรงงานชาย">
+                                พนักงานแรงงานชาย
+                              </option>
+                              <option value="กรรมการผู้จัดการ">
+                                กรรมการผู้จัดการ
+                              </option>
+                              <option value="ผู้จัดการทั่วไป">
+                                ผู้จัดการทั่วไป
+                              </option>
+                              <option value="ผู้จัดการฝ่ายการตลาด">
+                                ผู้จัดการฝ่ายการตลาด
+                              </option>
+                              <option value="ผู้จัดการฝ่ายบัญชี/การเงิน">
+                                ผู้จัดการฝ่ายบัญชี/การเงิน
+                              </option>
+                              <option value="ผู้จัดการฝ่ายบุคคล">
+                                ผู้จัดการฝ่ายบุคคล
+                              </option>
+                              <option value="เจ้าหน้าที่ฝ่ายบัญชี/การเงิน">
+                                เจ้าหน้าที่ฝ่ายบัญชี/การเงิน
+                              </option>
+                              <option value="เจ้าหน้าที่ฝ่ายบุคคล">
+                                เจ้าหน้าที่ฝ่ายบุคคล
+                              </option>
+                              <option value="เจ้าหน้าที่ฝ่ายจัดซื้อ">
+                                เจ้าหน้าที่ฝ่ายจัดซื้อ
+                              </option>
+                              <option value="เจ้าหน้าที่ธุรการฝ่ายขาย">
+                                เจ้าหน้าที่ธุรการฝ่ายขาย
+                              </option>
+                              <option value="เจ้าหน้าที่ฝ่ายการตลาด">
+                                เจ้าหน้าที่ฝ่ายการตลาด
+                              </option>
+                              <option value="เจ้าหน้าที่ฝ่ายปฏิบัติการ">
+                                เจ้าหน้าที่ฝ่ายปฏิบัติการ
+                              </option>
+                              <option value="เจ้าหน้าที่ฝ่ายปฏิบัติการ(สายตรวจ)">
+                                เจ้าหน้าที่ฝ่ายปฏิบัติการ(สายตรวจ)
+                              </option>
+                              <option value="เจ้าหน้าที่ฝ่ายยานพาหนะ">
+                                เจ้าหน้าที่ฝ่ายยานพาหนะ
+                              </option>
+                              <option value="เจ้าหน้าที่ฝ่ายไอที">
+                                เจ้าหน้าที่ฝ่ายไอที
+                              </option>
+                              <option value="เจ้าหน้าที่ฝ่ายสโตร์">
+                                เจ้าหน้าที่ฝ่ายสโตร์
+                              </option>
+                              <option value="เจ้าหน้าที่ความปลอดภัยในการทำงาน(จป)">
+                                เจ้าหน้าที่ความปลอดภัยในการทำงาน(จป)
+                              </option>
+                              <option value="ธุรการทั่วไป">ธุรการทั่วไป</option>
+                              <option value="หัวหน้าฝ่ายปฏิบัติการ">
+                                หัวหน้าฝ่ายปฏิบัติการ
+                              </option>
+                              <option value="หัวหน้าฝ่ายบัญชี/การเงิน">
+                                หัวหน้าฝ่ายบัญชี/การเงิน
+                              </option>
+                              <option value="หัวหน้าฝ่ายสโตร์">
+                                หัวหน้าฝ่ายสโตร์
+                              </option>
+                              <option value="แม่บ้านจุดล้างจาน">
+                                แม่บ้านจุดล้างจาน
+                              </option>
+                              <option value="เจ้าหน้าที่ซ่อมบำรุง">
+                                เจ้าหน้าที่ซ่อมบำรุง
+                              </option>
                             </select>
                           </div>
                           <div className="col-md-2">
@@ -3062,9 +3788,15 @@ function SettingComplex({ workplaceList }) {
                               onInput={(e) => {
                                 // Remove any non-digit characters
                                 e.target.value = e.target.value.replace(
-                                  /\D/g,
+                                  /[^0-9.]/g,
                                   ""
                                 );
+
+                                // Ensure only one '.' is allowed
+                                const parts = e.target.value.split(".");
+                                if (parts.length > 2) {
+                                  e.target.value = `${parts[0]}.${parts[1]}`; // Keep only the first two parts
+                                }
                               }}
                             />
                           </div>
@@ -3161,11 +3893,19 @@ function SettingComplex({ workplaceList }) {
                                     onClick={() =>
                                       handleRemoveTimePersonList(index)
                                     }
-                                    style={{ width: "3rem" }}
-                                    className="btn btn-danger ml-auto"
+                               
+                                    className="btn btn-danger mb-2"
                                   >
                                     ลบ
                                   </button>
+                                  <button
+                                    className="btn btn-warning"
+                                    type="button"
+                                    onClick={() => handleEditTimePersonList(index)}
+                                  >
+                                    แก้ไข
+                                  </button>
+ 
                                 </td>
                               </>
                             )}
@@ -3177,260 +3917,558 @@ function SettingComplex({ workplaceList }) {
                   </table>
                 </section>
 
-                <h2 class="title">วันหยุดหน่วยงาน</h2>
+                {/* จัดวันหยุดทั้งสองประเภทให้อยู่ข้างกัน */}
+                <div className="row">
+                  {/* วันหยุดหน่วยงาน */}
+                  <div className="col-md-6">
+                    <h2 className="title" >
+                      วันหยุดหน่วยงาน
+                    </h2>
+                    <section className="Frame" style={{ minHeight: '450px' }}>
+                      <div>
+                        <label>เลือกวันหยุดของหน่วยงาน:</label>
+
+                        <div>
+                          <div className="row">
+                            <div className="col-md-4">
+                              <label style={{ margin: "0.5rem", fontWeight: 'bold' }}>วันที่:</label>
+                            </div>
+                            <div className="col-md-4">
+                              <label style={{ marginRight: "0.5rem", fontWeight: 'bold' }}>
+                                เดือน:
+                              </label>
+                            </div>
+                            <div className="col-md-4">
+                              <label style={{ margin: "0.5rem", fontWeight: 'bold' }}>ปี:</label>
+                            </div>
+                          </div>
+
+                          <div className="row">
+                            <div className="col-md-4">
+                              <select
+                                className="form-control"
+                                value={day}
+                                onChange={(e) => setDay(e.target.value)}
+                                style={{ borderRadius: '6px' }}
+                              >
+                                <option value="">เลือกวันที่</option>
+                                {Array.from({ length: 31 }, (_, i) => i + 1).map(
+                                  (day) => (
+                                    <option key={day} value={day}>
+                                      {day}
+                                    </option>
+                                  )
+                                )}
+                              </select>
+                            </div>
+                            <div className="col-md-4">
+                              <select
+                                className="form-control"
+                                value={month}
+                                onChange={(e) => setMonth(e.target.value)}
+                                style={{ borderRadius: '6px' }}
+                              >
+                                <option value="">เลือกเดือน</option>
+                                {Array.from({ length: 12 }, (_, i) => i + 1).map(
+                                  (month) => (
+                                    <option key={month} value={month}>
+                                      {month}
+                                    </option>
+                                  )
+                                )}
+                              </select>
+                            </div>
+                            <div className="col-md-4">
+                              <select
+                                className="form-control"
+                                value={year}
+                                onChange={(e) => setYear(e.target.value)}
+                                style={{ borderRadius: '6px' }}
+                              >
+                                <option value="">เลือกปี</option>
+                                {Array.from(
+                                  { length: 7 },
+                                  (_, i) => new Date().getFullYear() + 3 - i
+                                ).map((year) => (
+                                  <option key={year} value={year}>
+                                    {year + 543}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+                          <br />
+
+                          <button
+                            type="button"
+                            className="btn btn-primary"
+                            onClick={handleAddDate}
+                          >
+                             เพิ่ม
+                          </button>
+                        </div>
+
+                        <br />
+                        
+                        {/* แสดงรายการวันหยุดหน่วยงาน */}
+                        {selectedDates.length > 0 && (
+  <div >
+    <h5>รายการวันหยุดหน่วยงาน (วัน/เดือน/ปี)</h5>
+    <div style={{ maxHeight: '250px', overflowY: 'auto' }}>
+      {selectedDates
+        .sort((a, b) => new Date(a) - new Date(b))
+        .map((date, index) => (
+          <div key={index} style={{ 
+            backgroundColor: 'white', 
+            padding: '10px', 
+            marginBottom: '8px', 
+            borderRadius: '6px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            
+            <span style={{ fontSize: '14px', fontWeight: '500' }}>
+              {`${index + 1}. `}
+              {date instanceof Date && !isNaN(date.getTime())
+                ? `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear() + 543}`
+                : "วันที่ไม่ถูกต้อง"}
+            </span>
+            <button
+              type="button"
+              onClick={() => handleRemoveDate(date)}
+              className="btn btn-danger"
+            >
+              ลบ
+            </button>
+          </div>
+        ))}
+    </div>
+  </div>
+)}
+                      </div>
+                    </section>
+                  </div>
+
+                  {/* วันหยุดนักขัตฤกษ์ */}
+                  <div className="col-md-6">
+                    <h2 className="title">
+                      วันหยุดนักขัตฤกษ์
+                    </h2>
+                    <section className="Frame" style={{ minHeight: '450px' }}>
+                      <div>
+                        <label >เลือกวันหยุดนักขัตฤกษ์:</label>
+
+                        <div >
+                          <div className="row">
+                            <div className="col-md-4">
+                              <label style={{ margin: "0.5rem", fontWeight: 'bold' }}>วันที่:</label>
+                            </div>
+                            <div className="col-md-4">
+                              <label style={{ marginRight: "0.5rem", fontWeight: 'bold' }}>
+                                เดือน:
+                              </label>
+                            </div>
+                            <div className="col-md-4">
+                              <label style={{ margin: "0.5rem", fontWeight: 'bold' }}>ปี:</label>
+                            </div>
+                          </div>
+
+                          <div className="row">
+                            <div className="col-md-4">
+                              <select
+                                className="form-control"
+                                value={publicHolidayDay}
+                                onChange={(e) => setPublicHolidayDay(e.target.value)}
+                                style={{ borderRadius: '6px' }}
+                              >
+                                <option value="">เลือกวันที่</option>
+                                {Array.from({ length: 31 }, (_, i) => i + 1).map(
+                                  (day) => (
+                                    <option key={day} value={day}>
+                                      {day}
+                                    </option>
+                                  )
+                                )}
+                              </select>
+                            </div>
+                            <div className="col-md-4">
+                              <select
+                                className="form-control"
+                                value={publicHolidayMonth}
+                                onChange={(e) => setPublicHolidayMonth(e.target.value)}
+                                style={{ borderRadius: '6px' }}
+                              >
+                                <option value="">เลือกเดือน</option>
+                                {Array.from({ length: 12 }, (_, i) => i + 1).map(
+                                  (month) => (
+                                    <option key={month} value={month}>
+                                      {month}
+                                    </option>
+                                  )
+                                )}
+                              </select>
+                            </div>
+                            <div className="col-md-4">
+                              <select
+                                className="form-control"
+                                value={publicHolidayYear}
+                                onChange={(e) => setPublicHolidayYear(e.target.value)}
+                                style={{ borderRadius: '6px' }}
+                              >
+                                <option value="">เลือกปี</option>
+                                {Array.from(
+                                  { length: 7 },
+                                  (_, i) => new Date().getFullYear() + 3 - i
+                                ).map((year) => (
+                                  <option key={year} value={year}>
+                                    {year + 543}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                            <br />
+                            <div className="col-md-12 mt-2">
+                                <b className="">หมายเหตุ:</b>
+                                <input 
+                                  className="form-control container mt-2" 
+                                  placeholder="เช่น วันแม่แห่งชาติ" 
+                                  type="text" 
+                                  value={publicHolidayNote}
+                                  onChange={(e) => setPublicHolidayNote(e.target.value)}
+                                />
+                            </div>
+                            
+                          </div>
+                          <br />
+
+                          <button
+                            type="button"
+                            className="btn btn-primary"
+                            onClick={handleAddPublicHoliday}
+                            
+                          >
+                          เพิ่ม
+                          </button>
+                        </div>
+
+                        <br />
+                        
+                        {/* แสดงรายการวันหยุดนักขัตฤกษ์ */}
+                        {publicHolidayDates.length > 0 && (
+                          <div>
+                            <h5>รายการวันหยุดนักขัตฤกษ์ (วัน/เดือน/ปี)</h5>
+                            <div style={{ maxHeight: '250px', overflowY: 'auto' }}>
+                              {publicHolidayDates
+                                .filter(holiday => {
+                                  // กรองเฉพาะข้อมูลที่ถูกต้อง
+                                  const date = holiday.date || holiday;
+                                  return date instanceof Date && !isNaN(date.getTime());
+                                })
+                                .sort((a, b) => {
+                                  const dateA = a.date || a;
+                                  const dateB = b.date || b;
+                                  return dateA - dateB;
+                                })
+                                .map((holiday, index) => (
+                                  <div key={index} style={{ 
+                                    backgroundColor: 'white', 
+                                    padding: '10px', 
+                                    marginBottom: '8px', 
+                                    borderRadius: '6px',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center'
+                                  }}>
+                                    <span style={{ fontSize: '14px', fontWeight: '500' }}>
+                                      {`${index + 1}. `}
+                                      {(() => {
+                                        try {
+                                          const date = holiday.date || holiday;
+                                          if (date instanceof Date && !isNaN(date.getTime())) {
+                                            return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear() + 543}`;
+                                          } else {
+                                            return "วันที่ไม่ถูกต้อง";
+                                          }
+                                        } catch (error) {
+                                          console.error("Error formatting date:", error);
+                                          return "วันที่ไม่ถูกต้อง";
+                                        }
+                                      })()}
+                                      {holiday.note && (
+                                        <span style={{ color: '#666', marginLeft: '8px' }}>
+                                          - {holiday.note}
+                                        </span>
+                                      )}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemovePublicHoliday(holiday)}
+                                      className="btn btn-danger"
+                                    >
+                                      ลบ
+                                    </button>
+                                  </div>
+                                ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </section>
+                  </div>
+                </div>
+
+{/* Special work                   */}
+<h2 class="title">ตั้งค่าวันทํางานพิเศษ</h2>
+<section className="Frame">
+      {/* Date Selection */}
+      <div className="row mb-3 align-items-center">
+    <div className="col-md-2">เลือกวันที่</div>
+    <div className="col-md-2">
+      <DatePicker
+        selected={workDate_specialwork}
+        onChange={setWorkDate_specialwork}
+        dateFormat="dd/MM/yyyy"
+        className="form-control"
+      />
+    </div>
+    
+    {/* Selection Dropdown */}
+    <div className="col-md-2">
+      <select className="form-control">
+        <option value="clear">เคลียร์</option>
+        <option value="job">จ๊อบ</option>
+        <option value="job-speacial">OT จ้างเสริมนอกเวลาสัญญา</option>
+      </select>
+    </div>
+
+    {/* Textbox */}
+    <div className="col-md-2">ค่าใช้จ่ายหน่วยงาน</div>
+    <div className="col-md-2">
+      <input type="text" className="form-control" placeholder="รหัสหน่วยงาน" />
+    </div>
+  </div>
+
+{/* Work Time Inputs using Bootstrap Grid */}
+  <div className="row text-center font-weight-bold mb-2">
+    <div className="col-md-1">กะ</div>
+    <div className="col-md-1">เวลาเข้า</div>
+    <div className="col-md-1">เวลาออก</div>
+    <div className="col-md-1">เวลาเข้า OT</div>
+    <div className="col-md-1">เวลาออก OT</div>
+    <div className="col-md-1">ค่าจ้าง</div>
+    <div className="col-md-1">ค่าจ้าง OT</div>
+    <div className="col-md-3">รายละเอียดงาน</div>
+  </div>
+
+  <div className="row align-items-center mb-3">
+    <div className="col-md-1">
+      <select
+        name="shift_specialwork"
+        className="form-control"
+        value={workTimeDay_specialwork.shift_specialwork}
+        onChange={handleInputChange_specialwork}
+      >
+        <option value="">เลือกกะ</option>
+        {shiftWork_specialwork.map((shift, index) => (
+          <option key={index} value={shift}>
+            {shift}
+          </option>
+        ))}
+      </select>
+    </div>
+
+    {["startTime_specialwork", "endTime_specialwork", "startTimeOT_specialwork", "endTimeOT_specialwork", "payment_specialwork", "paymentOT_specialwork"].map((field, idx) => (
+      <div key={idx} className="col-md-1">
+        <input
+          type="text"
+          name={field}
+          className="form-control"
+          placeholder={field.replace("_specialwork", "")}
+          value={workTimeDay_specialwork[field]}
+          onChange={handleInputChange_specialwork}
+        />
+      </div>
+    ))}
+
+    <div className="col-md-3">
+      <input
+        type="text"
+        name="workDetail_specialwork"
+        className="form-control"
+        placeholder="รายละเอียดงาน"
+        value={workTimeDay_specialwork.workDetail_specialwork}
+        onChange={handleInputChange_specialwork}
+      />
+    </div>
+  </div>
+
+
+      {/* ✅ Employees Input Section */}
+      <h5 className="mt-4">ตำแหน่งและจำนวนคน</h5>
+      <div className="d-flex justify-content-start mt-3 mb-4">
+      <button type="button" className="btn btn-success mb-2" onClick={handleAddTimePerson_specialwork}>
+        + เพิ่มตำแหน่ง
+      </button>
+      </div>
+      
+      <div className="table-responsive">
+        <table className="table table-bordered text-center align-middle">
+          <thead>
+            <tr>
+              <th>ตำแหน่ง</th>
+              <th>จำนวนคน</th>
+              <th>ลบ</th>
+            </tr>
+          </thead>
+          <tbody>
+            {workTimeDay_specialwork.employees_specialwork.map((emp, index) => (
+              <tr key={index}>
+                <td>
+                  <select name="positionWork_specialwork" className="form-control" value={emp.positionWork_specialwork} onChange={(e) => handleInputChangePerson_specialwork(e, index)}>
+                    <option value="">เลือกตำแหน่ง</option>
+                    {positionWork_specialwork.map((position, posIndex) => (
+                      <option key={posIndex} value={position}>
+                        {position}
+                      </option>
+                    ))}
+                  </select>
+                </td>
+                <td>
+                  <input type="text" name="countPerson_specialwork" className="form-control" placeholder="จำนวนคน" value={emp.countPerson_specialwork} onChange={(e) => handleInputChangePerson_specialwork(e, index)} />
+                </td>
+                <td>
+                  <button type="button" className="btn btn-danger" onClick={() => handleRemoveTimePerson_specialwork(index)}>
+                    ลบ
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+  <div className="d-flex justify-content-start mt-3 mb-5">
+  <button
+    type="button"
+    className="btn btn-primary"
+    onClick={handleAddTimeList_specialwork}
+  >
+    ➕ เพิ่มรายการ
+  </button>
+</div>
+
+
+{/* ✅ Display Work Schedule List */}
+{workTimeDayList_specialwork.length > 0 && (
+  <div className="table-responsive mt-4">
+    <h5>📌 ตารางเวลาทำงาน</h5>
+    <table className="table table-bordered text-center align-middle">
+      <thead>
+        <tr>
+          <th>วันที่</th>
+          <th>กะ</th>
+          <th>เวลาเข้า</th>
+          <th>เวลาออก</th>
+          <th>เวลาเข้า OT</th>
+          <th>เวลาออก OT</th>
+          <th>อัตราค่าจ้าง</th>
+          <th>อัตราค่าจ้าง OT</th>
+          <th>รายละเอียดงาน</th>
+          <th>ตำแหน่งและจำนวนคน</th>
+          <th>ลบ</th>
+        </tr>
+      </thead>
+      <tbody>
+        {workTimeDayList_specialwork.map((item, index) => (
+          <tr key={index}>
+            <td>{item.day_specialwork}</td>
+            <td>{item.shift_specialwork}</td>
+            <td>{item.startTime_specialwork}</td>
+            <td>{item.endTime_specialwork}</td>
+            <td>{item.startTimeOT_specialwork}</td>
+            <td>{item.endTimeOT_specialwork}</td>
+            <td>{item.payment_specialwork} บาท</td>
+            <td>{item.paymentOT_specialwork} บาท</td>
+            <td>{item.workDetail_specialwork}</td>
+            <td>
+  {item.employees_specialwork.length > 0 ? (
+    item.employees_specialwork.map((emp, i) => (
+      <div key={i} style={{ marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <span>{emp.positionWork_specialwork} - </span>
+        <input
+          type="text"
+          value={emp.countPerson_specialwork}
+          onChange={(e) => handleInlineEdit_specialwork(index, i, e.target.value)}
+          onInput={(e) => {
+            // Allow only numbers
+            e.target.value = e.target.value.replace(/[^0-9]/g, "");
+          }}
+          style={{
+            width: '30px',
+            padding: '2px 5px',
+            border: '1px solid #ccc',
+            borderRadius: '3px',
+            textAlign: 'center'
+          }}
+        />
+        <span>คน</span>
+      </div>
+    ))
+  ) : (
+    <span>-</span>
+  )}
+</td>
+            <td>
+              <button type="button" className="btn btn-danger" onClick={() => handleRemoveTimeList_specialwork(index)}>
+                ลบ
+              </button>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+)}
+
+      {/* ✅ Display Work Schedule List */}
+      {workTimeDayList_specialwork.length > 0 && (
+        <div className="table-responsive mt-4">
+          <h5>📌 ตารางเวลาทำงาน</h5>
+          <table className="table table-bordered text-center align-middle">
+            <tbody>
+              {workTimeDayList_specialwork.map((item, index) => (
+                <tr key={index}>
+                  <td>{item.day_specialwork}</td>
+                  <td>{item.shift_specialwork}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
                 <section class="Frame">
                   <div>
-                    <label>เลือกวันหยุดของหน่วยงาน:</label>
-
-                    <div>
-                      <div className="row">
-                        <div className="col-md-3">
-                          <label style={{ margin: "0.5rem" }}>วันที่:</label>
-                        </div>
-                        <div className="col-md-3">
-                          <label style={{ marginRight: "0.5rem" }}>
-                            เดือน:
-                          </label>
-                        </div>
-
-                        <div className="col-md-3">
-                          <label style={{ margin: "0.5rem" }}>ปี:</label>
-                        </div>
-                      </div>
-
-                      <div className="row">
-                        <div className="col-md-3">
-                          <select
-                            className="form-control"
-                            value={day}
-                            onChange={(e) => setDay(e.target.value)}
-                          >
-                            <option value="">Select day</option>
-                            {Array.from({ length: 31 }, (_, i) => i + 1).map(
-                              (day) => (
-                                <option key={day} value={day}>
-                                  {day}
-                                </option>
-                              )
-                            )}
-                          </select>
-                        </div>
-                        <div className="col-md-3">
-                          <select
-                            className="form-control"
-                            value={month}
-                            onChange={(e) => setMonth(e.target.value)}
-                          >
-                            <option value="">Select month</option>
-                            {Array.from({ length: 12 }, (_, i) => i + 1).map(
-                              (month) => (
-                                <option key={month} value={month}>
-                                  {month}
-                                </option>
-                              )
-                            )}
-                          </select>
-                        </div>
-
-                        <div className="col-md-3">
-                          <select
-                            className="form-control"
-                            value={year}
-                            onChange={(e) => setYear(e.target.value)}
-                          >
-                            <option value="">Select year</option>
-                            {Array.from(
-                              { length: 7 },
-                              (_, i) => new Date().getFullYear() + 3 - i
-                            ).map((year) => (
-                              <option key={year} value={year}>
-                                {year + 543}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                      <br />
-
-                      <button
-                        type="button"
-                        className="btn btn-primary"
-                        onClick={handleAddDate}
-                      >
-                        เพิ่ม
-                      </button>
-                    </div>
-
-                    <br />
-                    {/* {selectedDates.length > 0 && (
-                      <div>
-                        วันหยุดหน่วยงาน (เดือน/วัน/ปี)
-                        <br />
-                        <ol>
-                          {selectedDates.map((date, index) => (
+                    {showEmployeeListResult.length > 0 && (
+                      <>
+                        <h3>
+                          พนักงานในหน่วยงาน {showEmployeeListResult.length} คน
+                        </h3>
+                        <ul>
+                          {showEmployeeListResult.map((employee, index) => (
                             <li key={index}>
-                              <div className="row">
-                                <div
-                                  className="col-md-1"
-                                  style={{ borderTop: "2px solid black" }}
-                                >
-                                  {date instanceof Date &&
-                                  !isNaN(date.getTime())
-                                    ? date.toLocaleDateString()
-                                    : `${day}/${month}/${year} (Invalid Date)`}{" "}
-                                </div>
-                                <div
-                                  className="col-md-1"
-                                  style={{ borderTop: "2px solid black" }}
-                                >
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRemoveDate(date)}
-                                    className="btn clean"
-                                    style={{ margin: "0.5rem", width: "6rem" }}
-                                  >
-                                    ลบออก
-                                  </button>
-                                </div>
-                              </div>
+                              {employee.employeeId}: {employee.name}{" "}
+                              {employee.lastName}
                             </li>
+                            // Replace "name" with the property you want to display for each employee
                           ))}
-                        </ol>
-                      </div>
-                    )} */}
-                    {selectedDates.length > 0 && (
-                      <div>
-                        วันหยุดหน่วยงาน (เดือน/วัน/ปี)
-                        <br />
-                        <ol>
-                          {selectedDates.map((date, index) => (
-                            <li key={index}>
-                              <div className="row">
-                                <div
-                                  className="col-md-1"
-                                  style={{ borderTop: "2px solid black" }}
-                                >
-                                  {date instanceof Date &&
-                                  !isNaN(date.getTime())
-                                    ? `${date.getDate()}/${
-                                        date.getMonth() + 1
-                                      }/${date.getFullYear() + 543}`
-                                    : `${day}/${month}/${
-                                        year + 543
-                                      } (Invalid Date)`}
-                                </div>
-                                <div
-                                  className="col-md-1"
-                                  style={{ borderTop: "2px solid black" }}
-                                >
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRemoveDate(date)}
-                                    className="btn clean"
-                                    style={{ margin: "0.5rem", width: "6rem" }}
-                                  >
-                                    ลบออก
-                                  </button>
-                                </div>
-                              </div>
-                            </li>
-                          ))}
-                        </ol>
-                      </div>
+                        </ul>
+                      </>
                     )}
                   </div>
-                  {/* <div>
-                    <label>หมายเหตุ:</label>
-                    <input
-                      type="text"
-                      class="form-control"
-                      value={reason}
-                      onChange={handleReasonChange}
-                    />
-                  </div> */}
                 </section>
-                <section class="Frame">
-                  <h2 class="title">พนักงานในสังกัด</h2>
-                  <section class="Frame">
-                    <div>
-                      {showEmployeeListResult.length > 0 && (
-                        <>
-                          <h3>
-                            พนักงานในหน่วยงาน {showEmployeeListResult.length} คน
-                          </h3>
-                          <ul>
-                            {showEmployeeListResult.map((employee, index) => (
-                              <li key={index}>
-                                {employee.employeeId}: {employee.name}{" "}
-                                {employee.lastName}
-                              </li>
-                              // Replace "name" with the property you want to display for each employee
-                            ))}
-                          </ul>
-                        </>
-                      )}
-                    </div>
-                  </section>
-                </section>
-
-                {/* <section class="Frame">
-                                    <h2 class="title">กลุ่มงานย่อย</h2>
-                                    <section class="Frame">
-                                        <div>
-                                            <div className="row">
-                                                <div className="col-md-4">
-                                                    <label style={{ marginRight: '0.5rem' }}>รหัส:</label>
-
-                                                </div>
-                                                <div className="col-md-4">
-                                                    <label style={{ margin: '0.5rem' }}>ชื่อหน่วย:</label>
-
-                                                </div>
-                                            </div>
-
-                                            <div className="row">
-                                                <div className="col-md-4">
-                                                    <input
-                                                        type="text"
-                                                        value={workplaceComplexId}
-                                                        class="form-control"
-                                                        onChange={(e) => setWorkplaceComplexId(e.target.value)}
-                                                    />
-                                                </div>
-                                                <div className="col-md-4">
-                                                    <input
-                                                        type="text"
-                                                        value={workplaceComplexName}
-                                                        class="form-control"
-                                                        onChange={(e) => setWorkplaceComplexName(e.target.value)}
-                                                    />
-                                                </div>
-                                                <div className="col-md-4">
-                                                    <button type="button" className="btn btn-primary" onClick={handleAddWorkplaceComplex}>
-                                                        เพิ่ม
-                                                    </button>
-                                                </div>
-
-                                            </div>
-                                            <br />
-
-                                            <button type="button" className="btn btn-primary" onClick={handleAddWorkplaceComplex}>
-                                                เพิ่ม
-                                            </button>
-                                        </div>
-                                        <label role="workRateDayoffRate">รายชื่อหน่วย</label>
-
-                                        <ul>
-                                            {workplacesComplex.map((workplace, index) => (
-                                                <li key={index}>
-                                                    {workplace.id} - {workplace.name}
-                                                </li>
-                                            ))}
-                                        </ul>
-
-
-                                    </section>
-                                </section> */}
+                {/* </section> */}
 
                 {/* <h2>Add Image:</h2>
                                 <input type="file" onChange={handleChange} />
@@ -3439,12 +4477,20 @@ function SettingComplex({ workplaceList }) {
                 {/* <!--Frame--> */}
                 <div class="line_btn">
                   {newWorkplace ? (
-                    <button class="btn b_save" disabled>
+                    <button
+                      type="button"
+                      onClick={handleManageWorkplace}
+                      class="btn b_save"
+                    >
                       <i class="nav-icon fas fa-save"></i>{" "}
                       &nbsp;สร้างหน่วยงานใหม่
                     </button>
                   ) : (
-                    <button class="btn b_save">
+                    <button
+                      type="button"
+                      onClick={handleManageWorkplace}
+                      class="btn b_save"
+                    >
                       <i class="nav-icon fas fa-save"></i> &nbsp;บันทึก
                     </button>
                   )}
@@ -3460,7 +4506,7 @@ function SettingComplex({ workplaceList }) {
         </div>
       </div>
       {/* {JSON.stringify(workTimeDayPersonList, null, 2)} */}
-    </body>
+    </div>
   );
 }
 

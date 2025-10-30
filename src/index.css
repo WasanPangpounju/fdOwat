@@ -93,3 +93,9 @@ button:focus-visible {
   width: 250px;
   height: 40px;
 } */
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+}
