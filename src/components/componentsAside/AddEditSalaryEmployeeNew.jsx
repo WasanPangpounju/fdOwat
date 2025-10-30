@@ -363,9 +363,9 @@ function AddEditSalaryEmployeeNew() {
                     {/* Breadcrumb */}
                     <ol className="breadcrumb">
                         <li className="breadcrumb-item">
-                            <i className="fas fa-home"></i> <a href="index.php">หน้าหลัก</a>
+                            <i className="fas fa-home"></i> <span>หน้าหลัก</span>
                         </li>
-                        <li className="breadcrumb-item"><a href="#"> ระบบเงินเดือน</a></li>
+                        <li className="breadcrumb-item"><span> ระบบเงินเดือน</span></li>
                         <li className="breadcrumb-item active">จัดการสวัสดิการพนักงาน</li>
                     </ol>
 

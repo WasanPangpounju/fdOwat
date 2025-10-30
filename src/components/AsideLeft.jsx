@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import jwt_decode from 'jwt-decode';
+import './AsideLeft.css';
 
 import React, { Component } from 'react'
 import Navitems from './Navitems'
@@ -130,7 +131,7 @@ function AsideLeft() {
     width: '13rem',
     overflowY: 'auto',
     zIndex: 1000
-  };
+  }; 
 
   return (
     <>
@@ -138,11 +139,25 @@ function AsideLeft() {
         
         <div className="sidebar">
           <div className="Logo">
-            <a href="dashboard.php" className="brand-link logo-switch">
-              <img src="src/assets/images/logo-xs.png" alt="Logo Small" className="brand-image-xl logo-xs" />
-              {/* <img src="/assets/images/logo.png" alt=" Docs Logo Large" className="brand-image-xl logo-xl" style={{ borderRadius: "8px", width: '92%' }} /> */}
-              <img src="src/assets/images/owatLogo.png" alt="Owat Logo Large" className="" style={{ borderRadius: "8px", width: '95%' }} />
-            </a>
+             <Link to="/dashboard" className="brand-link logo-switch" style={{ 
+               background: 'white', 
+               padding: '0.2rem', 
+               borderRadius: '5px', 
+               margin: '0.5rem',
+               height: '60px',
+               display: 'flex',
+               alignItems: 'center',
+               justifyContent: 'center'
+             }}>
+              <img src="src/assets/images/logo-owat-newver.png" alt="Owat Logo Large" 
+                   style={{ 
+                     borderRadius: '3px',
+                     width: '300%',
+                     height: '250px',
+                     objectFit: 'contain',
+                     marginTop: '10px'
+                   }} />
+            </Link>
           </div>
           <div className="user-panel mt-2 pb-3 mb-3 d-flex">
             <div className="image">
@@ -477,7 +492,7 @@ function AsideLeft() {
                         <Link to="/settingAllList" className="nav-link"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px" }}></i> หน่วยงานทั้งหมด</Link>
                       </li>
                       <li className="nav-item">
-                        <Link to="/settingspecial" className="nav-link"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px", marginLeft: '1rem' }}></i> ตั้งค่าวันทำงานพิเศษ</Link>
+                        <Link to="/settingspecial" className="nav-link"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px" }}></i> ตั้งค่าวันทำงานพิเศษ</Link>
                       </li>
                       <li></li>
                     </>

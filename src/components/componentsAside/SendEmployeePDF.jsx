@@ -1,10 +1,10 @@
 import endpoint from '../../config';
-
 import axios from 'axios';
 import React, { useState, useEffect } from 'react';
+import jsPDF from 'jspdf';
+import { Link } from 'react-router-dom';
 import SendEmployeePDF2 from './SendEmployeePDF2';
 import SendEmployeePDF3 from './SendEmployeePDF3';
-import jsPDF from 'jspdf';
 
 const SendEmployeePDF = ({employeeList}) => {
     const [selectedOption, setSelectedOption] = useState('SendEmployeePDF2');
@@ -24,8 +24,8 @@ const SendEmployeePDF = ({employeeList}) => {
                     <div class="content-wrapper">
                         {/* <!-- Content Header (Page header) --> */}
                         <ol class="breadcrumb">
-                            <li class="breadcrumb-item"><i class="fas fa-home"></i> <a href="index.php">หน้าหลัก</a></li>
-                            <li class="breadcrumb-item"><a href="#"> ระบบออกเอกสาร</a></li>
+                            <li class="breadcrumb-item"><i class="fas fa-home"></i> <span>หน้าหลัก</span></li>
+                            <li class="breadcrumb-item"><span> ระบบออกเอกสาร</span></li>
                             <li class="breadcrumb-item active">ใบส่งตัว</li>
                         </ol>
                         <div class="content-header">

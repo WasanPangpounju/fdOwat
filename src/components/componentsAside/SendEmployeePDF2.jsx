@@ -257,9 +257,9 @@ const generatePDF2 = async () => {
   doc.setFont("THSarabunNew-Bold");
   doc.setFontSize(14);
 
-  const OwatAddress = "src/assets/images/new/OwatAddress.png";
-  const OwatIcon = "src/assets/images/new/OwatIcon.png";
-  const OwatSupport = "src/assets/images/new/icon_under.png";
+  const OwatAddress = "/assets/images/new/OwatAddress.png";
+  const OwatIcon = "/assets/images/new/OwatIcon.png";
+  const OwatSupport = "/assets/images/new/icon_under.png";
   
 
   const getImageData = (file) => {

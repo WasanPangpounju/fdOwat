@@ -350,9 +350,9 @@ function SpecialShiftCash() {
                 <ol className="breadcrumb bg-light rounded p-3 mb-4">
                   <li className="breadcrumb-item">
                     <i className="fas fa-home "></i>{" "}
-                    <a href="index.php" className="text-decoration-none">
+                    <span> 
                       หน้าหลัก
-                    </a>
+                    </span>
                   </li>
                   <li className="breadcrumb-item active" aria-current="page">
                     ระบบเงินสด

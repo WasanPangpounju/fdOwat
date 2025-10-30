@@ -853,8 +853,8 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                 <div class="content-wrapper">
                     {/* <!-- Content Header (Page header) --> */}
                     <ol class="breadcrumb">
-                        <li class="breadcrumb-item"><i class="fas fa-home"></i> <a href="index.php">หน้าหลัก</a></li>
-                        <li class="breadcrumb-item"><a href="#"> ระบบเงินเดือน</a></li>
+                        <li class="breadcrumb-item"><i class="fas fa-home"></i> <span>หน้าหลัก</span></li>
+                        <li class="breadcrumb-item"><span> ระบบเงินเดือน</span></li>
                         <li class="breadcrumb-item active">ใบลงเวลาการปฏิบัติงาน</li>
                     </ol>
                     <div className="content-header">

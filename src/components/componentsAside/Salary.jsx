@@ -963,10 +963,10 @@ const handleWorkplace = async (event) => {
           {/* <!-- Content Header (Page header) --> */}
           <ol class="breadcrumb">
             <li class="breadcrumb-item">
-              <i class="fas fa-home"></i> <a href="index.php">หน้าหลัก</a>
+              <i class="fas fa-home"></i> <span>หน้าหลัก</span>
             </li>
             <li class="breadcrumb-item">
-              <a href="#"> ระบบจัดการพนักงาน</a>
+              <span> ระบบจัดการพนักงาน</span>
             </li>
             <li class="breadcrumb-item active">ข้อมูลเงินเดือน</li>
           </ol>

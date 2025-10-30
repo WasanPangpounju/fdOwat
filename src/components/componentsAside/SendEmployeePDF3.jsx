@@ -258,12 +258,12 @@ const SendEmployeePDF3 = ({ employeeList }) => {
     doc.setFont("THSarabunNew-Bold");
     doc.setFontSize(14);
 
-    // const OwatAddress = "src/assets/images/OwatAddress.png"; // Replace with the path to your PNG file
-    // const OwatIcon = "src/assets/images/OwatIcon.png"; // Replace with the path to your PNG file
-    // const OwatSupport = "src/assets/images/OwatSupport.png"; // Replace with the path to your PNG file
-    const OwatAddress = "src/assets/images/new/OwatAddress.png"; // Replace with the path to your PNG file
-    const OwatIcon = "src/assets/images/new/OwatIcon.png"; // Replace with the path to your PNG file
-    const OwatSupport = "src/assets/images/new/icon_under.png"; // Replace with the path to your PNG file
+    // const OwatAddress = "/assets/images/OwatAddress.png"; // Replace with the path to your PNG file
+    // const OwatIcon = "/assets/images/OwatIcon.png"; // Replace with the path to your PNG file
+    // const OwatSupport = "/assets/images/OwatSupport.png"; // Replace with the path to your PNG file
+    const OwatAddress = "/assets/images/new/OwatAddress.png"; // Replace with the path to your PNG file
+    const OwatIcon = "/assets/images/new/OwatIcon.png"; // Replace with the path to your PNG file
+    const OwatSupport = "/assets/images/new/icon_under.png"; // Replace with the path to your PNG file
     const xx = 140; // X-coordinate
     const yy = 10; // Y-coordinate
 

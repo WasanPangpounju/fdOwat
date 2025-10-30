@@ -10,16 +10,29 @@ function Top() {
 
     return (
         <>
-            <nav class="main-header navbar navbar-expand navbar-white navbar-light" style={{marginLeft:'13rem'}}>
-                {/* <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
+            <nav className="main-header navbar navbar-expand navbar-white navbar-light" 
+                 style={{ marginLeft: '13rem', height: '3.8rem' }}>
+                {/* <ul className="navbar-nav">
+                    <li className="nav-item">
+                        <a className="nav-link" data-widget="pushmenu" href="#" role="button"><i className="fas fa-bars"></i></a>
                     </li>
                 </ul> */}
-                <ul class="navbar-nav ml-auto">
-                    <li class="nav-item logout">
-                        <a href="#" onClick={handleLogout} >
-                            ออกจากระบบ &nbsp;<img src={arrowRight} width="17" alt="logout"/>
+                <ul className="navbar-nav ml-auto">
+                    <li className="nav-item logout">
+                        <a 
+                            href="#" 
+                            onClick={handleLogout}
+                            style={{
+                                padding: '5.5px 6px', 
+                                display: 'flex',
+                                alignItems: 'center',
+                            }}
+                        >
+                            ออกจากระบบ &nbsp;<img src={arrowRight} width="20" height="17" alt="logout"style={{
+                                width: '20px', 
+                                height: '20px', 
+                                marginLeft: '5px' 
+                            }}/>
                         </a>
                     </li>
                 </ul>

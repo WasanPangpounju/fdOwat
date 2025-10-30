@@ -126,7 +126,7 @@ const generatePDFReport = async () => {
     logoContainer.style.marginBottom = '10px'; // ✅ เพิ่มช่องว่างระหว่างโลโก้กับข้อความ
 
     const logoImg = document.createElement('img');
-    logoImg.src = '/srcsrc/assets/images/OwatIcon.png';
+    logoImg.src = '/src/assets/images/OwatIcon.png';
     logoImg.alt = 'Owat Maid Logo';
     logoImg.style.width = '150px';
     logoImg.style.height = '70px';

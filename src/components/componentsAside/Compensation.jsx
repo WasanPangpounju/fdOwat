@@ -2451,10 +2451,10 @@ const handleSave_back = (index, subIndex, idx) => {
           {/* <!-- Content Header (Page header) --> */}
           <ol className="breadcrumb">
             <li className="breadcrumb-item">
-              <i className="fas fa-home"></i> <a href="index.php">หน้าหลัก</a>
+              <i className="fas fa-home"></i> <span>หน้าหลัก</span>
             </li>
             <li className="breadcrumb-item">
-              <a href="#"> การตั้งค่า</a>
+              <span> การตั้งค่า</span>
             </li>
             <li className="breadcrumb-item active">ตารางค่าตอบแทน</li>
           </ol>

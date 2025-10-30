@@ -18,9 +18,9 @@ function Dashboard() {
         text: 'คุณต้องการปิดงวด ใช่หรือไม่?',
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
-        confirmButtonText: 'ใช่, ปิดงวด!',
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'ยืนยัน: ปิดงวด',
         cancelButtonText: 'ยกเลิก'
       });
 
@@ -98,7 +98,7 @@ function Dashboard() {
           {/* Breadcrumb */}
           <ol className="breadcrumb">
             <li className="breadcrumb-item">
-              <i className="fas fa-home"></i> <Link to="/">หน้าหลัก</Link>
+              <i className="fas fa-home"></i> <span>หน้าหลัก</span>
             </li>
             <li className="breadcrumb-item active">แดชบอร์ด</li>
           </ol>
@@ -138,14 +138,14 @@ function Dashboard() {
 
 // รายการปุ่มในแดชบอร์ด
 const dashboardItems = [
-  { to: "/addsettimeauto", icon: "fas fa-business-time", text: "ระบบลงเวลาอัตโมมัติ", color: "#ff6c60" },
-  { to: "/addEdit_Employee", icon: "fas fa-people-arrows", text: "เพิ่ม/ลบ พนักงาน", color: "#9DBAEA" },
-  { to: "/addEdit_SalaryEmployee", icon: "fas fa-money-bill-wave", text: "เงินเพิ่ม/เงินหัก", color: "#A2B4D2" },
-  { to: "/speacialshiftcash", icon: "fas fa-file-invoice-dollar", text: "ระบบเอกสารจ่ายสด", color: "#58c9f3" },
-  { to: "#", icon: "fas fa-paste", text: "ระบบออกเอกสาร", color: "#41cac0" },
-  { to: "#", icon: "fas fa-file-alt", text: "รายงานผู้บริหาร", color: "#8175c7" },
-  { to: "/search", icon: "fas fa-network-wired", text: "จัดการพนักงาน", color: "#ffc107" },
-  { to: "#", icon: "fas fa-cog", text: "การตั้งค่า", color: "#aebece" },
+  { to: "/addsettimeauto", icon: "bi bi-clock", text: "ระบบลงเวลาอัตโมมัติ", color: "#ff6c60" },
+  { to: "/addEdit_Employee", icon: "bi bi-people", text: "เพิ่ม/ลบ พนักงาน", color: "#9DBAEA" },
+  { to: "/addEdit_SalaryEmployee", icon: "bi bi-cash", text: "เงินเพิ่ม/เงินหัก", color: "#A2B4D2" },
+  { to: "/speacialshiftcash", icon: "bi bi-file-earmark-text", text: "ระบบเอกสารจ่ายสด", color: "#58c9f3" },
+  { to: "#", icon: "bi bi-file-text", text: "ระบบออกเอกสาร", color: "#41cac0" },
+  { to: "#", icon: "bi bi-file-bar-graph", text: "รายงานผู้บริหาร", color: "#8175c7" },
+  { to: "/search", icon: "bi bi-diagram-3", text: "จัดการพนักงาน", color: "#ffc107" },
+  { to: "#", icon: "bi bi-gear", text: "การตั้งค่า", color: "#aebece" },
 ];
 
 
@@ -169,19 +169,35 @@ function DashboardButton({ to, icon, text, color, disabled }) {
       <Link
         to={to}
         onClick={handleClick}
-        className={`d-block text-white text-center rounded shadow-sm p-2 text-decoration-none h-100 ${disabled ? 'disabled-link' : ''}`}
+        className={`d-block text-white text-center rounded shadow-sm p-3 text-decoration-none h-100 ${disabled ? 'disabled-link' : ''}`}
         style={{
           background: disabled ? '#6c757d' : color,
-          minHeight: '90px',
-          maxWidth: '190px', // ✅ กว้างขึ้น
+          minHeight: '80px',
+          maxWidth: '190px',
           width: '100%',
           fontSize: '1rem',
-          lineHeight: 1.4,
+          lineHeight: 0.7,
           opacity: disabled ? 0.6 : 1,
+          display: 'grid',
+          placeItems: 'center',
+          gap: '10px',
+          transition: 'all 0.3s ease',
+          transform: 'translateY(0)',
+          boxShadow: '0 5px 7px rgba(0,0,0,0.1)'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-5px)';
+          e.currentTarget.style.boxShadow = '0 6px 12px rgba(0,0,0,0.15)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
         }}
       >
-        <i className={`${icon} fa-2x mb-2 d-block`}></i>
-        {text}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center' }}>
+          <i className={`${icon} fa-2x`}></i>
+          <div>{text}</div>
+        </div>
       </Link>
     </div>
   );
