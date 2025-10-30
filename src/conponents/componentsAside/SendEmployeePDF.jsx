@@ -2,8 +2,7 @@ import endpoint from '../../config';
 
 import axios from 'axios';
 import React, { useState, useEffect } from 'react';
-import SendEmployeePDF2 from './SendEmployeePDF2';
-import SendEmployeePDF3 from './SendEmployeePDF3';
+
 import jsPDF from 'jspdf';
 
 const SendEmployeePDF = ({employeeList}) => {
