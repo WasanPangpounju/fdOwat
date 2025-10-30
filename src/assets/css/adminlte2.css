@@ -37,8 +37,8 @@
   --breakpoint-md: 768px;
   --breakpoint-lg: 992px;
   --breakpoint-xl: 1200px;
-  --font-family-sans-serif: "Source Sans Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-  --font-family-monospace: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --font-family-sans-serif: 'Sarabun', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  --font-family-monospace: 'Sarabun Mono', monospace;
 }
 
 *,
@@ -48,7 +48,8 @@
 }
 
 html {
-  font-family: 'sarabunregular';
+  font-family: 'Sarabun';
+  font-weight: 400;
   line-height: 1.15;
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
@@ -182,7 +183,7 @@ pre,
 code,
 kbd,
 samp {
-  font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-family: 'Sarabun Mono', monospace;
   font-size: 1em;
 }
 
@@ -424,7 +425,7 @@ h6, .h6 {
   font-weight: 300;
   line-height: 1.2;
   margin-bottom:20px;
-  font-family: 'kanitregular';
+  font-family: 'Sarabun';
 }
 
 hr {
@@ -11883,7 +11884,7 @@ body:not(.layout-fixed) .main-sidebar .sidebar {
 .content-header h1 {
     font-size: 1.8rem;
     margin: 0;
-    font-family: 'kanitregular';
+    font-family: 'Sarabun';
     
 }
 .content-header h1 i{font-size: 1.2rem;}
@@ -12468,7 +12469,7 @@ body:not(.layout-fixed) .main-sidebar .sidebar {
   transition: width 0.3s ease-in-out;
   white-space: nowrap;
 }
-.brand-text{font-family: 'robotoregular';letter-spacing:0.8px;}
+.brand-text{font-family: 'Sarabun';font-weight:600;letter-spacing:0.8px;}
 .brand-link:hover {
   color: #fff;
   text-decoration: none;
@@ -12650,7 +12651,7 @@ body:not(.layout-fixed) .main-sidebar .sidebar {
   padding: 5px 5px 0px 10px;
   font-size: 13px;
 }
-.user-panel .info p{margin-bottom: 0px;font-size: 16px;line-height: 14px;font-family: 'kanitregular';}
+.user-panel .info p{margin-bottom: 0px;font-size: 16px;line-height: 14px;font-family: 'Sarabun';font-weight:500;}
 .user-panel .status,
 .user-panel .dropdown-menu {
   font-size: 0.875rem;

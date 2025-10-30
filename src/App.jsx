@@ -6,95 +6,97 @@ import { useLocation } from "react-router-dom";
 // import Home from "./Home";
 // import Profile from './Profile';
 
-import WorkplaceSpecialShiftDetail from "./conponents/componentsAside/WorkplaceSpecialShiftDetail";
+import WorkplaceSpecialShiftDetail from "./components/componentsAside/WorkplaceSpecialShiftDetail";
 
-import LoginForm from "./conponents/Login";
+import LoginForm from "./components/Login";
+import Register from "./components/Register";
+import ForgotPassword from "./components/ForgotPassword";
 
-import BankReport from "./conponents/componentsAside/BankReport";
-import BankReportExecutiveCommittee from "./conponents/componentsAside/BankReportExecutiveCommittee";
+import BankReport from "./components/componentsAside/BankReport";
+import BankReportExecutiveCommittee from "./components/componentsAside/BankReportExecutiveCommittee";
 
-import AsideLeft from "./conponents/AsideLeft";
-import Footer from "./conponents/Footer";
-import AdminRoute from "./conponents/AdminRoute";
-import AddSetTimeAuto from "./conponents/componentsAside/addsettimeauto";
+import AsideLeft from "./components/AsideLeft";
+import Footer from "./components/Footer";
+import AdminRoute from "./components/AdminRoute";
+import AddSetTimeAuto from "./components/componentsAside/addsettimeauto";
 
-import Top from "./conponents/Top";
+import Top from "./components/Top";
 
-import Dashboard from "./conponents/componentsAside/Dashboard";
-import Search from "./conponents/componentsAside/Search";
-import Employee from "./conponents/componentsAside/Employee";
+import Dashboard from "./components/componentsAside/Dashboard";
+import Search from "./components/componentsAside/Search";
+import Employee from "./components/componentsAside/Employee";
 
-import Salary from "./conponents/componentsAside/Salary";
-// import Salary from "./conponents/Salary";
+import Salary from "./components/componentsAside/Salary";
+// import Salary from "./components/Salary";
 
-import IncomeTax from "./conponents/componentsAside/IncomeTax";
-import SocialSecurity from "./conponents/componentsAside/SocialSecurity";
-import ProvidentFund from "./conponents/componentsAside/ProvidentFund";
-import Collateral from "./conponents/componentsAside/Collateral";
-import Document from "./conponents/componentsAside/Document";
+import IncomeTax from "./components/componentsAside/IncomeTax";
+import SocialSecurity from "./components/componentsAside/SocialSecurity";
+import ProvidentFund from "./components/componentsAside/ProvidentFund";
+import Collateral from "./components/componentsAside/Collateral";
+import Document from "./components/componentsAside/Document";
 
-import CalculateTax from "./conponents/componentsAside/CalculateTax";
-import CalculateTaxDeductions from "./conponents/componentsAside/CalculateTaxDeductions";
-import OtherExpenses from "./conponents/componentsAside/OtherExpenses";
-import SearchResults from "./conponents/componentsAside/SearchResults";
-import SpecialShiftCash from "./conponents/componentsAside/SpecialShiftCash";
+import CalculateTax from "./components/componentsAside/CalculateTax";
+import CalculateTaxDeductions from "./components/componentsAside/CalculateTaxDeductions";
+import OtherExpenses from "./components/componentsAside/OtherExpenses";
+import SearchResults from "./components/componentsAside/SearchResults";
+import SpecialShiftCash from "./components/componentsAside/SpecialShiftCash";
 
-import Application from "./conponents/componentsAside/Application";
-import Application1 from "./conponents/componentsAside/Application1";
-import Application2 from "./conponents/componentsAside/Application2";
-import Application3 from "./conponents/componentsAside/Application3";
-import Application4 from "./conponents/componentsAside/Application4";
-import ApplicationSummary from "./conponents/componentsAside/ApplicationSummary";
-import AddEditEmployee from "./conponents/componentsAside/AddEditEmployee";
-import AddEditSalaryEmployee from "./conponents/componentsAside/AddEditSalaryEmployee";
-import AddSettingEmp from "./conponents/componentsAside/AddSettingEmp";
+import Application from "./components/componentsAside/Application";
+import Application1 from "./components/componentsAside/Application1";
+import Application2 from "./components/componentsAside/Application2";
+import Application3 from "./components/componentsAside/Application3";
+import Application4 from "./components/componentsAside/Application4";
+import ApplicationSummary from "./components/componentsAside/ApplicationSummary";
+import AddEditEmployee from "./components/componentsAside/AddEditEmployee";
+import AddEditSalaryEmployee from "./components/componentsAside/AddEditSalaryEmployee";
+import AddSettingEmp from "./components/componentsAside/AddSettingEmp";
 
-import BasicSetting from "./conponents/componentsAside/BasicSetting";
-import Setting from "./conponents/componentsAside/Setting";
-import SettingComplex from "./conponents/componentsAside/SettingComplex";
-import SettingAllList from "./conponents/componentsAside/SettingAllList";
-import SettingEdit from "./conponents/componentsAside/SettingEdit";
-import SettingSpecial from "./conponents/componentsAside/SettingSpecail";
+import BasicSetting from "./components/componentsAside/BasicSetting";
+import Setting from "./components/componentsAside/Setting";
+import SettingComplex from "./components/componentsAside/SettingComplex";
+import SettingAllList from "./components/componentsAside/SettingAllList";
+import SettingEdit from "./components/componentsAside/SettingEdit";
+import SettingSpecial from "./components/componentsAside/SettingSpecail";
 
-import SystemUser from "./conponents/componentsAside/SystemUser";
-import Addsettime from "./conponents/componentsAside/Addsettime";
+import SystemUser from "./components/componentsAside/SystemUser";
+import Addsettime from "./components/componentsAside/Addsettime";
 
-import Salarysummary from "./conponents/componentsAside/Salarysummary";
-// import Examine from "./conponents/componentsAside/salarysummary/examine";
-// import Salaryresult from "./conponents/componentsAside/salarysummary/salaryresult";
-// import Compensation from "./conponents/componentsAside/salarysummary/compensation";
+import Salarysummary from "./components/componentsAside/Salarysummary";
+// import Examine from "./components/componentsAside/salarysummary/examine";
+// import Salaryresult from "./components/componentsAside/salarysummary/salaryresult";
+// import Compensation from "./components/componentsAside/salarysummary/compensation";
 
-import Examine from "./conponents/componentsAside/Examine";
-import Compensation from "./conponents/componentsAside/Compensation";
-import Salaryresult from "./conponents/componentsAside/SalaryResult";
-import SalaryAllResult from "./conponents/componentsAside/SalaryAllResult";
-import SalaryAllResultAudit from "./conponents/componentsAside/SalaryAllResultAudit";
-import WorktimeSheetWorkplacefor10105 from "./conponents/componentsAside/WorktimeSheetWorkplacefor10105";
+import Examine from "./components/componentsAside/Examine";
+import Compensation from "./components/componentsAside/Compensation";
+import Salaryresult from "./components/componentsAside/SalaryResult";
+import SalaryAllResult from "./components/componentsAside/SalaryAllResult";
+import SalaryAllResultAudit from "./components/componentsAside/SalaryAllResultAudit";
+import WorktimeSheetWorkplacefor10105 from "./components/componentsAside/WorktimeSheetWorkplacefor10105";
 
 
-import ReplaceReport from "./conponents/componentsAside/ReplaceReport";
-import ReplaceWorkplaceReport from "./conponents/componentsAside/ReplaceWorkplaceReport";
-import ReplaceEmployeeReport from "./conponents/componentsAside/ReplaceEmployeeReport";
+import ReplaceReport from "./components/componentsAside/ReplaceReport";
+import ReplaceWorkplaceReport from "./components/componentsAside/ReplaceWorkplaceReport";
+import ReplaceEmployeeReport from "./components/componentsAside/ReplaceEmployeeReport";
 
-import Worktimesheet from "./conponents/componentsAside/Worktimesheet";
-import WorktimeSheetWorkplace from "./conponents/componentsAside/WorktimeSheetWorkplace";
-import WorktimeSheetWorkplaceSpace from "./conponents/componentsAside/WorktimeSheetWorkplaceSpace";
+import Worktimesheet from "./components/componentsAside/Worktimesheet";
+import WorktimeSheetWorkplace from "./components/componentsAside/WorktimeSheetWorkplace";
+import WorktimeSheetWorkplaceSpace from "./components/componentsAside/WorktimeSheetWorkplaceSpace";
 
-import SalarySlipPDF from "./conponents/componentsAside/SalarySlipPDF";
-// import SendEmployeePDF from "./conponents/componentsAside/sendEmployeePDF";
-import SendEmployeePDF from "./conponents/componentsAside/SendEmployeePDF";
-import Testapp from "./conponents/componentsAside/Test";
-import TestPDFSalary from "./conponents/componentsAside/TestPDFSalary";
-import TestPDFResultSalayNew from "./conponents/componentsAside/TestPDFResultSalayNew";
+import SalarySlipPDF from "./components/componentsAside/SalarySlipPDF";
+// import SendEmployeePDF from "./components/componentsAside/sendEmployeePDF";
+import SendEmployeePDF from "./components/componentsAside/SendEmployeePDF";
+import Testapp from "./components/componentsAside/Test";
+import TestPDFSalary from "./components/componentsAside/TestPDFSalary";
+import TestPDFResultSalayNew from "./components/componentsAside/TestPDFResultSalayNew";
 
-// import Time from "./conponents/Time";
-import Testcal from "./conponents/Testcal";
-import Countday from "./conponents/Countday";
+// import Time from "./components/Time";
+import Testcal from "./components/Testcal";
+import Countday from "./components/Countday";
 
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
-// import Login from "./conponents/Login";
-// import Registration from "./conponents/Registration";
-// import Testcal from "./conponents/Testcal";
+// import Login from "./components/Login";
+// import Registration from "./components/Registration";
+// import Testcal from "./components/Testcal";
 
 // import MyComponent from "./server/MyComponent";
 
@@ -416,10 +418,17 @@ useEffect(() => {
           </>
         </Router>
       ) : (
-        <LoginForm onLogin={handleLogin} />
+        <Router>
+          <Routes>
+            <Route path="/" element={<LoginForm onLogin={handleLogin} />} />
+            <Route path="/login" element={<LoginForm onLogin={handleLogin} />} />
+            {/* <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} /> */}
+          </Routes>
+          <Footer isLoginPage={true} />
+        </Router>
       )}
-                  <Footer/>
-
+      {loggedIn && <Footer isLoginPage={false} />}
     </div>
   );
 }

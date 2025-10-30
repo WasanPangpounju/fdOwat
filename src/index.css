@@ -1,6 +1,20 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  font-family: 'Sarabun', sans-serif;
+}
+
+.btn-login {
+  font-family: 'Sarabun', sans-serif !important;
+}
+
+.forgotpassword a {
+  font-family: 'Sarabun', sans-serif;
+}
 
 /* :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
@@ -93,9 +107,3 @@ button:focus-visible {
   width: 250px;
   height: 40px;
 } */
-html, body, #root {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  width: 100%;
-}
