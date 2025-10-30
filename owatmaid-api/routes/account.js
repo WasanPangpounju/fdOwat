@@ -8084,7 +8084,7 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
   let employeeCompensation = 0;
 
   // ตรวจสอบว่าใช้โครงสร้างใหม่หรือเก่า
-  if (employeeCompensationRate1_20 > 0 || employeeCompensationRate21_30_31 > 0) {
+  if (employeeCompensationRate1_20 > 0) {
     // หลักการใหม่: คำนวณแยกตามช่วงวันที่
     
     // คำนวณจำนวนวันในเดือนสำหรับช่วง 21-30/31
@@ -8092,13 +8092,12 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
     const daysFor21_30_31 = daysInMonth - 20; // วันที่ 21 ถึงสิ้นเดือน (30 หรือ 31)
     
     // คำนวณ Rate1_20: Rate ÷ 19 × sumCashWork1_20
-    const compensation1_20 = (employeeCompensationRate1_20 / 19) * sumCashWork1_20;
+    const compensation = sumCashWork * employeeCompensationRate1_20;
     
-    // คำนวณ Rate21_30_31: Rate ÷ (30 หรือ 31) × sumCashWork21_30_31
-    const compensation21_30_31 = (employeeCompensationRate21_30_31 / daysFor21_30_31) * sumCashWork21_30_31;
+
     
     // รวมทั้ง 2 ค่า
-    employeeCompensation = compensation1_20 + compensation21_30_31;
+    employeeCompensation = compensation;
     
     console.log(`\n💰 === คำนวณเงินสงเคราะห์ลูกจ้าง (หลักการใหม่) ===`);
     console.log(`💰 เดือน ${month}/${year} มี ${daysInMonth} วัน`);
@@ -8107,6 +8106,7 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
     console.log(`💰 Rate21_30_31: ${employeeCompensationRate21_30_31} ÷ ${daysFor21_30_31} × ${sumCashWork21_30_31} = ${compensation21_30_31.toFixed(2)} บาท`);
     console.log(`💰 employeeCompensation รวม: ${compensation1_20.toFixed(2)} + ${compensation21_30_31.toFixed(2)} = ${employeeCompensation.toFixed(2)} บาท`);
     console.log(`💰 ===================================================`);
+    
   } else {
     // หลักการเก่า: sumCashWork × employeeCompensationRate
     employeeCompensation = sumCashWork * employeeCompensationRate;
