@@ -8102,10 +8102,9 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
     console.log(`\n💰 === คำนวณเงินสงเคราะห์ลูกจ้าง (หลักการใหม่) ===`);
     console.log(`💰 เดือน ${month}/${year} มี ${daysInMonth} วัน`);
     console.log(`💰 วันที่ 21-${daysInMonth} มี ${daysFor21_30_31} วัน`);
-    console.log(`💰 Rate1_20: ${employeeCompensationRate1_20} ÷ 19 × ${sumCashWork1_20} = ${compensation1_20.toFixed(2)} บาท`);
     console.log(`💰 Rate21_30_31: ${employeeCompensationRate21_30_31} ÷ ${daysFor21_30_31} × ${sumCashWork21_30_31} = ${compensation21_30_31.toFixed(2)} บาท`);
-    console.log(`💰 employeeCompensation รวม: ${compensation1_20.toFixed(2)} + ${compensation21_30_31.toFixed(2)} = ${employeeCompensation.toFixed(2)} บาท`);
     console.log(`💰 ===================================================`);
+
   } else {
     // หลักการเก่า: sumCashWork × employeeCompensationRate
     employeeCompensation = sumCashWork * employeeCompensationRate;
