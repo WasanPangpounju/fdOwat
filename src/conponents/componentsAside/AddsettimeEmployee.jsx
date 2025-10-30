@@ -584,6 +584,9 @@ const [customWorkplace , setCustomWorkplace] = useState({});
 
   // State for "จ่ายเต็มวัน" checkbox
   const [payFullDay, setPayFullDay] = useState(false);
+  
+  // State for "กะดึก" checkbox when selecting "เงินสด"
+  const [isNightShiftCash, setIsNightShiftCash] = useState(false);
 
   // Get the number of days in the specified month
   const numberOfDaysInMonth = new Date(2024, 2, 0).getDate();
@@ -2841,6 +2844,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
       cashOfHoliday: cashOfHoliday || "",
       cashOfHolidayOt: cashOfHolidayOt || "",
       payFullDay: payFullDay || false, // Add payFullDay flag
+      isNightShiftCash: isNightShiftCash || false, // Add night shift cash flag
       messageSalary: messageSalary || "",
     };
 
@@ -2875,6 +2879,9 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
     
     // Reset payFullDay checkbox
     setPayFullDay(false);
+    
+    // Reset isNightShiftCash checkbox
+    setIsNightShiftCash(false);
     
     // ไม่ล้างค่าในฟิลด์เพื่อให้ผู้ใช้สามารถเพิ่มข้อมูลต่อเนื่องได้โดยไม่ต้องกรอกซ้ำ
     // เพียงแค่เปลี่ยนวันที่ไปวันถัดไป แต่จำค่าอื่นๆ ไว้ทั้งหมด รวมถึง OT
@@ -3007,7 +3014,8 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
         specialtSalaryOT: rowData.specialtSalaryOT || '',
         cashOfHoliday: rowData.cashOfHoliday || '',
         cashOfHolidayOt: rowData.cashOfHolidayOt || '',
-        payFullDay: rowData.payFullDay || false
+        payFullDay: rowData.payFullDay || false,
+        isNightShiftCash: rowData.isNightShiftCash || false
       } 
     });
   };
@@ -3694,7 +3702,13 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
             <select
               className="form-control"
               value={wShift}
-              onChange={(e) => setWShift(e.target.value)}
+              onChange={(e) => {
+                setWShift(e.target.value);
+                // Reset checkbox when changing shift
+                if (e.target.value !== "cash_holiday") {
+                  setIsNightShiftCash(false);
+                }
+              }}
             >
               <option value="morning_shift">กะเช้า</option>
               <option value="afternoon_shift">กะบ่าย</option>
@@ -3702,6 +3716,24 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
               <option value="specialt_shift">กะพิเศษ</option>
               <option value="cash_holiday">เงินสด</option>
             </select>
+            
+            {/* Show checkbox when selecting "เงินสด" */}
+            {wShift === "cash_holiday" && (
+              <div className="mt-2">
+                <div className="form-check">
+                  <input
+                    type="checkbox"
+                    className="form-check-input"
+                    id="isNightShiftCashCheckbox"
+                    checked={isNightShiftCash}
+                    onChange={(e) => setIsNightShiftCash(e.target.checked)}
+                  />
+                  <label className="form-check-label text-center" htmlFor="isNightShiftCashCheckbox">
+                    กะดึก
+                  </label>
+                </div>
+              </div>
+            )}
           </td>
 
           {/* OT Start Time */}
@@ -3946,30 +3978,66 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                 <th>{rowData2.date}</th>
                 <th>
                   {editMode[index] ? (
-                    <select
-                      className="form-control form-control-sm"
-                      value={editData[index]?.shift || rowData2.shift}
-                      onChange={(e) => handleEditFieldChange(index, 'shift', e.target.value)}
-                      style={{ width: "100px", fontSize: "12px" }}
-                    >
-                      <option value="morning_shift">กะเช้า</option>
-                      <option value="afternoon_shift">กะบ่าย</option>
-                      <option value="night_shift">กะดึก</option>
-                      <option value="specialt_shift">กะพิเศษ</option>
-                      <option value="cash_holiday">เงินสด</option>
-                    </select>
+                    <div>
+                      <select
+                        className="form-control form-control-sm"
+                        value={editData[index]?.shift || rowData2.shift}
+                        onChange={(e) => {
+                          handleEditFieldChange(index, 'shift', e.target.value);
+                          // Reset checkbox when changing shift
+                          if (e.target.value !== "cash_holiday") {
+                            handleEditFieldChange(index, 'isNightShiftCash', false);
+                          }
+                        }}
+                        style={{ width: "100px", fontSize: "12px" }}
+                      >
+                        <option value="morning_shift">กะเช้า</option>
+                        <option value="afternoon_shift">กะบ่าย</option>
+                        <option value="night_shift">กะดึก</option>
+                        <option value="specialt_shift">กะพิเศษ</option>
+                        <option value="cash_holiday">เงินสด</option>
+                      </select>
+                      
+                      {/* Show checkbox when editing and shift is "เงินสด" */}
+                      {(editData[index]?.shift || rowData2.shift) === "cash_holiday" && (
+                        <div className="form-check mt-1">
+                          <input
+                            type="checkbox"
+                            className="form-check-input"
+                            id={`editIsNightShiftCash${index}`}
+                            checked={editData[index]?.isNightShiftCash || false}
+                            onChange={(e) => handleEditFieldChange(index, 'isNightShiftCash', e.target.checked)}
+                            style={{ fontSize: "10px" }}
+                          />
+                          <label className="form-check-label" htmlFor={`editIsNightShiftCash${index}`} style={{ fontSize: "10px" }}>
+                            กะดึก
+                          </label>
+                        </div>
+                      )}
+                    </div>
                   ) : (
-                    rowData2.shift === "morning_shift"
-                      ? "กะเช้า"
-                      : rowData2.shift === "afternoon_shift"
-                      ? "กะบ่าย"
-                      : rowData2.shift === "night_shift"
-                      ? "กะดึก"
-                      : rowData2.shift === "specialt_shift"
-                      ? "กะพิเศษ"
-                      : rowData2.shift === "cash_holiday"
-                      ? "เงินสด"
-                      : ""
+                    <div>
+                      {rowData2.shift === "morning_shift"
+                        ? "กะเช้า"
+                        : rowData2.shift === "afternoon_shift"
+                        ? "กะบ่าย"
+                        : rowData2.shift === "night_shift"
+                        ? "กะดึก"
+                        : rowData2.shift === "specialt_shift"
+                        ? "กะพิเศษ"
+                        : rowData2.shift === "cash_holiday"
+                        ? "เงินสด"
+                        : ""}
+                      
+                      {/* Show badge when shift is cash_holiday and isNightShiftCash is true */}
+                      {rowData2.shift === "cash_holiday" && rowData2.isNightShiftCash && (
+                        <div>
+                          <span className="badge badge-info" style={{ fontSize: "10px" }}>
+                            กะดึก
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   )}
                 </th>
                 

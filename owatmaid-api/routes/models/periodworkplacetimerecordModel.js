@@ -25,7 +25,8 @@ const periodWorkplaceTimerecordSchema = new mongoose.Schema({
     specialtSalary: String,
     specialtSalaryOT: String,
             messageSalary: String,
-  }]
+  }],
+  isNightShiftCash: { type: Boolean, default: false }
 });
 
 // Create the workplace record time model based on the schema
