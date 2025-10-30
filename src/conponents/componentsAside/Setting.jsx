@@ -3188,7 +3188,7 @@ if (newWorkplace) {
                  <h2 className="title">เงินสงเคราะห์ลูกจ้าง</h2>
                 <section className="Frame">
                   <div className="row">
-                        <div className="col-md-3">
+                        {/* <div className="col-md-3">
                           <div className="form-group">
                             <label>Rate สำหรับวันที่ 21-30/31</label>
                             <div className="input-group">
@@ -3217,10 +3217,10 @@ if (newWorkplace) {
                             </div>
                             </div>
                           </div>
-                        </div>
+                        </div> */}
                         <div className="col-md-3">
                           <div className="form-group">
-                            <label>Rate สำหรับวันที่ 1-20</label>
+                            <label>Rate สำหรับเงินสงเคราะห์ลูกจ้าง</label>
                             <div className="input-group">
                               <input type="text"
                               className="form-control"
