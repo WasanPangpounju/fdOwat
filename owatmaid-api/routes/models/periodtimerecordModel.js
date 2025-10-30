@@ -29,6 +29,7 @@ const periodEmployeeTimerecordSchema = new mongoose.Schema({
     cashWorkMul: String,
     cashOt: String,
     payFullDay: { type: Boolean, default: false },
+    isNightShiftCash: { type: Boolean, default: false },
     cashOtMul: String,
     cashSalary: String,
     cashOfHoliday: String,

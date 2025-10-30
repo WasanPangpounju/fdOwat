@@ -8638,26 +8638,23 @@ const socialSecurityColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount;
             // หา record ทั้งหมดของวันนี้
             const allRecordsForDay = record?.employee_record?.filter(itemx => itemx.date === day) || [];
             
-            // 🔥 แก้ไข: สำหรับแถวดึก ให้หา night_shift record ก่อน แล้วค่อยหา cash_holiday (สำหรับกะดึก 18:00-03:00)
+            // 🔥 แก้ไข: สำหรับแถวดึก ให้หา night_shift record ก่อน และ cash_holiday กะดึก
             const nightShiftRecord = allRecordsForDay.find(itemx => itemx.shift === "night_shift");
-            const cashHolidayRecord = allRecordsForDay.find(itemx => {
+            
+            // หา cash_holiday record สำหรับกะดึก (18:00-03:00)
+            const cashHolidayNightRecord = allRecordsForDay.find(itemx => {
               if (itemx.shift === "cash_holiday" && itemx.startTime) {
                 const startHour = parseFloat(itemx.startTime.replace('.', ':').split(':')[0]);
-                return startHour >= 18 || (startHour >= 0 && startHour <= 3); // เฉพาะกะดึก 18:00-03:00 เท่านั้น
+                return startHour >= 18 || (startHour >= 0 && startHour <= 3); // กะดึก 18:00-03:00
               }
               return false;
             });
             
-            // หา record ที่มี totalTime ก่อน ถ้าไม่มีก็เอา record แรก
-            const found = nightShiftRecord || cashHolidayRecord || allRecordsForDay.find(itemx => itemx.totalTime && itemx.totalTime.trim() !== '') || allRecordsForDay[0];
+            const found = nightShiftRecord || cashHolidayNightRecord || allRecordsForDay.find(itemx => itemx.totalTime && itemx.totalTime.trim() !== '') || allRecordsForDay[0];
             
-            const isWork = found?.dayType === "work" || 
-                           (found?.dayType === "stop" && found?.shift === "night_shift") ||
-                           (found?.shift === "cash_holiday" && found?.startTime && (() => {
-                             const startHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
-                             return startHour >= 18 || (startHour >= 0 && startHour <= 3); // เฉพาะกะดึก 18:00-03:00 เท่านั้น
-                           })()); // แสดงข้อมูล cash_holiday เฉพาะกะดึกในแถวดึก
-
+            // ตรวจสอบว่าเป็นการทำงานกะดึกหรือไม่
+            const isNightShiftWork = found?.dayType === "work" && found?.shift === "night_shift";
+            
             // ตรวจสอบว่าวันนี้อยู่ใน stopDaysList หรือไม่
             const isInStopDaysList = record?.stopDaysList?.some(stopDay => {
               const stopDayDate = parseInt(stopDay.date);
@@ -8665,60 +8662,90 @@ const socialSecurityColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount;
               return stopDayDate === currentDay;
             });
 
-            // ตรวจสอบทั้ง specialt_shift และ stopDaysList
-            const specialIndividual = (found?.dayType === "work" && found?.shift === "specialt_shift") || isInStopDaysList;
+            // ตรวจสอบทั้ง specialt_shift และ stopDaysList สำหรับกะดึก
+            const specialIndividualNight = (found?.dayType === "work" && found?.shift === "specialt_shift") || isInStopDaysList;
+            const dayNum = parseInt(day);
+            let actualMonth, actualYear;
+            
+            // ตรวจสอบว่าเป็นวันไหนจากเดือนไหน (ตารางแสดงข้ามเดือน 21-31 เดือนก่อน และ 1-20 เดือนปัจจุบัน)
+            if (dayNum >= 21) {
+              // วันที่ 21-31 เป็นของเดือนก่อนหน้า
+              if (parseInt(month) === 1) {
+                actualMonth = 12;
+                actualYear = parseInt(year) - 1;
+              } else {
+                actualMonth = parseInt(month) - 1;
+                actualYear = parseInt(year);
+              }
+            } else {
+              // วันที่ 1-20 เป็นของเดือนปัจจุบัน
+              actualMonth = parseInt(month);
+              actualYear = parseInt(year);
+            }
+            
+            // ตรวจสอบว่าวันที่นี้มีอยู่จริงในเดือนนั้นหรือไม่
+            const daysInActualMonth = new Date(actualYear, actualMonth, 0).getDate();
+            const isInvalidDate = dayNum > daysInActualMonth;
+
+            // สร้างวันที่ในรูปแบบ YYYY-MM-DD เพื่อเปรียบเทียบกับข้อมูลจาก API
+            const targetDateStr = `${actualYear}-${actualMonth.toString().padStart(2, '0')}-${dayNum.toString().padStart(2, '0')}`;
+            
+            // ตรวจสอบจาก dayoffWorkplace
+            const isDayoffWorkplace = weekendData && weekendData.dayoffWorkplace && Array.isArray(weekendData.dayoffWorkplace) && weekendData.dayoffWorkplace.includes(targetDateStr);
+            
+            // ตรวจสอบจาก dayOffOnly
+            const isDayOffOnly = weekendData && Array.isArray(weekendData) && weekendData.find(item => item.date === targetDateStr && item.type === 'dayOffOnly');
+            
+            // ตรวจสอบว่าเป็นวันหยุดพิเศษหรือไม่
+            const isSpecialHoliday = record?.personalDayOff?.some(personalDay => {
+              const personalDayDate = parseInt(personalDay.date);
+              const currentDay = parseInt(day);
+              return personalDayDate === currentDay;
+            }) || record?.stopDaysList?.some(stopDay => {
+              const stopDayDate = parseInt(stopDay.date);
+              const currentDay = parseInt(day);
+              return stopDayDate === currentDay;
+            });
             
             // กำหนดค่าที่จะแสดง
             let displayValue = '';
-            if (isWork) {
-              // เปรียบเทียบ workplaceId ของ record กับ searchWorkplaceId ที่เลือก
-              const recordWorkplaceId = found?.workplaceId;
-              const isMatchSearchWorkplace = recordWorkplaceId === searchWorkplaceId;
-              
-              // ตรวจสอบว่าพนักงานคนนี้เป็นพนักงานข้ามหน่วยงานหรือไม่
-              const isCrossWorkplaceEmployee = record?.isCrossWorkplace || false;
-              
-              if (isCrossWorkplaceEmployee) {
-                // ถ้าเป็นพนักงานข้ามหน่วยงาน ให้แสดง "1" เฉพาะวันที่มาทำงานที่หน่วยงานที่เลือกเท่านั้น
-                if (isMatchSearchWorkplace) {
-                  displayValue = '1';
-                }
-                // ถ้าไม่ตรงกับ searchWorkplaceId = ไม่แสดงอะไร (วันที่ไม่ได้มาทำงานที่หน่วยงานนี้)
-              } else {
-                // พนักงานปกติที่สังกัดหน่วยงานนี้
-                if (found?.shift === "cash_holiday" && found?.startTime) {
-                  // 🔥 ปรับปรุง: ตรวจสอบเวลาเริ่มงานสำหรับ cash_holiday
-                  const startHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
-                  if (startHour >= 18 || (startHour >= 0 && startHour <= 3)) {
-                    // กะดึก (18:00-03:00) - แสดงเลข 1
-                    displayValue = '1';
-                  }
-                  // ถ้าไม่อยู่ในช่วงเวลาดึก (18:00-03:00) ไม่แสดงอะไรในแถวดึก
-                } else if (found?.shift === "night_shift") {
-                  // เฉพาะ night_shift เท่านั้น
-                  if (isMatchSearchWorkplace) {
-                    displayValue = '1';
-                  } else {
-                    displayValue = `1\n${found?.workplaceId || ''}`;
-                  }
-                }
-              }
-            }
-
-            // เพิ่มเงื่อนไขพิเศษ: ถ้าเป็นวันหยุดส่วนบุคคลแต่มี totalTime ให้แสดงเลข 1
-            // แต่ไม่แสดงถ้าเป็น cash_holiday กะเช้า (startTime 06:00-15:00)
-            if (specialIndividual && found?.totalTime && found.totalTime.trim() !== '') {
-              // ตรวจสอบว่าเป็น cash_holiday กะเช้าหรือไม่
+            
+            if (isSpecialHoliday) {
+              // วันหยุดพิเศษ: ตรวจสอบเพิ่มเติม - ถ้าเป็น cash_holiday กะดึกให้แสดงเลข 1
               if (found?.shift === "cash_holiday" && found?.startTime) {
                 const startHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
-                // ถ้าเป็นกะเช้า (06:00-15:00) ไม่แสดงในแถวดึก
-                if (!(startHour >= 6 && startHour <= 15)) {
-                  displayValue = "1";
+                if (startHour >= 18 || (startHour >= 0 && startHour <= 3)) {
+                  displayValue = '1'; // เลข 1 สำหรับ cash_holiday กะดึก
                 }
-              } else {
-                // ไม่ใช่ cash_holiday ให้แสดงปกติ
-                displayValue = "1";
               }
+            } else if (isDayOffOnly) {
+              // วันหยุด: แสดงเลข 1 ถ้ามี totalTime และเป็น night_shift
+              if (found?.totalTime && found.totalTime.trim() !== '' && found?.shift === "night_shift") {
+                displayValue = '1';
+              }
+              // แสดงเลข 1 ถ้าเป็น cash_holiday และ startTime อยู่ในช่วงกะดึก (18:00-03:00)
+              if (found?.shift === "cash_holiday" && found?.startTime) {
+                const startHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
+                if (startHour >= 18 || (startHour >= 0)) {
+                  displayValue = '1'; // เลข 1 สำหรับ cash_holiday กะดึก
+                }
+              }
+            } else if (isDayoffWorkplace || isInvalidDate) {
+              // วันหยุดหรือวันที่ไม่มีอยู่จริง: ไม่แสดงอะไร
+              displayValue = '';
+            } else if (isNightShiftWork) {
+              displayValue = '1'; // แสดงเลข 1 เมื่อมาทำงานกะดึก
+            } else if (found?.shift === "cash_holiday" && found?.startTime) {
+              // ถ้าเป็น cash_holiday และ startTime อยู่ในช่วงกะดึก (18:00-03:00) - ไม่ใช่วันหยุด
+              const startHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
+              if (startHour >= 18 || (startHour >= 0 && startHour <= 3)) {
+                displayValue = '1'; // เลข 1 สำหรับ cash_holiday กะดึก
+              }
+            }
+            
+            // ตรวจสอบ specialIndividualNight แยกต่างหาก
+            if (specialIndividualNight) {
+              displayValue = ''; // ไม่แสดงอะไรสำหรับกรณีพิเศษ
             }
             
             empRow2.push(displayValue);
@@ -9103,7 +9130,7 @@ for (let colIdx = 1; colIdx <= actualTotalColumns; colIdx++) {
                 };
                 console.log(`Applied sick leave color to cell in ${rowNames[rowIdx]} row, day ${day} (${actualRowNumber}, ${colNumber})`);
               } else if (specialIndividual) {
-                // � วันหยุดพิเศษ - สีเทาพื้นหลังและตัวอักษรสีแดง (ความสำคัญรองลงมา)
+                // 🟣 วันหยุดพิเศษ - สีเทาพื้นหลังและตัวอักษรสีแดง (ความสำคัญรองลงมา)
                 cell.fill = {
                   type: 'pattern',
                   pattern: 'solid',
@@ -9115,8 +9142,22 @@ for (let colIdx = 1; colIdx <= actualTotalColumns; colIdx++) {
                   color: { argb: 'FFFF0000' } // ตัวอักษรสีแดง
                 };
                 console.log(`Applied gray background with red text to special individual cell in ${rowNames[rowIdx]} row, day ${day} (${actualRowNumber}, ${colNumber})`);
+              } else if (isCashHolidayWithRedText) {
+                // 🔴 cash_holiday ในช่วงเวลากะดึก - ตัวอักษรสีแดง (ตรวจสอบก่อน isPersonalDayOff เพื่อให้แสดงสีแดงในวันนักขัตฤกษ์)
+                // ถ้าเป็นวันหยุดนักขัตฤกษ์ (isPersonalDayOff) ให้ใช้พื้นหลังสีเขียว พร้อมตัวอักษรสีแดง
+                cell.fill = {
+                  type: 'pattern',
+                  pattern: 'solid',
+                  fgColor: { argb: isPersonalDayOff ? 'FF00FF00' : 'FFFFFFFF' } // สีเขียวถ้าเป็นวันหยุดนักขัตฤกษ์ ไม่งั้นสีขาว
+                };
+                cell.font = {
+                  bold: false,
+                  size: rowIdx <= 1 ? 14 : 9,
+                  color: { argb: 'FFFF0000' } // ตัวอักษรสีแดง
+                };
+                console.log(`Applied ${isPersonalDayOff ? 'green' : 'white'} background with RED text to cash_holiday cell in ${rowNames[rowIdx]} row, day ${day} (${actualRowNumber}, ${colNumber})`);
               } else if (isPersonalDayOff) {
-                // 🟢 วันหยุดส่วนบุคคล - สีเขียว
+                // � วันหยุดส่วนบุคคล - สีเขียว (เฉพาะกรณีที่ไม่ใช่ cash_holiday)
                 cell.fill = {
                   type: 'pattern',
                   pattern: 'solid',
@@ -9128,19 +9169,6 @@ for (let colIdx = 1; colIdx <= actualTotalColumns; colIdx++) {
                   color: { argb: 'FF000000' }
                 };
                 console.log(`Applied green to personal day off cell in ${rowNames[rowIdx]} row, day ${day} (${actualRowNumber}, ${colNumber})`);
-              } else if (isCashHolidayWithRedText) {
-                // 🔴 cash_holiday ในช่วงเวลากะดึก - ตัวอักษรสีแดงบนพื้นหลังขาว (สำหรับแถวกะดึก)
-                cell.fill = {
-                  type: 'pattern',
-                  pattern: 'solid',
-                  fgColor: { argb: 'FFFFFFFF' } // สีขาว #ffffff (เปลี่ยนจากสีเทา)
-                };
-                cell.font = {
-                  bold: false,
-                  size: rowIdx <= 1 ? 14 : 9,
-                  color: { argb: 'FFFF0000' } // ตัวอักษรสีแดง
-                };
-                console.log(`Applied white background with RED text to cash_holiday cell in ${rowNames[rowIdx]} row, day ${day} (${actualRowNumber}, ${colNumber})`);
               } else if (rowIdx === 3) { // โอที 2 (empRow4) - ตรวจสอบก่อนวันหยุดหน่วยงาน
                 if (cellValue && cellValue !== '' && cellValue !== null && cellValue !== undefined) {
                   // โอที 2 มีค่า - สีเหลือง
@@ -9311,12 +9339,44 @@ for (let i = 0; i < remainingColsTotal; i++) {
       const contractEmpRow = ['รวมพนักงานตามสัญญา/วัน', ''];
       dayNumbers.forEach((day, i) => {
         const count = contractEmployeeCount || 0;
-        contractEmpRow.push(count === 0 ? '' : count);
+        
+        // ตรวจสอบวันหยุด
+        const dayNum = parseInt(day);
+        let actualMonth, actualYear;
+        if (dayNum >= 21) {
+          actualMonth = parseInt(month) === 1 ? 12 : parseInt(month) - 1;
+          actualYear = parseInt(month) === 1 ? parseInt(year) - 1 : parseInt(year);
+        } else {
+          actualMonth = parseInt(month);
+          actualYear = parseInt(year);
+        }
+        const daysInActualMonth = new Date(actualYear, actualMonth, 0).getDate();
+        const isInvalidDate = dayNum > daysInActualMonth;
+        const targetDateStr = `${actualYear}-${actualMonth.toString().padStart(2, '0')}-${dayNum.toString().padStart(2, '0')}`;
+        const isDayoffWorkplace = weekendData && weekendData.dayoffWorkplace && Array.isArray(weekendData.dayoffWorkplace) && weekendData.dayoffWorkplace.includes(targetDateStr);
+        const isDayOffOnly = weekendData && Array.isArray(weekendData) && weekendData.find(item => item.date === targetDateStr && item.type === 'dayOffOnly');
+        const isHoliday = isInvalidDate || isDayoffWorkplace || isDayOffOnly;
+        
+        // ถ้าเป็นวันหยุดหรือ count = 0 ให้แสดงเป็นค่าว่าง
+        contractEmpRow.push((count === 0 || isHoliday) ? '' : count);
       });
-      // รวมพนักงานตามสัญญาทั้งหมด = จำนวนพนักงานตามสัญญา × จำนวนวันที่มีการทำงาน
+      // รวมพนักงานตามสัญญาทั้งหมด = จำนวนพนักงานตามสัญญา × จำนวนวันที่มีการทำงาน (ไม่นับวันหยุด)
       const workingDaysCount = dayNumbers.filter(day => {
-        const dayIndex = dayNumbers.indexOf(day);
-        return (employeeCountPerDay[dayIndex] || 0) > 0;
+        const dayNum = parseInt(day);
+        let actualMonth, actualYear;
+        if (dayNum >= 21) {
+          actualMonth = parseInt(month) === 1 ? 12 : parseInt(month) - 1;
+          actualYear = parseInt(month) === 1 ? parseInt(year) - 1 : parseInt(year);
+        } else {
+          actualMonth = parseInt(month);
+          actualYear = parseInt(year);
+        }
+        const daysInActualMonth = new Date(actualYear, actualMonth, 0).getDate();
+        const isInvalidDate = dayNum > daysInActualMonth;
+        const targetDateStr = `${actualYear}-${actualMonth.toString().padStart(2, '0')}-${dayNum.toString().padStart(2, '0')}`;
+        const isDayoffWorkplace = weekendData && weekendData.dayoffWorkplace && Array.isArray(weekendData.dayoffWorkplace) && weekendData.dayoffWorkplace.includes(targetDateStr);
+        const isDayOffOnly = weekendData && Array.isArray(weekendData) && weekendData.find(item => item.date === targetDateStr && item.type === 'dayOffOnly');
+        return !isInvalidDate && !isDayoffWorkplace && !isDayOffOnly;
       }).length;
       contractEmpRow.push(contractEmployeeCount ? contractEmployeeCount * workingDaysCount : 0);
 const remainingColsContract = row1.length - contractEmpRow.length;
@@ -9328,7 +9388,25 @@ for (let i = 0; i < remainingColsContract; i++) {
       contractEmpRow.specialStyles = {};
       dayNumbers.forEach((day, i) => {
         const count = contractEmployeeCount || 0;
-        if (count === 0) {
+        
+        // ตรวจสอบวันหยุด
+        const dayNum = parseInt(day);
+        let actualMonth, actualYear;
+        if (dayNum >= 21) {
+          actualMonth = parseInt(month) === 1 ? 12 : parseInt(month) - 1;
+          actualYear = parseInt(month) === 1 ? parseInt(year) - 1 : parseInt(year);
+        } else {
+          actualMonth = parseInt(month);
+          actualYear = parseInt(year);
+        }
+        const daysInActualMonth = new Date(actualYear, actualMonth, 0).getDate();
+        const isInvalidDate = dayNum > daysInActualMonth;
+        const targetDateStr = `${actualYear}-${actualMonth.toString().padStart(2, '0')}-${dayNum.toString().padStart(2, '0')}`;
+        const isDayoffWorkplace = weekendData && weekendData.dayoffWorkplace && Array.isArray(weekendData.dayoffWorkplace) && weekendData.dayoffWorkplace.includes(targetDateStr);
+        const isDayOffOnly = weekendData && Array.isArray(weekendData) && weekendData.find(item => item.date === targetDateStr && item.type === 'dayOffOnly');
+        const isHoliday = isInvalidDate || isDayoffWorkplace || isDayOffOnly;
+        
+        if (count === 0 || isHoliday) {
           contractEmpRow.specialStyles[i + 2] = { // +2 เพราะ column A,B เป็น "รวมพนักงานตามสัญญา/วัน" และ ""
             backgroundColor: 'FFD3D3D3', // สีเทา
             fontColor: 'FF000000',      // ตัวอักษรสีดำ
@@ -9344,26 +9422,9 @@ for (let i = 0; i < remainingColsContract; i++) {
       
       // Absent employees per day - Calculate before creating absentEmpRow
       const absentEmployeesPerDay = dayNumbers.map((day, dayIndex) => {
-        let absentCount = 0;
         const dayNum = parseInt(day);
         
-        if (!data || !Array.isArray(data)) {
-          return 0;
-        }
-
-        // 1. นับพนักงานสัญญาจาก data
-        const contractEmployees = data.filter(record => 
-          record.employeeType === 'พนักงานประจำ' || 
-          record.employeeType === 'รายเดือน'
-        );
-
-        console.log(`🔍 Total contract employees: ${contractEmployees.length}`);
-
-        if (contractEmployees.length === 0) {
-          return 0;
-        }
-
-        // 2. ตรวจสอบวันหยุด
+        // ตรวจสอบวันหยุด
         let actualMonth, actualYear;
         
         if (dayNum >= 21) {
@@ -9390,52 +9451,18 @@ for (let i = 0; i < remainingColsContract; i++) {
           return 0;
         }
 
-        // 3. นับพนักงานสัญญาที่มาทำงาน
-        let presentCount = 0;
+        // ใช้จำนวนพนักงานที่มาทำงานจริงจาก employeeCountPerDay
+        const presentCount = employeeCountPerDay[dayIndex] || 0;
         
-        contractEmployees.forEach(record => {
-          // หา record ของพนักงานในวันนี้
-          const dayRecord = record?.employee_record?.find(item => item.date === day);
-          
-          // ตรวจสอบว่าพนักงานลาหรือไม่
-          const isOnLeave = record?.addSalaryList?.some(salaryItem => {
-            if (salaryItem.welfareType === "ลาป่วย" || 
-                salaryItem.welfareType === "ลาคลอด" ||
-                salaryItem.name?.includes("ลาป่วย") || 
-                salaryItem.name?.includes("ป่วย") ||
-                salaryItem.name?.includes("ลาพักร้อน") ||
-                salaryItem.name?.includes("ชดเชย") ||
-                salaryItem.name?.includes("ลากิจ")) {
-              
-              const dates = salaryItem.date ? salaryItem.date.split(',').map(d => d.trim()) : [];
-              return dates.some(dateStr => parseInt(dateStr) === dayNum);
-            }
-            return false;
-          });
-          
-          // ตรวจสอบว่าพนักงานมีวันหยุดส่วนบุคคลหรือไม่
-          const isPersonalDayOff = record?.personalDayOff?.some(personalDay => 
-            parseInt(personalDay.date) === dayNum
-          ) || record?.stopDaysList?.some(stopDay => 
-            parseInt(stopDay.date) === dayNum
-          );
-          
-          // ตรวจสอบว่าพนักงานนี้เกี่ยวข้องกับหน่วยงานที่เลือก
-          const isRelevantEmployee = !searchWorkplaceId || 
-            record?.employee_record?.some(item => item.workplaceId === searchWorkplaceId);
-          
-          // ถ้ามี record การทำงาน + ไม่ลา + ไม่หยุดส่วนบุคคล + เป็นพนักงานที่เกี่ยวข้อง = มาทำงาน
-          if (dayRecord && !isOnLeave && !isPersonalDayOff && isRelevantEmployee) {
-            presentCount++;
-          }
-        });
-
-        // 4. คำนวณขาดงาน
-        absentCount = Math.max(0, contractEmployees.length - presentCount);
+        // ใช้ contractEmployeeCount จาก API
+        const totalContractEmployees = contractEmployeeCount || 0;
         
-        console.log(`📊 Day ${day}: ${presentCount}/${contractEmployees.length} present, ${absentCount} absent`);
+        // คำนวณพนักงานขาดงาน = พนักงานตามสัญญา - พนักงานที่มาทำงาน
+        const absentCount = totalContractEmployees - presentCount;
         
-        return absentCount;
+        console.log(`📊 Day ${day}: Total contract: ${totalContractEmployees}, Present: ${presentCount}, Absent: ${absentCount}`);
+        
+        return absentCount > 0 ? absentCount : 0; // ป้องกันค่าลบ
       });
 
       console.log('🎯 Final absent counts:', absentEmployeesPerDay);
@@ -9478,7 +9505,7 @@ for (let i = 0; i < remainingColsContract; i++) {
         const absentCount = absentEmployeesPerDay[i] || 0;
         if (absentCount === 0) {
           absentEmpRow.specialStyles[i + 2] = { // +2 เพราะ column A,B เป็น "พนักงานขาดงาน" และ ""
-            backgroundColor: '', // สีเทา
+            backgroundColor: 'FFD3D3D3', // สีเทา
             fontColor: 'FF000000',      // ตัวอักษรสีดำ
             fontWeight: 'bold'
           };
@@ -11259,30 +11286,15 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
     
     return total;
   };
-  const calculateAbsentEmployeesPerDay = () => {
+  const calculateAbsentEmployeesPerDay = (employeeCountPerDay) => {
   const absentCounts = Array(dayNumbers.length).fill(0);
   
   if (!data || data.length === 0) return absentCounts;
 
-  // นับพนักงานสัญญา
-  const contractEmployees = data.filter(emp => 
-    emp.employeeType === 'พนักงานประจำ' || emp.employeeType === 'รายเดือน'
-  );
+  console.log('🔍 Contract employees from API (contractEmployeeCount):', contractEmployeeCount);
   
-  console.log('🔍 Contract employees:', contractEmployees.length);
-  
-  // Debug: ดูข้อมูลพนักงานแต่ละคน
-  contractEmployees.forEach(emp => {
-    console.log(`Employee ${emp.employeeId}:`, {
-      name: emp.employeeName,
-      type: emp.employeeType,
-      records: emp.employee_record?.length || 0,
-      workdays: emp.workdays || 'No workdays'
-    });
-  });
-
   dayNumbers.forEach((day, dayIndex) => {
-    // ตรวจสอบวันหยุดแบบง่ายๆ
+    // ตรวจสอบวันหยุด
     const dayNum = parseInt(day);
     let actualMonth, actualYear;
     
@@ -11298,32 +11310,24 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
     
     // ตรวจสอบวันหยุด
     const isWeekend = weekendData?.dayoffWorkplace?.includes(targetDateStr);
-    if (isWeekend) {
+    const isDayOffOnly = weekendData && Array.isArray(weekendData) && weekendData.find(item => item.date === targetDateStr && item.type === 'dayOffOnly');
+    
+    if (isWeekend || isDayOffOnly) {
       absentCounts[dayIndex] = 0;
       return;
     }
 
-    // นับคนที่มาทำงาน (วิธีง่ายๆ - ดูว่ามี record ในวันนั้น)
-    let presentCount = 0;
+    // ใช้จำนวนพนักงานที่มาทำงานจริงจาก employeeCountPerDay
+    const presentCount = employeeCountPerDay[dayIndex] || 0;
     
-    contractEmployees.forEach(employee => {
-      const dayRecord = employee?.employee_record?.find(item => item.date === day);
-      
-      // ถ้ามี record และมีข้อมูลการทำงาน = มาทำงาน
-      if (dayRecord && (
-        dayRecord.dayType === "work" ||
-        dayRecord.startTime ||
-        dayRecord.endTime ||
-        dayRecord.totalTime
-      )) {
-        presentCount++;
-      }
-    });
+    // ใช้ contractEmployeeCount จาก API
+    const totalContractEmployees = contractEmployeeCount || 0;
+    
+    // คำนวณพนักงานขาดงาน = พนักงานตามสัญญา - พนักงานที่มาทำงาน
+    const absentCount = totalContractEmployees - presentCount;
+    absentCounts[dayIndex] = absentCount > 0 ? absentCount : 0; // ป้องกันค่าลบ
 
-    const absentCount = contractEmployees.length - presentCount;
-    absentCounts[dayIndex] = absentCount;
-
-    console.log(`📊 Day ${day}: ${presentCount} present, ${absentCount} absent`);
+    console.log(`📊 Day ${day}: Total contract: ${totalContractEmployees}, Present: ${presentCount}, Absent: ${absentCount}`);
   });
   
   return absentCounts;
@@ -11371,7 +11375,7 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
   const overtimeSumPerDay = sumOvertimePerDay();
   const overtime2SumPerDay = sumOvertime2PerDay();
   const overtime3SumPerDay = sumOvertime3PerDay();
-  const absentEmployeesPerDay = calculateAbsentEmployeesPerDay();
+  const absentEmployeesPerDay = calculateAbsentEmployeesPerDay(employeeCountPerDay);
   const totalOtPublicHoliday = calculateTotalOtPublicHoliday();
   const totalOtWithOvertime1_5 = calculateTotalOtWithOvertime1_5();
   const totalOtWithOvertime3 = calculateTotalOtWithOvertime3();
@@ -13212,13 +13216,31 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
                       {dayNumbers.map((day, i) => {
                         const count = contractEmployeeCount || 0;
                         const isZero = count === 0;
+                        
+                        // ตรวจสอบวันหยุด
+                        const dayNum = parseInt(day);
+                        let actualMonth, actualYear;
+                        if (dayNum >= 21) {
+                          actualMonth = month === "01" ? 12 : parseInt(month) - 1;
+                          actualYear = month === "01" ? parseInt(year) - 1 : parseInt(year);
+                        } else {
+                          actualMonth = parseInt(month);
+                          actualYear = parseInt(year);
+                        }
+                        const daysInActualMonth = new Date(actualYear, actualMonth, 0).getDate();
+                        const isInvalidDate = dayNum > daysInActualMonth;
+                        const targetDateStr = `${actualYear}-${actualMonth.toString().padStart(2, '0')}-${dayNum.toString().padStart(2, '0')}`;
+                        const isDayoffWorkplace = weekendData && weekendData.dayoffWorkplace && Array.isArray(weekendData.dayoffWorkplace) && weekendData.dayoffWorkplace.includes(targetDateStr);
+                        const isDayOffOnly = weekendData && Array.isArray(weekendData) && weekendData.find(item => item.date === targetDateStr && item.type === 'dayOffOnly');
+                        const isHoliday = isInvalidDate || isDayoffWorkplace || isDayOffOnly;
+                        
                         return (
                           <td 
                             key={i} 
-                            className={`text-center text-bold align-middle ${isZero ? "" : ""}`}
-                            style={isZero ? { backgroundColor: "#bfbdbf" } : {}}
+                            className={`text-center text-bold align-middle ${isZero || isHoliday ? "" : ""}`}
+                            style={(isZero || isHoliday) ? { backgroundColor: "#bfbdbf" } : {}}
                           >
-                            {isZero ? "" : count}
+                            {(isZero || isHoliday) ? "" : count}
                           </td>
                         );
                       })}
@@ -13267,6 +13289,7 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
                           <td 
                             key={i} 
                             className={`text-center text-bold align-middle ${isZero ? "" : "text-danger"}`}
+                            style={isZero ? { backgroundColor: "#bfbdbf" } : {}}
                           >
                             {isZero ? "" : absentCount}
                           </td>
