@@ -154,7 +154,21 @@ const [weekendData, setWeekendData] = useState([]);
   const [initialDataLoaded, setInitialDataLoaded] = useState(false);
   const [excelLoading, setExcelLoading] = useState(false); // เพิ่ม loading สำหรับ Excel
   const [showTable, setShowTable] = useState(true); // เปลี่ยนเป็น true เพื่อแสดงตารางทันที
+  const [isTableExpanded, setIsTableExpanded] = useState(false); // state สำหรับย่อ/ขยายตาราง
 
+  // useEffect สำหรับจัดการ body class เมื่อขยาย/ย่อตาราง
+  useEffect(() => {
+    if (isTableExpanded) {
+      document.body.classList.add('table-expanded');
+    } else {
+      document.body.classList.remove('table-expanded');
+    }
+
+    // Cleanup เมื่อ component unmount
+    return () => {
+      document.body.classList.remove('table-expanded');
+    };
+  }, [isTableExpanded]);
 
   // const handleWorkDateChange = (date) => {
   //     setWorkDate(date);
@@ -7512,6 +7526,11 @@ const getDateStyle = (day) => {
     }
   };
 
+  // ฟังก์ชันสำหรับย่อ/ขยายตาราง
+  const toggleTableExpanded = () => {
+    setIsTableExpanded(!isTableExpanded);
+  };
+
   // ฟังก์ชันสำหรับปุ่ม Force Reload
   const handleForceReload = async () => {
     // 🎨 เอฟเฟคการลบและเติมตัวอักษรในช่องรหัสหน่วยงาน
@@ -7995,7 +8014,6 @@ const getDateStyle = (day) => {
       const headerRow2 = worksheet.addRow(row2);
       const headerRow3 = worksheet.addRow(row3);
       const headerRow4 = worksheet.addRow(row4);
-      headerRow4.height = 200; // Set height for row 8 (headerRow4) directly after creation
       
       console.log('Header rows added to worksheet successfully');
       
@@ -8252,7 +8270,7 @@ try {
     try {
       const cashHolidayCell = worksheet.getCell(`${cashHolidayCol}5`);
       if (cashHolidayCell) {
-        cashHolidayCell.value = 'ทำงานวันหยุด(จ่ายสด)'; // มันคือ "วัน Cash Holiday"
+        cashHolidayCell.value = 'วัน Cash Holiday'; // ตั้งค่าข้อความใหม่
         cashHolidayCell.alignment = {
           horizontal: 'center',
           vertical: 'middle',
@@ -11393,10 +11411,10 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
           {/* <!-- Content Header (Page header) --> */}
           <ol class="breadcrumb">
             <li class="breadcrumb-item">
-              <i class="fas fa-home"></i> <span>หน้าหลัก</span>
+              <i class="fas fa-home"></i> <a href="index.php">หน้าหลัก</a>
             </li>
             <li class="breadcrumb-item">
-              <span> ระบบเงินเดือน</span>
+              <a href="#"> ระบบเงินเดือน</a>
             </li>
             <li class="breadcrumb-item active">ตารางเวลาทำงานพนักงาน</li>
           </ol>
@@ -11729,14 +11747,81 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                        <i class="fas fa-sync-alt m-1"></i>Force Reload
                      
                       </button>
+                      <button
+                        onClick={toggleTableExpanded}
+                        style={{ marginLeft: "1rem", width: "10rem", backgroundColor: "", color: "white" }}
+                        class="btn b_save bg-info p-2"
+                        title={isTableExpanded ? "ย่อตาราง" : "ขยายตาราง"}
+                      > 
+                       <i class={`fas ${isTableExpanded ? 'fa-search-minus' : 'fa-search-plus'} m-1`}></i>
+                       {isTableExpanded ? "ย่อตาราง" : "ขยายตาราง"}
+                      </button>
 
                       {/* แสดงตารางทันที */}
                       {showTable && (
-                      <div className="pt-3">
-                          <div className="table table-responsive" >
+                      <div 
+                        className={`pt-3 ${isTableExpanded ? 'table-expanded-mode' : ''}`}
+                        style={isTableExpanded ? {
+                          position: 'fixed',
+                          top: 0,
+                          left: 0,
+                          width: '100vw',
+                          height: '100vh',
+                          backgroundColor: 'white',
+                          zIndex: 9999,
+                          overflow: 'hidden',
+                          padding: '10px',
+                          boxSizing: 'border-box'
+                        } : {}}
+                      >
+                          {isTableExpanded && (
+                            <div 
+                              className="d-flex justify-content-between align-items-center mb-2"
+                              style={{ 
+                                position: 'sticky', 
+                                top: 0, 
+                                backgroundColor: 'white', 
+                                zIndex: 1000,
+                                borderBottom: '2px solid #ffffffff',
+                                paddingBottom: '10px'
+                              }}
+                            >
+                              <h5 className="mb-0">
+                                ตารางเวลาทำงานพนักงาน [ หน่วยงาน {searchWorkplaceId} {searchWorkplaceName} {getThaiMonthName(month)} {year && (parseInt(year) + 543)} ]
+                              </h5>
+                              <button
+                                onClick={toggleTableExpanded}
+                                className="btn btn-danger btn-sm"
+                                title="ย่อตาราง"
+                              >
+                                <i className="fas fa-search-minus"></i> ย่อตาราง
+                              </button>
+                            </div>
+                          )}
+                          <div 
+                            className="table table-responsive" 
+                            style={isTableExpanded ? { 
+                              overflowX: 'auto', 
+                              overflowY: 'auto',
+                              height: 'calc(100vh - 80px)',
+                              width: '100%',
+                              maxWidth: 'none'
+                            } : { 
+                              overflowX: 'auto', 
+                              maxWidth: '100%' 
+                            }} 
+                          >
                           <table
                       className="excel-style-table  "
-                      style={{
+                      style={isTableExpanded ? {
+                        fontSize: "10px",
+                        width: "100%",
+                        minWidth: "max-content",
+                        margin: "0",
+                        borderCollapse: "collapse",
+                        border: "1px solid #000",
+                        tableLayout: "auto"
+                      } : {
                         fontSize: "8px",
                         width: "100%",
                         margin: "0 auto",
@@ -12568,7 +12653,7 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
 
                     <td className="text-center align-middle text-red p-1">
                       {/* เงินสงเคราะห์ลูกจ้าง  */}
-                      {record.employeeAllowance ? formatNumberWithComma(parseFloat(record.employeeAllowance).toFixed(2)) : ''}
+                      {record.employeeCompensation ? formatNumberWithComma(parseFloat(record.employeeCompensation).toFixed(2)) : ''}
                     </td>
 
 
@@ -13352,6 +13437,7 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
                         <td className="text-center"></td>
                         <td className="text-center"></td>
                         <td className="text-center"></td>
+                        <td className="text-center text-bold" colSpan={2}>1</td>
  
                     </tr>
 
@@ -13388,10 +13474,9 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
                         <td className="text-center"></td>
                         <td className="text-center"></td>
                         <td className="text-center"></td>
-                 
-                    </tr>
-
-                    <tr> 
+                        <td className="text-center text-bold" colSpan={2}>2</td>
+ 
+                    </tr>                    <tr> 
                         <td colSpan={2} className="text-right text-bold align-middle " style={{ backgroundColor:"#fff7c2",color:"#e8a0e3"}}>โอที 3 เท่า</td>
                         {dayNumbers.map((day, i) => {
                           const overtime3Sum = overtime3SumPerDay[i] || 0;
@@ -13420,7 +13505,7 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
                         <td className="text-center"></td>
                         <td className="text-center"></td>
                         <td className="text-center"></td>
-                 
+                        <td className="text-center text-bold" colSpan={2}>3</td>
                     </tr>
                  
 
