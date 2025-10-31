@@ -8098,7 +8098,7 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
     const compensation21_30_31 = sumCashWork21_30_31 * employeeCompensationRate21_30_31;
     
     // คำนวณ employeeCompensation จาก sumCashWork × employeeCompensationRate1_20
-    employeeCompensation = sumCashWork * employeeCompensationRate1_20;
+    employeeCompensation = sumCashWork * 0;
     
     console.log(`\n💰 === คำนวณเงินสงเคราะห์ลูกจ้าง (หลักการใหม่) ===`);
     console.log(`💰 เดือน ${month}/${year} มี ${daysInMonth} วัน`);
