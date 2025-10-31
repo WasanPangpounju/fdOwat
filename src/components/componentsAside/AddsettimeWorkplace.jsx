@@ -1730,10 +1730,59 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
             <input
               type="text"
               className="form-control text-center"
-              id="selectotTime"
+              id="beforeSelectotTime"
               placeholder="เข้า OT"
               value={beforeSelectotTime}
-              onChange={(e) => setBeforeSelectotTime(e.target.value)}
+              onChange={(e) => {
+                let value = e.target.value;
+                const prevValue = beforeSelectotTime;
+                
+                // Always allow deletion
+                if (value.length < prevValue.length) {
+                  setBeforeSelectotTime(value);
+                  return;
+                }
+
+                // Only allow digits and dot
+                value = value.replace(/[^\d.]/g, '');
+
+                // Don't allow multiple dots
+                if ((value.match(/\./g) || []).length > 1) {
+                  return;
+                }
+
+                // Add dot after 2 digits only when typing, not when deleting
+                if (value.length === 2 && !value.includes('.') && value.length > prevValue.length) {
+                  value = value + '.';
+                }
+
+                // Validate hours and minutes
+                if (value.includes('.')) {
+                  const [hours, minutes] = value.split('.');
+                  if (hours && parseInt(hours) > 24) {
+                    value = '24' + (minutes ? '.' + minutes : '');
+                  }
+                  if (minutes && parseInt(minutes) > 59) {
+                    value = hours + '.59';
+                  }
+                } else if (value.length > 2) {
+                  // If no dot and length > 2, format it
+                  const hours = value.substring(0, 2);
+                  const minutes = value.substring(2);
+                  value = hours + '.' + minutes;
+                }
+
+                // Limit total length
+                if (value.length > 5) return;
+                
+                setBeforeSelectotTime(value);
+
+                // Auto focus to next input only when completing valid entry
+                if (value.length === 5 && value.includes('.') && value.length > prevValue.length) {
+                  const nextInput = document.getElementById('beforeSelectotTimeOut');
+                  if (nextInput && !nextInput.value) nextInput.focus();
+                }
+              }}
             />
           </td>
 
@@ -1742,10 +1791,59 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
             <input
               type="text"
               className="form-control text-center"
-              id="selectotTimeOut"
+              id="beforeSelectotTimeOut"
               placeholder="ออก OT"
               value={beforeSelectotTimeOut}
-              onChange={(e) => setBeforeSelectotTimeOut(e.target.value)}
+              onChange={(e) => {
+                let value = e.target.value;
+                const prevValue = beforeSelectotTimeOut;
+                
+                // Always allow deletion
+                if (value.length < prevValue.length) {
+                  setBeforeSelectotTimeOut(value);
+                  return;
+                }
+
+                // Only allow digits and dot
+                value = value.replace(/[^\d.]/g, '');
+
+                // Don't allow multiple dots
+                if ((value.match(/\./g) || []).length > 1) {
+                  return;
+                }
+
+                // Add dot after 2 digits only when typing, not when deleting
+                if (value.length === 2 && !value.includes('.') && value.length > prevValue.length) {
+                  value = value + '.';
+                }
+
+                // Validate hours and minutes
+                if (value.includes('.')) {
+                  const [hours, minutes] = value.split('.');
+                  if (hours && parseInt(hours) > 24) {
+                    value = '24' + (minutes ? '.' + minutes : '');
+                  }
+                  if (minutes && parseInt(minutes) > 59) {
+                    value = hours + '.59';
+                  }
+                } else if (value.length > 2) {
+                  // If no dot and length > 2, format it
+                  const hours = value.substring(0, 2);
+                  const minutes = value.substring(2);
+                  value = hours + '.' + minutes;
+                }
+
+                // Limit total length
+                if (value.length > 5) return;
+                
+                setBeforeSelectotTimeOut(value);
+
+                // Auto focus to next input only when completing valid entry
+                if (value.length === 5 && value.includes('.') && value.length > prevValue.length) {
+                  const nextInput = document.getElementById('startTime');
+                  if (nextInput && !nextInput.value) nextInput.focus();
+                }
+              }}
             />
           </td>
 
@@ -1769,7 +1867,56 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
               id="startTime"
               placeholder="เข้างาน"
               value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
+              onChange={(e) => {
+                let value = e.target.value;
+                const prevValue = startTime;
+                
+                // Always allow deletion
+                if (value.length < prevValue.length) {
+                  setStartTime(value);
+                  return;
+                }
+
+                // Only allow digits and dot
+                value = value.replace(/[^\d.]/g, '');
+
+                // Don't allow multiple dots
+                if ((value.match(/\./g) || []).length > 1) {
+                  return;
+                }
+
+                // Add dot after 2 digits only when typing, not when deleting
+                if (value.length === 2 && !value.includes('.') && value.length > prevValue.length) {
+                  value = value + '.';
+                }
+
+                // Validate hours and minutes
+                if (value.includes('.')) {
+                  const [hours, minutes] = value.split('.');
+                  if (hours && parseInt(hours) > 24) {
+                    value = '24' + (minutes ? '.' + minutes : '');
+                  }
+                  if (minutes && parseInt(minutes) > 59) {
+                    value = hours + '.59';
+                  }
+                } else if (value.length > 2) {
+                  // If no dot and length > 2, format it
+                  const hours = value.substring(0, 2);
+                  const minutes = value.substring(2);
+                  value = hours + '.' + minutes;
+                }
+
+                // Limit total length
+                if (value.length > 5) return;
+                
+                setStartTime(value);
+
+                // Auto focus to next input only when completing valid entry
+                if (value.length === 5 && value.includes('.') && value.length > prevValue.length) {
+                  const nextInput = document.getElementById('endTime');
+                  if (nextInput && !nextInput.value) nextInput.focus();
+                }
+              }}
             />
           </td>
 
@@ -1781,8 +1928,57 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
               id="endTime"
               placeholder="ออกงาน"
               value={endTime}
-              onChange={(e) => setEndTime(e.target.value)}
-            />
+              onChange={(e) => {
+                let value = e.target.value;
+                const prevValue = endTime;
+                
+                // Always allow deletion
+                if (value.length < prevValue.length) {
+                  setEndTime(value);
+                  return;
+                }
+
+                // Only allow digits and dot
+                value = value.replace(/[^\d.]/g, '');
+
+                // Don't allow multiple dots
+                if ((value.match(/\./g) || []).length > 1) {
+                  return;
+                }
+
+                // Add dot after 2 digits only when typing, not when deleting
+                if (value.length === 2 && !value.includes('.') && value.length > prevValue.length) {
+                  value = value + '.';
+                }
+
+                // Validate hours and minutes
+                if (value.includes('.')) {
+                  const [hours, minutes] = value.split('.');
+                  if (hours && parseInt(hours) > 24) {
+                    value = '24' + (minutes ? '.' + minutes : '');
+                  }
+                  if (minutes && parseInt(minutes) > 59) {
+                    value = hours + '.59';
+                  }
+                } else if (value.length > 2) {
+                  // If no dot and length > 2, format it
+                  const hours = value.substring(0, 2);
+                  const minutes = value.substring(2);
+                  value = hours + '.' + minutes;
+                }
+
+                // Limit total length
+                if (value.length > 5) return;
+                
+                setEndTime(value);
+
+                // Auto focus to next input only when completing valid entry
+                if (value.length === 5 && value.includes('.') && value.length > prevValue.length) {
+                  const nextInput = document.getElementById('selectotTime');
+                  if (nextInput && !nextInput.value) nextInput.focus();
+                }
+              }}
+             />
           </td>
 
           {/* Work Hours */}
@@ -1805,7 +2001,56 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
               id="selectotTime"
               placeholder="เข้า OT"
               value={selectotTime}
-              onChange={(e) => setSelectotTime(e.target.value)}
+              onChange={(e) => {
+                let value = e.target.value;
+                const prevValue = selectotTime;
+                
+                // Always allow deletion
+                if (value.length < prevValue.length) {
+                  setSelectotTime(value);
+                  return;
+                }
+
+                // Only allow digits and dot
+                value = value.replace(/[^\d.]/g, '');
+
+                // Don't allow multiple dots
+                if ((value.match(/\./g) || []).length > 1) {
+                  return;
+                }
+
+                // Add dot after 2 digits only when typing, not when deleting
+                if (value.length === 2 && !value.includes('.') && value.length > prevValue.length) {
+                  value = value + '.';
+                }
+
+                // Validate hours and minutes
+                if (value.includes('.')) {
+                  const [hours, minutes] = value.split('.');
+                  if (hours && parseInt(hours) > 24) {
+                    value = '24' + (minutes ? '.' + minutes : '');
+                  }
+                  if (minutes && parseInt(minutes) > 59) {
+                    value = hours + '.59';
+                  }
+                } else if (value.length > 2) {
+                  // If no dot and length > 2, format it
+                  const hours = value.substring(0, 2);
+                  const minutes = value.substring(2);
+                  value = hours + '.' + minutes;
+                }
+
+                // Limit total length
+                if (value.length > 5) return;
+                
+                setSelectotTime(value);
+
+                // Auto focus to next input only when completing valid entry
+                if (value.length === 5 && value.includes('.') && value.length > prevValue.length) {
+                  const nextInput = document.getElementById('selectotTimeOut');
+                  if (nextInput && !nextInput.value) nextInput.focus();
+                }
+              }}
             />
           </td>
 
@@ -1817,7 +2062,50 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
               id="selectotTimeOut"
               placeholder="ออก OT"
               value={selectotTimeOut}
-              onChange={(e) => setSelectotTimeOut(e.target.value)}
+              onChange={(e) => {
+                let value = e.target.value;
+                const prevValue = selectotTimeOut;
+                
+                // Always allow deletion
+                if (value.length < prevValue.length) {
+                  setSelectotTimeOut(value);
+                  return;
+                }
+
+                // Only allow digits and dot
+                value = value.replace(/[^\d.]/g, '');
+
+                // Don't allow multiple dots
+                if ((value.match(/\./g) || []).length > 1) {
+                  return;
+                }
+
+                // Add dot after 2 digits only when typing, not when deleting
+                if (value.length === 2 && !value.includes('.') && value.length > prevValue.length) {
+                  value = value + '.';
+                }
+
+                // Validate hours and minutes
+                if (value.includes('.')) {
+                  const [hours, minutes] = value.split('.');
+                  if (hours && parseInt(hours) > 24) {
+                    value = '24' + (minutes ? '.' + minutes : '');
+                  }
+                  if (minutes && parseInt(minutes) > 59) {
+                    value = hours + '.59';
+                  }
+                } else if (value.length > 2) {
+                  // If no dot and length > 2, format it
+                  const hours = value.substring(0, 2);
+                  const minutes = value.substring(2);
+                  value = hours + '.' + minutes;
+                }
+
+                // Limit total length
+                if (value.length > 5) return;
+                
+                setSelectotTimeOut(value);
+              }}
             />
           </td>
 

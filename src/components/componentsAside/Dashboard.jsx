@@ -172,7 +172,7 @@ function DashboardButton({ to, icon, text, color, disabled }) {
         className={`d-block text-white text-center rounded shadow-sm p-3 text-decoration-none h-100 ${disabled ? 'disabled-link' : ''}`}
         style={{
           background: disabled ? '#6c757d' : color,
-          minHeight: '80px',
+          minHeight: '100px',
           maxWidth: '190px',
           width: '100%',
           fontSize: '1rem',

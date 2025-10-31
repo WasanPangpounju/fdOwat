@@ -190,12 +190,11 @@ const generatePDFReport = async () => {
         // สร้างตารางใหม่สำหรับ PDF โดยทำการ merge เซลล์ให้ถูกต้อง
         const pdfTable = document.createElement('table');
         pdfTable.style.width = '100%';
-        pdfTable.style.borderCollapse = 'collapse';
+        pdfTable.style.borderCollapse = 'separate';
         pdfTable.style.fontSize = '10px';
-        pdfTable.style.border = '0.1px solid #000';
+        pdfTable.style.border = '0.3px solid #000';
         pdfTable.style.textAlign = 'center';
         pdfTable.style.marginTop = '20px';
-        pdfTable.style.fontFamily = "'Sarabun', sans-serif";
 
         // สร้าง thead สำหรับ PDF
         const pdfThead = document.createElement('thead');
@@ -218,13 +217,12 @@ const generatePDFReport = async () => {
         headers.forEach(header => {
           const th = document.createElement('th');
           th.textContent = header.text;
-          th.style.border = '0.1px solid #000';
+          th.style.border = '0.3px solid #000';
           th.style.padding = '8px';
           th.style.backgroundColor = '#f8f9fa';
           th.style.fontWeight = 'bold';
           th.style.textAlign = 'center';
           th.style.verticalAlign = 'middle';
-          th.style.fontFamily = "'Sarabun', sans-serif";
           
           if (header.rowSpan > 1) th.rowSpan = header.rowSpan;
           if (header.colSpan > 1) th.colSpan = header.colSpan;
@@ -272,11 +270,10 @@ const generatePDFReport = async () => {
               if (cellIndex < cells.length - 1) {
                 const newCell = document.createElement('td');
                 newCell.textContent = cell.textContent.trim();
-                newCell.style.border = '0.1px solid #000';
+                newCell.style.border = '0.3px solid #000';
                 newCell.style.padding = '6px';
                 newCell.style.textAlign = 'center';
                 newCell.style.verticalAlign = 'middle';
-                newCell.style.fontFamily = "'Sarabun', sans-serif";
                 
                 // ถ้าเป็นคอลัมล์เงินจ้าง ให้จัดรูปแบบ
                 if (cellIndex === cells.length - 2) {
@@ -3578,7 +3575,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                                 </div> */}
                 <div class="col-md-3">
                   <label role="button"></label>
-                  <div class="d-flex align-items-end mt-3">
+                  <div class="d-flex align-items-end">
                     <button
                       type="button"
                       class="btn b_save"
@@ -3739,9 +3736,59 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
               id="wBeforeSelectOtTime"
               placeholder="เข้า OT"
               value={wBeforeSelectOtTime}
-              onChange={(e) => setWBeforeSelectOtTime(e.target.value)}
-            />
-          </td>
+              // onChange={(e) => setWBeforeSelectOtTime(e.target.value)}
+              onChange={(e) => {
+                let value = e.target.value;
+                const prevValue = wBeforeSelectOtTime;
+                
+                // Always allow deletion
+                if (value.length < prevValue.length) {
+                  setWBeforeSelectOtTime(value);
+                  return;
+                }
+
+                // Only allow digits and dot
+                value = value.replace(/[^\d.]/g, '');
+
+                // Don't allow multiple dots
+                if ((value.match(/\./g) || []).length > 1) {
+                  return;
+                }
+
+                // Add dot after 2 digits only when typing, not when deleting
+                if (value.length === 2 && !value.includes('.') && value.length > prevValue.length) {
+                  value = value + '.';
+                }
+
+                // Validate hours and minutes
+                if (value.includes('.')) {
+                  const [hours, minutes] = value.split('.');
+                  if (hours && parseInt(hours) > 24) {
+                    value = '24' + (minutes ? '.' + minutes : '');
+                  }
+                  if (minutes && parseInt(minutes) > 59) {
+                    value = hours + '.59';
+                  }
+                } else if (value.length > 2) {
+                  // If no dot and length > 2, format it
+                  const hours = value.substring(0, 2);
+                  const minutes = value.substring(2);
+                  value = hours + '.' + minutes;
+                }
+
+                // Limit total length
+                if (value.length > 5) return;
+
+                setWBeforeSelectOtTime(value);
+
+                // Auto focus to next input only when completing valid entry
+                if (value.length === 5 && value.includes('.') && value.length > prevValue.length) {
+                  const nextInput = document.getElementById('wBeforeSelectOtTimeout');
+                  if (nextInput && !nextInput.value) nextInput.focus();
+                }
+              }}>
+              </input>
+            </td>
 
           {/* OT End Time */}
           <td>
@@ -3751,7 +3798,56 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
               id="wBeforeSelectOtTimeout"
               placeholder="ออก OT"
               value={wBeforeSelectOtTimeout}
-              onChange={(e) => setWBeforeSelectOtTimeout(e.target.value)}
+              onChange={(e) => {
+                let value = e.target.value;
+                const prevValue = wBeforeSelectOtTimeout;
+
+                // Always allow deletion
+                if (value.length < prevValue.length) {
+                  setWBeforeSelectOtTimeout(value);
+                  return;
+                }
+
+                // Only allow digits and dot
+                value = value.replace(/[^\d.]/g, '');
+
+                // Don't allow multiple dots
+                if ((value.match(/\./g) || []).length > 1) {
+                  return;
+                }
+
+                // Add dot after 2 digits only when typing, not when deleting
+                if (value.length === 2 && !value.includes('.') && value.length > prevValue.length) {
+                  value = value + '.';
+                }
+
+                // Validate hours and minutes
+                if (value.includes('.')) {
+                  const [hours, minutes] = value.split('.');
+                  if (hours && parseInt(hours) > 24) {
+                    value = '24' + (minutes ? '.' + minutes : '');
+                  }
+                  if (minutes && parseInt(minutes) > 59) {
+                    value = hours + '.59';
+                  }
+                } else if (value.length > 2) {
+                  // If no dot and length > 2, format it
+                  const hours = value.substring(0, 2);
+                  const minutes = value.substring(2);
+                  value = hours + '.' + minutes;
+                }
+
+                // Limit total length
+                if (value.length > 5) return;
+
+                setWBeforeSelectOtTimeout(value);
+
+                // Auto focus to next input only when completing valid entry
+                if (value.length === 5 && value.includes('.') && value.length > prevValue.length) {
+                  const nextInput = document.getElementById('wStartTime');
+                  if (nextInput && !nextInput.value) nextInput.focus();
+                }
+              }}
             />
           </td>
 
@@ -3775,7 +3871,56 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
               id="wStartTime"
               placeholder="เข้างาน"
               value={wStartTime}
-              onChange={(e) => setWStartTime(e.target.value)}
+              onChange={(e) => {
+                let value = e.target.value;
+                const prevValue = wStartTime;
+
+                // Always allow deletion
+                if (value.length < prevValue.length) {
+                  setWStartTime(value);
+                  return;
+                }
+
+                // Only allow digits and dot
+                value = value.replace(/[^\d.]/g, '');
+
+                // Don't allow multiple dots
+                if ((value.match(/\./g) || []).length > 1) {
+                  return;
+                }
+
+                // Add dot after 2 digits only when typing, not when deleting
+                if (value.length === 2 && !value.includes('.') && value.length > prevValue.length) {
+                  value = value + '.';
+                }
+
+                // Validate hours and minutes
+                if (value.includes('.')) {
+                  const [hours, minutes] = value.split('.');
+                  if (hours && parseInt(hours) > 24) {
+                    value = '24' + (minutes ? '.' + minutes : '');
+                  }
+                  if (minutes && parseInt(minutes) > 59) {
+                    value = hours + '.59';
+                  }
+                } else if (value.length > 2) {
+                  // If no dot and length > 2, format it
+                  const hours = value.substring(0, 2);
+                  const minutes = value.substring(2);
+                  value = hours + '.' + minutes;
+                }
+
+                // Limit total length
+                if (value.length > 5) return;
+
+                setWStartTime(value);
+
+                // Auto focus to next input only when completing valid entry
+                if (value.length === 5 && value.includes('.') && value.length > prevValue.length) {
+                  const nextInput = document.getElementById('wEndTime');
+                  if (nextInput && !nextInput.value) nextInput.focus();
+                }
+              }}
             />
           </td>
 
@@ -3787,8 +3932,57 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
               id="wEndTime"
               placeholder="ออกงาน"
               value={wEndTime}
-              onChange={(e) => setWEndTime(e.target.value)}
-            />
+              onChange={(e) => {
+                let value = e.target.value;
+                const prevValue = wEndTime;
+                
+                // Always allow deletion
+                if (value.length < prevValue.length) {
+                  setWEndTime(value);
+                  return;
+                }
+
+                // Only allow digits and dot
+                value = value.replace(/[^\d.]/g, '');
+
+                // Don't allow multiple dots
+                if ((value.match(/\./g) || []).length > 1) {
+                  return;
+                }
+
+                // Add dot after 2 digits only when typing, not when deleting
+                if (value.length === 2 && !value.includes('.') && value.length > prevValue.length) {
+                  value = value + '.';
+                }
+
+                // Validate hours and minutes
+                if (value.includes('.')) {
+                  const [hours, minutes] = value.split('.');
+                  if (hours && parseInt(hours) > 24) {
+                    value = '24' + (minutes ? '.' + minutes : '');
+                  }
+                  if (minutes && parseInt(minutes) > 59) {
+                    value = hours + '.59';
+                  }
+                } else if (value.length > 2) {
+                  // If no dot and length > 2, format it
+                  const hours = value.substring(0, 2);
+                  const minutes = value.substring(2);
+                  value = hours + '.' + minutes;
+                }
+
+                // Limit total length
+                if (value.length > 5) return;
+
+                setWEndTime(value);
+
+                // Auto focus to next input only when completing valid entry
+                if (value.length === 5 && value.includes('.') && value.length > prevValue.length) {
+                  const nextInput = document.getElementById('wSelectOtTime');
+                  if (nextInput && !nextInput.value) nextInput.focus();
+                }
+              }}
+             />
           </td>
 
           {/* Work Hours */}
@@ -3828,7 +4022,56 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
               id="wSelectOtTime"
               placeholder="เข้า OT"
               value={wSelectOtTime}
-              onChange={(e) => setWSelectOtTime(e.target.value)}
+              onChange={(e) => {
+                let value = e.target.value;
+                const prevValue = wSelectOtTime;
+                
+                // Always allow deletion
+                if (value.length < prevValue.length) {
+                  setWSelectOtTime(value);
+                  return;
+                }
+
+                // Only allow digits and dot
+                value = value.replace(/[^\d.]/g, '');
+
+                // Don't allow multiple dots
+                if ((value.match(/\./g) || []).length > 1) {
+                  return;
+                }
+
+                // Add dot after 2 digits only when typing, not when deleting
+                if (value.length === 2 && !value.includes('.') && value.length > prevValue.length) {
+                  value = value + '.';
+                }
+
+                // Validate hours and minutes
+                if (value.includes('.')) {
+                  const [hours, minutes] = value.split('.');
+                  if (hours && parseInt(hours) > 24) {
+                    value = '24' + (minutes ? '.' + minutes : '');
+                  }
+                  if (minutes && parseInt(minutes) > 59) {
+                    value = hours + '.59';
+                  }
+                } else if (value.length > 2) {
+                  // If no dot and length > 2, format it
+                  const hours = value.substring(0, 2);
+                  const minutes = value.substring(2);
+                  value = hours + '.' + minutes;
+                }
+
+                // Limit total length
+                if (value.length > 5) return;
+
+                setWSelectOtTime(value);
+
+                // Auto focus to next input only when completing valid entry
+                if (value.length === 5 && value.includes('.') && value.length > prevValue.length) {
+                  const nextInput = document.getElementById('wSelectOtTimeout');
+                  if (nextInput && !nextInput.value) nextInput.focus();
+                }
+              }}
             />
           </td>
 
@@ -3840,7 +4083,50 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
               id="wSelectOtTimeout"
               placeholder="ออก OT"
               value={wSelectOtTimeout}
-              onChange={(e) => setWSelectOtTimeout(e.target.value)}
+              onChange={(e) => {
+                let value = e.target.value;
+                const prevValue = wSelectOtTimeout;
+                
+                // Always allow deletion
+                if (value.length < prevValue.length) {
+                  setWSelectOtTimeout(value);
+                  return;
+                }
+
+                // Only allow digits and dot
+                value = value.replace(/[^\d.]/g, '');
+
+                // Don't allow multiple dots
+                if ((value.match(/\./g) || []).length > 1) {
+                  return;
+                }
+
+                // Add dot after 2 digits only when typing, not when deleting
+                if (value.length === 2 && !value.includes('.') && value.length > prevValue.length) {
+                  value = value + '.';
+                }
+
+                // Validate hours and minutes
+                if (value.includes('.')) {
+                  const [hours, minutes] = value.split('.');
+                  if (hours && parseInt(hours) > 24) {
+                    value = '24' + (minutes ? '.' + minutes : '');
+                  }
+                  if (minutes && parseInt(minutes) > 59) {
+                    value = hours + '.59';
+                  }
+                } else if (value.length > 2) {
+                  // If no dot and length > 2, format it
+                  const hours = value.substring(0, 2);
+                  const minutes = value.substring(2);
+                  value = hours + '.' + minutes;
+                }
+
+                // Limit total length
+                if (value.length > 5) return;
+
+                setWSelectOtTimeout(value);
+              }}
             />
           </td>
 
@@ -4295,7 +4581,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
 
     return (
       <div className="mt-3 p-3" style={{ backgroundColor: "#f8f9fa", borderRadius: "5px" }}>
-        <h5 className="text-center mb-3">สรุปสถิติการทำงาน</h5>
+        <h5 className="text-center mb-8">สรุปสถิติการทำงาน</h5>
         <div className="row text-center">
           <div className="col-md-3">
             <div className="card">
@@ -4422,4 +4708,3 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
 }
 
 export default AddsettimeEmployee;
-
