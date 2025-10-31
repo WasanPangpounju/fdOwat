@@ -3258,7 +3258,7 @@ if (newWorkplace) {
                   {formData.addSalary &&
                     formData.addSalary.length > 0 &&
                     formData.addSalary.map((data, index) => {
-                      // ซ่อน item ที่มี codeSpSalary เป็น "1234"
+                      
                       if (data.codeSpSalary === "2") {
                         return null;
                       }
@@ -3277,7 +3277,31 @@ if (newWorkplace) {
                                 handleChangeSpSalary(e, index, "codeSpSalary")
                               }
                               onInput={(e) => {
-                            
+                                // Check for restricted codes (leave-related welfare codes)
+                                const restrictedCodes = [
+                                  "1428", // ลากิจธุระจำเป็น(ประกันสังคม)
+                                  "1429", // ลากิจธุระจำเป็น(ปกส)รับล่วงหน้า
+                                  "1231", // จ่ายลาป่วยมีใบแพทย์
+                                  "1234", // จ่ายลาป่วยมีใบรับรองแพทย์(รับล่วงหน้า)
+                                  "1235", // ค่าจ้างวันลาป่วย
+                                  "1422", // จ่ายคืนพักร้อน(ครบปี/ใช้สิทธิไม่หมด)
+                                  "1423", // ชดเชยวันลาพักร้อน (ประกันสังคม)
+                                  "1425", // ค่าจ้างในวันลาพักร้อน
+                                  "1426", // จ่ายคืนค่าจ้างพักร้อน(ครบปี/ใช้สิทธิไม่หมด)
+                                  "1427", // ชดเชยวันลาพักร้อน(ประกันสังคม)รับล่วงหน้า
+                                  "1435", // จ่ายคืนพักร้อน(ครบปี/ใช้สิทธิไม่หมด)รับล่วงหน้า
+                                  "1233", // ชดเชยค่าแรงลาคลอด
+                                ];
+                                if (restrictedCodes.includes(e.target.value)) {
+                                  Swal.fire({
+                                    icon: "warning",
+                                    title: "ไม่อนุญาตให้กรอกรหัสนี้",
+                                    text: "เป็นสวัสดิการเช็คตามคนอยู่แล้ว",
+                                    confirmButtonText: "รับทราบ",
+                                  });
+                                  e.target.value = ""; // Clear the input
+                                  return;
+                                }
 
                                 // Ensure only one '.' is allowed
                                 const parts = e.target.value.split(".");
