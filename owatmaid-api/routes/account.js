@@ -5722,9 +5722,23 @@ const convertTimeToDecimal = (timeString) => {
   }
   
   if (timeString.includes('.')) {
-    const [hours, minutes] = timeString.split('.').map(Number);
-    const decimalMinutes = (minutes || 0) / 60;
-    return (hours || 0) + decimalMinutes;
+    const [hours, minutesStr] = timeString.split('.');
+    const hoursNum = parseInt(hours) || 0;
+    let minutesNum = parseInt(minutesStr) || 0;
+    
+    // 🔧 แก้ไข: ถ้านาทีเป็นเลขหลักเดียว (เช่น 3) ให้คูณ 10 เป็น 30
+    // เพราะ "1.3" หมายถึง 1 ชม. 30 นาที ไม่ใช่ 3 นาที
+    if (minutesNum < 10 && minutesNum > 0) {
+      minutesNum = minutesNum * 10;
+      console.log(`⚠️ [convertTimeToDecimal] แก้ไขนาทีจาก ${minutesStr} เป็น ${minutesNum}`);
+    }
+    
+    const decimalMinutes = minutesNum / 60;
+    const result = hoursNum + decimalMinutes;
+    
+    console.log(`🔄 [convertTimeToDecimal] "${timeString}" → ${hoursNum} ชม. + (${minutesNum}/60) นาที = ${result.toFixed(2)} ชั่วโมง`);
+    
+    return result;
   }
   
   return parseFloat(timeString) || 0;
