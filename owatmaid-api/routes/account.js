@@ -5861,11 +5861,19 @@ let timeCashWorkMul = {
     console.log(`⚠️ ใช้ค่า default holidayOT = 3`);
   }
 
-  // 🎯 ดึงข้อมูล workplace และ workRate
+  // 🎯 ดึงข้อมูล employee salary และ workplace workRate
   let workRate = 0;
+  let employeeSalary = 0;
+  
   try {
     const employee = await Employee.findOne({ employeeId: employeeId });
     const wpId = employee?.workplace || '';
+    
+    // 🎯 ดึง salary จากพนักงานก่อน (ใช้เป็นลำดับแรก)
+    if (employee?.salary && parseFloat(employee.salary) > 0) {
+      employeeSalary = parseFloat(employee.salary);
+      console.log(`💰 [EMPLOYEE SALARY] ดึง salary จากพนักงาน: ${employeeSalary} บาท`);
+    }
     
     if (wpId) {
       const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${wpId}`);
@@ -5886,14 +5894,14 @@ let timeCashWorkMul = {
         
         if (effectiveDate <= currentPeriodEnd) {
           workRate = newWorkRate;
-          console.log(`🏢 ใช้อัตราใหม่: ${workRate} บาท (มีผลตั้งแต่ ${effectiveDate.toISOString().slice(0,10)})`);
+          console.log(`🏢 [WORKPLACE] ใช้อัตราใหม่: ${workRate} บาท (มีผลตั้งแต่ ${effectiveDate.toISOString().slice(0,10)})`);
         } else {
           workRate = baseWorkRate + addWorkRate;
-          console.log(`🏢 ใช้อัตราเดิม: ${workRate} บาท (อัตราใหม่ยังไม่มีผล)`);
+          console.log(`🏢 [WORKPLACE] ใช้อัตราเดิม: ${workRate} บาท (อัตราใหม่ยังไม่มีผล)`);
         }
       } else {
         workRate = baseWorkRate + addWorkRate;
-        console.log(`🏢 ใช้อัตราปกติ: ${workRate} บาท (${baseWorkRate} + ${addWorkRate})`);
+        console.log(`🏢 [WORKPLACE] ใช้อัตราปกติ: ${workRate} บาท (${baseWorkRate} + ${addWorkRate})`);
       }
       
       console.log(`🏢 ดึงข้อมูล workplace ${wpId}: workRate = ${workRate}`);
@@ -5902,6 +5910,16 @@ let timeCashWorkMul = {
     }
   } catch (workplaceError) {
     console.warn(`⚠️ ไม่สามารถดึงข้อมูล workplace ได้:`, workplaceError.message);
+  }
+  
+  // 🎯 เลือกใช้ค่าแรง: ใช้ของพนักงานก่อน ถ้าไม่มีค่อยใช้ของหน่วยงาน
+  const salaryToUse = employeeSalary > 0 ? employeeSalary : workRate;
+  if (employeeSalary > 0) {
+    console.log(`✅ [CONFIRMED] ใช้ค่าแรงจากพนักงาน: ${salaryToUse} บาท/วัน`);
+  } else if (workRate > 0) {
+    console.log(`✅ [CONFIRMED] ใช้ค่าแรงจากหน่วยงาน (fallback): ${salaryToUse} บาท/วัน`);
+  } else {
+    console.log(`⚠️ [WARNING] ไม่พบค่าแรงทั้งจากพนักงานและหน่วยงาน`);
   } 
   
 
@@ -7826,8 +7844,8 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
   } else {
     console.log(`💰 ✅ พนักงานรายวัน (salaryMonth = ${salaryMonth} = 0)`);
     
-    // คำนวณ dayPerHour สำหรับพนักงานรายวัน
-    const dayPerHour = workRate / 8; // ใช้ workRate หารด้วย 8 ชั่วโมง
+    // คำนวณ dayPerHour สำหรับพนักงานรายวัน - ใช้ salaryToUse แทน workRate
+    const dayPerHour = salaryToUse / 8; // ใช้ salaryToUse (จากพนักงานหรือหน่วยงาน) หารด้วย 8 ชั่วโมง
     const dayPerHour1p5 = dayPerHour * 1.5; 
     const dayPerHour2 = dayPerHour * 2;
     const dayPerHour3 = dayPerHour * 3; 
@@ -7835,7 +7853,7 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
     sumCashWorkMul["2"] = (dayPerHour2 * sumOtPublicHoliday).toFixed(2)
     sumCashWorkMul["3"] = (dayPerHour3 * sumOt3).toFixed(2)
     
-    console.log(`💰 - คำนวณค่าแรงต่อชั่วโมงสำหรับพนักงานรายวัน: ${dayPerHour} บาท/ชม. (workRate: ${workRate} ÷ 8)`);
+    console.log(`💰 - [${employeeSalary > 0 ? 'EMPLOYEE SALARY' : 'WORKPLACE RATE'}] คำนวณค่าแรงต่อชั่วโมงสำหรับพนักงานรายวัน: ${dayPerHour} บาท/ชม. (${salaryToUse} ÷ 8)`);
     console.log(`💰 - sumCashWorkMul["1.5"]: ${sumCashWorkMul["1.5"]} บาท (${dayPerHour1p5} × ${sumOt1p5})`);
     console.log(`💰 - sumCashWorkMul["2"]: ${sumCashWorkMul["2"]} บาท (${dayPerHour2} × ${sumOtPublicHoliday})`);
     console.log(`💰 - sumCashWorkMul["3"]: ${sumCashWorkMul["3"]} บาท (${dayPerHour3} × ${sumOt3})`);
@@ -7945,13 +7963,13 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
   
 
   // 🎯 คำนวณ sumCashWorkMul["1"] ใหม่แบบรายวัน (คูณ totalTime แต่ละวัน)
-  if (workRate > 0 && dayWorkCount > 0 && typeOfemployee === 'รายวัน') {
-    const hourlyRate = workRate / 8; // ค่าแรงต่อชั่วโมง
+  if (salaryToUse > 0 && dayWorkCount > 0 && typeOfemployee === 'รายวัน') {
+    const hourlyRate = salaryToUse / 8; // ค่าแรงต่อชั่วโมง (ใช้ของพนักงานหรือหน่วยงาน)
     let newSumCashWorkMul1 = 0;
     
     console.log(`\n🎯 === การคำนวณ sumCashWorkMul["1"] ใหม่แบบรายวัน ===`);
-    console.log(`🎯 workRate: ${workRate} บาท/วัน`);
-    console.log(`🎯 hourlyRate: ${hourlyRate} บาท/ชม. (workRate ÷ 8)`);
+    console.log(`🎯 salaryToUse: ${salaryToUse} บาท/วัน (${employeeSalary > 0 ? 'จากพนักงาน' : 'จากหน่วยงาน'})`);
+    console.log(`🎯 hourlyRate: ${hourlyRate} บาท/ชม. (salaryToUse ÷ 8)`);
     console.log(`🎯 dayWorkCount: ${dayWorkCount} วัน`);
     console.log(`🎯 sumCashWorkMul["1"] เดิม: ${sumCashWorkMul["1"]}`);
     console.log(`\n📋 คำนวณแต่ละวัน:`);
@@ -8035,7 +8053,7 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
     
   } else {
     console.log(`\n⚠️ ไม่สามารถคำนวณ sumCashWorkMul["1"] ใหม่ได้:`);
-    console.log(`   workRate: ${workRate}, dayWorkCount: ${dayWorkCount}, typeOfemployee: ${typeOfemployee}`);
+    console.log(`   salaryToUse: ${salaryToUse}, dayWorkCount: ${dayWorkCount}, typeOfemployee: ${typeOfemployee}`);
   }
 
   try {
