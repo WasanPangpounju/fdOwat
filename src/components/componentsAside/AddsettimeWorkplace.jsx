@@ -1616,7 +1616,7 @@ await setGroupOptions1(response.data?.workplaces?.[0]?.workplaceGroup || []);
                 </div>
                 <div class="col-md-3">
                   <label role="button"></label>
-                  <div class="d-flex align-items-end">
+                  <div class="d-flex align-items-end mt-2">
                     <button class="btn b_save" onClick={handleCheckTimerecord}>
                       <i class="nav-icon fas fa-search"></i> &nbsp; ตรวจสอบ
                     </button>

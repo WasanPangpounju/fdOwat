@@ -14,6 +14,10 @@ body {
   overflow-x: hidden;
 }
 
+th {
+  font-family: 'Sarabun', sans-serif;
+}
+
 .btn-login {
   font-family: 'Sarabun', sans-serif !important;
 }
