@@ -6832,9 +6832,21 @@ if (record?.dayType === "work") {
   const isWorkDay = record.dayType === "work";
   
   if (hasRegularWork && !countedWorkDates.has(record.date) && !isSpecialShift && isWorkDay) {
-    dayWorkCount += 1;
+    // 🔢 คำนวณจำนวนวันตามชั่วโมงทำงาน
+    const workHours = convertTimeToDecimal(record.totalTime);
+    let dayCount = 0;
+    
+    if (workHours >= 8) {
+      dayCount = 1; // นับเป็น 1 วันเต็ม
+      console.log(`✅ วันที่ ${record.date}: ทำงาน ${workHours} ชม. >= 8 ชม. → นับเป็น 1 วัน`);
+    } else if (workHours > 0 && workHours < 8) {
+      dayCount = 0.5; // นับเป็น 0.5 วัน
+      console.log(`⚠️ วันที่ ${record.date}: ทำงาน ${workHours} ชม. < 8 ชม. → นับเป็น 0.5 วัน`);
+    }
+    
+    dayWorkCount += dayCount;
     countedWorkDates.add(record.date);
-    console.log(`✅ นับวันที่ ${record.date} เป็นวันทำงาน (dayType: ${record.dayType}, shift: ${record.shift}, dayWorkCount = ${dayWorkCount})`);
+    console.log(`✅ นับวันที่ ${record.date} เป็นวันทำงาน (dayType: ${record.dayType}, shift: ${record.shift}, ชั่วโมง: ${workHours}, นับ: ${dayCount} วัน, dayWorkCount รวม = ${dayWorkCount})`);
   } else if (countedWorkDates.has(record.date)) {
     console.log(`⚠️ วันที่ ${record.date} ถูกนับแล้ว ข้ามการนับวัน`);
   } else if (isSpecialShift) {
