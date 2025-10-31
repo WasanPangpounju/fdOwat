@@ -3337,8 +3337,7 @@ let cashBeforeOt = await (
     ? parseFloat(dataRate.workRateOT || '0') || 0
     : ((record.beforeTotalOtTime || 0) * ((parseFloat(dataRate.workRateOT || '0')) * salary || 0)) || 0
 );
-let cashWork = await (record.totalTime || 0) * parseFloat(dataRate.workRate || '0');
-
+let cashWork = await (record.totalTime || 0) * 0
 // แก้ไขเวลา OT ให้คิดจากหน่วยนาที (ใช้วิธีเดียวกันกับส่วนอื่น)
 const tmpHour = Math.floor(record.totalOtTime || 0); // ได้ค่า ชม.
 const tmpRawDecimal = (record.totalOtTime || 0) - tmpHour; // ได้ค่า0.นาที
