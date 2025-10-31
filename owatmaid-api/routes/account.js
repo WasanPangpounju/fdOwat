@@ -6758,16 +6758,21 @@ try {
             
             filteredAddSalaryDaily.forEach((salaryItem) => {
               const cleanSalaryItemId = String(salaryItem.id).trim();
-              const amount = parseFloat(salaryItem.SpSalary || 0);
+              const originalAmount = parseFloat(salaryItem.SpSalary || 0);
 
-              // 🔢 คำนวณจำนวนวันตามชั่วโมงทำงาน (เช่นเดียวกับ dayWorkCount)
+              // 🔢 คำนวณจำนวนวันและเงินตามชั่วโมงทำงาน
               const workHours = convertTimeToDecimal(record.totalTime);
               let dayCount = 0;
+              let amount = 0;
               
               if (workHours >= 8) {
                 dayCount = 1; // นับเป็น 1 วันเต็ม
+                amount = originalAmount; // ได้เงินเต็ม
+                console.log(`✅ วันที่ ${record.date}: ${workHours} ชม. >= 8 ชม. → เงิน ${amount} บาท (เต็ม), นับ ${dayCount} วัน`);
               } else if (workHours > 0 && workHours < 8) {
                 dayCount = 0.5; // นับเป็น 0.5 วัน
+                amount = originalAmount / 2; // ได้เงินครึ่ง (หาร 2)
+                console.log(`⚠️ วันที่ ${record.date}: ${workHours} ชม. < 8 ชม. → เงิน ${amount} บาท (${originalAmount}/2), นับ ${dayCount} วัน`);
               }
 
               const existingItem = addSalaryList.find(
@@ -6788,7 +6793,8 @@ try {
                 
                 console.log(`🔄 รวม addSalary ID ${cleanSalaryItemId}: ${currentAmount} + ${amount} = ${existingItem.SpSalary} บาท (วัน: ${currentDays} + ${dayCount} = ${existingItem.message})`);
               } else {
-                salaryItem.message = String(dayCount); 
+                salaryItem.message = String(dayCount);
+                salaryItem.SpSalary = String(amount); // ใช้เงินที่คำนวณแล้ว
                 addSalaryList.push(salaryItem);
                 console.log(`➕ เพิ่ม addSalary ID ${cleanSalaryItemId}: ${amount} บาท (${dayCount} วัน, ชั่วโมง: ${workHours})`);
               }
@@ -6998,16 +7004,21 @@ if (record?.dayType === "work") {
     
     filteredAddSalaryDaily.forEach((salaryItem) => {
       const cleanSalaryItemId = String(salaryItem.id).trim();
-      const amount = parseFloat(salaryItem.SpSalary || 0);
+      const originalAmount = parseFloat(salaryItem.SpSalary || 0);
 
-      // 🔢 คำนวณจำนวนวันตามชั่วโมงทำงาน (เช่นเดียวกับ dayWorkCount)
+      // 🔢 คำนวณจำนวนวันและเงินตามชั่วโมงทำงาน
       const workHours = convertTimeToDecimal(record.totalTime);
       let dayCount = 0;
+      let amount = 0;
       
       if (workHours >= 8) {
         dayCount = 1; // นับเป็น 1 วันเต็ม
+        amount = originalAmount; // ได้เงินเต็ม
+        console.log(`✅ วันที่ ${record.date}: ${workHours} ชม. >= 8 ชม. → เงิน ${amount} บาท (เต็ม), นับ ${dayCount} วัน`);
       } else if (workHours > 0 && workHours < 8) {
         dayCount = 0.5; // นับเป็น 0.5 วัน
+        amount = originalAmount / 2; // ได้เงินครึ่ง (หาร 2)
+        console.log(`⚠️ วันที่ ${record.date}: ${workHours} ชม. < 8 ชม. → เงิน ${amount} บาท (${originalAmount}/2), นับ ${dayCount} วัน`);
       }
 
       const existingItem = addSalaryList.find(
@@ -7028,7 +7039,8 @@ if (record?.dayType === "work") {
         
         console.log(`🔄 รวม addSalary ID ${cleanSalaryItemId}: ${currentAmount} + ${amount} = ${existingItem.SpSalary} บาท (วัน: ${currentDays} + ${dayCount} = ${existingItem.message})`);
       } else {
-        salaryItem.message = String(dayCount); 
+        salaryItem.message = String(dayCount);
+        salaryItem.SpSalary = String(amount); // ใช้เงินที่คำนวณแล้ว
         addSalaryList.push(salaryItem);
         console.log(`➕ เพิ่ม addSalary ID ${cleanSalaryItemId}: ${amount} บาท (${dayCount} วัน, ชั่วโมง: ${workHours})`);
       }
