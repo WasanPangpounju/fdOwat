@@ -2791,13 +2791,20 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
     console.error(`❌ ไม่สามารถดึงข้อมูลวันหยุดได้:`, error.message);
   }
 
-  // คำนวณค่าแรงต่อชั่วโมง
-  if(parseFloat(salaryTmp || '0') > 1660) {
-    salary = await ((parseFloat(salaryTmp || '0') / 30) / 8).toFixed(3);
-    console.log(`💰 พนักงานเงินเดือน: ${salaryTmp} บาท/เดือน = ${salary} บาท/ชั่วโมง`);
+  // คำนวณค่าแรงต่อชั่วโมง - ใช้ค่าจากพนักงานเองก่อน (ถ้ามี)
+  if (salaryTmp && parseFloat(salaryTmp) > 0) {
+    // ใช้ค่าแรงจากพนักงาน
+    if(parseFloat(salaryTmp || '0') > 1660) {
+      salary = await ((parseFloat(salaryTmp || '0') / 30) / 8).toFixed(3);
+      console.log(`💰 [EMPLOYEE SALARY] พนักงานเงินเดือน: ${salaryTmp} บาท/เดือน = ${salary} บาท/ชั่วโมง`);
+    } else {
+      salary = await (parseFloat(salaryTmp || '0') / 8).toFixed(3);
+      console.log(`💰 [EMPLOYEE SALARY] พนักงานรายวัน: ${salaryTmp} บาท/วัน = ${salary} บาท/ชั่วโมง`);
+    }
   } else {
-    salary = await (parseFloat(salaryTmp || '0') / 8).toFixed(3);
-    console.log(`💰 พนักงานรายวัน: ${salaryTmp} บาท/วัน = ${salary} บาท/ชั่วโมง`);
+    // ถ้าไม่มีค่าจากพนักงาน จะใช้ workRate จาก dataRate ใน loop ข้างล่าง
+    salary = 0;
+    console.log(`⚠️ [WARNING] ไม่พบ salary ของพนักงาน จะใช้ workRate จากหน่วยงานแทน`);
   }
 
   const updatedRecords = await Promise.all(
@@ -2833,10 +2840,15 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
       const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate, record.date, 
         employeeProfile?.[0]?.customWorkplace);
 
-      // ตรวจสอบว่ามีค่า workRate จาก API หรือไม่
-      if (dataRate?.workRateFromAPI) {
-        salary = parseFloat(dataRate.workRateFromAPI) / 8;
-        console.log(`💰 ใช้ค่าแรงจาก API: ${dataRate.workRateFromAPI} บาท/วัน = ${salary} บาท/ชั่วโมง`);
+      // ตรวจสอบค่าแรง: ใช้ของพนักงานก่อน ถ้าไม่มีค่อยใช้ของหน่วยงาน
+      if (salary === 0 || !salary) {
+        // ไม่มี salary จากพนักงาน ใช้จาก workplace
+        if (dataRate?.workRateFromAPI) {
+          salary = parseFloat(dataRate.workRateFromAPI) / 8;
+          console.log(`💰 [WORKPLACE] ใช้ค่าแรงจาก API: ${dataRate.workRateFromAPI} บาท/วัน = ${salary} บาท/ชั่วโมง`);
+        }
+      } else {
+        console.log(`✅ [CONFIRMED] ใช้ค่าแรงจากพนักงาน: ${salary} บาท/ชั่วโมง`);
       }
 
       // กำหนดตัวแปรสำหรับเก็บค่าต่างๆ
@@ -2973,7 +2985,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
           console.log(`🎯 พบ shift: "cash_holiday" - กำหนดทุกค่าเป็น 0`);
         } else {
           // คำนวณค่าแรงปกติ
-          cashWork = await (record.totalTime || 0) * 0
+          cashWork = await (record.totalTime || 0) * parseFloat(salary || 0);
           
           // กำหนดตัวคูณ
           cashBeforeOtMul = dataRate?.workRateOT || 1.5;
@@ -3064,10 +3076,18 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
   let addSalary = employeeProfile?.[0]?.addSalary || [];
   let salary = 0;
 
-  if(parseFloat(salaryTmp || '0') > 1660) {
-    salary = await ((parseFloat(salaryTmp || '0') / 30)/ 8).toFixed(3);
+  // ใช้ค่าแรงจากพนักงานเองก่อน (ถ้ามี)
+  if (salaryTmp && parseFloat(salaryTmp) > 0) {
+    if(parseFloat(salaryTmp || '0') > 1660) {
+      salary = await ((parseFloat(salaryTmp || '0') / 30)/ 8).toFixed(3);
+      console.log(`💰 [EMPLOYEE SALARY] พนักงานเงินเดือน: ${salaryTmp} บาท/เดือน = ${salary} บาท/ชั่วโมง`);
+    } else {
+      salary = await (parseFloat(salaryTmp || '0')/ 8).toFixed(3);
+      console.log(`💰 [EMPLOYEE SALARY] พนักงานรายวัน: ${salaryTmp} บาท/วัน = ${salary} บาท/ชั่วโมง`);
+    }
   } else {
-    salary = await (parseFloat(salaryTmp || '0')/ 8).toFixed(3);
+    salary = 0;
+    console.log(`⚠️ [WARNING] ไม่พบ salary ของพนักงาน จะใช้ workRate จากหน่วยงานแทน`);
   }
 
   return Promise.all(
@@ -3114,18 +3134,21 @@ const calculateCashValues = async (employeeId, employee_record, month, year) => 
       let dayType = '';
       let addSalaryDaily = [];
 
-      // ถ้ามีค่า workRate จาก API ให้ใช้ค่านั้น
-      if (dataRate?.workRateFromAPI) {
-        salary = parseFloat(dataRate.workRateFromAPI) / 8;
-        console.log(`💰 ใช้ค่าแรงจาก API สำหรับคำนวณ: ${dataRate.workRateFromAPI} (ค่าต่อชั่วโมง: ${salary})`);
-      } else if (salaryTmp !== 0) {
-        // ใช้เงินเดือนจาก profile
-      } else if (dataRate?.workRate) {
-        salary = parseFloat(dataRate.workRate || '0');
-        console.log(`💰 ใช้ค่าแรงจากฐานข้อมูลสำหรับคำนวณ: ${dataRate.workRate}`);
+      // ตรวจสอบค่าแรง: ใช้ของพนักงานก่อน ถ้าไม่มีค่อยใช้ของหน่วยงาน
+      if (salary === 0 || !salary) {
+        // ไม่มี salary จากพนักงาน ใช้จาก workplace
+        if (dataRate?.workRateFromAPI) {
+          salary = parseFloat(dataRate.workRateFromAPI) / 8;
+          console.log(`💰 [WORKPLACE API] ใช้ค่าแรงจาก API: ${dataRate.workRateFromAPI} (ค่าต่อชั่วโมง: ${salary})`);
+        } else if (dataRate?.workRate) {
+          salary = parseFloat(dataRate.workRate || '0');
+          console.log(`💰 [WORKPLACE DB] ใช้ค่าแรงจากฐานข้อมูล: ${dataRate.workRate}`);
+        } else {
+          salary = 0;
+          console.log(`⚠️ ไม่พบค่าแรงสำหรับคำนวณ กำหนดเป็น 0`);
+        }
       } else {
-        salary = 0;
-        console.log(`⚠️ ไม่พบค่าแรงสำหรับคำนวณ กำหนดเป็น 0`);
+        console.log(`✅ [CONFIRMED] ใช้ค่าแรงจากพนักงาน: ${salary} บาท/ชั่วโมง`);
       }
       
       if (dataRate?.dayType !== '') {
@@ -3314,7 +3337,7 @@ const totalDecimalHour = tmpHour + (tmpMinute / 60); // 1 + 30/60 = 1.5
 };
 
 
-// Function to calculate cash values
+// Function to calculate cash values (DEPRECATED - ฟังก์ชันเก่า)
 const calculateCashValues_back = (employee_record, month, year ) => {
 
  return employee_record.map(async (record) => {
@@ -3332,12 +3355,26 @@ const dataRate = await checkDayRate(workplaceId, record.wGroup, bangkokDate , re
 
 // await console.log(JSON.stringify(dataRate ,null,2))
 
+// ดึงค่า salary จากพนักงานก่อน ถ้าไม่มีค่อยใช้ workRate
+let employeeSalary = 0;
+if (employeeProfile?.[0]?.salary && parseFloat(employeeProfile[0].salary) > 0) {
+  const salaryTmp = parseFloat(employeeProfile[0].salary);
+  if (salaryTmp > 1660) {
+    employeeSalary = ((salaryTmp / 30) / 8);
+  } else {
+    employeeSalary = (salaryTmp / 8);
+  }
+  console.log(`💰 [EMPLOYEE SALARY] ใช้ค่าแรงจากพนักงาน: ${employeeSalary} บาท/ชั่วโมง`);
+}
+
+const salaryToUse = employeeSalary > 0 ? employeeSalary : parseFloat(dataRate.workRate || '0');
+
 let cashBeforeOt = await (
   parseFloat(dataRate.workRateOT || '0') > 5
     ? parseFloat(dataRate.workRateOT || '0') || 0
-    : ((record.beforeTotalOtTime || 0) * ((parseFloat(dataRate.workRateOT || '0')) * salary || 0)) || 0
+    : ((record.beforeTotalOtTime || 0) * ((parseFloat(dataRate.workRateOT || '0')) * salaryToUse || 0)) || 0
 );
-let cashWork = await (record.totalTime || 0) * parseFloat(dataRate.workRate || '0');
+let cashWork = await (record.totalTime || 0) * parseFloat(salaryToUse || '0');
 
 // แก้ไขเวลา OT ให้คิดจากหน่วยนาที (ใช้วิธีเดียวกันกับส่วนอื่น)
 const tmpHour = Math.floor(record.totalOtTime || 0); // ได้ค่า ชม.
@@ -3348,7 +3385,7 @@ const totalDecimalHour = tmpHour + (tmpMinute / 60); // 1 + 30/60 = 1.5
 let cashOt = await (
   parseFloat(dataRate.workRateOT || '0') > 5
     ? parseFloat(dataRate.workRateOT || '0') || 0
-    : ((totalDecimalHour || 0) * ((parseFloat(dataRate.workRateOT || '0')) * salary || 0)) || 0
+    : ((totalDecimalHour || 0) * ((parseFloat(dataRate.workRateOT || '0')) * salaryToUse || 0)) || 0
 );
 
   return {
