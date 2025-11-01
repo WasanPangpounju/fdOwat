@@ -7514,21 +7514,8 @@ const getDateStyle = (day) => {
 
   // ฟังก์ชันสำหรับปุ่ม Force Reload
   const handleForceReload = async () => {
-    // 🎨 เอฟเฟคการลบและเติมตัวอักษรในช่องรหัสหน่วยงาน
+    // บันทึก originalWorkplaceId ไว้สำหรับใช้ภายหลัง (หลังยิง API เสร็จ)
     const originalWorkplaceId = searchWorkplaceId;
-    
-    if (originalWorkplaceId && originalWorkplaceId.length > 0) {
-      // ลบตัวอักษรสุดท้าย
-      const trimmedId = originalWorkplaceId.slice(0, -1);
-      const lastChar = originalWorkplaceId.slice(-1);
-      
-      setSearchWorkplaceId(trimmedId);
-      
-      // รอ 0.3 วินาที แล้วเติมตัวอักษรสุดท้ายกลับมา
-      setTimeout(() => {
-        setSearchWorkplaceId(originalWorkplaceId);
-      }, 3000);
-    }
 
     // ตรวจสอบว่ามีข้อมูลที่จำเป็นหรือไม่
     if (!searchWorkplaceId || !month || !year) {
@@ -7559,20 +7546,70 @@ const getDateStyle = (day) => {
     try {
       console.log('🔄 Starting Force Reload for all employees...');
       
-      // แสดง loading ด้วย SweetAlert ทันทีโดยไม่ต้องถามยืนยัน
-     
-      
-      // แสดง loading
+      // แสดง loading และซ่อนตาราง
       setLoading(true);
+      setShowTable(false);
       
       let successCount = 0;
       let errorCount = 0;
       const errors = [];
 
+      // แสดง SweetAlert2 Progress
+      Swal.fire({
+        title: 'กำลังประมวลผล',
+        html: `
+          <div style="text-align: left; padding: 10px;">
+            <p style="font-size: 16px; margin-bottom: 10px;">
+              <strong>กำลังค้นหา:</strong> <span id="current-employee">0</span> / ${data.length} คน
+            </p>
+            <div style="width: 100%; background-color: #e0e0e0; border-radius: 10px; overflow: hidden; margin-bottom: 15px;">
+              <div id="progress-bar" style="width: 0%; height: 30px; background: linear-gradient(90deg, #4CAF50, #45a049); transition: width 0.3s; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
+                <span id="progress-text">0%</span>
+              </div>
+            </div>
+            <p style="font-size: 14px; color: #666;">
+              <span id="current-employee-id">กำลังเตรียมข้อมูล...</span>
+            </p>
+            <hr style="margin: 10px 0;">
+            <p style="font-size: 13px; margin: 5px 0;"  >
+               สำเร็จ: <strong><span id="success-count">0</span></strong> คน
+            </p>
+            <p style="font-size: 13px; margin: 5px 0;">
+               ผิดพลาด: <strong><span id="error-count">0</span></strong> คน
+            </p>
+          </div>
+        `,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
       // วนลูปยิง API ทุกพนักงาน
       for (let i = 0; i < data.length; i++) {
         const employee = data[i];
         const employeeId = employee.employeeId;
+        
+        // เริ่มจับเวลา
+        const startTime = performance.now();
+        
+        // อัปเดต progress bar
+        const progress = Math.round(((i + 1) / data.length) * 100);
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+        const currentEmployeeSpan = document.getElementById('current-employee');
+        const currentEmployeeId = document.getElementById('current-employee-id');
+        const successCountSpan = document.getElementById('success-count');
+        const errorCountSpan = document.getElementById('error-count');
+        
+        if (progressBar) progressBar.style.width = `${progress}%`;
+        if (progressText) progressText.textContent = `${progress}%`;
+        if (currentEmployeeSpan) currentEmployeeSpan.textContent = i + 1;
+        if (currentEmployeeId) currentEmployeeId.textContent = `กำลังประมวลผล: ${employeeId}`;
+        if (successCountSpan) successCountSpan.textContent = successCount;
+        if (errorCountSpan) errorCountSpan.textContent = errorCount;
         
         try {
           console.log(`📡 Processing employee ${i + 1}/${data.length}: ${employeeId}`);
@@ -7615,28 +7652,76 @@ const getDateStyle = (day) => {
 
           if (response1.status === 200 && response2.status === 200) {
             successCount++;
-            console.log(`✅ Employee ${employeeId} - Both APIs processed successfully`);
+            
+            // คำนวณเวลาที่ใช้
+            const endTime = performance.now();
+            const timeTaken = ((endTime - startTime) / 1000).toFixed(2); // แปลงเป็นวินาที
+            
+            console.log(`Employee ${employeeId} - Both APIs processed successfully (${timeTaken}s)`);
+            
+            // อัปเดตจำนวนสำเร็จและแสดงเวลาใน SweetAlert
+            const successCountSpan = document.getElementById('success-count');
+            const currentEmployeeIdSpan = document.getElementById('current-employee-id');
+            if (successCountSpan) successCountSpan.textContent = successCount;
+            if (currentEmployeeIdSpan) currentEmployeeIdSpan.textContent = `✅ ${employeeId} - สำเร็จ (${timeTaken} วินาที)`;
           } else {
             errorCount++;
+            
+            // คำนวณเวลาที่ใช้
+            const endTime = performance.now();
+            const timeTaken = ((endTime - startTime) / 1000).toFixed(2);
+            
             errors.push(`Employee ${employeeId}: API1 status ${response1.status}, API2 status ${response2.status}`);
-            console.warn(`⚠️ Employee ${employeeId} - API1: ${response1.status}, API2: ${response2.status}`);
+            console.warn(`⚠️ Employee ${employeeId} - API1: ${response1.status}, API2: ${response2.status} (${timeTaken}s)`);
+            
+            // อัปเดตจำนวนผิดพลาดและแสดงเวลาใน SweetAlert
+            const errorCountSpan = document.getElementById('error-count');
+            const currentEmployeeIdSpan = document.getElementById('current-employee-id');
+            if (errorCountSpan) errorCountSpan.textContent = errorCount;
+            if (currentEmployeeIdSpan) currentEmployeeIdSpan.textContent = `⚠️ ${employeeId} - มีปัญหา (${timeTaken} วินาที)`;
           }
 
         } catch (error) {
           errorCount++;
+          
+          // คำนวณเวลาที่ใช้
+          const endTime = performance.now();
+          const timeTaken = ((endTime - startTime) / 1000).toFixed(2);
+          
           const errorMessage = error.response?.data?.message || error.message || 'Unknown error';
           errors.push(`Employee ${employeeId}: ${errorMessage}`);
-          console.error(`❌ Error processing employee ${employeeId}:`, error);
+          console.error(`❌ Error processing employee ${employeeId}: (${timeTaken}s)`, error);
+          
+          // อัปเดตจำนวนผิดพลาดและแสดงเวลาใน SweetAlert
+          const errorCountSpan = document.getElementById('error-count');
+          const currentEmployeeIdSpan = document.getElementById('current-employee-id');
+          if (errorCountSpan) errorCountSpan.textContent = errorCount;
+          if (currentEmployeeIdSpan) currentEmployeeIdSpan.textContent = `❌ ${employeeId} - ผิดพลาด (${timeTaken} วินาที)`;
         }
 
-        // เพิ่ม delay เล็กน้อยเพื่อไม่ให้ server overwhelm
+        // เพิ่ม delay 300ms เพื่อไม่ให้ server overwhelm
         if (i < data.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 100)); // 100ms delay
+          await new Promise(resolve => setTimeout(resolve, 300)); // 300ms delay
         }
       }
 
       // ปิด loading SweetAlert
       Swal.close();
+
+      // 🎨 เอฟเฟคการลบและเติมตัวอักษรในช่องรหัสหน่วยงาน (หลังยิง API เสร็จ)
+      console.log('🎨 Starting workplace ID animation effect...');
+      if (originalWorkplaceId && originalWorkplaceId.length > 0) {
+        // ลบตัวอักษรสุดท้าย
+        const trimmedId = originalWorkplaceId.slice(0, -1);
+        setSearchWorkplaceId(trimmedId);
+        
+        // รอ 300ms แล้วเติมตัวอักษรสุดท้ายกลับมา
+        await new Promise(resolve => setTimeout(resolve, 300));
+        setSearchWorkplaceId(originalWorkplaceId);
+        
+        // รอ 200ms ก่อนแสดงผลลัพธ์
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
 
       // แสดงผลลัพธ์ด้วย SweetAlert
       const iconType = errorCount === 0 ? 'success' : (successCount > 0 ? 'warning' : 'error');
@@ -7734,18 +7819,24 @@ const getDateStyle = (day) => {
               // อัปเดตข้อมูลที่เกี่ยวข้องทั้งหมด
               setSearchResults(response.data);
               
-              // Force re-render component
+              // Force re-render component และแสดงตาราง
               setLoading(false);
+              setShowTable(true); // แสดงตารางเมื่อข้อมูลพร้อมแล้ว
+              
               setTimeout(() => setLoading(true), 100);
-              setTimeout(() => setLoading(false), 200);
+              setTimeout(() => {
+                setLoading(false);
+                setShowTable(true); // ยืนยันว่าตารางแสดง
+              }, 200);
               
               console.log('✅ Component refresh completed');
             } else {
               console.warn('⚠️ API returned empty data after Force Reload');
-              
+              setShowTable(true); // แสดงตารางแม้ไม่มีข้อมูล
             }
           } catch (refreshError) {
             console.error('❌ Error refreshing data:', refreshError);
+            setShowTable(true); // แสดงตารางแม้เกิด error
             Swal.fire({
               icon: 'error',
               title: 'เกิดข้อผิดพลาดในการรีเฟรช',
@@ -7759,6 +7850,7 @@ const getDateStyle = (day) => {
 
     } catch (error) {
       console.error('❌ Force Reload failed:', error);
+      setShowTable(true); // แสดงตารางแม้เกิด error
       Swal.fire({
         icon: 'error',
         title: 'เกิดข้อผิดพลาด',
@@ -7768,6 +7860,8 @@ const getDateStyle = (day) => {
       });
     } finally {
       setLoading(false);
+      // ตรวจสอบว่าถ้าไม่มีการแสดงตารางอยู่แล้ว ให้แสดง
+      setShowTable(true);
     }
   };
 
@@ -8512,13 +8606,9 @@ const socialSecurityColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount;
             // หา record ทั้งหมดของวันนี้
             const allRecordsForDay = record?.employee_record?.filter(itemx => itemx.date === day) || [];
             
-            // 🔥 แก้ไข: สำหรับแถวเช้า ให้หา cash_holiday record ก่อน (สำหรับกะเช้า 06:00-15:00)
+            // 🔥 แก้ไข: สำหรับแถวเช้า ให้หา cash_holiday record สำหรับกะเช้า (ใช้ isNightShiftCash)
             const cashHolidayRecord = allRecordsForDay.find(itemx => {
-              if (itemx.shift === "cash_holiday" && itemx.startTime) {
-                const startHour = parseFloat(itemx.startTime.replace('.', ':').split(':')[0]);
-                return startHour >= 6 && startHour <= 15; // เฉพาะกะเช้า 06:00-15:00 เท่านั้น
-              }
-              return false;
+              return itemx.shift === "cash_holiday" && itemx.isNightShiftCash !== true;
             });
             
             // หา morning_shift record
@@ -8527,12 +8617,10 @@ const socialSecurityColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount;
             // หา record ที่มี totalTime ก่อน ถ้าไม่มีก็เอา record แรก
             const found = cashHolidayRecord || morningShiftRecord || allRecordsForDay.find(itemx => itemx.totalTime && itemx.totalTime.trim() !== '') || allRecordsForDay[0];
             
+            // 🔥 ปรับปรุง: ใช้ isNightShiftCash แทนการตรวจสอบเวลา
             const isWork = found?.dayType === "work" || 
                            (found?.dayType === "stop" && found?.shift === "morning_shift") ||
-                           (found?.shift === "cash_holiday" && found?.startTime && (() => {
-                             const startHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
-                             return startHour >= 6 && startHour <= 15; // เฉพาะกะเช้า 06:00-15:00 เท่านั้น
-                           })()); // แสดงข้อมูล cash_holiday เฉพาะกะเช้าในแถวเช้า 
+                           (found?.shift === "cash_holiday" && found?.isNightShiftCash !== true); // แสดง cash_holiday ที่ไม่ใช่กะดึกในแถวเช้า 
 
             // ตรวจสอบว่าวันนี้อยู่ใน stopDaysList หรือไม่
             const isInStopDaysList = record?.stopDaysList?.some(stopDay => {
@@ -8546,6 +8634,8 @@ const socialSecurityColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount;
             
             // กำหนดค่าที่จะแสดง
             let displayValue = '';
+            let shouldBeRed = false; // ตัวแปรบอกว่าต้องเป็นสีแดงหรือไม่ (สำหรับแถวเช้า)
+            
             if (isWork) {
               // เปรียบเทียบ workplaceId ของ record กับ searchWorkplaceId ที่เลือก
               const recordWorkplaceId = found?.workplaceId;
@@ -8562,14 +8652,14 @@ const socialSecurityColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount;
                 // ถ้าไม่ตรงกับ searchWorkplaceId = ไม่แสดงอะไร (วันที่ไม่ได้มาทำงานที่หน่วยงานนี้)
               } else {
                 // พนักงานปกติที่สังกัดหน่วยงานนี้
-                if (found?.shift === "cash_holiday" && found?.startTime) {
-                  // 🔥 ปรับปรุง: ตรวจสอบเวลาเริ่มงานสำหรับ cash_holiday
-                  const startHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
-                  if (startHour >= 6 && startHour <= 15) {
-                    // กะเช้า (06:00-15:00) - แสดงเลข 1
+                if (found?.shift === "cash_holiday") {
+                  // 🔥 ปรับปรุง: ใช้ isNightShiftCash แทนการตรวจสอบเวลา
+                  if (found?.isNightShiftCash !== true) {
+                    // กะเช้า - แสดงเลข 1 สีแดง
                     displayValue = '1';
+                    shouldBeRed = true; // เลข 1 สีแดงสำหรับ cash_holiday กะเช้า
                   }
-                  // ถ้าไม่อยู่ในช่วงเวลาเช้า (06:00-15:00) ไม่แสดงอะไรในแถวเช้า
+                  // ถ้าเป็นกะดึก (isNightShiftCash === true) ไม่แสดงอะไรในแถวเช้า
                 } else if (found?.shift === "morning_shift") {
                   // เฉพาะ morning_shift เท่านั้น
                   if (isMatchSearchWorkplace) {
@@ -8582,22 +8672,24 @@ const socialSecurityColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount;
             }
 
             // เพิ่มเงื่อนไขพิเศษ: ถ้าเป็นวันหยุดส่วนบุคคลแต่มี totalTime ให้แสดงเลข 1
-            // แต่ไม่แสดงถ้าเป็น cash_holiday กะดึก (startTime 18:00-03:00)
+            // แต่ไม่แสดงถ้าเป็น cash_holiday กะดึก (ใช้ isNightShiftCash)
             if (specialIndividual && found?.totalTime && found.totalTime.trim() !== '') {
-              // ตรวจสอบว่าเป็น cash_holiday กะดึกหรือไม่
-              if (found?.shift === "cash_holiday" && found?.startTime) {
-                const startHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
-                // ถ้าเป็นกะดึก (18:00-03:00) ไม่แสดงในแถวเช้า
-                if (!(startHour >= 18 || (startHour >= 0 && startHour <= 3))) {
+              // ตรวจสอบว่าเป็น cash_holiday หรือไม่
+              if (found?.shift === "cash_holiday") {
+                // ถ้าไม่ใช่กะดึก (isNightShiftCash !== true) ให้แสดงในแถวเช้า
+                if (found?.isNightShiftCash !== true) {
                   displayValue = "1";
+                  shouldBeRed = true; // เลข 1 สีแดงสำหรับ cash_holiday ในวันหยุดพิเศษ
                 }
+                // ถ้าเป็นกะดึก (isNightShiftCash === true) ไม่แสดงอะไรในแถวเช้า
               } else {
-                // ไม่ใช่ cash_holiday ให้แสดงปกติ
+                // ไม่ใช่ cash_holiday ให้แสดงปกติ (เฉพาะ specialt_shift หรือวันหยุดพิเศษที่ไม่ใช่ cash_holiday)
                 displayValue = "1";
               }
             }
             
-            empRow1.push(displayValue);
+            // เก็บข้อมูลว่าต้องเป็นสีแดงหรือไม่
+            empRow1.push({ value: displayValue, isRed: shouldBeRed });
           });
           
           // Summary columns
@@ -8640,19 +8732,18 @@ const socialSecurityColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount;
             // 🔥 แก้ไข: สำหรับแถวดึก ให้หา night_shift record ก่อน และ cash_holiday กะดึก
             const nightShiftRecord = allRecordsForDay.find(itemx => itemx.shift === "night_shift");
             
-            // หา cash_holiday record สำหรับกะดึก (18:00-03:00)
+            // หา cash_holiday record สำหรับกะดึก (ใช้ isNightShiftCash)
             const cashHolidayNightRecord = allRecordsForDay.find(itemx => {
-              if (itemx.shift === "cash_holiday" && itemx.startTime) {
-                const startHour = parseFloat(itemx.startTime.replace('.', ':').split(':')[0]);
-                return startHour >= 18 || (startHour >= 0 && startHour <= 3); // กะดึก 18:00-03:00
-              }
-              return false;
+              return itemx.shift === "cash_holiday" && itemx.isNightShiftCash === true;
             });
             
             const found = nightShiftRecord || cashHolidayNightRecord || allRecordsForDay.find(itemx => itemx.totalTime && itemx.totalTime.trim() !== '') || allRecordsForDay[0];
             
             // ตรวจสอบว่าเป็นการทำงานกะดึกหรือไม่
             const isNightShiftWork = found?.dayType === "work" && found?.shift === "night_shift";
+            
+            // 🆕 เพิ่ม: ตรวจสอบว่าเป็น cash_holiday กะดึกหรือไม่ (แม้วันหยุด)
+            const isCashHolidayNight = found?.shift === "cash_holiday" && found?.isNightShiftCash === true;
             
             // ตรวจสอบว่าวันนี้อยู่ใน stopDaysList หรือไม่
             const isInStopDaysList = record?.stopDaysList?.some(stopDay => {
@@ -8708,46 +8799,49 @@ const socialSecurityColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount;
             
             // กำหนดค่าที่จะแสดง
             let displayValue = '';
+            let shouldBeRed = false; // ตัวแปรบอกว่าต้องเป็นสีแดงหรือไม่
             
             if (isSpecialHoliday) {
-              // วันหยุดพิเศษ: ตรวจสอบเพิ่มเติม - ถ้าเป็น cash_holiday กะดึกให้แสดงเลข 1
-              if (found?.shift === "cash_holiday" && found?.startTime) {
-                const startHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
-                if (startHour >= 18 || (startHour >= 0 && startHour <= 3)) {
-                  displayValue = '1'; // เลข 1 สำหรับ cash_holiday กะดึก
-                }
+              // วันหยุดพิเศษ: ตรวจสอบเพิ่มเติม - ถ้าเป็น cash_holiday กะดึกให้แสดงเลข 1 สีแดง
+              if (isCashHolidayNight && found?.totalTime && found.totalTime.trim() !== '') {
+                displayValue = '1';
+                shouldBeRed = true; // เลข 1 สีแดงสำหรับ cash_holiday กะดึก
               }
             } else if (isDayOffOnly) {
               // วันหยุด: แสดงเลข 1 ถ้ามี totalTime และเป็น night_shift
               if (found?.totalTime && found.totalTime.trim() !== '' && found?.shift === "night_shift") {
                 displayValue = '1';
               }
-              // แสดงเลข 1 ถ้าเป็น cash_holiday และ startTime อยู่ในช่วงกะดึก (18:00-03:00)
-              if (found?.shift === "cash_holiday" && found?.startTime) {
-                const startHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
-                if (startHour >= 18 || (startHour >= 0)) {
-                  displayValue = '1'; // เลข 1 สำหรับ cash_holiday กะดึก
-                }
+              // แสดงเลข 1 สีแดงถ้าเป็น cash_holiday กะดึก (ใช้ isNightShiftCash)
+              if (isCashHolidayNight && found?.totalTime && found.totalTime.trim() !== '') {
+                displayValue = '1';
+                shouldBeRed = true; // เลข 1 สีแดงสำหรับ cash_holiday กะดึก
               }
             } else if (isDayoffWorkplace || isInvalidDate) {
-              // วันหยุดหรือวันที่ไม่มีอยู่จริง: ไม่แสดงอะไร
-              displayValue = '';
+              // วันหยุดหรือวันที่ไม่มีอยู่จริง: แสดงเลข 1 สีแดงถ้าเป็น cash_holiday กะดึก
+              if (isCashHolidayNight && found?.totalTime && found.totalTime.trim() !== '') {
+                displayValue = '1';
+                shouldBeRed = true; // เลข 1 สีแดงสำหรับ cash_holiday กะดึก
+              }
             } else if (isNightShiftWork) {
               displayValue = '1'; // แสดงเลข 1 เมื่อมาทำงานกะดึก
-            } else if (found?.shift === "cash_holiday" && found?.startTime) {
-              // ถ้าเป็น cash_holiday และ startTime อยู่ในช่วงกะดึก (18:00-03:00) - ไม่ใช่วันหยุด
-              const startHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
-              if (startHour >= 18 || (startHour >= 0 && startHour <= 3)) {
-                displayValue = '1'; // เลข 1 สำหรับ cash_holiday กะดึก
-              }
+            } else if (isCashHolidayNight) {
+              // แสดงเลข 1 สีแดงสำหรับ cash_holiday กะดึก (ใช้ isNightShiftCash flag)
+              displayValue = '1';
+              shouldBeRed = true; // เลข 1 สีแดงสำหรับ cash_holiday กะดึก
             }
             
             // ตรวจสอบ specialIndividualNight แยกต่างหาก
             if (specialIndividualNight) {
-              displayValue = ''; // ไม่แสดงอะไรสำหรับกรณีพิเศษ
+              // ถ้าเป็น cash_holiday กะดึกในวันหยุดพิเศษ ให้แสดงเลข 1 สีแดง
+              if (isCashHolidayNight && found?.totalTime && found.totalTime.trim() !== '') {
+                displayValue = '1';
+                shouldBeRed = true; // เลข 1 สีแดงสำหรับ cash_holiday กะดึก
+              }
             }
             
-            empRow2.push(displayValue);
+            // เก็บข้อมูลว่าต้องเป็นสีแดงหรือไม่
+            empRow2.push({ value: displayValue, isRed: shouldBeRed });
           });
           
           // Use exact same calculations as the web table to ensure consistency
@@ -8853,14 +8947,17 @@ for (let i = 0; i < remainingCols3; i++) {
             const recordWorkplaceId = found?.workplaceId;
             const isMatchSearchWorkplace = recordWorkplaceId === searchWorkplaceId;
             
+            // 🆕 ตรวจสอบว่าเป็น cash_holiday หรือไม่ - ถ้าใช่ไม่แสดงค่า
+            const isCashHoliday = found?.shift === "cash_holiday";
+            
             // กำหนดเงื่อนไขการแสดงผล
             let shouldShowData = false;
             if (isCrossWorkplaceEmployee) {
-              // พนักงานข้ามหน่วยงาน: แสดงเฉพาะวันที่มาทำงานที่หน่วยงานที่เลือก และต้องเป็น dayType "stop" และมี totalTime
-              shouldShowData = found && isMatchSearchWorkplace && found?.dayType === "stop" && found.totalTime;
+              // พนักงานข้ามหน่วยงาน: แสดงเฉพาะวันที่มาทำงานที่หน่วยงานที่เลือก และต้องเป็น dayType "stop" และมี totalTime และไม่ใช่ cash_holiday
+              shouldShowData = found && isMatchSearchWorkplace && found?.dayType === "stop" && found.totalTime && !isCashHoliday;
             } else {
-              // พนักงานปกติ: แสดงทุกวันที่มีข้อมูล dayType "stop" และมี totalTime
-              shouldShowData = found?.dayType === "stop" && found.totalTime;
+              // พนักงานปกติ: แสดงทุกวันที่มีข้อมูล dayType "stop" และมี totalTime และไม่ใช่ cash_holiday
+              shouldShowData = found?.dayType === "stop" && found.totalTime && !isCashHoliday;
             }
             
             // ตรวจสอบประเภทพนักงาน ถ้าเป็นรายเดือนไม่ให้แสดง totalTime
@@ -8977,11 +9074,25 @@ for (let i = 0; i < remainingCols5; i++) {
     empRow5.push('');
 }
 
+          // 🔴 แปลง empRow1 และ empRow2 ที่มี object { value, isRed } กลับเป็น string เพื่อให้ ExcelJS รองรับ
+          const empRow1Values = empRow1.map(item => {
+            if (typeof item === 'object' && item !== null && item.hasOwnProperty('value')) {
+              return item.value;
+            }
+            return item;
+          });
+          
+          const empRow2Values = empRow2.map(item => {
+            if (typeof item === 'object' && item !== null && item.hasOwnProperty('value')) {
+              return item.value;
+            }
+            return item;
+          });
           
           // Add employee rows to worksheet
           const empRowRefs = [];
-          empRowRefs.push(worksheet.addRow(empRow1));
-          empRowRefs.push(worksheet.addRow(empRow2));
+          empRowRefs.push(worksheet.addRow(empRow1Values)); // ใช้ empRow1Values แทน empRow1
+          empRowRefs.push(worksheet.addRow(empRow2Values)); // ใช้ empRow2Values แทน empRow2
           empRowRefs.push(worksheet.addRow(empRow3));
           empRowRefs.push(worksheet.addRow(empRow4));
           empRowRefs.push(worksheet.addRow(empRow5));
@@ -9025,9 +9136,16 @@ for (let colIdx = 1; colIdx <= actualTotalColumns; colIdx++) {
             
             // Check day columns (starting from column C, which is index 2)
             dayNumbers.forEach((day, dayIdx) => {
-              const cellValue = empRow[dayIdx + 2]; // +2 because columns A,B are ลำดับ and ชื่อ
+              const cellData = empRow[dayIdx + 2]; // +2 because columns A,B are ลำดับ and ชื่อ
+              // ตรวจสอบว่า cellData เป็น object หรือ string
+              const cellValue = (typeof cellData === 'object' && cellData !== null) ? cellData.value : cellData;
+              const shouldBeRed = (typeof cellData === 'object' && cellData !== null) ? cellData.isRed : false;
+              
               const colNumber = dayIdx + 3; // +3 because Excel is 1-based and we start from column C
               const cell = worksheet.getCell(actualRowNumber, colNumber);
+              
+              // ตั้งค่า value ของ cell
+              cell.value = cellValue;
               
               // ตรวจสอบว่าเป็นวันหยุดหรือไม่ (ใช้ลอจิกเดียวกันกับหน้าเว็บ)
               const dayNum = parseInt(day);
@@ -9108,11 +9226,8 @@ for (let colIdx = 1; colIdx <= actualTotalColumns; colIdx++) {
                 return false;
               });
               
-              // ตรวจสอบ cash_holiday ก่อนเพื่อให้สีแดงในกรณีวันหยุด
-              const isCashHolidayWithRedText = rowIdx === 1 && cellValue === '1' && foundRecord?.shift === "cash_holiday" && foundRecord?.startTime && (() => {
-                const startTimeHour = parseFloat(foundRecord.startTime.replace('.', ':').split(':')[0]);
-                return startTimeHour >= 18 || (startTimeHour >= 0 && startTimeHour <= 5);
-              })();
+              // 🔴 ตรวจสอบว่าควรเป็นสีแดงหรือไม่ (สำหรับแถวเช้าและแถวดึก)
+              const isCashHolidayWithRedText = (rowIdx === 0 || rowIdx === 1) && shouldBeRed;
 
               // Apply specific styling based on row type and cell content (ใช้ลำดับความสำคัญเหมือน HTML)
               if (isSickLeave) {
@@ -9142,19 +9257,18 @@ for (let colIdx = 1; colIdx <= actualTotalColumns; colIdx++) {
                 };
                 console.log(`Applied gray background with red text to special individual cell in ${rowNames[rowIdx]} row, day ${day} (${actualRowNumber}, ${colNumber})`);
               } else if (isCashHolidayWithRedText) {
-                // 🔴 cash_holiday ในช่วงเวลากะดึก - ตัวอักษรสีแดง (ตรวจสอบก่อน isPersonalDayOff เพื่อให้แสดงสีแดงในวันนักขัตฤกษ์)
-                // ถ้าเป็นวันหยุดนักขัตฤกษ์ (isPersonalDayOff) ให้ใช้พื้นหลังสีเขียว พร้อมตัวอักษรสีแดง
+                // 🔴 cash_holiday ในช่วงเวลากะดึก - ตัวอักษรสีแดง พื้นหลังสีเทา
                 cell.fill = {
                   type: 'pattern',
                   pattern: 'solid',
-                  fgColor: { argb: isPersonalDayOff ? 'FF00FF00' : 'FFFFFFFF' } // สีเขียวถ้าเป็นวันหยุดนักขัตฤกษ์ ไม่งั้นสีขาว
+                  fgColor: { argb: isPersonalDayOff ? 'FF00FF00' : 'FF9E9E9E' } // สีเขียวถ้าเป็นวันหยุดส่วนบุคคล ไม่งั้นสีเทา
                 };
                 cell.font = {
                   bold: false,
                   size: rowIdx <= 1 ? 14 : 9,
-                  color: { argb: 'FFFF0000' } // ตัวอักษรสีแดง
+                  color: { argb: 'FFFF0000' } // ตัวอักษรสีแดงตัวปกติ
                 };
-                console.log(`Applied ${isPersonalDayOff ? 'green' : 'white'} background with RED text to cash_holiday cell in ${rowNames[rowIdx]} row, day ${day} (${actualRowNumber}, ${colNumber})`);
+                console.log(`Applied ${isPersonalDayOff ? 'green' : 'gray'} background with RED text to cash_holiday cell in ${rowNames[rowIdx]} row, day ${day} (${actualRowNumber}, ${colNumber})`);
               } else if (isPersonalDayOff) {
                 // � วันหยุดส่วนบุคคล - สีเขียว (เฉพาะกรณีที่ไม่ใช่ cash_holiday)
                 cell.fill = {
@@ -9169,7 +9283,23 @@ for (let colIdx = 1; colIdx <= actualTotalColumns; colIdx++) {
                 };
                 console.log(`Applied green to personal day off cell in ${rowNames[rowIdx]} row, day ${day} (${actualRowNumber}, ${colNumber})`);
               } else if (rowIdx === 3) { // โอที 2 (empRow4) - ตรวจสอบก่อนวันหยุดหน่วยงาน
-                if (cellValue && cellValue !== '' && cellValue !== null && cellValue !== undefined) {
+                // 🆕 ตรวจสอบว่าเป็น cash_holiday หรือไม่
+                const isCashHolidayForOT2 = foundRecord?.shift === "cash_holiday";
+                
+                if (isCashHolidayForOT2) {
+                  // cash_holiday - แสดงสีเทาโดยไม่แสดงค่า
+                  cell.fill = {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FF9E9E9E' } // สีเทา #9e9e9e
+                  };
+                  cell.font = {
+                    bold: false,
+                    size: 9,
+                    color: { argb: 'FF000000' }
+                  };
+                  console.log(`Applied gray to OT2 cash_holiday cell in ${rowNames[rowIdx]} row, day ${day} (${actualRowNumber}, ${colNumber})`);
+                } else if (cellValue && cellValue !== '' && cellValue !== null && cellValue !== undefined) {
                   // โอที 2 มีค่า - สีเหลือง
                   cell.fill = {
                     type: 'pattern',
@@ -9183,7 +9313,7 @@ for (let colIdx = 1; colIdx <= actualTotalColumns; colIdx++) {
                   };
                   console.log(`Applied yellow to OT2 cell with value: ${cellValue} in ${rowNames[rowIdx]} row, day ${day} (${actualRowNumber}, ${colNumber})`);
                 } else if (isDayoffWorkplace || isDayOffOnly) {
-                  // โอที 2 ไม่มีค่า แต่เป็นวันหยุดหน่วยงาน - สีเทา
+                  // โอที 2 ไม่มีค่า แต่เป็นวันหยุดหน่วยงาน - สีชมพู
                   cell.fill = {
                     type: 'pattern',
                     pattern: 'solid',
@@ -9194,7 +9324,7 @@ for (let colIdx = 1; colIdx <= actualTotalColumns; colIdx++) {
                     size: 9,
                     color: { argb: 'FF000000' }
                   };
-                  console.log(`Applied gray to OT2 holiday cell in ${rowNames[rowIdx]} row, day ${day} (${actualRowNumber}, ${colNumber})`);
+                  console.log(`Applied pink to OT2 holiday cell in ${rowNames[rowIdx]} row, day ${day} (${actualRowNumber}, ${colNumber})`);
                 } else {
                   // โอที 2 ไม่มีค่า และไม่ใช่วันหยุด - สีขาว (วันปกติ)
                   cell.fill = {
@@ -9468,9 +9598,61 @@ for (let i = 0; i < remainingColsContract; i++) {
       
       // Absent employees per day row
       const absentEmpRow = ['พนักงานขาดงาน', ''];
+      
+      // 🔍 Debug: ตรวจสอบ weekendData ก่อนสร้าง Excel
+      console.log('🔍 Excel Generation - weekendData check:');
+      console.log('- weekendData:', weekendData);
+      console.log('- weekendData.dayoffWorkplace:', weekendData?.dayoffWorkplace);
+      console.log('- Is Array:', Array.isArray(weekendData));
+      console.log('- absentEmployeesPerDay:', absentEmployeesPerDay);
+      
       dayNumbers.forEach((day, i) => {
+        // ตรวจสอบว่าวันที่นี้มีอยู่จริงในเดือนหรือไม่
+        const dayNum = parseInt(day);
+        let actualMonth, actualYear;
+        if (dayNum >= 21) {
+          actualMonth = month === "01" ? 12 : parseInt(month) - 1;
+          actualYear = month === "01" ? parseInt(year) - 1 : parseInt(year);
+        } else {
+          actualMonth = parseInt(month);
+          actualYear = parseInt(year);
+        }
+        const daysInActualMonth = new Date(actualYear, actualMonth, 0).getDate();
+        const isInvalidDate = dayNum > daysInActualMonth;
+        
+        // ตรวจสอบว่าเป็นวันหยุดหรือไม่
+        const targetDateStr = `${actualYear}-${actualMonth.toString().padStart(2, '0')}-${dayNum.toString().padStart(2, '0')}`;
+        const isWeekend = !!(weekendData?.dayoffWorkplace?.includes(targetDateStr));
+        const isDayOffOnly = !!(weekendData && Array.isArray(weekendData) && weekendData.find(item => item.date === targetDateStr && item.type === 'dayOffOnly'));
+        const isHoliday = isWeekend || isDayOffOnly;
+        
+        // 🔍 Debug: แสดงข้อมูลสำหรับวันที่มีปัญหา (4, 11, 18, 27)
+        if (day === "4" || day === "11" || day === "18" || day === "27") {
+          console.log(`🔍 Excel Data - Day ${day}:`, {
+            targetDateStr,
+            isWeekend,
+            isDayOffOnly,
+            isHoliday,
+            isInvalidDate,
+            absentCount: absentEmployeesPerDay[i],
+            presentCount: employeeCountPerDay[i],
+            contractCount: contractEmployeeCount
+          });
+        }
+        
         const absentCount = absentEmployeesPerDay[i] || 0;
-        absentEmpRow.push(absentCount === 0 ? '' : absentCount);
+        
+        // Logic เหมือนหน้าเว็บ:
+        // - วันหยุดหรือวันที่ไม่มี → ไม่แสดงข้อมูล
+        // - วันทำงานที่ไม่มีคนขาด → ไม่แสดงข้อมูล
+        // - วันทำงานที่มีคนขาด → แสดงจำนวนคนขาด
+        if (isHoliday || isInvalidDate) {
+          absentEmpRow.push('');
+        } else if (absentCount === 0) {
+          absentEmpRow.push('');
+        } else {
+          absentEmpRow.push(absentCount);
+        }
       });
       absentEmpRow.push(absentEmployeesPerDay.reduce((total, count) => total + (count || 0), 0));
       absentEmpRow.push('', '');
@@ -9501,17 +9683,60 @@ for (let i = 0; i < remainingColsContract; i++) {
       
       // Add gray styling for days with no absent employees and red text for days with absent employees
       dayNumbers.forEach((day, i) => {
+        // ตรวจสอบว่าวันที่นี้มีอยู่จริงในเดือนหรือไม่
+        const dayNum = parseInt(day);
+        let actualMonth, actualYear;
+        if (dayNum >= 21) {
+          actualMonth = month === "01" ? 12 : parseInt(month) - 1;
+          actualYear = month === "01" ? parseInt(year) - 1 : parseInt(year);
+        } else {
+          actualMonth = parseInt(month);
+          actualYear = parseInt(year);
+        }
+        const daysInActualMonth = new Date(actualYear, actualMonth, 0).getDate();
+        const isInvalidDate = dayNum > daysInActualMonth;
+        
+        // ตรวจสอบว่าเป็นวันหยุดหรือไม่ (เหมือนในฟังก์ชัน calculateAbsentEmployees)
+        const targetDateStr = `${actualYear}-${actualMonth.toString().padStart(2, '0')}-${dayNum.toString().padStart(2, '0')}`;
+        const isWeekend = !!(weekendData?.dayoffWorkplace?.includes(targetDateStr));
+        const isDayOffOnly = !!(weekendData && Array.isArray(weekendData) && weekendData.find(item => item.date === targetDateStr && item.type === 'dayOffOnly'));
+        const isHoliday = isWeekend || isDayOffOnly;
+        
         const absentCount = absentEmployeesPerDay[i] || 0;
-        if (absentCount === 0) {
+        const presentCount = employeeCountPerDay[i] || 0;
+        
+        // 🔍 Debug: แสดงข้อมูล styling สำหรับวันที่มีปัญหา (4, 11, 18, 27)
+        if (day === "4" || day === "11" || day === "18" || day === "27") {
+          console.log(`🔍 Excel Styling - Day ${day}:`, {
+            targetDateStr,
+            isWeekend,
+            isDayOffOnly,
+            isHoliday,
+            isInvalidDate,
+            absentCount,
+            presentCount,
+            willApplyGrayStyle: !isHoliday && !isInvalidDate && absentCount === 0,
+            willApplyRedStyle: !isHoliday && !isInvalidDate && absentCount > 0,
+            cellValue: absentEmpRow[i + 2] // +2 เพราะมี 2 columns แรก
+          });
+        }
+        
+        // ถ้าเป็นวันหยุดหรือวันที่ไม่มีในเดือน ไม่ต้องแสดงอะไร (ไม่ใส่ style)
+        // ถ้าไม่มีคนขาด (แต่ไม่ใช่วันหยุด) ให้เป็นสีเทา
+        // ถ้ามีคนขาด ให้เป็นตัวอักษรสีแดง
+        if (isHoliday || isInvalidDate) {
+          // วันหยุดหรือวันที่ไม่มี - ไม่ต้องใส่ style พิเศษ (จะใช้ default)
+        } else if (absentCount === 0) {
+          // ไม่มีคนขาด (แต่ไม่ใช่วันหยุด) - สีเทา
           absentEmpRow.specialStyles[i + 2] = { // +2 เพราะ column A,B เป็น "พนักงานขาดงาน" และ ""
             backgroundColor: 'FFD3D3D3', // สีเทา
             fontColor: 'FF000000',      // ตัวอักษรสีดำ
             fontWeight: 'bold'
           };
         } else {
-          // ช่องที่มีค่าขาดงาน ให้ตัวอักษรสีแดง
+          // มีคนขาด - ตัวอักษรสีแดง
           absentEmpRow.specialStyles[i + 2] = { // +2 เพราะ column A,B เป็น "พนักงานขาดงาน" และ ""
-            fontColor: 'FFFF0000',      // ตัวอักษรสีแดง (แก้ไขให้ถูกต้อง)
+            fontColor: 'FFFF0000',      // ตัวอักษรสีแดง
             fontWeight: 'bold'
           };
         }
@@ -9714,7 +9939,7 @@ for (let i = 0; i < remainingColsOt3; i++) {
               cell.font = {
                 name: 'Calibri',
                 size: 9,
-                bold: true,
+                bold: false,
                 color: { argb: 'FFFF0000' }
               };
               
@@ -11884,12 +12109,10 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
   // หา record ที่มี totalTime ก่อน ถ้าไม่มีก็เอา record แรก
   const found = cashHolidayRecord || morningShiftRecord || allRecordsForDay.find(itemx => itemx.totalTime && itemx.totalTime.trim() !== '') || allRecordsForDay[0];
 
+  // 🔥 ปรับปรุง: เช็ค isWork โดยใช้ isNightShiftCash แทนการตรวจสอบเวลา
   const isWork = found?.dayType === "work" || 
                  (found?.dayType === "stop" && found?.shift === "morning_shift") ||
-                 (found?.shift === "cash_holiday" && found?.startTime && (() => {
-                   const startHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
-                   return startHour >= 6 && startHour <= 15; // เฉพาะกะเช้า 06:00-15:00 เท่านั้น
-                 })()); // แสดงข้อมูล cash_holiday เฉพาะกะเช้าในแถวเช้า 
+                 (found?.shift === "cash_holiday" && found?.isNightShiftCash !== true); // แสดง cash_holiday ที่ไม่ใช่กะดึกในแถวเช้า
 
   // ตรวจสอบว่าวันนี้อยู่ใน stopDaysList หรือไม่
   const isInStopDaysList = record?.stopDaysList?.some(stopDay => {
@@ -12182,14 +12405,13 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
       // ถ้าไม่ตรงกับ searchWorkplaceId = ไม่แสดงอะไร (วันที่ไม่ได้มาทำงานที่หน่วยงานนี้)
     } else {
       // พนักงานปกติที่สังกัดหน่วยงานนี้
-      if (found?.shift === "cash_holiday" && found?.startTime) {
-        // 🔥 ปรับปรุง: ตรวจสอบเวลาเริ่มงานสำหรับ cash_holiday
-        const startHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
-        if (startHour >= 6 && startHour <= 15) {
-          // กะเช้า (06:00-15:00) - แสดงเลข 1 สีแดง
+      if (found?.shift === "cash_holiday") {
+        // 🔥 ปรับปรุง: ตรวจสอบว่าไม่ใช่กะดึก (isNightShiftCash !== true) แสดงว่าเป็นกะเช้า
+        if (found?.isNightShiftCash !== true) {
+          // กะเช้า - แสดงเลข 1 สีแดง
           displayValue = <span style={{ color: 'red' }}>1</span>;
         }
-        // ถ้าไม่อยู่ในช่วงเวลาเช้า (06:00-15:00) ไม่แสดงอะไรในแถวเช้า
+        // ถ้าเป็นกะดึก (isNightShiftCash === true) ไม่แสดงอะไรในแถวเช้า
       } else if (found?.shift === "morning_shift") {
         // เฉพาะ morning_shift เท่านั้น
         displayValue = '1';
@@ -12198,17 +12420,17 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
   }
 
   // เพิ่มเงื่อนไขพิเศษ: ถ้าเป็นวันหยุดส่วนบุคคลแต่มี totalTime ให้แสดงเลข 1
-  // แต่ไม่แสดงถ้าเป็น cash_holiday กะดึก (startTime 18:00-03:00)
+  // แต่ไม่แสดงถ้าเป็น cash_holiday กะดึก (ใช้ isNightShiftCash)
   if (specialIndividual && found?.totalTime && found.totalTime.trim() !== '') {
-    // ตรวจสอบว่าเป็น cash_holiday กะดึกหรือไม่
-    if (found?.shift === "cash_holiday" && found?.startTime) {
-      const startHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
-      // ถ้าเป็นกะดึก (18:00-03:00) ไม่แสดงในแถวเช้า
-      if (!(startHour >= 18 || (startHour >= 0 && startHour <= 3))) {
+    // ตรวจสอบว่าเป็น cash_holiday หรือไม่
+    if (found?.shift === "cash_holiday") {
+      // ถ้าไม่ใช่กะดึก (isNightShiftCash !== true) ให้แสดงในแถวเช้า
+      if (found?.isNightShiftCash !== true) {
         displayValue = "1";
       }
+      // ถ้าเป็นกะดึก (isNightShiftCash === true) ไม่แสดงอะไรในแถวเช้า
     } else {
-      // ไม่ใช่ cash_holiday ให้แสดงปกติ
+      // ไม่ใช่ cash_holiday ให้แสดงปกติ (เฉพาะ specialt_shift หรือวันหยุดพิเศษที่ไม่ใช่ cash_holiday)
       displayValue = "1";
     }
   }
@@ -12333,19 +12555,18 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                       // 🔥 แก้ไข: สำหรับแถวดึก ให้หา night_shift record ก่อน และ cash_holiday กะดึก
                       const nightShiftRecord = allRecordsForDay.find(itemx => itemx.shift === "night_shift");
                       
-                      // หา cash_holiday record สำหรับกะดึก (18:00-03:00)
+                      // หา cash_holiday record สำหรับกะดึก (ใช้ isNightShiftCash)
                       const cashHolidayNightRecord = allRecordsForDay.find(itemx => {
-                        if (itemx.shift === "cash_holiday" && itemx.startTime) {
-                          const startHour = parseFloat(itemx.startTime.replace('.', ':').split(':')[0]);
-                          return startHour >= 18 || (startHour >= 0 && startHour <= 3); // กะดึก 18:00-03:00
-                        }
-                        return false;
+                        return itemx.shift === "cash_holiday" && itemx.isNightShiftCash === true;
                       });
                       
                       const found = nightShiftRecord || cashHolidayNightRecord || allRecordsForDay.find(itemx => itemx.totalTime && itemx.totalTime.trim() !== '') || allRecordsForDay[0];
                       
                       // ตรวจสอบว่าเป็นการทำงานกะดึกหรือไม่
                       const isNightShiftWork = found?.dayType === "work" && found?.shift === "night_shift";
+                      
+                      // 🆕 เพิ่ม: ตรวจสอบว่าเป็น cash_holiday กะดึกหรือไม่ (แม้วันหยุด)
+                      const isCashHolidayNight = found?.shift === "cash_holiday" && found?.isNightShiftCash === true;
                       
                       // ตรวจสอบว่าวันนี้อยู่ใน stopDaysList หรือไม่
                       const isInStopDaysList = record?.stopDaysList?.some(stopDay => {
@@ -12425,43 +12646,43 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                       
                       if (isSpecialHoliday) {
                         backgroundColor = { backgroundColor: "#00ff00" }; // สีเขียวสำหรับวันหยุดพิเศษ
-                        // ตรวจสอบเพิ่มเติม: ถ้าเป็น cash_holiday กะดึกให้แสดงเลข 1 สีแดง
-                        if (found?.shift === "cash_holiday" && found?.startTime) {
-                          const startHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
-                          if (startHour >= 18 || (startHour >= 0 && startHour <= 3)) {
-                            displayValue = <span style={{ color: 'red' }}>1</span>; // เลข 1 สีแดงสำหรับ cash_holiday กะดึก
-                          }
+                        // ถ้าเป็น cash_holiday กะดึก ให้แสดงเลข 1 สีแดง
+                        if (isCashHolidayNight) {
+                          displayValue = <span style={{ color: 'red' }}>1</span>;
                         }
-                      } else if (isDayOffOnly ) {
+                      } else if (isDayOffOnly) {
                         backgroundColor = { backgroundColor: "#9e9e9e" }; 
                         // แสดงเลข 1 ถ้ามี totalTime และเป็น night_shift
                         if (found?.totalTime && found.totalTime.trim() !== '' && found?.shift === "night_shift") {
                           displayValue = '1';
                         }
-                        // แสดงเลข 1 ถ้าเป็น cash_holiday และ startTime อยู่ในช่วงกะดึก (18:00-03:00)
-                        if (found?.shift === "cash_holiday" && found?.startTime) {
-                          const startHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
-                          if (startHour >= 18 || (startHour >= 0 )) {
-                            displayValue = <span style={{ color: 'red' }}>1</span>; // เลข 1 สีแดงสำหรับ cash_holiday กะดึก
-                          }
+                        // แสดงเลข 1 สีแดงถ้าเป็น cash_holiday กะดึก (ใช้ isNightShiftCash)
+                        if (isCashHolidayNight && found?.totalTime && found.totalTime.trim() !== '') {
+                          displayValue = <span style={{ color: 'red'}}>1</span>;
                         }
-                      } else if (isDayoffWorkplace || isInvalidDate ) {
+                      } else if (isDayoffWorkplace || isInvalidDate) {
                         backgroundColor = { backgroundColor: "#9e9e9e" }; // สีเทาสำหรับวันหยุดหรือวันที่ไม่มีอยู่จริง
+                        // แสดงเลข 1 สีแดงถ้าเป็น cash_holiday กะดึกในวันหยุด
+                        if (isCashHolidayNight && found?.totalTime && found.totalTime.trim() !== '') {
+                          displayValue = <span style={{ color: 'red',}}>1</span>;
+                        }
                       } else if (isNightShiftWork) {
                         displayValue = '1'; // แสดงเลข 1 เมื่อมาทำงานกะดึก
-                      } else if (found?.shift === "cash_holiday" && found?.startTime) {
-                        // ถ้าเป็น cash_holiday และ startTime อยู่ในช่วงกะดึก (18:00-03:00) - ไม่ใช่วันหยุด
-                        const startHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
-                        if (startHour >= 18 || (startHour >= 0 && startHour <= 3)) {
-                          displayValue = <span style={{ color: 'red' }}>1</span>; // เลข 1 สีแดงสำหรับ cash_holiday กะดึก
-                        }
+                      } else if (isCashHolidayNight) {
+                        // แสดงเลข 1 สีแดงสำหรับ cash_holiday กะดึก (ใช้ isNightShiftCash flag)
+                        displayValue = <span style={{ color: 'red' }}>1</span>;
                       }
-                      if(isSickLeave) {
+                      
+                      if (isSickLeave) {
                         backgroundColor = { backgroundColor: "#c5eaebff", color: "black" }; // สีดำสำหรับวันลาป่วย
                       }
 
-                      if(specialIndividualNight) {
+                      if (specialIndividualNight) {
                         backgroundColor = { backgroundColor: "#9e9e9e" }; // สีม่วงสำหรับวันหยุดพิเศษ
+                        // ถ้าเป็น cash_holiday กะดึกในวันหยุดพิเศษ ให้แสดงเลข 1 สีแดง
+                        if (isCashHolidayNight && found?.totalTime && found.totalTime.trim() !== '') {
+                          displayValue = <span style={{ color: 'red' }}>1</span>;
+                        }
                       }
                       
                       return (
@@ -13282,15 +13503,63 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
                         const absentCount = absentEmployeesPerDay[i] || 0;
                         const presentCount = employeeCountPerDay[i] || 0;
                         const isZero = absentCount === 0;
-                        const isHoliday = presentCount === 0; // วันหยุดถ้าไม่มีคนมาทำงาน
+                        
+                        // ตรวจสอบว่าวันที่นี้มีอยู่จริงในเดือนหรือไม่
+                        const dayNum = parseInt(day);
+                        let actualMonth, actualYear;
+                        if (dayNum >= 21) {
+                          actualMonth = month === "01" ? 12 : parseInt(month) - 1;
+                          actualYear = month === "01" ? parseInt(year) - 1 : parseInt(year);
+                        } else {
+                          actualMonth = parseInt(month);
+                          actualYear = parseInt(year);
+                        }
+                        const daysInActualMonth = new Date(actualYear, actualMonth, 0).getDate();
+                        const isInvalidDate = dayNum > daysInActualMonth;
+                        
+                        // ตรวจสอบว่าเป็นวันหยุดหรือไม่ (เหมือนใน Excel generation)
+                        const targetDateStr = `${actualYear}-${actualMonth.toString().padStart(2, '0')}-${dayNum.toString().padStart(2, '0')}`;
+                        const isWeekend = !!(weekendData?.dayoffWorkplace?.includes(targetDateStr));
+                        const isDayOffOnly = !!(weekendData && Array.isArray(weekendData) && weekendData.find(item => item.date === targetDateStr && item.type === 'dayOffOnly'));
+                        const isHoliday = isWeekend || isDayOffOnly;
+                        
+                        // Debug log
+                        if (day === "27") {
+                          console.log(`วันที่ 27 - absentCount: ${absentCount}, isZero: ${isZero}, isHoliday: ${isHoliday}, isInvalidDate: ${isInvalidDate}, isWeekend: ${isWeekend}, isDayOffOnly: ${isDayOffOnly}`);
+                        }
+                        
+                        // Logic ชัดเจน:
+                        // 1. วันหยุดหรือวันที่ไม่มี → ไม่แสดง, ไม่เป็นสีเทา
+                        // 2. ไม่มีคนขาด → ไม่แสดง, เป็นสีเทา
+                        // 3. มีคนขาด → แสดงตัวเลขสีแดง
+                        let shouldShowGray = false;
+                        let shouldShowRed = false;
+                        let displayValue = "";
+                        
+                        if (isHoliday || isInvalidDate) {
+                          // วันหยุดหรือวันที่ไม่มี - ไม่แสดงอะไร
+                          shouldShowGray = false;
+                          shouldShowRed = false;
+                          displayValue = "";
+                        } else if (isZero) {
+                          // ไม่มีคนขาด (วันทำงานปกติ) - สีเทา
+                          shouldShowGray = true;
+                          shouldShowRed = false;
+                          displayValue = "";
+                        } else {
+                          // มีคนขาด - แสดงตัวเลขสีแดง
+                          shouldShowGray = false;
+                          shouldShowRed = true;
+                          displayValue = absentCount;
+                        }
                         
                         return (
                           <td 
                             key={i} 
-                            className={`text-center text-bold align-middle ${isZero ? "" : "text-danger"}`}
-                            style={isZero ? { backgroundColor: "#bfbdbf" } : {}}
+                            className={`text-center text-bold align-middle ${shouldShowRed ? "text-danger" : ""}`}
+                            style={shouldShowGray ? { backgroundColor: "#bfbdbf" } : {}}
                           >
-                            {isZero ? "" : absentCount}
+                            {displayValue}
                           </td>
                         );
                       })}
