@@ -427,6 +427,38 @@ const employeeSchema = new mongoose.Schema({
       },
     ],
 
+    newAddSalary: [
+      {
+        id: String,
+        name: String,
+        SpSalary: String,
+        roundOfSalary: String,
+        StaffType: String,
+        nameType: String,
+        message: String,
+        socialSecurityCheck: {
+          type: Boolean,
+          default: false
+        },
+      },
+    ],
+
+    newDeductSalary: [
+      {
+        id: String,
+        name: String,
+        amount: String,
+        payType: String,
+        installment: String,
+        nameType: String,
+        message: String,
+        socialSecurityCheck: {
+          type: Boolean,
+          default: false
+        },
+      },
+    ],
+
     // ระบบเงินกู้
     loanRecords: [
       {
