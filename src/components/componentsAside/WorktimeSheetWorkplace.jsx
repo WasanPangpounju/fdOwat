@@ -7902,6 +7902,28 @@ const getDateStyle = (day) => {
             const textColor = computedStyle.color;
             const fontWeight = computedStyle.fontWeight;
             
+            // ตรวจสอบว่าเป็น vertical text หรือไม่
+            const isVerticalText = cell.classList.contains('vertical-text');
+            
+            // ตรวจสอบว่าเป็นแถวสรุปท้ายตาราง (โอที) หรือไม่
+            const isSummaryRow = cellValue.includes('โอที') && (
+              cellValue.includes('1.5 เท่า') || 
+              cellValue.includes('2 เท่า') || 
+              cellValue.includes('3 เท่า')
+            );
+            
+            // ตรวจสอบว่าเป็นคอลัมน์ชื่อ-สกุล (คอลัมน์ที่ 2)
+            const isNameColumn = excelCol === 2;
+            const isHeaderRow = cellValue === 'ชื่อ - สกุล' || cellValue.includes('ชื่อ-สกุล');
+            const isShiftLabel = isNameColumn && (
+              cellValue.includes('เช้า') || 
+              cellValue.includes('ดึก') || 
+              cellValue.includes('โอที 1.5') ||
+              cellValue.includes('โอที 2') ||
+              cellValue.includes('โอที3') ||
+              cellValue.includes('โอที 3')
+            );
+            
             // ใส่ styling ลง Excel
             excelCell.fill = {
               type: 'pattern',
@@ -7916,14 +7938,40 @@ const getDateStyle = (day) => {
               color: { argb: rgbToArgb(textColor) }
             };
 
+            // กำหนด horizontal alignment
+            let horizontalAlign = 'center'; // default
+            if (isSummaryRow) {
+              horizontalAlign = 'right'; // แถวสรุปท้ายตาราง (โอที 1.5 เท่า, โอที 2 เท่า, โอที 3 เท่า)
+            } else if (isNameColumn) {
+              if (isHeaderRow) {
+                horizontalAlign = 'center'; // หัวข้อ "ชื่อ-สกุล" อยู่กลาง
+              } else if (isShiftLabel) {
+                horizontalAlign = 'right'; // เช้า, ดึก, รหัสพนักงาน โอที ชิดขวา
+              } else {
+                horizontalAlign = 'left'; // ชื่อพนักงานชิดซ้าย
+              }
+            }
+
             excelCell.alignment = {
-              vertical: 'middle',
-              horizontal: 'center',
-              wrapText: true
+              vertical: isVerticalText ? 'bottom' : 'middle',
+              horizontal: horizontalAlign,
+              wrapText: true,
+              textRotation: isVerticalText ? 90 : 0
             };
 
+            // ตรวจสอบว่าควรมี border หนาด้านบนหรือไม่
+            const hasBorderTop = cell.parentElement && 
+              cell.parentElement.style.borderTop && 
+              cell.parentElement.style.borderTop.includes('2px');
+            
+            // ตรวจสอบว่าเป็นแถวสรุป "รวมพนักงานทำงาน/วัน" หรือไม่
+            const isSummaryRowStart = cellValue.includes('รวมพนักงานทำงาน/วัน') || 
+                                      cellValue.includes('รวมพนักงานตามสัญญา/วัน');
             excelCell.border = {
-              top: { style: 'thin', color: { argb: 'FF000000' } },
+              top: { 
+                style: (hasBorderTop || isSummaryRowStart) ? 'medium' : 'thin', 
+                color: { argb: 'FF000000' } 
+              },
               left: { style: 'thin', color: { argb: 'FF000000' } },
               bottom: { style: 'thin', color: { argb: 'FF000000' } },
               right: { style: 'thin', color: { argb: 'FF000000' } }
@@ -7961,17 +8009,17 @@ const getDateStyle = (day) => {
         });
         
         if (idx === 0) {
-          column.width = 6;
+          column.width = 7; // ลดจาก 6 เป็น 4 (ลำดับ)
         } else if (idx === 1) {
-          column.width = 30;
+          column.width = 25; // คงเดิม (ชื่อ-สกุล)
         } else {
-          column.width = Math.max(10, Math.min(maxLength + 3, 20));
+          column.width = 6; // ลดจาก 10-20 เป็น 6 (คอลัมน์อื่นๆ)
         }
       });
 
       // ตั้งค่าความสูงของแถว
-      for (let i = 1; i <= 5; i++) {
-        worksheet.getRow(i).height = 25;
+      for (let i = 4; i < 5; i++) {
+        worksheet.getRow(i).height = 120; // ปรับความสูงให้พอดีกับข้อความ vertical text
       }
 
       console.log('✅ Excel created successfully');
@@ -10419,7 +10467,7 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
                       <td className="text-center" style={{ backgroundColor: "" }}></td>
                       <td className="text-center" style={{ backgroundColor: "" }}></td>
                       <td className="text-center" style={{ backgroundColor: "" }}></td>
-                      <td className="text-center" style={{ backgroundColor: "" }}></td>
+                      <td className="text-center" style={{ backgroundColor: "ิ" }}></td>
                       
                     </tr>
 
