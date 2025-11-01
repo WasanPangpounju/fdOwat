@@ -145,6 +145,7 @@ function AddEditSalaryEmployee() {
 
     const [roundOfSalary, setRoundOfSalary] = useState('');
     const [staffType, setStaffType] = useState('');
+    const [socialSecurityType, setSocialSecurityType] = useState('');
 
     const [addSalary, setAddSalary] = useState('');
     const [message, setMessage] = useState('');
@@ -158,6 +159,7 @@ function AddEditSalaryEmployee() {
 
     const [minusRoundOfSalary, setMinusRoundOfSalary] = useState('');
     const [minusStaffType, setMinusStaffType] = useState('');
+    const [minusSocialSecurityType, setMinusSocialSecurityType] = useState('');
 
 
 
@@ -397,6 +399,7 @@ useEffect(() => {
             SpSalary: addSalary || '',
             roundOfSalary: roundOfSalary || '',
             StaffType: staffType || '',
+            socialSecurityType: socialSecurityType || '',
             nameType: '',
             message: message || '',
         };
@@ -419,6 +422,7 @@ useEffect(() => {
         await setAddSalary('');
         await setRoundOfSalary('');
         await setStaffType('');
+        await setSocialSecurityType('');
         await setMessage('');
 
         await setMinusId('');
@@ -490,6 +494,7 @@ useEffect(() => {
             setAddSalaryName('');
             setAddSalary('');
             setRoundOfSalary('');
+            setSocialSecurityType('');
             setStaffType('');
             setMessage('');
         } else {
@@ -498,6 +503,7 @@ useEffect(() => {
             setAddSalaryName('');
             setAddSalary('');
             setRoundOfSalary('');
+            setSocialSecurityType('');
             setStaffType('');
             setMessage('');
         }
@@ -515,6 +521,7 @@ useEffect(() => {
             setMisnusName('');
             setMinusSalary('');
             setPayType('');
+            setMinusSocialSecurityType('');
             setInstallment('');
             setMinusmessage('');
         } else {
@@ -523,6 +530,7 @@ useEffect(() => {
             setMisnusName('');
             setMinusSalary('');
             setPayType('');
+            setMinusSocialSecurityType('');
             setInstallment('');
             setMinusmessage('');
         }
@@ -865,7 +873,7 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                         <i className="fas fa-money-bill-wave mr-2"></i> 
                                         เงินเพิ่ม เงินหักพนักงาน
                                     </h1>
-                                    <p className="text-muted mb-0">จัดการเงินเพิ่มและเงินหักสำหรับพนักงาน</p>
+                                    <p className="text-muted mb-0 mt-2 ml-4">จัดการเงินเพิ่มและเงินหักสำหรับพนักงาน</p>
                                 </div>
                             </div>
                         </div>
@@ -878,11 +886,10 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                 <div class="container-fluid">
                                     <div class="row">
                                         <div class="col-md-12">
-                                            <section className="card shadow-sm">
-                                                <div className="card-header  text-white"
-                                                heading="true" style={{ backgroundColor: 'rgb(56, 92, 130)' }}>
-                                                    <h5 className="mb-0">
-                                                        <i className="fas fa-search mr-2"></i>
+                                            <section className="card shadow-sm ">
+                                                <div className="card-header bg-light border-bottom">
+                                                    <h5 className="card-title mb-0 text-dark">
+                                                        <i className="fas fa-search me-2"></i>
                                                         ค้นหาพนักงาน
                                                     </h5>
                                                 </div>
@@ -993,10 +1000,15 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                         </div>
                                                         <div class="col-md-2">
                                                             <div class="form-group">
+                                                                <label role="">ประกันสังคม</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-2">
+                                                            <div class="form-group">
                                                                 <label role="">ประเภทพนักงาน</label>
                                                             </div>
                                                         </div>
-                                                        <div class="col-md-3">
+                                                        <div class="col-md-2">
                                                             <div class="form-group">
                                                                 <label role="message">หมายเหตุ</label>
                                                             </div>
@@ -1046,6 +1058,18 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                 <option value="">เลือก</option>
                                                                 <option value="daily">รายวัน</option>
                                                                 <option value="monthly">รายเดือน</option>
+                                                            </select>
+                                                        </div>
+                                                        <div class="col-md-2">
+                                                            <select
+                                                                name="socialSecurityType"
+                                                                className="form-control"
+                                                                value={socialSecurityType}
+                                                                onChange={(e) => setSocialSecurityType(e.target.value)}
+                                                            >
+                                                                <option value="">เลือก</option>
+                                                                <option value="yes">คิดประกันสังคม</option>
+                                                                <option value="no">ไม่คิดประกันสังคม</option>
                                                             </select>
                                                         </div>
                                                         <div className="col-md-2">
@@ -1146,18 +1170,11 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                         <div class="col-md-2">
                                                             <input type="text" class="form-control" id="message" placeholder="หมายเหตุ" value={message} onChange={(e) => setMessage(e.target.value)} />
                                                         </div>
-                                                        {/* <div class="col-md-2">
-                                                            <div class="d-flex align-items-end">
-                                                                <button class="btn b_save"><i class="fas fa-check"
-                                                                onClick={() => {                                            
-                                                                    // Call the addRow function
-                                                                    addRow(newRowData);
-                                                                  }}
-                                                                ></i> &nbsp; เพิ่ม</button>
-                                                            </div>
-                                                        </div> */}
-                                                        <div className="col-md-2">
-                                                            <div className="d-flex align-items-end">
+                                                    </div>
+
+                                                    <div class="row" style={{ marginTop: '-5px' }}>
+                                                        <div className="col-md-12">
+                                                            <div className="d-flex justify-content-end">
                                                                 <button
                                                                     type="button"
                                                                     className="btn b_save"
@@ -1167,6 +1184,7 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                             name: addSalaryName || '',
                                                                             SpSalary: addSalary || '',
                                                                             roundOfSalary: roundOfSalary || '',
+                                                                            socialSecurityType: socialSecurityType || '',
                                                                             StaffType: staffType || '',
                                                                             nameType: '',
                                                                             message: message || '',
@@ -1178,14 +1196,12 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                 </button>
                                                             </div>
                                                         </div>
-
                                                     </div>
 
-
                                                     {/* ตารางแสดงข้อมูลเงินเพิ่ม */}
-                                                    <div className="card shadow-sm mt-3">
-                                                        <div className="card-header bg-success text-white">
-                                                            <h6 className="mb-0">
+                                                    <div className="card shadow-sm bg-light mt-3">
+                                                        <div className="card-header text-dark" style={{ backgroundColor: '#d4edda' }}>
+                                                            <h6 className="mb-0" style={{ color: '#000' }}>
                                                                 <i className="fas fa-plus-circle mr-2"></i>
                                                                 รายการเงินเพิ่ม
                                                             </h6>
@@ -1205,13 +1221,16 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                                 <th className="text-center" width="15%">
                                                                                     <i className="fas fa-money-bill mr-1"></i>จำนวนเงิน
                                                                                 </th>
-                                                                                <th className="text-center" width="15%">
-                                                                                    <i className="fas fa-calendar-alt mr-1"></i>ประเภทจ่าย
+                                                                                <th className="text-center" width="12%">
+                                                                                    <i className="fas fa-calendar-alt mr-1"></i>รายวัน/รายเดือน
                                                                                 </th>
                                                                                 <th className="text-center" width="15%">
+                                                                                    <i className="fas fa-shield-alt mr-1"></i>ประกันสังคม
+                                                                                </th>
+                                                                                <th className="text-center" width="20%">
                                                                                     <i className="fas fa-users mr-1"></i>ประเภทพนักงาน
                                                                                 </th>
-                                                                                <th width="15%">
+                                                                                <th className="text-center" width="15%">
                                                                                     <i className="fas fa-sticky-note mr-1"></i>หมายเหตุ
                                                                                 </th>
                                                                                 <th className="text-center" width="10%">
@@ -1244,6 +1263,17 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                                             )}
                                                                                         </td>
                                                                                         <td className="text-center p-3">
+                                                                                            {item.socialSecurityType === "yes" && (
+                                                                                                <span className="badge badge-success">คิดประกันสังคม</span>
+                                                                                            )}
+                                                                                            {item.socialSecurityType === "no" && (
+                                                                                                <span className="badge badge-danger">ไม่คิดประกันสังคม</span>
+                                                                                            )}
+                                                                                            {!item.socialSecurityType && (
+                                                                                                <span className="badge badge-secondary">ไม่ระบุ</span>
+                                                                                            )}
+                                                                                        </td>
+                                                                                        <td className="text-center p-3">
                                                                                             {item.StaffType === "header" && (
                                                                                                 <span className="">หัวหน้างาน</span>
                                                                                             )}
@@ -1254,8 +1284,8 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                                                 <span className="">{item.StaffType}</span>
                                                                                             )}
                                                                                         </td>
-                                                                                        <td className="p-3 ">
-                                                                                            <small className="text-center">
+                                                                                        <td className="text-center p-3">
+                                                                                            <small className="">
                                                                                                 {item.message || '-'}
                                                                                             </small>
                                                                                         </td>
@@ -1309,6 +1339,11 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                         <div class="col-md-2">
                                                             <div class="form-group">
                                                                 <label role="">การหักเงิน</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-2">
+                                                            <div class="form-group">
+                                                                <label role="">ประกันสังคม</label>
                                                             </div>
                                                         </div>
                                                         {/* <div class="col-md-2">
@@ -1373,6 +1408,18 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                 <option value="installment">ผ่อนจ่าย</option>
                                                             </select>
                                                         </div>
+                                                        <div class="col-md-2">
+                                                            <select
+                                                                name="minusSocialSecurityType"
+                                                                className="form-control"
+                                                                value={minusSocialSecurityType}
+                                                                onChange={(e) => setMinusSocialSecurityType(e.target.value)}
+                                                            >
+                                                                <option value="">เลือก</option>
+                                                                <option value="yes">คิดประกันสังคม</option>
+                                                                <option value="no">ไม่คิดประกันสังคม</option>
+                                                            </select>
+                                                        </div>
                                                         {/* <div className="col-md-2">
 
                                                             {payType == "installment" ? (
@@ -1405,18 +1452,11 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                         <div class="col-md-2">
                                                             <input type="text" class="form-control" id="minusStaffType" placeholder="หมายเหตุ" value={minusStaffType} onChange={(e) => setMinusStaffType(e.target.value)} />
                                                         </div>
-                                                        {/* <div class="col-md-2">
-                                                            <div class="d-flex align-items-end">
-                                                                <button class="btn b_save"><i class="fas fa-check"
-                                                                onClick={() => {                                            
-                                                                    // Call the addRow function
-                                                                    addRow2(newRowData2);
-                                                                  }}
-                                                                ></i> &nbsp; เพิ่ม</button>
-                                                            </div>
-                                                        </div> */}
-                                                        <div className="col-md-2">
-                                                            <div className="d-flex align-items-end">
+                                                    </div>
+
+                                                    <div class="row" style={{ marginTop: '-10px' }}>
+                                                        <div className="col-md-12">
+                                                            <div className="d-flex justify-content-end">
                                                                 <button
                                                                     type="button"
                                                                     className="btn b_save"
@@ -1426,6 +1466,7 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                             name: misnusName || '',
                                                                             amount: minusSalary || '',
                                                                             payType: payType || '',
+                                                                            socialSecurityType: minusSocialSecurityType || '',
                                                                             installment: installment || '',
                                                                             nameType: '',
                                                                             message: minusStaffType || '',
@@ -1437,12 +1478,11 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                 </button>
                                                             </div>
                                                         </div>
-
                                                     </div>
                                                     {/* ตารางแสดงข้อมูลเงินหัก */}
-                                                    <div className="card shadow-sm mt-3">
-                                                        <div className="card-header bg-danger text-white">
-                                                            <h6 className="mb-0">
+                                                    <div className="card shadow-sm bg-light mt-3">
+                                                        <div className="card-header text-dark" style={{ backgroundColor: '#d4edda' }}>
+                                                            <h6 className="mb-0" style={{ color: '#000' }}>
                                                                 <i className="fas fa-minus-circle mr-2"></i>
                                                                 รายการเงินหัก
                                                             </h6>
@@ -1465,10 +1505,13 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                                 <th className="text-center" width="15%">
                                                                                     <i className="fas fa-credit-card mr-1"></i>การหักเงิน
                                                                                 </th>
-                                                                                <th width="25%">
+                                                                                <th className="text-center" width="20%">
+                                                                                    <i className="fas fa-shield-alt mr-1"></i>ประกันสังคม
+                                                                                </th>
+                                                                                <th className="text-center" width="17%">
                                                                                     <i className="fas fa-sticky-note mr-1"></i>หมายเหตุ
                                                                                 </th>
-                                                                                <th className="text-center" width="15%">
+                                                                                <th className="text-center" width="10%">
                                                                                     <i className="fas fa-cogs mr-1"></i>จัดการ
                                                                                 </th>
                                                                             </tr>
@@ -1496,8 +1539,19 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                                                 <span className="">ผ่อนจ่าย</span>
                                                                                             )}
                                                                                         </td>
-                                                                                        <td className="p-3 ">
-                                                                                            <small className="text-muted">
+                                                                                        <td className="text-center p-3">
+                                                                                            {item.socialSecurityType === "yes" && (
+                                                                                                <span className="badge badge-success">คิดประกันสังคม</span>
+                                                                                            )}
+                                                                                            {item.socialSecurityType === "no" && (
+                                                                                                <span className="badge badge-danger">ไม่คิดประกันสังคม</span>
+                                                                                            )}
+                                                                                            {!item.socialSecurityType && (
+                                                                                                <span className="badge badge-secondary">ไม่ระบุ</span>
+                                                                                            )}
+                                                                                        </td>
+                                                                                        <td className="text-center p-3">
+                                                                                            <small className="">
                                                                                                 {item.message || '-'}
                                                                                             </small>
                                                                                         </td>
@@ -1744,7 +1798,7 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                     >
                         <div className="card-body py-5">
                             <i className="fas fa-hand-holding-usd fa-4x text-muted mb-3"></i>
-                            <h5 className="text-muted mb-2">ยังไม่มีรายการเงินกู้</h5>
+                            <h5 className="text-muted mb-2 mt-3">ยังไม่มีรายการเงินกู้</h5>
                             <p className="text-muted mb-4">เริ่มต้นสร้างรายการเงินกู้สำหรับพนักงาน</p>
                             <button 
                                 type="button"

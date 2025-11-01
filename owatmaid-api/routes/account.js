@@ -8353,7 +8353,7 @@ router.delete('/remove-multiple-salary-items', async (req, res) => {
             name: itemToRemove.name,
             SpSalary: itemToRemove.SpSalary
           });
-
+ 
           recordRemovedItems.push({
             _id: itemToRemove._id,
             id: itemToRemove.id,
