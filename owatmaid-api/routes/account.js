@@ -3598,7 +3598,7 @@ async function checkCalSocial(id) {
 // }
 
 async function checkCalTax(id) {
-  const idList = await ["1110","1120","1130",,"1530","1140","1150","1230","1233","1241","1242","1251","1350","1422","1423","1428","1434","1440","1441","1444","1445","1446","1520","1522","1524","1525","1526","1528","1540","1541","1550","1447","1613","1561","1542","1529","1531","1532","1533","1534","1435","1429","1427","1412","1245","1234","1159","2111","2113","2116","2117","2120","2124","2160","2430","1190","1211","1212","1214","1235","1236","1243","1351","1411","1425","1426","1431","1448","1449","1527","1562","2114","2123","1543","1443","1544"];
+  const idList = await ["1110","1120","1130",,"1530","1140","1150","1230","1231","1233","1241","1242","1251","1350","1422","1423","1428","1434","1440","1441","1444","1445","1446","1520","1522","1524","1525","1526","1528","1540","1541","1550","1447","1613","1561","1542","1529","1531","1532","1533","1534","1435","1429","1427","1412","1245","1234","1159","2111","2113","2116","2117","2120","2124","2160","2430","1190","1211","1212","1214","1235","1236","1243","1351","1411","1425","1426","1431","1448","1449","1527","1562","2114","2123","1543","1443","1544"];
   
   const idToCheck = await id;
   
@@ -5722,9 +5722,23 @@ const convertTimeToDecimal = (timeString) => {
   }
   
   if (timeString.includes('.')) {
-    const [hours, minutes] = timeString.split('.').map(Number);
-    const decimalMinutes = (minutes || 0) / 60;
-    return (hours || 0) + decimalMinutes;
+    const [hours, minutesStr] = timeString.split('.');
+    const hoursNum = parseInt(hours) || 0;
+    let minutesNum = parseInt(minutesStr) || 0;
+    
+    // 🔧 แก้ไข: ถ้านาทีเป็นเลขหลักเดียว (เช่น 3) ให้คูณ 10 เป็น 30
+    // เพราะ "1.3" หมายถึง 1 ชม. 30 นาที ไม่ใช่ 3 นาที
+    if (minutesNum < 10 && minutesNum > 0) {
+      minutesNum = minutesNum * 10;
+      console.log(`⚠️ [convertTimeToDecimal] แก้ไขนาทีจาก ${minutesStr} เป็น ${minutesNum}`);
+    }
+    
+    const decimalMinutes = minutesNum / 60;
+    const result = hoursNum + decimalMinutes;
+    
+    console.log(`🔄 [convertTimeToDecimal] "${timeString}" → ${hoursNum} ชม. + (${minutesNum}/60) นาที = ${result.toFixed(2)} ชั่วโมง`);
+    
+    return result;
   }
   
   return parseFloat(timeString) || 0;
@@ -5861,11 +5875,19 @@ let timeCashWorkMul = {
     console.log(`⚠️ ใช้ค่า default holidayOT = 3`);
   }
 
-  // 🎯 ดึงข้อมูล workplace และ workRate
+  // 🎯 ดึงข้อมูล employee salary และ workplace workRate
   let workRate = 0;
+  let employeeSalary = 0;
+  
   try {
     const employee = await Employee.findOne({ employeeId: employeeId });
     const wpId = employee?.workplace || '';
+    
+    // 🎯 ดึง salary จากพนักงานก่อน (ใช้เป็นลำดับแรก)
+    if (employee?.salary && parseFloat(employee.salary) > 0) {
+      employeeSalary = parseFloat(employee.salary);
+      console.log(`💰 [EMPLOYEE SALARY] ดึง salary จากพนักงาน: ${employeeSalary} บาท`);
+    }
     
     if (wpId) {
       const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${wpId}`);
@@ -5886,14 +5908,14 @@ let timeCashWorkMul = {
         
         if (effectiveDate <= currentPeriodEnd) {
           workRate = newWorkRate;
-          console.log(`🏢 ใช้อัตราใหม่: ${workRate} บาท (มีผลตั้งแต่ ${effectiveDate.toISOString().slice(0,10)})`);
+          console.log(`🏢 [WORKPLACE] ใช้อัตราใหม่: ${workRate} บาท (มีผลตั้งแต่ ${effectiveDate.toISOString().slice(0,10)})`);
         } else {
           workRate = baseWorkRate + addWorkRate;
-          console.log(`🏢 ใช้อัตราเดิม: ${workRate} บาท (อัตราใหม่ยังไม่มีผล)`);
+          console.log(`🏢 [WORKPLACE] ใช้อัตราเดิม: ${workRate} บาท (อัตราใหม่ยังไม่มีผล)`);
         }
       } else {
         workRate = baseWorkRate + addWorkRate;
-        console.log(`🏢 ใช้อัตราปกติ: ${workRate} บาท (${baseWorkRate} + ${addWorkRate})`);
+        console.log(`🏢 [WORKPLACE] ใช้อัตราปกติ: ${workRate} บาท (${baseWorkRate} + ${addWorkRate})`);
       }
       
       console.log(`🏢 ดึงข้อมูล workplace ${wpId}: workRate = ${workRate}`);
@@ -5902,6 +5924,16 @@ let timeCashWorkMul = {
     }
   } catch (workplaceError) {
     console.warn(`⚠️ ไม่สามารถดึงข้อมูล workplace ได้:`, workplaceError.message);
+  }
+  
+  // 🎯 เลือกใช้ค่าแรง: ใช้ของพนักงานก่อน ถ้าไม่มีค่อยใช้ของหน่วยงาน
+  const salaryToUse = employeeSalary > 0 ? employeeSalary : workRate;
+  if (employeeSalary > 0) {
+    console.log(`✅ [CONFIRMED] ใช้ค่าแรงจากพนักงาน: ${salaryToUse} บาท/วัน`);
+  } else if (workRate > 0) {
+    console.log(`✅ [CONFIRMED] ใช้ค่าแรงจากหน่วยงาน (fallback): ${salaryToUse} บาท/วัน`);
+  } else {
+    console.log(`⚠️ [WARNING] ไม่พบค่าแรงทั้งจากพนักงานและหน่วยงาน`);
   } 
   
 
@@ -6758,7 +6790,22 @@ try {
             
             filteredAddSalaryDaily.forEach((salaryItem) => {
               const cleanSalaryItemId = String(salaryItem.id).trim();
-              const amount = parseFloat(salaryItem.SpSalary || 0);
+              const originalAmount = parseFloat(salaryItem.SpSalary || 0);
+
+              // 🔢 คำนวณจำนวนวันและเงินตามชั่วโมงทำงาน
+              const workHours = convertTimeToDecimal(record.totalTime);
+              let dayCount = 0;
+              let amount = 0;
+              
+              if (workHours >= 8) {
+                dayCount = 1; // นับเป็น 1 วันเต็ม
+                amount = originalAmount; // ได้เงินเต็ม
+                console.log(`✅ วันที่ ${record.date}: ${workHours} ชม. >= 8 ชม. → เงิน ${amount} บาท (เต็ม), นับ ${dayCount} วัน`);
+              } else if (workHours > 0 && workHours < 8) {
+                dayCount = 0.5; // นับเป็น 0.5 วัน
+                amount = originalAmount / 2; // ได้เงินครึ่ง (หาร 2)
+                console.log(`⚠️ วันที่ ${record.date}: ${workHours} ชม. < 8 ชม. → เงิน ${amount} บาท (${originalAmount}/2), นับ ${dayCount} วัน`);
+              }
 
               const existingItem = addSalaryList.find(
                 item => String(item.id).trim() === cleanSalaryItemId
@@ -6769,18 +6816,19 @@ try {
                 const currentDays = parseFloat(existingItem.message || 0);
                 
                 existingItem.SpSalary = String(currentAmount + amount);
-                existingItem.message = String(currentDays + 1);
+                existingItem.message = String(currentDays + dayCount);
 
                 const index = addSalaryList.findIndex(item => item.id === existingItem.id);
                 if (index !== -1) {
                   addSalaryList[index] = existingItem;
                 }
                 
-                console.log(`🔄 รวม addSalary ID ${cleanSalaryItemId}: ${currentAmount} + ${amount} = ${existingItem.SpSalary} บาท (วัน: ${currentDays} + 1 = ${existingItem.message})`);
+                console.log(`🔄 รวม addSalary ID ${cleanSalaryItemId}: ${currentAmount} + ${amount} = ${existingItem.SpSalary} บาท (วัน: ${currentDays} + ${dayCount} = ${existingItem.message})`);
               } else {
-                salaryItem.message = "1"; 
+                salaryItem.message = String(dayCount);
+                salaryItem.SpSalary = String(amount); // ใช้เงินที่คำนวณแล้ว
                 addSalaryList.push(salaryItem);
-                console.log(`➕ เพิ่ม addSalary ID ${cleanSalaryItemId}: ${amount} บาท (1 วัน)`);
+                console.log(`➕ เพิ่ม addSalary ID ${cleanSalaryItemId}: ${amount} บาท (${dayCount} วัน, ชั่วโมง: ${workHours})`);
               }
             });
           }
@@ -6832,9 +6880,21 @@ if (record?.dayType === "work") {
   const isWorkDay = record.dayType === "work";
   
   if (hasRegularWork && !countedWorkDates.has(record.date) && !isSpecialShift && isWorkDay) {
-    dayWorkCount += 1;
+    // 🔢 คำนวณจำนวนวันตามชั่วโมงทำงาน
+    const workHours = convertTimeToDecimal(record.totalTime);
+    let dayCount = 0;
+    
+    if (workHours >= 8) {
+      dayCount = 1; // นับเป็น 1 วันเต็ม
+      console.log(`✅ วันที่ ${record.date}: ทำงาน ${workHours} ชม. >= 8 ชม. → นับเป็น 1 วัน`);
+    } else if (workHours > 0 && workHours < 8) {
+      dayCount = 0.5; // นับเป็น 0.5 วัน
+      console.log(`⚠️ วันที่ ${record.date}: ทำงาน ${workHours} ชม. < 8 ชม. → นับเป็น 0.5 วัน`);
+    }
+    
+    dayWorkCount += dayCount;
     countedWorkDates.add(record.date);
-    console.log(`✅ นับวันที่ ${record.date} เป็นวันทำงาน (dayType: ${record.dayType}, shift: ${record.shift}, dayWorkCount = ${dayWorkCount})`);
+    console.log(`✅ นับวันที่ ${record.date} เป็นวันทำงาน (dayType: ${record.dayType}, shift: ${record.shift}, ชั่วโมง: ${workHours}, นับ: ${dayCount} วัน, dayWorkCount รวม = ${dayWorkCount})`);
   } else if (countedWorkDates.has(record.date)) {
     console.log(`⚠️ วันที่ ${record.date} ถูกนับแล้ว ข้ามการนับวัน`);
   } else if (isSpecialShift) {
@@ -6976,7 +7036,22 @@ if (record?.dayType === "work") {
     
     filteredAddSalaryDaily.forEach((salaryItem) => {
       const cleanSalaryItemId = String(salaryItem.id).trim();
-      const amount = parseFloat(salaryItem.SpSalary || 0);
+      const originalAmount = parseFloat(salaryItem.SpSalary || 0);
+
+      // 🔢 คำนวณจำนวนวันและเงินตามชั่วโมงทำงาน
+      const workHours = convertTimeToDecimal(record.totalTime);
+      let dayCount = 0;
+      let amount = 0;
+      
+      if (workHours >= 8) {
+        dayCount = 1; // นับเป็น 1 วันเต็ม
+        amount = originalAmount; // ได้เงินเต็ม
+        console.log(`✅ วันที่ ${record.date}: ${workHours} ชม. >= 8 ชม. → เงิน ${amount} บาท (เต็ม), นับ ${dayCount} วัน`);
+      } else if (workHours > 0 && workHours < 8) {
+        dayCount = 0.5; // นับเป็น 0.5 วัน
+        amount = originalAmount / 2; // ได้เงินครึ่ง (หาร 2)
+        console.log(`⚠️ วันที่ ${record.date}: ${workHours} ชม. < 8 ชม. → เงิน ${amount} บาท (${originalAmount}/2), นับ ${dayCount} วัน`);
+      }
 
       const existingItem = addSalaryList.find(
         item => String(item.id).trim() === cleanSalaryItemId
@@ -6987,18 +7062,19 @@ if (record?.dayType === "work") {
         const currentDays = parseFloat(existingItem.message || 0);
         
         existingItem.SpSalary = String(currentAmount + amount);
-        existingItem.message = String(currentDays + 1);
+        existingItem.message = String(currentDays + dayCount);
 
         const index = addSalaryList.findIndex(item => item.id === existingItem.id);
         if (index !== -1) {
           addSalaryList[index] = existingItem;
         }
         
-        console.log(`🔄 รวม addSalary ID ${cleanSalaryItemId}: ${currentAmount} + ${amount} = ${existingItem.SpSalary} บาท (วัน: ${currentDays} + 1 = ${existingItem.message})`);
+        console.log(`🔄 รวม addSalary ID ${cleanSalaryItemId}: ${currentAmount} + ${amount} = ${existingItem.SpSalary} บาท (วัน: ${currentDays} + ${dayCount} = ${existingItem.message})`);
       } else {
-        salaryItem.message = "1"; 
+        salaryItem.message = String(dayCount);
+        salaryItem.SpSalary = String(amount); // ใช้เงินที่คำนวณแล้ว
         addSalaryList.push(salaryItem);
-        console.log(`➕ เพิ่ม addSalary ID ${cleanSalaryItemId}: ${amount} บาท (1 วัน)`);
+        console.log(`➕ เพิ่ม addSalary ID ${cleanSalaryItemId}: ${amount} บาท (${dayCount} วัน, ชั่วโมง: ${workHours})`);
       }
     });
   }
@@ -7782,8 +7858,8 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
   } else {
     console.log(`💰 ✅ พนักงานรายวัน (salaryMonth = ${salaryMonth} = 0)`);
     
-    // คำนวณ dayPerHour สำหรับพนักงานรายวัน
-    const dayPerHour = workRate / 8; // ใช้ workRate หารด้วย 8 ชั่วโมง
+    // คำนวณ dayPerHour สำหรับพนักงานรายวัน - ใช้ salaryToUse แทน workRate
+    const dayPerHour = salaryToUse / 8; // ใช้ salaryToUse (จากพนักงานหรือหน่วยงาน) หารด้วย 8 ชั่วโมง
     const dayPerHour1p5 = dayPerHour * 1.5; 
     const dayPerHour2 = dayPerHour * 2;
     const dayPerHour3 = dayPerHour * 3; 
@@ -7791,7 +7867,7 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
     sumCashWorkMul["2"] = (dayPerHour2 * sumOtPublicHoliday).toFixed(2)
     sumCashWorkMul["3"] = (dayPerHour3 * sumOt3).toFixed(2)
     
-    console.log(`💰 - คำนวณค่าแรงต่อชั่วโมงสำหรับพนักงานรายวัน: ${dayPerHour} บาท/ชม. (workRate: ${workRate} ÷ 8)`);
+    console.log(`💰 - [${employeeSalary > 0 ? 'EMPLOYEE SALARY' : 'WORKPLACE RATE'}] คำนวณค่าแรงต่อชั่วโมงสำหรับพนักงานรายวัน: ${dayPerHour} บาท/ชม. (${salaryToUse} ÷ 8)`);
     console.log(`💰 - sumCashWorkMul["1.5"]: ${sumCashWorkMul["1.5"]} บาท (${dayPerHour1p5} × ${sumOt1p5})`);
     console.log(`💰 - sumCashWorkMul["2"]: ${sumCashWorkMul["2"]} บาท (${dayPerHour2} × ${sumOtPublicHoliday})`);
     console.log(`💰 - sumCashWorkMul["3"]: ${sumCashWorkMul["3"]} บาท (${dayPerHour3} × ${sumOt3})`);
@@ -7901,13 +7977,13 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
   
 
   // 🎯 คำนวณ sumCashWorkMul["1"] ใหม่แบบรายวัน (คูณ totalTime แต่ละวัน)
-  if (workRate > 0 && dayWorkCount > 0 && typeOfemployee === 'รายวัน') {
-    const hourlyRate = workRate / 8; // ค่าแรงต่อชั่วโมง
+  if (salaryToUse > 0 && dayWorkCount > 0 && typeOfemployee === 'รายวัน') {
+    const hourlyRate = salaryToUse / 8; // ค่าแรงต่อชั่วโมง (ใช้ของพนักงานหรือหน่วยงาน)
     let newSumCashWorkMul1 = 0;
     
     console.log(`\n🎯 === การคำนวณ sumCashWorkMul["1"] ใหม่แบบรายวัน ===`);
-    console.log(`🎯 workRate: ${workRate} บาท/วัน`);
-    console.log(`🎯 hourlyRate: ${hourlyRate} บาท/ชม. (workRate ÷ 8)`);
+    console.log(`🎯 salaryToUse: ${salaryToUse} บาท/วัน (${employeeSalary > 0 ? 'จากพนักงาน' : 'จากหน่วยงาน'})`);
+    console.log(`🎯 hourlyRate: ${hourlyRate} บาท/ชม. (salaryToUse ÷ 8)`);
     console.log(`🎯 dayWorkCount: ${dayWorkCount} วัน`);
     console.log(`🎯 sumCashWorkMul["1"] เดิม: ${sumCashWorkMul["1"]}`);
     console.log(`\n📋 คำนวณแต่ละวัน:`);
@@ -7991,7 +8067,7 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
     
   } else {
     console.log(`\n⚠️ ไม่สามารถคำนวณ sumCashWorkMul["1"] ใหม่ได้:`);
-    console.log(`   workRate: ${workRate}, dayWorkCount: ${dayWorkCount}, typeOfemployee: ${typeOfemployee}`);
+    console.log(`   salaryToUse: ${salaryToUse}, dayWorkCount: ${dayWorkCount}, typeOfemployee: ${typeOfemployee}`);
   }
 
   try {
@@ -8084,29 +8160,30 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
   let employeeCompensation = 0;
 
   // ตรวจสอบว่าใช้โครงสร้างใหม่หรือเก่า
-  if (employeeCompensationRate1_20 > 0 || employeeCompensationRate21_30_31 > 0) {
+  if (employeeCompensationRate1_20 > 0) {
     // หลักการใหม่: คำนวณแยกตามช่วงวันที่
     
     // คำนวณจำนวนวันในเดือนสำหรับช่วง 21-30/31
     const daysInMonth = new Date(year, month, 0).getDate(); // จำนวนวันทั้งหมดในเดือน
     const daysFor21_30_31 = daysInMonth - 20; // วันที่ 21 ถึงสิ้นเดือน (30 หรือ 31)
     
-    // คำนวณ Rate1_20: Rate ÷ 19 × sumCashWork1_20
-    const compensation1_20 = (employeeCompensationRate1_20 / 19) * sumCashWork1_20;
+    // คำนวณ Rate1_20: sumCashWork × employeeCompensationRate1_20
+    const compensation1_20 = sumCashWork1_20 * employeeCompensationRate1_20;
     
-    // คำนวณ Rate21_30_31: Rate ÷ (30 หรือ 31) × sumCashWork21_30_31
-    const compensation21_30_31 = (employeeCompensationRate21_30_31 / daysFor21_30_31) * sumCashWork21_30_31;
+    // คำนวณ Rate21_30_31: Rate ÷ daysFor21_30_31 × sumCashWork21_30_31
+    const compensation21_30_31 = sumCashWork21_30_31 * employeeCompensationRate21_30_31;
     
-    // รวมทั้ง 2 ค่า
-    employeeCompensation = compensation1_20 + compensation21_30_31;
+    // คำนวณ employeeCompensation จาก sumCashWork × employeeCompensationRate1_20
+    employeeCompensation = sumCashWork * employeeCompensationRate1_20;
     
     console.log(`\n💰 === คำนวณเงินสงเคราะห์ลูกจ้าง (หลักการใหม่) ===`);
     console.log(`💰 เดือน ${month}/${year} มี ${daysInMonth} วัน`);
     console.log(`💰 วันที่ 21-${daysInMonth} มี ${daysFor21_30_31} วัน`);
-    console.log(`💰 Rate1_20: ${employeeCompensationRate1_20} ÷ 19 × ${sumCashWork1_20} = ${compensation1_20.toFixed(2)} บาท`);
-    console.log(`💰 Rate21_30_31: ${employeeCompensationRate21_30_31} ÷ ${daysFor21_30_31} × ${sumCashWork21_30_31} = ${compensation21_30_31.toFixed(2)} บาท`);
-    console.log(`💰 employeeCompensation รวม: ${compensation1_20.toFixed(2)} + ${compensation21_30_31.toFixed(2)} = ${employeeCompensation.toFixed(2)} บาท`);
+    console.log(`💰 Rate1_20: ${employeeCompensationRate1_20} × ${sumCashWork1_20} = ${compensation1_20.toFixed(2)} บาท`);
+    console.log(`💰 Rate21_30_31: ${employeeCompensationRate21_30_31} × ${sumCashWork21_30_31} = ${compensation21_30_31.toFixed(2)} บาท`);
+    console.log(`💰 employeeCompensation: ${sumCashWork} × ${employeeCompensationRate1_20} = ${employeeCompensation.toFixed(2)} บาท`);
     console.log(`💰 ===================================================`);
+
   } else {
     // หลักการเก่า: sumCashWork × employeeCompensationRate
     employeeCompensation = sumCashWork * employeeCompensationRate;
