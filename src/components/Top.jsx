@@ -18,7 +18,7 @@ function Top() {
                     </li>
                 </ul> */}
                 <ul className="navbar-nav ml-auto">
-                    <li className="nav-item logout">
+                    <li className="nav-item logout"> 
                         <a 
                             href="#" 
                             onClick={handleLogout}

@@ -918,29 +918,29 @@ function OtherExpenses() {
                                                     <div class="row form-group">
                                                         {/* <input type="radio" class="form-check-input" style={{ marginLeft: "8px" }} id="radio1" name="optradio" value="option1" /> */}
                                                         <input type="radio" class="form-input" style={{ marginLeft: "8px" }} id="radioPrimary1" name="r1" value="จ่ายจำนวนเต็ม" checked={employeeData.PriceType === "จ่ายจำนวนเต็ม"} onChange={(e) => handleChange(e, 'PriceType')} />
-                                                        <label class="form-label col-md-3" style={{ paddingLeft: "20px", paddingTop: "10px" }} for="radio1">จ่ายจำนวนเต็ม</label>
+                                                        <label class="form-label col-md-3" style={{ paddingLeft: "10px", paddingTop: "10px" }} for="radio1">จ่ายจำนวนเต็ม</label>
                                                         <div class="col-md-3">
-                                                            <input type="" class="form-control" style={{ marginLeft: "-21px" }} id="" placeholder="00.00" value={sumall2} onChange={(e) => handleChange(e, 'sumall2')} readOnly />
+                                                            <input type="" class="form-control" style={{ marginLeft: "0px" }} id="" placeholder="00.00" value={sumall2} onChange={(e) => handleChange(e, 'sumall2')} readOnly />
                                                         </div>
-                                                        <div class="col-md-1 col-form-label" style={{ marginLeft: "-21px" }}>บาท</div>
+                                                        <div class="col-md-1 col-form-label" style={{ marginLeft: "0px" }}>บาท</div>
                                                     </div>
                                                     <div class="row form-group">
                                                         {/* <input type="radio" class="form-check-input" style={{ marginLeft: "8px" }} id="radio1" name="optradio" value="option1" /> */}
                                                         <input type="radio" class="form-input" style={{ marginLeft: "8px" }} id="radioPrimary1" name="r1" value="หักเป็นจำนวน" checked={employeeData.PriceType === "หักเป็นจำนวน"} onChange={(e) => handleChange(e, 'PriceType')} />
 
-                                                        <label class="form-check-label col-md-3 col" style={{ paddingLeft: "20px", paddingTop: "10px" }} for="radio1">หักเป็นจำนวน</label>
+                                                        <label class="form-check-label col-md-3 col" style={{ paddingLeft: "10px", paddingTop: "10px" }} for="radio1">หักเป็นจำนวน</label>
 
                                                         <div class="col-md-3">
-                                                            <input type="" class="form-control" style={{ marginLeft: "-21px" }} placeholder="00.00" value={employeeData.divide}
-                                                                // onChange={(event) => setDivide(Number(event.target.value))} 
+                                                            <input type="" class="form-control" style={{ marginLeft: "0px" }} placeholder="00.00" value={employeeData.divide}
+                                                                // onChange={(event) => setDivide(Number(event.target.value))}
                                                                 onChange={(e) => {
                                                                     handleChange(e, 'divide');
                                                                     setDivide(Number(e.target.value));
                                                                 }}
                                                             />
                                                         </div>
-                                                        <div class="col-md-1 col-form-label" style={{ marginLeft: "-21px" }}>ครั้ง</div>
-                                                        <label class="form-check-label col-md-2 col" style={{ marginLeft: "-10px" }} for="radio1">เป็นจำนวนครั้งละ</label>
+                                                        <div class="col-md-1 col-form-label" style={{ marginLeft: "0px" }}>ครั้ง</div>
+                                                        <label class="form-check-label col-md-2 col" style={{ marginLeft: "8px", paddingTop: "10px" }} for="radio1">เป็นจำนวนครั้งละ</label>
                                                         <div class="col-md-2">
                                                             <input type="" class="form-control" placeholder="00.00" value={divideall} onChange={(e) => handleChange(e, 'divideall')} />
                                                         </div>

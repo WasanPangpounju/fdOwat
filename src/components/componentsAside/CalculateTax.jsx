@@ -228,8 +228,16 @@ function Calculate_tax() {
                                                     {/* <!--row--> */}
                                                     <div class="form-group row">
                                                         <label class="col-md-3 col-form-label">ต้องการแก้ไข</label>
-                                                        <div class="col-md-7">
-                                                            <input class="form-check-input" style={{ marginLeft: "0px", marginTop: "12px" }} type="checkbox" value="" id="" />
+                                                        <div class="col-md-5">
+                                                            <input 
+                                                                class="form-check-input" 
+                                                                style={{ 
+                                                                    marginLeft: "0px",
+                                                                    marginTop: "10px",
+                                                                    position: "relative",
+                                                                }} 
+                                                                type="checkbox" value="" id="" 
+                                                            />
                                                         </div>
                                                     </div>
                                                     {/* <!--row--> */}
@@ -252,8 +260,16 @@ function Calculate_tax() {
                                                     {/* <!--row--> */}
                                                     <div class="form-group row">
                                                         <label class="col-md-3 col-form-label">ต้องการแก้ไข</label>
-                                                        <div class="col-md-5">
-                                                            <input class="form-check-input" style={{ marginLeft: "0px", marginTop: "12px" }} type="checkbox" value="" id="" />
+                                                        <div class="col-md-7">
+                                                            <input 
+                                                                class="form-check-input" 
+                                                                style={{ 
+                                                                    marginLeft: "0px",
+                                                                    marginTop: "10px",
+                                                                    position: "relative",
+                                                                }} 
+                                                                type="checkbox" value="" id="" 
+                                                            />
                                                         </div>
                                                     </div>
                                                     {/* <!--row--> */}

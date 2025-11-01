@@ -2236,7 +2236,7 @@ function AddEditEmployee() {
                                 checked={isChecked}
                                 onChange={handleCheckboxToggle}
                               />
-                              <label htmlFor="copyCheckbox">
+                              <label htmlFor="copyCheckbox">&nbsp;&nbsp;
                                 ใช้ที่อยู่ตามบัตรประชาชน
                               </label>
                             </div>
@@ -2527,7 +2527,12 @@ function AddEditEmployee() {
                           onClick={() => setButtonValue("create")}
                           class="btn b_save"
                           disabled={isLoading}
-                          style={{ opacity: isLoading ? 0.6 : 1, cursor: isLoading ? 'not-allowed' : 'pointer' }}
+                          style={{ 
+                            opacity: isLoading ? 0.6 : 1, 
+                            cursor: isLoading ? 'not-allowed' : 'pointer',
+                            width: '200px',
+                            whiteSpace: 'nowrap'
+                          }}
                         >
                           {isLoading ? (
                             <>
@@ -2560,7 +2565,15 @@ function AddEditEmployee() {
                           )}
                         </button>
                       )}
-                      <button class="btn clean" disabled={isLoading} style={{ opacity: isLoading ? 0.6 : 1 }}>
+                      <button 
+                        class="btn clean" 
+                        disabled={isLoading} 
+                        style={{ 
+                          opacity: isLoading ? 0.6 : 1,
+                          width: '200px',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
                         <i class="far fa-window-close"></i> &nbsp;ยกเลิก
                       </button>{" "}
                     </div>

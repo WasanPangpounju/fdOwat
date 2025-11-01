@@ -39,10 +39,9 @@ function Addsettime({ workplaceList, employeeList }) {
   }, []);
 
   return (
-    <body class="hold-transition sidebar-mini" className="editlaout">
+    <body class="hold-transition sidebar-mini" className="editlaout addsettime-layout">
       <div class="wrapper">
-        <div class="content-wrapper">
-          {/* <!-- Content Header (Page header) --> */}
+        <div class="content-wrapper" style={{ marginLeft: '13rem', width: 'calc(100vw - 13rem)', overflow: 'hidden' }}>
           <ol class="breadcrumb">
             <li class="breadcrumb-item">
               <i class="fas fa-home"></i> <span>หน้าหลัก</span>

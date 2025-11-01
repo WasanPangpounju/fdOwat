@@ -1,8 +1,7 @@
 /* website */
 @media (min-width: 390px) {
-  .editlaout {
+  .editlaout:not(.addsettime-layout) {
     width: 105%;
-    /* Adjust width for desktop */
     margin-left: -3.8rem;
   }
 }
@@ -11,12 +10,6 @@
 @media (max-width: 390px) {
   .editlaout {
     width: 100%;
-    margin-left: 0rem;
-
-    /* Adjust width for mobile */
-    /* margin-left: 0rem; */
-    /* Reset margin for mobile */
+    margin-left: 0;
   }
 }
-
-/* style={{width:'105%',marginLeft:'-3.8rem'}} */

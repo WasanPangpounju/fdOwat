@@ -6933,7 +6933,7 @@ const exportToExcel = async () => {
                       
                     </div>
                     <div class="col-md-2">
-                      <div class="form-group">
+                      <div class="form-group" style={{ marginTop: '-8px' }}>
                         <label role="agencyname">เดือน</label>
                         <select
                           className="form-control"
@@ -6956,7 +6956,7 @@ const exportToExcel = async () => {
                       </div>
                     </div>
                     <div class="col-md-2">
-                      <div class="form-group">
+                      <div class="form-group" style={{ marginTop: '-8px' }}>
                         <label>ปี</label>
                         <select
                           className="form-control"
