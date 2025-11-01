@@ -48,6 +48,20 @@ html, body {
   overflow: hidden;
 }
 
+/* กำหนด font Sarabun สำหรับตาราง */
+table {
+  font-family: 'Sarabun', sans-serif;
+}
+
+th {
+  font-family: 'Sarabun', sans-serif !important;
+  font-weight: 600;
+}
+
+td {
+  font-family: 'Sarabun', sans-serif;
+}
+
 #root {
   width: 100%;
   height: 100%;
