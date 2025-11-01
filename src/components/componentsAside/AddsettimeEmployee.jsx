@@ -271,14 +271,72 @@ const generatePDFReport = async () => {
               // ข้ามคอลัมน์ "จัดการ" (คอลัมน์สุดท้าย)
               if (cellIndex < cells.length - 1) {
                 const newCell = document.createElement('td');
-                newCell.textContent = cell.textContent.trim();
+                
+                // ตรวจสอบว่ามี Badge หรือไม่
+                const badges = cell.querySelectorAll('.badge');
+                const hasPayFullDayBadge = Array.from(badges).some(badge => 
+                  badge.textContent.trim().includes('จ่ายเต็มวัน')
+                );
+                const hasNightShiftBadge = Array.from(badges).some(badge => 
+                  badge.textContent.trim().includes('กะดึก')
+                );
+                
+                // ดึงข้อความหลักโดยไม่รวม badge
+                let cellText = '';
+                const clonedCell = cell.cloneNode(true);
+                // ลบ badge ทั้งหมดออก
+                clonedCell.querySelectorAll('.badge').forEach(b => b.remove());
+                // ลบ div ที่มี form-check (checkbox containers)
+                clonedCell.querySelectorAll('.form-check').forEach(fc => fc.remove());
+                cellText = clonedCell.textContent.trim();
+                
+                // สร้างเนื้อหาของ cell
+                if (cellText) {
+                  const textSpan = document.createElement('div');
+                  textSpan.textContent = cellText;
+                  textSpan.style.marginBottom = hasPayFullDayBadge || hasNightShiftBadge ? '2px' : '0';
+                  newCell.appendChild(textSpan);
+                } else {
+                  newCell.textContent = cellText;
+                }
+                
+                // เพิ่ม Badge ถ้ามี - จ่ายเต็มวัน (พื้นหลังเขียวเข้ม ตัวอักษรสีขาว)
+                if (hasPayFullDayBadge) {
+                  const badgeSpan = document.createElement('div');
+                  badgeSpan.textContent = 'จ่ายเต็มวัน';
+                  badgeSpan.style.fontSize = '8px';
+                  badgeSpan.style.color = '#ffffff';
+                  badgeSpan.style.fontWeight = 'bold';
+                  badgeSpan.style.marginTop = '2px';
+                  badgeSpan.style.padding = '2px 4px';
+                  badgeSpan.style.backgroundColor = '#28a745';
+                  badgeSpan.style.borderRadius = '3px';
+                  badgeSpan.style.display = 'inline-block';
+                  newCell.appendChild(badgeSpan);
+                }
+                
+                // เพิ่ม Badge ถ้ามี - กะดึก (พื้นหลังฟ้าเข้ม ตัวอักษรสีขาว)
+                if (hasNightShiftBadge) {
+                  const badgeSpan = document.createElement('div');
+                  badgeSpan.textContent = 'กะดึก';
+                  badgeSpan.style.fontSize = '8px';
+                  badgeSpan.style.color = '#ffffff';
+                  badgeSpan.style.fontWeight = 'bold';
+                  badgeSpan.style.marginTop = '2px';
+                  badgeSpan.style.padding = '2px 4px';
+                  badgeSpan.style.backgroundColor = '#17a2b8';
+                  badgeSpan.style.borderRadius = '3px';
+                  badgeSpan.style.display = 'inline-block';
+                  newCell.appendChild(badgeSpan);
+                }
+                
                 newCell.style.border = '0.1px solid #000';
                 newCell.style.padding = '6px';
                 newCell.style.textAlign = 'center';
                 newCell.style.verticalAlign = 'middle';
                 newCell.style.fontFamily = "'Sarabun', sans-serif";
                 
-                // ถ้าเป็นคอลัมล์เงินจ้าง ให้จัดรูปแบบ
+                // ถ้าเป็นคอลัมน์เงินจ้าง ให้จัดรูปแบบ
                 if (cellIndex === cells.length - 2) {
                   const salaryText = cell.textContent.trim();
                   if (salaryText.includes('บาท')) {
