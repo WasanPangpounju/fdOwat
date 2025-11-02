@@ -1601,268 +1601,7 @@ const getDateStyle = (day) => {
     setWorkMonth(text);
   }, [searchResult]);
 
-  const generatePDF = async () => {
-    try {
-      const doc = new jsPDF("landscape");
 
-      // Load the Thai font
-      const fontPath = "/assets/fonts/THSarabunNew.ttf";
-      doc.addFileToVFS(fontPath);
-      doc.addFont(fontPath, "THSarabunNew", "normal");
-
-      // Override the default stylestable for jspdf-autotable
-      const stylestable = {
-        font: "THSarabunNew",
-        fontStyle: "normal",
-        fontSize: 10,
-      };
-      const tableOptions = {
-        styles: stylestable,
-        startY: 25,
-        // margin: { top: 10 },
-      };
-
-      const title = " ใบลงเวลาการปฏิบัติงาน";
-
-      // Set title with the Thai font
-      doc.setFont("THSarabunNew");
-      doc.setFontSize(16);
-      const titleWidth =
-        (doc.getStringUnitWidth(title) * doc.internal.getFontSize()) /
-        doc.internal.scaleFactor;
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const titleX = (pageWidth - titleWidth) / 2;
-      doc.text(title, titleX, 10);
-
-      const subTitle = workMonth; // Replace with your desired subtitle text
-      doc.setFontSize(12); // You can adjust the font size for the subtitle
-      const subTitleWidth =
-        (doc.getStringUnitWidth(subTitle) * doc.internal.getFontSize()) /
-        doc.internal.scaleFactor;
-      const subTitleX = (pageWidth - subTitleWidth) / 2;
-      doc.text(subTitle, subTitleX, 20); // Adjust the vertical position as needed
-
-      // Calculate the number of days in the month, considering February and leap years
-      const daysInMonth =
-        monthset === "02" &&
-          ((year % 4 === 0 && year % 100 !== 0) || year % 400 === 0)
-          ? 29
-          : monthset === "02"
-            ? 28
-            : [4, 6, 9, 11].includes(monthset)
-              ? 30
-              : 31;
-
-      // Calculate the starting point for the table header
-      let startingDay = 21;
-
-      // Generate the header with a single cycle of "01" to "20" followed by "21" to the last day of the month
-      const header = Array.from({ length: daysInMonth }, (_, index) => {
-        const day =
-          index + startingDay > daysInMonth
-            ? index + startingDay - daysInMonth
-            : index + startingDay;
-
-        // Add leading zeros for days 1 to 9
-        const formattedDay = day < 10 ? `0${day}` : day.toString();
-
-        return formattedDay;
-      });
-
-      // Assuming that 'date' contains values like '01', '02', ..., '28', '29', '30', '31'
-      // You can replace 'date' with the actual field name containing the date information in your data
-      const dateOt = ["25", "09", "10"];
-
-      const dateFieldName = "date";
-
-      // Create an object to store data rows by date
-      const rowDataByDate = {};
-
-      // Organize the dataset into the rowDataByDate object
-      Datasetsec.forEach((data) => {
-        // dataset.forEach((data) => {
-
-        const date = data[dateFieldName];
-        if (!rowDataByDate[date]) {
-          rowDataByDate[date] = {
-            workplaceId: [],
-            otTime: [],
-            dateFieldName: [],
-            allTime: [],
-          };
-        }
-        rowDataByDate[date].workplaceId.push(data.workplaceId);
-        rowDataByDate[date].otTime.push(data.otTime);
-        rowDataByDate[date].allTime.push(data.allTime);
-        rowDataByDate[date].dateFieldName.push(data[dateFieldName]);
-      });
-
-      // Map the header to transposedTableData using the rowDataByDate object
-      const transposedTableData = header.map((headerDay) => {
-        const rowData = rowDataByDate[headerDay];
-
-        if (rowData) {
-          return [
-            rowData.workplaceId.join(", "),
-            rowData.allTime.join(", "),
-            rowData.otTime.join(", "),
-            // rowData.dateFieldName.join(', '),
-          ];
-        } else {
-          return ["", "", ""];
-        }
-      });
-
-      // Transpose the transposedTableData to sort horizontally
-      const sortedTableData = Array.from({ length: 3 }, (_, index) =>
-        transposedTableData.map((row) => row[index])
-      );
-
-      const textColumn = [name, "เวลา ทำงาน", "เวลา OT"];
-
-      const sortedTableDataWithText = sortedTableData.map((data, index) => {
-        const text = [textColumn[index]];
-        return [...text, ...data];
-      });
-
-      // Now, sortedTableDataWithText contains the text column followed by sorted data columns.
-
-      const customHeaders = [["วันที่", ...header]];
-
-      // Add custom headers and data to the table
-      // doc.autoTable({
-      //   head: customHeaders,
-      //   body: sortedTableDataWithText,
-      //   ...tableOptions,
-      // });
-      // Create a function to check if the cell should have a background color
-      function shouldHighlightCell(text) {
-        return dateOt.includes(text);
-      }
-
-      doc.autoTable({
-        head: customHeaders,
-        body: sortedTableDataWithText,
-        ...tableOptions,
-        didDrawCell: function (data) {
-          if (
-            data.cell.section === "head" &&
-            shouldHighlightCell(data.cell.raw)
-          ) {
-            // Set the background color for header cells with the location number found in dateOt
-            doc.setFillColor(255, 255, 0); // Yellow background color
-            doc.rect(
-              data.cell.x,
-              data.cell.y,
-              data.cell.width,
-              data.cell.height,
-              "F"
-            );
-          }
-        },
-      });
-
-      const additionalTableData = [
-        ["เงินค่าจ้าง", "", "", "", "", "", "55"],
-        ["Cell 4", "Cell 5", "Cell 6"],
-        ["Cell 7", "Cell 8", "Cell 9"],
-      ];
-
-      const calculatedValuesAllTime = calculatedValues.map(
-        (value) =>
-          `${value.workplaceId}, ${value.calculatedValue} (${value.allTime})`
-      );
-
-      // Combine the calculated values into a single array
-      const combinedCalculatedValues = [
-        "รวมวันทำงาน:",
-        ...calculatedValuesAllTime,
-      ];
-
-      const calculatedValuesOt = calculatedValues.map((value) => [
-        `${value.calculatedOT} (${value.otTime})`,
-      ]);
-
-      const combinedCalculatedValuesOt = [
-        "รวมวันทำงาน OT:",
-        ...calculatedValuesOt,
-      ];
-
-      const combinedTableData = [
-        ...additionalTableData,
-        combinedCalculatedValues,
-        combinedCalculatedValuesOt,
-      ];
-      // Combine the calculated values into a single array
-      // const combinedCalculatedValues = calculatedValuesAllTime.map((value, index) => [value, calculatedValuesOt[index]]);
-
-      // const combinedTableData = [...additionalTableData, ...combinedCalculatedValues, ...calculatedValuesOt];
-
-      const firstColumnWidth = 30; // Adjust the width as needed
-
-      // Define column styles, including the width of the first column
-      const columnStyles = {
-        0: { columnWidth: firstColumnWidth }, // Index 0 corresponds to the first column
-      };
-
-      // Define options for the additional table
-      const additionalTableOptions = {
-        startY: 80, // Adjust the vertical position as needed
-        margin: { top: 10 },
-        columnStyles: columnStyles, // Assign the column stylestable here
-        styles: stylestable,
-      };
-
-      // Add the additional table to the PDF
-      // doc.autoTable({
-      //   body: combinedTableData,
-      //   ...additionalTableOptions,
-      // });
-
-      // Define the text to add background color to
-      const textWithBackgroundColor = ["รวมวันทำงาน:", "รวมวันทำงาน OT:"];
-
-      // Add the additional table to the PDF
-      doc.autoTable({
-        body: combinedTableData,
-        ...additionalTableOptions,
-        didDrawCell: function (data) {
-          if (data.cell.section === "body") {
-            // Check if the cell contains text that should have a background color
-            const text = data.cell.raw;
-            if (textWithBackgroundColor.includes(text)) {
-              // Set the background color
-              doc.setFillColor(255, 255, 0); // Yellow background color
-              doc.rect(
-                data.cell.x,
-                data.cell.y,
-                data.cell.width,
-                data.cell.height,
-                "F"
-              );
-
-              // Reset text color for better visibility
-              doc.setTextColor(0, 0, 0);
-            }
-          }
-        },
-      });
-      const titletest = "รวมวันทำงาน:";
-      const titletest2 = "รวมวันทำงาน OT:";
-
-      // Set title with the Thai font
-      doc.setFont("THSarabunNew");
-      doc.setFontSize(14);
-      doc.text(titletest, 15, 108);
-      doc.text(titletest2, 15, 115);
-
-      // doc.save('example.pdf');
-      const pdfContent = doc.output("bloburl");
-      window.open(pdfContent, "_blank");
-    } catch (error) {
-      console.error("Error generating PDF:", error);
-    }
-  };
 
   // const tableRef = useRef(null);
 
@@ -4003,3437 +3742,8 @@ const getDateStyle = (day) => {
   }
 
   const yearThai = parseFloat(year, 10) + 543;
-  // เริ่มฟังค์ชั่นpdf
 
-  const generatePDFTest123 = (event) => {
-    event.preventDefault();
-    try {
-      // Your code here
-      // handleEmployeeFilter();
-      const doc = new jsPDF({
-        orientation: "landscape",
-        unit: "mm",
-        format: "a4",
-      });
-      const table = tableRef.current;
-      const fontPath = "/assets/fonts/THSarabunNew.ttf";
-
-      doc.addFileToVFS(fontPath);
-      doc.addFont(fontPath, "THSarabunNew", "normal");
-
-      // Override the default stylestable for jspdf-autotable
-      const stylestable = {
-        font: "THSarabunNew",
-        fontStyle: "normal",
-        fontSize: 10,
-      };
-
-      const arraytestSpSalary = [
-        [
-          "",
-          2,
-          2,
-          2,
-          2,
-          2,
-          2,
-          2,
-          2,
-          2,
-          2,
-          2,
-          2,
-          2,
-          2,
-          2,
-          2,
-          2,
-          2,
-          2,
-          2,
-          2,
-          2,
-          2,
-          0.5,
-        ],
-        [2, 2, 2, 2, 2, "", 2, "", 2],
-        [2, "", 2, 2, "", 2, 3, "", 3, 3],
-        [3, 3, 3, "", 3, 3, 3, 3],
-        [3, "", 3, "", 3, 3, 3, 1, "", 1],
-        [3, 3, "", 1, 1, "", 1, 3, 3],
-        [3, 3, "", 3, "", 3, 3, 3, 3, "", 1, "", 1, 0.5, 0.5, 1.5],
-      ];
-
-      const arraylistOT = ["1.5", "2", "3"];
-
-      const arrayLength = 9;
-      // Set title with the Thai font
-      // const makePage = Math.ceil(arrayLength / 6);
-      let roundpage = 0;
-
-      // for (let page = 0; page < makePage; page++) {
-      // doc.text(subTitle, subTitleX, 20); // Adjust the vertical position as needed
-
-      // Convert the table to a PDF using jsPDF and jsPDF-AutoTable
-
-      // doc.autoTable({
-      //     html: table,
-      //     styles: stylestable,
-      //     margin: { top: 30 },
-      // });
-
-      // doc.text('จำนวนวัน' + daysInMonth, 10, 10);
-      doc.setFontSize(8);
-      // doc.text(title, 171, 55, { angle: 90 });
-
-      // const CheckMonth = 2;
-      // const CheckYear = 2023;
-
-      // const daysInMonth = getDaysInMonth(CheckMonth, CheckYear);
-      // const daysInMonth = 30;
-      // doc.text('จำนวนวัน' + daysInMonth, 10, 10);
-
-      const numRows = 7;
-      const numCols = daysInMonth;
-      const cellWidth = 6.5;
-      const cellHeight = 3.5;
-      const startX = 55; // Adjust the starting X-coordinate as needed
-      const startY = 55; // Adjust the starting Y-coordinate as needed
-      const borderWidth = 0.5; // Adjust the border width as needed
-
-      // Function to draw a cell with borders
-      const drawCell = (x, y, width, height) => {
-        doc.rect(x, y, width, height);
-      };
-
-      // Function to draw the entire table
-      // const drawTable = () => {
-      //     for (let i = 0; i < numRows; i++) {
-      //         for (let j = 0; j < numCols; j++) {
-      //             const x = startX + j * cellWidth;
-      //             const y = startY + i * cellHeight;
-      //             drawCell(x, y, cellWidth, cellHeight);
-      //         }
-      //     }
-      // };
-
-      // const drawTable = (tableNumber) => {
-      //     for (let i = 0; i < numRows; i++) {
-      //         for (let j = 0; j < numCols; j++) {
-      //             const x = startX + j * cellWidth;
-      //             const y = startY + i * cellHeight + tableNumber * (numRows * cellHeight + 0.2);
-      //             drawCell(x, y, cellWidth, cellHeight);
-      //         }
-      //     }
-      // };
-      // const additionalHeight = 3;
-
-      const drawTable = (tableNumber) => {
-        for (let i = 0; i < numRows; i++) {
-          for (let j = 0; j < numCols; j++) {
-            const x = startX + j * cellWidth;
-            const y =
-              startY +
-              i * cellHeight +
-              tableNumber * (numRows * cellHeight + 3.7);
-            // Increase the height for the first row
-            const adjustedCellHeight = i === 0 ? cellHeight * 2 : cellHeight;
-            // const adjustedCellY = i === 0 ? y : y * 2;
-
-            if (i === 0) {
-              drawCell(x, y, cellWidth, adjustedCellHeight);
-            } else {
-              drawCell(x, y + cellHeight, cellWidth, adjustedCellHeight);
-            }
-            // drawCell(x, y , cellWidth, adjustedCellHeight);
-          }
-        }
-      };
-
-      const numRowsLeftHead = 1;
-      const numColsLeftHead = 1;
-      const cellWidthLeftHead = 50;
-      const cellHeightLeftHead = 3.5;
-      const startXLeftHead = 5; // Adjust the starting X-coordinate as needed
-      // const startYLeftHead = 20; // Adjust the starting Y-coordinate as needed
-      const borderWidthLeftHead = 0.5; // Adjust the border width as needed
-
-      const drawTableLeftHead = (tableNumber) => {
-        for (let i = 0; i < 1; i++) {
-          for (let j = 0; j < numColsLeftHead; j++) {
-            const x = startXLeftHead + j * cellWidthLeftHead;
-            const y =
-              startY +
-              i * cellHeight +
-              tableNumber * (numRows * cellHeight + 3.7);
-            // drawCell(x, y, cellWidthLeftHead, cellHeight);
-            // const adjustedCellHeight = i === 0 ? cellHeight * 2 : cellHeight;
-            const adjustedCellHeight = cellHeight * 8;
-
-            // if (i === 0) {
-            //     drawCell(x, y, cellWidthLeftHead, adjustedCellHeight);
-
-            // } else {
-            //     drawCell(x, y + cellHeight, cellWidthLeftHead, adjustedCellHeight);
-
-            // }
-            drawCell(x, y, cellWidthLeftHead, adjustedCellHeight);
-
-            // if (i >= numRows - 3) {
-            //     const arrayIndex = i - (numRows - 3); // 0 for the last row, 1 for the second last row
-            //     if (arraylistOT[arrayIndex]) {
-            //         const cellText = arraylistOT[arrayIndex].toString(); // Convert to string if needed
-            //         doc.text("โอที " + cellText, x + 46, y + 2.5, { align: 'center' }); // Use the entire cellText
-            //     }
-            // }
-            const cellText0 = arraylistOT[0].toString(); // Convert to string if needed
-            const cellText1 = arraylistOT[1].toString(); // Convert to string if needed
-            const cellText2 = arraylistOT[2].toString(); // Convert to string if needed
-
-            doc.text("โอที " + cellText0, x + 46, y + 2.5 + 3.5 * 4, {
-              align: "center",
-            }); // Use the entire cellText
-            doc.text("โอที " + cellText1, x + 46, y + 2.5 + 3.5 * 5, {
-              align: "center",
-            }); // Use the entire cellText
-            doc.text("โอที " + cellText2, x + 46, y + 2.5 + 3.5 * 6, {
-              align: "center",
-            }); // Use the entire cellText
-          }
-        }
-      };
-
-      const numRowsNumHead = 7;
-      const numColsNumHead = 1;
-      const cellWidthNumHead = 8;
-      const cellHeightNumHead = 3.5;
-      const startXNumHead = 5; // Adjust the starting X-coordinate as needed
-      // const startYNumHead = 20; // Adjust the starting Y-coordinate as needed
-      const borderWidthNumHead = 0.5; // Adjust the border width as needed
-
-      // const drawTableNumHead = (tableNumber) => {
-      //     for (let i = 0; i < numRows; i++) {
-      //         for (let j = 0; j < numColsNumHead; j++) {
-      //             const x = startXNumHead + j * cellWidthNumHead;
-      //             const y = startY + i * cellHeight + tableNumber * (numRows * cellHeight + 3.7);
-      //             // drawCell(x, y, cellWidthNumHead, cellHeight);
-      //             const adjustedCellHeight = i === 0 ? cellHeight * 2 : cellHeight;
-
-      //             if (i === 0) {
-      //                 drawCell(x, y, cellWidthNumHead, adjustedCellHeight);
-
-      //             } else {
-      //                 drawCell(x, y + cellHeight, cellWidthNumHead, adjustedCellHeight);
-
-      //             }
-      //         }
-      //     }
-      // };
-      const drawTableNumHead = (tableNumber) => {
-        for (let i = 0; i < 1; i++) {
-          for (let j = 0; j < numColsNumHead; j++) {
-            const x = startXNumHead + j * cellWidthNumHead;
-            const y =
-              startY +
-              i * cellHeight +
-              tableNumber * (numRows * cellHeight + 3.7);
-            // drawCell(x, y, cellWidthNumHead, cellHeight);
-            // const adjustedCellHeight = i === 0 ? cellHeight * 2 : cellHeight;
-            const adjustedCellHeight = cellHeight * 8;
-
-            // if (i === 0) {
-            //     drawCell(x, y, cellWidthNumHead, adjustedCellHeight);
-
-            // } else {
-            //     drawCell(x, y + cellHeight, cellWidthNumHead, adjustedCellHeight);
-
-            // }
-            drawCell(x, y, cellWidthNumHead, adjustedCellHeight);
-          }
-        }
-      };
-
-      const numRowsSpSalary = 7;
-      const numColsSpSalary = 3;
-      const cellWidthSpSalary = 10;
-      const cellHeightSpSalary = 3.5;
-      const borderWidthSpSalary = 0.5; // Adjust the border width as needed
-
-      let startXSpSalary; // Declare startXSpSalary before using it
-
-      if (daysInMonth === 28) {
-        startXSpSalary = 157;
-      } else if (daysInMonth === 29) {
-        startXSpSalary = 163.5;
-      } else if (daysInMonth === 30) {
-        startXSpSalary = 170;
-      } else if (daysInMonth === 31) {
-        startXSpSalary = 176.5;
-      }
-
-      const drawTableSpSalary = (tableNumber) => {
-        for (let i = 0; i < numRows; i++) {
-          for (let j = 0; j < numColsSpSalary; j++) {
-            const x =
-              startXSpSalary + j * cellWidthSpSalary + cellWidthSpSalary * 8;
-            const y =
-              startY +
-              i * cellHeight +
-              tableNumber * (numRows * cellHeight + 3.7);
-            // drawCell(x, y, cellWidthSpSalary, cellHeight);
-            const adjustedCellHeight = i === 0 ? cellHeight * 2 : cellHeight;
-
-            if (i === 0) {
-              drawCell(x, y, cellWidthSpSalary, adjustedCellHeight);
-            } else {
-              drawCell(
-                x,
-                y + cellHeight,
-                cellWidthSpSalary,
-                adjustedCellHeight
-              );
-            }
-          }
-        }
-      };
-
-      const numRowsMess = 7;
-      const numColsMess = 1;
-      const cellWidthMess = 25;
-      const cellHeightMess = 3.5;
-      let startXMess; // Declare startXSpSalary before using it
-
-      if (daysInMonth === 28) {
-        startXMess = 247;
-      } else if (daysInMonth === 29) {
-        startXMess = 253.5;
-      } else if (daysInMonth === 30) {
-        startXMess = 260;
-      } else if (daysInMonth === 31) {
-        startXMess = 266.5;
-      }
-      const borderWidthMess = 0.5;
-      const drawTableMess = (tableNumber, arraylistOT) => {
-        for (let i = 0; i < numRows; i++) {
-          for (let j = 0; j < numColsMess; j++) {
-            const x = startXMess + j * cellWidthMess;
-            const y =
-              startY +
-              i * cellHeight +
-              tableNumber * (numRows * cellHeight + 3.7);
-
-            // Draw the cell
-            // drawCell(x, y, cellWidthMess, cellHeight);
-            const adjustedCellHeight = i === 0 ? cellHeight * 2 : cellHeight;
-
-            if (i === 0) {
-              drawCell(x, y, cellWidthMess, adjustedCellHeight);
-            } else {
-              drawCell(x, y + cellHeight, cellWidthMess, adjustedCellHeight);
-            }
-
-            // Add text below the last two cells
-            // if (i >= numRows - 2) {
-            //     const arrayIndex = i - (numRows - 2); // 0 for the last row, 1 for the second last row
-            //     if (arraylistOT[arrayIndex]) {
-            //         const cellText = arraylistOT[arrayIndex].toString(); // Convert to string if needed
-            //         doc.text(cellText, x, y + cellHeight * (arrayIndex + 1), { align: 'center' });
-            //     }
-            // }
-          }
-        }
-      };
-
-      // const drawTableOT = (tableNumber, arraylistOT) => {
-      //     for (let i = 0; i < numRows; i++) {
-      //         for (let k = 0; k < arraylistOT.length; k++) {
-      //             const x = startXMess; // Adjust the starting X-coordinate as needed
-      //             const y = startY + i * cellHeight + tableNumber * (numRows * cellHeight + 0.2) + k * lineHeight;
-
-      //             doc.text('โอที ' + arraylistOT[k], x, y, { align: 'left' });
-      //         }
-      //     }
-      // };
-
-      const drawTableOT = (arraylistOT) => {
-        const startXOT = 10; // Adjust the starting X-coordinate for the OT text
-        let startYOT = 10; // Adjust the starting Y-coordinate for the OT text
-        const lineHeightOT = 10; // Adjust the vertical spacing between lines
-
-        for (let k = 0; k < arraylistOT.length; k++) {
-          doc.text("โอที " + arraylistOT[k], startXOT, startYOT);
-          startYOT += lineHeightOT; // Adjust the vertical spacing if needed
-        }
-      };
-
-      // Draw the table
-      // drawTable();
-      // for (let i = 0; i < arrayLength; i++) {
-
-      //     drawTable(i);
-      //     drawTableLeftHead(i);
-      //     drawTableNumHead(i);
-      //     drawTableSpSalary(i);
-      //     drawTableMess(i);
-      //     if ((i + 1) % 6 === 0 && i + 1 < arrayLength) {
-      //         doc.addPage(); // Add a new page after every 6 iterations
-      //     }
-      // }
-
-      // body table//////////////////////////////////////////////////////////////////////////////////////////////////////
-
-      const numRowsTop = 1;
-      const startXTop = 50; // Adjust the starting X-coordinate as needed
-      const startYTop = 30; // Adjust the starting Y-coordinate as needed
-      const cellHeightTop = 25;
-
-      const drawTableTop = () => {
-        for (let i = 0; i < numRowsTop; i++) {
-          for (let j = 0; j < numCols; j++) {
-            const x = startX + j * cellWidth;
-            const y = startYTop + i * cellHeightTop;
-            drawCell(x, y, cellWidth, cellHeightTop);
-          }
-        }
-      };
-
-      const numRowsTopHead = 1;
-      const startXTopHead = 1; // Adjust the starting X-coordinate as needed
-      const startYTopHead = 24; // Adjust the starting Y-coordinate as needed
-      const cellHeightTopHead = 6;
-      // const cellWidthTopHead = 200;
-      let cellWidthTopHead;
-      if (daysInMonth === 28) {
-        // 267
-        cellWidthTopHead = 262;
-      } else if (daysInMonth === 29) {
-        cellWidthTopHead = 268.5;
-      } else if (daysInMonth === 30) {
-        cellWidthTopHead = 275;
-      } else if (daysInMonth === 31) {
-        cellWidthTopHead = 281.5;
-      }
-      const drawTableTopHead = () => {
-        for (let i = 0; i < numRowsTopHead; i++) {
-          // for (let j = 0; j < numCols; j++) {
-          const x = startXNumHead + i * cellWidth;
-          const y = startYTopHead + i * cellHeightTopHead;
-          drawCell(x, y, cellWidthTopHead, cellHeightTopHead);
-          // }
-        }
-      };
-
-      const drawTableLeftHeadTop = () => {
-        for (let i = 0; i < numRowsTop; i++) {
-          for (let j = 0; j < numColsLeftHead; j++) {
-            const x = startXLeftHead + j * cellWidthLeftHead;
-            const y = startYTop + i * cellHeightTop;
-            drawCell(x, y, cellWidthLeftHead, cellHeightTop);
-          }
-        }
-      };
-      const drawTableNumHeadTop = () => {
-        for (let i = 0; i < numRowsTop; i++) {
-          for (let j = 0; j < numColsNumHead; j++) {
-            const x = startXNumHead + j * cellWidthNumHead;
-            const y = startYTop + i * cellHeightTop;
-            drawCell(x, y, cellWidthNumHead, cellHeightTop);
-          }
-        }
-      };
-      const drawTableSpSalaryTop = () => {
-        for (let i = 0; i < numRowsTop; i++) {
-          for (let j = 0; j < numColsSpSalary; j++) {
-            const x =
-              startXSpSalary + j * cellWidthSpSalary + cellWidthSpSalary * 8;
-            const y = startYTop + i * cellHeightTop;
-            drawCell(x, y, cellWidthSpSalary, cellHeightTop);
-          }
-        }
-      };
-      const drawTableSpSalaryHeadTop = () => {
-        for (let i = 0; i < numRowsTop; i++) {
-          for (let j = 0; j < numColsSpSalary - 2; j++) {
-            const x = startXSpSalary + j * cellWidthSpSalary;
-            const y = startYTop + i * 6;
-            drawCell(x + cellWidthSpSalary, y + 4, cellWidthSpSalary, 6);
-          }
-        }
-      };
-
-      const drawTableMessTop = () => {
-        for (let i = 0; i < numRowsTop; i++) {
-          for (let j = 0; j < numColsMess; j++) {
-            const x = startXMess + j * cellWidthMess;
-            const y = startYTop + i * cellHeightTop;
-            drawCell(x, y, cellWidthMess, cellHeightTop);
-          }
-        }
-      };
-      const verticalDistance = 24.7 + cellHeight; // Set your desired vertical distance
-
-      // const drawArrayText = (dataArray) => {
-      //     const arrayText = dataArray.map(row => row.join(' ')).join('\n');
-      //     doc.text(arrayText, startX, startY, { align: 'left' });
-      // };
-
-      const calculateElementWidth = (element) => {
-        const fontSize = doc.internal.getFontSize();
-        const elementWidth =
-          (element.toString().length * fontSize) / doc.internal.scaleFactor;
-        return elementWidth;
-      };
-
-      // แสดงตารางวันทำงานธรรมดา
-      const drawArrayText = (dataArray) => {
-        for (let i = 0; i < dataArray.length; i++) {
-          // const arrayText = dataArray[i].join('      ');
-          // const arrayText = dataArray[i].join('     '); // Use spaces to mimic the width
-          let currentX = startX;
-          let currentY = startY + 3.7;
-
-          for (let j = 0; j < dataArray[i].length; j++) {
-            // const elementWidth = calculateElementWidth(dataArray[i][j]);
-            const textToDraw = dataArray[i][j].toString();
-            const alignment =
-              textToDraw.length > 3
-                ? { align: "left", angle: 90, xOffset: 5 }
-                : { align: "left" };
-
-            if (textToDraw.length > 3) {
-              doc.text(
-                textToDraw,
-                currentX + 2,
-                3 + currentY + i * verticalDistance,
-                alignment
-              );
-            } else {
-              doc.text(
-                textToDraw,
-                currentX + 1,
-                3 + currentY + i * verticalDistance,
-                alignment
-              );
-            }
-            // doc.text(textToDraw, currentX + 2, 3 + currentY + i * verticalDistance, alignment);
-            // currentX += elementWidth + cellWidth;
-            currentX += cellWidth;
-          }
-        }
-      };
-
-      // แสดงตารางวันทำงานธรรมดาช.ใ.
-      const drawArrayTextAllTime = (dataArray) => {
-        for (let i = 0; i < dataArray.length; i++) {
-          // const arrayText = dataArray[i].join('      ');
-          // const arrayText = dataArray[i].join('     '); // Use spaces to mimic the width
-          let currentX = startX;
-          let currentY = startY + 3.5 * 2;
-
-          for (let j = 0; j < dataArray[i].length; j++) {
-            // const elementWidth = calculateElementWidth(dataArray[i][j]);
-            // const textToDraw = dataArray[i][j].toString();
-            const textToDraw = newAllTimes[i][j].toString();
-
-            const alignment =
-              textToDraw.length > 3
-                ? { align: "left", angle: 90, xOffset: 5 }
-                : { align: "left" };
-
-            if (textToDraw.length > 3) {
-              doc.text(
-                textToDraw,
-                currentX + 2,
-                3 + currentY + i * verticalDistance,
-                alignment
-              );
-            } else {
-              doc.text(
-                textToDraw,
-                currentX + 1,
-                3 + currentY + i * verticalDistance,
-                alignment
-              );
-            }
-            // doc.text(textToDraw, currentX + 2, 3 + currentY + i * verticalDistance, alignment);
-            // currentX += elementWidth + cellWidth;
-            currentX += cellWidth;
-          }
-        }
-      };
-
-      const drawArrayTextSumWorkAddSalary = (
-        dataArray,
-        sumArray,
-        filteredAddSalaryWorkplace
-      ) => {
-        for (let i = 0; i < dataArray.length; i++) {
-          let currentX = startXSpSalary + 3;
-          let currentY = startY + i * verticalDistance + addmove;
-
-          const roundOfSalary =
-            filteredAddSalaryWorkplace[i]?.roundOfSalary || ""; // Get roundOfSalary for the current index
-
-          // Check roundOfSalary and display the appropriate text
-          if (roundOfSalary === "monthly") {
-            doc.text(
-              filteredAddSalaryWorkplace[i].SpSalary,
-              currentX + 2,
-              3 + currentY,
-              { align: "center" }
-            );
-          } else if (roundOfSalary === "daily") {
-            // Calculate the product and convert it to a string
-            const product = (
-              sumArray[i] * filteredAddSalaryWorkplace[i].SpSalary
-            ).toString();
-            doc.text(product, currentX + 2, 3 + currentY + 3, {
-              align: "center",
-            });
-          } else {
-            // Handle other cases or set default text
-            doc.text("N/A", currentX + 2, 3 + currentY, { align: "center" });
-          }
-        }
-      };
-
-      // const drawArrayTextWithColor = (dataArray, columnIndex, rowIndex) => {
-      //     const currentX = startX + columnIndex * cellWidth;
-      //     const currentY = startY + 3.7 + rowIndex * verticalDistance;
-
-      //     // Set color based on holidayList and allDayOff
-      //     const currentNumber = resultArray[rowIndex];
-      //     const isHighlighted = holidayList.includes(currentNumber) || allDayOff.includes(currentNumber);
-
-      //     // Draw a colored rectangle for each column
-      //     if (isHighlighted) {
-      //         doc.setFillColor(255, 0, 0); // Set your desired color
-      //         doc.rect(currentX, currentY, cellWidth, cellHeight, 'F');
-      //     }
-
-      //     // Draw the text on top of the colored rectangle
-      //     for (let i = 0; i < dataArray.length; i++) {
-      //         const textToDraw = dataArray[i].toString();
-      //         const alignment = textToDraw.length > 3 ? { align: 'left', angle: 90, xOffset: 5 } : { align: 'left' };
-
-      //         if (textToDraw.length > 3) {
-      //             doc.text(textToDraw, currentX + 2, 3 + currentY, alignment);
-      //         } else {
-      //             doc.text(textToDraw, currentX + 1, 3 + currentY, alignment);
-      //         }
-      //     }
-      // };
-
-      const drawArrayTextWithColor = (dataArray, columnIndex, rowIndex) => {
-        const currentX = startX + columnIndex * cellWidth;
-        const currentY = startY + 3.7 + rowIndex * verticalDistance;
-
-        // Set color based on holidayList and allDayOff
-        const currentNumber = resultArray[columnIndex];
-        const isHighlighted =
-          holidayList.includes(currentNumber) ||
-          allDayOff.includes(currentNumber);
-
-        // Draw a colored rectangle for each column
-        if (isHighlighted) {
-          doc.setFillColor(255, 255, 0); // Set your desired color
-          doc.rect(
-            currentX,
-            currentY - cellHeight,
-            cellWidth,
-            cellHeight * 8,
-            "F"
-          );
-        }
-
-        // Draw the text on top of the colored rectangle
-        const textToDraw = dataArray[0].toString();
-        const alignment =
-          textToDraw.length > 3
-            ? { align: "left", angle: 90, xOffset: 5 }
-            : { align: "left" };
-
-        if (textToDraw.length > 3) {
-          doc.text(textToDraw, currentX + 2, 3 + currentY, alignment);
-        } else {
-          doc.text(textToDraw, currentX + 1, 3 + currentY, alignment);
-        }
-      };
-
-      // const squareColor2 = [255, 255, 190]; // Red
-
-      // doc.setFillColor(...squareColor2);
-
-      // // Draw a square with the specified size and color
-      // doc.rect(startX, startYTop, cellWidth - 0.2, cellHeightTop, 'F');
-
-      // for (let i = 0; i < resultArray.length; i++) {
-      //     const currentNumber = resultArray[i];
-
-      //     if (holidayList.includes(currentNumber) || allDayOff.includes(currentNumber)) {
-      //         // Set loop position color
-      //         doc.rect(startX + i * cellWidth, startYTop + 80, cellWidth - 0.2, cellHeightTop, 'F');
-      //     } else {
-      //         // Set default color or do nothing
-      //     }
-      // }
-
-      const drawArrayTextOT = (dataArray) => {
-        for (let i = 0; i < dataArray.length; i++) {
-          let currentX = startX - 1;
-          let currentY = startY + 3 + cellHeight * 2;
-
-          for (let j = 0; j < dataArray[i].length; j++) {
-            // const elementWidth = calculateElementWidth(dataArray[i][j]);
-            doc.text(
-              dataArray[i][j].toString(),
-              currentX + 2,
-              6 + currentY + i * verticalDistance,
-              { align: "left" }
-            );
-            // currentX += elementWidth + cellWidth;
-            currentX += cellWidth;
-          }
-        }
-      };
-
-      // แสดงตารางวันทำงานหยุดธรรมดา
-      const drawArrayTextHoli = (dataArray) => {
-        for (let i = 0; i < dataArray.length; i++) {
-          // const arrayText = dataArray[i].join('      ');
-          // const arrayText = dataArray[i].join('     '); // Use spaces to mimic the width
-          let currentX = startX - 1;
-          let currentY = startY + 3 * 4;
-
-          for (let j = 0; j < dataArray[i].length; j++) {
-            // const elementWidth = calculateElementWidth(dataArray[i][j]);
-            const textToDraw = dataArray[i][j].toString();
-            const alignment =
-              textToDraw.length > 3
-                ? { align: "left", angle: 45, xOffset: 5 }
-                : { align: "left" };
-
-            doc.text(
-              textToDraw,
-              currentX + 2,
-              4 + currentY + i * verticalDistance,
-              alignment
-            );
-            // currentX += elementWidth + cellWidth;
-            currentX += cellWidth;
-          }
-        }
-      };
-
-      // แสดงตารางวันทำงานหยุดนักขัตฤกษ์
-      const drawArrayTextHoliday = (dataArray) => {
-        for (let i = 0; i < dataArray.length; i++) {
-          // const arrayText = dataArray[i].join('      ');
-          // const arrayText = dataArray[i].join('     '); // Use spaces to mimic the width
-          let currentX = startX - 1;
-          let currentY = startY + 3 * 5;
-
-          for (let j = 0; j < dataArray[i].length; j++) {
-            // const elementWidth = calculateElementWidth(dataArray[i][j]);
-            const textToDraw = dataArray[i][j].toString();
-            const alignment =
-              textToDraw.length > 3
-                ? { align: "left", angle: 45, xOffset: 5 }
-                : { align: "left" };
-
-            doc.text(
-              textToDraw,
-              currentX + 2,
-              5 + currentY + i * verticalDistance,
-              alignment
-            );
-            // currentX += elementWidth + cellWidth;
-            currentX += cellWidth;
-          }
-        }
-      };
-
-      const drawArrayTextOTHoliday = (dataArray) => {
-        for (let i = 0; i < dataArray.length; i++) {
-          let currentX = startX - 1;
-          let currentY = startY + 3 * 6;
-
-          for (let j = 0; j < dataArray[i].length; j++) {
-            // const elementWidth = calculateElementWidth(dataArray[i][j]);
-            doc.text(
-              dataArray[i][j].toString(),
-              currentX + 2,
-              5 + currentY + i * verticalDistance,
-              { align: "left" }
-            );
-            // currentX += elementWidth + cellWidth;
-            currentX += cellWidth;
-          }
-        }
-      };
-
-      const drawArrayTextAddSalary = (dataArray) => {
-        for (let i = 0; i < dataArray.length; i++) {
-          let currentX = startXSpSalary + 3 + cellWidthSpSalary * 5;
-          let currentY = startY + i * verticalDistance + addmove;
-
-          for (let j = 0; j < dataArray[i].length; j++) {
-            // const elementWidth = calculateElementWidth(dataArray[i][j]);
-            doc.text(dataArray[i][j].toString(), currentX + 2, 3 + currentY, {
-              align: "left",
-            });
-            // currentX += elementWidth + cellWidth;
-            currentX += cellWidthSpSalary;
-          }
-        }
-      };
-
-      // const drawArrayTextSumWork = (dataArray, sumArray) => {
-      //     for (let i = 0; i < dataArray.length; i++) {
-      //         let currentX = startXSpSalary + 3;
-      //         let currentY = startY + i * verticalDistance;
-      //         doc.text(sumArray[i].toString(), currentX + 2, 3 + currentY, { align: 'center' });
-      //         doc.text(sumArray[i].toString() * countalldaywork, currentX + 2, 3 + currentY +3, { align: 'center' });
-      //     }
-      // };
-
-      const addmove = 3;
-      // ผลรวมวันทำงานวันธรรรมดา
-      const drawArrayTextSumWork = (dataArray, sumArray) => {
-        for (let i = 0; i < dataArray.length; i++) {
-          let currentX = startXSpSalary + 3 + cellWidthSpSalary * 8;
-          let currentY = startY + i * verticalDistance + addmove;
-
-          // Calculate the product and convert it to a string
-          const product = (sumArray[i] * countalldaywork).toString();
-
-          doc.text(sumArray[i].toString(), currentX + 2, 3 + currentY, {
-            align: "center",
-          });
-          // doc.text(product, currentX + 2, 3 + currentY + 3, { align: 'center' });
-        }
-      };
-
-      const drawArrayTextSumWorkOT = (dataArray, sumArrayOT) => {
-        for (let i = 0; i < dataArray.length; i++) {
-          let currentX = startXSpSalary + 3 + cellWidthSpSalary * 11;
-          let currentY = startY + i * verticalDistance + addmove;
-
-          // Calculate the product and convert it to a string
-          const product = (sumArrayOT[i] * (countalldaywork / 8)).toString();
-
-          const position = filteredAddSalaryWorkplace.findIndex(
-            (item) => item.codeSpSalary === dataArray[i][0].codeSpSalary
-          );
-
-          doc.text(sumArrayOT[i].toString(), currentX + 2, 3 + currentY, {
-            align: "center",
-          });
-          doc.text(product, currentX + 2, 3 + currentY + 3, {
-            align: "center",
-          });
-        }
-      };
-      // ผลรวมวันทำงานวันหยุด
-      const drawArrayTextSumWorkHoli = (dataArray, sumArrayHoli) => {
-        for (let i = 0; i < dataArray.length; i++) {
-          let currentX = startXSpSalary + 3 + cellWidthSpSalary * 9;
-          let currentY = startY + i * verticalDistance + addmove;
-
-          // Calculate the product and convert it to a string
-          const product = (
-            sumArrayHoli[i] *
-            (1.5 * (countalldaywork / 8))
-          ).toString();
-
-          doc.text(sumArrayHoli[i].toString(), currentX + 2, 6.5 + currentY, {
-            align: "center",
-          });
-          // doc.text(product, currentX + 2, 3 + currentY + 3, { align: 'center' });
-        }
-      };
-
-      // นับเลขหัวตาราง
-
-      const drawArrayNumHead = (dataArray, indexArray) => {
-        for (let i = 0; i < dataArray.length; i++) {
-          let currentX = startXNumHead + 3;
-          let currentY = startY + i * verticalDistance + addmove;
-
-          // Calculate the product and convert it to a string
-          const product = (
-            indexArray[i] *
-            (2 * (countalldaywork / 8))
-          ).toString();
-
-          doc.text(indexArray[i].toString(), currentX + 2, currentY, {
-            align: "center",
-          });
-          // doc.text(product, currentX + 2, 3 + currentY + 3, { align: 'center' });
-        }
-      };
-
-      // ผลรวมวันทำงานวันหยุดนักขัตฤกษ์
-
-      const drawArrayTextSumWorkHoliday = (dataArray, sumArrayHoliday) => {
-        for (let i = 0; i < dataArray.length; i++) {
-          let currentX = startXSpSalary + 3 + cellWidthSpSalary * 10;
-          let currentY = startY + i * verticalDistance + addmove;
-
-          // Calculate the product and convert it to a string
-          const product = (
-            sumArrayHoliday[i] *
-            (2 * (countalldaywork / 8))
-          ).toString();
-
-          doc.text(
-            sumArrayHoliday[i].toString(),
-            currentX + 2,
-            10.5 + currentY,
-            { align: "center" }
-          );
-          // doc.text(product, currentX + 2, 3 + currentY + 3, { align: 'center' });
-        }
-      };
-      // รวมช.ม.ทำงาน1.5
-      const drawArrayTextSumWorkHoliday1q5 = (dataArray, sumArrayHoliday) => {
-        for (let i = 0; i < dataArray.length; i++) {
-          let currentX = startXSpSalary + 3 + cellWidthSpSalary * 10;
-          let currentY = startY + i * verticalDistance + addmove;
-
-          // Calculate the product and convert it to a string
-          const product = (
-            sumArrayHoliday[i] *
-            (2 * (countalldaywork / 8))
-          ).toString();
-
-          doc.text(sumArrayHoliday[i].toString(), currentX + 2, 14 + currentY, {
-            align: "center",
-          });
-          // doc.text(product, currentX + 2, 3 + currentY + 3, { align: 'center' });
-        }
-      };
-
-      // รวมช.ม.ทำงาน2
-      const drawArrayTextSumWorkHoliday2 = (dataArray, sumArrayHoliday) => {
-        for (let i = 0; i < dataArray.length; i++) {
-          let currentX = startXSpSalary + 3 + cellWidthSpSalary * 10;
-          let currentY = startY + i * verticalDistance + addmove;
-
-          // Calculate the product and convert it to a string
-          const product = (
-            sumArrayHoliday[i] *
-            (2 * (countalldaywork / 8))
-          ).toString();
-
-          doc.text(
-            sumArrayHoliday[i].toString(),
-            currentX + 2,
-            17.5 + currentY,
-            { align: "center" }
-          );
-          // doc.text(product, currentX + 2, 3 + currentY + 3, { align: 'center' });
-        }
-      };
-
-      // รวมช.ม.ทำงาน3
-      const drawArrayTextSumWorkHoliday3 = (dataArray, sumArrayHoliday) => {
-        for (let i = 0; i < dataArray.length; i++) {
-          let currentX = startXSpSalary + 3 + cellWidthSpSalary * 10;
-          let currentY = startY + i * verticalDistance + addmove;
-
-          // Calculate the product and convert it to a string
-          const product = (
-            sumArrayHoliday[i] *
-            (2 * (countalldaywork / 8))
-          ).toString();
-
-          doc.text(sumArrayHoliday[i].toString(), currentX + 2, 21 + currentY, {
-            align: "center",
-          });
-          // doc.text(product, currentX + 2, 3 + currentY + 3, { align: 'center' });
-        }
-      };
-
-      // ผลรวมวันทำงานวันหยุดนักขัตฤกษ์OT
-      const drawArrayTextSumWorkOTHoliday = (dataArray, sumArrayOTHoliday) => {
-        for (let i = 0; i < dataArray.length; i++) {
-          let currentX = startXSpSalary + 3 + cellWidthSpSalary * 4;
-          let currentY = startY + i * verticalDistance + addmove;
-
-          // Calculate the product and convert it to a string
-          const product = (
-            sumArrayOTHoliday[i] *
-            (3 * (countalldaywork / 8))
-          ).toString();
-
-          doc.text(
-            sumArrayOTHoliday[i].toString(),
-            currentX + 2,
-            3 + currentY,
-            { align: "center" }
-          );
-          doc.text(product, currentX + 2, 3 + currentY + 3, {
-            align: "center",
-          });
-        }
-      };
-
-      // const drawArrayTextAddSalary = (dataArray) => {
-      //     for (let i = 0; i < dataArray.length; i++) {
-      //         let currentX = startXSpSalary + 3 + (cellWidthSpSalary * 5);
-      //         let currentY = startY;
-
-      //         for (let j = 0; j < dataArray[i].length; j++) {
-      //             const item = dataArray[i][j];
-
-      //             // Check if dataArray[i][j].name exists in filteredAddSalaryWorkplace
-      //             const position = filteredAddSalaryWorkplace.findIndex(
-      //                 (salaryItem) => salaryItem.name === item.name
-      //             );
-
-      //             // const product = (sumArray[i] * countalldaywork).toString();
-
-      //             // If the position is found, use it as x; otherwise, use a default value (e.g., 0)
-      //             const x = position !== -1 ? position : 0;
-
-      //             const text = `${item.SpSalary}`;
-      //             doc.text(text, currentX + 2 + (cellWidthSpSalary * x), 3 + currentY + i * verticalDistance, { align: 'center' });
-      //             // currentX += cellWidthSpSalary;
-      //         }
-      //     }
-      // };
-
-      // const drawArrayTextSumWorkTest = (dataArray, sumArraySumarrayAllHoloday) => {
-      //     for (let i = 0; i < dataArray.length; i++) {
-      //         let currentX = startXSpSalary + 3 + (cellWidthSpSalary * 5);
-      //         let currentY = startY + i * verticalDistance + addmove;
-
-      //         // Calculate the product and convert it to a string
-      //         doc.text(sumArraySumarrayAllHoloday[i].toString(), currentX + 2, 3 + currentY, { align: 'center' });
-      //     }
-      // };
-
-      // sumArrayHoliday
-      // sumArrayHoli
-      // sumArray
-
-      // const drawArrayTextAddSalary2 = (dataArray, filteredAddSalaryWorkplace, sumArraySumarrayAllHoloday) => {
-      //     for (let i = 0; i < dataArray.length; i++) {
-      //         let currentX = startXSpSalary + 3 + (cellWidthSpSalary * 5);
-      //         let currentY = startY + addmove;
-
-      //         for (let j = 0; j < dataArray[i].length; j++) {
-      //             const item = dataArray[i][j];
-
-      //             // Check if dataArray[i][j].name exists in filteredAddSalaryWorkplace
-      //             const salaryItem = filteredAddSalaryWorkplace.find(salary => salary.name === item.name);
-
-      //             if (salaryItem) {
-      //                 // If roundOfSalary is "daily", multiply SpSalary by the corresponding value in sumArraySumarrayAllHoloday
-      //                 // If roundOfSalary is "monthly", keep SpSalary as is
-      //                 const adjustedSpSalary = salaryItem.roundOfSalary === 'daily' ?
-      //                     salaryItem.SpSalary * sumArraySumarrayAllHoloday[i] :
-      //                     salaryItem.SpSalary;
-
-      //                 const text = `${adjustedSpSalary}`;
-      //                 doc.text(text, currentX + 2, 3 + currentY + i * verticalDistance, { align: 'center' });
-      //             }
-
-      //             currentX += cellWidthSpSalary;
-      //         }
-      //     }
-      // };
-
-      // Use drawArrayTextAddSalary2 with the appropriate slices
-
-      const drawArrayTextName = (dataArray) => {
-        for (let i = 0; i < dataArray.length; i++) {
-          let currentX = startX - 20;
-          let currentY = startY + i * verticalDistance;
-
-          for (let j = 0; j < dataArray[i].length; j++) {
-            let xAdjustment = 0;
-            let yAdjustment = 0;
-
-            if (j === 0) {
-              xAdjustment = -20;
-            }
-            if (j === 1) {
-              xAdjustment = +10;
-              yAdjustment = -3.5;
-            }
-            if (j === 2) {
-              xAdjustment = +15;
-              // yAdjustment = -3.5;
-            }
-            if (j === 3) {
-              xAdjustment = +15;
-              // yAdjustment = -3.5;
-            }
-
-            if (j === 4) {
-              yAdjustment = 10.5;
-            }
-            doc.text(
-              dataArray[i][j].toString(),
-              // currentX + (j === 1 ? 0 : -10 || j === 0 ? -8 : 0 || j === 2 ? 5 : 0),  // Adjust the X-coordinate for the first row
-              // 3 + currentY + (j === 2 ? -3.5 : 0 || j === 3 ? -3.5 : 0),  // Adjust the Y-coordinate for the second row
-              currentX + xAdjustment, // Adjust the X-coordinate for the first row
-              yAdjustment + currentY + 3, // Adjust the Y-coordinate for the second row
-              { align: "left" }
-            );
-            currentY += 3.5;
-          }
-        }
-      };
-
-      // doc.addPage();
-      // const lineHeight = 10;
-
-      // const drawArray = (array, startY) => {
-      //     for (let i = 0; i < array.length; i++) {
-      //         if (i === 0) {
-      //             const text = array[i].join(' ');
-      //             const y = startY + i * lineHeight;
-      //             doc.text(text, 10, y);
-      //         } else {
-      //             const text = '(' + array[i].join(')') + '(';
-      //             const y = startY + i * lineHeight;
-      //             doc.text(text, 10, y);
-      //         }
-      //     }
-      // };
-
-      // drawArray(arraylistNameEmp, startY);
-
-      // drawArrayText(arraytest);
-      // for (let dataarray = 0; dataarray < arraytest.length; dataarray += 6) {
-
-      //     const title = ' ใบลงเวลาการปฏิบัติงาน';
-
-      //     doc.setFont('THSarabunNew');
-      //     doc.setFontSize(16);
-      //     const titleWidth = doc.getStringUnitWidth(title) * doc.internal.getFontSize() / doc.internal.scaleFactor;
-      //     const pageWidth = doc.internal.pageSize.getWidth();
-      //     const titleX = (pageWidth - titleWidth) / 2;
-      //     doc.text(title, titleX, 10);
-
-      //     // const titleY = (doc.internal.pageSize.getHeight() - titleWidth) / 2;
-
-      //     doc.text(title, titleX, 30, { angle: 90 });
-
-      //     const subTitle = workMonth; // Replace with your desired subtitle text
-      //     doc.setFontSize(12); // You can adjust the font size for the subtitle
-      //     const subTitleWidth = doc.getStringUnitWidth(subTitle) * doc.internal.getFontSize() / doc.internal.scaleFactor;
-      //     const subTitleX = (pageWidth - subTitleWidth) / 2;
-      //     // doc.text(subTitle, subTitleX, 20); // Adjust the vertical position as needed
-
-      //     // Convert the table to a PDF using jsPDF and jsPDF-AutoTable
-
-      //     // doc.autoTable({
-      //     //     html: table,
-      //     //     styles: stylestable,
-      //     //     margin: { top: 30 },
-      //     // });
-      //     doc.text('จำนวนวัน' + daysInMonth, 10, 10);
-
-      //     // const CheckMonth = 2;
-      //     // const CheckYear = 2023;
-
-      //     // const daysInMonth = getDaysInMonth(CheckMonth, CheckYear);
-
-      //     // doc.text('จำนวนวัน' + daysInMonth, 10, 10);
-      //     doc.setFontSize(8);
-      //     doc.text(title, 171, 55, { angle: 90 });
-
-      //     const pageStartIndex = dataarray;
-      //     const pageEndIndex = Math.min(dataarray + 6, arraytest.length);
-
-      //     for (let i = 0; i < 6; i++) {
-      //         drawTableTop();
-      //         drawTableLeftHeadTop();
-      //         drawTableNumHeadTop();
-      //         drawTableSpSalaryTop();
-      //         drawTableMessTop();
-
-      //         // drawTable(i);
-      //         drawTableLeftHead(i);
-      //         drawTableNumHead(i);
-      //         drawTableSpSalary(i);
-      //         drawTableMess(i);
-      //         // roundpage++
-      //     }
-      //     drawArrayText(arraytest.slice(pageStartIndex, pageEndIndex));
-      //     doc.addPage();
-      // }
-      const title = "บริษัท โอวาท โปร แอนด์ ควิก จำกัด";
-      const subTitle = "ใบแสดงเวลาปฏิบัติงาน"; // Replace with your desired subtitle text
-      const TriTitle = "หน่วยงาน " + searchWorkplaceName; // Replace with your desired subtitle text
-
-      const alldaywork = "รวมวันทำงาน";
-      const countalldaywork = "";
-
-      const alldayworkHoliday = "รวมชั่วโมงทำงาน";
-      const countalldayworkHoliday = "";
-      const workOt = "1.5";
-      const workOt2 = "2";
-      const workOt3 = "3";
-
-      // if (daysInMonth === 28) {
-      //     startXMess = 245.5;
-      // } else if (daysInMonth === 29) {
-      //     startXMess = 249.5;
-      // } else if (daysInMonth === 30) {
-      //     startXMess = 253.75;
-      // } else if (daysInMonth === 31) {
-      //     startXMess = 257.75;
-      // };
-      const countalldayworkX = "340";
-      const countalldayworkY = "340";
-
-      const startDay = 21;
-      // Create an array from startDay to daysInMonth
-      const firstPart = Array.from(
-        { length: daysInMonth - startDay + 1 },
-        (_, index) => startDay + index
-      );
-
-      // Create an array from 1 to 20
-      const secondPart = Array.from({ length: 20 }, (_, index) => index + 1);
-
-      // Concatenate the two arrays
-      const resultArray = [...firstPart, ...secondPart];
-
-      const spaceWidth = 10;
-
-      const makePage = Math.ceil(arrayWorkNormalDay.length / 5);
-
-      for (let pageIndex = 0; pageIndex < makePage; pageIndex++) {
-        doc.setFont("THSarabunNew");
-        doc.setFontSize(16);
-        const titleWidth =
-          (doc.getStringUnitWidth(title) * doc.internal.getFontSize()) /
-          doc.internal.scaleFactor;
-        const pageWidth = doc.internal.pageSize.getWidth();
-        const titleX = (pageWidth - titleWidth) / 2;
-        doc.text(title, titleX, 10);
-
-        // const titleY = (doc.internal.pageSize.getHeight() - titleWidth) / 2;
-
-        // doc.text(title, titleX, 30, { angle: 90 });
-
-        doc.setFontSize(12); // You can adjust the font size for the subtitle
-        const subTitleWidth =
-          (doc.getStringUnitWidth(subTitle) * doc.internal.getFontSize()) /
-          doc.internal.scaleFactor;
-        const subTitleX = (pageWidth - subTitleWidth) / 2;
-        doc.text(subTitle, subTitleX, 15); // Adjust the vertical position as needed
-
-        doc.setFontSize(12); // You can adjust the font size for the subtitle
-        const TriTitleWidth =
-          (doc.getStringUnitWidth(TriTitle) * doc.internal.getFontSize()) /
-          doc.internal.scaleFactor;
-        const TriTitleX = (pageWidth - TriTitleWidth) / 2;
-        doc.text(TriTitle, TriTitleX, 20); // Adjust the vertical position as needed
-
-        // Convert the table to a PDF using jsPDF and jsPDF-AutoTable
-
-        // doc.autoTable({
-        //     html: table,
-        //     styles: stylestable,
-        //     margin: { top: 30 },
-        // });
-        function getDaysInMonth(month, year) {
-          // Months are 0-based, so we subtract 1 from the provided month
-          const lastDayOfMonth = new Date(year, month, 0).getDate();
-          return lastDayOfMonth;
-        }
-
-        // const CheckMonth = 2;
-        // const CheckYear = 2023;
-
-        // const daysInMonth = getDaysInMonth(CheckMonth, CheckYear);
-
-        // doc.text('จำนวนวัน' + daysInMonth, 10, 10);
-        doc.setFontSize(12);
-        // doc.text(title, 171, 55, { angle: 90 });
-
-        // const CheckMonth = 3;
-        // const CheckYear = 2023;
-
-        // const daysInMonth = getDaysInMonth(CheckMonth, CheckYear);
-
-        // workplaceDataListAddSalary.map(item => item.SpSalary);
-        const workplaceid = workplaceDataList.map((item) => item.workplaceId);
-        doc.text("แผนก " + workplaceid, 250, 10);
-        doc.setFontSize(8);
-
-        const pageStartIndex = pageIndex * 5;
-        const pageEndIndex = Math.min((pageIndex + 1) * 5, arraytest.length);
-
-        const squareColor2 = [255, 255, 190]; // Red
-
-        doc.setFillColor(...squareColor2);
-
-        // Draw a square with the specified size and color
-        // doc.rect(startX, startYTop, cellWidth - 0.2, cellHeightTop, 'F');
-
-        // for (let i = 0; i < resultArray.length; i++) {
-        //     const currentNumber = resultArray[i];
-
-        //     if (holidayList.includes(currentNumber) || allDayOff.includes(currentNumber)) {
-        //         // Set loop position color
-        //         doc.rect(startX + i * cellWidth, startYTop + 80, cellWidth - 0.2, cellHeightTop, 'F');
-        //     } else {
-        //         // Set default color or do nothing
-        //     }
-        // }
-
-        // for (let i = pageStartIndex; i < pageEndIndex; i++) {
-        //     const rowData = arrayWorkNormalDay[i];
-        //     const color = i % 2 === 0 ? [240, 240, 100] : [255, 255, 255]; // Alternate row colors
-
-        //     drawArrayTextWithColor(rowData, color, i - pageStartIndex);
-
-        // }
-
-        const pageStartIndexName = pageIndex * 5;
-        const pageEndIndexName = Math.min(
-          (pageIndex + 1) * 5,
-          arrayWorkNormalDay.length
-        );
-        drawArrayTextName(arraylistNameEmp.slice(pageStartIndex, pageEndIndex));
-
-        const squareColor = [255, 255, 0]; // Red
-        doc.setFillColor(...squareColor);
-
-        for (let i = 0; i < resultArray.length; i++) {
-          const currentNumber = resultArray[i];
-
-          if (
-            holidayList.includes(currentNumber) ||
-            allDayOff.includes(currentNumber)
-          ) {
-            // Set loop position color
-            doc.rect(
-              startX + i * cellWidth,
-              startYTop,
-              cellWidth - 0.2,
-              cellHeightTop,
-              "F"
-            );
-          } else {
-            // Set default color or do nothing
-          }
-        }
-
-        for (let i = 0; i < resultArray.length; i++) {
-          const x = startX + i * cellWidth;
-          doc.text(
-            resultArray[i].toString(),
-            x + 1,
-            cellHeightTop + startYTop - 2
-          );
-        }
-
-        doc.text("ลำดับ", startXNumHead + 2, cellHeightTop + startYTop - 2);
-        doc.text(
-          "ชื่อ - นามสกุล",
-          startXLeftHead + 10,
-          cellHeightTop + startYTop - 2
-        );
-
-        doc.setFontSize(12);
-        // let startXHeadTable; // Declare startXSpSalary before using it
-
-        // if (daysInMonth === 28) {
-        //     startXHeadTable = 0;
-        // } else if (daysInMonth === 29) {
-        //     startXHeadTable = 3;
-        // } else if (daysInMonth === 30) {
-        //     startXHeadTable = 6;
-        // } else if (daysInMonth === 31) {
-        //     startXHeadTable = 9;
-        // };
-        const period =
-          "งวดวันที่ 21 " +
-          thaiMonthNameLower +
-          " - 20 " +
-          thaiMonthName +
-          " พ.ศ. " +
-          yearThai;
-        const periodWidth =
-          (doc.getStringUnitWidth(period) * doc.internal.getFontSize()) /
-          doc.internal.scaleFactor;
-        const periodX = (pageWidth - periodWidth) / 2;
-        doc.text(period, periodX, startYTop - 2); // Adjust the vertical position as needed
-        // doc.text(period, (startXSpSalary - 10), startYTop - 2);
-        doc.setFontSize(8);
-
-        // doc.text('โอที', startXSpSalary + (cellWidthSpSalary * 2) + 3, startYTop + 3);
-        // doc.text('สวัสดีการ', startXSpSalary + (cellWidthSpSalary * 5) + 3, startYTop + 3);
-
-        // doc.text('หักประกันสังคม 5%', startXMess - 5, cellHeightTop + startYTop - 1, { angle: 90 });
-
-        doc.text("หมายเหตุ", startXMess + 3, cellHeightTop + startYTop - 2);
-
-        // startXSpSalary + j * cellWidthSpSalary;
-        // const y = startYTop
-
-        for (let i = 0; i < 5; i++) {
-          const dataIdx = pageIndex * 5 + i;
-          if (dataIdx < arrayWorkNormalDay.length) {
-            // Set the color of the square (RGB values)
-            const squareColor = [255, 255, 0]; // Red
-
-            // Set the position where you want to place the square
-            const xPosition = 165.5;
-            const yPosition = 30;
-
-            // Set the fill color
-            doc.setFillColor(...squareColor);
-
-            // Draw a square with the specified size and color
-            doc.rect(
-              startXSpSalary + cellWidthSpSalary * 8,
-              startYTop,
-              cellWidthSpSalary * numColsSpSalary - 0.2,
-              cellHeightTop,
-              "F"
-            );
-
-            doc.text(
-              alldaywork + " " + countalldaywork,
-              5 + startXSpSalary + cellWidthSpSalary * 8,
-              54.8,
-              { angle: 90 }
-            );
-            doc.text(
-              alldayworkHoliday + " " + countalldayworkHoliday,
-              5 + startXSpSalary + cellWidthSpSalary * 9,
-              54.8,
-              { angle: 90 }
-            );
-
-            doc.text(
-              "รวมชั่วโมงโอทีวันหยุด",
-              3 + startXSpSalary + cellWidthSpSalary * 10,
-              54.8,
-              { angle: 90 }
-            );
-            // doc.text('รวมชั่วโมงโอที' + ' ' + workOt2 + 'เท่า', 3 + startXSpSalary + (cellWidthSpSalary * 10), 54.8, { angle: 90 });
-
-            // doc.text('วันนักขัตฤกษ์' + ' ' + workOt2 + 'เท่า', 3 + startXSpSalary + (cellWidthSpSalary * 2), 54.8, { angle: 90 });
-
-            // for (let i = 0; i < workplaceDataListAddSalary.length; i++) {
-            //     let currentX = startXSpSalary + 5 + (cellWidthSpSalary * 5) + (i * cellWidthSpSalary);
-            //     let currentY = startY + verticalDistance + addmove;
-
-            //     const item = workplaceDataListAddSalary[i];
-
-            //     // Display the name and SpSalary
-            //     doc.text(`${item.name}`, currentX + 2, 54.8, { align: 'center', angle: 90 });
-            //     doc.text(`${item.SpSalary} .-`, currentX + 5, 54.8, { align: 'center', angle: 90 });
-
-            // }
-            // doc.text((340 * workOt2) / 8 + ' .-', 7 + startXSpSalary + (cellWidthSpSalary * 2), 54.8, { angle: 90 });
-
-            // doc.text('โอที' + ' ' + workOt + 'เท่า', 3 + startXSpSalary + (cellWidthSpSalary * 3), 54.8, { angle: 90 });
-            // doc.text((340 * workOt) / 8 + ' .-', 7 + startXSpSalary + (cellWidthSpSalary * 3), 54.8, { angle: 90 });
-
-            // doc.text('โอที' + ' ' + workOt3 + 'เท่า', 3 + startXSpSalary + (cellWidthSpSalary * 4), 54.8, { angle: 90 });
-            // doc.text((340 * workOt3) / 8 + ' .-', 7 + startXSpSalary + (cellWidthSpSalary * 4), 54.8, { angle: 90 });
-
-            // doc.text(filteredAddSalaryWorkplace, 171, 54, { angle: 90 });
-            // filteredAddSalaryWorkplace.forEach((item, index) => {
-            //     const NameSp = `${item.name} ${item.SpSalary}`;
-            //     let roundOfSalaryText = '';
-
-            //     if (item.roundOfSalary === 'monthly') {
-            //         roundOfSalaryText = 'เดือน';
-            //     } else if (item.roundOfSalary === 'daily') {
-            //         roundOfSalaryText = 'วัน';
-            //     } doc.text(NameSp, 5 + (cellWidthSpSalary * 5) + startXSpSalary + index * (cellWidthSpSalary), 54.8, { angle: 90 });
-            //     doc.text('ต่อ ' + roundOfSalaryText, 8 + (cellWidthSpSalary * 5) + startXSpSalary + index * (cellWidthSpSalary), 54.8, { angle: 90 });
-            // });
-
-            drawTableTop();
-            drawTableTopHead();
-            drawTableLeftHeadTop();
-            drawTableNumHeadTop();
-            drawTableSpSalaryTop();
-            // drawTableSpSalaryHeadTop();
-            // drawTableMessTop();
-
-            // drawTableOT();
-            // drawTableOT(arraylistOT);
-
-            // drawTableOT(arraylistOT);
-
-            // for (let i = pageStartIndex; i < pageEndIndex; i++) {
-            const rowData = arrayWorkNormalDay[i];
-
-            // Draw text with color for each column
-            for (let j = 0; j < resultArray.length; j++) {
-              drawArrayTextWithColor([rowData[j]], j, i);
-            }
-            // }
-            drawTable(i, arrayWorkNormalDay.slice(dataIdx, dataIdx + 1));
-            drawTableLeftHead(
-              i,
-              arrayWorkNormalDay.slice(dataIdx, dataIdx + 1)
-            );
-            drawTableNumHead(i, arrayWorkNormalDay.slice(dataIdx, dataIdx + 1));
-            drawTableSpSalary(
-              i,
-              arrayWorkNormalDay.slice(dataIdx, dataIdx + 1)
-            );
-
-          }
-        }
-
-        drawArrayTextAllTime(arrayAllTime.slice(pageStartIndex, pageEndIndex));
-
-        // drawArrayTextOT(arrayWorkOTNormalDay.slice(pageStartIndex, pageEndIndex));
-        // 1.5
-        drawArrayTextHoli(newAllTimes2.slice(pageStartIndex, pageEndIndex));
-        drawArrayTextHoli(newOtTimes.slice(pageStartIndex, pageEndIndex));
-
-        // 2
-        drawArrayTextHoliday(newAllTimes3.slice(pageStartIndex, pageEndIndex));
-        drawArrayTextHoliday(newOtTimes2.slice(pageStartIndex, pageEndIndex));
-        // 3
-        drawArrayTextOTHoliday(newOtTimes3.slice(pageStartIndex, pageEndIndex));
-
-        drawArrayNumHead(
-          arrayWorkHoliday.slice(pageStartIndex, pageEndIndex),
-          indexArray.slice(pageStartIndex, pageEndIndex)
-        );
-        //วันเต็ม
-        // drawArrayTextSumWork(arrayWorkNormalDay.slice(pageStartIndex, pageEndIndex), sumArray.slice(pageStartIndex, pageEndIndex));
-        //วันหารชั่วโมง+สักอย่าง
-        // drawArrayTextSumWork(arrayWorkNormalDay.slice(pageStartIndex, pageEndIndex), sumArraySumarrayAllHolioday.slice(pageStartIndex, pageEndIndex));
-
-        //วันหารชั่วโมง //วันเต็มทั้งหมด
-        // drawArrayTextSumWork(arrayWorkNormalDay.slice(pageStartIndex, pageEndIndex), dividedArray.slice(pageStartIndex, pageEndIndex));
-        // countDay
-        drawArrayTextSumWork(
-          arrayWorkNormalDay.slice(pageStartIndex, pageEndIndex),
-          countDay.slice(pageStartIndex, pageEndIndex)
-        );
-
-        // drawArrayTextSumWorkOT(arrayWorkNormalDay.slice(pageStartIndex, pageEndIndex), sumArrayOT.slice(pageStartIndex, pageEndIndex));
-        // // รวมช.ม.ที่งานไม่รวมOT
-        // drawArrayTextSumWorkHoli(arrayWorkHoli.slice(pageStartIndex, pageEndIndex), sumArrayAllTime.slice(pageStartIndex, pageEndIndex));
-        drawArrayTextSumWorkHoli(
-          arrayWorkHoli.slice(pageStartIndex, pageEndIndex),
-          sumArrayAllHourWork.slice(pageStartIndex, pageEndIndex)
-        );
-
-        drawArrayTextSumWorkHoliday(
-          arrayWorkHoliday.slice(pageStartIndex, pageEndIndex),
-          sumArrayOTAllTime.slice(pageStartIndex, pageEndIndex)
-        );
-
-        // 1.5
-        // drawArrayTextSumWorkHoliday1q5(arrayWorkHoliday.slice(pageStartIndex, pageEndIndex), sumHoliAllTime.slice(pageStartIndex, pageEndIndex));
-        // sumArrayTotal
-        drawArrayTextSumWorkHoliday1q5(
-          arrayWorkHoliday.slice(pageStartIndex, pageEndIndex),
-          sumArrayTotal.slice(pageStartIndex, pageEndIndex)
-        );
-
-        // 2
-        // drawArrayTextSumWorkHoliday2(arrayWorkHoliday.slice(pageStartIndex, pageEndIndex), sumArrayHoliday.slice(pageStartIndex, pageEndIndex));
-        drawArrayTextSumWorkHoliday2(
-          arrayWorkHoliday.slice(pageStartIndex, pageEndIndex),
-          sumArrayHoliday.slice(pageStartIndex, pageEndIndex)
-        );
-
-        // 3
-        drawArrayTextSumWorkHoliday3(
-          arrayWorkHoliday.slice(pageStartIndex, pageEndIndex),
-          sumArrayOTHoliday.slice(pageStartIndex, pageEndIndex)
-        );
-        // drawArrayTextSumWorkOTHoliday(arrayWorkOTHoliday.slice(pageStartIndex, pageEndIndex), sumArrayOTHoliday.slice(pageStartIndex, pageEndIndex));
-
-        // resultArraySumAddSalary
-        // drawArrayTextAddSalary(resultArraySumAddSalary.slice(pageStartIndex, pageEndIndex));
-
-        // drawArrayTextSumWorkAddSalary(filteredAddSalaryWorkplace.slice(pageStartIndex, pageEndIndex));
-        // drawArrayTextAddSalary(extractedDataAddSalary.slice(pageStartIndex, pageEndIndex), sumArray.slice(pageStartIndex, pageEndIndex));
-
-        // drawArrayTextSumWorkTest(filteredAddSalaryWorkplace.slice(pageStartIndex, pageEndIndex), sumArray.slice(pageStartIndex, pageEndIndex));
-        // drawArrayTextSumWorkTest(sumArraySumarrayAllHoloday.slice(pageStartIndex, pageEndIndex), sumArray.slice(pageStartIndex, pageEndIndex));
-        // สวัสดิการ
-        // drawArrayTextSumWorkTest(sumArraySumarrayAllHoloday.slice(pageStartIndex, pageEndIndex), sumArraySumarrayAllHoloday.slice(pageStartIndex, pageEndIndex));
-
-        // drawArrayTextAddSalary(arraytest.slice(pageStartIndex, pageEndIndex), extractedDataAddSalary.slice(pageStartIndex, pageEndIndex));
-        // drawArrayTextAddSalary(extractedDataAddSalary.slice(pageStartIndex, pageEndIndex));
-
-        // drawArrayText(arraytest, pageIndex * 6, Math.min((pageIndex + 1) * 6, arraytest.length));
-
-        // for (let dataarray = 0; dataarray < arraytest.length; dataarray += 6) {
-        //     const pageStartIndex = dataarray;
-        //     const pageEndIndex = Math.min(dataarray + 6, arraytest.length);
-        //     drawArrayText(arraytest.slice(pageStartIndex, pageEndIndex));
-        // }
-
-        // for (let pageIndex = 0; pageIndex < makePage; pageIndex++)
-        const formattedDate = workDate.toLocaleDateString("en-GB"); // Use 'en-GB' to get the "day/month/year" format
-
-        doc.text(
-          codePage +
-          "" +
-          formattedDate +
-          "" +
-          (pageIndex + 1) +
-          " of " +
-          makePage,
-          250,
-          210
-        );
-
-        if (pageIndex < makePage - 1) {
-          doc.addPage();
-        }
-        // doc.text('pageStartIndex', 10 + 10, 10 + 10 - 2);
-
-        // doc.addPage();
-      }
-      // If an error occurs, throw an exception
-      // doc.save('your_table.pdf');
-      const pdfContent = doc.output("bloburl");
-      window.open(pdfContent, "_blank");
-    } catch (error) {
-      // Display an alert with the error message
-      alert(`Error: ${error.message}`);
-
-      // Optionally, log the error to the console
-      console.error(error);
-
-      // If you want to prevent the page from reloading, you can return or throw the error
-      // throw error;
-      // return;
-    }
-  };
-
-  //////////////////////////////////////////////////
-
-  const generatePDFTest123Old = (event) => {
-    event.preventDefault();
-    try {
-      // Your code here
-      // handleEmployeeFilter();
-      const doc = new jsPDF({
-        orientation: "landscape",
-        unit: "mm",
-        format: "a4",
-      });
-      const table = tableRef.current;
-      const fontPath = "/assets/fonts/THSarabunNew.ttf";
-
-      doc.addFileToVFS(fontPath);
-      doc.addFont(fontPath, "THSarabunNew", "normal");
-
-      // Override the default stylestable for jspdf-autotable
-      const stylestable = {
-        font: "THSarabunNew",
-        fontStyle: "normal",
-        fontSize: 10,
-      };
-
-      const arraytestSpSalary = [
-        [
-          "",
-          2,
-          2,
-          2,
-          2,
-          2,
-          2,
-          2,
-          2,
-          2,
-          2,
-          2,
-          2,
-          2,
-          2,
-          2,
-          2,
-          2,
-          2,
-          2,
-          2,
-          2,
-          2,
-          2,
-          0.5,
-        ],
-        [2, 2, 2, 2, 2, "", 2, "", 2],
-        [2, "", 2, 2, "", 2, 3, "", 3, 3],
-        [3, 3, 3, "", 3, 3, 3, 3],
-        [3, "", 3, "", 3, 3, 3, 1, "", 1],
-        [3, 3, "", 1, 1, "", 1, 3, 3],
-        [3, 3, "", 3, "", 3, 3, 3, 3, "", 1, "", 1, 0.5, 0.5, 1.5],
-      ];
-
-      const arraylistOT = ["1.5", "2", "3"];
-
-      // const arrayLength = arraylistNameEmp.length;
-      const arrayLength = 9;
-      // Set title with the Thai font
-      // const makePage = Math.ceil(arrayLength / 6);
-      let roundpage = 0;
-
-      // for (let page = 0; page < makePage; page++) {
-      // doc.text(subTitle, subTitleX, 20); // Adjust the vertical position as needed
-
-      // Convert the table to a PDF using jsPDF and jsPDF-AutoTable
-
-      // doc.autoTable({
-      //     html: table,
-      //     styles: stylestable,
-      //     margin: { top: 30 },
-      // });
-
-      // doc.text('จำนวนวัน' + daysInMonth, 10, 10);
-      doc.setFontSize(8);
-      // doc.text(title, 171, 55, { angle: 90 });
-
-      // const CheckMonth = 2;
-      // const CheckYear = 2023;
-
-      // const daysInMonth = getDaysInMonth(CheckMonth, CheckYear);
-      // const daysInMonth = 30;
-      // doc.text('จำนวนวัน' + daysInMonth, 10, 10);
-
-      const numRows = 7;
-      const numCols = daysInMonth;
-      const cellWidth = 4.125;
-      const cellHeight = 3.5;
-      const startX = 35; // Adjust the starting X-coordinate as needed
-      const startY = 55; // Adjust the starting Y-coordinate as needed
-      const borderWidth = 0.5; // Adjust the border width as needed
-
-      // Function to draw a cell with borders
-      const drawCell = (x, y, width, height) => {
-        doc.rect(x, y, width, height);
-      };
-
-      // Function to draw the entire table
-      // const drawTable = () => {
-      //     for (let i = 0; i < numRows; i++) {
-      //         for (let j = 0; j < numCols; j++) {
-      //             const x = startX + j * cellWidth;
-      //             const y = startY + i * cellHeight;
-      //             drawCell(x, y, cellWidth, cellHeight);
-      //         }
-      //     }
-      // };
-
-      // const drawTable = (tableNumber) => {
-      //     for (let i = 0; i < numRows; i++) {
-      //         for (let j = 0; j < numCols; j++) {
-      //             const x = startX + j * cellWidth;
-      //             const y = startY + i * cellHeight + tableNumber * (numRows * cellHeight + 0.2);
-      //             drawCell(x, y, cellWidth, cellHeight);
-      //         }
-      //     }
-      // };
-      // const additionalHeight = 3;
-
-      const drawTable = (tableNumber) => {
-        for (let i = 0; i < numRows; i++) {
-          for (let j = 0; j < numCols; j++) {
-            const x = startX + j * cellWidth;
-            const y =
-              startY +
-              i * cellHeight +
-              tableNumber * (numRows * cellHeight + 3.7);
-            // Increase the height for the first row
-            const adjustedCellHeight = i === 0 ? cellHeight * 2 : cellHeight;
-            // const adjustedCellY = i === 0 ? y : y * 2;
-
-            if (i === 0) {
-              drawCell(x, y, cellWidth, adjustedCellHeight);
-            } else {
-              drawCell(x, y + cellHeight, cellWidth, adjustedCellHeight);
-            }
-            // drawCell(x, y , cellWidth, adjustedCellHeight);
-          }
-        }
-      };
-
-      const drawArrayNumHead = (dataArray, indexArray) => {
-        for (let i = 0; i < dataArray.length; i++) {
-          let currentX = startXNumHead + 3;
-          let currentY = startY + i * verticalDistance + addmove;
-
-          // Calculate the product and convert it to a string
-          const product = (
-            indexArray[i] *
-            (2 * (countalldaywork / 8))
-          ).toString();
-
-          doc.text(indexArray[i].toString(), currentX + 2, currentY, {
-            align: "center",
-          });
-          // doc.text(product, currentX + 2, 3 + currentY + 3, { align: 'center' });
-        }
-      };
-
-      const numRowsLeftHead = 7;
-      const numColsLeftHead = 1;
-      const cellWidthLeftHead = 30;
-      const cellHeightLeftHead = 3.5;
-      const startXLeftHead = 5; // Adjust the starting X-coordinate as needed
-      // const startYLeftHead = 20; // Adjust the starting Y-coordinate as needed
-      const borderWidthLeftHead = 0.5; // Adjust the border width as needed
-
-      // 02/04/2024
-      // const drawTableLeftHead = (tableNumber) => {
-      //     for (let i = 0; i < numRows; i++) {
-      //         for (let j = 0; j < numColsLeftHead; j++) {
-      //             const x = startXLeftHead + j * cellWidthLeftHead;
-      //             const y = startY + i * cellHeight + tableNumber * (numRows * cellHeight + 3.7);
-      //             // drawCell(x, y, cellWidthLeftHead, cellHeight);
-      //             const adjustedCellHeight = i === 0 ? cellHeight * 2 : cellHeight;
-
-      //             if (i === 0) {
-      //                 drawCell(x, y, cellWidthLeftHead, adjustedCellHeight);
-
-      //             } else {
-      //                 drawCell(x, y + cellHeight, cellWidthLeftHead, adjustedCellHeight);
-
-      //             }
-
-      //             if (i >= numRows - 3) {
-      //                 const arrayIndex = i - (numRows - 3); // 0 for the last row, 1 for the second last row
-      //                 if (arraylistOT[arrayIndex]) {
-      //                     const cellText = arraylistOT[arrayIndex].toString(); // Convert to string if needed
-      //                     doc.text("โอที " + cellText, x + 26, y - 1, { align: 'center' }); // Use the entire cellText
-      //                 }
-      //             }
-      //         }
-      //     }
-      // };
-
-      const drawTableLeftHead = (tableNumber) => {
-        for (let i = 0; i < 1; i++) {
-          for (let j = 0; j < numColsLeftHead; j++) {
-            const x = startXLeftHead + j * cellWidthLeftHead;
-            const y =
-              startY +
-              i * cellHeight +
-              tableNumber * (numRows * cellHeight + 3.7);
-            // drawCell(x, y, cellWidthLeftHead, cellHeight);
-            // const adjustedCellHeight = i === 0 ? cellHeight * 2 : cellHeight;
-            const adjustedCellHeight = cellHeight * 8;
-
-            // if (i === 0) {
-            //     drawCell(x, y, cellWidthLeftHead, adjustedCellHeight);
-
-            // } else {
-            //     drawCell(x, y + cellHeight, cellWidthLeftHead, adjustedCellHeight);
-
-            // }
-            drawCell(x, y, cellWidthLeftHead, adjustedCellHeight);
-
-            // if (i >= numRows - 3) {
-            //     const arrayIndex = i - (numRows - 3); // 0 for the last row, 1 for the second last row
-            //     if (arraylistOT[arrayIndex]) {
-            //         const cellText = arraylistOT[arrayIndex].toString(); // Convert to string if needed
-            //         doc.text("โอที " + cellText, x + 46, y + 2.5, { align: 'center' }); // Use the entire cellText
-            //     }
-            // }
-            const cellText0 = arraylistOT[0].toString(); // Convert to string if needed
-            const cellText1 = arraylistOT[1].toString(); // Convert to string if needed
-            const cellText2 = arraylistOT[2].toString(); // Convert to string if needed
-
-            doc.text("โอที " + cellText0, x + 26, y - 1 + 3.5 * 5, {
-              align: "center",
-            }); // Use the entire cellText
-            doc.text("โอที " + cellText1, x + 26, y - 1 + 3.5 * 6, {
-              align: "center",
-            }); // Use the entire cellText
-            doc.text("โอที " + cellText2, x + 26, y - 1 + 3.5 * 7, {
-              align: "center",
-            }); // Use the entire cellText
-          }
-        }
-      };
-
-      const numRowsNumHead = 7;
-      const numColsNumHead = 1;
-      const cellWidthNumHead = 8;
-      const cellHeightNumHead = 3.5;
-      const startXNumHead = 5; // Adjust the starting X-coordinate as needed
-      // const startYNumHead = 20; // Adjust the starting Y-coordinate as needed
-      const borderWidthNumHead = 0.5; // Adjust the border width as needed
-
-      //02/04/2024
-      // const drawTableNumHead = (tableNumber) => {
-      //     for (let i = 0; i < numRows; i++) {
-      //         for (let j = 0; j < numColsNumHead; j++) {
-      //             const x = startXNumHead + j * cellWidthNumHead;
-      //             const y = startY + i * cellHeight + tableNumber * (numRows * cellHeight + 3.7);
-      //             // drawCell(x, y, cellWidthNumHead, cellHeight);
-      //             const adjustedCellHeight = i === 0 ? cellHeight * 2 : cellHeight;
-
-      //             if (i === 0) {
-      //                 drawCell(x, y, cellWidthNumHead, adjustedCellHeight);
-
-      //             } else {
-      //                 drawCell(x, y + cellHeight, cellWidthNumHead, adjustedCellHeight);
-
-      //             }
-      //         }
-      //     }
-      // };
-
-      const drawTableNumHead = (tableNumber) => {
-        for (let i = 0; i < 1; i++) {
-          for (let j = 0; j < numColsNumHead; j++) {
-            const x = startXNumHead + j * cellWidthNumHead;
-            const y =
-              startY +
-              i * cellHeight +
-              tableNumber * (numRows * cellHeight + 3.7);
-            // drawCell(x, y, cellWidthNumHead, cellHeight);
-            // const adjustedCellHeight = i === 0 ? cellHeight * 2 : cellHeight;
-            const adjustedCellHeight = cellHeight * 8;
-
-            // if (i === 0) {
-            //     drawCell(x, y, cellWidthNumHead, adjustedCellHeight);
-
-            // } else {
-            //     drawCell(x, y + cellHeight, cellWidthNumHead, adjustedCellHeight);
-
-            // }
-            drawCell(x, y, cellWidthNumHead, adjustedCellHeight);
-          }
-        }
-      };
-
-      const numRowsSpSalary = 7;
-      const numColsSpSalary = 12;
-      const cellWidthSpSalary = 10;
-      const cellHeightSpSalary = 3.5;
-      const borderWidthSpSalary = 0.5; // Adjust the border width as needed
-
-      let startXSpSalary; // Declare startXSpSalary before using it
-
-      if (daysInMonth === 28) {
-        startXSpSalary = 150.5;
-      } else if (daysInMonth === 29) {
-        startXSpSalary = 154.5;
-      } else if (daysInMonth === 30) {
-        startXSpSalary = 158.75;
-      } else if (daysInMonth === 31) {
-        startXSpSalary = 162.75;
-      }
-
-      const drawTableSpSalary = (tableNumber) => {
-        for (let i = 0; i < numRows; i++) {
-          for (let j = 0; j < numColsSpSalary; j++) {
-            let x = startXSpSalary + j * cellWidthSpSalary;
-            const y =
-              startY +
-              i * cellHeight +
-              tableNumber * (numRows * cellHeight + 3.7);
-            const adjustedCellHeight = i === 0 ? cellHeight * 2 : cellHeight;
-
-            if (j > 2) {
-              x += 5; // Adjust x coordinate for columns after the 4th column
-            }
-
-            if (i === 0 && j < 2) {
-              drawCell(x, y, cellWidthSpSalary, cellHeight * 2);
-            } else if (i === 0 && j === 2) {
-              drawCell(x, y, cellWidthSpSalary + 5, adjustedCellHeight);
-            } else if (j === 2) {
-              drawCell(
-                x,
-                y + cellHeight,
-                cellWidthSpSalary + 5,
-                adjustedCellHeight
-              );
-            } else if (i === 0 && j > 2) {
-              drawCell(x, y, cellWidthSpSalary, adjustedCellHeight);
-            } else {
-              drawCell(
-                x,
-                y + cellHeight,
-                cellWidthSpSalary,
-                adjustedCellHeight
-              );
-            }
-          }
-        }
-      };
-
-      const numRowsMess = 7;
-      const numColsMess = 1;
-      const cellWidthMess = 15;
-      const cellHeightMess = 3.5;
-      let startXMess; // Declare startXSpSalary before using it
-
-      if (daysInMonth === 28) {
-        startXMess = 260.5;
-      } else if (daysInMonth === 29) {
-        startXMess = 264.5;
-      } else if (daysInMonth === 30) {
-        startXMess = 268.75;
-      } else if (daysInMonth === 31) {
-        startXMess = 272.75;
-      }
-      const borderWidthMess = 0.5;
-      const drawTableMess = (tableNumber, arraylistOT) => {
-        for (let i = 0; i < numRows; i++) {
-          for (let j = 0; j < numColsMess; j++) {
-            const x = startXMess + j * cellWidthMess;
-            const y =
-              startY +
-              i * cellHeight +
-              tableNumber * (numRows * cellHeight + 3.7);
-
-            // Draw the cell
-            // drawCell(x, y, cellWidthMess, cellHeight);
-            const adjustedCellHeight = i === 0 ? cellHeight * 2 : cellHeight;
-
-            if (i === 0) {
-              drawCell(x, y, cellWidthMess, adjustedCellHeight);
-            } else {
-              drawCell(x, y + cellHeight, cellWidthMess, adjustedCellHeight);
-            }
-
-            // Add text below the last two cells
-            // if (i >= numRows - 2) {
-            //     const arrayIndex = i - (numRows - 2); // 0 for the last row, 1 for the second last row
-            //     if (arraylistOT[arrayIndex]) {
-            //         const cellText = arraylistOT[arrayIndex].toString(); // Convert to string if needed
-            //         doc.text(cellText, x, y + cellHeight * (arrayIndex + 1), { align: 'center' });
-            //     }
-            // }
-          }
-        }
-      };
-
-      // const drawTableOT = (tableNumber, arraylistOT) => {
-      //     for (let i = 0; i < numRows; i++) {
-      //         for (let k = 0; k < arraylistOT.length; k++) {
-      //             const x = startXMess; // Adjust the starting X-coordinate as needed
-      //             const y = startY + i * cellHeight + tableNumber * (numRows * cellHeight + 0.2) + k * lineHeight;
-
-      //             doc.text('โอที ' + arraylistOT[k], x, y, { align: 'left' });
-      //         }
-      //     }
-      // };
-
-      const drawTableOT = (arraylistOT) => {
-        const startXOT = 10; // Adjust the starting X-coordinate for the OT text
-        let startYOT = 10; // Adjust the starting Y-coordinate for the OT text
-        const lineHeightOT = 10; // Adjust the vertical spacing between lines
-
-        for (let k = 0; k < arraylistOT.length; k++) {
-          doc.text("โอที " + arraylistOT[k], startXOT, startYOT);
-          startYOT += lineHeightOT; // Adjust the vertical spacing if needed
-        }
-      };
-
-      // Draw the table
-      // drawTable();
-      // for (let i = 0; i < arrayLength; i++) {
-
-      //     drawTable(i);
-      //     drawTableLeftHead(i);
-      //     drawTableNumHead(i);
-      //     drawTableSpSalary(i);
-      //     drawTableMess(i);
-      //     if ((i + 1) % 6 === 0 && i + 1 < arrayLength) {
-      //         doc.addPage(); // Add a new page after every 6 iterations
-      //     }
-      // }
-
-      // body table//////////////////////////////////////////////////////////////////////////////////////////////////////
-
-      const numRowsTop = 1;
-      const startXTop = 50; // Adjust the starting X-coordinate as needed
-      const startYTop = 30; // Adjust the starting Y-coordinate as needed
-      const cellHeightTop = 25;
-      const drawTableTop = () => {
-        for (let i = 0; i < numRowsTop; i++) {
-          for (let j = 0; j < numCols; j++) {
-            const x = startX + j * cellWidth;
-            const y = startYTop + i * cellHeightTop;
-            drawCell(x, y, cellWidth, cellHeightTop);
-          }
-        }
-      };
-
-      const numRowsTopHead = 1;
-      const startXTopHead = 1; // Adjust the starting X-coordinate as needed
-      const startYTopHead = 24; // Adjust the starting Y-coordinate as needed
-      const cellHeightTopHead = 6;
-      // const cellWidthTopHead = 200;
-      let cellWidthTopHead;
-      if (daysInMonth === 28) {
-        // 267
-        cellWidthTopHead = 270.5;
-      } else if (daysInMonth === 29) {
-        cellWidthTopHead = 274.5;
-      } else if (daysInMonth === 30) {
-        cellWidthTopHead = 278.5;
-      } else if (daysInMonth === 31) {
-        cellWidthTopHead = 282.5;
-      }
-
-      const drawTableTopHead = () => {
-        for (let i = 0; i < numRowsTopHead; i++) {
-          // for (let j = 0; j < numCols; j++) {
-          const x = startXNumHead + i * cellWidth;
-          const y = startYTopHead + i * cellHeightTopHead;
-          drawCell(x, y, cellWidthTopHead, cellHeightTopHead);
-          // }
-        }
-      };
-      const drawTableLeftHeadTop = () => {
-        for (let i = 0; i < numRowsTop; i++) {
-          for (let j = 0; j < numColsLeftHead; j++) {
-            const x = startXLeftHead + j * cellWidthLeftHead;
-            const y = startYTop + i * cellHeightTop;
-            drawCell(x, y, cellWidthLeftHead, cellHeightTop);
-          }
-        }
-      };
-      const drawTableNumHeadTop = () => {
-        for (let i = 0; i < numRowsTop; i++) {
-          for (let j = 0; j < numColsNumHead; j++) {
-            const x = startXNumHead + j * cellWidthNumHead;
-            const y = startYTop + i * cellHeightTop;
-            drawCell(x, y, cellWidthNumHead, cellHeightTop);
-          }
-        }
-      };
-      const drawTableSpSalaryTop = () => {
-        for (let i = 0; i < numRowsTop; i++) {
-          for (let j = 0; j < numColsSpSalary; j++) {
-            let x = startXSpSalary + j * cellWidthSpSalary;
-            const y = startYTop + i * cellHeightTop;
-
-            if (j > 2) {
-              x += 5; // Adjust x coordinate for columns after the 4th column
-            }
-
-            if (j == 2) {
-              drawCell(x, y, cellWidthSpSalary + 5, cellHeightTop);
-            } else {
-              drawCell(x, y, cellWidthSpSalary, cellHeightTop);
-            }
-            // drawCell(x, y, cellWidthSpSalary, cellHeightTop);
-          }
-        }
-      };
-      const drawTableSpSalaryHeadTop = () => {
-        for (let i = 0; i < numRowsTop; i++) {
-          for (let j = 0; j < numColsSpSalary - 2; j++) {
-            let x = startXSpSalary + j * cellWidthSpSalary;
-            const y = startYTop + i * 6;
-            // drawCell(x + cellWidthSpSalary, y + 4, cellWidthSpSalary, 6);
-            if (j > 1) {
-              x += 5; // Adjust x coordinate for columns after the 4th column
-            }
-            if (j == 1) {
-              drawCell(x + cellWidthSpSalary, y + 4, cellWidthSpSalary + 5, 6);
-            } else {
-              drawCell(x + cellWidthSpSalary, y + 4, cellWidthSpSalary, 6);
-            }
-          }
-        }
-      };
-
-      const drawTableMessTop = () => {
-        for (let i = 0; i < numRowsTop; i++) {
-          for (let j = 0; j < numColsMess; j++) {
-            const x = startXMess + j * cellWidthMess;
-            const y = startYTop + i * cellHeightTop;
-            drawCell(x, y, cellWidthMess, cellHeightTop);
-          }
-        }
-      };
-      const verticalDistance = 24.7 + cellHeight; // Set your desired vertical distance
-
-      // const drawArrayText = (dataArray) => {
-      //     const arrayText = dataArray.map(row => row.join(' ')).join('\n');
-      //     doc.text(arrayText, startX, startY, { align: 'left' });
-      // };
-
-      const calculateElementWidth = (element) => {
-        const fontSize = doc.internal.getFontSize();
-        const elementWidth =
-          (element.toString().length * fontSize) / doc.internal.scaleFactor;
-        return elementWidth;
-      };
-
-      // แสดงตารางวันทำงานธรรมดา
-      const drawArrayText = (dataArray) => {
-        for (let i = 0; i < dataArray.length; i++) {
-          // const arrayText = dataArray[i].join('      ');
-          // const arrayText = dataArray[i].join('     '); // Use spaces to mimic the width
-          let currentX = startX;
-          let currentY = startY + 3.7;
-
-          for (let j = 0; j < dataArray[i].length; j++) {
-            // const elementWidth = calculateElementWidth(dataArray[i][j]);
-            const textToDraw = dataArray[i][j].toString();
-            const alignment =
-              textToDraw.length > 3
-                ? { align: "left", angle: 90, xOffset: 5 }
-                : { align: "left" };
-
-            if (textToDraw.length > 3) {
-              doc.text(
-                textToDraw,
-                currentX + 2,
-                3 + currentY + i * verticalDistance,
-                alignment
-              );
-            } else {
-              doc.text(
-                textToDraw,
-                currentX + 1,
-                3 + currentY + i * verticalDistance,
-                alignment
-              );
-            }
-            // doc.text(textToDraw, currentX + 2, 3 + currentY + i * verticalDistance, alignment);
-            // currentX += elementWidth + cellWidth;
-            currentX += cellWidth;
-          }
-        }
-      };
-
-      const drawArrayTextAfternoon = (dataArray) => {
-        for (let i = 0; i < dataArray.length; i++) {
-          // const arrayText = dataArray[i].join('      ');
-          // const arrayText = dataArray[i].join('     '); // Use spaces to mimic the width
-          let currentX = startX;
-          let currentY = startY + 3.7 * 1.8;
-
-          for (let j = 0; j < dataArray[i].length; j++) {
-            // const elementWidth = calculateElementWidth(dataArray[i][j]);
-            const textToDraw = dataArray[i][j].toString();
-            const alignment =
-              textToDraw.length > 3
-                ? { align: "left", angle: 90, xOffset: 5 }
-                : { align: "left" };
-
-            if (textToDraw.length > 3) {
-              doc.text(
-                textToDraw,
-                currentX + 2,
-                3 + currentY + i * verticalDistance,
-                alignment
-              );
-            } else {
-              doc.text(
-                textToDraw,
-                currentX + 1,
-                3 + currentY + i * verticalDistance,
-                alignment
-              );
-            }
-            // doc.text(textToDraw, currentX + 2, 3 + currentY + i * verticalDistance, alignment);
-            // currentX += elementWidth + cellWidth;
-            currentX += cellWidth;
-          }
-        }
-      };
-
-      const drawArrayTextNight = (dataArray) => {
-        for (let i = 0; i < dataArray.length; i++) {
-          // const arrayText = dataArray[i].join('      ');
-          // const arrayText = dataArray[i].join('     '); // Use spaces to mimic the width
-          let currentX = startX;
-          let currentY = startY + 3.7 * 2.8;
-
-          for (let j = 0; j < dataArray[i].length; j++) {
-            // const elementWidth = calculateElementWidth(dataArray[i][j]);
-            const textToDraw = dataArray[i][j].toString();
-            const alignment =
-              textToDraw.length > 3
-                ? { align: "left", angle: 90, xOffset: 5 }
-                : { align: "left" };
-
-            if (textToDraw.length > 3) {
-              doc.text(
-                textToDraw,
-                currentX + 2,
-                3 + currentY + i * verticalDistance,
-                alignment
-              );
-            } else {
-              doc.text(
-                textToDraw,
-                currentX + 1,
-                3 + currentY + i * verticalDistance,
-                alignment
-              );
-            }
-            // doc.text(textToDraw, currentX + 2, 3 + currentY + i * verticalDistance, alignment);
-            // currentX += elementWidth + cellWidth;
-            currentX += cellWidth;
-          }
-        }
-      };
-
-      const drawArrayTextWithColor = (dataArray, columnIndex, rowIndex) => {
-        const currentX = startX + columnIndex * cellWidth;
-        const currentY = startY + 3.7 + rowIndex * verticalDistance;
-
-        // Set color based on holidayList and allDayOff
-        const currentNumber = resultArray[columnIndex];
-        const isHighlighted =
-          holidayList.includes(currentNumber) ||
-          allDayOff.includes(currentNumber);
-
-        // Draw a colored rectangle for each column
-        if (isHighlighted) {
-          doc.setFillColor(255, 255, 0); // Set your desired color
-          doc.rect(
-            currentX,
-            currentY - cellHeight,
-            cellWidth,
-            cellHeight * 8,
-            "F"
-          );
-        }
-
-        // Draw the text on top of the colored rectangle
-        const textToDraw = dataArray[0].toString();
-        const alignment =
-          textToDraw.length > 3
-            ? { align: "left", angle: 90, xOffset: 5 }
-            : { align: "left" };
-
-        // if (textToDraw.length > 3) {
-        //     doc.text(textToDraw, currentX + 2, 3 + currentY, alignment);
-        // } else {
-        //     doc.text(textToDraw, currentX + 1, 3 + currentY, alignment);
-        // }
-      };
-
-      // const squareColor2 = [255, 255, 190]; // Red
-
-      // doc.setFillColor(...squareColor2);
-
-      // // Draw a square with the specified size and color
-      // doc.rect(startX, startYTop, cellWidth - 0.2, cellHeightTop, 'F');
-
-      // for (let i = 0; i < resultArray.length; i++) {
-      //     const currentNumber = resultArray[i];
-
-      //     if (holidayList.includes(currentNumber) || allDayOff.includes(currentNumber)) {
-      //         // Set loop position color
-      //         doc.rect(startX + i * cellWidth, startYTop + 80, cellWidth - 0.2, cellHeightTop, 'F');
-      //     } else {
-      //         // Set default color or do nothing
-      //     }
-      // }
-
-      const drawArrayTextOT = (dataArray) => {
-        for (let i = 0; i < dataArray.length; i++) {
-          let currentX = startX - 1;
-          // let currentY = startY + 3 + cellHeight;
-          let currentY = startY + 3 * 4;
-
-          for (let j = 0; j < dataArray[i].length; j++) {
-            // const elementWidth = calculateElementWidth(dataArray[i][j]);
-            doc.text(
-              dataArray[i][j].toString(),
-              currentX + 2,
-              4 + currentY + i * verticalDistance,
-              { align: "left" }
-            );
-            // currentX += elementWidth + cellWidth;
-            currentX += cellWidth;
-          }
-        }
-      };
-
-      // แสดงตารางวันทำงานหยุดธรรมดา
-      const drawArrayTextHoli = (dataArray) => {
-        for (let i = 0; i < dataArray.length; i++) {
-          // const arrayText = dataArray[i].join('      ');
-          // const arrayText = dataArray[i].join('     '); // Use spaces to mimic the width
-          let currentX = startX - 1;
-          let currentY = startY + 3 * 3;
-
-          for (let j = 0; j < dataArray[i].length; j++) {
-            // const elementWidth = calculateElementWidth(dataArray[i][j]);
-            const textToDraw = dataArray[i][j].toString();
-            const alignment =
-              textToDraw.length > 3
-                ? { align: "left", angle: 45, xOffset: 5 }
-                : { align: "left" };
-
-            doc.text(
-              textToDraw,
-              currentX + 2,
-              4 + currentY + i * verticalDistance,
-              alignment
-            );
-            // currentX += elementWidth + cellWidth;
-            currentX += cellWidth;
-          }
-        }
-      };
-
-      // แสดงตารางวันทำงานหยุดนักขัตฤกษ์
-      const drawArrayTextHoliday = (dataArray) => {
-        for (let i = 0; i < dataArray.length; i++) {
-          // const arrayText = dataArray[i].join('      ');
-          // const arrayText = dataArray[i].join('     '); // Use spaces to mimic the width
-          let currentX = startX - 1;
-          let currentY = startY + 3 * 5;
-
-          for (let j = 0; j < dataArray[i].length; j++) {
-            // const elementWidth = calculateElementWidth(dataArray[i][j]);
-            const textToDraw = dataArray[i][j].toString();
-            const alignment =
-              textToDraw.length > 3
-                ? { align: "left", angle: 45, xOffset: 5 }
-                : { align: "left" };
-
-            doc.text(
-              textToDraw,
-              currentX + 2,
-              5 + currentY + i * verticalDistance,
-              alignment
-            );
-            // currentX += elementWidth + cellWidth;
-            currentX += cellWidth;
-          }
-        }
-      };
-
-      const drawArrayTextOTHoliday = (dataArray) => {
-        for (let i = 0; i < dataArray.length; i++) {
-          let currentX = startX - 1;
-          let currentY = startY + 3 * 6;
-
-          for (let j = 0; j < dataArray[i].length; j++) {
-            // const elementWidth = calculateElementWidth(dataArray[i][j]);
-            doc.text(
-              dataArray[i][j].toString(),
-              currentX + 2,
-              5 + currentY + i * verticalDistance,
-              { align: "left" }
-            );
-            // currentX += elementWidth + cellWidth;
-            currentX += cellWidth;
-          }
-        }
-      };
-
-      // const drawArrayTextSumWork = (dataArray, sumArray) => {
-      //     for (let i = 0; i < dataArray.length; i++) {
-      //         let currentX = startXSpSalary + 3;
-      //         let currentY = startY + i * verticalDistance;
-      //         doc.text(sumArray[i].toString(), currentX + 2, 3 + currentY, { align: 'center' });
-      //         doc.text(sumArray[i].toString() * countalldaywork, currentX + 2, 3 + currentY +3, { align: 'center' });
-      //     }
-      // };
-
-      const addmove = 3;
-      // ผลรวมวันทำงานวันธรรรมดา
-      const drawArrayTextSumWork = (dataArray, sumArray) => {
-        for (let i = 0; i < dataArray.length; i++) {
-          let currentX = startXSpSalary + 3;
-          let currentY = startY + i * verticalDistance + addmove;
-
-          // Calculate the product and convert it to a string
-          // const product = (sumArray[i] * countalldaywork).toString();
-          // doc.text(sumArray[i].toString(), currentX + 2, 3 + currentY, { align: 'center' });
-
-          // const product = (countDayWork[i] * countalldaywork).toString();
-
-          doc.text(countDayWork[i].toString(), currentX + 2, 3 + currentY, {
-            align: "center",
-          });
-
-          // doc.text(product, currentX + 2, 3 + currentY + 3, { align: 'center' });
-          doc.text(
-            amountCountDayWork[i].toString(),
-            currentX + 2,
-            3 + currentY + 3,
-            { align: "center" }
-          );
-        }
-      };
-      // 1.5
-      const drawArrayTextSumWorkOT = (dataArray, sumArrayOT) => {
-        for (let i = 0; i < dataArray.length; i++) {
-          let currentX = startXSpSalary + 3 + cellWidthSpSalary * 2;
-          let currentY = startY + i * verticalDistance + addmove;
-
-          // Calculate the product and convert it to a string
-          // const product = (sumArrayOT[i] * (countalldaywork / 8)).toString();
-
-          // const product = (
-          //   parseFloat(sumArrayOT[i]) *
-          //   (workRateWorkplaceStage1 * (countalldaywork / 8))
-          // ).toFixed(2);
-
-          // const position = filteredAddSalaryWorkplace.findIndex(
-          //   (item) => item.codeSpSalary === dataArray[i][0].codeSpSalary
-          // );
-
-          //   doc.text(sumArrayOT[i].toString(), currentX + 2, 3 + currentY, {
-          //     align: "center",
-          //   });
-          //   doc.text(product, currentX + 2, 3 + currentY + 3, {
-          //     align: "center",
-          //   });
-
-          // doc.text(hourOneFive[i].toString(), currentX + 2, 3 + currentY, {
-          //   align: "center",
-          // });
-          // doc.text(
-          //   amountOneFive[i].toString(),
-          //   currentX + 2,
-          //   3 + currentY + 3,
-          //   {
-          //     align: "center",
-          //   }
-          // );
-
-          doc.text(
-            `${amountOneFive[i].toString()} (${hourOneFive[i].toString()})`,
-            currentX + 5,
-            2 + currentY + 3 * 4,
-            {
-              align: "center",
-            }
-          );
-        }
-      };
-      // ผลรวมวันทำงานวันหยุด
-      const drawArrayTextSumWorkHoli = (dataArray, sumArrayHoli) => {
-        for (let i = 0; i < dataArray.length; i++) {
-          let currentX = startXSpSalary + 3 + cellWidthSpSalary * 1;
-          let currentY = startY + i * verticalDistance + addmove;
-
-          // Calculate the product and convert it to a string
-          // const product = (sumArrayHoli[i] * (1.5 * (countalldaywork / 8))).toString();
-          const product = (sumArrayHoli[i] * specialDayRate[i]).toString();
-
-          // responseDataAll
-
-          doc.text(sumArrayHoli[i].toString(), currentX + 2, 3 + currentY, {
-            align: "center",
-          });
-          // doc.text(product, currentX + 2, 3 + currentY + 3, { align: 'center' });
-          // doc.text(amountSpecialDay[i].toString(), currentX + 2, 3 + currentY + 3, { align: 'center' });
-          // adjustedAmountSpecialDay
-          doc.text(
-            adjustedAmountSpecialDay[i].toString(),
-            currentX + 2,
-            3 + currentY + 3,
-            { align: "center" }
-          );
-        }
-      };
-
-      // ผลรวมวันทำงานวันหยุดนักขัตฤกษ์
-      // 2 เท่า
-      const drawArrayTextSumWorkHoliday = (dataArray, sumArrayHoliday) => {
-        for (let i = 0; i < dataArray.length; i++) {
-          let currentX = startXSpSalary + 3 + cellWidthSpSalary * 2;
-          let currentY = startY + i * verticalDistance + addmove;
-
-          // Calculate the product and convert it to a string
-          // const product = (sumArrayHoliday[i] * (2 * (countalldaywork / 8))).toString();
-          // const product = (
-          //   parseFloat(sumArrayHoliday[i]) *
-          //   (workRateWorkplaceStage2 * (countalldaywork / 8))
-          // ).toFixed(2);
-
-          //   doc.text(sumArrayHoliday[i].toString(), currentX + 2, 3 + currentY, {
-          //     align: "center",
-          //   });
-          //   doc.text(product, currentX + 2, 3 + currentY + 3, {
-          //     align: "center",
-          //   });
-
-          // doc.text(hourTwo[i].toString()`(`amountTwo[i].toString()`)`, currentX + 2, 3 + currentY+(3*4), {
-          //   align: "center",
-          // });
-          // doc.text(amountTwo[i].toString(), currentX + 2, 3 + currentY + 3, {
-          //   align: "center",
-          // });
-          doc.text(
-            `${amountTwo[i].toString()} (${hourTwo[i].toString()})`,
-            currentX + 5,
-            2 + currentY + 3 * 5,
-            {
-              align: "center",
-            }
-          );
-        }
-      };
-
-      // ผลรวมวันทำงานวันหยุดนักขัตฤกษ์OT 3เท่า
-      // const drawArrayTextSumWorkOTHoliday = (dataArray, sumArrayOTHoliday) => {
-      //     for (let i = 0; i < dataArray.length; i++) {
-      //         let currentX = startXSpSalary + 3 + (cellWidthSpSalary * 4);
-      //         let currentY = startY + i * verticalDistance + addmove;
-
-      //         // Calculate the product and convert it to a string
-      //         const product = (sumArrayOTHoliday[i] * (3 * (countalldaywork / 8))).toString();
-
-      //         doc.text(sumArrayOTHoliday[i].toString(), currentX + 2, 3 + currentY, { align: 'center' });
-      //         doc.text(product.toFixed(2), currentX + 2, 3 + currentY + 3, { align: 'center' });
-      //     }
-      // };
-
-      // 3 เท่า
-      const drawArrayTextSumWorkOTHoliday = (dataArray, sumArrayOTHoliday) => {
-        for (let i = 0; i < dataArray.length; i++) {
-          let currentX = startXSpSalary + 3 + cellWidthSpSalary * 2;
-          let currentY = startY + i * verticalDistance + addmove;
-
-          // Calculate the product and format it to two decimal places
-          // const product = (
-          //   parseFloat(sumArrayOTHoliday[i]) *
-          //   (workRateWorkplaceStage3 * (countalldaywork / 8))
-          // ).toFixed(2);
-          // Draw the sum and product, both formatted to two decimal places
-
-          //   doc.text(
-          //     parseFloat(sumArrayOTHoliday[i]).toFixed(2),
-          //     currentX + 2,
-          //     3 + currentY,
-          //     { align: "center" }
-          //   );
-          //   doc.text(product, currentX + 2, 3 + currentY + 3, {
-          //     align: "center",
-          //   });
-
-          // doc.text(hourThree[i].toString(), currentX + 2, 3 + currentY, {
-          //   align: "center",
-          // });
-          // doc.text(amountThree[i].toString(), currentX + 2, 3 + currentY + 3, {
-          //   align: "center",
-          // });
-          doc.text(
-            `${amountThree[i].toString()} (${hourThree[i].toString()})`,
-            currentX + 5,
-            2 + currentY + 3 * 6,
-            {
-              align: "center",
-            }
-          );
-        }
-      };
-
-      // const drawArrayTextAddSalary = (dataArray) => {
-      //     for (let i = 0; i < dataArray.length; i++) {
-      //         let currentX = startXSpSalary + 3 + (cellWidthSpSalary * 5);
-      //         let currentY = startY;
-
-      //         for (let j = 0; j < dataArray[i].length; j++) {
-      //             const item = dataArray[i][j];
-
-      //             // Check if dataArray[i][j].name exists in filteredAddSalaryWorkplace
-      //             const position = filteredAddSalaryWorkplace.findIndex(
-      //                 (salaryItem) => salaryItem.name === item.name
-      //             );
-
-      //             // const product = (sumArray[i] * countalldaywork).toString();
-
-      //             // If the position is found, use it as x; otherwise, use a default value (e.g., 0)
-      //             const x = position !== -1 ? position : 0;
-
-      //             const text = `${item.SpSalary}`;
-      //             doc.text(text, currentX + 2 + (cellWidthSpSalary * x), 3 + currentY + i * verticalDistance, { align: 'center' });
-      //             // currentX += cellWidthSpSalary;
-      //         }
-      //     }
-      // };
-      const drawArrayTextAddSalary = (dataArray, sumArray) => {
-        for (let i = 0; i < dataArray.length; i++) {
-          let currentX = startXSpSalary + 3 + cellWidthSpSalary * 5;
-          let currentY = startY + addmove;
-
-          for (let j = 0; j < dataArray[i].length; j++) {
-            const item = dataArray[i][j];
-
-            // Check if dataArray[i][j].name exists in filteredAddSalaryWorkplace
-            const position = filteredAddSalaryWorkplace.findIndex(
-              (salaryItem) => salaryItem.name === item.name
-            );
-
-            // If the position is found, use it as x; otherwise, use a default value (e.g., 0)
-            const x = position !== -1 ? position : 0;
-
-            // If roundOfSalary is "daily", multiply SpSalary by the corresponding value in sumArray
-            // If roundOfSalary is "monthly", keep SpSalary as is
-            const adjustedSpSalary =
-              item.roundOfSalary === "daily"
-                ? item.SpSalary * sumArray[i]
-                : item.SpSalary;
-
-            const text = `${adjustedSpSalary}`;
-            doc.text(
-              text,
-              currentX + 2 + cellWidthSpSalary * x,
-              3 + currentY + i * verticalDistance,
-              { align: "center" }
-            );
-            // currentX += cellWidthSpSalary;
-          }
-        }
-      };
-
-      const drawArrayTextAddSalaryTestCount = (dataArray) => {
-        for (let i = 0; i < dataArray.length; i++) {
-          // const arrayText = dataArray[i].join('      ');
-          // const arrayText = dataArray[i].join('     '); // Use spaces to mimic the width
-          let currentX = startXSpSalary + cellWidthSpSalary * 4;
-          let currentY = startY + 3.7;
-
-          for (let j = 0; j < dataArray[i].length; j++) {
-            // const elementWidth = calculateElementWidth(dataArray[i][j]);
-            const textToDraw = dataArray[i][j].toString();
-
-            // const alignment = textToDraw.length > 3 ? { align: 'left', angle: 90, xOffset: 5 } : { align: 'left' };
-
-            if (textToDraw.length > 3) {
-              doc.text(
-                textToDraw,
-                currentX + 2,
-                3 + currentY + i * verticalDistance,
-                { align: "center" }
-              );
-            } else {
-              doc.text(
-                textToDraw,
-                currentX + 1,
-                3 + currentY + i * verticalDistance,
-                { align: "center" }
-              );
-            }
-            // doc.text(textToDraw, currentX + 2, 3 + currentY + i * verticalDistance, alignment);
-            // currentX += elementWidth + cellWidth;
-            currentX += cellWidthSpSalary;
-          }
-        }
-      };
-
-      const drawArrayTextAddSalaryTest = (dataArray) => {
-        for (let i = 0; i < dataArray.length; i++) {
-          // const arrayText = dataArray[i].join('      ');
-          // const arrayText = dataArray[i].join('     '); // Use spaces to mimic the width
-          let currentX = startXSpSalary + cellWidthSpSalary * 4;
-          let currentY = startY + 3.7;
-
-          for (let j = 0; j < dataArray[i].length; j++) {
-            // const elementWidth = calculateElementWidth(dataArray[i][j]);
-            const textToDraw = dataArray[i][j].toString();
-
-            // const alignment = textToDraw.length > 3 ? { align: 'left', angle: 90, xOffset: 5 } : { align: 'left' };
-
-            if (textToDraw.length > 3) {
-              doc.text(
-                textToDraw,
-                currentX + 2,
-                6 + currentY + i * verticalDistance,
-                { align: "center" }
-              );
-            } else {
-              doc.text(
-                textToDraw,
-                currentX + 1,
-                6 + currentY + i * verticalDistance,
-                { align: "center" }
-              );
-            }
-            // doc.text(textToDraw, currentX + 2, 3 + currentY + i * verticalDistance, alignment);
-            // currentX += elementWidth + cellWidth;
-            currentX += cellWidthSpSalary;
-          }
-        }
-      };
-
-      const drawArrayTextName = (dataArray) => {
-        for (let i = 0; i < dataArray.length; i++) {
-          let currentX = startX - 13;
-          let currentY = startY + i * verticalDistance;
-
-          for (let j = 0; j < dataArray[i].length; j++) {
-            let xAdjustment = 0;
-            let yAdjustment = 0;
-
-            if (j === 0) {
-              xAdjustment = -8;
-            }
-            if (j === 1) {
-              xAdjustment = -8;
-            }
-            if (j === 2) {
-              xAdjustment = 8;
-              yAdjustment = -3.5;
-            }
-            if (j === 3) {
-              xAdjustment = 8;
-              yAdjustment = -3.5;
-            }
-            if (j === 4) {
-              xAdjustment = 8;
-              yAdjustment = -3.5;
-            }
-
-            if (j === 5) {
-              yAdjustment = 7;
-            }
-            doc.text(
-              dataArray[i][j].toString(),
-              // currentX + (j === 1 ? 0 : -10 || j === 0 ? -8 : 0 || j === 2 ? 5 : 0),  // Adjust the X-coordinate for the first row
-              // 3 + currentY + (j === 2 ? -3.5 : 0 || j === 3 ? -3.5 : 0),  // Adjust the Y-coordinate for the second row
-              currentX + xAdjustment, // Adjust the X-coordinate for the first row
-              yAdjustment + currentY + 3, // Adjust the Y-coordinate for the second row
-              { align: "left" }
-            );
-            currentY += 3.5;
-          }
-        }
-      };
-
-      // doc.addPage();
-      // const lineHeight = 10;
-
-      // const drawArray = (array, startY) => {
-      //     for (let i = 0; i < array.length; i++) {
-      //         if (i === 0) {
-      //             const text = array[i].join(' ');
-      //             const y = startY + i * lineHeight;
-      //             doc.text(text, 10, y);
-      //         } else {
-      //             const text = '(' + array[i].join(')') + '(';
-      //             const y = startY + i * lineHeight;
-      //             doc.text(text, 10, y);
-      //         }
-      //     }
-      // };
-
-      // drawArray(arraylistNameEmp, startY);
-
-      // drawArrayText(arraytest);
-      // for (let dataarray = 0; dataarray < arraytest.length; dataarray += 6) {
-
-      //     const title = ' ใบลงเวลาการปฏิบัติงาน';
-
-      //     doc.setFont('THSarabunNew');
-      //     doc.setFontSize(16);
-      //     const titleWidth = doc.getStringUnitWidth(title) * doc.internal.getFontSize() / doc.internal.scaleFactor;
-      //     const pageWidth = doc.internal.pageSize.getWidth();
-      //     const titleX = (pageWidth - titleWidth) / 2;
-      //     doc.text(title, titleX, 10);
-
-      //     // const titleY = (doc.internal.pageSize.getHeight() - titleWidth) / 2;
-
-      //     doc.text(title, titleX, 30, { angle: 90 });
-
-      //     const subTitle = workMonth; // Replace with your desired subtitle text
-      //     doc.setFontSize(12); // You can adjust the font size for the subtitle
-      //     const subTitleWidth = doc.getStringUnitWidth(subTitle) * doc.internal.getFontSize() / doc.internal.scaleFactor;
-      //     const subTitleX = (pageWidth - subTitleWidth) / 2;
-      //     // doc.text(subTitle, subTitleX, 20); // Adjust the vertical position as needed
-
-      //     // Convert the table to a PDF using jsPDF and jsPDF-AutoTable
-
-      //     // doc.autoTable({
-      //     //     html: table,
-      //     //     styles: stylestable,
-      //     //     margin: { top: 30 },
-      //     // });
-      //     doc.text('จำนวนวัน' + daysInMonth, 10, 10);
-
-      //     // const CheckMonth = 2;
-      //     // const CheckYear = 2023;
-
-      //     // const daysInMonth = getDaysInMonth(CheckMonth, CheckYear);
-
-      //     // doc.text('จำนวนวัน' + daysInMonth, 10, 10);
-      //     doc.setFontSize(8);
-      //     doc.text(title, 171, 55, { angle: 90 });
-
-      //     const pageStartIndex = dataarray;
-      //     const pageEndIndex = Math.min(dataarray + 6, arraytest.length);
-
-      //     for (let i = 0; i < 6; i++) {
-      //         drawTableTop();
-      //         drawTableLeftHeadTop();
-      //         drawTableNumHeadTop();
-      //         drawTableSpSalaryTop();
-      //         drawTableMessTop();
-
-      //         // drawTable(i);
-      //         drawTableLeftHead(i);
-      //         drawTableNumHead(i);
-      //         drawTableSpSalary(i);
-      //         drawTableMess(i);
-      //         // roundpage++
-      //     }
-      //     drawArrayText(arraytest.slice(pageStartIndex, pageEndIndex));
-      //     doc.addPage();
-      // }
-      const title = " ใบลงเวลาการปฏิบัติงาน";
-      const subTitle = "ใบแสดงเวลาปฏิบัติงาน"; // Replace with your desired subtitle text
-      const TriTitle = "หน่วยงาน " + searchWorkplaceName; // Replace with your desired subtitle text
-
-      const alldaywork = "รวมวันทำงาน";
-      const countalldaywork = workplaceDataListWorkRate;
-
-      const alldayworkHoliday = "วันหยุด";
-      const countalldayworkHoliday = workplaceDataListWorkRate;
-      const workOt = "1.5";
-      const workOt2 = "2";
-      const workOt3 = "3";
-      // if (daysInMonth === 28) {
-      //     startXMess = 245.5;
-      // } else if (daysInMonth === 29) {
-      //     startXMess = 249.5;
-      // } else if (daysInMonth === 30) {
-      //     startXMess = 253.75;
-      // } else if (daysInMonth === 31) {
-      //     startXMess = 257.75;
-      // };
-      const countalldayworkX = "340";
-      const countalldayworkY = "340";
-
-      const startDay = 21;
-      // Create an array from startDay to daysInMonth
-      const firstPart = Array.from(
-        { length: daysInMonth - startDay + 1 },
-        (_, index) => startDay + index
-      );
-
-      // Create an array from 1 to 20
-      const secondPart = Array.from({ length: 20 }, (_, index) => index + 1);
-
-      // Concatenate the two arrays
-      const resultArray = [...firstPart, ...secondPart];
-
-      const spaceWidth = 10;
-
-      const makePage = Math.ceil(newAllTimes.length / 5);
-
-      for (let pageIndex = 0; pageIndex < makePage; pageIndex++) {
-        doc.setFont("THSarabunNew");
-        doc.setFontSize(16);
-        const titleWidth =
-          (doc.getStringUnitWidth(title) * doc.internal.getFontSize()) /
-          doc.internal.scaleFactor;
-        const pageWidth = doc.internal.pageSize.getWidth();
-        const titleX = (pageWidth - titleWidth) / 2;
-        doc.text(title, titleX, 10);
-
-        // const titleY = (doc.internal.pageSize.getHeight() - titleWidth) / 2;
-
-        // doc.text(title, titleX, 30, { angle: 90 });
-
-        // const subTitle = workMonth; // Replace with your desired subtitle text
-        // doc.setFontSize(12); // You can adjust the font size for the subtitle
-        // const subTitleWidth = doc.getStringUnitWidth(subTitle) * doc.internal.getFontSize() / doc.internal.scaleFactor;
-        // const subTitleX = (pageWidth - subTitleWidth) / 2;
-
-        doc.setFontSize(12); // You can adjust the font size for the subtitle
-        const subTitleWidth =
-          (doc.getStringUnitWidth(subTitle) * doc.internal.getFontSize()) /
-          doc.internal.scaleFactor;
-        const subTitleX = (pageWidth - subTitleWidth) / 2;
-        doc.text(subTitle, subTitleX, 15); // Adjust the vertical position as needed
-
-        doc.setFontSize(12); // You can adjust the font size for the subtitle
-        const TriTitleWidth =
-          (doc.getStringUnitWidth(TriTitle) * doc.internal.getFontSize()) /
-          doc.internal.scaleFactor;
-        const TriTitleX = (pageWidth - TriTitleWidth) / 2;
-        doc.text(TriTitle, TriTitleX, 20); // Adjust the vertical position as needed
-
-        // doc.text(subTitle, subTitleX, 20); // Adjust the vertical position as needed
-
-        // Convert the table to a PDF using jsPDF and jsPDF-AutoTable
-
-        // doc.autoTable({
-        //     html: table,
-        //     styles: stylestable,
-        //     margin: { top: 30 },
-        // });
-
-        const workplaceid = workplaceDataList.map((item) => item.workplaceId);
-        doc.text("แผนก " + workplaceid, 250, 10);
-
-        function getDaysInMonth(month, year) {
-          // Months are 0-based, so we subtract 1 from the provided month
-          const lastDayOfMonth = new Date(year, month, 0).getDate();
-          return lastDayOfMonth;
-        }
-
-        // const CheckMonth = 2;
-        // const CheckYear = 2023;
-
-        // const daysInMonth = getDaysInMonth(CheckMonth, CheckYear);
-
-        // doc.text('จำนวนวัน' + daysInMonth, 10, 10);
-        doc.setFontSize(8);
-        doc.text(title, 171, 55, { angle: 90 });
-
-        // const CheckMonth = 3;
-        // const CheckYear = 2023;
-
-        // const daysInMonth = getDaysInMonth(CheckMonth, CheckYear);
-
-        // doc.text('จำนวนวัน ' + daysInMonth, 10, 10);
-
-        const pageStartIndex = pageIndex * 5;
-        const pageEndIndex = Math.min((pageIndex + 1) * 5, newAllTimes.length);
-
-        const squareColor2 = [255, 255, 190]; // Red
-
-        doc.setFillColor(...squareColor2);
-
-        // Draw a square with the specified size and color
-        // doc.rect(startX, startYTop, cellWidth - 0.2, cellHeightTop, 'F');
-
-        // for (let i = 0; i < resultArray.length; i++) {
-        //     const currentNumber = resultArray[i];
-
-        //     if (holidayList.includes(currentNumber) || allDayOff.includes(currentNumber)) {
-        //         // Set loop position color
-        //         doc.rect(startX + i * cellWidth, startYTop + 80, cellWidth - 0.2, cellHeightTop, 'F');
-        //     } else {
-        //         // Set default color or do nothing
-        //     }
-        // }
-
-        // for (let i = pageStartIndex; i < pageEndIndex; i++) {
-        //     const rowData = arrayWorkNormalDayOld[i];
-        //     const color = i % 2 === 0 ? [240, 240, 100] : [255, 255, 255]; // Alternate row colors
-
-        //     drawArrayTextWithColor(rowData, color, i - pageStartIndex);
-
-        // }
-
-        const pageStartIndexName = pageIndex * 5;
-        const pageEndIndexName = Math.min(
-          (pageIndex + 1) * 5,
-          newAllTimes.length
-        );
-        drawArrayTextName(arraylistNameEmp.slice(pageStartIndex, pageEndIndex));
-
-        const squareColor = [255, 255, 0]; // Red
-        doc.setFillColor(...squareColor);
-
-        for (let i = 0; i < resultArray.length; i++) {
-          const currentNumber = resultArray[i];
-
-          if (
-            holidayList.includes(currentNumber) ||
-            allDayOff.includes(currentNumber)
-          ) {
-            // Set loop position color
-            doc.rect(
-              startX + i * cellWidth,
-              startYTop,
-              cellWidth - 0.2,
-              cellHeightTop,
-              "F"
-            );
-          } else {
-            // Set default color or do nothing
-          }
-        }
-
-        for (let i = 0; i < resultArray.length; i++) {
-          const x = startX + i * cellWidth;
-          doc.text(
-            resultArray[i].toString(),
-            x + 1,
-            cellHeightTop + startYTop - 2
-          );
-        }
-
-        doc.text("ลำดับ", startXNumHead + 2, cellHeightTop + startYTop - 2);
-
-        const period =
-          "งวดวันที่ 21 " +
-          thaiMonthNameLower +
-          " - 20 " +
-          thaiMonthName +
-          " พ.ศ. " +
-          yearThai;
-        const periodWidth =
-          (doc.getStringUnitWidth(period) * doc.internal.getFontSize()) /
-          doc.internal.scaleFactor;
-        const periodX = (pageWidth - periodWidth) / 2;
-        doc.text(period, periodX, startYTop - 2);
-
-        doc.text(
-          "ชื่อ - นามสกุล",
-          startXLeftHead + 10,
-          cellHeightTop + startYTop - 2
-        );
-        doc.text("วันหยุด", startXSpSalary + 11, startYTop + 3);
-        doc.text(
-          "โอที",
-          startXSpSalary + cellWidthSpSalary * 2 + 3,
-          startYTop + 3
-        );
-        doc.text(
-          "สวัสดีการ",
-          startXSpSalary + cellWidthSpSalary * 5 + 3,
-          startYTop + 3
-        );
-
-        doc.text(
-          "หักประกันสังคม 5%",
-          startXMess - 5,
-          cellHeightTop + startYTop - 1,
-          { angle: 90 }
-        );
-
-        doc.text("หมายเหตุ", startXMess + 3, cellHeightTop + startYTop - 2);
-
-        // startXSpSalary + j * cellWidthSpSalary;
-        // const y = startYTop
-
-        for (let i = 0; i < 5; i++) {
-          const dataIdx = pageIndex * 5 + i;
-          if (dataIdx < newAllTimes.length) {
-            // Set the color of the square (RGB values)
-            const squareColor = [255, 255, 0]; // Red
-
-            // Set the position where you want to place the square
-            const xPosition = 165.5;
-            const yPosition = 30;
-
-            // Set the fill color
-            doc.setFillColor(...squareColor);
-
-            // Draw a square with the specified size and color
-            doc.rect(
-              startXSpSalary,
-              startYTop,
-              cellWidthSpSalary * numColsSpSalary - 0.2 + 5,
-              cellHeightTop,
-              "F"
-            );
-
-            doc.text(
-              alldaywork + " " + countalldaywork,
-              5 + startXSpSalary,
-              54.8,
-              { angle: 90 }
-            );
-            doc.text(
-              alldayworkHoliday + " " + countalldayworkHoliday,
-              5 + startXSpSalary + cellWidthSpSalary,
-              54.8,
-              { angle: 90 }
-            );
-            // doc.text(
-            //   "วันนักขัตฤกษ์" + " " + workRateWorkplaceStage2 + "เท่า",
-            //   3 + startXSpSalary + cellWidthSpSalary * 2,
-            //   54.8,
-            //   { angle: 90 }
-            // );
-            doc.text(
-              "เงินโอที",
-              3 + startXSpSalary + cellWidthSpSalary * 2,
-              54.8,
-              { angle: 90 }
-            );
-            // doc.text(
-            //   (workplaceDataListWorkRate * workRateWorkplaceStage2) / 8 + " .-",
-            //   7 + startXSpSalary + cellWidthSpSalary * 2,
-            //   54.8,
-            //   { angle: 90 }
-            // );
-
-            // doc.text(
-            //   "โอที" + " " + workRateWorkplaceStage1 + "เท่า",
-            //   3 + startXSpSalary + cellWidthSpSalary * 3,
-            //   54.8,
-            //   { angle: 90 }
-            // );
-            // doc.text(
-            //   (workplaceDataListWorkRate * workRateWorkplaceStage1) / 8 + " .-",
-            //   7 + startXSpSalary + cellWidthSpSalary * 3,
-            //   54.8,
-            //   { angle: 90 }
-            // );
-
-            // doc.text(
-            //   "โอที" + " " + workRateWorkplaceStage3 + "เท่า",
-            //   3 + startXSpSalary + cellWidthSpSalary * 4,
-            //   54.8,
-            //   { angle: 90 }
-            // );
-            // doc.text(
-            //   (workplaceDataListWorkRate / 8) * workRateWorkplaceStage3 + " .-",
-            //   7 + startXSpSalary + cellWidthSpSalary * 4,
-            //   54.8,
-            //   { angle: 90 }
-            // );
-
-            // doc.text(filteredAddSalaryWorkplace, 171, 54, { angle: 90 });
-            // filteredAddSalaryWorkplace.forEach((item, index) => {
-            //     const NameSp = `${item.name} ${item.SpSalary}`;
-            //     let roundOfSalaryText = '';
-
-            //     if (item.roundOfSalary === 'monthly') {
-            //         roundOfSalaryText = 'เดือน';
-            //     } else if (item.roundOfSalary === 'daily') {
-            //         roundOfSalaryText = 'วัน';
-            //     } doc.text(NameSp, 5 + (cellWidthSpSalary * 5) + startXSpSalary + index * (cellWidthSpSalary), 54.8, { angle: 90 });
-            //     doc.text('ต่อ ' + roundOfSalaryText, 8 + (cellWidthSpSalary * 5) + startXSpSalary + index * (cellWidthSpSalary), 54.8, { angle: 90 });
-            // });
-
-            filteredAddSalaryWorkplace.sort((a, b) =>
-              a.name.localeCompare(b.name, "th")
-            );
-
-            let uniqueSalaries = [];
-
-            // Create a Map to keep track of the lowest SpSalary for each codeSpSalary
-            let salaryMap = new Map();
-
-            // Iterate over the sorted array and populate the salaryMap
-            for (let item of filteredAddSalaryWorkplace) {
-              const { codeSpSalary, SpSalary } = item;
-              const currentSpSalary = parseFloat(SpSalary);
-              if (
-                !salaryMap.has(codeSpSalary) ||
-                currentSpSalary < salaryMap.get(codeSpSalary).SpSalary
-              ) {
-                salaryMap.set(codeSpSalary, {
-                  ...item,
-                  SpSalary: currentSpSalary,
-                });
-              }
-            }
-
-            // Convert the Map values to an array
-            uniqueSalaries = Array.from(salaryMap.values());
-
-            uniqueSalaries.forEach((item, index) => {
-              const cleanedName = item.name
-                .replace(/\(ไม่คิดปกส.\)/g, "")
-                .trim();
-              const NameSp = `${cleanedName} ${item.SpSalary}`;
-              const CodeSp = `${item.codeSpSalary}`;
-
-              let roundOfSalaryText = "";
-
-              if (item.roundOfSalary === "monthly") {
-                roundOfSalaryText = "เดือน";
-              } else if (item.roundOfSalary === "daily") {
-                roundOfSalaryText = "วัน";
-              }
-              doc.text(
-                CodeSp,
-                9 +
-                cellWidthSpSalary * 3 +
-                startXSpSalary +
-                index * cellWidthSpSalary,
-                38,
-                { align: "center" }
-              );
-              doc.text(
-                NameSp,
-                9 +
-                cellWidthSpSalary * 3 +
-                startXSpSalary +
-                index * cellWidthSpSalary,
-                54.8,
-                { angle: 90 }
-              );
-              doc.text(
-                "ต่อ " + roundOfSalaryText,
-                12 +
-                cellWidthSpSalary * 3 +
-                startXSpSalary +
-                index * cellWidthSpSalary,
-                54.8,
-                { angle: 90 }
-              );
-            });
-
-            drawTableTop();
-            drawTableTopHead();
-            drawTableLeftHeadTop();
-            drawTableNumHeadTop();
-            drawTableSpSalaryTop();
-            drawTableSpSalaryHeadTop();
-            // drawTableMessTop();
-
-            // drawTableOT();
-            // drawTableOT(arraylistOT);
-
-            // drawTableOT(arraylistOT);
-
-            // for (let i = pageStartIndex; i < pageEndIndex; i++) {
-            const rowData = newAllTimes[i];
-
-            // Draw text with color for each column
-            for (let j = 0; j < resultArray.length; j++) {
-              drawArrayTextWithColor([rowData[j]], j, i);
-            }
-            // }
-
-            drawTable(i, newAllTimes.slice(dataIdx, dataIdx + 1));
-            drawTableLeftHead(i, newAllTimes.slice(dataIdx, dataIdx + 1));
-            drawTableNumHead(i, newAllTimes.slice(dataIdx, dataIdx + 1));
-            drawTableSpSalary(i, newAllTimes.slice(dataIdx, dataIdx + 1));
-            // drawTableMess(i, newAllTimes.slice(dataIdx, dataIdx + 1));
-
-            // drawArrayText(arraytest, dataIdx, dataIdx + 1);
-
-            // drawArrayText(arraytest.slice(dataIdx, dataIdx + 1));
-          }
-        }
-
-        // drawArrayText(arrayWorkNormalDayOld.slice(pageStartIndex, pageEndIndex));
-
-        //20/06/2024 drawArrayText(dayWorks.slice(pageStartIndex, pageEndIndex));
-        drawArrayText(
-          finalUpdatedDayWorksWorkMorningAndSS.slice(
-            pageStartIndex,
-            pageEndIndex
-          )
-        );
-
-        drawArrayTextAfternoon(
-          finalUpdatedDayWorksWorkAfternoon.slice(pageStartIndex, pageEndIndex)
-        );
-
-        drawArrayTextNight(
-          finalUpdatedDayWorksWorkNight.slice(pageStartIndex, pageEndIndex)
-        );
-
-        //สวัสดิการ
-        drawArrayTextAddSalaryTestCount(
-          adjustedDailyExtractedDataAddSalaryCount.slice(
-            pageStartIndex,
-            pageEndIndex
-          )
-        );
-        drawArrayTextAddSalaryTest(
-          adjustedDailyExtractedDataAddSalary.slice(
-            pageStartIndex,
-            pageEndIndex
-          )
-        );
-
-        //สวัสดิการ
-        // drawArrayTextAddSalary(extractedDataAddSalary.slice(pageStartIndex, pageEndIndex), sumArray.slice(pageStartIndex, pageEndIndex));
-        // drawArrayText(extractedDataAddSalary);
-
-        // save17/06/2027
-        // drawArrayTextOT(arrayWorkOTNormalDay.slice(pageStartIndex, pageEndIndex));
-
-        // drawArrayTextHoli(arrayWorkHoli.slice(pageStartIndex, pageEndIndex));
-
-        // drawArrayTextHoliday(arrayWorkHoliday.slice(pageStartIndex, pageEndIndex));
-        // drawArrayTextOTHoliday(arrayWorkOTHoliday.slice(pageStartIndex, pageEndIndex));
-
-        // 1.5
-        drawArrayTextOT(newAllTimes2.slice(pageStartIndex, pageEndIndex));
-        drawArrayTextOT(newOtTimes.slice(pageStartIndex, pageEndIndex));
-
-        // drawArrayTextOT(newOtTimes2.slice(pageStartIndex, pageEndIndex));
-
-        // drawArrayTextHoli(newOtTimes2.slice(pageStartIndex, pageEndIndex));
-
-        // 2
-        drawArrayTextHoliday(newAllTimes3.slice(pageStartIndex, pageEndIndex));
-        drawArrayTextHoliday(newOtTimes2.slice(pageStartIndex, pageEndIndex));
-        // 3
-        drawArrayTextOTHoliday(newOtTimes3.slice(pageStartIndex, pageEndIndex));
-        //
-        // drawArrayTextSumWork(arrayWorkNormalDayOld.slice(pageStartIndex, pageEndIndex), sumArray.slice(pageStartIndex, pageEndIndex));
-
-        // วันทำงาน
-        // drawArrayTextSumWork(arrayWorkNormalDayOld.slice(pageStartIndex, pageEndIndex), sumArrayOld.slice(pageStartIndex, pageEndIndex));
-        // drawArrayTextSumWork(newAllTimes.slice(pageStartIndex, pageEndIndex), countDayWork.slice(pageStartIndex, pageEndIndex));
-        drawArrayTextSumWork(
-          newAllTimes.slice(pageStartIndex, pageEndIndex),
-          amountCountDayWork.slice(pageStartIndex, pageEndIndex)
-        );
-
-        // ot 1.5
-        // drawArrayTextSumWorkOT(arrayWorkNormalDayOld.slice(pageStartIndex, pageEndIndex), sumArrayOT.slice(pageStartIndex, pageEndIndex));
-        drawArrayTextSumWorkOT(
-          // newAllTimes.slice(pageStartIndex, pageEndIndex),
-          sumArrayTotal.slice(pageStartIndex, pageEndIndex)
-        );
-
-        // วันหยุด เงินตรง
-        drawArrayTextSumWorkHoli(
-          arrayWorkHoli.slice(pageStartIndex, pageEndIndex),
-          sumArrayHoli.slice(pageStartIndex, pageEndIndex)
-        );
-        // 2
-        drawArrayTextSumWorkHoliday(
-          arrayWorkHoliday.slice(pageStartIndex, pageEndIndex),
-          sumArrayHoliday.slice(pageStartIndex, pageEndIndex)
-        );
-        // 3
-        drawArrayTextSumWorkOTHoliday(
-          arrayWorkOTHoliday.slice(pageStartIndex, pageEndIndex),
-          sumArrayOTHoliday.slice(pageStartIndex, pageEndIndex)
-        );
-
-        drawArrayNumHead(
-          arrayWorkHoliday.slice(pageStartIndex, pageEndIndex),
-          indexArray.slice(pageStartIndex, pageEndIndex)
-        );
-
-        // drawArrayTextAddSalary(arraytest.slice(pageStartIndex, pageEndIndex), extractedDataAddSalary.slice(pageStartIndex, pageEndIndex));
-        // drawArrayTextAddSalary(extractedDataAddSalary.slice(pageStartIndex, pageEndIndex));
-
-        // drawArrayText(arraytest, pageIndex * 6, Math.min((pageIndex + 1) * 6, arraytest.length));
-
-        // for (let dataarray = 0; dataarray < arraytest.length; dataarray += 6) {
-        //     const pageStartIndex = dataarray;
-        //     const pageEndIndex = Math.min(dataarray + 6, arraytest.length);
-        //     drawArrayText(arraytest.slice(pageStartIndex, pageEndIndex));
-        // }
-
-        doc.addPage();
-      }
-      // If an error occurs, throw an exception
-      // doc.save('your_table.pdf');
-      const pdfContent = doc.output("bloburl");
-      window.open(pdfContent, "_blank");
-    } catch (error) {
-      // Display an alert with the error message
-      alert(`Error: ${error.message}`);
-
-      // Optionally, log the error to the console
-      console.error(error);
-
-      // If you want to prevent the page from reloading, you can return or throw the error
-      // throw error;
-      // return;
-    }
-  };
+ 
 
   // const count = timerecordAllList.filter(employee =>
   //     employee.employee_workplaceRecord.some(record => record.workplaceId === "9999")
@@ -7514,21 +3824,8 @@ const getDateStyle = (day) => {
 
   // ฟังก์ชันสำหรับปุ่ม Force Reload
   const handleForceReload = async () => {
-    // 🎨 เอฟเฟคการลบและเติมตัวอักษรในช่องรหัสหน่วยงาน
+    // บันทึก originalWorkplaceId ไว้สำหรับใช้ภายหลัง (หลังยิง API เสร็จ)
     const originalWorkplaceId = searchWorkplaceId;
-    
-    if (originalWorkplaceId && originalWorkplaceId.length > 0) {
-      // ลบตัวอักษรสุดท้าย
-      const trimmedId = originalWorkplaceId.slice(0, -1);
-      const lastChar = originalWorkplaceId.slice(-1);
-      
-      setSearchWorkplaceId(trimmedId);
-      
-      // รอ 0.3 วินาที แล้วเติมตัวอักษรสุดท้ายกลับมา
-      setTimeout(() => {
-        setSearchWorkplaceId(originalWorkplaceId);
-      }, 3000);
-    }
 
     // ตรวจสอบว่ามีข้อมูลที่จำเป็นหรือไม่
     if (!searchWorkplaceId || !month || !year) {
@@ -7559,20 +3856,70 @@ const getDateStyle = (day) => {
     try {
       console.log('🔄 Starting Force Reload for all employees...');
       
-      // แสดง loading ด้วย SweetAlert ทันทีโดยไม่ต้องถามยืนยัน
-     
-      
-      // แสดง loading
+      // แสดง loading และซ่อนตาราง
       setLoading(true);
+      setShowTable(false);
       
       let successCount = 0;
       let errorCount = 0;
       const errors = [];
 
+      // แสดง SweetAlert2 Progress
+      Swal.fire({
+        title: 'กำลังประมวลผล',
+        html: `
+          <div style="text-align: left; padding: 10px;">
+            <p style="font-size: 16px; margin-bottom: 10px;">
+              <strong>กำลังค้นหา:</strong> <span id="current-employee">0</span> / ${data.length} คน
+            </p>
+            <div style="width: 100%; background-color: #e0e0e0; border-radius: 10px; overflow: hidden; margin-bottom: 15px;">
+              <div id="progress-bar" style="width: 0%; height: 30px; background: linear-gradient(90deg, #4CAF50, #45a049); transition: width 0.3s; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
+                <span id="progress-text">0%</span>
+              </div>
+            </div>
+            <p style="font-size: 14px; color: #666;">
+              <span id="current-employee-id">กำลังเตรียมข้อมูล...</span>
+            </p>
+            <hr style="margin: 10px 0;">
+            <p style="font-size: 13px; margin: 5px 0;"  >
+               สำเร็จ: <strong><span id="success-count">0</span></strong> คน
+            </p>
+            <p style="font-size: 13px; margin: 5px 0;">
+               ผิดพลาด: <strong><span id="error-count">0</span></strong> คน
+            </p>
+          </div>
+        `,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
       // วนลูปยิง API ทุกพนักงาน
       for (let i = 0; i < data.length; i++) {
         const employee = data[i];
         const employeeId = employee.employeeId;
+        
+        // เริ่มจับเวลา
+        const startTime = performance.now();
+        
+        // อัปเดต progress bar
+        const progress = Math.round(((i + 1) / data.length) * 100);
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+        const currentEmployeeSpan = document.getElementById('current-employee');
+        const currentEmployeeId = document.getElementById('current-employee-id');
+        const successCountSpan = document.getElementById('success-count');
+        const errorCountSpan = document.getElementById('error-count');
+        
+        if (progressBar) progressBar.style.width = `${progress}%`;
+        if (progressText) progressText.textContent = `${progress}%`;
+        if (currentEmployeeSpan) currentEmployeeSpan.textContent = i + 1;
+        if (currentEmployeeId) currentEmployeeId.textContent = `กำลังประมวลผล: ${employeeId}`;
+        if (successCountSpan) successCountSpan.textContent = successCount;
+        if (errorCountSpan) errorCountSpan.textContent = errorCount;
         
         try {
           console.log(`📡 Processing employee ${i + 1}/${data.length}: ${employeeId}`);
@@ -7615,28 +3962,76 @@ const getDateStyle = (day) => {
 
           if (response1.status === 200 && response2.status === 200) {
             successCount++;
-            console.log(`✅ Employee ${employeeId} - Both APIs processed successfully`);
+            
+            // คำนวณเวลาที่ใช้
+            const endTime = performance.now();
+            const timeTaken = ((endTime - startTime) / 1000).toFixed(2); // แปลงเป็นวินาที
+            
+            console.log(`Employee ${employeeId} - Both APIs processed successfully (${timeTaken}s)`);
+            
+            // อัปเดตจำนวนสำเร็จและแสดงเวลาใน SweetAlert
+            const successCountSpan = document.getElementById('success-count');
+            const currentEmployeeIdSpan = document.getElementById('current-employee-id');
+            if (successCountSpan) successCountSpan.textContent = successCount;
+            if (currentEmployeeIdSpan) currentEmployeeIdSpan.textContent = `✅ ${employeeId} - สำเร็จ (${timeTaken} วินาที)`;
           } else {
             errorCount++;
+            
+            // คำนวณเวลาที่ใช้
+            const endTime = performance.now();
+            const timeTaken = ((endTime - startTime) / 1000).toFixed(2);
+            
             errors.push(`Employee ${employeeId}: API1 status ${response1.status}, API2 status ${response2.status}`);
-            console.warn(`⚠️ Employee ${employeeId} - API1: ${response1.status}, API2: ${response2.status}`);
+            console.warn(`⚠️ Employee ${employeeId} - API1: ${response1.status}, API2: ${response2.status} (${timeTaken}s)`);
+            
+            // อัปเดตจำนวนผิดพลาดและแสดงเวลาใน SweetAlert
+            const errorCountSpan = document.getElementById('error-count');
+            const currentEmployeeIdSpan = document.getElementById('current-employee-id');
+            if (errorCountSpan) errorCountSpan.textContent = errorCount;
+            if (currentEmployeeIdSpan) currentEmployeeIdSpan.textContent = `⚠️ ${employeeId} - มีปัญหา (${timeTaken} วินาที)`;
           }
 
         } catch (error) {
           errorCount++;
+          
+          // คำนวณเวลาที่ใช้
+          const endTime = performance.now();
+          const timeTaken = ((endTime - startTime) / 1000).toFixed(2);
+          
           const errorMessage = error.response?.data?.message || error.message || 'Unknown error';
           errors.push(`Employee ${employeeId}: ${errorMessage}`);
-          console.error(`❌ Error processing employee ${employeeId}:`, error);
+          console.error(`❌ Error processing employee ${employeeId}: (${timeTaken}s)`, error);
+          
+          // อัปเดตจำนวนผิดพลาดและแสดงเวลาใน SweetAlert
+          const errorCountSpan = document.getElementById('error-count');
+          const currentEmployeeIdSpan = document.getElementById('current-employee-id');
+          if (errorCountSpan) errorCountSpan.textContent = errorCount;
+          if (currentEmployeeIdSpan) currentEmployeeIdSpan.textContent = `❌ ${employeeId} - ผิดพลาด (${timeTaken} วินาที)`;
         }
 
-        // เพิ่ม delay เล็กน้อยเพื่อไม่ให้ server overwhelm
+        // เพิ่ม delay 300ms เพื่อไม่ให้ server overwhelm
         if (i < data.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 100)); // 100ms delay
+          await new Promise(resolve => setTimeout(resolve, 300)); // 300ms delay
         }
       }
 
       // ปิด loading SweetAlert
       Swal.close();
+
+      // 🎨 เอฟเฟคการลบและเติมตัวอักษรในช่องรหัสหน่วยงาน (หลังยิง API เสร็จ)
+      console.log('🎨 Starting workplace ID animation effect...');
+      if (originalWorkplaceId && originalWorkplaceId.length > 0) {
+        // ลบตัวอักษรสุดท้าย
+        const trimmedId = originalWorkplaceId.slice(0, -1);
+        setSearchWorkplaceId(trimmedId);
+        
+        // รอ 300ms แล้วเติมตัวอักษรสุดท้ายกลับมา
+        await new Promise(resolve => setTimeout(resolve, 300));
+        setSearchWorkplaceId(originalWorkplaceId);
+        
+        // รอ 200ms ก่อนแสดงผลลัพธ์
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
 
       // แสดงผลลัพธ์ด้วย SweetAlert
       const iconType = errorCount === 0 ? 'success' : (successCount > 0 ? 'warning' : 'error');
@@ -7734,18 +4129,24 @@ const getDateStyle = (day) => {
               // อัปเดตข้อมูลที่เกี่ยวข้องทั้งหมด
               setSearchResults(response.data);
               
-              // Force re-render component
+              // Force re-render component และแสดงตาราง
               setLoading(false);
+              setShowTable(true); // แสดงตารางเมื่อข้อมูลพร้อมแล้ว
+              
               setTimeout(() => setLoading(true), 100);
-              setTimeout(() => setLoading(false), 200);
+              setTimeout(() => {
+                setLoading(false);
+                setShowTable(true); // ยืนยันว่าตารางแสดง
+              }, 200);
               
               console.log('✅ Component refresh completed');
             } else {
               console.warn('⚠️ API returned empty data after Force Reload');
-              
+              setShowTable(true); // แสดงตารางแม้ไม่มีข้อมูล
             }
           } catch (refreshError) {
             console.error('❌ Error refreshing data:', refreshError);
+            setShowTable(true); // แสดงตารางแม้เกิด error
             Swal.fire({
               icon: 'error',
               title: 'เกิดข้อผิดพลาดในการรีเฟรช',
@@ -7759,6 +4160,7 @@ const getDateStyle = (day) => {
 
     } catch (error) {
       console.error('❌ Force Reload failed:', error);
+      setShowTable(true); // แสดงตารางแม้เกิด error
       Swal.fire({
         icon: 'error',
         title: 'เกิดข้อผิดพลาด',
@@ -7768,6 +4170,8 @@ const getDateStyle = (day) => {
       });
     } finally {
       setLoading(false);
+      // ตรวจสอบว่าถ้าไม่มีการแสดงตารางอยู่แล้ว ให้แสดง
+      setShowTable(true);
     }
   };
 
@@ -8151,29 +4555,62 @@ const getDateStyle = (day) => {
       
       // Merge welfare columns (สวัสดิการ)
       if (workplaceAddsalary && workplaceAddsalary.length > 0) {
-        console.log('Merging welfare columns...');
+        console.log('🎯 Merging welfare columns...');
+        const welfareCount = mergeWorkplaceAddsalary(workplaceAddsalary).length;
         const welfareStartCol = String.fromCharCode(67 + dayNumbers.length + 1 + 5); // หลังโอที 5 คอลัมน์
-        for (let i = 0; i < workplaceAddsalary.length; i++) {
-          const colLetter = String.fromCharCode(welfareStartCol.charCodeAt(0) + i);
-          safeMergeCell(`${colLetter}5:${colLetter}8`);
+        const welfareEndCol = String.fromCharCode(welfareStartCol.charCodeAt(0) + welfareCount - 1);
+        
+        console.log(`📊 Welfare columns: ${welfareStartCol} to ${welfareEndCol} (${welfareCount} columns)`);
+        
+        // 🆕 Merge หัวข้อ "สวัสดิการ" ในแถว 5 แนวนอน (ครอบคลุมทุกคอลัมน์สวัสดิการ)
+        const welfareHeaderRange = `${welfareStartCol}5:${welfareEndCol}5`;
+        console.log(`🔗 Merging สวัสดิการ header horizontally: ${welfareHeaderRange}`);
+        const mergedWelfareHeader = safeMergeCell(welfareHeaderRange);
+        console.log(`Welfare header merge result: ${mergedWelfareHeader ? '✅ SUCCESS' : '❌ FAILED'}`);
+        
+        // ตั้งค่าหัวข้อ "สวัสดิการ" ให้อยู่ตรงกลาง
+        if (mergedWelfareHeader) {
+          try {
+            const welfareHeaderCell = worksheet.getCell(`${welfareStartCol}5`);
+            welfareHeaderCell.value = 'สวัสดิการ';
+            welfareHeaderCell.font = { bold: true, size: 14, color: { argb: 'FF000000' } };
+            welfareHeaderCell.alignment = { horizontal: 'center', vertical: 'middle' };
+            welfareHeaderCell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FFE0E0E0' } // สีเทาอ่อนเพื่อให้เด่น
+            };
+            console.log('✅ Set สวัสดิการ header text and styling');
+          } catch (error) {
+            console.warn('❌ Error setting สวัสดิการ header:', error);
+          }
         }
         
-        // Add text rotation to welfare columns
-        console.log('Adding text rotation to welfare columns...');
-        for (let i = 0; i < workplaceAddsalary.length; i++) {
+        // Merge แต่ละคอลัมน์สวัสดิการแนวตั้ง (rows 6-8) สำหรับชื่อสวัสดิการแต่ละตัว
+        console.log('🔗 Merging individual welfare columns vertically (rows 6-8)...');
+        for (let i = 0; i < welfareCount; i++) {
+          const colLetter = String.fromCharCode(welfareStartCol.charCodeAt(0) + i);
+          const verticalRange = `${colLetter}6:${colLetter}8`;
+          safeMergeCell(verticalRange);
+          console.log(`  Merged ${verticalRange}`);
+        }
+        
+        // Add text rotation to welfare columns (แถว 6)
+        console.log('🔄 Adding text rotation to welfare columns...');
+        for (let i = 0; i < welfareCount; i++) {
           try {
             const colLetter = String.fromCharCode(welfareStartCol.charCodeAt(0) + i);
-            const welfareCell = worksheet.getCell(`${colLetter}5`);
+            const welfareCell = worksheet.getCell(`${colLetter}6`); // แถว 6 ไม่ใช่ 5
             if (welfareCell) {
               welfareCell.alignment = {
                 horizontal: 'center',
                 vertical: 'middle',
                 textRotation: 90
               };
-              console.log(`Text rotation applied to welfare cell ${colLetter}5`);
+              console.log(`✅ Text rotation applied to welfare cell ${colLetter}6`);
             }
           } catch (rotationError) {
-            console.warn(`Error applying text rotation to welfare column ${i}:`, rotationError.message);
+            console.warn(`❌ Error applying text rotation to welfare column ${i}:`, rotationError.message);
           }
         }
       }
@@ -8512,13 +4949,9 @@ const socialSecurityColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount;
             // หา record ทั้งหมดของวันนี้
             const allRecordsForDay = record?.employee_record?.filter(itemx => itemx.date === day) || [];
             
-            // 🔥 แก้ไข: สำหรับแถวเช้า ให้หา cash_holiday record ก่อน (สำหรับกะเช้า 06:00-15:00)
+            // 🔥 แก้ไข: สำหรับแถวเช้า ให้หา cash_holiday record สำหรับกะเช้า (ใช้ isNightShiftCash)
             const cashHolidayRecord = allRecordsForDay.find(itemx => {
-              if (itemx.shift === "cash_holiday" && itemx.startTime) {
-                const startHour = parseFloat(itemx.startTime.replace('.', ':').split(':')[0]);
-                return startHour >= 6 && startHour <= 15; // เฉพาะกะเช้า 06:00-15:00 เท่านั้น
-              }
-              return false;
+              return itemx.shift === "cash_holiday" && itemx.isNightShiftCash !== true;
             });
             
             // หา morning_shift record
@@ -8527,12 +4960,10 @@ const socialSecurityColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount;
             // หา record ที่มี totalTime ก่อน ถ้าไม่มีก็เอา record แรก
             const found = cashHolidayRecord || morningShiftRecord || allRecordsForDay.find(itemx => itemx.totalTime && itemx.totalTime.trim() !== '') || allRecordsForDay[0];
             
+            // 🔥 ปรับปรุง: ใช้ isNightShiftCash แทนการตรวจสอบเวลา
             const isWork = found?.dayType === "work" || 
                            (found?.dayType === "stop" && found?.shift === "morning_shift") ||
-                           (found?.shift === "cash_holiday" && found?.startTime && (() => {
-                             const startHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
-                             return startHour >= 6 && startHour <= 15; // เฉพาะกะเช้า 06:00-15:00 เท่านั้น
-                           })()); // แสดงข้อมูล cash_holiday เฉพาะกะเช้าในแถวเช้า 
+                           (found?.shift === "cash_holiday" && found?.isNightShiftCash !== true); // แสดง cash_holiday ที่ไม่ใช่กะดึกในแถวเช้า 
 
             // ตรวจสอบว่าวันนี้อยู่ใน stopDaysList หรือไม่
             const isInStopDaysList = record?.stopDaysList?.some(stopDay => {
@@ -8546,6 +4977,8 @@ const socialSecurityColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount;
             
             // กำหนดค่าที่จะแสดง
             let displayValue = '';
+            let shouldBeRed = false; // ตัวแปรบอกว่าต้องเป็นสีแดงหรือไม่ (สำหรับแถวเช้า)
+            
             if (isWork) {
               // เปรียบเทียบ workplaceId ของ record กับ searchWorkplaceId ที่เลือก
               const recordWorkplaceId = found?.workplaceId;
@@ -8562,14 +4995,14 @@ const socialSecurityColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount;
                 // ถ้าไม่ตรงกับ searchWorkplaceId = ไม่แสดงอะไร (วันที่ไม่ได้มาทำงานที่หน่วยงานนี้)
               } else {
                 // พนักงานปกติที่สังกัดหน่วยงานนี้
-                if (found?.shift === "cash_holiday" && found?.startTime) {
-                  // 🔥 ปรับปรุง: ตรวจสอบเวลาเริ่มงานสำหรับ cash_holiday
-                  const startHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
-                  if (startHour >= 6 && startHour <= 15) {
-                    // กะเช้า (06:00-15:00) - แสดงเลข 1
+                if (found?.shift === "cash_holiday") {
+                  // 🔥 ปรับปรุง: ใช้ isNightShiftCash แทนการตรวจสอบเวลา
+                  if (found?.isNightShiftCash !== true) {
+                    // กะเช้า - แสดงเลข 1 สีแดง
                     displayValue = '1';
+                    shouldBeRed = true; // เลข 1 สีแดงสำหรับ cash_holiday กะเช้า
                   }
-                  // ถ้าไม่อยู่ในช่วงเวลาเช้า (06:00-15:00) ไม่แสดงอะไรในแถวเช้า
+                  // ถ้าเป็นกะดึก (isNightShiftCash === true) ไม่แสดงอะไรในแถวเช้า
                 } else if (found?.shift === "morning_shift") {
                   // เฉพาะ morning_shift เท่านั้น
                   if (isMatchSearchWorkplace) {
@@ -8582,22 +5015,24 @@ const socialSecurityColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount;
             }
 
             // เพิ่มเงื่อนไขพิเศษ: ถ้าเป็นวันหยุดส่วนบุคคลแต่มี totalTime ให้แสดงเลข 1
-            // แต่ไม่แสดงถ้าเป็น cash_holiday กะดึก (startTime 18:00-03:00)
+            // แต่ไม่แสดงถ้าเป็น cash_holiday กะดึก (ใช้ isNightShiftCash)
             if (specialIndividual && found?.totalTime && found.totalTime.trim() !== '') {
-              // ตรวจสอบว่าเป็น cash_holiday กะดึกหรือไม่
-              if (found?.shift === "cash_holiday" && found?.startTime) {
-                const startHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
-                // ถ้าเป็นกะดึก (18:00-03:00) ไม่แสดงในแถวเช้า
-                if (!(startHour >= 18 || (startHour >= 0 && startHour <= 3))) {
+              // ตรวจสอบว่าเป็น cash_holiday หรือไม่
+              if (found?.shift === "cash_holiday") {
+                // ถ้าไม่ใช่กะดึก (isNightShiftCash !== true) ให้แสดงในแถวเช้า
+                if (found?.isNightShiftCash !== true) {
                   displayValue = "1";
+                  shouldBeRed = true; // เลข 1 สีแดงสำหรับ cash_holiday ในวันหยุดพิเศษ
                 }
+                // ถ้าเป็นกะดึก (isNightShiftCash === true) ไม่แสดงอะไรในแถวเช้า
               } else {
-                // ไม่ใช่ cash_holiday ให้แสดงปกติ
+                // ไม่ใช่ cash_holiday ให้แสดงปกติ (เฉพาะ specialt_shift หรือวันหยุดพิเศษที่ไม่ใช่ cash_holiday)
                 displayValue = "1";
               }
             }
             
-            empRow1.push(displayValue);
+            // เก็บข้อมูลว่าต้องเป็นสีแดงหรือไม่
+            empRow1.push({ value: displayValue, isRed: shouldBeRed });
           });
           
           // Summary columns
@@ -8640,19 +5075,18 @@ const socialSecurityColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount;
             // 🔥 แก้ไข: สำหรับแถวดึก ให้หา night_shift record ก่อน และ cash_holiday กะดึก
             const nightShiftRecord = allRecordsForDay.find(itemx => itemx.shift === "night_shift");
             
-            // หา cash_holiday record สำหรับกะดึก (18:00-03:00)
+            // หา cash_holiday record สำหรับกะดึก (ใช้ isNightShiftCash)
             const cashHolidayNightRecord = allRecordsForDay.find(itemx => {
-              if (itemx.shift === "cash_holiday" && itemx.startTime) {
-                const startHour = parseFloat(itemx.startTime.replace('.', ':').split(':')[0]);
-                return startHour >= 18 || (startHour >= 0 && startHour <= 3); // กะดึก 18:00-03:00
-              }
-              return false;
+              return itemx.shift === "cash_holiday" && itemx.isNightShiftCash === true;
             });
             
             const found = nightShiftRecord || cashHolidayNightRecord || allRecordsForDay.find(itemx => itemx.totalTime && itemx.totalTime.trim() !== '') || allRecordsForDay[0];
             
             // ตรวจสอบว่าเป็นการทำงานกะดึกหรือไม่
             const isNightShiftWork = found?.dayType === "work" && found?.shift === "night_shift";
+            
+            // 🆕 เพิ่ม: ตรวจสอบว่าเป็น cash_holiday กะดึกหรือไม่ (แม้วันหยุด)
+            const isCashHolidayNight = found?.shift === "cash_holiday" && found?.isNightShiftCash === true;
             
             // ตรวจสอบว่าวันนี้อยู่ใน stopDaysList หรือไม่
             const isInStopDaysList = record?.stopDaysList?.some(stopDay => {
@@ -8708,46 +5142,49 @@ const socialSecurityColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount;
             
             // กำหนดค่าที่จะแสดง
             let displayValue = '';
+            let shouldBeRed = false; // ตัวแปรบอกว่าต้องเป็นสีแดงหรือไม่
             
             if (isSpecialHoliday) {
-              // วันหยุดพิเศษ: ตรวจสอบเพิ่มเติม - ถ้าเป็น cash_holiday กะดึกให้แสดงเลข 1
-              if (found?.shift === "cash_holiday" && found?.startTime) {
-                const startHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
-                if (startHour >= 18 || (startHour >= 0 && startHour <= 3)) {
-                  displayValue = '1'; // เลข 1 สำหรับ cash_holiday กะดึก
-                }
+              // วันหยุดพิเศษ: ตรวจสอบเพิ่มเติม - ถ้าเป็น cash_holiday กะดึกให้แสดงเลข 1 สีแดง
+              if (isCashHolidayNight && found?.totalTime && found.totalTime.trim() !== '') {
+                displayValue = '1';
+                shouldBeRed = true; // เลข 1 สีแดงสำหรับ cash_holiday กะดึก
               }
             } else if (isDayOffOnly) {
               // วันหยุด: แสดงเลข 1 ถ้ามี totalTime และเป็น night_shift
               if (found?.totalTime && found.totalTime.trim() !== '' && found?.shift === "night_shift") {
                 displayValue = '1';
               }
-              // แสดงเลข 1 ถ้าเป็น cash_holiday และ startTime อยู่ในช่วงกะดึก (18:00-03:00)
-              if (found?.shift === "cash_holiday" && found?.startTime) {
-                const startHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
-                if (startHour >= 18 || (startHour >= 0)) {
-                  displayValue = '1'; // เลข 1 สำหรับ cash_holiday กะดึก
-                }
+              // แสดงเลข 1 สีแดงถ้าเป็น cash_holiday กะดึก (ใช้ isNightShiftCash)
+              if (isCashHolidayNight && found?.totalTime && found.totalTime.trim() !== '') {
+                displayValue = '1';
+                shouldBeRed = true; // เลข 1 สีแดงสำหรับ cash_holiday กะดึก
               }
             } else if (isDayoffWorkplace || isInvalidDate) {
-              // วันหยุดหรือวันที่ไม่มีอยู่จริง: ไม่แสดงอะไร
-              displayValue = '';
+              // วันหยุดหรือวันที่ไม่มีอยู่จริง: แสดงเลข 1 สีแดงถ้าเป็น cash_holiday กะดึก
+              if (isCashHolidayNight && found?.totalTime && found.totalTime.trim() !== '') {
+                displayValue = '1';
+                shouldBeRed = true; // เลข 1 สีแดงสำหรับ cash_holiday กะดึก
+              }
             } else if (isNightShiftWork) {
               displayValue = '1'; // แสดงเลข 1 เมื่อมาทำงานกะดึก
-            } else if (found?.shift === "cash_holiday" && found?.startTime) {
-              // ถ้าเป็น cash_holiday และ startTime อยู่ในช่วงกะดึก (18:00-03:00) - ไม่ใช่วันหยุด
-              const startHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
-              if (startHour >= 18 || (startHour >= 0 && startHour <= 3)) {
-                displayValue = '1'; // เลข 1 สำหรับ cash_holiday กะดึก
-              }
+            } else if (isCashHolidayNight) {
+              // แสดงเลข 1 สีแดงสำหรับ cash_holiday กะดึก (ใช้ isNightShiftCash flag)
+              displayValue = '1';
+              shouldBeRed = true; // เลข 1 สีแดงสำหรับ cash_holiday กะดึก
             }
             
             // ตรวจสอบ specialIndividualNight แยกต่างหาก
             if (specialIndividualNight) {
-              displayValue = ''; // ไม่แสดงอะไรสำหรับกรณีพิเศษ
+              // ถ้าเป็น cash_holiday กะดึกในวันหยุดพิเศษ ให้แสดงเลข 1 สีแดง
+              if (isCashHolidayNight && found?.totalTime && found.totalTime.trim() !== '') {
+                displayValue = '1';
+                shouldBeRed = true; // เลข 1 สีแดงสำหรับ cash_holiday กะดึก
+              }
             }
             
-            empRow2.push(displayValue);
+            // เก็บข้อมูลว่าต้องเป็นสีแดงหรือไม่
+            empRow2.push({ value: displayValue, isRed: shouldBeRed });
           });
           
           // Use exact same calculations as the web table to ensure consistency
@@ -8853,14 +5290,17 @@ for (let i = 0; i < remainingCols3; i++) {
             const recordWorkplaceId = found?.workplaceId;
             const isMatchSearchWorkplace = recordWorkplaceId === searchWorkplaceId;
             
+            // 🆕 ตรวจสอบว่าเป็น cash_holiday หรือไม่ - ถ้าใช่ไม่แสดงค่า
+            const isCashHoliday = found?.shift === "cash_holiday";
+            
             // กำหนดเงื่อนไขการแสดงผล
             let shouldShowData = false;
             if (isCrossWorkplaceEmployee) {
-              // พนักงานข้ามหน่วยงาน: แสดงเฉพาะวันที่มาทำงานที่หน่วยงานที่เลือก และต้องเป็น dayType "stop" และมี totalTime
-              shouldShowData = found && isMatchSearchWorkplace && found?.dayType === "stop" && found.totalTime;
+              // พนักงานข้ามหน่วยงาน: แสดงเฉพาะวันที่มาทำงานที่หน่วยงานที่เลือก และต้องเป็น dayType "stop" และมี totalTime และไม่ใช่ cash_holiday
+              shouldShowData = found && isMatchSearchWorkplace && found?.dayType === "stop" && found.totalTime && !isCashHoliday;
             } else {
-              // พนักงานปกติ: แสดงทุกวันที่มีข้อมูล dayType "stop" และมี totalTime
-              shouldShowData = found?.dayType === "stop" && found.totalTime;
+              // พนักงานปกติ: แสดงทุกวันที่มีข้อมูล dayType "stop" และมี totalTime และไม่ใช่ cash_holiday
+              shouldShowData = found?.dayType === "stop" && found.totalTime && !isCashHoliday;
             }
             
             // ตรวจสอบประเภทพนักงาน ถ้าเป็นรายเดือนไม่ให้แสดง totalTime
@@ -8977,11 +5417,25 @@ for (let i = 0; i < remainingCols5; i++) {
     empRow5.push('');
 }
 
+          // 🔴 แปลง empRow1 และ empRow2 ที่มี object { value, isRed } กลับเป็น string เพื่อให้ ExcelJS รองรับ
+          const empRow1Values = empRow1.map(item => {
+            if (typeof item === 'object' && item !== null && item.hasOwnProperty('value')) {
+              return item.value;
+            }
+            return item;
+          });
+          
+          const empRow2Values = empRow2.map(item => {
+            if (typeof item === 'object' && item !== null && item.hasOwnProperty('value')) {
+              return item.value;
+            }
+            return item;
+          });
           
           // Add employee rows to worksheet
           const empRowRefs = [];
-          empRowRefs.push(worksheet.addRow(empRow1));
-          empRowRefs.push(worksheet.addRow(empRow2));
+          empRowRefs.push(worksheet.addRow(empRow1Values)); // ใช้ empRow1Values แทน empRow1
+          empRowRefs.push(worksheet.addRow(empRow2Values)); // ใช้ empRow2Values แทน empRow2
           empRowRefs.push(worksheet.addRow(empRow3));
           empRowRefs.push(worksheet.addRow(empRow4));
           empRowRefs.push(worksheet.addRow(empRow5));
@@ -9025,9 +5479,16 @@ for (let colIdx = 1; colIdx <= actualTotalColumns; colIdx++) {
             
             // Check day columns (starting from column C, which is index 2)
             dayNumbers.forEach((day, dayIdx) => {
-              const cellValue = empRow[dayIdx + 2]; // +2 because columns A,B are ลำดับ and ชื่อ
+              const cellData = empRow[dayIdx + 2]; // +2 because columns A,B are ลำดับ and ชื่อ
+              // ตรวจสอบว่า cellData เป็น object หรือ string
+              const cellValue = (typeof cellData === 'object' && cellData !== null) ? cellData.value : cellData;
+              const shouldBeRed = (typeof cellData === 'object' && cellData !== null) ? cellData.isRed : false;
+              
               const colNumber = dayIdx + 3; // +3 because Excel is 1-based and we start from column C
               const cell = worksheet.getCell(actualRowNumber, colNumber);
+              
+              // ตั้งค่า value ของ cell
+              cell.value = cellValue;
               
               // ตรวจสอบว่าเป็นวันหยุดหรือไม่ (ใช้ลอจิกเดียวกันกับหน้าเว็บ)
               const dayNum = parseInt(day);
@@ -9108,11 +5569,8 @@ for (let colIdx = 1; colIdx <= actualTotalColumns; colIdx++) {
                 return false;
               });
               
-              // ตรวจสอบ cash_holiday ก่อนเพื่อให้สีแดงในกรณีวันหยุด
-              const isCashHolidayWithRedText = rowIdx === 1 && cellValue === '1' && foundRecord?.shift === "cash_holiday" && foundRecord?.startTime && (() => {
-                const startTimeHour = parseFloat(foundRecord.startTime.replace('.', ':').split(':')[0]);
-                return startTimeHour >= 18 || (startTimeHour >= 0 && startTimeHour <= 5);
-              })();
+              // 🔴 ตรวจสอบว่าควรเป็นสีแดงหรือไม่ (สำหรับแถวเช้าและแถวดึก)
+              const isCashHolidayWithRedText = (rowIdx === 0 || rowIdx === 1) && shouldBeRed;
 
               // Apply specific styling based on row type and cell content (ใช้ลำดับความสำคัญเหมือน HTML)
               if (isSickLeave) {
@@ -9142,19 +5600,18 @@ for (let colIdx = 1; colIdx <= actualTotalColumns; colIdx++) {
                 };
                 console.log(`Applied gray background with red text to special individual cell in ${rowNames[rowIdx]} row, day ${day} (${actualRowNumber}, ${colNumber})`);
               } else if (isCashHolidayWithRedText) {
-                // 🔴 cash_holiday ในช่วงเวลากะดึก - ตัวอักษรสีแดง (ตรวจสอบก่อน isPersonalDayOff เพื่อให้แสดงสีแดงในวันนักขัตฤกษ์)
-                // ถ้าเป็นวันหยุดนักขัตฤกษ์ (isPersonalDayOff) ให้ใช้พื้นหลังสีเขียว พร้อมตัวอักษรสีแดง
+                // 🔴 cash_holiday ในช่วงเวลากะดึก - ตัวอักษรสีแดง พื้นหลังสีเทา
                 cell.fill = {
                   type: 'pattern',
                   pattern: 'solid',
-                  fgColor: { argb: isPersonalDayOff ? 'FF00FF00' : 'FFFFFFFF' } // สีเขียวถ้าเป็นวันหยุดนักขัตฤกษ์ ไม่งั้นสีขาว
+                  fgColor: { argb: isPersonalDayOff ? 'FF00FF00' : 'FF9E9E9E' } // สีเขียวถ้าเป็นวันหยุดส่วนบุคคล ไม่งั้นสีเทา
                 };
                 cell.font = {
                   bold: false,
                   size: rowIdx <= 1 ? 14 : 9,
-                  color: { argb: 'FFFF0000' } // ตัวอักษรสีแดง
+                  color: { argb: 'FFFF0000' } // ตัวอักษรสีแดงตัวปกติ
                 };
-                console.log(`Applied ${isPersonalDayOff ? 'green' : 'white'} background with RED text to cash_holiday cell in ${rowNames[rowIdx]} row, day ${day} (${actualRowNumber}, ${colNumber})`);
+                console.log(`Applied ${isPersonalDayOff ? 'green' : 'gray'} background with RED text to cash_holiday cell in ${rowNames[rowIdx]} row, day ${day} (${actualRowNumber}, ${colNumber})`);
               } else if (isPersonalDayOff) {
                 // � วันหยุดส่วนบุคคล - สีเขียว (เฉพาะกรณีที่ไม่ใช่ cash_holiday)
                 cell.fill = {
@@ -9169,7 +5626,23 @@ for (let colIdx = 1; colIdx <= actualTotalColumns; colIdx++) {
                 };
                 console.log(`Applied green to personal day off cell in ${rowNames[rowIdx]} row, day ${day} (${actualRowNumber}, ${colNumber})`);
               } else if (rowIdx === 3) { // โอที 2 (empRow4) - ตรวจสอบก่อนวันหยุดหน่วยงาน
-                if (cellValue && cellValue !== '' && cellValue !== null && cellValue !== undefined) {
+                // 🆕 ตรวจสอบว่าเป็น cash_holiday หรือไม่
+                const isCashHolidayForOT2 = foundRecord?.shift === "cash_holiday";
+                
+                if (isCashHolidayForOT2) {
+                  // cash_holiday - แสดงสีเทาโดยไม่แสดงค่า
+                  cell.fill = {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FF9E9E9E' } // สีเทา #9e9e9e
+                  };
+                  cell.font = {
+                    bold: false,
+                    size: 9,
+                    color: { argb: 'FF000000' }
+                  };
+                  console.log(`Applied gray to OT2 cash_holiday cell in ${rowNames[rowIdx]} row, day ${day} (${actualRowNumber}, ${colNumber})`);
+                } else if (cellValue && cellValue !== '' && cellValue !== null && cellValue !== undefined) {
                   // โอที 2 มีค่า - สีเหลือง
                   cell.fill = {
                     type: 'pattern',
@@ -9183,7 +5656,7 @@ for (let colIdx = 1; colIdx <= actualTotalColumns; colIdx++) {
                   };
                   console.log(`Applied yellow to OT2 cell with value: ${cellValue} in ${rowNames[rowIdx]} row, day ${day} (${actualRowNumber}, ${colNumber})`);
                 } else if (isDayoffWorkplace || isDayOffOnly) {
-                  // โอที 2 ไม่มีค่า แต่เป็นวันหยุดหน่วยงาน - สีเทา
+                  // โอที 2 ไม่มีค่า แต่เป็นวันหยุดหน่วยงาน - สีชมพู
                   cell.fill = {
                     type: 'pattern',
                     pattern: 'solid',
@@ -9194,7 +5667,7 @@ for (let colIdx = 1; colIdx <= actualTotalColumns; colIdx++) {
                     size: 9,
                     color: { argb: 'FF000000' }
                   };
-                  console.log(`Applied gray to OT2 holiday cell in ${rowNames[rowIdx]} row, day ${day} (${actualRowNumber}, ${colNumber})`);
+                  console.log(`Applied pink to OT2 holiday cell in ${rowNames[rowIdx]} row, day ${day} (${actualRowNumber}, ${colNumber})`);
                 } else {
                   // โอที 2 ไม่มีค่า และไม่ใช่วันหยุด - สีขาว (วันปกติ)
                   cell.fill = {
@@ -9327,7 +5800,7 @@ for (let i = 0; i < remainingColsTotal; i++) {
         const count = employeeCountPerDay[i] || 0;
         if (count === 0) {
           totalEmpRow.specialStyles[i + 2] = { // +2 เพราะ column A,B เป็น "รวมพนักงานทำงาน/วัน" และ ""
-            backgroundColor: '', // สีเทา
+            backgroundColor: 'FFD3D3D3', // สีเทา
             fontColor: 'FF000000',      // ตัวอักษรสีดำ
             fontWeight: 'bold'
           };
@@ -9423,7 +5896,7 @@ for (let i = 0; i < remainingColsContract; i++) {
       const absentEmployeesPerDay = dayNumbers.map((day, dayIndex) => {
         const dayNum = parseInt(day);
         
-        // ตรวจสอบวันหยุด
+        // ตรวจสอบวันหยุด (เหมือนแถว "รวมพนักงานตามสัญญา/วัน")
         let actualMonth, actualYear;
         
         if (dayNum >= 21) {
@@ -9439,12 +5912,12 @@ for (let i = 0; i < remainingColsContract; i++) {
         
         const targetDateStr = `${actualYear}-${actualMonth.toString().padStart(2, '0')}-${dayNum.toString().padStart(2, '0')}`;
         
-        // ตรวจสอบว่าเป็นวันหยุดหรือไม่
-        const isHoliday = 
-          isInvalidDate ||
-          (weekendData?.dayoffWorkplace?.includes(targetDateStr)) ||
-          (weekendData && Array.isArray(weekendData) && weekendData.find(item => item.date === targetDateStr && (item.type === 'dayOffOnly' || item.type === 'weekend')));
-
+        // เช็ควันหยุดแบบเดียวกับแถว "รวมพนักงานตามสัญญา/วัน"
+        const isDayoffWorkplace = weekendData && weekendData.dayoffWorkplace && Array.isArray(weekendData.dayoffWorkplace) && weekendData.dayoffWorkplace.includes(targetDateStr);
+        const isDayOffOnly = weekendData && Array.isArray(weekendData) && weekendData.find(item => item.date === targetDateStr && item.type === 'dayOffOnly');
+        const isHoliday = isInvalidDate || isDayoffWorkplace || isDayOffOnly;
+        
+        // ถ้าเป็นวันหยุด ไม่นับคนขาด (return 0)
         if (isHoliday) {
           console.log(`🎯 Day ${day} - Holiday, no absence count`);
           return 0;
@@ -9456,7 +5929,7 @@ for (let i = 0; i < remainingColsContract; i++) {
         // ใช้ contractEmployeeCount จาก API
         const totalContractEmployees = contractEmployeeCount || 0;
         
-        // คำนวณพนักงานขาดงาน = พนักงานตามสัญญา - พนักงานที่มาทำงาน
+        // คำนวณพนักงานขาดงาน = พนักงานตามสัญญา - พนักงานที่มาทำงาน (เฉพาะวันทำงาน)
         const absentCount = totalContractEmployees - presentCount;
         
         console.log(`📊 Day ${day}: Total contract: ${totalContractEmployees}, Present: ${presentCount}, Absent: ${absentCount}`);
@@ -9468,11 +5941,68 @@ for (let i = 0; i < remainingColsContract; i++) {
       
       // Absent employees per day row
       const absentEmpRow = ['พนักงานขาดงาน', ''];
+      
+      // 🔍 Debug: ตรวจสอบ weekendData ก่อนสร้าง Excel
+      console.log('🔍 Excel Generation - weekendData check:');
+      console.log('- weekendData:', weekendData);
+      console.log('- weekendData.dayoffWorkplace:', weekendData?.dayoffWorkplace);
+      console.log('- Is Array:', Array.isArray(weekendData));
+      console.log('- absentEmployeesPerDay:', absentEmployeesPerDay);
+      
       dayNumbers.forEach((day, i) => {
+        // ตรวจสอบว่าวันที่นี้มีอยู่จริงในเดือนหรือไม่
+        const dayNum = parseInt(day);
+        let actualMonth, actualYear;
+        if (dayNum >= 21) {
+          actualMonth = month === "01" ? 12 : parseInt(month) - 1;
+          actualYear = month === "01" ? parseInt(year) - 1 : parseInt(year);
+        } else {
+          actualMonth = parseInt(month);
+          actualYear = parseInt(year);
+        }
+        const daysInActualMonth = new Date(actualYear, actualMonth, 0).getDate();
+        const isInvalidDate = dayNum > daysInActualMonth;
+        
+        // ตรวจสอบว่าเป็นวันหยุดหรือไม่
+        const targetDateStr = `${actualYear}-${actualMonth.toString().padStart(2, '0')}-${dayNum.toString().padStart(2, '0')}`;
+        const isWeekend = !!(weekendData?.dayoffWorkplace?.includes(targetDateStr));
+        const isDayOffOnly = !!(weekendData && Array.isArray(weekendData) && weekendData.find(item => item.date === targetDateStr && item.type === 'dayOffOnly'));
+        const isHoliday = isWeekend || isDayOffOnly;
+        
+        // 🔍 Debug: แสดงข้อมูลสำหรับวันที่มีปัญหา (4, 11, 18, 27)
+        if (day === "4" || day === "11" || day === "18" || day === "27") {
+          console.log(`🔍 Excel Data - Day ${day}:`, {
+            targetDateStr,
+            isWeekend,
+            isDayOffOnly,
+            isHoliday,
+            isInvalidDate,
+            absentCount: absentEmployeesPerDay[i],
+            presentCount: employeeCountPerDay[i],
+            contractCount: contractEmployeeCount
+          });
+        }
+        
         const absentCount = absentEmployeesPerDay[i] || 0;
-        absentEmpRow.push(absentCount === 0 ? '' : absentCount);
+        
+        // แสดงจำนวนพนักงานขาดงาน:
+        // - วันที่ไม่มีในเดือน → ไม่แสดงข้อมูล
+        // - วันหยุด → ว่างเปล่า (จะใส่สีเทาใน styling)
+        // - วันทำงานที่ไม่มีคนขาด → ว่างเปล่า
+        // - วันทำงานที่มีคนขาด → แสดง "-จำนวน" (เช่น -1, -2)
+        if (isInvalidDate) {
+          absentEmpRow.push('');
+        } else if (isHoliday) {
+          absentEmpRow.push(''); // วันหยุด - จะใส่สีเทาใน styling
+        } else if (absentCount === 0) {
+          absentEmpRow.push('');
+        } else {
+          absentEmpRow.push(`-${absentCount}`); // ใส่ - ข้างหน้า เช่น -1, -2
+        }
       });
-      absentEmpRow.push(absentEmployeesPerDay.reduce((total, count) => total + (count || 0), 0));
+      // เพิ่ม - ข้างหน้าค่ารวมด้วย
+      const totalAbsentCount = absentEmployeesPerDay.reduce((total, count) => total + (count || 0), 0);
+      absentEmpRow.push(totalAbsentCount > 0 ? `-${totalAbsentCount}` : totalAbsentCount);
       absentEmpRow.push('', '');
       absentEmpRow.push(
         formatTimeValueForExcel(totalOtPublicHoliday), 
@@ -9499,22 +6029,66 @@ for (let i = 0; i < remainingColsContract; i++) {
         } 
       };
       
-      // Add gray styling for days with no absent employees and red text for days with absent employees
+      // Add styling for absent employees row (สีเทาสำหรับวันหยุด และสีแดงสำหรับวันที่มีคนขาด)
       dayNumbers.forEach((day, i) => {
+        // ตรวจสอบว่าวันที่นี้มีอยู่จริงในเดือนหรือไม่
+        const dayNum = parseInt(day);
+        let actualMonth, actualYear;
+        if (dayNum >= 21) {
+          actualMonth = month === "01" ? 12 : parseInt(month) - 1;
+          actualYear = month === "01" ? parseInt(year) - 1 : parseInt(year);
+        } else {
+          actualMonth = parseInt(month);
+          actualYear = parseInt(year);
+        }
+        const daysInActualMonth = new Date(actualYear, actualMonth, 0).getDate();
+        const isInvalidDate = dayNum > daysInActualMonth;
+        
+        // ตรวจสอบว่าเป็นวันหยุดหรือไม่ (เหมือนแถว "รวมพนักงานตามสัญญา/วัน")
+        const targetDateStr = `${actualYear}-${actualMonth.toString().padStart(2, '0')}-${dayNum.toString().padStart(2, '0')}`;
+        const isDayoffWorkplace = weekendData && weekendData.dayoffWorkplace && Array.isArray(weekendData.dayoffWorkplace) && weekendData.dayoffWorkplace.includes(targetDateStr);
+        const isDayOffOnly = weekendData && Array.isArray(weekendData) && weekendData.find(item => item.date === targetDateStr && item.type === 'dayOffOnly');
+        const isHoliday = isDayoffWorkplace || isDayOffOnly;
+        
         const absentCount = absentEmployeesPerDay[i] || 0;
-        if (absentCount === 0) {
+        const presentCount = employeeCountPerDay[i] || 0;
+        
+        // 🔍 Debug: แสดงข้อมูล styling สำหรับวันที่มีปัญหา (4, 11, 18, 27)
+        if (day === "4" || day === "11" || day === "18" || day === "27") {
+          console.log(`🔍 Excel Styling - Day ${day}:`, {
+            targetDateStr,
+            isDayoffWorkplace,
+            isDayOffOnly,
+            isHoliday,
+            isInvalidDate,
+            absentCount,
+            presentCount,
+            willApplyGrayStyle: isHoliday && !isInvalidDate,
+            willApplyRedStyle: !isHoliday && !isInvalidDate && absentCount > 0,
+            cellValue: absentEmpRow[i + 2] // +2 เพราะมี 2 columns แรก
+          });
+        }
+        
+        // การใส่ style:
+        // - วันหยุด (ไม่ใช่วันที่ไม่มีในเดือน) → สีเทาพื้นหลัง
+        // - วันที่มีคนขาด → ตัวอักษรสีแดง
+        // - วันอื่นๆ → ไม่ใส่ style
+        if (isHoliday && !isInvalidDate) {
+          // วันหยุด - สีเทาพื้นหลัง
           absentEmpRow.specialStyles[i + 2] = { // +2 เพราะ column A,B เป็น "พนักงานขาดงาน" และ ""
             backgroundColor: 'FFD3D3D3', // สีเทา
             fontColor: 'FF000000',      // ตัวอักษรสีดำ
             fontWeight: 'bold'
           };
-        } else {
-          // ช่องที่มีค่าขาดงาน ให้ตัวอักษรสีแดง
+        } else if (absentCount > 0 && !isInvalidDate) {
+          // มีคนขาด - ตัวอักษรสีแดง (มี - ข้างหน้าแล้ว)
           absentEmpRow.specialStyles[i + 2] = { // +2 เพราะ column A,B เป็น "พนักงานขาดงาน" และ ""
-            fontColor: 'FFFF0000',      // ตัวอักษรสีแดง (แก้ไขให้ถูกต้อง)
+            backgroundColor: 'FFFFFFFF', // พื้นหลังสีขาว
+            fontColor: 'FFFF0000',      // ตัวอักษรสีแดง
             fontWeight: 'bold'
           };
         }
+        // วันที่ไม่มีในเดือน หรือ ไม่มีคนขาด - ไม่ใส่ style ใดๆ
       });
       
       // Apply red text color to total absent column if there are absent employees
@@ -9522,6 +6096,7 @@ for (let i = 0; i < remainingColsContract; i++) {
       if (totalAbsent > 0) {
         const totalColumnIndex = dayNumbers.length + 2; // +2 เพราะมี column A,B ก่อนหน้า
         absentEmpRow.specialStyles[totalColumnIndex] = {
+          backgroundColor: 'FFFFFFFF', // พื้นหลังสีขาว
           fontColor: 'FFFF0000',      // ตัวอักษรสีแดง
           fontWeight: 'bold'
         };
@@ -9551,8 +6126,8 @@ for (let i = 0; i < remainingColsOt15; i++) {
         const overtimeSum = overtimeSumPerDay[i] || 0;
         if (overtimeSum === 0) {
           ot15Row.specialStyles[i + 2] = { // +2 เพราะ column A,B เป็น "โอที 1.5 เท่า" และ ""
-            backgroundColor: '', // สีเทา
-            fontColor: 'FF008000',      // ตัวอักษรสีเขียว
+            backgroundColor: 'FFD3D3D3', // สีเทา
+            fontColor: 'FF000000',      // ตัวอักษรสีดำ
             fontWeight: 'bold'
           };
         }
@@ -9573,13 +6148,19 @@ for (let i = 0; i < remainingColsOt2; i++) {
 }
 
       
-      // Mark special styling for OT 2 days with values (yellow background)
+      // Mark special styling for OT 2 days (gray background for empty, yellow for values)
       ot2Row.specialStyles = {};
       dayNumbers.forEach((day, i) => {
         const overtime2Sum = overtime2SumPerDay[i] || 0;
         if (overtime2Sum > 0) { // เทสีเหลืองเฉพาะช่องที่มีค่า
           ot2Row.specialStyles[i + 2] = { // +2 เพราะ column A,B เป็น "โอที 2 เท่า" และ ""
             backgroundColor: 'FFFFFF00', // สีเหลือง
+            fontColor: 'FF000000',      // ตัวอักษรสีดำ
+            fontWeight: 'bold'
+          };
+        } else { // ไม่มีค่า - สีเทา
+          ot2Row.specialStyles[i + 2] = {
+            backgroundColor: 'FFD3D3D3', // สีเทา
             fontColor: 'FF000000',      // ตัวอักษรสีดำ
             fontWeight: 'bold'
           };
@@ -9599,13 +6180,19 @@ for (let i = 0; i < remainingColsOt3; i++) {
 }
 
       
-      // Mark special styling for OT 3 days with values (light pink background)
+      // Mark special styling for OT 3 days (gray background for empty, pink for values)
       ot3Row.specialStyles = {};
       dayNumbers.forEach((day, i) => {
         const overtime3Sum = overtime3SumPerDay[i] || 0;
         if (overtime3Sum > 0) { // เทสี #fae0f1 เฉพาะช่องที่มีค่า
           ot3Row.specialStyles[i + 2] = { // +2 เพราะ column A,B เป็น "โอที 3 เท่า" และ ""
             backgroundColor: 'FFFAE0F1', // สี #fae0f1 (ชมพูอ่อน)
+            fontColor: 'FF000000',      // ตัวอักษรสีดำ
+            fontWeight: 'bold'
+          };
+        } else { // ไม่มีค่า - สีเทา
+          ot3Row.specialStyles[i + 2] = {
+            backgroundColor: 'FFD3D3D3', // สีเทา
             fontColor: 'FF000000',      // ตัวอักษรสีดำ
             fontWeight: 'bold'
           };
@@ -9686,6 +6273,12 @@ for (let i = 0; i < remainingColsOt3; i++) {
             const rowNumber = summaryStartRow + 2; // absentEmpRow is now third summary row (0-based, so +2)
             const cell = worksheet.getCell(rowNumber, colNumber);
             
+            console.log(`🔴 Processing absent employee cell (${rowNumber}, ${colNumber}):`, {
+              cellValue: cell.value,
+              fontColor: style.fontColor,
+              backgroundColor: style.backgroundColor
+            });
+            
             // Apply background color if exists
             if (style.backgroundColor) {
               cell.fill = {
@@ -9695,43 +6288,79 @@ for (let i = 0; i < remainingColsOt3; i++) {
               };
             }
             
-            // Apply font styling - Make sure red text is properly set
+            // Apply font styling - ใช้ค่าจาก style โดยตรง
             cell.font = {
+              name: 'Cordia New',
+              size: 16,
               bold: style.fontWeight === 'bold',
-              size: 9,
               color: { argb: style.fontColor }
             };
             
-            // Special handling for red text cells - force red color
-            if (style.fontColor === 'FFFF0000') {
-              console.log(`🔴 Forcing red text color for absent employee cell (${rowNumber}, ${colNumber}) with value: ${cell.value}`);
-              
-              // Clear any existing formatting first
-              cell.font = {};
-              cell.numFmt = '0'; // Ensure simple number format
-              
-              // Force red color with explicit properties
-              cell.font = {
-                name: 'Calibri',
-                size: 9,
-                bold: true,
-                color: { argb: 'FFFF0000' }
-              };
-              
-              // Additional verification - log what was actually set
-              console.log(`🔍 Cell font after setting:`, JSON.stringify(cell.font));
-              
-              // Force value to be a number if it's a numeric string
-              if (typeof cell.value === 'string' && !isNaN(cell.value) && cell.value !== '') {
-                cell.value = parseInt(cell.value);
-              }
+            // ถ้าเป็นค่าตัวเลข ให้ตั้งค่า alignment
+            if (cell.value !== '' && cell.value !== null && cell.value !== undefined) {
+              cell.alignment = { vertical: 'middle', horizontal: 'center' };
             }
             
-            console.log(`Applied special style to absent employee cell (${rowNumber}, ${colNumber}) - Font Color: ${style.fontColor}`);
+            console.log(`✅ Applied style to absent employee cell (${rowNumber}, ${colNumber}) - Value: ${cell.value}, Font Color: ${style.fontColor}`);
           } catch (error) {
             console.warn(`Failed to apply special style to absent employee cell index ${cellIndex}:`, error.message);
           }
         });
+      }
+      
+      // Force apply red color to all cells with negative values in absent row - ใช้ Rich Text
+      const absentRowNumber = summaryStartRow + 2;
+      dayNumbers.forEach((day, i) => {
+        const colNumber = i + 3; // +3 because columns A,B are labels
+        const cell = worksheet.getCell(absentRowNumber, colNumber);
+        const cellValue = String(cell.value || '');
+        
+        // ถ้าขึ้นต้นด้วย - (ลบ) ให้เป็นสีแดง โดยใช้ Rich Text Format
+        if (cellValue.startsWith('-')) {
+          console.log(`🔴 FORCING RED with Rich Text for cell (${absentRowNumber}, ${colNumber}) with value: ${cellValue}`);
+          
+          // ใช้ Rich Text Format เพื่อบังคับให้เป็นสีแดงแน่นอน
+          cell.value = {
+            richText: [
+              {
+                font: {
+                  name: 'Cordia New',
+                  bold: true,
+                  color: { argb: 'FFFF0000' } // สีแดงแบบบังคับ
+                },
+                text: cellValue
+              }
+            ]
+          };
+          
+          cell.alignment = { vertical: 'middle', horizontal: 'center' };
+          
+          console.log(`✅ Rich Text applied: ${cellValue}`);
+        }
+      });
+      
+      // Apply red color to total column if has value (check for both number and string with -)
+      const totalColNumber = dayNumbers.length + 3; // +3 for columns A,B and 0-index
+      const totalCell = worksheet.getCell(absentRowNumber, totalColNumber);
+      const totalCellValue = String(totalCell.value || '');
+      
+      // เช็คว่ามีค่าและขึ้นต้นด้วย - หรือเป็นตัวเลขมากกว่า 0
+      if (totalCellValue && (totalCellValue.startsWith('-') || parseInt(totalCellValue) > 0)) {
+        console.log(`🔴 FORCING RED for total cell (${absentRowNumber}, ${totalColNumber}) with value: ${totalCellValue}`);
+        totalCell.value = {
+          richText: [
+            {
+              font: {
+                name: 'Cordia New',
+                size: 18,
+                bold: true,
+                color: { argb: 'FFFF0000' }
+              },
+              text: totalCellValue
+            }
+          ]
+        };
+        totalCell.alignment = { vertical: 'middle', horizontal: 'center' };
       }
       
       // Apply special styling to specific cells in OT 1.5 row
@@ -9858,20 +6487,20 @@ for (let i = 0; i < remainingColsOt3; i++) {
      
 
 // console.log('📏 Setting column widths...');
-const welfareColumns = workplaceAddsalary ? mergeWorkplaceAddsalary(workplaceAddsalary).map(() => ({ width: 10 })) : []; // เพิ่มจาก 8 เป็น 10
+const welfareColumns = workplaceAddsalary ? mergeWorkplaceAddsalary(workplaceAddsalary).map(() => ({ width: 15 })) : []; // เพิ่มจาก 12 เป็น 15
 worksheet.columns = [
-  { width: 10 },    // ลำดับ (เพิ่มจาก 6)  
-  { width: 40 },   // ชื่อ-สกุล (เพิ่มจาก 26)
-  ...dayNumbers.map(() => ({ width: 6 })), // วันที่ (เพิ่มจาก 5)
-  { width: 15 },   // รวมวันทำงาน (เพิ่มจาก 8)
-  { width: 10 },   // วันหยุด (เพิ่มจาก 8)
-  { width: 10 },   // วันนักขัต (เพิ่มจาก 8)
-  { width: 10 },   // ทำงานวันหยุด/นักขัต (เพิ่มจาก 8)
-  { width: 15 },   // โอที 1.5 เท่า (เพิ่มจาก 8)
-  { width: 10 },   // โอที 3 เท่า (เพิ่มจาก 8)
+  { width: 15 },    // ลำดับ (เพิ่มจาก 12)  
+  { width: 60 },    // ชื่อ-สกุล (เพิ่มจาก 50)
+  ...dayNumbers.map(() => ({ width: 9 })), // วันที่ (เพิ่มจาก 7)
+  { width: 22 },    // รวมวันทำงาน (เพิ่มจาก 18)
+  { width: 15 },    // วันหยุด (เพิ่มจาก 12)
+  { width: 15 },    // วันนักขัต (เพิ่มจาก 12)
+  { width: 15 },    // ทำงานวันหยุด/นักขัต (เพิ่มจาก 12)
+  { width: 22 },    // โอที 1.5 เท่า (เพิ่มจาก 18)
+  { width: 15 },    // โอที 3 เท่า (เพิ่มจาก 12)
   ...welfareColumns, // สวัสดิการ
-  { width: 10 },   // หักประกันสังคม (เพิ่มจาก 8)
-  { width: 10 }    // หมายเหตุ (เพิ่มจาก 8)
+  { width: 15 },    // หักประกันสังคม (เพิ่มจาก 12)
+  { width: 15 }     // หมายเหตุ (เพิ่มจาก 12)
 ];
       
       // Set page setup for A4 size
@@ -10031,16 +6660,16 @@ else if(dataArray.length === 5) {
               
               // Set font size for better A4 fitting
               cell.font = cell.font || {};
-              // กำหนดฟอนต์ขนาด 14 เป็นค่าเริ่มต้นสำหรับทุกเซลล์ ยกเว้นแถวที่ 1, 2, และ 3
+              // กำหนดฟอนต์ขนาด 15 เป็นค่าเริ่มต้นสำหรับทุกเซลล์ ยกเว้นแถวที่ 1, 2, 3, 4
               if (rowIndex !== 1 && rowIndex !== 2 && rowIndex !== 3 && rowIndex !== 4) {
-                cell.font.size = 22; // เพิ่มตัวอักษรเป็น 14pt สำหรับทุกแถว ยกเว้นแถวที่ 1, 2, และ 3
+                cell.font.size = 23; // เพิ่มจาก 22 เป็น 23
               }
               
               // Header styling (first 4 rows)
               if (rowIndex <= 8) { // เปลี่ยนจาก 6 เป็น 8 เนื่องจากแทรกแถวว่าง 4 แถว
                 if (rowIndex === 1) {
-                  // แถวที่ 1 (ชื่อบริษัท) ใช้ฟอนต์ขนาด 30
-                  cell.font = { bold: true, size: 30 };
+                  // แถวที่ 1 (ชื่อบริษัท) ใช้ฟอนต์ขนาด 31 (เพิ่มจาก 30)
+                  cell.font = { bold: true, size: 31 };
                   
                   // ตรวจสอบว่าเป็นช่วง AQ-AT หรือไม่ (คอลัมน์ 43-46)
                   if (colIndex >= 43 && colIndex <= 46) { // AQ=43, AR=44, AS=45, AT=46
@@ -10059,60 +6688,60 @@ else if(dataArray.length === 5) {
                     };
                   }
                   
-                  // ตั้งค่าความสูงแถวพิเศษ
-                  row.height = 30;
+                  // ตั้งค่าความสูงแถวพิเศษ (เพิ่มจาก 30 เป็น 32)
+                  row.height = 32;
                   // Return เร็วเพื่อไม่ให้โค้ดส่วนอื่นมา override
                   return;
                 } else if (rowIndex === 2) {
-                  // แถวที่ 2 (ใบลงเวลาการปฏิบัติงาน) ใช้ฟอนต์ขนาด 30 และ underline
-                  cell.font = { bold: true, size: 30, underline: true };
+                  // แถวที่ 2 (ใบลงเวลาการปฏิบัติงาน) ใช้ฟอนต์ขนาด 31 (เพิ่มจาก 30) และ underline
+                  cell.font = { bold: true, size: 31, underline: true };
                   cell.fill = {
                     type: 'pattern',
                     pattern: 'solid',
                     fgColor: { argb: 'FFFFFFFF' } // สีขาว
                   };
-                  // ตั้งค่าความสูงแถวพิเศษ
-                  row.height = 30;
+                  // ตั้งค่าความสูงแถวพิเศษ (เพิ่มจาก 30 เป็น 32)
+                  row.height = 32;
                   // Return เร็วเพื่อไม่ให้โค้ดส่วนอื่นมา override
                   return;
                 } else if (rowIndex === 3) {
-                  // แถวที่ 3 (หน่วยงาน) ใช้ฟอนต์ขนาด 30
-                  cell.font = { bold: true, size: 30 };
+                  // แถวที่ 3 (หน่วยงาน) ใช้ฟอนต์ขนาด 31 (เพิ่มจาก 30)
+                  cell.font = { bold: true, size: 31 };
                   cell.fill = {
                     type: 'pattern',
                     pattern: 'solid',
                     fgColor: { argb: 'FFFFFFFF' } // สีขาว
                   };
-                  // ตั้งค่าความสูงแถวพิเศษ
-                  row.height = 30;
+                  // ตั้งค่าความสูงแถวพิเศษ (เพิ่มจาก 30 เป็น 32)
+                  row.height = 32;
                   // Return เร็วเพื่อไม่ให้โค้ดส่วนอื่นมา override
                   return;
                 }else if (rowIndex === 4) {
-                  // แถวที่ 3 (หน่วยงาน) ใช้ฟอนต์ขนาด 30
-                  cell.font = { bold: true, size: 30 };
+                  // แถวที่ 4 (ประจำเดือน) ใช้ฟอนต์ขนาด 31 (เพิ่มจาก 30)
+                  cell.font = { bold: true, size: 31 };
                   cell.fill = {
                     type: 'pattern',
                     pattern: 'solid',
                     fgColor: { argb: 'FFFFFFFF' } // สีขาว
                   };
-                  // ตั้งค่าความสูงแถวพิเศษ
-                  row.height = 30;
+                  // ตั้งค่าความสูงแถวพิเศษ (เพิ่มจาก 30 เป็น 32)
+                  row.height = 32;
                   // Return เร็วเพื่อไม่ให้โค้ดส่วนอื่นมา override
                   return;
                 } else {
-                  // แถวอื่นๆ ใช้ฟอนต์ขนาด 14
-                  cell.font = { bold: true, size: 25 }; // Header ใช้ตัวหนา ขนาด 14pt (เพิ่มจาก 12pt)
+                  // แถวอื่นๆ ใช้ฟอนต์ขนาด 26 (เพิ่มจาก 25)
+                  cell.font = { bold: true, size: 26 }; // Header ใช้ตัวหนา
                 }
                 
                 // Set row height for headers with special height for row 8
                 if (rowIndex === 1) {
-                  // แถวที่ 1 (ชื่อบริษัท) ใช้ความสูงพิเศษสำหรับฟอนต์ขนาด 30
-                  row.height = 40; // เพิ่มความสูงสำหรับฟอนต์ขนาด 30
+                  // แถวที่ 1 (ชื่อบริษัท) ใช้ความสูงพิเศษสำหรับฟอนต์ขนาด 31
+                  row.height = 42; // เพิ่มความสูงจาก 40 เป็น 42
 
                 } else if (rowIndex === 8) { // เปลี่ยนจาก 6 เป็น 8 เนื่องจากแทรกแถวว่าง 4 แถว
                   row.height = 120; // เพิ่มความสูงแถวที่ 4 (overtime labels) จาก 85 เป็น 95
                 } else {
-                  row.height = 34; // เพิ่มความสูงปกติสำหรับแถว header อื่นๆ จาก 18 เป็น 22
+                  row.height = 40; // เพิ่มความสูงปกติสำหรับแถว header อื่นๆ จาก 18 เป็น 22
                 }
                 
                 // ลำดับและชื่อ-สกุล ให้เป็นสีขาว (ยกเว้นแถวที่ 1 ที่เป็นชื่อบริษัท)
@@ -10466,11 +7095,11 @@ else if(dataArray.length === 5) {
               } 
               // Summary rows styling (last 5 rows) - ไม่ใส่สีในส่วนนี้ เฉพาะปรับความสูงแถวและฟอนต์
               else if (rowIndex > worksheet.rowCount - 6) {
-                row.height = 28; // เพิ่มความสูงแถวสรุป จาก 25 เป็น 28
-                cell.font = { bold: true, size: 12 }; // เพิ่มตัวหนาสำหรับสรุป จาก 10 เป็น 12
+                row.height = 30; // เพิ่มความสูงแถวสรุป จาก 28 เป็น 30
+                cell.font = { bold: true, size: 13 }; // เพิ่มฟอนต์จาก 12 เป็น 13
               } else {
                 // Set row height for data rows
-                row.height = 35; // เพิ่มความสูงแถวข้อมูล จาก 30 เป็น 35
+                row.height = 45; // เพิ่มความสูงแถวข้อมูล จาก 35 เป็น 38
               }
               
               // Apply text rotation for specific header columns - ONLY ROW 8 (เดิมเป็น ROW 6)
@@ -11884,12 +8513,10 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
   // หา record ที่มี totalTime ก่อน ถ้าไม่มีก็เอา record แรก
   const found = cashHolidayRecord || morningShiftRecord || allRecordsForDay.find(itemx => itemx.totalTime && itemx.totalTime.trim() !== '') || allRecordsForDay[0];
 
+  // 🔥 ปรับปรุง: เช็ค isWork โดยใช้ isNightShiftCash แทนการตรวจสอบเวลา
   const isWork = found?.dayType === "work" || 
                  (found?.dayType === "stop" && found?.shift === "morning_shift") ||
-                 (found?.shift === "cash_holiday" && found?.startTime && (() => {
-                   const startHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
-                   return startHour >= 6 && startHour <= 15; // เฉพาะกะเช้า 06:00-15:00 เท่านั้น
-                 })()); // แสดงข้อมูล cash_holiday เฉพาะกะเช้าในแถวเช้า 
+                 (found?.shift === "cash_holiday" && found?.isNightShiftCash !== true); // แสดง cash_holiday ที่ไม่ใช่กะดึกในแถวเช้า
 
   // ตรวจสอบว่าวันนี้อยู่ใน stopDaysList หรือไม่
   const isInStopDaysList = record?.stopDaysList?.some(stopDay => {
@@ -12182,14 +8809,13 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
       // ถ้าไม่ตรงกับ searchWorkplaceId = ไม่แสดงอะไร (วันที่ไม่ได้มาทำงานที่หน่วยงานนี้)
     } else {
       // พนักงานปกติที่สังกัดหน่วยงานนี้
-      if (found?.shift === "cash_holiday" && found?.startTime) {
-        // 🔥 ปรับปรุง: ตรวจสอบเวลาเริ่มงานสำหรับ cash_holiday
-        const startHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
-        if (startHour >= 6 && startHour <= 15) {
-          // กะเช้า (06:00-15:00) - แสดงเลข 1 สีแดง
+      if (found?.shift === "cash_holiday") {
+        // 🔥 ปรับปรุง: ตรวจสอบว่าไม่ใช่กะดึก (isNightShiftCash !== true) แสดงว่าเป็นกะเช้า
+        if (found?.isNightShiftCash !== true) {
+          // กะเช้า - แสดงเลข 1 สีแดง
           displayValue = <span style={{ color: 'red' }}>1</span>;
         }
-        // ถ้าไม่อยู่ในช่วงเวลาเช้า (06:00-15:00) ไม่แสดงอะไรในแถวเช้า
+        // ถ้าเป็นกะดึก (isNightShiftCash === true) ไม่แสดงอะไรในแถวเช้า
       } else if (found?.shift === "morning_shift") {
         // เฉพาะ morning_shift เท่านั้น
         displayValue = '1';
@@ -12198,17 +8824,17 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
   }
 
   // เพิ่มเงื่อนไขพิเศษ: ถ้าเป็นวันหยุดส่วนบุคคลแต่มี totalTime ให้แสดงเลข 1
-  // แต่ไม่แสดงถ้าเป็น cash_holiday กะดึก (startTime 18:00-03:00)
+  // แต่ไม่แสดงถ้าเป็น cash_holiday กะดึก (ใช้ isNightShiftCash)
   if (specialIndividual && found?.totalTime && found.totalTime.trim() !== '') {
-    // ตรวจสอบว่าเป็น cash_holiday กะดึกหรือไม่
-    if (found?.shift === "cash_holiday" && found?.startTime) {
-      const startHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
-      // ถ้าเป็นกะดึก (18:00-03:00) ไม่แสดงในแถวเช้า
-      if (!(startHour >= 18 || (startHour >= 0 && startHour <= 3))) {
+    // ตรวจสอบว่าเป็น cash_holiday หรือไม่
+    if (found?.shift === "cash_holiday") {
+      // ถ้าไม่ใช่กะดึก (isNightShiftCash !== true) ให้แสดงในแถวเช้า
+      if (found?.isNightShiftCash !== true) {
         displayValue = "1";
       }
+      // ถ้าเป็นกะดึก (isNightShiftCash === true) ไม่แสดงอะไรในแถวเช้า
     } else {
-      // ไม่ใช่ cash_holiday ให้แสดงปกติ
+      // ไม่ใช่ cash_holiday ให้แสดงปกติ (เฉพาะ specialt_shift หรือวันหยุดพิเศษที่ไม่ใช่ cash_holiday)
       displayValue = "1";
     }
   }
@@ -12333,19 +8959,18 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                       // 🔥 แก้ไข: สำหรับแถวดึก ให้หา night_shift record ก่อน และ cash_holiday กะดึก
                       const nightShiftRecord = allRecordsForDay.find(itemx => itemx.shift === "night_shift");
                       
-                      // หา cash_holiday record สำหรับกะดึก (18:00-03:00)
+                      // หา cash_holiday record สำหรับกะดึก (ใช้ isNightShiftCash)
                       const cashHolidayNightRecord = allRecordsForDay.find(itemx => {
-                        if (itemx.shift === "cash_holiday" && itemx.startTime) {
-                          const startHour = parseFloat(itemx.startTime.replace('.', ':').split(':')[0]);
-                          return startHour >= 18 || (startHour >= 0 && startHour <= 3); // กะดึก 18:00-03:00
-                        }
-                        return false;
+                        return itemx.shift === "cash_holiday" && itemx.isNightShiftCash === true;
                       });
                       
                       const found = nightShiftRecord || cashHolidayNightRecord || allRecordsForDay.find(itemx => itemx.totalTime && itemx.totalTime.trim() !== '') || allRecordsForDay[0];
                       
                       // ตรวจสอบว่าเป็นการทำงานกะดึกหรือไม่
                       const isNightShiftWork = found?.dayType === "work" && found?.shift === "night_shift";
+                      
+                      // 🆕 เพิ่ม: ตรวจสอบว่าเป็น cash_holiday กะดึกหรือไม่ (แม้วันหยุด)
+                      const isCashHolidayNight = found?.shift === "cash_holiday" && found?.isNightShiftCash === true;
                       
                       // ตรวจสอบว่าวันนี้อยู่ใน stopDaysList หรือไม่
                       const isInStopDaysList = record?.stopDaysList?.some(stopDay => {
@@ -12425,43 +9050,43 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                       
                       if (isSpecialHoliday) {
                         backgroundColor = { backgroundColor: "#00ff00" }; // สีเขียวสำหรับวันหยุดพิเศษ
-                        // ตรวจสอบเพิ่มเติม: ถ้าเป็น cash_holiday กะดึกให้แสดงเลข 1 สีแดง
-                        if (found?.shift === "cash_holiday" && found?.startTime) {
-                          const startHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
-                          if (startHour >= 18 || (startHour >= 0 && startHour <= 3)) {
-                            displayValue = <span style={{ color: 'red' }}>1</span>; // เลข 1 สีแดงสำหรับ cash_holiday กะดึก
-                          }
+                        // ถ้าเป็น cash_holiday กะดึก ให้แสดงเลข 1 สีแดง
+                        if (isCashHolidayNight) {
+                          displayValue = <span style={{ color: 'red' }}>1</span>;
                         }
-                      } else if (isDayOffOnly ) {
+                      } else if (isDayOffOnly) {
                         backgroundColor = { backgroundColor: "#9e9e9e" }; 
                         // แสดงเลข 1 ถ้ามี totalTime และเป็น night_shift
                         if (found?.totalTime && found.totalTime.trim() !== '' && found?.shift === "night_shift") {
                           displayValue = '1';
                         }
-                        // แสดงเลข 1 ถ้าเป็น cash_holiday และ startTime อยู่ในช่วงกะดึก (18:00-03:00)
-                        if (found?.shift === "cash_holiday" && found?.startTime) {
-                          const startHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
-                          if (startHour >= 18 || (startHour >= 0 )) {
-                            displayValue = <span style={{ color: 'red' }}>1</span>; // เลข 1 สีแดงสำหรับ cash_holiday กะดึก
-                          }
+                        // แสดงเลข 1 สีแดงถ้าเป็น cash_holiday กะดึก (ใช้ isNightShiftCash)
+                        if (isCashHolidayNight && found?.totalTime && found.totalTime.trim() !== '') {
+                          displayValue = <span style={{ color: 'red'}}>1</span>;
                         }
-                      } else if (isDayoffWorkplace || isInvalidDate ) {
+                      } else if (isDayoffWorkplace || isInvalidDate) {
                         backgroundColor = { backgroundColor: "#9e9e9e" }; // สีเทาสำหรับวันหยุดหรือวันที่ไม่มีอยู่จริง
+                        // แสดงเลข 1 สีแดงถ้าเป็น cash_holiday กะดึกในวันหยุด
+                        if (isCashHolidayNight && found?.totalTime && found.totalTime.trim() !== '') {
+                          displayValue = <span style={{ color: 'red',}}>1</span>;
+                        }
                       } else if (isNightShiftWork) {
                         displayValue = '1'; // แสดงเลข 1 เมื่อมาทำงานกะดึก
-                      } else if (found?.shift === "cash_holiday" && found?.startTime) {
-                        // ถ้าเป็น cash_holiday และ startTime อยู่ในช่วงกะดึก (18:00-03:00) - ไม่ใช่วันหยุด
-                        const startHour = parseFloat(found.startTime.replace('.', ':').split(':')[0]);
-                        if (startHour >= 18 || (startHour >= 0 && startHour <= 3)) {
-                          displayValue = <span style={{ color: 'red' }}>1</span>; // เลข 1 สีแดงสำหรับ cash_holiday กะดึก
-                        }
+                      } else if (isCashHolidayNight) {
+                        // แสดงเลข 1 สีแดงสำหรับ cash_holiday กะดึก (ใช้ isNightShiftCash flag)
+                        displayValue = <span style={{ color: 'red' }}>1</span>;
                       }
-                      if(isSickLeave) {
+                      
+                      if (isSickLeave) {
                         backgroundColor = { backgroundColor: "#c5eaebff", color: "black" }; // สีดำสำหรับวันลาป่วย
                       }
 
-                      if(specialIndividualNight) {
+                      if (specialIndividualNight) {
                         backgroundColor = { backgroundColor: "#9e9e9e" }; // สีม่วงสำหรับวันหยุดพิเศษ
+                        // ถ้าเป็น cash_holiday กะดึกในวันหยุดพิเศษ ให้แสดงเลข 1 สีแดง
+                        if (isCashHolidayNight && found?.totalTime && found.totalTime.trim() !== '') {
+                          displayValue = <span style={{ color: 'red' }}>1</span>;
+                        }
                       }
                       
                       return (
@@ -13282,15 +9907,63 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
                         const absentCount = absentEmployeesPerDay[i] || 0;
                         const presentCount = employeeCountPerDay[i] || 0;
                         const isZero = absentCount === 0;
-                        const isHoliday = presentCount === 0; // วันหยุดถ้าไม่มีคนมาทำงาน
+                        
+                        // ตรวจสอบว่าวันที่นี้มีอยู่จริงในเดือนหรือไม่
+                        const dayNum = parseInt(day);
+                        let actualMonth, actualYear;
+                        if (dayNum >= 21) {
+                          actualMonth = month === "01" ? 12 : parseInt(month) - 1;
+                          actualYear = month === "01" ? parseInt(year) - 1 : parseInt(year);
+                        } else {
+                          actualMonth = parseInt(month);
+                          actualYear = parseInt(year);
+                        }
+                        const daysInActualMonth = new Date(actualYear, actualMonth, 0).getDate();
+                        const isInvalidDate = dayNum > daysInActualMonth;
+                        
+                        // ตรวจสอบว่าเป็นวันหยุดหรือไม่ (เหมือนใน Excel generation)
+                        const targetDateStr = `${actualYear}-${actualMonth.toString().padStart(2, '0')}-${dayNum.toString().padStart(2, '0')}`;
+                        const isWeekend = !!(weekendData?.dayoffWorkplace?.includes(targetDateStr));
+                        const isDayOffOnly = !!(weekendData && Array.isArray(weekendData) && weekendData.find(item => item.date === targetDateStr && item.type === 'dayOffOnly'));
+                        const isHoliday = isWeekend || isDayOffOnly;
+                        
+                        // Debug log
+                        if (day === "27") {
+                          console.log(`วันที่ 27 - absentCount: ${absentCount}, isZero: ${isZero}, isHoliday: ${isHoliday}, isInvalidDate: ${isInvalidDate}, isWeekend: ${isWeekend}, isDayOffOnly: ${isDayOffOnly}`);
+                        }
+                        
+                        // Logic ชัดเจน:
+                        // 1. วันหยุดหรือวันที่ไม่มี → ไม่แสดง, ไม่เป็นสีเทา
+                        // 2. ไม่มีคนขาด → ไม่แสดง, เป็นสีเทา
+                        // 3. มีคนขาด → แสดงตัวเลขสีแดง
+                        let shouldShowGray = false;
+                        let shouldShowRed = false;
+                        let displayValue = "";
+                        
+                        if (isHoliday || isInvalidDate) {
+                          // วันหยุดหรือวันที่ไม่มี - ไม่แสดงอะไร
+                          shouldShowGray = false;
+                          shouldShowRed = false;
+                          displayValue = "";
+                        } else if (isZero) {
+                          // ไม่มีคนขาด (วันทำงานปกติ) - สีเทา
+                          shouldShowGray = true;
+                          shouldShowRed = false;
+                          displayValue = "";
+                        } else {
+                          // มีคนขาด - แสดงตัวเลขสีแดง
+                          shouldShowGray = false;
+                          shouldShowRed = true;
+                          displayValue = absentCount;
+                        }
                         
                         return (
                           <td 
                             key={i} 
-                            className={`text-center text-bold align-middle ${isZero ? "" : "text-danger"}`}
-                            style={isZero ? { backgroundColor: "#bfbdbf" } : {}}
+                            className={`text-center text-bold align-middle ${shouldShowRed ? "text-danger" : ""}`}
+                            style={shouldShowGray ? { backgroundColor: "#bfbdbf" } : {}}
                           >
-                            {isZero ? "" : absentCount}
+                            {displayValue}
                           </td>
                         );
                       })}

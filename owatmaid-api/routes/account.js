@@ -9,6 +9,7 @@ const Employee = require('./models/employeeModel');
 
 const accounting = require('./models/accountingModel');
 const welfare = require('./models/welfareModel');
+const LockedTimerecord = require('./models/lockedTimerecordModel');
 
 
 const axios = require('axios');
@@ -4972,6 +4973,183 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
   } catch (error) {
     console.error("❌ Error in searchtimerecordbyworkplace:", error);
     return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// 🔒 LOCKED VERSION: API endpoint ที่จะ lock ข้อมูลจาก /searchtimerecordbyworkplace
+// เมื่อยิงครั้งแรก จะบันทึกข้อมูลไว้ และครั้งถัดไปจะใช้ข้อมูลที่บันทึกไว้เสมอ
+router.post('/searchtimerecordbyworkplace-locked', async (req, res) => {
+  try {
+    const { month, year, workplaceId, forceRefresh } = req.body;
+    
+    console.log(`🔒 [LOCKED] API called with parameters:`, { month, year, workplaceId, forceRefresh });
+
+    if (!month || !year) {
+      console.log(`❌ [LOCKED] Missing month or year parameters`);
+      return res.status(400).json({ message: 'Month and year are required' });
+    }
+
+    // ตรวจสอบว่ามีข้อมูล locked อยู่แล้วหรือไม่
+    const query = {
+      year: year,
+      month: month
+    };
+
+    // ถ้ามี workplaceId ให้เพิ่มเข้าไปใน query
+    if (workplaceId) {
+      query.workplaceId = workplaceId;
+    }
+
+    console.log(`🔍 [LOCKED] Searching for existing locked data with query:`, query);
+
+    let lockedData = await LockedTimerecord.findOne(query);
+
+    // ถ้ามีข้อมูล locked อยู่แล้ว และไม่ได้บังคับ refresh
+    if (lockedData && !forceRefresh) {
+      console.log(`✅ [LOCKED] Found existing locked data from ${lockedData.lockedAt}`);
+      console.log(`📦 [LOCKED] Returning locked data (${Object.keys(lockedData.groupedResult).length} workplace groups)`);
+      
+      return res.status(200).json({ 
+        groupedResult: lockedData.groupedResult,
+        isLocked: true,
+        lockedAt: lockedData.lockedAt,
+        message: 'ข้อมูลที่ถูก lock ไว้แล้ว - ไม่สามารถเปลี่ยนแปลงได้'
+      });
+    }
+
+    // ถ้ายังไม่มีข้อมูล locked หรือบังคับ refresh
+    // ให้ดึงข้อมูลจาก API เดิม
+    console.log(`🔄 [LOCKED] No locked data found or force refresh requested`);
+    console.log(`🔄 [LOCKED] Fetching fresh data from /searchtimerecordbyworkplace`);
+
+    const response = await axios.post(sURL + '/accounting/searchtimerecordbyworkplace', {
+      month: month,
+      year: year,
+      workplaceId: workplaceId
+    });
+
+    if (!response || !response.data || !response.data.groupedResult) {
+      console.log(`❌ [LOCKED] No data returned from /searchtimerecordbyworkplace`);
+      return res.status(404).json({ message: 'No data available to lock' });
+    }
+
+    console.log(`✅ [LOCKED] Fetched fresh data successfully`);
+    console.log(`📊 [LOCKED] Data contains ${Object.keys(response.data.groupedResult).length} workplace groups`);
+
+    // บันทึกข้อมูลใหม่หรืออัปเดตข้อมูลเดิม
+    const lockedDataToSave = {
+      year: year,
+      month: month,
+      workplaceId: workplaceId || 'ALL', // ถ้าไม่มี workplaceId ใช้ 'ALL'
+      lockedAt: new Date(),
+      groupedResult: response.data.groupedResult
+    };
+
+    if (lockedData) {
+      // อัปเดตข้อมูลเดิม
+      console.log(`🔄 [LOCKED] Updating existing locked data`);
+      lockedData = await LockedTimerecord.findOneAndUpdate(
+        query,
+        lockedDataToSave,
+        { new: true }
+      );
+    } else {
+      // สร้างข้อมูลใหม่
+      console.log(`➕ [LOCKED] Creating new locked data`);
+      lockedData = new LockedTimerecord(lockedDataToSave);
+      await lockedData.save();
+    }
+
+    console.log(`✅ [LOCKED] Data locked successfully at ${lockedData.lockedAt}`);
+    console.log(`🔒 [LOCKED] This data will remain unchanged until manually refreshed`);
+
+    return res.status(200).json({ 
+      groupedResult: lockedData.groupedResult,
+      isLocked: true,
+      lockedAt: lockedData.lockedAt,
+      message: 'ข้อมูลถูก lock เรียบร้อยแล้ว - จะไม่เปลี่ยนแปลงแม้ข้อมูลต้นทางจะเปลี่ยน'
+    });
+
+  } catch (error) {
+    console.error("❌ Error in searchtimerecordbyworkplace-locked:", error);
+    return res.status(500).json({ 
+      message: 'Internal server error',
+      error: error.message 
+    });
+  }
+});
+
+// 🗑️ API สำหรับลบข้อมูล locked (unlock)
+router.post('/unlock-timerecordbyworkplace', async (req, res) => {
+  try {
+    const { month, year, workplaceId } = req.body;
+    
+    console.log(`🔓 [UNLOCK] API called with parameters:`, { month, year, workplaceId });
+
+    if (!month || !year) {
+      console.log(`❌ [UNLOCK] Missing month or year parameters`);
+      return res.status(400).json({ message: 'Month and year are required' });
+    }
+
+    const query = {
+      year: year,
+      month: month
+    };
+
+    if (workplaceId) {
+      query.workplaceId = workplaceId;
+    }
+
+    const result = await LockedTimerecord.deleteOne(query);
+
+    if (result.deletedCount > 0) {
+      console.log(`✅ [UNLOCK] Successfully unlocked data for ${year}/${month}${workplaceId ? ' workplace: ' + workplaceId : ''}`);
+      return res.status(200).json({ 
+        message: 'ปลดล็อกข้อมูลเรียบร้อยแล้ว - สามารถ lock ใหม่ได้',
+        deletedCount: result.deletedCount
+      });
+    } else {
+      console.log(`⚠️ [UNLOCK] No locked data found to delete`);
+      return res.status(404).json({ 
+        message: 'ไม่พบข้อมูลที่ถูก lock'
+      });
+    }
+
+  } catch (error) {
+    console.error("❌ Error in unlock-timerecordbyworkplace:", error);
+    return res.status(500).json({ 
+      message: 'Internal server error',
+      error: error.message 
+    });
+  }
+});
+
+// 📋 API สำหรับดูรายการข้อมูลที่ถูก lock ทั้งหมด
+router.get('/locked-timerecords/list', async (req, res) => {
+  try {
+    console.log(`📋 [LIST LOCKED] Fetching all locked timerecords`);
+
+    const lockedRecords = await LockedTimerecord.find({}, {
+      year: 1,
+      month: 1,
+      workplaceId: 1,
+      lockedAt: 1,
+      _id: 0
+    }).sort({ year: -1, month: -1, lockedAt: -1 });
+
+    console.log(`✅ [LIST LOCKED] Found ${lockedRecords.length} locked records`);
+
+    return res.status(200).json({ 
+      count: lockedRecords.length,
+      lockedRecords: lockedRecords
+    });
+
+  } catch (error) {
+    console.error("❌ Error in list locked timerecords:", error);
+    return res.status(500).json({ 
+      message: 'Internal server error',
+      error: error.message 
+    });
   }
 });
 
