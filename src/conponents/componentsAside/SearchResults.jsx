@@ -101,7 +101,7 @@ function SearchResults() {
                                                 <div class="form-group">
                                                     <label>อัพโหลดลายนิ้วมือ</label>
                                                     <div class="">
-                                                        <img src="assets/images/01.png" class="" alt="" />
+                                                        <img src="/assets/images/01.png" class="" alt="" />
                                                     </div>
                                                 </div>
                                             </div>
@@ -109,7 +109,7 @@ function SearchResults() {
                                                 <div class="form-group">
                                                     <label>อัพโหลดใบหน้า</label>
                                                     <div class="">
-                                                        <img src="assets/images/01.png" class="" alt="" />
+                                                        <img src="/assets/images/01.png" class="" alt="" />
                                                     </div>
                                                 </div>
                                             </div>

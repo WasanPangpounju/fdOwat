@@ -21,7 +21,7 @@ function Top() {
                 <ul class="navbar-nav ml-auto">
                     <li class="nav-item logout">
                         <a href="#" onClick={handleLogout} >
-                            ออกจากระบบ &nbsp;<img src="assets/images/arrow-right-from-bracket-solid.png" width="17"/>
+                            ออกจากระบบ &nbsp;<img src="/assets/images/arrow-right-from-bracket-solid.png" width="17"/>
                         </a>
                     </li>
                 </ul>

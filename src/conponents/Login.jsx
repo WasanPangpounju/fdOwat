@@ -58,7 +58,7 @@ function LoginForm({ onLogin }) {
             <div class="Form_login">
                 <div class="login-page inner_login">
                     <div class="login-box">
-                        <div class="logo-login"><img src="assets/images/logo-xl.png" alt="" class="" /></div>
+                        <div class="logo-login"><img src="/assets/images/logo-xl.png" alt="" class="" /></div>
                         <div class="title-login">
                             <h2>ระบบบริหารทรัพยากรบุคคล</h2>
                         </div>
@@ -77,7 +77,7 @@ function LoginForm({ onLogin }) {
                                 <input type="password" class="form-control" id="password" name="password" placeholder="รหัสผ่าน " onChange={handlePasswordChange} />
                             </div>
                             <div class="clr">
-                                <button type="submit" class="btn-login btn-block">เข้าสู่ระบบ <img src="assets/images/right-to-bracket-solid.png" width="15" /></button>
+                                <button type="submit" class="btn-login btn-block">เข้าสู่ระบบ <img src="/assets/images/right-to-bracket-solid.png" width="15" /></button>
                             </div>
                             <div class="forgotpassword"><a href=""><i class="fas fa-unlock-alt"></i> ลืมรหัสผ่าน ?</a><a href=""><i class="fas fa-user-plus"></i> ลงทะเบียนใหม่</a></div>
                         </form>
