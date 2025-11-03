@@ -52,12 +52,28 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const mysql = require('mysql');
+const path = require('path');
 
 const app = express();
 
 // Middleware
 app.use(bodyParser.json());
 app.use(cors());
+
+// IMPORTANT: Serve static files FIRST with proper configuration
+app.use(express.static(path.join(__dirname, 'dist'), {
+  maxAge: '1d', // Cache static files for 1 day
+  etag: true,
+  lastModified: true,
+  setHeaders: (res, filePath) => {
+    // Set proper MIME types
+    if (filePath.endsWith('.js')) {
+      res.set('Content-Type', 'application/javascript');
+    } else if (filePath.endsWith('.css')) {
+      res.set('Content-Type', 'text/css');
+    }
+  }
+}));
 
 // MySQL Connection
 const db = mysql.createConnection({
@@ -105,8 +121,19 @@ app.delete('/api/items/:id', (req, res) => {
   });
 });
 
+// Catch-all handler: For any request that doesn't match an API route or static file,
+// send back the index.html file (for React Router)
+// IMPORTANT: This MUST be the LAST route
+app.get('*', (req, res) => {
+  // Don't serve index.html for API routes or assets
+  if (req.path.startsWith('/api/') || req.path.startsWith('/assets/')) {
+    return res.status(404).send('Not Found');
+  }
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
 // Start the server
-const PORT = 5000; // Replace with the desired port number
+const PORT = process.env.PORT || 5000; // Use environment variable or default to 5000
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
