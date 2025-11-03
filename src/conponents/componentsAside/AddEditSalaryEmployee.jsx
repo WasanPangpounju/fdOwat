@@ -1106,11 +1106,11 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                 <label role="">รายวัน/รายเดือน</label>
                                                             </div>
                                                         </div>
-                                                        <div class="col-md-2">
+                                                        {/* <div class="col-md-2">
                                                             <div class="form-group">
                                                                 <label role="">ประกันสังคม</label>
                                                             </div>
-                                                        </div>
+                                                        </div> */}
                                                         <div class="col-md-2">
                                                             <div class="form-group">
                                                                 <label role="">ประเภทพนักงาน</label>
@@ -1168,7 +1168,7 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                 <option value="monthly">รายเดือน</option>
                                                             </select>
                                                         </div>
-                                                        <div class="col-md-2">
+                                                        {/* <div class="col-md-2">
                                                             <select
                                                                 name="socialSecurityType"
                                                                 className="form-control"
@@ -1186,7 +1186,7 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                 <option value="yes">คิดประกันสังคม</option>
                                                                 <option value="no">ไม่คิดประกันสังคม</option>
                                                             </select>
-                                                        </div>
+                                                        </div> */}
                                                         <div className="col-md-2">
                                                             <select
                                                                 name="StaffType"
@@ -1339,9 +1339,9 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                                 <th className="text-center" width="12%">
                                                                                     <i className="fas fa-calendar-alt mr-1"></i>รายวัน/รายเดือน
                                                                                 </th>
-                                                                                <th className="text-center" width="15%">
+                                                                                {/* <th className="text-center" width="15%">
                                                                                     <i className="fas fa-shield-alt mr-1"></i>ประกันสังคม
-                                                                                </th>
+                                                                                </th> */}
                                                                                 <th className="text-center" width="20%">
                                                                                     <i className="fas fa-users mr-1"></i>ประเภทพนักงาน
                                                                                 </th>
@@ -1377,8 +1377,8 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                                                 <span className="text-bold">รายเดือน</span>
                                                                                             )}
                                                                                         </td>
-                                                                                        <td className="text-center p-3">
-                                                                                            {/* แสดง badge ตามค่า socialSecurityCheck */}
+                                                                                        {/* <td className="text-center p-3">
+                                                                                          
                                                                                             {(item.socialSecurityCheck === true || item.socialSecurityCheck === "yes" || item.socialSecurityCheck === "คิด") && (
                                                                                                 <span className="badge badge-success">คิดประกันสังคม</span>
                                                                                             )}
@@ -1388,7 +1388,7 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                                             {(item.socialSecurityCheck === null || item.socialSecurityCheck === undefined || item.socialSecurityCheck === "") && (
                                                                                                 <span className="badge badge-secondary">ไม่ระบุ</span>
                                                                                             )}
-                                                                                        </td>
+                                                                                        </td> */}
                                                                                         <td className="text-center p-3">
                                                                                             {item.StaffType === "header" && (
                                                                                                 <span className="">หัวหน้างาน</span>
@@ -1458,11 +1458,11 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                 <label role="">การหักเงิน</label>
                                                             </div>
                                                         </div>
-                                                        <div class="col-md-2">
+                                                        {/* <div class="col-md-2">
                                                             <div class="form-group">
                                                                 <label role="">ประกันสังคม</label>
                                                             </div>
-                                                        </div>
+                                                        </div> */}
                                                         {/* <div class="col-md-2">
                                                             <div class="form-group">
                                                                 <label role="">จำนวนงวด</label>
@@ -1525,7 +1525,7 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                 <option value="installment">ผ่อนจ่าย</option>
                                                             </select>
                                                         </div>
-                                                        <div class="col-md-2">
+                                                        {/* <div class="col-md-2">
                                                             <select
                                                                 name="minusSocialSecurityType"
                                                                 className="form-control"
@@ -1543,7 +1543,7 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                 <option value="yes">คิดประกันสังคม</option>
                                                                 <option value="no">ไม่คิดประกันสังคม</option>
                                                             </select>
-                                                        </div>
+                                                        </div> */}
                                                         {/* <div className="col-md-2">
 
                                                             {payType == "installment" ? (
@@ -1629,9 +1629,9 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                                 <th className="text-center" width="15%">
                                                                                     <i className="fas fa-credit-card mr-1"></i>การหักเงิน
                                                                                 </th>
-                                                                                <th className="text-center" width="20%">
+                                                                                {/* <th className="text-center" width="20%">
                                                                                     <i className="fas fa-shield-alt mr-1"></i>ประกันสังคม
-                                                                                </th>
+                                                                                </th> */}
                                                                                 <th className="text-center" width="17%">
                                                                                     <i className="fas fa-sticky-note mr-1"></i>หมายเหตุ
                                                                                 </th>
@@ -1663,8 +1663,8 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                                                 <span className="">ผ่อนจ่าย</span>
                                                                                             )}
                                                                                         </td>
-                                                                                        <td className="text-center p-3">
-                                                                                            {/* แสดง badge ตามค่า socialSecurityCheck */}
+                                                                                        {/* <td className="text-center p-3">
+                                                                                           
                                                                                             {(item.socialSecurityCheck === true || item.socialSecurityCheck === "yes" || item.socialSecurityCheck === "คิด") && (
                                                                                                 <span className="badge badge-success">คิดประกันสังคม</span>
                                                                                             )}
@@ -1674,7 +1674,7 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                                             {(item.socialSecurityCheck === null || item.socialSecurityCheck === undefined || item.socialSecurityCheck === "") && (
                                                                                                 <span className="badge badge-secondary">ไม่ระบุ</span>
                                                                                             )}
-                                                                                        </td>
+                                                                                        </td> */}
                                                                                         <td className="text-center p-3">
                                                                                             <small className="">
                                                                                                 {item.message || '-'}
