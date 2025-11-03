@@ -48,6 +48,8 @@ import ApplicationSummary from "./conponents/componentsAside/ApplicationSummary"
 import AddEditEmployee from "./conponents/componentsAside/AddEditEmployee";
 import AddEditSalaryEmployee from "./conponents/componentsAside/AddEditSalaryEmployee";
 import AddSettingEmp from "./conponents/componentsAside/AddSettingEmp";
+import SystemSettings from "./conponents/SystemSettings";
+import GPSLocation from "./conponents/GPSLocation";
 
 import BasicSetting from "./conponents/componentsAside/BasicSetting";
 import Setting from "./conponents/componentsAside/Setting";
@@ -393,6 +395,14 @@ useEffect(() => {
               <Route
                 path="/addEdit_SalaryEmployee"
                 element={<AddEditSalaryEmployee />}
+              />
+              <Route
+                path="/system-settings"
+                element={<SystemSettings workplaceList={workplaceList} />}
+              />
+              <Route
+                path="/gps-location"
+                element={<GPSLocation />}
               />
 
               {/* <Route path="/testPDF" element={<TestShowManyData />} /> */}
