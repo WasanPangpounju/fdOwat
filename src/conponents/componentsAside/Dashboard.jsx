@@ -529,7 +529,7 @@ const dashboardItems = [
   { to: "#", icon: "fas fa-file-alt", text: "รายงานผู้บริหาร", color: "#8175c7" },
   { to: "/search", icon: "fas fa-network-wired", text: "จัดการพนักงาน", color: "#ffc107" },
   { to: "/system-settings", icon: "fas fa-cog", text: "การตั้งค่า", color: "#aebece" },
-  { to: "/gps-location", icon: "fas fa-map-marker-alt", text: "ตำแหน่ง GPS", color: "rgb(43,93,142)" },
+  // { to: "/gps-location", icon: "fas fa-map-marker-alt", text: "ตำแหน่ง GPS", color: "rgb(43,93,142)" },
 ];
 
 
