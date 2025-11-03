@@ -620,9 +620,9 @@ const [isGeneratingExcel, setIsGeneratingExcel] = useState(false);
       }
 
       pdf.text(`เงินได้สะสมต่อปี`, 9, head2 + 83);
-      const netSalaryForDisplay2 = calculateNetSalary(currentEmployee2, responseDataAll[i + 1]?.accountingRecord?.[0]);
+      const netSalaryForDisplay = calculateNetSalary(currentEmployee, responseDataAll[i]?.accountingRecord?.[0]);
       pdf.text(
-        `${netSalaryForDisplay2.toLocaleString('th-TH', {
+        `${netSalaryForDisplay.toLocaleString('th-TH', {
           minimumFractionDigits: 2,
           maximumFractionDigits: 2
         })}`,
@@ -1802,6 +1802,7 @@ const generatePDF = async () => {
       parseFloat(employee?.sumCashWork || '0') + 
       parseFloat(employee?.sumCashOt || '0') +
       parseFloat(specialDayAmount || '0') + 
+      parseFloat(employee?.publicHolidayCash || '0') +
       parseFloat(
         employee?.addSalaryList?.reduce(
           (total, item) => total + parseFloat(item.SpSalary || '0'),
@@ -1809,9 +1810,18 @@ const generatePDF = async () => {
         ) || '0'
       );
 
+    // รวมรายการหักจาก deductSalaryList
+    const deductSalaryTotal = parseFloat(
+      employee?.deductSalaryList?.reduce(
+        (total, item) => total + parseFloat(item.amount || '0'),
+        0
+      ) || '0'
+    );
+
     const deductionTotal =
       parseFloat(employee?.socialSecurity || '0') +
-      parseFloat(employee?.tax || '0');
+      parseFloat(employee?.tax || '0') +
+      deductSalaryTotal;
 
     const netTotal = incomeTotal - deductionTotal;
 
@@ -7507,10 +7517,7 @@ const generateExcel = async () => {
                             placeholder="รหัสหน่อยงาน"
                             value={workplacrId}
                             onChange={handleStaffIdChange}
-                            onInput={(e) => {
-                              // Remove any non-digit characters
-                              e.target.value = e.target.value.replace(/\D/g, "");
-                            }}
+                            
                             list="WorkplaceIdList"
                           />
                           <datalist id="WorkplaceIdList">
