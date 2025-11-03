@@ -1,7 +1,7 @@
 import endpoint from '../../config';
 
 import axios from 'axios';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -145,6 +145,8 @@ function AddEditSalaryEmployee() {
 
     const [roundOfSalary, setRoundOfSalary] = useState('');
     const [staffType, setStaffType] = useState('');
+    const [socialSecurityType, setSocialSecurityType] = useState('');
+    const [socialSecurityCheck, setSocialSecurityCheck] = useState(null); // null = ไม่ระบุ, true = คิด, false = ไม่คิด
 
     const [addSalary, setAddSalary] = useState('');
     const [message, setMessage] = useState('');
@@ -158,9 +160,20 @@ function AddEditSalaryEmployee() {
 
     const [minusRoundOfSalary, setMinusRoundOfSalary] = useState('');
     const [minusStaffType, setMinusStaffType] = useState('');
+    const [minusSocialSecurityType, setMinusSocialSecurityType] = useState('');
+    const [minusSocialSecurityCheck, setMinusSocialSecurityCheck] = useState(null); // null = ไม่ระบุ, true = คิด, false = ไม่คิด
 
-
-
+    // Toast Notification States
+    const [toastList, setToastList] = useState([]);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [confirmModalData, setConfirmModalData] = useState({
+        title: '',
+        message: '',
+        onConfirm: null
+    });
+    
+    // useRef เพื่อเก็บ timestamp ของ toast ล่าสุด
+    const lastToastRef = useRef({ message: '', timestamp: 0 });
 
     // const numberOfRows2 = 30; // Fixed number of rows
     const numberOfRows2 = 1; // Fixed number of rows
@@ -173,6 +186,7 @@ function AddEditSalaryEmployee() {
         StaffType: '',
         nameType: '',
         message: '',
+        socialSecurityCheck: null, // null = ไม่ระบุ
     };
 
     const [rowDataList2, setRowDataList2] = useState(new Array(numberOfRows2).fill(initialRowData2));
@@ -187,11 +201,52 @@ function AddEditSalaryEmployee() {
         installment: '',
         nameType: '',
         message: '',
+        socialSecurityCheck: null, // null = ไม่ระบุ
 
     };
 
     const [rowDataList, setRowDataList] = useState(new Array(numberOfRows).fill(initialRowData));
 searchDeductSalaryList
+
+    // Toast Notification Function
+    const showToast = (message, type = 'success') => {
+        const now = Date.now();
+        
+        // ป้องกัน toast ซ้ำ - ตรวจสอบว่าข้อความเดียวกันถูกเรียกภายใน 500ms หรือไม่
+        if (lastToastRef.current.message === message && 
+            (now - lastToastRef.current.timestamp) < 500) {
+            return; // ไม่แสดง toast ถ้าเป็นข้อความเดียวกันภายในเวลา 500ms
+        }
+        
+        // อัพเดต timestamp
+        lastToastRef.current = { message, timestamp: now };
+        
+        const id = now;
+        const newToast = { id, message, type };
+        setToastList(prev => [...prev, newToast]);
+        
+        // Auto remove toast after 3 seconds
+        setTimeout(() => {
+            setToastList(prev => prev.filter(toast => toast.id !== id));
+        }, 3000);
+    };
+
+    // Confirm Modal Function
+    const showConfirm = (title, message, onConfirm) => {
+        setConfirmModalData({ title, message, onConfirm });
+        setShowConfirmModal(true);
+    };
+
+    const handleConfirmYes = () => {
+        if (confirmModalData.onConfirm) {
+            confirmModalData.onConfirm();
+        }
+        setShowConfirmModal(false);
+    };
+
+    const handleConfirmNo = () => {
+        setShowConfirmModal(false);
+    };
 
     useEffect(() => {
         const findObjectById = (id) => {
@@ -287,7 +342,7 @@ useEffect(() => {
                 // window.location.reload();
                 setEmployeeId('');
                 setName('');
-                alert('ไม่พบข้อมูล');
+                showToast('ไม่พบข้อมูลพนักงาน', 'error');
             } else {
                 // alert(response.data.employees.length);
 
@@ -314,6 +369,12 @@ useEffect(() => {
                             StaffType: item.StaffType,
                             nameType: item.nameType,
                             message: item.message,
+                            // แปลงค่า socialSecurityCheck: null (ไม่ระบุ), true (คิด), false (ไม่คิด)
+                            socialSecurityCheck: item.socialSecurityCheck === true || item.socialSecurityCheck === "yes" || item.socialSecurityCheck === "คิด" 
+                                ? true 
+                                : item.socialSecurityCheck === false || item.socialSecurityCheck === "no" || item.socialSecurityCheck === "ไม่คิด"
+                                ? false
+                                : null
                         }
 
 
@@ -338,6 +399,12 @@ useEffect(() => {
                             installment: item.installment,
                             nameType: item.nameType,
                             message: item.message,
+                            // แปลงค่า socialSecurityCheck: null (ไม่ระบุ), true (คิด), false (ไม่คิด)
+                            socialSecurityCheck: item.socialSecurityCheck === true || item.socialSecurityCheck === "yes" || item.socialSecurityCheck === "คิด"
+                                ? true
+                                : item.socialSecurityCheck === false || item.socialSecurityCheck === "no" || item.socialSecurityCheck === "ไม่คิด"
+                                ? false
+                                : null
                         }
 
                         // Push a new row with specific data
@@ -380,8 +447,8 @@ useEffect(() => {
 
             }
         } catch (error) {
-            alert('กรุณาตรวจสอบข้อมูลในช่องค้นหา');
-            alert(error)
+            showToast('กรุณาตรวจสอบข้อมูลในช่องค้นหา', 'error');
+            console.error(error);
             // window.location.reload();
         }
     }
@@ -397,6 +464,7 @@ useEffect(() => {
             SpSalary: addSalary || '',
             roundOfSalary: roundOfSalary || '',
             StaffType: staffType || '',
+            socialSecurityType: socialSecurityType || '',
             nameType: '',
             message: message || '',
         };
@@ -419,6 +487,7 @@ useEffect(() => {
         await setAddSalary('');
         await setRoundOfSalary('');
         await setStaffType('');
+        await setSocialSecurityType('');
         await setMessage('');
 
         await setMinusId('');
@@ -479,12 +548,24 @@ useEffect(() => {
     // };
 
     const addRow = (newRowData) => {
+        // ตรวจสอบว่ากรอกข้อมูลครบหรือไม่
+        if (!newRowData.id || !newRowData.name || !newRowData.SpSalary) {
+            showToast('เพิ่มล้มเหลว กรุณาใส่ข้อมูลให้ครบถ้วน (รหัส, ชื่อ, จำนวนเงิน)', 'error');
+            return;
+        }
+
         // Check if the id already exists in the current list
         const idExists = rowDataList2.some((row) => row.id === newRowData.id);
 
         if (!idExists) {
+            // Add socialSecurityCheck to newRowData
+            const updatedRowData = {
+                ...newRowData,
+                socialSecurityCheck: socialSecurityCheck // Include the current checkbox state
+            };
+            
             // Add the new row to the start of the list
-            const newDataList = [newRowData, ...rowDataList2];
+            const newDataList = [updatedRowData, ...rowDataList2];
             setRowDataList2(newDataList);
             setAddSalaryId('');
             setAddSalaryName('');
@@ -492,24 +573,32 @@ useEffect(() => {
             setRoundOfSalary('');
             setStaffType('');
             setMessage('');
+            setSocialSecurityCheck(null); // Reset เป็น null (ไม่ระบุ)
+            showToast('เพิ่มรายการเงินเพิ่มสำเร็จ', 'success');
         } else {
-            alert(`มีรหัส ${newRowData.id} ใช้งานแล้ว`);
-            setAddSalaryId('');
-            setAddSalaryName('');
-            setAddSalary('');
-            setRoundOfSalary('');
-            setStaffType('');
-            setMessage('');
+            showToast(`เพิ่มล้มเหลว มีรหัส ${newRowData.id} ใช้งานแล้ว`, 'error');
         }
     };
 
     const addRow2 = (newRowData2) => {
+        // ตรวจสอบว่ากรอกข้อมูลครบหรือไม่
+        if (!newRowData2.id || !newRowData2.name || !newRowData2.amount) {
+            showToast('เพิ่มล้มเหลว กรุณาใส่ข้อมูลให้ครบถ้วน (รหัส, ชื่อ, จำนวนเงิน)', 'error');
+            return;
+        }
+
         // Check if the id already exists in the current list
         const idExists2 = rowDataList.some((row) => row.id === newRowData2.id);
 
         if (!idExists2) {
+            // Add socialSecurityCheck to newRowData2
+            const updatedRowData2 = {
+                ...newRowData2,
+                socialSecurityCheck: minusSocialSecurityCheck // Include the current checkbox state
+            };
+            
             // Add the new row to the start of the list
-            const newDataList = [newRowData2, ...rowDataList];
+            const newDataList = [updatedRowData2, ...rowDataList];
             setRowDataList(newDataList);
             setMinusId('');
             setMisnusName('');
@@ -517,14 +606,10 @@ useEffect(() => {
             setPayType('');
             setInstallment('');
             setMinusmessage('');
+            setMinusSocialSecurityCheck(null); // Reset เป็น null (ไม่ระบุ)
+            showToast('เพิ่มรายการเงินหักสำเร็จ', 'success');
         } else {
-            alert(`มีรหัส ${newRowData2.id} ใช้งานแล้ว`);
-            setMinusId('');
-            setMisnusName('');
-            setMinusSalary('');
-            setPayType('');
-            setInstallment('');
-            setMinusmessage('');
+            showToast(`เพิ่มล้มเหลว มีรหัส ${newRowData2.id} ใช้งานแล้ว`, 'error');
         }
     };
 
@@ -542,21 +627,37 @@ useEffect(() => {
 
     // Function to handle deleting a row
     const handleDeleteRow = (index) => {
-        // Create a copy of the current state
-        const newDataList = [...rowDataList2];
-        // Remove the row at the specified index
-        newDataList.splice(index, 1);
-        // Update the state with the new data
-        setRowDataList2(newDataList);
+        const item = rowDataList2[index];
+        showConfirm(
+            'ยืนยันการลบ',
+            `คุณต้องการลบรายการเงินเพิ่มนี้หรือไม่?\n\nรหัส: ${item.id}\nชื่อ: ${item.name}\nจำนวนเงิน: ${Number(item.SpSalary).toLocaleString()} บาท`,
+            () => {
+                // Create a copy of the current state
+                const newDataList = [...rowDataList2];
+                // Remove the row at the specified index
+                newDataList.splice(index, 1);
+                // Update the state with the new data
+                setRowDataList2(newDataList);
+                showToast('ลบรายการเงินเพิ่มสำเร็จ', 'success');
+            }
+        );
     };
 
     const handleDeleteRow2 = (index) => {
-        // Create a copy of the current state
-        const newDataList = [...rowDataList];
-        // Remove the row at the specified index
-        newDataList.splice(index, 1);
-        // Update the state with the new data
-        setRowDataList(newDataList);
+        const item = rowDataList[index];
+        showConfirm(
+            'ยืนยันการลบ',
+            `คุณต้องการลบรายการเงินหักนี้หรือไม่?\n\nรหัส: ${item.id}\nชื่อ: ${item.name}\nจำนวนเงิน: ${Number(item.amount).toLocaleString()} บาท`,
+            () => {
+                // Create a copy of the current state
+                const newDataList = [...rowDataList];
+                // Remove the row at the specified index
+                newDataList.splice(index, 1);
+                // Update the state with the new data
+                setRowDataList(newDataList);
+                showToast('ลบรายการเงินหักสำเร็จ', 'success');
+            }
+        );
     };
 
 
@@ -565,8 +666,21 @@ useEffect(() => {
         // alert(dataResult._id);
         // alert(dataResult.addSalary);
         // alert(rowDataList2);
-        dataResult.addSalary = await rowDataList2;
-        dataResult.deductSalary = await rowDataList;
+        
+        // 🆕 กรองเฉพาะรายการที่มีข้อมูล (ไม่รวมแถวว่าง)
+        const validAddSalary = rowDataList2.filter(item => item.id && item.name);
+        const validDeductSalary = rowDataList.filter(item => item.id && item.name);
+        
+        console.log('📝 validAddSalary:', validAddSalary);
+        console.log('📝 validDeductSalary:', validDeductSalary);
+        
+        // 🆕 บันทึกลง newAddSalary และ newDeductSalary (รองรับ socialSecurityCheck)
+        dataResult.newAddSalary = validAddSalary;
+        dataResult.newDeductSalary = validDeductSalary;
+        
+        // เก็บข้อมูลเดิมไว้ด้วย (backward compatibility)
+        dataResult.addSalary = validAddSalary;
+        dataResult.deductSalary = validDeductSalary;
         
         // เพิ่มการบันทึกข้อมูลเงินกู้
         if (loanList && loanList.length > 0) {
@@ -621,7 +735,7 @@ useEffect(() => {
                     saveMessage += `\n- บันทึกข้อมูลเงินหัก ${dataResult.deductSalary.length} รายการ`;
                 }
                 
-                alert(saveMessage);
+                showToast(saveMessage, 'success');
                 // localStorage.setItem('selectedEmployees' , JSON.stringify(response.data.employees));
 
                 // window.location.reload();
@@ -630,9 +744,9 @@ useEffect(() => {
         } catch (error) {
             console.error('Error saving data:', error);
             if (error.response) {
-                alert(`เกิดข้อผิดพลาดในการบันทึก: ${error.response.status} - ${error.response.data?.message || error.response.statusText}`);
+                showToast(`เกิดข้อผิดพลาดในการบันทึก: ${error.response.status} - ${error.response.data?.message || error.response.statusText}`, 'error');
             } else {
-                alert('กรุณาตรวจสอบข้อมูลในช่องกรอกข้อมูล');
+                showToast('กรุณาตรวจสอบข้อมูลในช่องกรอกข้อมูล', 'error');
             }
             // window.location.reload();
         }
@@ -667,19 +781,19 @@ useEffect(() => {
 const handleAddLoan = () => {
     // ตรวจสอบข้อมูลพื้นฐาน
     if (!loanAmount || !loanContractCode || !minusId || !misnusName || !interestRate) {
-        alert('กรุณากรอกข้อมูลให้ครบถ้วน:\n- จำนวนเงิน\n- รหัสสัญญาเงินกู้\n- รหัสเงินหัก\n- ชื่อรายการเงินหัก\n- ระยะเวลา');
+        showToast('กรุณากรอกข้อมูลให้ครบถ้วน:\n- จำนวนเงิน\n- รหัสสัญญาเงินกู้\n- รหัสเงินหัก\n- ชื่อรายการเงินหัก\n- ระยะเวลา', 'error');
         return;
     }
 
-    // ตรวจสอบว่ามีการใส่ยอดเงินในเดือนใดเดือนหนึ่งอย่างน้อย
+    // ตรวจสอบว่ามีการใส่ยอดเงินในเดือนใดเดือนหนึ่งอย่างน้อง
     if (!monthlyPayments || monthlyPayments.length === 0) {
-        alert('กรุณาเลือกระยะเวลาผ่อนชำระก่อน');
+        showToast('กรุณาเลือกระยะเวลาผ่อนชำระก่อน', 'error');
         return;
     }
 
     const hasAmount = monthlyPayments.some(month => month.amount && Number(month.amount) > 0);
     if (!hasAmount) {
-        alert('กรุณาใส่ยอดเงินอย่างน้อยหนึ่งเดือน');
+        showToast('กรุณาใส่ยอดเงินอย่างน้อยหนึ่งเดือน', 'error');
         return;
     }
 
@@ -706,7 +820,7 @@ const handleAddLoan = () => {
         setLoanList(loanList.map(loan => 
             loan.id === editingLoan.id ? updatedLoan : loan
         ));
-        alert('แก้ไขรายการเงินกู้เรียบร้อยแล้ว');
+        showToast('แก้ไขรายการเงินกู้เรียบร้อยแล้ว', 'success');
     } else {
         // เพิ่มรายการใหม่
         const newLoan = {
@@ -724,7 +838,7 @@ const handleAddLoan = () => {
         };
 
         setLoanList([...loanList, newLoan]);
-        alert('เพิ่มรายการเงินกู้เรียบร้อยแล้ว');
+        showToast('เพิ่มรายการเงินกู้เรียบร้อยแล้ว', 'success');
     }
     
     // Reset form
@@ -738,7 +852,7 @@ const handleEditLoan = (loan) => {
     try {
         // ตรวจสอบข้อมูล loan object
         if (!loan || !loan.id) {
-            alert('ข้อมูลรายการเงินกู้ไม่ถูกต้อง');
+            showToast('ข้อมูลรายการเงินกู้ไม่ถูกต้อง', 'error');
             return;
         }
 
@@ -780,7 +894,7 @@ const handleEditLoan = (loan) => {
         
     } catch (error) {
         console.error('Error in handleEditLoan:', error);
-        alert('เกิดข้อผิดพลาดในการแก้ไขข้อมูล');
+        showToast('เกิดข้อผิดพลาดในการแก้ไขข้อมูล', 'error');
     }
 };
 
@@ -805,18 +919,20 @@ const resetLoanForm = () => {
 };
 
     const handleDeleteLoan = (id) => {
-        if (confirm('คุณต้องการลบรายการเงินกู้นี้หรือไม่? (ต้องกดบันทึกเพื่อยืนยันการลบ)')) {
-            // แค่ลบออกจาก state ในหน้า UI เท่านั้น 
-            // การลบจริงจะเกิดขึ้นเมื่อกดปุ่ม "บันทึก"
-            setLoanList(loanList.filter(loan => loan.id !== id));
-            
-            // แสดงข้อความแจ้งเตือน
-            alert('ลบรายการออกจากหน้าจอแล้ว กรุณากดปุ่ม "บันทึก" เพื่อยืนยันการลบข้อมูลในระบบ');
-        }
+        const loanToDelete = loanList.find(loan => loan.id === id);
+        showConfirm(
+            'ยืนยันการลบเงินกู้',
+            `คุณต้องการลบรายการเงินกู้นี้หรือไม่?\n\nรหัสสัญญา: ${loanToDelete?.contractCode || ''}\nจำนวนเงิน: ${Number(loanToDelete?.amount || 0).toLocaleString()} บาท\n\n(ต้องกดบันทึกเพื่อยืนยันการลบ)`,
+            () => {
+                // แค่ลบออกจาก state ในหน้า UI เท่านั้น 
+                // การลบจริงจะเกิดขึ้นเมื่อกดปุ่ม "บันทึก"
+                setLoanList(loanList.filter(loan => loan.id !== id));
+                
+                // แสดงข้อความแจ้งเตือน
+                showToast('ลบรายการออกจากหน้าจอแล้ว กรุณากดปุ่ม "บันทึก" เพื่อยืนยันการลบข้อมูลในระบบ', 'success');
+            }
+        );
     };
-    console.log("rowDataList2", rowDataList2);
-
-    console.log("rowDataList", rowDataList);
 
     // ...existing code...
 
@@ -853,8 +969,8 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                 <div class="content-wrapper">
                     {/* <!-- Content Header (Page header) --> */}
                     <ol class="breadcrumb">
-                        <li class="breadcrumb-item"><i class="fas fa-home"></i> <a href="index.php">หน้าหลัก</a></li>
-                        <li class="breadcrumb-item"><a href="#"> ระบบเงินเดือน</a></li>
+                        <li class="breadcrumb-item"><i class="fas fa-home"></i> <span>หน้าหลัก</span></li>
+                        <li class="breadcrumb-item"><span> ระบบเงินเดือน</span></li>
                         <li class="breadcrumb-item active">ใบลงเวลาการปฏิบัติงาน</li>
                     </ol>
                     <div className="content-header">
@@ -865,7 +981,7 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                         <i className="fas fa-money-bill-wave mr-2"></i> 
                                         เงินเพิ่ม เงินหักพนักงาน
                                     </h1>
-                                    <p className="text-muted mb-0">จัดการเงินเพิ่มและเงินหักสำหรับพนักงาน</p>
+                                    <p className="text-muted mb-0 mt-2 ml-4">จัดการเงินเพิ่มและเงินหักสำหรับพนักงาน</p>
                                 </div>
                             </div>
                         </div>
@@ -878,11 +994,10 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                 <div class="container-fluid">
                                     <div class="row">
                                         <div class="col-md-12">
-                                            <section className="card shadow-sm">
-                                                <div className="card-header  text-white"
-                                                heading="true" style={{ backgroundColor: 'rgb(56, 92, 130)' }}>
-                                                    <h5 className="mb-0">
-                                                        <i className="fas fa-search mr-2"></i>
+                                            <section className="card shadow-sm ">
+                                                <div className="card-header bg-light border-bottom">
+                                                    <h5 className="card-title mb-0 text-dark">
+                                                        <i className="fas fa-search me-2"></i>
                                                         ค้นหาพนักงาน
                                                     </h5>
                                                 </div>
@@ -993,10 +1108,15 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                         </div>
                                                         <div class="col-md-2">
                                                             <div class="form-group">
+                                                                <label role="">ประกันสังคม</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-2">
+                                                            <div class="form-group">
                                                                 <label role="">ประเภทพนักงาน</label>
                                                             </div>
                                                         </div>
-                                                        <div class="col-md-3">
+                                                        <div class="col-md-2">
                                                             <div class="form-group">
                                                                 <label role="message">หมายเหตุ</label>
                                                             </div>
@@ -1046,6 +1166,25 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                 <option value="">เลือก</option>
                                                                 <option value="daily">รายวัน</option>
                                                                 <option value="monthly">รายเดือน</option>
+                                                            </select>
+                                                        </div>
+                                                        <div class="col-md-2">
+                                                            <select
+                                                                name="socialSecurityType"
+                                                                className="form-control"
+                                                                value={socialSecurityCheck === null ? "" : (socialSecurityCheck ? "yes" : "no")}
+                                                                onChange={(e) => {
+                                                                    const value = e.target.value;
+                                                                    if (value === "") {
+                                                                        setSocialSecurityCheck(null);
+                                                                    } else {
+                                                                        setSocialSecurityCheck(value === "yes");
+                                                                    }
+                                                                }}
+                                                            >
+                                                                <option value="">เลือก</option>
+                                                                <option value="yes">คิดประกันสังคม</option>
+                                                                <option value="no">ไม่คิดประกันสังคม</option>
                                                             </select>
                                                         </div>
                                                         <div className="col-md-2">
@@ -1146,18 +1285,11 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                         <div class="col-md-2">
                                                             <input type="text" class="form-control" id="message" placeholder="หมายเหตุ" value={message} onChange={(e) => setMessage(e.target.value)} />
                                                         </div>
-                                                        {/* <div class="col-md-2">
-                                                            <div class="d-flex align-items-end">
-                                                                <button class="btn b_save"><i class="fas fa-check"
-                                                                onClick={() => {                                            
-                                                                    // Call the addRow function
-                                                                    addRow(newRowData);
-                                                                  }}
-                                                                ></i> &nbsp; เพิ่ม</button>
-                                                            </div>
-                                                        </div> */}
-                                                        <div className="col-md-2">
-                                                            <div className="d-flex align-items-end">
+                                                    </div>
+
+                                                    <div class="row" style={{ marginTop: '-5px' }}>
+                                                        <div className="col-md-12">
+                                                            <div className="d-flex justify-content-end">
                                                                 <button
                                                                     type="button"
                                                                     className="btn b_save"
@@ -1170,6 +1302,7 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                             StaffType: staffType || '',
                                                                             nameType: '',
                                                                             message: message || '',
+                                                                            socialSecurityCheck: socialSecurityCheck,
                                                                         };
                                                                         addRow(newRowData);
                                                                     }}
@@ -1178,14 +1311,12 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                 </button>
                                                             </div>
                                                         </div>
-
                                                     </div>
 
-
                                                     {/* ตารางแสดงข้อมูลเงินเพิ่ม */}
-                                                    <div className="card shadow-sm mt-3">
-                                                        <div className="card-header bg-success text-white">
-                                                            <h6 className="mb-0">
+                                                    <div className="card shadow-sm bg-light mt-3">
+                                                        <div className="card-header text-dark" style={{ backgroundColor: '#d4edda' }}>
+                                                            <h6 className="mb-0" style={{ color: '#000' }}>
                                                                 <i className="fas fa-plus-circle mr-2"></i>
                                                                 รายการเงินเพิ่ม
                                                             </h6>
@@ -1205,13 +1336,16 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                                 <th className="text-center" width="15%">
                                                                                     <i className="fas fa-money-bill mr-1"></i>จำนวนเงิน
                                                                                 </th>
-                                                                                <th className="text-center" width="15%">
-                                                                                    <i className="fas fa-calendar-alt mr-1"></i>ประเภทจ่าย
+                                                                                <th className="text-center" width="12%">
+                                                                                    <i className="fas fa-calendar-alt mr-1"></i>รายวัน/รายเดือน
                                                                                 </th>
                                                                                 <th className="text-center" width="15%">
+                                                                                    <i className="fas fa-shield-alt mr-1"></i>ประกันสังคม
+                                                                                </th>
+                                                                                <th className="text-center" width="20%">
                                                                                     <i className="fas fa-users mr-1"></i>ประเภทพนักงาน
                                                                                 </th>
-                                                                                <th width="15%">
+                                                                                <th className="text-center" width="15%">
                                                                                     <i className="fas fa-sticky-note mr-1"></i>หมายเหตุ
                                                                                 </th>
                                                                                 <th className="text-center" width="10%">
@@ -1244,6 +1378,18 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                                             )}
                                                                                         </td>
                                                                                         <td className="text-center p-3">
+                                                                                            {/* แสดง badge ตามค่า socialSecurityCheck */}
+                                                                                            {(item.socialSecurityCheck === true || item.socialSecurityCheck === "yes" || item.socialSecurityCheck === "คิด") && (
+                                                                                                <span className="badge badge-success">คิดประกันสังคม</span>
+                                                                                            )}
+                                                                                            {(item.socialSecurityCheck === false || item.socialSecurityCheck === "no" || item.socialSecurityCheck === "ไม่คิด") && (
+                                                                                                <span className="badge badge-danger">ไม่คิดประกันสังคม</span>
+                                                                                            )}
+                                                                                            {(item.socialSecurityCheck === null || item.socialSecurityCheck === undefined || item.socialSecurityCheck === "") && (
+                                                                                                <span className="badge badge-secondary">ไม่ระบุ</span>
+                                                                                            )}
+                                                                                        </td>
+                                                                                        <td className="text-center p-3">
                                                                                             {item.StaffType === "header" && (
                                                                                                 <span className="">หัวหน้างาน</span>
                                                                                             )}
@@ -1254,13 +1400,14 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                                                 <span className="">{item.StaffType}</span>
                                                                                             )}
                                                                                         </td>
-                                                                                        <td className="p-3 ">
-                                                                                            <small className="text-center">
+                                                                                        <td className="text-center p-3">
+                                                                                            <small className="">
                                                                                                 {item.message || '-'}
                                                                                             </small>
                                                                                         </td>
                                                                                         <td className="text-center p-3">
                                                                                             <button 
+                                                                                                type="button"
                                                                                                 className="btn btn-danger btn-sm"
                                                                                                 onClick={() => handleDeleteRow(index)}
                                                                                                 title="ลบรายการ"
@@ -1309,6 +1456,11 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                         <div class="col-md-2">
                                                             <div class="form-group">
                                                                 <label role="">การหักเงิน</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-2">
+                                                            <div class="form-group">
+                                                                <label role="">ประกันสังคม</label>
                                                             </div>
                                                         </div>
                                                         {/* <div class="col-md-2">
@@ -1373,6 +1525,25 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                 <option value="installment">ผ่อนจ่าย</option>
                                                             </select>
                                                         </div>
+                                                        <div class="col-md-2">
+                                                            <select
+                                                                name="minusSocialSecurityType"
+                                                                className="form-control"
+                                                                value={minusSocialSecurityCheck === null ? "" : (minusSocialSecurityCheck ? "yes" : "no")}
+                                                                onChange={(e) => {
+                                                                    const value = e.target.value;
+                                                                    if (value === "") {
+                                                                        setMinusSocialSecurityCheck(null);
+                                                                    } else {
+                                                                        setMinusSocialSecurityCheck(value === "yes");
+                                                                    }
+                                                                }}
+                                                            >
+                                                                <option value="">เลือก</option>
+                                                                <option value="yes">คิดประกันสังคม</option>
+                                                                <option value="no">ไม่คิดประกันสังคม</option>
+                                                            </select>
+                                                        </div>
                                                         {/* <div className="col-md-2">
 
                                                             {payType == "installment" ? (
@@ -1405,18 +1576,11 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                         <div class="col-md-2">
                                                             <input type="text" class="form-control" id="minusStaffType" placeholder="หมายเหตุ" value={minusStaffType} onChange={(e) => setMinusStaffType(e.target.value)} />
                                                         </div>
-                                                        {/* <div class="col-md-2">
-                                                            <div class="d-flex align-items-end">
-                                                                <button class="btn b_save"><i class="fas fa-check"
-                                                                onClick={() => {                                            
-                                                                    // Call the addRow function
-                                                                    addRow2(newRowData2);
-                                                                  }}
-                                                                ></i> &nbsp; เพิ่ม</button>
-                                                            </div>
-                                                        </div> */}
-                                                        <div className="col-md-2">
-                                                            <div className="d-flex align-items-end">
+                                                    </div>
+
+                                                    <div class="row" style={{ marginTop: '-10px' }}>
+                                                        <div className="col-md-12">
+                                                            <div className="d-flex justify-content-end">
                                                                 <button
                                                                     type="button"
                                                                     className="btn b_save"
@@ -1429,6 +1593,7 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                             installment: installment || '',
                                                                             nameType: '',
                                                                             message: minusStaffType || '',
+                                                                            socialSecurityCheck: minusSocialSecurityCheck, // Boolean value
                                                                         };
                                                                         addRow2(newRowData2);
                                                                     }}
@@ -1437,12 +1602,11 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                 </button>
                                                             </div>
                                                         </div>
-
                                                     </div>
                                                     {/* ตารางแสดงข้อมูลเงินหัก */}
-                                                    <div className="card shadow-sm mt-3">
-                                                        <div className="card-header bg-danger text-white">
-                                                            <h6 className="mb-0">
+                                                    <div className="card shadow-sm bg-light mt-3">
+                                                        <div className="card-header text-dark" style={{ backgroundColor: '#d4edda' }}>
+                                                            <h6 className="mb-0" style={{ color: '#000' }}>
                                                                 <i className="fas fa-minus-circle mr-2"></i>
                                                                 รายการเงินหัก
                                                             </h6>
@@ -1465,10 +1629,13 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                                 <th className="text-center" width="15%">
                                                                                     <i className="fas fa-credit-card mr-1"></i>การหักเงิน
                                                                                 </th>
-                                                                                <th width="25%">
+                                                                                <th className="text-center" width="20%">
+                                                                                    <i className="fas fa-shield-alt mr-1"></i>ประกันสังคม
+                                                                                </th>
+                                                                                <th className="text-center" width="17%">
                                                                                     <i className="fas fa-sticky-note mr-1"></i>หมายเหตุ
                                                                                 </th>
-                                                                                <th className="text-center" width="15%">
+                                                                                <th className="text-center" width="10%">
                                                                                     <i className="fas fa-cogs mr-1"></i>จัดการ
                                                                                 </th>
                                                                             </tr>
@@ -1496,13 +1663,26 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                                                 <span className="">ผ่อนจ่าย</span>
                                                                                             )}
                                                                                         </td>
-                                                                                        <td className="p-3 ">
-                                                                                            <small className="text-muted">
+                                                                                        <td className="text-center p-3">
+                                                                                            {/* แสดง badge ตามค่า socialSecurityCheck */}
+                                                                                            {(item.socialSecurityCheck === true || item.socialSecurityCheck === "yes" || item.socialSecurityCheck === "คิด") && (
+                                                                                                <span className="badge badge-success">คิดประกันสังคม</span>
+                                                                                            )}
+                                                                                            {(item.socialSecurityCheck === false || item.socialSecurityCheck === "no" || item.socialSecurityCheck === "ไม่คิด") && (
+                                                                                                <span className="badge badge-danger">ไม่คิดประกันสังคม</span>
+                                                                                            )}
+                                                                                            {(item.socialSecurityCheck === null || item.socialSecurityCheck === undefined || item.socialSecurityCheck === "") && (
+                                                                                                <span className="badge badge-secondary">ไม่ระบุ</span>
+                                                                                            )}
+                                                                                        </td>
+                                                                                        <td className="text-center p-3">
+                                                                                            <small className="">
                                                                                                 {item.message || '-'}
                                                                                             </small>
                                                                                         </td>
                                                                                         <td className="text-center p-2">
                                                                                             <button
+                                                                                                type="button"
                                                                                                 className="btn btn-danger btn-sm"
                                                                                                 onClick={() => handleDeleteRow2(index)}
                                                                                                 title="ลบรายการ"
@@ -1709,6 +1889,7 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                 >
                                     <div className="btn-group w-100">
                                         <button
+                                            type="button"
                                             className="btn btn-info btn-sm"
                                             onClick={() => handleEditLoan(loan)}
                                             style={{ borderRadius: '8px 0 0 8px' }}
@@ -1718,6 +1899,7 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                             แก้ไข
                                         </button>
                                         <button
+                                            type="button"
                                             className="btn btn-danger btn-sm"
                                             onClick={() => handleDeleteLoan(loan.id)}
                                             style={{ borderRadius: '0 8px 8px 0' }}
@@ -1744,7 +1926,7 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                     >
                         <div className="card-body py-5">
                             <i className="fas fa-hand-holding-usd fa-4x text-muted mb-3"></i>
-                            <h5 className="text-muted mb-2">ยังไม่มีรายการเงินกู้</h5>
+                            <h5 className="text-muted mb-2 mt-3">ยังไม่มีรายการเงินกู้</h5>
                             <p className="text-muted mb-4">เริ่มต้นสร้างรายการเงินกู้สำหรับพนักงาน</p>
                             <button 
                                 type="button"
@@ -2337,6 +2519,174 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                         </div>
                     </div>
                 )}
+
+            {/* Toast Notifications Container */}
+            <div style={{
+                position: 'fixed',
+                top: '20px',
+                right: '20px',
+                zIndex: 9999,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px'
+            }}>
+                {toastList.map(toast => (
+                    <div
+                        key={toast.id}
+                        style={{
+                            minWidth: '300px',
+                            padding: '16px 20px',
+                            borderRadius: '12px',
+                            backgroundColor: toast.type === 'success' ? '#28a745' : '#dc3545',
+                            color: 'white',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            animation: 'slideIn 0.3s ease-out',
+                            fontSize: '15px',
+                            fontWeight: '500'
+                        }}
+                    >
+                        <i className={`fas ${toast.type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}`} 
+                           style={{ fontSize: '20px' }}></i>
+                        <span>{toast.message}</span>
+                    </div>
+                ))}
+            </div>
+
+            {/* Confirmation Modal */}
+            {showConfirmModal && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    zIndex: 10000
+                }}>
+                    <div style={{
+                        backgroundColor: 'white',
+                        borderRadius: '16px',
+                        padding: '30px',
+                        minWidth: '400px',
+                        maxWidth: '500px',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+                        animation: 'fadeIn 0.2s ease-out'
+                    }}>
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            marginBottom: '20px'
+                        }}>
+                            <i className="fas fa-exclamation-triangle" 
+                               style={{ fontSize: '28px', color: '#ff9800' }}></i>
+                            <h3 style={{ 
+                                margin: 0, 
+                                fontSize: '22px', 
+                                fontWeight: 'bold',
+                                color: '#333'
+                            }}>
+                                {confirmModalData.title}
+                            </h3>
+                        </div>
+                        <p style={{ 
+                            fontSize: '16px', 
+                            lineHeight: '1.6',
+                            color: '#666',
+                            marginBottom: '30px',
+                            whiteSpace: 'pre-line'
+                        }}>
+                            {confirmModalData.message}
+                        </p>
+                        <div style={{
+                            display: 'flex',
+                            gap: '12px',
+                            justifyContent: 'flex-end'
+                        }}>
+                            <button
+                                onClick={handleConfirmNo}
+                                style={{
+                                    padding: '12px 24px',
+                                    fontSize: '15px',
+                                    fontWeight: '600',
+                                    border: '2px solid #6c757d',
+                                    borderRadius: '8px',
+                                    backgroundColor: 'white',
+                                    color: '#6c757d',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.3s'
+                                }}
+                                onMouseOver={(e) => {
+                                    e.target.style.backgroundColor = '#6c757d';
+                                    e.target.style.color = 'white';
+                                }}
+                                onMouseOut={(e) => {
+                                    e.target.style.backgroundColor = 'white';
+                                    e.target.style.color = '#6c757d';
+                                }}
+                            >
+                                <i className="fas fa-times mr-2"></i>
+                                ยกเลิก
+                            </button>
+                            <button
+                                onClick={handleConfirmYes}
+                                style={{
+                                    padding: '12px 24px',
+                                    fontSize: '15px',
+                                    fontWeight: '600',
+                                    border: '2px solid #dc3545',
+                                    borderRadius: '8px',
+                                    backgroundColor: '#dc3545',
+                                    color: 'white',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.3s'
+                                }}
+                                onMouseOver={(e) => {
+                                    e.target.style.backgroundColor = '#c82333';
+                                    e.target.style.borderColor = '#c82333';
+                                }}
+                                onMouseOut={(e) => {
+                                    e.target.style.backgroundColor = '#dc3545';
+                                    e.target.style.borderColor = '#dc3545';
+                                }}
+                            >
+                                <i className="fas fa-trash-alt mr-2"></i>
+                                ลบ
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <style>{`
+                @keyframes slideIn {
+                    from {
+                        transform: translateX(100%);
+                        opacity: 0;
+                    }
+                    to {
+                        transform: translateX(0);
+                        opacity: 1;
+                    }
+                }
+                
+                @keyframes fadeIn {
+                    from {
+                        opacity: 0;
+                        transform: scale(0.9);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: scale(1);
+                    }
+                }
+            `}</style>
 
         </div>
 
