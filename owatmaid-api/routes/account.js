@@ -6887,49 +6887,6 @@ try {
 // หาส่วนที่ประมวลผล record ที่มี dayType === "work"
 
 if (record?.dayType === "work") {
-  // 🚫 เช็คว่าวันนี้อยู่ใน stopDaysList หรือไม่
-  let isInStopDaysList = false;
-  if (stopDaysListParam && Array.isArray(stopDaysListParam) && stopDaysListParam.length > 0) {
-    isInStopDaysList = stopDaysListParam.some(stopDay => {
-      const recordDate = parseInt(record.date);
-      const currentMonth = parseInt(month);
-      const currentYear = parseInt(year);
-      
-      // คำนวณเดือนก่อนหน้า
-      let prevMonth = currentMonth - 1;
-      let prevYear = currentYear;
-      if (prevMonth < 1) {
-        prevMonth = 12;
-        prevYear = currentYear - 1;
-      }
-      
-      // เดือนและปีของ stopDay
-      const stopDayMonth = parseInt(stopDay.month);
-      const stopDayYear = parseInt(stopDay.year);
-      const stopDayDate = parseInt(stopDay.date);
-      
-      // เช็คว่าตรงกันหรือไม่ (รองรับทั้งเดือนเดียวกันและข้ามเดือน)
-      let isSameDate = false;
-      
-      // กรณีที่ 1: วันที่ 21-31 ของเดือนก่อนหน้า
-      if (recordDate >= 21 && stopDayMonth === prevMonth && stopDayYear === prevYear && stopDayDate === recordDate) {
-        isSameDate = true;
-      }
-      // กรณีที่ 2: วันที่ 1-20 ของเดือนปัจจุบัน
-      else if (recordDate <= 20 && stopDayMonth === currentMonth && stopDayYear === currentYear && stopDayDate === recordDate) {
-        isSameDate = true;
-      }
-      
-      return isSameDate;
-    });
-  }
-  
-  // ถ้าอยู่ใน stopDaysList ให้ข้ามไป (ไม่นับเป็นวันทำงาน)
-  if (isInStopDaysList) {
-    console.log(`\n🚫 วันที่ ${record.date}: อยู่ใน stopDaysList → ข้ามทั้งหมด (ไม่นับเป็นวันทำงาน, ไม่คำนวณเงิน)`);
-    return; // ข้ามไปประมวลผล record ถัดไป (ใน forEach ใช้ return แทน continue)
-  }
-  
   console.log(`\n--- 🔁 กำลังประมวลผลวันที่: ${record.date}, workplace: ${record.workplaceId}, ประเภท: ${record.dayType} ---`);
   
   // ตรวจสอบว่ามีเวลาทำงานปกติหรือไม่
@@ -7013,39 +6970,30 @@ if (record?.dayType === "work") {
       record.totalOtTime = "0";
       // ไม่รวมใน sumTimeWork/sumCashWork
     } else {
-      // 🔥 แก้ไข: เพิ่มเงื่อนไขตรวจสอบ dayType ก่อนรวมเงิน
-      // รวมเฉพาะ dayType: "work" เท่านั้น ไม่รวม dayType: "stop"
-      const isWorkDay = record.dayType === "work";
+      // กรณีปกติค่อยรวม
+      sumTimeWork += convertTimeToDecimal(record.totalTime);
+      sumCashWork += parseFloat(record?.cashWork || '0');
       
-      console.log(`🔍 [LOOP] วันที่ ${record.date}: hasRegularWork=true, dayType="${record.dayType}", isWorkDay=${isWorkDay}, cashWork=${record?.cashWork || 0}`);
-      
-      if (isWorkDay) {
-        // กรณีปกติค่อยรวม (dayType: "work")
-        sumTimeWork += convertTimeToDecimal(record.totalTime);
-        sumCashWork += parseFloat(record?.cashWork || '0');
-        
-        // 🔢 แบ่งเงินเดือนตามช่วงวันที่
-        const dateNumber = parseInt(record.date);
-        const cashWorkAmount = parseFloat(record?.cashWork || '0');
-        if (dateNumber >= 1 && dateNumber <= 20) {
-          sumCashWork1_20 += cashWorkAmount;
-          console.log(`   📅 วันที่ ${record.date}: เพิ่ม ${cashWorkAmount} บาท ไปยัง sumCashWork1_20 (รวม: ${sumCashWork1_20})`);
-        } else if (dateNumber >= 21 && dateNumber <= 31) {
-          sumCashWork21_30_31 += cashWorkAmount;
-          console.log(`   📅 วันที่ ${record.date}: เพิ่ม ${cashWorkAmount} บาท ไปยัง sumCashWork21_30_31 (รวม: ${sumCashWork21_30_31})`);
-        }
-        
-        // อัปเดต sumCashWorkMul สำหรับเวลาทำงานปกติ (เฉพาะ dayType: "work" เท่านั้น)
-        if (record?.shift !== "cash_holiday" && record?.shift !== "specialt_shift") {
-          if (record?.cashWorkMul && sumCashWorkMul[record.cashWorkMul] !== undefined) {
-            sumCashWorkMul[record.cashWorkMul] += cashWorkAmount;
-          }
-          if (record?.cashWorkMul && timeCashWorkMul[record.cashWorkMul] !== undefined) {
-            timeCashWorkMul[record.cashWorkMul] += convertTimeToDecimal(record.totalTime);
-          }
-        }
-      } else {
-        console.log(`   ⚠️ วันที่ ${record.date} เป็น dayType: "${record.dayType}" - ไม่รวมเงินใน sumCashWork (cashWork: ${record?.cashWork || 0} บาท)`);
+      // 🔢 แบ่งเงินเดือนตามช่วงวันที่
+      const dateNumber = parseInt(record.date);
+      const cashWorkAmount = parseFloat(record?.cashWork || '0');
+      if (dateNumber >= 1 && dateNumber <= 20) {
+        sumCashWork1_20 += cashWorkAmount;
+        console.log(`   📅 วันที่ ${record.date}: เพิ่ม ${cashWorkAmount} บาท ไปยัง sumCashWork1_20 (รวม: ${sumCashWork1_20})`);
+      } else if (dateNumber >= 21 && dateNumber <= 31) {
+        sumCashWork21_30_31 += cashWorkAmount;
+        console.log(`   📅 วันที่ ${record.date}: เพิ่ม ${cashWorkAmount} บาท ไปยัง sumCashWork21_30_31 (รวม: ${sumCashWork21_30_31})`);
+      }
+    }
+    
+    // อัปเดต sumCashWorkMul สำหรับเวลาทำงานปกติ (only for non-cash_holiday/specialt_shift records)
+    if (record?.shift !== "cash_holiday" && record?.shift !== "specialt_shift") {
+      const cashWorkAmount = parseFloat(record?.cashWork || '0');
+      if (record?.cashWorkMul && sumCashWorkMul[record.cashWorkMul] !== undefined) {
+        sumCashWorkMul[record.cashWorkMul] += cashWorkAmount;
+      }
+      if (record?.cashWorkMul && timeCashWorkMul[record.cashWorkMul] !== undefined) {
+        timeCashWorkMul[record.cashWorkMul] += convertTimeToDecimal(record.totalTime);
       }
     }
   }
@@ -7890,32 +7838,6 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
   console.log(`🔍 ID ที่คิดประกันสังคม: ${taxableIds.join(', ')}`);
   console.log(`🔍 ===============================================\n`);
 
-  // 🔥 PRE-CALCULATE: คำนวณ sumCashWork ใหม่สำหรับพนักงานรายวันก่อนคำนวณประกันสังคม
-  if (salaryToUse > 0 && dayWorkCount > 0 && typeOfemployee === 'รายวัน' && salaryMonth === 0) {
-    const hourlyRate = salaryToUse / 8;
-    let recalculatedSumCashWork = 0;
-    
-    console.log(`\n🔥 === PRE-CALCULATE: คำนวณ sumCashWork ใหม่ก่อนคำนวณประกันสังคม ===`);
-    console.log(`🔥 salaryToUse: ${salaryToUse} บาท/วัน`);
-    console.log(`🔥 hourlyRate: ${hourlyRate} บาท/ชม.`);
-    console.log(`🔥 sumCashWork เดิม: ${sumCashWork} บาท`);
-    
-    employee_record.forEach((record) => {
-      const isWorkDay = record?.dayType === "work";
-      const hasWorkTime = record.totalTime && record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0;
-      const isNormalShift = record.shift !== "specialt_shift" && record.shift !== "cash_holiday";
-      const isCashWorkMul1 = record?.cashWorkMul === "1";
-      
-      if (isWorkDay && hasWorkTime && isNormalShift && isCashWorkMul1) {
-        recalculatedSumCashWork += parseFloat(record?.cashWork || '0');
-      }
-    });
-    
-    sumCashWork = recalculatedSumCashWork;
-    console.log(`🔥 sumCashWork ใหม่: ${sumCashWork} บาท (ใช้ค่านี้ในการคำนวณประกันสังคม)`);
-    console.log(`🔥 ===================================================\n`);
-  }
-
   // แสดงข้อมูลที่จะใช้ในการคำนวณประกันสังคม
   console.log(`\n💰 === การคำนวณประกันสังคม (socialSecurity) ===`);
   console.log(`💰 STEP 1: ข้อมูลพื้นฐานของพนักงาน`);
@@ -8154,22 +8076,17 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
       const isNormalShift = record.shift !== "specialt_shift" && record.shift !== "cash_holiday";
       const isCashWorkMul1 = record?.cashWorkMul === "1";
       
-      // 🔍 Log เพื่อ debug
-      if (!isWorkDay) {
-        console.log(`   ⚠️ วันที่ ${record.date}: dayType="${record?.dayType}" (ไม่ใช่ "work") → ข้ามไม่นับเงิน (cashWork: ${record?.cashWork || 0} บาท)`);
-      }
-      
       if (isWorkDay && hasWorkTime && isNormalShift && isCashWorkMul1) {
         let hoursToUse = 0;
         
         // ถ้า payFullDay = true ให้ใช้ 8 ชม. แทน totalTime
         if (record.payFullDay === true) {
           hoursToUse = 8;
-          console.log(`   ✅ วันที่ ${record.date}: payFullDay=true → ใช้ 8 ชม. (ไม่สนใจ totalTime=${record.totalTime})`);
+          console.log(`   วันที่ ${record.date}: payFullDay=true → ใช้ 8 ชม. (ไม่สนใจ totalTime=${record.totalTime})`);
         } else {
           // ใช้ totalTime ตามปกติ
           hoursToUse = convertTimeToDecimal(record.totalTime);
-          console.log(`   ✅ วันที่ ${record.date}: payFullDay=false → ใช้ totalTime=${record.totalTime} → ${hoursToUse} ชม.`);
+          console.log(`   วันที่ ${record.date}: payFullDay=false → ใช้ totalTime=${record.totalTime} → ${hoursToUse} ชม.`);
         }
         
         const cashForThisDay = hourlyRate * hoursToUse;
