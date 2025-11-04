@@ -6989,19 +6989,18 @@ if (record?.dayType === "work") {
           sumCashWork21_30_31 += cashWorkAmount;
           console.log(`   📅 วันที่ ${record.date}: เพิ่ม ${cashWorkAmount} บาท ไปยัง sumCashWork21_30_31 (รวม: ${sumCashWork21_30_31})`);
         }
+        
+        // อัปเดต sumCashWorkMul สำหรับเวลาทำงานปกติ (เฉพาะ dayType: "work" เท่านั้น)
+        if (record?.shift !== "cash_holiday" && record?.shift !== "specialt_shift") {
+          if (record?.cashWorkMul && sumCashWorkMul[record.cashWorkMul] !== undefined) {
+            sumCashWorkMul[record.cashWorkMul] += cashWorkAmount;
+          }
+          if (record?.cashWorkMul && timeCashWorkMul[record.cashWorkMul] !== undefined) {
+            timeCashWorkMul[record.cashWorkMul] += convertTimeToDecimal(record.totalTime);
+          }
+        }
       } else {
         console.log(`   ⚠️ วันที่ ${record.date} เป็น dayType: "${record.dayType}" - ไม่รวมเงินใน sumCashWork (cashWork: ${record?.cashWork || 0} บาท)`);
-      }
-    }
-    
-    // อัปเดต sumCashWorkMul สำหรับเวลาทำงานปกติ (only for non-cash_holiday/specialt_shift records)
-    if (record?.shift !== "cash_holiday" && record?.shift !== "specialt_shift") {
-      const cashWorkAmount = parseFloat(record?.cashWork || '0');
-      if (record?.cashWorkMul && sumCashWorkMul[record.cashWorkMul] !== undefined) {
-        sumCashWorkMul[record.cashWorkMul] += cashWorkAmount;
-      }
-      if (record?.cashWorkMul && timeCashWorkMul[record.cashWorkMul] !== undefined) {
-        timeCashWorkMul[record.cashWorkMul] += convertTimeToDecimal(record.totalTime);
       }
     }
   }
