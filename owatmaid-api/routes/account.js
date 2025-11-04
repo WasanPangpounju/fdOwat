@@ -6887,6 +6887,49 @@ try {
 // หาส่วนที่ประมวลผล record ที่มี dayType === "work"
 
 if (record?.dayType === "work") {
+  // 🚫 เช็คว่าวันนี้อยู่ใน stopDaysList หรือไม่
+  let isInStopDaysList = false;
+  if (stopDaysListParam && Array.isArray(stopDaysListParam) && stopDaysListParam.length > 0) {
+    isInStopDaysList = stopDaysListParam.some(stopDay => {
+      const recordDate = parseInt(record.date);
+      const currentMonth = parseInt(month);
+      const currentYear = parseInt(year);
+      
+      // คำนวณเดือนก่อนหน้า
+      let prevMonth = currentMonth - 1;
+      let prevYear = currentYear;
+      if (prevMonth < 1) {
+        prevMonth = 12;
+        prevYear = currentYear - 1;
+      }
+      
+      // เดือนและปีของ stopDay
+      const stopDayMonth = parseInt(stopDay.month);
+      const stopDayYear = parseInt(stopDay.year);
+      const stopDayDate = parseInt(stopDay.date);
+      
+      // เช็คว่าตรงกันหรือไม่ (รองรับทั้งเดือนเดียวกันและข้ามเดือน)
+      let isSameDate = false;
+      
+      // กรณีที่ 1: วันที่ 21-31 ของเดือนก่อนหน้า
+      if (recordDate >= 21 && stopDayMonth === prevMonth && stopDayYear === prevYear && stopDayDate === recordDate) {
+        isSameDate = true;
+      }
+      // กรณีที่ 2: วันที่ 1-20 ของเดือนปัจจุบัน
+      else if (recordDate <= 20 && stopDayMonth === currentMonth && stopDayYear === currentYear && stopDayDate === recordDate) {
+        isSameDate = true;
+      }
+      
+      return isSameDate;
+    });
+  }
+  
+  // ถ้าอยู่ใน stopDaysList ให้ข้ามไป (ไม่นับเป็นวันทำงาน)
+  if (isInStopDaysList) {
+    console.log(`\n🚫 วันที่ ${record.date}: อยู่ใน stopDaysList → ข้ามทั้งหมด (ไม่นับเป็นวันทำงาน, ไม่คำนวณเงิน)`);
+    return; // ข้ามไปประมวลผล record ถัดไป (ใน forEach ใช้ return แทน continue)
+  }
+  
   console.log(`\n--- 🔁 กำลังประมวลผลวันที่: ${record.date}, workplace: ${record.workplaceId}, ประเภท: ${record.dayType} ---`);
   
   // ตรวจสอบว่ามีเวลาทำงานปกติหรือไม่
@@ -6973,6 +7016,8 @@ if (record?.dayType === "work") {
       // 🔥 แก้ไข: เพิ่มเงื่อนไขตรวจสอบ dayType ก่อนรวมเงิน
       // รวมเฉพาะ dayType: "work" เท่านั้น ไม่รวม dayType: "stop"
       const isWorkDay = record.dayType === "work";
+      
+      console.log(`🔍 [LOOP] วันที่ ${record.date}: hasRegularWork=true, dayType="${record.dayType}", isWorkDay=${isWorkDay}, cashWork=${record?.cashWork || 0}`);
       
       if (isWorkDay) {
         // กรณีปกติค่อยรวม (dayType: "work")
