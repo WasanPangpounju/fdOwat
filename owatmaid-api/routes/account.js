@@ -4854,13 +4854,17 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
       
       // คำนวณค่าเงินใหม่โดยใช้ฟังก์ชัน calculateCashValues
       try {
+        // ส่ง stopDaysList หรือ personalDayOff (ใช้ค่าที่มีอยู่)
+        const stopDaysToUse = record.stopDaysList || record.personalDayOff || [];
+        console.log(`🔍 ใช้ stopDaysList: ${stopDaysToUse.length} วัน (จาก ${record.stopDaysList ? 'stopDaysList' : record.personalDayOff ? 'personalDayOff' : 'ไม่มี'})`);
+        
         const calculatedValues = await calculateCashValues(
           record.employeeId,
           record.employee_record,
           record.month,
           record.year,
           null, // welfareAddSalaryList
-          record.stopDaysList || [] // ส่ง stopDaysList จาก database
+          stopDaysToUse // ส่ง stopDaysList หรือ personalDayOff จาก database
         );
         
         // อัปเดตค่าที่คำนวณใหม่
@@ -5509,13 +5513,17 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           console.warn(`⚠️ Could not fetch prefix and employeeName for employee ${doc.employeeId}:`, prefixError.message);
         }
 
+        // ส่ง stopDaysList หรือ personalDayOff (ใช้ค่าที่มีอยู่)
+        const stopDaysToUse = doc.stopDaysList || doc.personalDayOff || [];
+        console.log(`🔍 ใช้ stopDaysList: ${stopDaysToUse.length} วัน (จาก ${doc.stopDaysList ? 'stopDaysList' : doc.personalDayOff ? 'personalDayOff' : 'ไม่มี'})`);
+        
         const calculatedValues = await calculateCashValues(
           doc.employeeId,
           doc.employee_record,
           doc.month,
           doc.year,
           doc.addSalaryList, // ส่ง addSalaryList ที่มี welfare data แล้วจากการประมวลผลข้างต้น
-          doc.stopDaysList || [] // ส่ง stopDaysList จาก database
+          stopDaysToUse // ส่ง stopDaysList หรือ personalDayOff จาก database
         );
 
         // Log ค่าที่ได้จาก calculateCashValues
