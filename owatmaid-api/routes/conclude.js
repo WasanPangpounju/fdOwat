@@ -1275,48 +1275,48 @@ console.log(`📅 จำนวนวันที่มี allTimes > 0: ${countD
 console.log(`💵 จำนวนวันที่มี addSalaryList: ${countAddSalaryWithItems} วัน`);
 console.log(`✅ ต้องตรงกัน: ${countDaysWithAllTimes === countAddSalaryWithItems ? 'ถูกต้อง' : 'ไม่ตรงกัน!'}`);
 
-    for (let c = 0; c < concludeRecord.length; c++) {
-      // console.log('concludeRecord ' + concludeRecord [c].workplaceId);
-
-      
-      if(parseFloat(concludeRecord [c].workRateMultiply || 0) <= 1) {
-      if(responseWpList .data.ans && concludeRecord [c].workplaceId !== '10105' && dataEmp.employees[0].workplace  !== '30001') {
-        // console.log('*wid : ' + concludeRecord [c].workplaceId  + 'workplace: ' + dataEmp.employees[0].workplace  )
-      const testx = responseWpList .data.ans.find(item  => item.workplaceId == concludeRecord [c].workplaceId)
-if(testx ) {
-  // console.log('testx ' + JSON.stringify(testx.addSalary,null,2) )
-  await addSalaryList.push(testx.addSalary );
-} else {
-  await addSalaryList.push(addSalaryDaily);
-}
-
-} else {
-  // กรองเงินพิเศษตาม shift
-  if(concludeRecord[c].shift === 'morning_shift') {
-    // morning_shift: ไม่รวม id 1210
-    let addSalaryDailyx = await addSalaryDaily.filter(item1 => item1.id !== '1210');
-    await addSalaryList.push(addSalaryDailyx);
-    // console.log(JSON.stringify(addSalaryDailyx) )
-  } else if(concludeRecord[c].shift === 'night_shift') {
-    // night_shift: รวมทั้งหมด (รวม id 1210)
-    await addSalaryList.push(addSalaryDaily);
-    // console.log('*night_shift รวม id 1210: ' + JSON.stringify(addSalaryDaily,null,2) );
-  } else {
-    // shift อื่นๆ: ไม่รวม id 1210
-    let addSalaryDailyx = await addSalaryDaily.filter(item1 => item1.id !== '1210');
-    await addSalaryList.push(addSalaryDailyx);
-    // console.log('*other shift ไม่รวม id 1210: ' + concludeRecord[c].shift);
-  }
-}
-
-      } else{
-        console.log(concludeRecord [c].day + 'workRateMultiply ' + parseFloat(concludeRecord [c].workRateMultiply) )
-        await addSalaryList.push([]);
-
-      }
-
-      // await addSalaryList.push(addSalaryDaily);
-    }
+    // ❌ ลบ loop ซ้ำนี้ออก - ข้อมูลถูก push แล้วในส่วนบน (บรรทัด 1189-1254)
+    // for (let c = 0; c < concludeRecord.length; c++) {
+    //   // console.log('concludeRecord ' + concludeRecord [c].workplaceId);
+    //   
+    //   if(parseFloat(concludeRecord [c].workRateMultiply || 0) <= 1) {
+    //   if(responseWpList .data.ans && concludeRecord [c].workplaceId !== '10105' && dataEmp.employees[0].workplace  !== '30001') {
+    //     // console.log('*wid : ' + concludeRecord [c].workplaceId  + 'workplace: ' + dataEmp.employees[0].workplace  )
+    //   const testx = responseWpList .data.ans.find(item  => item.workplaceId == concludeRecord [c].workplaceId)
+    // if(testx ) {
+    //   // console.log('testx ' + JSON.stringify(testx.addSalary,null,2) )
+    //   await addSalaryList.push(testx.addSalary );
+    // } else {
+    //   await addSalaryList.push(addSalaryDaily);
+    // }
+    // 
+    // } else {
+    //   // กรองเงินพิเศษตาม shift
+    //   if(concludeRecord[c].shift === 'morning_shift') {
+    //     // morning_shift: ไม่รวม id 1210
+    //     let addSalaryDailyx = await addSalaryDaily.filter(item1 => item1.id !== '1210');
+    //     await addSalaryList.push(addSalaryDailyx);
+    //     // console.log(JSON.stringify(addSalaryDailyx) )
+    //   } else if(concludeRecord[c].shift === 'night_shift') {
+    //     // night_shift: รวมทั้งหมด (รวม id 1210)
+    //     await addSalaryList.push(addSalaryDaily);
+    //     // console.log('*night_shift รวม id 1210: ' + JSON.stringify(addSalaryDaily,null,2) );
+    //   } else {
+    //     // shift อื่นๆ: ไม่รวม id 1210
+    //     let addSalaryDailyx = await addSalaryDaily.filter(item1 => item1.id !== '1210');
+    //     await addSalaryList.push(addSalaryDailyx);
+    //     // console.log('*other shift ไม่รวม id 1210: ' + concludeRecord[c].shift);
+    //   }
+    // }
+    //
+    //   } else{
+    //     console.log(concludeRecord [c].day + 'workRateMultiply ' + parseFloat(concludeRecord [c].workRateMultiply) )
+    //     await addSalaryList.push([]);
+    //
+    //   }
+    //
+    //   // await addSalaryList.push(addSalaryDaily);
+    // }
     
     dataConclude.addSalary = await addSalaryList;
 
