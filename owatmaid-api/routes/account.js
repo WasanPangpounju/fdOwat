@@ -6970,19 +6970,27 @@ if (record?.dayType === "work") {
       record.totalOtTime = "0";
       // ไม่รวมใน sumTimeWork/sumCashWork
     } else {
-      // กรณีปกติค่อยรวม
-      sumTimeWork += convertTimeToDecimal(record.totalTime);
-      sumCashWork += parseFloat(record?.cashWork || '0');
+      // 🔥 แก้ไข: เพิ่มเงื่อนไขตรวจสอบ dayType ก่อนรวมเงิน
+      // รวมเฉพาะ dayType: "work" เท่านั้น ไม่รวม dayType: "stop"
+      const isWorkDay = record.dayType === "work";
       
-      // 🔢 แบ่งเงินเดือนตามช่วงวันที่
-      const dateNumber = parseInt(record.date);
-      const cashWorkAmount = parseFloat(record?.cashWork || '0');
-      if (dateNumber >= 1 && dateNumber <= 20) {
-        sumCashWork1_20 += cashWorkAmount;
-        console.log(`   📅 วันที่ ${record.date}: เพิ่ม ${cashWorkAmount} บาท ไปยัง sumCashWork1_20 (รวม: ${sumCashWork1_20})`);
-      } else if (dateNumber >= 21 && dateNumber <= 31) {
-        sumCashWork21_30_31 += cashWorkAmount;
-        console.log(`   📅 วันที่ ${record.date}: เพิ่ม ${cashWorkAmount} บาท ไปยัง sumCashWork21_30_31 (รวม: ${sumCashWork21_30_31})`);
+      if (isWorkDay) {
+        // กรณีปกติค่อยรวม (dayType: "work")
+        sumTimeWork += convertTimeToDecimal(record.totalTime);
+        sumCashWork += parseFloat(record?.cashWork || '0');
+        
+        // 🔢 แบ่งเงินเดือนตามช่วงวันที่
+        const dateNumber = parseInt(record.date);
+        const cashWorkAmount = parseFloat(record?.cashWork || '0');
+        if (dateNumber >= 1 && dateNumber <= 20) {
+          sumCashWork1_20 += cashWorkAmount;
+          console.log(`   📅 วันที่ ${record.date}: เพิ่ม ${cashWorkAmount} บาท ไปยัง sumCashWork1_20 (รวม: ${sumCashWork1_20})`);
+        } else if (dateNumber >= 21 && dateNumber <= 31) {
+          sumCashWork21_30_31 += cashWorkAmount;
+          console.log(`   📅 วันที่ ${record.date}: เพิ่ม ${cashWorkAmount} บาท ไปยัง sumCashWork21_30_31 (รวม: ${sumCashWork21_30_31})`);
+        }
+      } else {
+        console.log(`   ⚠️ วันที่ ${record.date} เป็น dayType: "${record.dayType}" - ไม่รวมเงินใน sumCashWork (cashWork: ${record?.cashWork || 0} บาท)`);
       }
     }
     

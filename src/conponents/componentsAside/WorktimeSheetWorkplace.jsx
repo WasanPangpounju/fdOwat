@@ -5037,8 +5037,17 @@ const socialSecurityColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount;
           
           // Summary columns
           empRow1.push(record.dayWorkCount || '');
+          // รวมวันหยุด (คอลัมน์ 1441)
           empRow1.push(record.customizeDayoff || '');
-          empRow1.push(record.publicHolidayCount || '');
+          // วันนักขัต (คอลัมน์ 1434) - ตรวจสอบประเภทพนักงาน
+          const employeeForRow1Col1434 = employeeList.find(emp => emp.employeeId === record.employeeId);
+          if (record?.isCrossWorkplace) {
+            empRow1.push('0'); // พนักงานข้ามหน่วยงานแสดง 0
+          } else if (employeeForRow1Col1434?.jobtype === "รายเดือน") {
+            empRow1.push('0'); // พนักงานรายเดือนแสดง 0
+          } else {
+            empRow1.push(record.publicHolidayCount || ''); // พนักงานรายวันแสดงจำนวนวันจริง
+          }
           empRow1.push(record.sumOtPublicHoliday || '');
           empRow1.push(record.sumOt1p5 || '');
           empRow1.push(record.sumOt3 || '');
