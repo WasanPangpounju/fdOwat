@@ -5065,6 +5065,43 @@ router.post('/searchtimerecordemployee', async (req, res) => {
       return res.status(200).json({ result: [], message: 'No records found' });
     }
 
+    // ✨ เพิ่มการ sync addSalaryList จาก employee.addSalary ก่อนทำอย่างอื่น
+    console.log(`🔄 [SYNC] เริ่ม sync addSalaryList จาก employee.addSalary สำหรับ ${records.length} records`);
+    
+    for (let record of records) {
+      try {
+        // ดึงข้อมูล employee ล่าสุดจาก database
+        const Employee = require('./models/employeeModel');
+        const employeeData = await Employee.findOne({ employeeId: record.employeeId });
+        
+        if (employeeData && employeeData.addSalary) {
+          console.log(`🔄 [SYNC] พบข้อมูล employee ${record.employeeId} - addSalary: ${employeeData.addSalary.length} items`);
+          
+          // กรองเฉพาะ addSalary ที่มาจาก employee (ไม่มี welfareType)
+          // และลบ addSalary เก่าที่ไม่มีใน employee.addSalary แล้ว
+          if (!record.addSalaryList) {
+            record.addSalaryList = [];
+          }
+          
+          // เก็บเฉพาะ welfare items (มี welfareType)
+          const welfareItems = record.addSalaryList.filter(item => item.welfareType);
+          
+          // รวมกับ addSalary จาก employee (ไม่มี welfareType)
+          const employeeAddSalary = employeeData.addSalary.map(item => ({
+            ...item.toObject ? item.toObject() : item,
+            welfareType: undefined // ตรวจสอบว่าไม่มี welfareType
+          }));
+          
+          record.addSalaryList = [...welfareItems, ...employeeAddSalary];
+          console.log(`✅ [SYNC] อัปเดต addSalaryList: welfare=${welfareItems.length} + employee=${employeeAddSalary.length} = ${record.addSalaryList.length} items`);
+        } else {
+          console.log(`⚠️ [SYNC] ไม่พบข้อมูล employee หรือ addSalary สำหรับ ${record.employeeId}`);
+        }
+      } catch (syncError) {
+        console.error(`❌ [SYNC] Error syncing employee ${record.employeeId}:`, syncError);
+      }
+    }
+    
     // เพิ่มข้อมูล welfare/leave ลงใน addSalaryList ก่อนการประมวลผล
     console.log(`🔍 [ACCOUNTING] เริ่มค้นหาข้อมูล welfare สำหรับ ${records.length} records`);
     
