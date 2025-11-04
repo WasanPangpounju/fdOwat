@@ -8083,17 +8083,22 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
       const isNormalShift = record.shift !== "specialt_shift" && record.shift !== "cash_holiday";
       const isCashWorkMul1 = record?.cashWorkMul === "1";
       
+      // 🔍 Log เพื่อ debug
+      if (!isWorkDay) {
+        console.log(`   ⚠️ วันที่ ${record.date}: dayType="${record?.dayType}" (ไม่ใช่ "work") → ข้ามไม่นับเงิน (cashWork: ${record?.cashWork || 0} บาท)`);
+      }
+      
       if (isWorkDay && hasWorkTime && isNormalShift && isCashWorkMul1) {
         let hoursToUse = 0;
         
         // ถ้า payFullDay = true ให้ใช้ 8 ชม. แทน totalTime
         if (record.payFullDay === true) {
           hoursToUse = 8;
-          console.log(`   วันที่ ${record.date}: payFullDay=true → ใช้ 8 ชม. (ไม่สนใจ totalTime=${record.totalTime})`);
+          console.log(`   ✅ วันที่ ${record.date}: payFullDay=true → ใช้ 8 ชม. (ไม่สนใจ totalTime=${record.totalTime})`);
         } else {
           // ใช้ totalTime ตามปกติ
           hoursToUse = convertTimeToDecimal(record.totalTime);
-          console.log(`   วันที่ ${record.date}: payFullDay=false → ใช้ totalTime=${record.totalTime} → ${hoursToUse} ชม.`);
+          console.log(`   ✅ วันที่ ${record.date}: payFullDay=false → ใช้ totalTime=${record.totalTime} → ${hoursToUse} ชม.`);
         }
         
         const cashForThisDay = hourlyRate * hoursToUse;
