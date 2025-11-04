@@ -7846,6 +7846,63 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
   console.log(`🔍 ID ที่คิดประกันสังคม: ${taxableIds.join(', ')}`);
   console.log(`🔍 ===============================================\n`);
 
+  // 🔥 PRE-CALCULATE: คำนวณ sumCashWork ใหม่สำหรับพนักงานรายวันก่อนคำนวณประกันสังคม
+  if (salaryToUse > 0 && dayWorkCount > 0 && typeOfemployee === 'รายวัน') {
+    let recalculatedSumCashWork = 0;
+    
+    console.log(`\n🔥 === PRE-CALCULATE: คำนวณ sumCashWork ใหม่ก่อนคำนวณประกันสังคม ===`);
+    console.log(`🔥 typeOfemployee: ${typeOfemployee}`);
+    console.log(`🔥 salaryToUse: ${salaryToUse} บาท/วัน`);
+    console.log(`🔥 stopDaysListParam: ${stopDaysListParam ? stopDaysListParam.length : 0} วัน`);
+    console.log(`🔥 sumCashWork เดิม: ${sumCashWork} บาท`);
+    
+    employee_record.forEach((record) => {
+      const isWorkDay = record?.dayType === "work";
+      const hasWorkTime = record.totalTime && record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0;
+      const isNormalShift = record.shift !== "specialt_shift" && record.shift !== "cash_holiday";
+      const isCashWorkMul1 = record?.cashWorkMul === "1";
+      
+      // เช็คว่าอยู่ใน stopDaysList หรือไม่
+      let isInStopDaysList = false;
+      if (stopDaysListParam && Array.isArray(stopDaysListParam) && stopDaysListParam.length > 0) {
+        isInStopDaysList = stopDaysListParam.some(stopDay => {
+          const recordDate = parseInt(record.date);
+          const currentMonth = parseInt(month);
+          const currentYear = parseInt(year);
+          
+          let prevMonth = currentMonth - 1;
+          let prevYear = currentYear;
+          if (prevMonth < 1) {
+            prevMonth = 12;
+            prevYear = currentYear - 1;
+          }
+          
+          const stopDayMonth = parseInt(stopDay.month);
+          const stopDayYear = parseInt(stopDay.year);
+          const stopDayDate = parseInt(stopDay.date);
+          
+          let isSameDate = false;
+          if (recordDate >= 21 && stopDayMonth === prevMonth && stopDayYear === prevYear && stopDayDate === recordDate) {
+            isSameDate = true;
+          } else if (recordDate <= 20 && stopDayMonth === currentMonth && stopDayYear === currentYear && stopDayDate === recordDate) {
+            isSameDate = true;
+          }
+          
+          return isSameDate;
+        });
+      }
+      
+      // รวมเฉพาะวันที่ไม่อยู่ใน stopDaysList และเป็น dayType: "work"
+      if (isWorkDay && hasWorkTime && isNormalShift && isCashWorkMul1 && !isInStopDaysList) {
+        recalculatedSumCashWork += parseFloat(record?.cashWork || '0');
+      }
+    });
+    
+    sumCashWork = recalculatedSumCashWork;
+    console.log(`🔥 sumCashWork ใหม่: ${sumCashWork} บาท (ใช้ค่านี้ในการคำนวณประกันสังคม)`);
+    console.log(`🔥 ===================================================\n`);
+  }
+
   // แสดงข้อมูลที่จะใช้ในการคำนวณประกันสังคม
   console.log(`\n💰 === การคำนวณประกันสังคม (socialSecurity) ===`);
   console.log(`💰 STEP 1: ข้อมูลพื้นฐานของพนักงาน`);
