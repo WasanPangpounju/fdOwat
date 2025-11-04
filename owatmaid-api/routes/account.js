@@ -7845,6 +7845,32 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
   console.log(`🔍 ID ที่คิดประกันสังคม: ${taxableIds.join(', ')}`);
   console.log(`🔍 ===============================================\n`);
 
+  // 🔥 PRE-CALCULATE: คำนวณ sumCashWork ใหม่สำหรับพนักงานรายวันก่อนคำนวณประกันสังคม
+  if (salaryToUse > 0 && dayWorkCount > 0 && typeOfemployee === 'รายวัน' && salaryMonth === 0) {
+    const hourlyRate = salaryToUse / 8;
+    let recalculatedSumCashWork = 0;
+    
+    console.log(`\n🔥 === PRE-CALCULATE: คำนวณ sumCashWork ใหม่ก่อนคำนวณประกันสังคม ===`);
+    console.log(`🔥 salaryToUse: ${salaryToUse} บาท/วัน`);
+    console.log(`🔥 hourlyRate: ${hourlyRate} บาท/ชม.`);
+    console.log(`🔥 sumCashWork เดิม: ${sumCashWork} บาท`);
+    
+    employee_record.forEach((record) => {
+      const isWorkDay = record?.dayType === "work";
+      const hasWorkTime = record.totalTime && record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0;
+      const isNormalShift = record.shift !== "specialt_shift" && record.shift !== "cash_holiday";
+      const isCashWorkMul1 = record?.cashWorkMul === "1";
+      
+      if (isWorkDay && hasWorkTime && isNormalShift && isCashWorkMul1) {
+        recalculatedSumCashWork += parseFloat(record?.cashWork || '0');
+      }
+    });
+    
+    sumCashWork = recalculatedSumCashWork;
+    console.log(`🔥 sumCashWork ใหม่: ${sumCashWork} บาท (ใช้ค่านี้ในการคำนวณประกันสังคม)`);
+    console.log(`🔥 ===================================================\n`);
+  }
+
   // แสดงข้อมูลที่จะใช้ในการคำนวณประกันสังคม
   console.log(`\n💰 === การคำนวณประกันสังคม (socialSecurity) ===`);
   console.log(`💰 STEP 1: ข้อมูลพื้นฐานของพนักงาน`);
