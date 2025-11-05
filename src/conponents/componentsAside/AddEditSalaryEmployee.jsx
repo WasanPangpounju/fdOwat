@@ -360,7 +360,17 @@ useEffect(() => {
                     //  alert(response.data.employees[0].addSalary.length );
                     const newDataList = [];
 
-                    response.data.employees[0].addSalary.map(item => {
+                    // ดึงจาก newAddSalary ถ้ามี ไม่งั้นใช้ addSalary
+                    const addSalaryData = response.data.employees[0].newAddSalary && response.data.employees[0].newAddSalary.length > 0 
+                        ? response.data.employees[0].newAddSalary 
+                        : response.data.employees[0].addSalary;
+
+                    console.log('📦 Using addSalary data from:', response.data.employees[0].newAddSalary && response.data.employees[0].newAddSalary.length > 0 ? 'newAddSalary' : 'addSalary (old)');
+                    console.log('📦 Full API Response - addSalary:', addSalaryData);
+
+                    addSalaryData.map(item => {
+                        console.log('📋 Individual addSalary item:', item);
+                        
                         let newRowData = {
                             id: item.id,
                             name: item.name,
@@ -369,12 +379,17 @@ useEffect(() => {
                             StaffType: item.StaffType,
                             nameType: item.nameType,
                             message: item.message,
-                            // แปลงค่า socialSecurityCheck: null (ไม่ระบุ), true (คิด), false (ไม่คิด)
-                            socialSecurityCheck: item.socialSecurityCheck === true || item.socialSecurityCheck === "yes" || item.socialSecurityCheck === "คิด" 
-                                ? true 
-                                : item.socialSecurityCheck === false || item.socialSecurityCheck === "no" || item.socialSecurityCheck === "ไม่คิด"
-                                ? false
-                                : null
+                            // เก็บค่า socialSecurityCheck ตรงๆ จาก database (ไม่แปลง)
+                            socialSecurityCheck: item.socialSecurityCheck
+                        }
+                        
+                        // Debug: แสดงค่าจริงๆ ที่ได้จาก database
+                        if (item.id) {
+                            console.log(`🔍 Load AddSalary - รหัส ${item.id} (${item.name}):`, 
+                                'socialSecurityCheck =', item.socialSecurityCheck, 
+                                `(type: ${typeof item.socialSecurityCheck})`,
+                                'Has property?', item.hasOwnProperty('socialSecurityCheck'),
+                                'All keys:', Object.keys(item));
                         }
 
 
@@ -390,7 +405,14 @@ useEffect(() => {
                     const newDataList1 = [];
                     // alert(JSON.stringify(response.data.employees[0].deductSalary,null,2));
 
-                    response.data.employees[0].deductSalary.map(item => {
+                    // ดึงจาก newDeductSalary ถ้ามี ไม่งั้นใช้ deductSalary
+                    const deductSalaryData = response.data.employees[0].newDeductSalary && response.data.employees[0].newDeductSalary.length > 0 
+                        ? response.data.employees[0].newDeductSalary 
+                        : response.data.employees[0].deductSalary;
+
+                    console.log('📦 Using deductSalary data from:', response.data.employees[0].newDeductSalary && response.data.employees[0].newDeductSalary.length > 0 ? 'newDeductSalary' : 'deductSalary (old)');
+
+                    deductSalaryData.map(item => {
                         let newRowData1 = {
                             id: item.id,
                             name: item.name,
@@ -399,12 +421,15 @@ useEffect(() => {
                             installment: item.installment,
                             nameType: item.nameType,
                             message: item.message,
-                            // แปลงค่า socialSecurityCheck: null (ไม่ระบุ), true (คิด), false (ไม่คิด)
-                            socialSecurityCheck: item.socialSecurityCheck === true || item.socialSecurityCheck === "yes" || item.socialSecurityCheck === "คิด"
-                                ? true
-                                : item.socialSecurityCheck === false || item.socialSecurityCheck === "no" || item.socialSecurityCheck === "ไม่คิด"
-                                ? false
-                                : null
+                            // เก็บค่า socialSecurityCheck ตรงๆ จาก database (ไม่แปลง)
+                            socialSecurityCheck: item.socialSecurityCheck
+                        }
+                        
+                        // Debug: แสดงค่าจริงๆ ที่ได้จาก database
+                        if (item.id) {
+                            console.log(`🔍 Load DeductSalary - รหัส ${item.id} (${item.name}):`, 
+                                'socialSecurityCheck =', item.socialSecurityCheck, 
+                                `(type: ${typeof item.socialSecurityCheck})`);
                         }
 
                         // Push a new row with specific data
@@ -1371,23 +1396,26 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                                         </td>
                                                                                         <td className="text-center p-3">
                                                                                             {item.roundOfSalary === "daily" && (
-                                                                                                <span className="text-bold">รายวัน</span>
+                                                                                                <span>รายวัน</span>
                                                                                             )}
                                                                                             {item.roundOfSalary === "monthly" && (
-                                                                                                <span className="text-bold">รายเดือน</span>
+                                                                                                <span>รายเดือน</span>
                                                                                             )}
                                                                                         </td>
                                                                                         <td className="text-center p-3">
-                                                                                            {/* แสดง badge ตามค่า socialSecurityCheck */}
-                                                                                            {(item.socialSecurityCheck === true || item.socialSecurityCheck === "yes" || item.socialSecurityCheck === "คิด") && (
-                                                                                                <span className="badge badge-success">คิดประกันสังคม</span>
-                                                                                            )}
-                                                                                            {(item.socialSecurityCheck === false || item.socialSecurityCheck === "no" || item.socialSecurityCheck === "ไม่คิด") && (
-                                                                                                <span className="badge badge-danger">ไม่คิดประกันสังคม</span>
-                                                                                            )}
-                                                                                            {(item.socialSecurityCheck === null || item.socialSecurityCheck === undefined || item.socialSecurityCheck === "") && (
-                                                                                                <span className="badge badge-secondary">ไม่ระบุ</span>
-                                                                                            )}
+                                                                                            {/* แสดง badge ตามค่า socialSecurityCheck - Debug version */}
+                                                                                            {(() => {
+                                                                                                const val = item.socialSecurityCheck;
+                                                                                                console.log(`Badge Render - ID: ${item.id}, Value:`, val, `Type: ${typeof val}`, `===true: ${val === true}`, `===false: ${val === false}`);
+                                                                                                
+                                                                                                if (val === true) {
+                                                                                                    return <span className="badge badge-success">คิดประกันสังคม</span>;
+                                                                                                } else if (val === false) {
+                                                                                                    return <span className="badge badge-danger">ไม่คิดประกันสังคม</span>;
+                                                                                                } else {
+                                                                                                    return <span className="badge badge-secondary">ไม่ระบุ</span>;
+                                                                                                }
+                                                                                            })()}
                                                                                         </td>
                                                                                         <td className="text-center p-3">
                                                                                             {item.StaffType === "header" && (
@@ -1664,16 +1692,19 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                                             )}
                                                                                         </td>
                                                                                         <td className="text-center p-3">
-                                                                                            {/* แสดง badge ตามค่า socialSecurityCheck */}
-                                                                                            {(item.socialSecurityCheck === true || item.socialSecurityCheck === "yes" || item.socialSecurityCheck === "คิด") && (
-                                                                                                <span className="badge badge-success">คิดประกันสังคม</span>
-                                                                                            )}
-                                                                                            {(item.socialSecurityCheck === false || item.socialSecurityCheck === "no" || item.socialSecurityCheck === "ไม่คิด") && (
-                                                                                                <span className="badge badge-danger">ไม่คิดประกันสังคม</span>
-                                                                                            )}
-                                                                                            {(item.socialSecurityCheck === null || item.socialSecurityCheck === undefined || item.socialSecurityCheck === "") && (
-                                                                                                <span className="badge badge-secondary">ไม่ระบุ</span>
-                                                                                            )}
+                                                                                            {/* แสดง badge ตามค่า socialSecurityCheck - Debug version */}
+                                                                                            {(() => {
+                                                                                                const val = item.socialSecurityCheck;
+                                                                                                console.log(`Badge Render DeductSalary - ID: ${item.id}, Value:`, val, `Type: ${typeof val}`, `===true: ${val === true}`, `===false: ${val === false}`);
+                                                                                                
+                                                                                                if (val === true) {
+                                                                                                    return <span className="badge badge-success">คิดประกันสังคม</span>;
+                                                                                                } else if (val === false) {
+                                                                                                    return <span className="badge badge-danger">ไม่คิดประกันสังคม</span>;
+                                                                                                } else {
+                                                                                                    return <span className="badge badge-secondary">ไม่ระบุ</span>;
+                                                                                                }
+                                                                                            })()}
                                                                                         </td>
                                                                                         <td className="text-center p-3">
                                                                                             <small className="">
