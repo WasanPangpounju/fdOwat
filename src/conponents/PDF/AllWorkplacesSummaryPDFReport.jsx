@@ -329,7 +329,7 @@ const AllWorkplacesSummaryPDFReport = ({ searchResults, startDate, endDate }) =>
               บริษัท โอวาทเมด จำกัด (OWAT PRO AND QUICK COMPANY LIMITED)
             </Text>
             <Text style={styles.companyName}>
-              20,22,24,26 ซอยสีพระยาสุเรนทร์ 4 ถนนสีพระยาสุเรนทร์ แขวงบางโพ เขตบางโพ กรุงเทพมหานคร 10510
+              20,22,24,26 ซอยสีหบุรานุกิจ 4 ถนนสีหบุรานุกิจ แขวงมีนบุรี เขตมีนบุรี กรุงเทพฯ 10510
             </Text>
           </View>
 
@@ -455,7 +455,7 @@ const AllWorkplacesSummaryPDFReport = ({ searchResults, startDate, endDate }) =>
               บริษัท โอวาทเมด จำกัด (OWAT PRO AND QUICK COMPANY LIMITED)
             </Text>
             <Text style={styles.companyName}>
-              20,22,24,26 ซอยสีพระยาสุเรนทร์ 4 ถนนสีพระยาสุเรนทร์ แขวงบางโพ เขตบางโพ กรุงเทพมหานคร 10510
+              20,22,24,26 ซอยสีหบุรานุกิจ 4 ถนนสีหบุรานุกิจ แขวงมีนบุรี เขตมีนบุรี กรุงเทพฯ 10510
             </Text>
           </View>
 
