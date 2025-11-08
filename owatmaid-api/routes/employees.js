@@ -1,5 +1,6 @@
 const connectionString = require("../config");
 const Employee = require('./models/employeeModel');
+const Workplace = require('./models/workplaceModel');
 
 var express = require("express");
 var router = express.Router();
@@ -325,6 +326,61 @@ router.get('/:employeeId/custom-workplace', async (req, res) => {
     res.status(200).json({ customWorkplace: employee.customWorkplace });
   } catch (err) {
     console.error('❌ Error fetching customWorkplace:', err);
+    res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: err.message });
+  }
+});
+
+// ✅ [API #1.5] GET /api/employees/:employeeId/custom-workplace/auto-create
+// 🔍 ดึง customWorkplace ถ้าไม่มีก็สร้างจาก workplace ปกติให้อัตโนมัติ
+router.get('/:employeeId/custom-workplace/auto-create', async (req, res) => {
+  const { employeeId } = req.params;
+
+  try {
+    const employee = await Employee.findOne({ employeeId });
+
+    if (!employee) {
+      return res.status(404).json({ message: 'ไม่พบพนักงาน' });
+    }
+
+    // ✅ ถ้ามี customWorkplace อยู่แล้ว → return ทันที
+    if (employee.customWorkplace && Object.keys(employee.customWorkplace).length > 0) {
+      return res.status(200).json({ 
+        customWorkplace: employee.customWorkplace,
+        source: 'existing',
+        message: 'ใช้ข้อมูล customWorkplace ที่มีอยู่แล้ว'
+      });
+    }
+
+    // ❌ ไม่มี customWorkplace → ดึงจาก workplace ปกติ
+    if (!employee.workplace) {
+      return res.status(404).json({ message: 'พนักงานไม่มีข้อมูล workplace' });
+    }
+
+    // 🔍 ค้นหา workplace ตาม workplaceId
+    const workplace = await Workplace.findOne({ workplaceId: employee.workplace });
+
+    if (!workplace) {
+      return res.status(404).json({ message: `ไม่พบข้อมูล workplace: ${employee.workplace}` });
+    }
+
+    // 📦 แปลง workplace เป็น object (ลบ _id, __v ออก)
+    const workplaceData = workplace.toObject();
+    delete workplaceData._id;
+    delete workplaceData.__v;
+
+    // ✅ สร้าง customWorkplace จาก workplace
+    employee.customWorkplace = workplaceData;
+    await employee.save();
+
+    res.status(201).json({
+      customWorkplace: employee.customWorkplace,
+      source: 'auto-created',
+      message: 'สร้าง customWorkplace จาก workplace สำเร็จ',
+      originalWorkplace: employee.workplace
+    });
+
+  } catch (err) {
+    console.error('❌ Error auto-creating customWorkplace:', err);
     res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: err.message });
   }
 });
