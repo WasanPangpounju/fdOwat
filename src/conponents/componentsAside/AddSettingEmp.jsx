@@ -528,18 +528,22 @@ function Setting({ workplaceList, employeeList }) {
   //set day month year to WorkRate change
   useEffect(() => {
     if (workRateDayChange && workRateMonthChange && workRateYearChange) {
-      const selectedDate = new Date(`${workRateMonthChange }/${workRateDayChange }/${workRateYearChange}`);
-      setWorkRateChange(selectedDate || null);
+      // ตรวจสอบว่าวันที่ถูกต้องสำหรับเดือนนั้นๆ
+      const daysInMonth = new Date(workRateYearChange, workRateMonthChange, 0).getDate();
+      const validDay = Math.min(parseInt(workRateDayChange), daysInMonth);
+      
+      const selectedDate = new Date(`${workRateMonthChange}/${validDay}/${workRateYearChange}`);
+      
+      // ตรวจสอบว่าวันที่ถูกต้องก่อนอัปเดต state
+      if (!isNaN(selectedDate.getTime())) {
+        // ถ้าวันที่ถูกปรับ ให้อัปเดต state ของวัน
+        if (validDay !== parseInt(workRateDayChange)) {
+          setWorkRateDayChange(validDay.toString());
+        }
+        setWorkRateChange(selectedDate);
+      }
     }
-  }, [ workRateDayChange , workRateMonthChange , workRateYearChange] );
-
-  useEffect(() => {
-    const currentDate = new Date(workRateChange); // Get the workRateChange date
-
-    setWorkRateDayChange(currentDate.getDate()); // Day of the month (1-31) 
-   setWorkRateMonthChange(currentDate.getMonth() + 1); // Month (0-11) - Add 1 to get 1-12
-   setWorkRateYearChange( currentDate.getFullYear()); // Year (e.g., 2025)
-}, [workRateChange ] );
+  }, [workRateDayChange, workRateMonthChange, workRateYearChange]);
 
 
   const handleAddDate = () => {
@@ -551,7 +555,7 @@ function Setting({ workplaceList, employeeList }) {
         if (
           !selectedDates.find(
             (date) => date.getTime() === selectedDate.getTime()
-          )
+          ) 
         ) {
           setSelectedDates((prevDates) => [...prevDates, selectedDate]);
         } else {
@@ -1364,7 +1368,17 @@ setWorkTimeDayList_specialwork(workplace.specialWorkTimeDay || []);
     setListSpecialWorktime(workplace.listSpecialWorktime);
     setWorkTimeDayList(workplace.workTimeDay);
     setWorkTimeDayPersonList(workplace.workTimeDayPerson);
-setWorkRateChange(workplace.workRateChange)
+    
+    // ตั้งค่า workRateChange และแยก day, month, year
+    if (workplace.workRateChange) {
+      const rateChangeDate = new Date(workplace.workRateChange);
+      if (!isNaN(rateChangeDate.getTime())) {
+        setWorkRateChange(rateChangeDate);
+        setWorkRateDayChange(rateChangeDate.getDate());
+        setWorkRateMonthChange(rateChangeDate.getMonth() + 1);
+        setWorkRateYearChange(rateChangeDate.getFullYear());
+      }
+    }
 
     // ✅ โหลดข้อมูลเงินสงเคราะห์ลูกจ้าง
     if (workplace.employeeCompensation) {
@@ -1479,6 +1493,12 @@ setWorkRateChange(workplace.workRateChange)
     // ล้างข้อมูลวันหยุด
     setPublicHolidayDates([]);
     setVaccinationDates([]);
+    
+    // ล้างข้อมูลวันเริ่มต้นคำนวณ
+    setWorkRateChange(null);
+    setWorkRateDayChange("");
+    setWorkRateMonthChange("");
+    setWorkRateYearChange(new Date().getFullYear());
     
     console.log("Form cleared successfully");
   };

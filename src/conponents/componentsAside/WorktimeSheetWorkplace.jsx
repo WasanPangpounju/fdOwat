@@ -1013,6 +1013,17 @@ if(sortedData.length > 0) {
       const mergedAddSalary = mergeWorkplaceAndEmployeeAddSalary(workplaceAddSalaryData, sortedData);
       setWorkplaceAddsalary(mergedAddSalary);
 
+      // 🆕 ยิง API auto-create สำหรับทุกพนักงาน
+      console.log('🔄 Auto-creating customWorkplace for all employees...');
+      for (const employee of sortedData) {
+        try {
+          await axios.get(`${endpoint}/employee/${employee.employeeId}/custom-workplace/auto-create`);
+          console.log(`✅ Auto-create customWorkplace for ${employee.employeeId}`);
+        } catch (error) {
+          console.warn(`⚠️ Failed to auto-create for ${employee.employeeId}:`, error.message);
+        }
+      }
+
       setData(sortedData);
 
       if(sortedData.length > 0) {
@@ -3959,6 +3970,14 @@ const getDateStyle = (day) => {
               timeout: 30000 // 30 seconds timeout
             }
           );
+
+          // 🆕 ยิง API เส้นที่สาม: auto-create customWorkplace
+          try {
+            await axios.get(`http://10.10.110.7:3000/employee/${employeeId}/custom-workplace/auto-create`);
+            console.log(`✅ Auto-create customWorkplace for ${employeeId}`);
+          } catch (autoCreateError) {
+            console.warn(`⚠️ Failed to auto-create for ${employeeId}:`, autoCreateError.message);
+          }
 
           if (response1.status === 200 && response2.status === 200) {
             successCount++;
