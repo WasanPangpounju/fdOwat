@@ -331,15 +331,10 @@ router.get('/:employeeId/custom-workplace', async (req, res) => {
 
 
 // ✅ [API #2] PUT /api/employees/:employeeId/custom-workplace
-// 📝 รับ customWorkplace จาก frontend แล้วบันทึกลงในพนักงาน
+// 📝 รับ customWorkplace จาก frontend แล้วบันทึกลงในพนักงาน (รองรับ partial update)
 router.put('/:employeeId/custom-workplace', async (req, res) => {
   const { employeeId } = req.params;
   const { customWorkplace } = req.body;
-
-  // ตรวจสอบว่า customWorkplace เป็น object ที่ส่งมาจาก frontend
-  if (!customWorkplace || typeof customWorkplace !== 'object') {
-    return res.status(400).json({ message: 'กรุณาส่ง customWorkplace ที่ถูกต้อง' });
-  }
 
   try {
     const employee = await Employee.findOne({ employeeId });
@@ -348,7 +343,25 @@ router.put('/:employeeId/custom-workplace', async (req, res) => {
       return res.status(404).json({ message: 'ไม่พบพนักงาน' });
     }
 
-    employee.customWorkplace = customWorkplace;
+    // ✅ ถ้าไม่ส่ง customWorkplace มาเลย ให้ return ข้อมูลเดิม
+    if (!customWorkplace) {
+      return res.status(200).json({
+        message: 'ไม่มีการเปลี่ยนแปลง',
+        customWorkplace: employee.customWorkplace || {},
+      });
+    }
+
+    // ✅ ตรวจสอบว่า customWorkplace เป็น object
+    if (typeof customWorkplace !== 'object' || Array.isArray(customWorkplace)) {
+      return res.status(400).json({ message: 'กรุณาส่ง customWorkplace เป็น object' });
+    }
+
+    // ✅ ใช้ spread operator เพื่อ merge ข้อมูลเดิมกับข้อมูลใหม่
+    employee.customWorkplace = {
+      ...(employee.customWorkplace || {}),
+      ...customWorkplace
+    };
+    
     await employee.save();
 
     res.status(200).json({
