@@ -329,8 +329,50 @@ router.get('/:employeeId/custom-workplace', async (req, res) => {
   }
 });
 
+// ✅ [API #2] POST /api/employees/:employeeId/custom-workplace
+// 📝 สร้าง customWorkplace ครั้งแรก (ถ้ามีอยู่แล้วก็โชว์ข้อมูลเดิม)
+router.post('/:employeeId/custom-workplace', async (req, res) => {
+  const { employeeId } = req.params;
+  const { customWorkplace } = req.body;
 
-// ✅ [API #2] PUT /api/employees/:employeeId/custom-workplace
+  // ✅ ตรวจสอบว่า customWorkplace เป็น object
+  if (!customWorkplace || typeof customWorkplace !== 'object' || Array.isArray(customWorkplace)) {
+    return res.status(400).json({ message: 'กรุณาส่ง customWorkplace เป็น object' });
+  }
+
+  try {
+    const employee = await Employee.findOne({ employeeId });
+
+    if (!employee) {
+      return res.status(404).json({ message: 'ไม่พบพนักงาน' });
+    }
+
+    // ✅ ตรวจสอบว่ามี customWorkplace อยู่แล้วหรือไม่
+    if (employee.customWorkplace && Object.keys(employee.customWorkplace).length > 0) {
+      // ✅ ถ้ามีอยู่แล้ว ให้ return ข้อมูลเดิม (ไม่ error)
+      return res.status(200).json({ 
+        message: 'มี customWorkplace อยู่แล้ว',
+        customWorkplace: employee.customWorkplace,
+        alreadyExists: true
+      });
+    }
+
+    // ✅ สร้าง customWorkplace ใหม่
+    employee.customWorkplace = customWorkplace;
+    await employee.save();
+
+    res.status(201).json({
+      message: 'สร้าง customWorkplace สำเร็จ',
+      customWorkplace: employee.customWorkplace,
+      alreadyExists: false
+    });
+  } catch (err) {
+    console.error('❌ Error creating customWorkplace:', err);
+    res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: err.message });
+  }
+});
+
+// ✅ [API #3] PUT /api/employees/:employeeId/custom-workplace
 // 📝 รับ customWorkplace จาก frontend แล้วบันทึกลงในพนักงาน (รองรับ partial update)
 router.put('/:employeeId/custom-workplace', async (req, res) => {
   const { employeeId } = req.params;
@@ -374,7 +416,7 @@ router.put('/:employeeId/custom-workplace', async (req, res) => {
   }
 });
 
-// ✅ DELETE /api/employees/:employeeId/custom-workplace
+// ✅ [API #4] DELETE /api/employees/:employeeId/custom-workplace
 // 👉 ลบ field customWorkplace ใน employee
 router.delete('/:employeeId/custom-workplace', async (req, res) => {
   const { employeeId } = req.params;
