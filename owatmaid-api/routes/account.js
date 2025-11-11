@@ -1053,9 +1053,9 @@ try {
   const workplaceResponse = await axios.get(`${sURL}/workplace/${wpId1}`);
   const workOfWeek = workplaceResponse.data.workOfWeek || "5";
   
-  if (workOfWeek === "7") {
+  if (["5", "6", "7"].includes(workOfWeek)) {
     isSpecialWorkplace7Days = true;
-    console.log(`\n✅ หน่วยงานพิเศษ 7 วัน - จะคิดเงินเพิ่มรายวันทุกวันที่มี allTimes > 0`);
+    console.log(`\n✅ หน่วยงานพิเศษ ${workOfWeek} วัน - จะคิดเงินเพิ่มรายวันทุกวันที่มี allTimes > 0`);
   }
 } catch (error) {
   console.error(`❌ ไม่สามารถตรวจสอบ workOfWeek ได้:`, error.message);
@@ -1069,7 +1069,7 @@ if (isSpecialWorkplace7Days) {
     return record.totalTime && record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0;
   }).length;
   
-  console.log(`📊 หน่วยงานพิเศษ 7 วัน - จำนวนวันทำงานจริง (จาก totalTime): ${totalWorkDays} วัน`);
+  console.log(`📊 หน่วยงานพิเศษ - จำนวนวันทำงานจริง (จาก totalTime): ${totalWorkDays} วัน`);
   
   // แสดงรายละเอียดการนับเพื่อตรวจสอบ
   console.log(`📋 รายละเอียดการนับวัน:`);
@@ -1090,7 +1090,7 @@ if (isSpecialWorkplace7Days) {
 // เพิ่มการตรวจสอบเพิ่มเติม:
 
 // เพิ่ม log สรุปจำนวนวันที่มี totalTime (แทน allTimes)
-console.log(`\n📊 === สรุป addSalaryList สำหรับหน่วยงานพิเศษ 7 วัน ===`);
+console.log(`\n📊 === สรุป addSalaryList สำหรับหน่วยงานพิเศษ ===`);
 let countDaysWithTotalTime = 0;
 
 responseConclude.data.recordConclude[c].concludeRecord.forEach((record, index) => {
@@ -5587,7 +5587,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           return total + (parseFloat(item.amount) || 0);
         }, 0);
         
-        // ตรวจสอบว่าเป็นหน่วยงาน 7 วัน และใช้ค่า customizeDayoff จาก Employee collection
+        // ตรวจสอบว่าเป็นหน่วยงาน 5/6/7 วัน และใช้ค่า customizeDayoff จาก Employee collection
         let finalCustomizeDayoff = calculatedValues.customizeDayoff || 0;
         try {
           const employee = await Employee.findOne({ employeeId: doc.employeeId });
@@ -5597,15 +5597,15 @@ router.post('/searchtimerecordemployee', async (req, res) => {
             const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${wpId}`);
             const workOfWeek = workplaceResponse.data.workOfWeek || "5";
             
-            if (workOfWeek === "7") {
-              // สำหรับหน่วยงาน 7 วัน: ลองใช้ MongoDB โดยตรงเพราะ Mongoose schema อาจไม่รู้จัก field
+            if (["5", "6", "7"].includes(workOfWeek)) {
+              // สำหรับหน่วยงานพิเศษ: ลองใช้ MongoDB โดยตรงเพราะ Mongoose schema อาจไม่รู้จัก field
               try {
                 const db = Employee.db;
                 const employeeCollection = db.collection('employees');
                 const rawEmployee = await employeeCollection.findOne({ employeeId: doc.employeeId });
                 
                 finalCustomizeDayoff = rawEmployee?.customizeDayoff || 0;
-                console.log(`🎯 หน่วยงาน 7 วัน - ใช้ customizeDayoff จาก MongoDB โดยตรง: ${finalCustomizeDayoff}`);
+                console.log(`🎯 หน่วยงาน ${workOfWeek} วัน - ใช้ customizeDayoff จาก MongoDB โดยตรง: ${finalCustomizeDayoff}`);
               } catch (directError) {
                 console.warn(`⚠️ ไม่สามารถใช้ MongoDB โดยตรงได้, ใช้ค่าจาก Mongoose: ${employee?.customizeDayoff || 0}`);
                 finalCustomizeDayoff = employee?.customizeDayoff || 0;
@@ -5618,7 +5618,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           console.warn(`⚠️ ไม่สามารถตรวจสอบ workplace ได้:`, workplaceError.message);
         }
         
-        // ตรวจสอบว่าเป็นหน่วยงาน 7 วัน และใช้ค่า cashcustomizeDayoff จาก timerecordEmployee document
+        // ตรวจสอบว่าเป็นหน่วยงาน 5/6/7 วัน และใช้ค่า cashcustomizeDayoff จาก timerecordEmployee document
         let finalCashcustomizeDayoff = calculatedValues.cashSpecialDay || 0;
         try {
           const employee = await Employee.findOne({ employeeId: doc.employeeId });
@@ -5628,13 +5628,13 @@ router.post('/searchtimerecordemployee', async (req, res) => {
             const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${wpId}`);
             const workOfWeek = workplaceResponse.data.workOfWeek || "5";
             
-            if (workOfWeek === "7") {
-              // สำหรับหน่วยงาน 7 วัน: ใช้ cashcustomizeDayoff จาก document ที่คำนวณใน conclude.js
+            if (["5", "6", "7"].includes(workOfWeek)) {
+              // สำหรับหน่วยงานพิเศษ: ใช้ cashcustomizeDayoff จาก document ที่คำนวณใน conclude.js
               if (doc.cashcustomizeDayoff !== undefined) {
                 finalCashcustomizeDayoff = doc.cashcustomizeDayoff;
-                console.log(`💎 หน่วยงาน 7 วัน - ใช้ cashcustomizeDayoff จาก document: ${finalCashcustomizeDayoff} บาท`);
+                console.log(`💎 หน่วยงาน ${workOfWeek} วัน - ใช้ cashcustomizeDayoff จาก document: ${finalCashcustomizeDayoff} บาท`);
               } else {
-                console.log(`⚠️ หน่วยงาน 7 วัน - ไม่พบ cashcustomizeDayoff ใน document, ใช้ค่าจาก calculateCashValues: ${finalCashcustomizeDayoff}`);
+                console.log(`⚠️ หน่วยงาน ${workOfWeek} วัน - ไม่พบ cashcustomizeDayoff ใน document, ใช้ค่าจาก calculateCashValues: ${finalCashcustomizeDayoff}`);
               }
             } else {
               console.log(`📅 หน่วยงานปกติ - ใช้ cashSpecialDay จาก calculateCashValues: ${finalCashcustomizeDayoff}`);
@@ -5651,7 +5651,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           dayOffCount: String(calculatedValues.dayOffCount),
           specialDayOff: String(calculatedValues.specialDayOff),
           customizeDayoff: String(finalCustomizeDayoff), // ใช้ค่าที่ปรับแล้ว
-          cashcustomizeDayoff: String(finalCashcustomizeDayoff || 0), // ใช้ค่าที่คำนวณจาก totalWorkerWage สำหรับหน่วยงาน 7 วัน
+          cashcustomizeDayoff: String(finalCashcustomizeDayoff || 0), // ใช้ค่าที่คำนวณจาก totalWorkerWage สำหรับหน่วยงานพิเศษ
           publicHolidayCount: String(calculatedValues.publicHolidayCount || 0), // เพิ่มบรรทัดนี้
           publicHolidayCash: String(calculatedValues.publicHolidayCash || 0), // เพิ่มบรรทัดนี้
           cash: String(calculatedValues.cashHolidayCount || 0), // เพิ่มฟิลด์ cash (จำนวนวัน cash_holiday)
@@ -5681,7 +5681,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           addSalaryList: calculatedValues.addSalaryList,
            deductSalaryList: calculatedValues.deductSalaryList,
           sumCashWorkMul: calculatedValues.sumCashWorkMul,
-          // เพิ่ม stopDaysList สำหรับหน่วยงาน 7 วัน
+          // เพิ่ม stopDaysList สำหรับหน่วยงานพิเศษ
           stopDaysList: doc.stopDaysList || [],
         };
 
@@ -6109,8 +6109,8 @@ let timeCashWorkMul = {
       const workplaceResponse = await axios.get(`${sURL}/workplace/${employeeProfile[0].workplace}`);
       const workOfWeek = workplaceResponse?.data?.workOfWeek || "5";
       
-      if (workOfWeek === "7") {
-        console.log(`\n🔍 === ตรวจสอบวันหยุดสำหรับหน่วยงานพิเศษ 7 วัน (${employeeId}) ===`);
+      if (["5", "6", "7"].includes(workOfWeek)) {
+        console.log(`\n🔍 === ตรวจสอบวันหยุดสำหรับหน่วยงานพิเศษ ${workOfWeek} วัน (${employeeId}) ===`);
         
         // ดึงข้อมูล customWorkplace และ workTimeDay
         const customWorkplace = employeeProfile[0].customWorkplace;
@@ -6269,11 +6269,11 @@ let timeCashWorkMul = {
         console.log(`✅ มาทำงานในวันหยุด: ${workedOnStopDays} วัน`);
         console.log(`🔢 กำหนดค่า customizeDayoff = ${customizeDayoff}`);
         
-        // สำหรับหน่วยงาน 7 วัน: ปรับ dayWorkCount โดยหัก workedOnStopDays
-        if (workOfWeek === "7") {
+        // สำหรับหน่วยงานพิเศษ: ปรับ dayWorkCount โดยหัก workedOnStopDays
+        if (["5", "6", "7"].includes(workOfWeek)) {
           const originalDayWorkCount = dayWorkCount;
           dayWorkCount = dayWorkCount - workedOnStopDays; // 🔧 แก้ไข: หัก workedOnStopDays
-          console.log(`\n🔄 === ปรับ dayWorkCount สำหรับหน่วยงาน 7 วัน ===`);
+          console.log(`\n🔄 === ปรับ dayWorkCount สำหรับหน่วยงาน ${workOfWeek} วัน ===`);
           console.log(`📊 dayWorkCount เดิม: ${originalDayWorkCount} วัน`);
           console.log(`📊 workedOnStopDays: ${workedOnStopDays} วัน`);
           console.log(`📊 dayWorkCount ใหม่: ${dayWorkCount} วัน`);

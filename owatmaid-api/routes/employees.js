@@ -1,6 +1,6 @@
 const connectionString = require("../config");
 const Employee = require('./models/employeeModel');
-const { Workplace } = require('./models/workplaceModel'); // ✅ destructure เพราะ export เป็น object
+const { Workplace } = require('./models/workplaceModel');
 
 var express = require("express");
 var router = express.Router();
