@@ -202,29 +202,8 @@ function Setting({ workplaceList, employeeList }) {
   const handleRemoveTimeList = (index) => {
     setWorkTimeDayList((prevList) => {
       const updatedList = [...prevList];
-      // ลบรายการที่ต้องการ
       updatedList.splice(index, 1);
-      // ถ้าไม่มีรายการเหลือ ให้ return array ว่าง
-      if (updatedList.length === 0) return [];
-      
-      // ล้างค่าเก่าออกจากรายการที่เหลือ
-      return updatedList.map(item => ({
-        ...item,
-        startDay: item.startDay || "",
-        endDay: item.endDay || "",
-        workOrStop: item.workOrStop || "",
-        allTimes: item.allTimes.map(time => ({
-          shift: time.shift || "",
-          startTime: "",
-          endTime: "",
-          resultTime: "",
-          startTimeOT: "",
-          endTimeOT: "",
-          resultTimeOT: "",
-          numberOfPeople: "",
-          Remark: ""
-        }))
-      }));
+      return updatedList;
     });
     
     // Reset editing state
@@ -1367,6 +1346,183 @@ const handleRemovePublicHoliday = async (holidayToRemove) => {
         icon: 'error',
         title: 'เกิดข้อผิดพลาด',
         text: 'ไม่สามารถส่งค่าแรงได้ กรุณาลองใหม่อีกครั้ง'
+      });
+    }
+  };
+
+  // Function to reset customWorkplace and sync workplace settings to all employees
+  const syncWorkplaceToAllEmployees = async () => {
+    try {
+      // ตรวจสอบว่ามีข้อมูลหน่วยงาน
+      if (!workplaceId || !_id) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'ไม่พบข้อมูลหน่วยงาน',
+          text: 'กรุณาเลือกหน่วยงานก่อนทำการซิงค์'
+        });
+        return;
+      }
+
+      // กรองพนักงานจาก employeeList ที่อยู่ในหน่วยงานเดียวกัน
+      const employees = employeeList.filter(
+        (employee) => employee.workplace === workplaceId
+      );
+
+      if (!employees || employees.length === 0) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'ไม่พบพนักงาน',
+          text: 'ไม่พบพนักงานในหน่วยงานนี้'
+        });
+        return;
+      }
+
+      // สร้าง HTML สำหรับ checkbox list
+      const employeeCheckboxHTML = `
+        <div style="text-align: left; max-height: 400px; overflow-y: auto; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+          <div style="margin-bottom: 15px; padding: 10px; background-color: #f8f9fa; border-radius: 5px;">
+            <label style="cursor: pointer; font-weight: bold;">
+              <input type="checkbox" id="selectAll" style="margin-right: 8px; cursor: pointer;" />
+              เลือกทั้งหมด (${employees.length} คน)
+            </label>
+          </div>
+          ${employees.map((emp, index) => `
+            <div style="padding: 8px; border-bottom: 1px solid #eee;">
+              <label style="cursor: pointer; display: block;">
+                <input 
+                  type="checkbox" 
+                  class="employee-checkbox" 
+                  value="${emp.employeeId}" 
+                  style="margin-right: 8px; cursor: pointer;"
+                  ${emp.customWorkplace ? 'checked' : ''}
+                />
+                <strong>${emp.employeeId}</strong> - ${emp.name} ${emp.lastname || ''}
+                ${emp.customWorkplace ? '<span style="color: orange; font-size: 12px;"> (มีการตั้งค่าเฉพาะบุคคล)</span>' : '<span style="color: green; font-size: 12px;"> (ใช้ค่าหน่วยงาน)</span>'}
+              </label>
+            </div>
+          `).join('')}
+        </div>
+      `;
+
+      // แสดง confirmation dialog พร้อม checkbox
+      const confirmResult = await Swal.fire({
+        title: 'เลือกพนักงานที่ต้องการซิงค์',
+        html: `
+          <div style="text-align: left;">
+            <p>หน่วยงาน: <strong>${workplaceName}</strong> (${workplaceId})</p>
+            <p style="color: red; font-weight: bold;">⚠️ การดำเนินการนี้จะลบการตั้งค่าเฉพาะบุคคลของพนักงานที่เลือกและใช้ค่าจากหน่วยงานแทน</p>
+            <hr style="margin: 15px 0;" />
+            ${employeeCheckboxHTML}
+          </div>
+        `,
+        icon: 'question',
+        width: '600px',
+        showCancelButton: true,
+        confirmButtonText: 'ยืนยันการซิงค์',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        reverseButtons: true,
+        didOpen: () => {
+          // จัดการ Select All checkbox
+          const selectAllCheckbox = document.getElementById('selectAll');
+          const employeeCheckboxes = document.querySelectorAll('.employee-checkbox');
+          
+          selectAllCheckbox.addEventListener('change', (e) => {
+            employeeCheckboxes.forEach(cb => {
+              cb.checked = e.target.checked;
+            });
+          });
+
+          // อัพเดท Select All เมื่อมีการเปลี่ยนแปลง checkbox แต่ละตัว
+          employeeCheckboxes.forEach(cb => {
+            cb.addEventListener('change', () => {
+              const allChecked = Array.from(employeeCheckboxes).every(checkbox => checkbox.checked);
+              const someChecked = Array.from(employeeCheckboxes).some(checkbox => checkbox.checked);
+              selectAllCheckbox.checked = allChecked;
+              selectAllCheckbox.indeterminate = someChecked && !allChecked;
+            });
+          });
+
+          // ตั้งค่าเริ่มต้นของ Select All
+          const initialAllChecked = Array.from(employeeCheckboxes).every(checkbox => checkbox.checked);
+          const initialSomeChecked = Array.from(employeeCheckboxes).some(checkbox => checkbox.checked);
+          selectAllCheckbox.checked = initialAllChecked;
+          selectAllCheckbox.indeterminate = initialSomeChecked && !initialAllChecked;
+        },
+        preConfirm: () => {
+          const selectedCheckboxes = document.querySelectorAll('.employee-checkbox:checked');
+          const selectedEmployeeIds = Array.from(selectedCheckboxes).map(cb => cb.value);
+          
+          if (selectedEmployeeIds.length === 0) {
+            Swal.showValidationMessage('กรุณาเลือกพนักงานอย่างน้อย 1 คน');
+            return false;
+          }
+          
+          return selectedEmployeeIds;
+        }
+      });
+
+      if (!confirmResult.isConfirmed || !confirmResult.value) {
+        return;
+      }
+
+      const selectedEmployeeIds = confirmResult.value;
+
+      // Show loading
+      Swal.fire({
+        title: 'กำลังซิงค์ข้อมูล...',
+        text: `กำลังซิงค์ข้อมูลให้กับพนักงาน ${selectedEmployeeIds.length} คน`,
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
+      let successCount = 0;
+      let errorCount = 0;
+      let skippedCount = 0;
+
+      // Loop through selected employees only
+      const selectedEmployees = employees.filter(emp => selectedEmployeeIds.includes(emp.employeeId));
+      
+      for (const employee of selectedEmployees) {
+        try {
+          // ลบ customWorkplace (ส่ง null หรือ empty object)
+          await axios.delete(`${endpoint}/employee/${employee.employeeId}/custom-workplace`);
+          successCount++;
+        } catch (error) {
+          // ถ้าไม่มี customWorkplace อยู่แล้ว ให้ skip
+          if (error.response && error.response.status === 404) {
+            skippedCount++;
+          } else {
+            console.error(`Error resetting employee ${employee.employeeId}:`, error);
+            errorCount++;
+          }
+        }
+      }
+
+      // Show result
+      Swal.fire({
+        icon: errorCount === 0 ? 'success' : 'warning',
+        title: 'ซิงค์ข้อมูลเสร็จสิ้น',
+        html: `
+          <p>ผลการซิงค์ (เลือก ${selectedEmployeeIds.length} คน):</p>
+          <p>✅ ลบการตั้งค่าเฉพาะบุคคลสำเร็จ: <strong>${successCount}</strong> คน</p>
+          <p>⏭️ ไม่มีการตั้งค่าเฉพาะบุคคลอยู่แล้ว: <strong>${skippedCount}</strong> คน</p>
+          ${errorCount > 0 ? `<p style="color: red;">❌ ไม่สำเร็จ: <strong>${errorCount}</strong> คน</p>` : ''}
+          <br>
+          <p style="color: green;">พนักงานที่เลือกจะใช้ค่าการตั้งค่าจากหน่วยงาน <strong>${workplaceName}</strong></p>
+        `,
+        confirmButtonText: 'ตกลง'
+      });
+
+    } catch (error) {
+      console.error('Error syncing workplace to employees:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: 'ไม่สามารถซิงค์ข้อมูลได้ กรุณาลองใหม่อีกครั้ง'
       });
     }
   };
@@ -3104,6 +3260,15 @@ if (newWorkplace) {
                            
                           </button>
                         </div>
+                        <div className="col-md-3">
+                          <button 
+                            className="btn btn-warning" 
+                            onClick={() => syncWorkplaceToAllEmployees()}
+                            title="ส่งการตั้งค่าหน่วยงานใหม่ให้พนักงานทั้งหมด (ลบการตั้งค่าเฉพาะบุคคล)"
+                          >
+                            <i className="fas fa-sync-alt"></i> ซิงค์การตั้งค่าหน่วยงาน
+                          </button>
+                        </div>
                     </div>
                   <div>
                     
@@ -3259,7 +3424,7 @@ if (newWorkplace) {
                     formData.addSalary.length > 0 &&
                     formData.addSalary.map((data, index) => {
                       
-                      if (data.codeSpSalary === "2") {
+                      if (data.codeSpSalary === ".") {
                         return null;
                       }
                       

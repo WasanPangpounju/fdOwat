@@ -130,6 +130,7 @@ function Setting({ workplaceList, employeeList }) {
   });
 
   const [workTimeDayList, setWorkTimeDayList] = useState([]);
+  const [editingTimeListIndex, setEditingTimeListIndex] = useState(null); // เก็บ index ของรายการที่กำลังแก้ไข
 
   // const daysOfWeekThai = ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์', 'อาทิตย์'];
   const shiftWork = ["กะเช้า", "กะบ่าย", "กะดึก"];
@@ -174,7 +175,26 @@ function Setting({ workplaceList, employeeList }) {
   };
 
   const handleAddTimeList = () => {
-    setWorkTimeDayList((prevList) => [...prevList, workTimeDay]);
+    // ถ้าอยู่ในโหมดแก้ไข
+    if (editingTimeListIndex !== null) {
+      setWorkTimeDayList((prevList) => {
+        const updatedList = [...prevList];
+        updatedList[editingTimeListIndex] = workTimeDay;
+        return updatedList;
+      });
+      setEditingTimeListIndex(null);
+      
+      Swal.fire({
+        title: "แก้ไขสำเร็จ",
+        text: "แก้ไขข้อมูลเรียบร้อยแล้ว",
+        icon: "success",
+        timer: 1500,
+        showConfirmButton: false
+      });
+    } else {
+      // เพิ่มใหม่
+      setWorkTimeDayList((prevList) => [...prevList, workTimeDay]);
+    }
 
     //clean data
     setWorkTimeDay({
@@ -203,6 +223,18 @@ function Setting({ workplaceList, employeeList }) {
       updatedList.splice(index, 1);
       return updatedList;
     });
+  };
+
+  const handleEditTimeList = (index) => {
+    const itemToEdit = workTimeDayList[index];
+    setWorkTimeDay(itemToEdit);
+    setEditingTimeListIndex(index);
+    
+    // เลื่อนหน้าจอไปที่ฟอร์ม
+    const formElement = document.getElementById('workTimeDayForm');
+    if (formElement) {
+      formElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   };
 
   const handleTimeChange = (index, timeType, value) => {
@@ -519,6 +551,7 @@ function Setting({ workplaceList, employeeList }) {
   const [publicHolidayMonth, setPublicHolidayMonth] = useState("");
   const [publicHolidayYear, setPublicHolidayYear] = useState(new Date().getFullYear());
   const [publicHolidayNote, setPublicHolidayNote] = useState(""); // เพิ่มสำหรับหมายเหตุ
+  const [editingPublicHolidayIndex, setEditingPublicHolidayIndex] = useState(null); // เก็บ index ของรายการที่กำลังแก้ไข
 
   const [workRateChange, setWorkRateChange] = useState('');
   const [workRateDayChange, setWorkRateDayChange] = useState("");
@@ -600,7 +633,35 @@ function Setting({ workplaceList, employeeList }) {
     if (publicHolidayDay && publicHolidayMonth && publicHolidayYear) {
       const selectedDate = new Date(`${publicHolidayMonth}/${publicHolidayDay}/${publicHolidayYear}`);
       if (!isNaN(selectedDate.getTime())) {
-        // ตรวจสอบว่ามีวันที่นี้อยู่แล้วหรือไม่
+        
+        // ถ้าอยู่ในโหมดแก้ไข
+        if (editingPublicHolidayIndex !== null) {
+          const updatedDates = [...publicHolidayDates];
+          updatedDates[editingPublicHolidayIndex] = {
+            date: selectedDate,
+            note: publicHolidayNote || ""
+          };
+          setPublicHolidayDates(updatedDates);
+          setEditingPublicHolidayIndex(null);
+          
+          // ล้างค่า
+          setPublicHolidayNote("");
+          setPublicHolidayDay("");
+          setPublicHolidayMonth("");
+          setPublicHolidayYear(new Date().getFullYear());
+          
+          Swal.fire({
+            title: "แก้ไขสำเร็จ",
+            text: "แก้ไขวันหยุดนักขัตฤกษ์เรียบร้อยแล้ว",
+            icon: "success",
+            timer: 1500,
+            showConfirmButton: false
+          });
+          
+          return;
+        }
+        
+        // ตรวจสอบว่ามีวันที่นี้อยู่แล้วหรือไม่ (สำหรับการเพิ่มใหม่)
         const isDuplicate = publicHolidayDates.some((holiday) => {
           try {
             const existingDate = holiday.date || holiday; // รองรับทั้งแบบ object และ Date
@@ -649,6 +710,24 @@ function Setting({ workplaceList, employeeList }) {
         text: "กรุณาเลือกวัน เดือน และปี สำหรับวันหยุดนักขัตฤกษ์",
         icon: "warning"
       });
+    }
+  };
+
+  // ฟังก์ชันสำหรับแก้ไขวันหยุดนักขัตฤกษ์
+  const handleEditPublicHoliday = (holiday, index) => {
+    const date = holiday.date || holiday;
+    if (date instanceof Date && !isNaN(date.getTime())) {
+      setPublicHolidayDay(date.getDate().toString());
+      setPublicHolidayMonth((date.getMonth() + 1).toString());
+      setPublicHolidayYear(date.getFullYear());
+      setPublicHolidayNote(holiday.note || "");
+      setEditingPublicHolidayIndex(index);
+      
+      // เลื่อนหน้าจอไปที่ฟอร์มเพิ่มวันหยุด
+      const formElement = document.getElementById('publicHolidayForm');
+      if (formElement) {
+        formElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
     }
   };
 
@@ -2393,6 +2472,17 @@ async function handleSaveCustomWorkplace() {
   };
 
   try {
+    console.log("🔍 [DEBUG] กำลังบันทึก customWorkplace สำหรับพนักงาน:", employeeId);
+    console.log("📦 [DEBUG] ข้อมูลวันหยุดที่จะบันทึก:");
+    console.log("   - dayoffRate:", customWorkplace.dayoffRate);
+    console.log("   - dayoffRateOT:", customWorkplace.dayoffRateOT);
+    console.log("   - dayoffRateHour:", customWorkplace.dayoffRateHour);
+    console.log("   - holiday:", customWorkplace.holiday);
+    console.log("   - holidayOT:", customWorkplace.holidayOT);
+    console.log("   - holidayHour:", customWorkplace.holidayHour);
+    console.log("   - publicHoliday:", customWorkplace.publicHoliday);
+    console.log("   - daysOff:", customWorkplace.daysOff);
+    
     const res = await axios.put(`${endpoint}/employee/${employeeId}/custom-workplace`, {
       customWorkplace,
     });
@@ -3811,7 +3901,7 @@ async function handleDeleteCustomWorkplace() {
                 </div>
 
                 <h2 class="title">ตั้งค่าวันทํางาน</h2>
-                <section class="Frame">
+                <section class="Frame" id="workTimeDayForm">
                   <div class="row">
                     <div class="col-md-1">ตั้งแต่</div>
                     <div class="col-md-1">ถึงวันที่</div>
@@ -4120,8 +4210,39 @@ async function handleDeleteCustomWorkplace() {
                       className="btn btn-primary ml-auto"
                       onClick={handleAddTimeList}
                     >
-                      เพิ่ม
+                      {editingTimeListIndex !== null ? 'บันทึกการแก้ไข' : 'เพิ่ม'}
                     </button>
+                    {editingTimeListIndex !== null && (
+                      <button
+                        type="button"
+                        className="btn btn-secondary ml-2"
+                        onClick={() => {
+                          setEditingTimeListIndex(null);
+                          setWorkTimeDay({
+                            startDay: "",
+                            endDay: "",
+                            workOrStop: "",
+                            allTimes: [
+                              {
+                                shift: "",
+                                beforeStartTimeOT: "",
+                                beforeEndTimeOT: "",
+                                startTime: "",
+                                endTime: "",
+                                resultTime: "",
+                                startTimeOT: "",
+                                endTimeOT: "",
+                                resultTimeOT: "",
+                                numberOfPeople: "",
+                                Remark: "",
+                              },
+                            ],
+                          });
+                        }}
+                      >
+                        ยกเลิก
+                      </button>
+                    )}
                   </div>
                   <br />
                   <br />
@@ -4192,13 +4313,22 @@ async function handleDeleteCustomWorkplace() {
                             ) : (
                               <>
                                 <td style={cellStyle}>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRemoveTimeList(index)}
-                                    className="btn btn-danger ml-auto"
-                                  >
-                                    ลบ
-                                  </button>
+                                  <div style={{ display: 'flex', gap: '8px' }}>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleEditTimeList(index)}
+                                      className="btn btn-warning"
+                                    >
+                                      แก้ไข
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveTimeList(index)}
+                                      className="btn btn-danger"
+                                    >
+                                      ลบ
+                                    </button>
+                                  </div>
                                 </td>
                               </>
                             )}
@@ -4669,7 +4799,7 @@ async function handleDeleteCustomWorkplace() {
                       วันหยุดนักขัตฤกษ์
                     </h2>
                     <section className="Frame" style={{ minHeight: '450px' }}>
-                      <div>
+                      <div id="publicHolidayForm">
                         <label >เลือกวันหยุดนักขัตฤกษ์:</label>
 
                         <div >
@@ -4761,8 +4891,24 @@ async function handleDeleteCustomWorkplace() {
                             onClick={handleAddPublicHoliday}
                             
                           >
-                          เพิ่ม
+                          {editingPublicHolidayIndex !== null ? 'บันทึกการแก้ไข' : 'เพิ่ม'}
                           </button>
+                          {editingPublicHolidayIndex !== null && (
+                            <button
+                              type="button"
+                              className="btn btn-secondary"
+                              onClick={() => {
+                                setEditingPublicHolidayIndex(null);
+                                setPublicHolidayDay("");
+                                setPublicHolidayMonth("");
+                                setPublicHolidayYear(new Date().getFullYear());
+                                setPublicHolidayNote("");
+                              }}
+                              style={{ marginLeft: '8px' }}
+                            >
+                              ยกเลิก
+                            </button>
+                          )}
                         </div>
 
                         <br />
@@ -4814,13 +4960,22 @@ async function handleDeleteCustomWorkplace() {
                                         </span>
                                       )}
                                     </span>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleRemovePublicHoliday(holiday)}
-                                      className="btn btn-danger"
-                                    >
-                                      ลบ
-                                    </button>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleEditPublicHoliday(holiday, index)}
+                                        className="btn btn-warning"
+                                      >
+                                        แก้ไข
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleRemovePublicHoliday(holiday)}
+                                        className="btn btn-danger"
+                                      >
+                                        ลบ
+                                      </button>
+                                    </div>
                                   </div>
                                 ))}
                             </div>

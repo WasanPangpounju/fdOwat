@@ -64,18 +64,28 @@ const createPersonalDayOffForRegularWorkplace = async (employeeId, employee_reco
       return [];
     }
     
-    const workplaceId = employeeResponse.data.workplace;
+    const employee = employeeResponse.data;
+    const workplaceId = employee.workplace;
     console.log(`🏢 WorkplaceId: ${workplaceId}`);
     
-    // ดึงข้อมูลหน่วยงาน
-    const workplaceResponse = await axios.get(sURL + '/workplace/' + workplaceId);
-    if (!workplaceResponse || !workplaceResponse.data) {
-      console.log(`❌ ไม่พบข้อมูลหน่วยงาน ${workplaceId}`);
-      return [];
-    }
+    // 🎯 ตรวจสอบว่ามี customWorkplace หรือไม่
+    let workTimeDay = [];
     
-    const workplace = workplaceResponse.data;
-    const workTimeDay = workplace.workTimeDay || [];
+    if (employee.customWorkplace && employee.customWorkplace.workTimeDay && employee.customWorkplace.workTimeDay.length > 0) {
+      // ✅ ใช้ workTimeDay จาก customWorkplace
+      workTimeDay = employee.customWorkplace.workTimeDay;
+      console.log(`🔧 [CUSTOM] ใช้ workTimeDay จาก customWorkplace: ${workTimeDay.length} รายการ`);
+    } else {
+      // ✅ ใช้ workTimeDay จาก workplace
+      const workplaceResponse = await axios.get(sURL + '/workplace/' + workplaceId);
+      if (!workplaceResponse || !workplaceResponse.data) {
+        console.log(`❌ ไม่พบข้อมูลหน่วยงาน ${workplaceId}`);
+        return [];
+      }
+      
+      workTimeDay = workplaceResponse.data.workTimeDay || [];
+      console.log(`🏢 [WORKPLACE] ใช้ workTimeDay จาก workplace: ${workTimeDay.length} รายการ`);
+    }
     
     console.log(`📋 จำนวนกฎการทำงาน: ${workTimeDay.length} รายการ`);
     
