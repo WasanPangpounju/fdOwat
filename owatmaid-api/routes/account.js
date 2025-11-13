@@ -64,34 +64,20 @@ const createPersonalDayOffForRegularWorkplace = async (employeeId, employee_reco
       return [];
     }
     
-    const employee = employeeResponse.data;
-    const workplaceId = employee.workplace;
+    const workplaceId = employeeResponse.data.workplace;
     console.log(`🏢 WorkplaceId: ${workplaceId}`);
     
-    // 🔥 เช็คว่ามี customWorkplace หรือไม่
-    let workTimeDay = [];
-    let workplaceName = '';
-    
-    if (employee.customWorkplace && employee.customWorkplace.workTimeDay && employee.customWorkplace.workTimeDay.length > 0) {
-      // ใช้ customWorkplace (การตั้งค่าเฉพาะบุคคล)
-      workTimeDay = employee.customWorkplace.workTimeDay;
-      workplaceName = employee.customWorkplace.workplaceName || 'ไม่ระบุ';
-      console.log(`✅ ใช้ customWorkplace (การตั้งค่าเฉพาะบุคคล): ${workplaceName}`);
-      console.log(`📋 จำนวนกฎการทำงานเฉพาะบุคคล: ${workTimeDay.length} รายการ`);
-    } else {
-      // ใช้ workplace ทั่วไป
-      const workplaceResponse = await axios.get(sURL + '/workplace/' + workplaceId);
-      if (!workplaceResponse || !workplaceResponse.data) {
-        console.log(`❌ ไม่พบข้อมูลหน่วยงาน ${workplaceId}`);
-        return [];
-      }
-      
-      const workplace = workplaceResponse.data;
-      workTimeDay = workplace.workTimeDay || [];
-      workplaceName = workplace.workplaceName || 'ไม่ระบุ';
-      console.log(`✅ ใช้ workplace ทั่วไป: ${workplaceName}`);
-      console.log(`📋 จำนวนกฎการทำงานทั่วไป: ${workTimeDay.length} รายการ`);
+    // ดึงข้อมูลหน่วยงาน
+    const workplaceResponse = await axios.get(sURL + '/workplace/' + workplaceId);
+    if (!workplaceResponse || !workplaceResponse.data) {
+      console.log(`❌ ไม่พบข้อมูลหน่วยงาน ${workplaceId}`);
+      return [];
     }
+    
+    const workplace = workplaceResponse.data;
+    const workTimeDay = workplace.workTimeDay || [];
+    
+    console.log(`📋 จำนวนกฎการทำงาน: ${workTimeDay.length} รายการ`);
     
     // หาวันหยุดตามกฎของหน่วยงาน
     const stopDays = [];
@@ -142,20 +128,18 @@ const createPersonalDayOffForRegularWorkplace = async (employeeId, employee_reco
           const recordDate = parseInt(record.date);
           return recordDate === day && recordDate >= 21; // วันที่ 21+ เป็นของเดือนก่อน
         });
-
-        const worked = !!(workRecord && workRecord.totalTime && String(workRecord.totalTime).trim() !== '' && parseFloat(workRecord.totalTime) > 0);
-
-        // เพิ่มข้อมูลวันหยุดตามกำหนดเสมอ แต่ระบุสถานะว่า "worked" หรือไม่
-        personalDayOffList.push({
-          date: day,
-          month: prevMonth,
-          year: prevYear,
-          dayName: dayName,
-          reason: 'วันหยุดตามกำหนด',
-          worked: worked
-        });
-
-        console.log(`✅ เพิ่ม/ระบุ personalDayOff: วันที่ ${day}/${prevMonth}/${prevYear} (${dayName}) - worked=${worked}`);
+        
+        // ถ้าไม่มาทำงานในวันหยุด ให้เพิ่มเข้า personalDayOff
+        if (!workRecord || !workRecord.totalTime || parseFloat(workRecord.totalTime) === 0) {
+          personalDayOffList.push({
+            date: day,
+            month: prevMonth,
+            year: prevYear,
+            dayName: dayName,
+            reason: 'วันหยุดตามกำหนด'
+          });
+          console.log(`✅ เพิ่ม personalDayOff: วันที่ ${day}/${prevMonth}/${prevYear} (${dayName})`);
+        }
       }
     }
     
@@ -172,17 +156,17 @@ const createPersonalDayOffForRegularWorkplace = async (employeeId, employee_reco
           return recordDate === day && recordDate <= 20; // วันที่ 1-20 เป็นของเดือนปัจจุบัน
         });
         
-        // ระบุวันหยุดตามกำหนดและสถานะการมาทำงาน (worked)
-        const worked = !!(workRecord && workRecord.totalTime && String(workRecord.totalTime).trim() !== '' && parseFloat(workRecord.totalTime) > 0);
-        personalDayOffList.push({
-          date: day,
-          month: monthInt,
-          year: yearInt,
-          dayName: dayName,
-          reason: 'วันหยุดตามกำหนด',
-          worked: worked
-        });
-        console.log(`✅ เพิ่ม/ระบุ personalDayOff: วันที่ ${day}/${monthInt}/${yearInt} (${dayName}) - worked=${worked}`);
+        // ถ้าไม่มาทำงานในวันหยุด ให้เพิ่มเข้า personalDayOff
+        if (!workRecord || !workRecord.totalTime || parseFloat(workRecord.totalTime) === 0) {
+          personalDayOffList.push({
+            date: day,
+            month: monthInt,
+            year: yearInt,
+            dayName: dayName,
+            reason: 'วันหยุดตามกำหนด'
+          });
+          console.log(`✅ เพิ่ม personalDayOff: วันที่ ${day}/${monthInt}/${yearInt} (${dayName})`);
+        }
       }
     }
     
@@ -200,19 +184,17 @@ const createPersonalDayOffForRegularWorkplace = async (employeeId, employee_reco
           return recordDate === day && recordDate >= 21; // วันที่ 21+ เป็นของเดือนปัจจุบัน
         });
         
-        // ระบุวันหยุดตามกำหนดและสถานะการมาทำงาน (worked)
-        const worked = !!(workRecord && workRecord.totalTime && String(workRecord.totalTime).trim() !== '' && parseFloat(workRecord.totalTime) > 0);
-        personalDayOffList.push({
-          date: day,
-          month: monthInt,
-          year: yearInt,
-          dayName: dayName,
-          reason: 'วันหยุดตามกำหนด',
-          worked: worked
-        });
-        console.log(`✅ เพิ่ม/ระบุ personalDayOff: วันที่ ${day}/${monthInt}/${yearInt} (${dayName}) - worked=${worked}`);
-
-        if (worked) {
+        // ถ้าไม่มาทำงานในวันหยุด ให้เพิ่มเข้า personalDayOff
+        if (!workRecord || !workRecord.totalTime || parseFloat(workRecord.totalTime) === 0) {
+          personalDayOffList.push({
+            date: day,
+            month: monthInt,
+            year: yearInt,
+            dayName: dayName,
+            reason: 'วันหยุดตามกำหนด'
+          });
+          console.log(`✅ เพิ่ม personalDayOff: วันที่ ${day}/${monthInt}/${yearInt} (${dayName})`);
+        } else {
           // ถ้าพนักงานมาทำงานในวันหยุด ให้อัปเดต dayType เป็น "stop"
           console.log(`🔄 พนักงานมาทำงานในวันหยุด วันที่ ${day} - อัปเดต dayType เป็น "stop"`);
           workRecord.dayType = "stop";
