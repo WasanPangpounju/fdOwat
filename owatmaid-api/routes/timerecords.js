@@ -2299,29 +2299,38 @@ router.post('/checkspecialtshift', async (req, res) => {
     
     // Debug: ตรวจสอบว่ามีข้อมูลจากช่วงวันที่ต่างๆ หรือไม่
     if (workplacesWithSpecialShift.length > 0) {
-      let julyPeriodCount = 0;  // วันที่ 21-31
-      let augustPeriodCount = 0; // วันที่ 1-20
+      let prevMonthPeriodCount = 0;  // วันที่ 21-31 ของเดือนก่อนหน้า
+      let currentMonthPeriodCount = 0; // วันที่ 1-20 ของเดือนปัจจุบัน
+      
+      const monthNames = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+      const prevMonthName = monthNames[parseInt(prevMonthPattern)] || prevMonthPattern;
+      const currentMonthName = monthNames[parseInt(currentMonthPattern)] || currentMonthPattern;
       
       workplacesWithSpecialShift.forEach((workplace) => {
         workplace.employees.forEach((emp) => {
           emp.specialShiftDays.forEach((day) => {
-            // แยกวันที่จาก format "21/08/2568"
+            // แยกวันที่จาก format "21/09/2568"
             const dateParts = day.date.split('/');
             const dayNum = parseInt(dateParts[0]);
+            const monthNum = parseInt(dateParts[1]);
             
-            if (dayNum >= 21 && dayNum <= 31) {
-              julyPeriodCount++;
-              console.log(`📅 [JULY PERIOD] พบ: ${emp.employeeName} วันที่ ${day.date} (ช่วงกรกฎาคม)`);
-            } else if (dayNum >= 1 && dayNum <= 20) {
-              augustPeriodCount++;
-              console.log(`📅 [AUGUST PERIOD] พบ: ${emp.employeeName} วันที่ ${day.date} (ช่วงสิงหาคม)`);
+            // เช็คว่าเป็นวันที่ 21-31 ของเดือนก่อนหน้า หรือ 1-20 ของเดือนปัจจุบัน
+            if (monthNum === parseInt(prevMonthPattern) && dayNum >= 21 && dayNum <= 31) {
+              prevMonthPeriodCount++;
+              console.log(`📅 [${prevMonthName} 21-31] พบ: ${emp.employeeName} วันที่ ${day.date}`);
+            } else if (monthNum === parseInt(currentMonthPattern) && dayNum >= 1 && dayNum <= 20) {
+              currentMonthPeriodCount++;
+              console.log(`📅 [${currentMonthName} 1-20] พบ: ${emp.employeeName} วันที่ ${day.date}`);
+            } else {
+              // ⚠️ พบข้อมูลที่ไม่ควรอยู่ในช่วงนี้
+              console.log(`⚠️ [OUTSIDE RANGE] พบข้อมูลนอกช่วง: ${emp.employeeName} วันที่ ${day.date}`);
             }
           });
         });
       });
       
-      console.log(`📊 [FINAL SUMMARY] ช่วงกรกฎาคม (21-31): ${julyPeriodCount} วัน, ช่วงสิงหาคม (1-20): ${augustPeriodCount} วัน`);
-      console.log(`🎯 [RESULT] รวมทั้งหมด: ${julyPeriodCount + augustPeriodCount} วันกะพิเศษ`);
+      console.log(`📊 [FINAL SUMMARY] ช่วง ${prevMonthName} (21-31): ${prevMonthPeriodCount} วัน, ช่วง ${currentMonthName} (1-20): ${currentMonthPeriodCount} วัน`);
+      console.log(`🎯 [RESULT] รวมทั้งหมด: ${prevMonthPeriodCount + currentMonthPeriodCount} วันกะพิเศษ`);
     }
 
     // สร้างข้อความสรุป
