@@ -3431,15 +3431,9 @@ router.post('/searchtimerecordemployee', async (req, res) => {
       console.log(`📅 Month: ${month}, Year: ${year}`);
       console.log(`🗓️ WorkOfWeek: ${workOfWeek}`);
       
-      if (workOfWeek === "7" || workOfWeek === "6") {
-        console.log(`✅ เป็นหน่วยงานพิเศษ (ทำงาน ${workOfWeek} วัน)`);
-        console.log(`⚠️ ต้องใช้ฟังก์ชันคำนวณแบบพิเศษ`);
-        isSpecialWorkplace = true;
-      } else {
-        console.log(`✅ เป็นหน่วยงานปกติ (ทำงาน ${workOfWeek} วัน)`);
-        console.log(`ℹ️ ใช้ฟังก์ชันคำนวณแบบปกติ`);
-        isSpecialWorkplace = false;
-      }
+      // ทุกหน่วยงานใช้การคำนวณแบบพิเศษเหมือนกัน
+      console.log(`✅ ใช้ฟังก์ชันคำนวณแบบพิเศษสำหรับหน่วยงานทุกประเภท (ทำงาน ${workOfWeek} วัน)`);
+      isSpecialWorkplace = true;
       console.log(`=====================================\n`);
       
     } catch (error) {
