@@ -5462,6 +5462,55 @@ router.post('/searchtimerecordemployee', async (req, res) => {
       }
 
       try {
+        // 🔄 คำนวณ personalDayOff และ stopDaysList ก่อนประมวลผลอื่นๆ
+        console.log(`\n🔄 === เริ่มคำนวณ personalDayOff สำหรับพนักงาน ${doc.employeeId} ===`);
+        let personalDayOff = [];
+        let stopDaysList = [];
+        
+        try {
+          // ตรวจสอบว่าเป็นหน่วยงานแบบไหน
+          const employeeData = await Employee.findOne({ employeeId: doc.employeeId });
+          const workplaceId = employeeData?.workplace;
+          
+          if (workplaceId) {
+            const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${workplaceId}`);
+            const workOfWeek = workplaceResponse.data.workOfWeek || "5";
+            
+            console.log(`🏢 Workplace: ${workplaceId}, WorkOfWeek: ${workOfWeek}`);
+            
+            // คำนวณ personalDayOff สำหรับหน่วยงานปกติ (5 หรือ 6 วัน)
+            if (workOfWeek === "5" || workOfWeek === "6") {
+              personalDayOff = await createPersonalDayOffForRegularWorkplace(
+                doc.employeeId, 
+                doc.employee_record, 
+                doc.month, 
+                doc.year
+              );
+              stopDaysList = personalDayOff; // สำหรับหน่วยงานปกติ personalDayOff และ stopDaysList เหมือนกัน
+              
+              console.log(`✅ คำนวณ personalDayOff เสร็จสิ้น: ${personalDayOff.length} วัน`);
+            } else if (workOfWeek === "7") {
+              // สำหรับหน่วยงาน 7 วัน ใช้ข้อมูลจาก database ที่คำนวณโดย conclude
+              personalDayOff = doc.personalDayOff || [];
+              stopDaysList = doc.stopDaysList || [];
+              
+              console.log(`✅ ใช้ข้อมูล personalDayOff จาก database (หน่วยงาน 7 วัน): ${personalDayOff.length} วัน`);
+            }
+          }
+        } catch (dayOffError) {
+          console.error(`❌ Error calculating personalDayOff:`, dayOffError);
+          // fallback ใช้ข้อมูลจาก database
+          personalDayOff = doc.personalDayOff || [];
+          stopDaysList = doc.stopDaysList || [];
+        }
+        
+        // บันทึก personalDayOff และ stopDaysList กลับเข้าไปใน doc เพื่อใช้ในขั้นตอนถัดไป
+        doc.personalDayOff = personalDayOff;
+        doc.stopDaysList = stopDaysList;
+        
+        console.log(`📊 สรุป personalDayOff: ${personalDayOff.length} วัน`);
+        console.log(`📊 สรุป stopDaysList: ${stopDaysList.length} วัน\n`);
+        
         // เงื่อนไขพิเศษ: ถ้า shift เป็น "cash_holiday" ให้กำหนด cashWork, cashWorkMul, cashBeforeOtMul, cashOt, cashOtMul เป็น 0
         // *** ย้ายมาไว้ก่อน calculateCashValues เพื่อให้การคำนวณใช้ค่าที่แก้ไขแล้ว ***
         console.log(`🔍 [DEBUG] เริ่มตรวจสอบ cash_holiday สำหรับพนักงาน ${doc.employeeId}`);
@@ -5681,7 +5730,8 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           addSalaryList: calculatedValues.addSalaryList,
            deductSalaryList: calculatedValues.deductSalaryList,
           sumCashWorkMul: calculatedValues.sumCashWorkMul,
-          // เพิ่ม stopDaysList สำหรับหน่วยงานพิเศษ
+          // เพิ่ม personalDayOff และ stopDaysList ที่คำนวณใหม่
+          personalDayOff: doc.personalDayOff || [],
           stopDaysList: doc.stopDaysList || [],
         };
 
