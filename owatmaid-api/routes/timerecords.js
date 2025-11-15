@@ -2133,6 +2133,8 @@ router.post('/checkspecialtshift', async (req, res) => {
     console.log(`🔍 [DEBUG] Searching for special shift in period: ${targetMonth} (${targetYear})`);
     console.log(`🔍 [DEBUG] Date range: 21/${prevMonthPattern}/${prevYear} - 20/${currentMonthPattern}/${targetYear}`);
     console.log(`🔍 [DEBUG] Searching in 2 months: ${prevMonthPattern} and ${currentMonthPattern}`);
+    console.log(`📌 [FILTER RULE] เฉพาะ: วันที่ 21-31 ของเดือน ${prevMonthPattern} และ วันที่ 1-20 ของเดือน ${currentMonthPattern}`);
+    console.log(`❌ [EXCLUDE] ไม่เอา: วันที่ 1-20 ของเดือน ${prevMonthPattern} และ วันที่ 21-31 ของเดือน ${currentMonthPattern}`);
     
     // ✅ FIX: ข้อมูลวันที่ 21-31 ของเดือนก่อนหน้าอาจเก็บไว้ในเดือนก่อนหน้า (ตาม setToWorkplaceTimerecords)
     // ต้องค้นหาทั้ง 2 เดือน: เดือนก่อนหน้า (สำหรับวันที่ 21-31) และเดือนปัจจุบัน (สำหรับวันที่ 1-20)
@@ -2170,23 +2172,25 @@ router.post('/checkspecialtshift', async (req, res) => {
       }
     });
 
-    // ✅ กรองข้อมูลตามช่วงวันที่และ shift
-    // - ถ้าเป็นเดือนก่อนหน้า (prevMonth): ต้องเป็นวันที่ 21-31
-    // - ถ้าเป็นเดือนปัจจุบัน (currentMonth): ต้องเป็นวันที่ 1-20
+    // ✅ กรองข้อมูลตามช่วงวันที่และ shift อย่างเข้มงวด
+    // เฉพาะวันที่ที่อยู่ในช่วงที่เลือกเท่านั้น:
+    // - ถ้าเป็นเดือนก่อนหน้า (prevMonth): เฉพาะวันที่ 21-31
+    // - ถ้าเป็นเดือนปัจจุบัน (currentMonth): เฉพาะวันที่ 1-20
+    // - นอกจากนี้ไม่เอา
     pipeline.push({
       $match: {
         $and: [
           { 'employee_record.shift': 'cash_holiday' },
           {
             $or: [
-              // วันที่ 21-31 จากเดือนก่อนหน้า
+              // เฉพาะวันที่ 21-31 จากเดือนก่อนหน้า (เช่น 21-30 กันยายน)
               { 
                 $and: [
                   { 'docMonthInt': parseInt(prevMonthPattern) },
                   { 'employee_record.dateInt': { $gte: 21, $lte: 31 } }
                 ]
               },
-              // วันที่ 1-20 จากเดือนปัจจุบัน
+              // เฉพาะวันที่ 1-20 จากเดือนปัจจุบัน (เช่น 1-20 ตุลาคม)
               { 
                 $and: [
                   { 'docMonthInt': parseInt(currentMonthPattern) },
