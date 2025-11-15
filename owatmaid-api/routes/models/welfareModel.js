@@ -23,6 +23,8 @@ record: [ {
   nameType: String,
   message: String,
   comment: String,
+  date: String, // วันที่ลา (เช่น "21,19")
+  countDate: Number, // จำนวนวันที่ลา (นับจาก date)
 }],
   
   

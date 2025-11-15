@@ -118,6 +118,7 @@ addSalaryList: [
     nameType: String,
     message: String,
     date: String, // เพิ่มฟิลด์วันที่
+    countDate: Number, // จำนวนวันที่ลา (นับจาก date)
     month: String, // เพิ่มฟิลด์เดือน
     year: String, // เพิ่มฟิลด์ปี
     welfareType: String, // เพิ่มฟิลด์ประเภท welfare

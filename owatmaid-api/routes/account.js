@@ -5199,6 +5199,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                     welfareYear: welfareRecord.year || "",
                     // เพิ่ม date/month/year ตามที่ขอ
                     date: startKey ? startKey.split('-')[2] : (welfareRecord.month ? '01' : ''),
+                    countDate: 1, // เริ่มต้นด้วย 1 วัน
                     month: startKey ? startKey.split('-')[1] : (welfareRecord.month || ''),
                     year: startKey ? startKey.split('-')[0] : (welfareRecord.year || ''),
                   };
@@ -5218,8 +5219,11 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                       const newDate = startKey.split('-')[2];
                       if (currentDate && !currentDate.split(',').includes(newDate)) {
                         agg.item.date = currentDate + ',' + newDate;
+                        // อัปเดต countDate เมื่อมีการเพิ่มวันใหม่
+                        agg.item.countDate = (agg.item.countDate || 1) + 1;
                       } else if (!currentDate) {
                         agg.item.date = newDate;
+                        agg.item.countDate = 1;
                       }
                       
                       // อัปเดต startDay เป็นวันที่เก่าสุด
@@ -5237,7 +5241,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                         }
                       }
                     }
-                    console.log(`🔄 [ACCOUNTING] (target) รวม id=${welfareId}, +${amount} ⇒ ${agg.item.SpSalary}, dates=${agg.item.date}`);
+                    console.log(`🔄 [ACCOUNTING] (target) รวม id=${welfareId}, +${amount} ⇒ ${agg.item.SpSalary}, dates=${agg.item.date}, countDate=${agg.item.countDate}`);
                   }
                 }
               } else {
@@ -5257,12 +5261,15 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                     const newDate = currentStartDay.split('-')[2];
                     if (existingDate && !existingDate.split(',').includes(newDate)) {
                       addSalaryFromWelfare[existingIndex].date = existingDate + ',' + newDate;
+                      // อัปเดต countDate เมื่อมีการเพิ่มวันใหม่
+                      addSalaryFromWelfare[existingIndex].countDate = (addSalaryFromWelfare[existingIndex].countDate || 1) + 1;
                     } else if (!existingDate) {
                       addSalaryFromWelfare[existingIndex].date = newDate;
+                      addSalaryFromWelfare[existingIndex].countDate = 1;
                     }
                   }
                   
-                  console.log(`🔄 [ACCOUNTING] (normal) รวม id=${welfareId}, ${existingAmount} + ${amount} ⇒ ${newTotal}`);
+                  console.log(`🔄 [ACCOUNTING] (normal) รวม id=${welfareId}, ${existingAmount} + ${amount} ⇒ ${newTotal}, countDate=${addSalaryFromWelfare[existingIndex].countDate}`);
                 } else {
                   // ถ้าไม่มี id เดียวกัน ให้เพิ่มใหม่
                   addSalaryFromWelfare.push({
@@ -5280,6 +5287,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                     welfareYear: welfareRecord.year || "",
                     // เพิ่ม date/month/year ตามที่ขอ
                     date: welfareItem.startDay ? normalizeStartDay(welfareItem.startDay).split('-')[2] : (welfareRecord.month ? '01' : ''),
+                    countDate: 1, // เริ่มต้นด้วย 1 วัน
                     month: welfareItem.startDay ? normalizeStartDay(welfareItem.startDay).split('-')[1] : (welfareRecord.month || ''),
                     year: welfareItem.startDay ? normalizeStartDay(welfareItem.startDay).split('-')[0] : (welfareRecord.year || ''),
                   });

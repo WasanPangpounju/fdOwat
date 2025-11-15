@@ -3510,7 +3510,10 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                     endDay: record.endDay || "",
                     // เพิ่มข้อมูลเดือนและปีจาก welfare record
                     welfareMonth: welfareRecord.month || "",
-                    welfareYear: welfareRecord.year || ""
+                    welfareYear: welfareRecord.year || "",
+                    // เพิ่ม date และ countDate
+                    date: record.startDay ? new Date(record.startDay).getDate().toString() : "",
+                    countDate: 1 // เริ่มต้นด้วย 1 วัน
                   });
                   console.log(`✅ [CONCLUDE] เพิ่ม welfare item: ${record.name} (${record.SpSalary})`);
                 } else {
