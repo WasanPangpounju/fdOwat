@@ -3431,8 +3431,8 @@ router.post('/searchtimerecordemployee', async (req, res) => {
       console.log(`📅 Month: ${month}, Year: ${year}`);
       console.log(`🗓️ WorkOfWeek: ${workOfWeek}`);
       
-      if (workOfWeek === "7") {
-        console.log(`✅ เป็นหน่วยงานพิเศษ (ทำงาน 7 วัน)`);
+      if (workOfWeek === "7" || workOfWeek === "6") {
+        console.log(`✅ เป็นหน่วยงานพิเศษ (ทำงาน ${workOfWeek} วัน)`);
         console.log(`⚠️ ต้องใช้ฟังก์ชันคำนวณแบบพิเศษ`);
         isSpecialWorkplace = true;
       } else {

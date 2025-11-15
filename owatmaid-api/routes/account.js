@@ -5478,8 +5478,15 @@ router.post('/searchtimerecordemployee', async (req, res) => {
             
             console.log(`🏢 Workplace: ${workplaceId}, WorkOfWeek: ${workOfWeek}`);
             
-            // คำนวณ personalDayOff สำหรับหน่วยงานปกติ (5 หรือ 6 วัน)
-            if (workOfWeek === "5" || workOfWeek === "6") {
+            // คำนวณ personalDayOff สำหรับหน่วยงานพิเศษ (6 หรือ 7 วัน)
+            if (workOfWeek === "6" || workOfWeek === "7") {
+              // สำหรับหน่วยงาน 6 และ 7 วัน ใช้ข้อมูลจาก database ที่คำนวณโดย conclude
+              personalDayOff = doc.personalDayOff || [];
+              stopDaysList = doc.stopDaysList || [];
+              
+              console.log(`✅ ใช้ข้อมูล personalDayOff จาก database (หน่วยงาน ${workOfWeek} วัน): ${personalDayOff.length} วัน`);
+            } else if (workOfWeek === "5") {
+              // สำหรับหน่วยงาน 5 วัน ใช้ฟังก์ชันคำนวณแบบปกติ
               personalDayOff = await createPersonalDayOffForRegularWorkplace(
                 doc.employeeId, 
                 doc.employee_record, 
@@ -5488,13 +5495,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
               );
               stopDaysList = personalDayOff; // สำหรับหน่วยงานปกติ personalDayOff และ stopDaysList เหมือนกัน
               
-              console.log(`✅ คำนวณ personalDayOff เสร็จสิ้น: ${personalDayOff.length} วัน`);
-            } else if (workOfWeek === "7") {
-              // สำหรับหน่วยงาน 7 วัน ใช้ข้อมูลจาก database ที่คำนวณโดย conclude
-              personalDayOff = doc.personalDayOff || [];
-              stopDaysList = doc.stopDaysList || [];
-              
-              console.log(`✅ ใช้ข้อมูล personalDayOff จาก database (หน่วยงาน 7 วัน): ${personalDayOff.length} วัน`);
+              console.log(`✅ คำนวณ personalDayOff เสร็จสิ้น (หน่วยงาน 5 วัน): ${personalDayOff.length} วัน`);
             }
           }
         } catch (dayOffError) {
@@ -5646,8 +5647,8 @@ router.post('/searchtimerecordemployee', async (req, res) => {
             const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${wpId}`);
             const workOfWeek = workplaceResponse.data.workOfWeek || "5";
             
-            if (["5", "6", "7"].includes(workOfWeek)) {
-              // สำหรับหน่วยงานพิเศษ: ลองใช้ MongoDB โดยตรงเพราะ Mongoose schema อาจไม่รู้จัก field
+            if (["6", "7"].includes(workOfWeek)) {
+              // สำหรับหน่วยงานพิเศษ 6 และ 7 วัน: ลองใช้ MongoDB โดยตรงเพราะ Mongoose schema อาจไม่รู้จัก field
               try {
                 const db = Employee.db;
                 const employeeCollection = db.collection('employees');
@@ -5677,8 +5678,8 @@ router.post('/searchtimerecordemployee', async (req, res) => {
             const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${wpId}`);
             const workOfWeek = workplaceResponse.data.workOfWeek || "5";
             
-            if (["5", "6", "7"].includes(workOfWeek)) {
-              // สำหรับหน่วยงานพิเศษ: ใช้ cashcustomizeDayoff จาก document ที่คำนวณใน conclude.js
+            if (["6", "7"].includes(workOfWeek)) {
+              // สำหรับหน่วยงานพิเศษ 6 และ 7 วัน: ใช้ cashcustomizeDayoff จาก document ที่คำนวณใน conclude.js
               if (doc.cashcustomizeDayoff !== undefined) {
                 finalCashcustomizeDayoff = doc.cashcustomizeDayoff;
                 console.log(`💎 หน่วยงาน ${workOfWeek} วัน - ใช้ cashcustomizeDayoff จาก document: ${finalCashcustomizeDayoff} บาท`);
