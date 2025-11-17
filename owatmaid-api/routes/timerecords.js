@@ -2205,8 +2205,15 @@ router.post('/checkspecialtshift', async (req, res) => {
             date: {
               $concat: [
                 "$employee_record.date", "/",
-                // ✅ FIX: ใช้เดือนจาก document (ไม่ต้องแปลงเอง)
-                "$month", "/",
+                // ✅ ถ้าวันที่ >= 21 ให้ใช้เดือนก่อนหน้า, ถ้าวันที่ <= 20 ใช้เดือนปัจจุบัน
+                {
+                  $cond: {
+                    if: { $gte: ["$employee_record.dateInt", 21] },
+                    then: prevMonthPattern,
+                    else: "$month"
+                  }
+                },
+                "/",
                 { $toString: { $add: ["$docYearInt", 543] } } // แปลงเป็น พ.ศ.
               ]
             },
