@@ -2172,31 +2172,19 @@ router.post('/checkspecialtshift', async (req, res) => {
       }
     });
 
-    // ✅ กรองข้อมูลตามช่วงวันที่และ shift อย่างเข้มงวด
-    // เฉพาะวันที่ที่อยู่ในช่วงที่เลือกเท่านั้น:
-    // - ถ้าเป็นเดือนก่อนหน้า (prevMonth): เฉพาะวันที่ 21-31
-    // - ถ้าเป็นเดือนปัจจุบัน (currentMonth): เฉพาะวันที่ 1-20
-    // - นอกจากนี้ไม่เอา
+    // ✅ กรองเฉพาะ shift ที่เป็น cash_holiday และอยู่ในช่วงวันที่ที่ถูกต้อง
+    // เนื่องจากระบบบันทึกรอบเดือน (21/prev - 20/current) ไว้ใน document.month = currentMonth
+    // ดังนั้นต้องกรองแค่ว่าวันที่อยู่ในช่วง 21-31 หรือ 1-20
     pipeline.push({
       $match: {
         $and: [
           { 'employee_record.shift': 'cash_holiday' },
           {
             $or: [
-              // เฉพาะวันที่ 21-31 จากเดือนก่อนหน้า (เช่น 21-30 กันยายน)
-              { 
-                $and: [
-                  { 'docMonthInt': parseInt(prevMonthPattern) },
-                  { 'employee_record.dateInt': { $gte: 21, $lte: 31 } }
-                ]
-              },
-              // เฉพาะวันที่ 1-20 จากเดือนปัจจุบัน (เช่น 1-20 ตุลาคม)
-              { 
-                $and: [
-                  { 'docMonthInt': parseInt(currentMonthPattern) },
-                  { 'employee_record.dateInt': { $gte: 1, $lte: 20 } }
-                ]
-              }
+              // วันที่ 21-31 (ของเดือนก่อนหน้า)
+              { 'employee_record.dateInt': { $gte: 21, $lte: 31 } },
+              // วันที่ 1-20 (ของเดือนปัจจุบัน)
+              { 'employee_record.dateInt': { $gte: 1, $lte: 20 } }
             ]
           }
         ]
