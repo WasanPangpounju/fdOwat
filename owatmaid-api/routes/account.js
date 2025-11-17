@@ -4938,7 +4938,8 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
           record.month,
           record.year,
           null, // welfareAddSalaryList
-          stopDaysToUse // ส่ง stopDaysList หรือ personalDayOff จาก database
+          stopDaysToUse, // ส่ง stopDaysList หรือ personalDayOff จาก database
+          record.deductSalaryList || [] // ส่ง deductSalaryList จาก record
         );
         
         // อัปเดตค่าที่คำนวณใหม่
@@ -5641,7 +5642,8 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           doc.month,
           doc.year,
           doc.addSalaryList, // ส่ง addSalaryList ที่มี welfare data แล้วจากการประมวลผลข้างต้น
-          stopDaysToUse // ส่ง stopDaysList หรือ personalDayOff จาก database
+          stopDaysToUse, // ส่ง stopDaysList หรือ personalDayOff จาก database
+          doc.deductSalaryList || [] // ส่ง deductSalaryList จาก document
         );
 
         // Log ค่าที่ได้จาก calculateCashValues
@@ -5902,7 +5904,7 @@ const convertTimeToDecimal = (timeString) => {
 
 
 
-const calculateCashValues = async (employeeId, employee_record, month, year, welfareAddSalaryList = null, stopDaysListParam = null) => {
+const calculateCashValues = async (employeeId, employee_record, month, year, welfareAddSalaryList = null, stopDaysListParam = null, deductSalaryListParam = null) => {
   // แสดงข้อมูลรอบเงินเดือนก่อนเริ่มการคำนวณ
   const monthInt = parseInt(month);
   const yearInt = parseInt(year);
@@ -7964,37 +7966,30 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
   
   console.log(`\n🔍 === การตรวจสอบรายการหักที่ต้องลบออกจากฐานประกันสังคม ===`);
   
-  // ดึงข้อมูล deductSalary จาก employee
-  try {
-    const employeeResponse = await axios.get(sURL + '/employees/' + employeeId);
-    const deductSalaryList = employeeResponse?.data?.deductSalary || [];
+  // ใช้ข้อมูล deductSalaryList ที่ส่งมาจากพารามิเตอร์
+  const deductListForSocial = deductSalaryListParam || [];
+  
+  console.log(`🔍 จำนวนรายการหักทั้งหมด: ${deductListForSocial.length} รายการ`);
+  
+  for (const deductItem of deductListForSocial) {
+    console.log(`\n🔍 ตรวจสอบรายการหัก:`);
+    console.log(`🔍 - ID: ${deductItem.id}`);
+    console.log(`🔍 - ชื่อ: ${deductItem.name}`);
+    console.log(`🔍 - จำนวนเงิน: ${deductItem.amount} บาท`);
     
-    console.log(`🔍 จำนวนรายการหักทั้งหมด: ${deductSalaryList.length} รายการ`);
-    
-    for (const deductItem of deductSalaryList) {
-      console.log(`\n🔍 ตรวจสอบรายการหัก:`);
-      console.log(`🔍 - ID: ${deductItem.id}`);
-      console.log(`🔍 - ชื่อ: ${deductItem.name}`);
-      console.log(`🔍 - จำนวนเงิน: ${deductItem.amount} บาท`);
-      
-      if (DedutIds.includes(deductItem.id)) {
-        const deductAmount = parseFloat(deductItem.amount || 0);
-        deductSalarySocialSecurity += deductAmount;
-        console.log(`🔍 ✅ รายการนี้ต้องหักออกจากฐานประกันสังคม: +${deductAmount} บาท`);
-        console.log(`🔍 - ยอดรวมการหัก: ${deductSalarySocialSecurity} บาท`);
-      } else {
-        console.log(`🔍 ❌ รายการนี้ไม่ต้องหักออกจากฐานประกันสังคม`);
-      }
+    if (DedutIds.includes(deductItem.id)) {
+      const deductAmount = parseFloat(deductItem.amount || 0);
+      deductSalarySocialSecurity += deductAmount;
+      console.log(`🔍 ✅ รายการนี้ต้องหักออกจากฐานประกันสังคม: +${deductAmount} บาท`);
+      console.log(`🔍 - ยอดรวมการหัก: ${deductSalarySocialSecurity} บาท`);
+    } else {
+      console.log(`🔍 ❌ รายการนี้ไม่ต้องหักออกจากฐานประกันสังคม`);
     }
-    
-    console.log(`\n🔍 === สรุปรายการหักออกจากฐานประกันสังคม ===`);
-    console.log(`🔍 ยอดรวมรายการที่ต้องหักออก: ${deductSalarySocialSecurity} บาท`);
-    console.log(`🔍 ===============================================\n`);
-    
-  } catch (error) {
-    console.error(`⚠️ ไม่สามารถดึงข้อมูลรายการหักของพนักงาน ${employeeId}:`, error.message);
-    deductSalarySocialSecurity = 0;
   }
+  
+  console.log(`\n🔍 === สรุปรายการหักออกจากฐานประกันสังคม ===`);
+  console.log(`🔍 ยอดรวมรายการที่ต้องหักออก: ${deductSalarySocialSecurity} บาท`);
+  console.log(`🔍 ===============================================\n`);
 
   // 🔥 PRE-CALCULATE: คำนวณ sumCashWork ใหม่สำหรับพนักงานรายวันก่อนคำนวณประกันสังคม
   if (salaryToUse > 0 && dayWorkCount > 0 && typeOfemployee === 'รายวัน') {
