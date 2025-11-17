@@ -241,20 +241,23 @@ const WorkplacePDFReport = ({ workplaceData, employees, summary }) => {
           <View style={styles.table}>
             {/* Header */}
             <View style={styles.tableRow}>
-              <View style={styles.tableColHeader}>
+              <View style={{ ...styles.tableColHeader, width: '12%' }}>
                 <Text style={styles.tableCellHeader}>รหัสพนักงาน</Text>
               </View>
-              <View style={styles.tableColHeader}>
+              <View style={{ ...styles.tableColHeader, width: '18%' }}>
                 <Text style={styles.tableCellHeader}>ชื่อ - นามสกุล</Text>
               </View>
-              <View style={styles.tableColHeader}>
+              <View style={{ ...styles.tableColHeader, width: '12%' }}>
                 <Text style={styles.tableCellHeader}>เงินทำงาน</Text>
               </View>
-              <View style={styles.tableColHeader}>
+              <View style={{ ...styles.tableColHeader, width: '12%' }}>
                 <Text style={styles.tableCellHeader}>OT</Text>
               </View>
-              <View style={styles.tableColHeader}>
+              <View style={{ ...styles.tableColHeader, width: '13%' }}>
                 <Text style={styles.tableCellHeader}>ประจำวันที่</Text>
+              </View>
+              <View style={{ ...styles.tableColHeader, width: '33%' }}>
+                <Text style={styles.tableCellHeader}>หมายเหตุ</Text>
               </View>
             </View>
 
@@ -263,24 +266,29 @@ const WorkplacePDFReport = ({ workplaceData, employees, summary }) => {
               const salary = calculateEmployeeSalary(employee);
               return employee.specialShiftDays.map((day, dayIndex) => (
                 <View style={styles.tableRow} key={`${index}-${dayIndex}`}>
-                  <View style={styles.tableCol}>
+                  <View style={{ ...styles.tableCol, width: '12%' }}>
                     <Text style={styles.tableCell}>{employee.employeeId}</Text>
                   </View>
-                  <View style={styles.tableCol}>
+                  <View style={{ ...styles.tableCol, width: '18%' }}>
                     <Text style={styles.tableCell}>{employee.employeeName}</Text>
                   </View>
-                  <View style={styles.tableCol}>
+                  <View style={{ ...styles.tableCol, width: '12%' }}>
                     <Text style={styles.tableCellRight}>
                       {parseFloat(day.cashOfHoliday || 0).toLocaleString()}
                     </Text>
                   </View>
-                  <View style={styles.tableCol}>
+                  <View style={{ ...styles.tableCol, width: '12%' }}>
                     <Text style={styles.tableCellRight}>
                       {parseFloat(day.cashOfHolidayOt || 0).toLocaleString()}
                     </Text>
                   </View>
-                  <View style={styles.tableCol}>
+                  <View style={{ ...styles.tableCol, width: '13%' }}>
                     <Text style={styles.tableCell}>{formatShortThaiDate(day.date, currentMonth, currentYear)}</Text>
+                  </View>
+                  <View style={{ ...styles.tableCol, width: '33%' }}>
+                    <Text style={{ ...styles.tableCell, textAlign: 'left', fontSize: 9 }}>
+                      {day.remark || '-'}
+                    </Text>
                   </View>
                 </View>
               ));
@@ -288,23 +296,26 @@ const WorkplacePDFReport = ({ workplaceData, employees, summary }) => {
 
             {/* Total Row */}
             <View style={[styles.tableRow, styles.totalRow]}>
-              <View style={styles.tableCol}>
+              <View style={{ ...styles.tableCol, width: '12%' }}>
                 <Text style={styles.tableCellHeader}>รวม</Text>
               </View>
-              <View style={styles.tableCol}>
+              <View style={{ ...styles.tableCol, width: '18%' }}>
                 <Text style={styles.tableCellHeader}></Text>
               </View>
-              <View style={styles.tableCol}>
+              <View style={{ ...styles.tableCol, width: '12%' }}>
                 <Text style={[styles.tableCellHeader, styles.tableCellRight]}>
                   {(summary?.totalSpecial || 0).toLocaleString()}
                 </Text>
               </View>
-              <View style={styles.tableCol}>
+              <View style={{ ...styles.tableCol, width: '12%' }}>
                 <Text style={[styles.tableCellHeader, styles.tableCellRight]}>
                   {(summary?.totalOT || 0).toLocaleString()}
                 </Text>
               </View>
-              <View style={styles.tableCol}>
+              <View style={{ ...styles.tableCol, width: '13%' }}>
+                <Text style={styles.tableCellHeader}></Text>
+              </View>
+              <View style={{ ...styles.tableCol, width: '33%' }}>
                 <Text style={styles.tableCellHeader}></Text>
               </View>
             </View>
@@ -326,17 +337,17 @@ const WorkplacePDFReport = ({ workplaceData, employees, summary }) => {
         <View style={styles.signature}>
           <View style={styles.signatureBox}>
             <Text style={{ marginBottom: 30 }}>...................................</Text>
-            <Text>(นาย จิดก้ำ เอกสาร)</Text>
+            <Text>(นาย ทดสอบ เอกสาร)</Text>
             <Text>ผู้จัดทำเอกสาร</Text>
           </View>
           <View style={styles.signatureBox}>
             <Text style={{ marginBottom: 30 }}>...................................</Text>
-            <Text>(นางสาว อนุสรา เอกสาร)</Text>
+            <Text>(นางสาว ทดสอบ เอกสาร)</Text>
             <Text>ผู้ตรวจสอบเอกสาร</Text>
           </View>
           <View style={styles.signatureBox}>
             <Text style={{ marginBottom: 30 }}>...................................</Text>
-            <Text>(นาง ครวญสอน เอกสาร)</Text>
+            <Text>(นาง ทดสอบ เอกสาร)</Text>
             <Text>ผู้อนุมัติเอกสาร</Text>
           </View>
         </View>

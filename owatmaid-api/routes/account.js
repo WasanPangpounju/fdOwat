@@ -1349,7 +1349,30 @@ data.accountingRecord.amountCountDayWork = await salary ||0;
 await console.log('countDay '+ countDay + ' dayOffSumWork ' + dayOffSumWork  + ' s2 '  +s2 + 'workDaySocial ' + workDaySocial );
 console.log('workDaySocial '+ (workDaySocial * salary) + 'sumSocial '+ sumSocial );
 
+// ============= เริ่มการคำนวณฐานประกันสังคมแบบใหม่ =============
+// ขั้นตอน 1: หักรายการ id 2222, 2116 ออกจากฐานประกันสังคมก่อน
+console.log('\n📊 === การคำนวณฐานประกันสังคม ===');
+console.log('ฐานประกันสังคมเริ่มต้น:', sumSocial);
 
+let deductFromSocial = 0;
+const deductIdsForSocial = ['2222', '2116'];
+
+// วนหาค่าหักที่ต้องลบออกจากฐานประกันสังคม
+if (deductSalaryList && deductSalaryList.length > 0) {
+  for (let deductItem of deductSalaryList) {
+    if (deductIdsForSocial.includes(deductItem.id)) {
+      const deductAmount = parseFloat(deductItem.amount || 0);
+      deductFromSocial += deductAmount;
+      console.log(`- หัก ${deductItem.name || 'รหัส ' + deductItem.id}: -${deductAmount} บาท`);
+    }
+  }
+}
+
+// ขั้นตอน 2: คำนวณฐานประกันสังคมใหม่
+console.log('รวมรายการหัก (2222, 2116):', deductFromSocial);
+sumSocial = sumSocial - deductFromSocial;
+console.log('ฐานประกันสังคมหลังหักรายการพิเศษ:', sumSocial);
+// ============= สิ้นสุดการคำนวณฐานประกันสังคมแบบใหม่ =============
 
     // Other properties
     // data.accountingRecord.amountSpecialDay= await calSP ||0;
@@ -1384,6 +1407,7 @@ if (sumSocial > 15000) {
 if (sumSocial < 1650) {
   sumSocial = await 83; // Set sumSocial to 83
 }
+console.log('ฐานประกันสังคมสุดท้าย (หลังปรับขีดจำกัด):', sumSocial);
 
 // Calculate socialSecurity based on sumSocial
 // data.accountingRecord.socialSecurity = Math.ceil((sumSocial * 0.05)) || 0;
@@ -2466,6 +2490,30 @@ if(! dayW.includes( getDayNumberFromDate( responseConclude.data.recordConclude[c
     
     console.log('workDaySocial '+ (workDaySocial * salary) + 'sumSocial '+ sumSocial );
     
+    // ============= เริ่มการคำนวณฐานประกันสังคมแบบใหม่ (calsalarylist) =============
+    console.log('\n📊 === การคำนวณฐานประกันสังคม ===');
+    console.log('ฐานประกันสังคมเริ่มต้น:', sumSocial);
+    
+    let deductFromSocial = 0;
+    const deductIdsForSocial = ['2222', '2116'];
+    
+    // วนหาค่าหักที่ต้องลบออกจากฐานประกันสังคม
+    if (deductSalaryList && deductSalaryList.length > 0) {
+      for (let deductItem of deductSalaryList) {
+        if (deductIdsForSocial.includes(deductItem.id)) {
+          const deductAmount = parseFloat(deductItem.amount || 0);
+          deductFromSocial += deductAmount;
+          console.log(`- หัก ${deductItem.name || 'รหัส ' + deductItem.id}: -${deductAmount} บาท`);
+        }
+      }
+    }
+    
+    // คำนวณฐานประกันสังคมใหม่
+    console.log('รวมรายการหัก (2222, 2116):', deductFromSocial);
+    sumSocial = sumSocial - deductFromSocial;
+    console.log('ฐานประกันสังคมหลังหักรายการพิเศษ:', sumSocial);
+    // ============= สิ้นสุดการคำนวณฐานประกันสังคมแบบใหม่ =============
+    
     sumAmountDayWork  = await Number(dayOffWork) * Number(salary);
     let  calOtWork = await (Number(amountDay) - Number(sumAmountDayWork ) ) + Number(amountOt) || 0;
 
@@ -2501,6 +2549,7 @@ if(! dayW.includes( getDayNumberFromDate( responseConclude.data.recordConclude[c
     if (sumSocial < 1650) {
       sumSocial = await 83; // Set sumSocial to 83
     }
+    console.log('ฐานประกันสังคมสุดท้าย (หลังปรับขีดจำกัด):', sumSocial);
             
     // Calculate socialSecurity based on sumSocial
     // data.accountingRecord.socialSecurity = Math.ceil((sumSocial * 0.05)) || 0;
@@ -4437,6 +4486,30 @@ await console.log('countDay '+ countDay + ' dayOffSumWork ' + dayOffSumWork  + '
 
 console.log('workDaySocial '+ (workDaySocial * salary) + 'sumSocial '+ sumSocial );
 
+// ============= เริ่มการคำนวณฐานประกันสังคมแบบใหม่ (calsalarytest) =============
+console.log('\n📊 === การคำนวณฐานประกันสังคม ===');
+console.log('ฐานประกันสังคมเริ่มต้น:', sumSocial);
+
+let deductFromSocial = 0;
+const deductIdsForSocial = ['2222', '2116'];
+
+// วนหาค่าหักที่ต้องลบออกจากฐานประกันสังคม
+if (deductSalaryList && deductSalaryList.length > 0) {
+  for (let deductItem of deductSalaryList) {
+    if (deductIdsForSocial.includes(deductItem.id)) {
+      const deductAmount = parseFloat(deductItem.amount || 0);
+      deductFromSocial += deductAmount;
+      console.log(`- หัก ${deductItem.name || 'รหัส ' + deductItem.id}: -${deductAmount} บาท`);
+    }
+  }
+}
+
+// คำนวณฐานประกันสังคมใหม่
+console.log('รวมรายการหัก (2222, 2116):', deductFromSocial);
+sumSocial = sumSocial - deductFromSocial;
+console.log('ฐานประกันสังคมหลังหักรายการพิเศษ:', sumSocial);
+// ============= สิ้นสุดการคำนวณฐานประกันสังคมแบบใหม่ =============
+
 sumAmountDayWork  = await Number(dayOffWork) * Number(salary);
 let  calOtWork = await (Number(amountDay) - Number(sumAmountDayWork ) ) + Number(amountOt) || 0;
 
@@ -4474,6 +4547,7 @@ if (sumSocial > 15000) {
 if (sumSocial < 1650) {
   sumSocial = await 83; // Set sumSocial to 83
 }
+console.log('ฐานประกันสังคมสุดท้าย (หลังปรับขีดจำกัด):', sumSocial);
 
 
 // Calculate socialSecurity based on sumSocial

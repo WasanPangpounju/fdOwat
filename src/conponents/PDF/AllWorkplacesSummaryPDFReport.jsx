@@ -304,8 +304,8 @@ const AllWorkplacesSummaryPDFReport = ({ searchResults, startDate, endDate }) =>
     totalAmount: calculateWorkplaceTotal(workplace.employees)
   })) || [];
 
-  // แบ่งตารางสรุปเป็นหลายหน้า (แต่ละหน้าไม่เกิน 15 หน่วยงาน)
-  const itemsPerPage = 15;
+  // แบ่งตารางสรุปเป็นหลายหน้า (แต่ละหน้าไม่เกิน 12 หน่วยงาน)
+  const itemsPerPage = 13;
   const summaryPages = [];
   for (let i = 0; i < workplaceSummary.length; i += itemsPerPage) {
     summaryPages.push(workplaceSummary.slice(i, i + itemsPerPage));
@@ -420,17 +420,17 @@ const AllWorkplacesSummaryPDFReport = ({ searchResults, startDate, endDate }) =>
               <View style={styles.signature}>
                 <View style={styles.signatureBox}>
                   <Text style={{ marginBottom: 30 }}>...................................</Text>
-                  <Text>(นาย จิดก้ำ เอกสาร)</Text>
+                  <Text>(นาย ทดสอบ เอกสาร)</Text>
                   <Text>ผู้จัดทำเอกสาร</Text>
                 </View>
                 <View style={styles.signatureBox}>
                   <Text style={{ marginBottom: 30 }}>...................................</Text>
-                  <Text>(นางสาว อนุสรา เอกสาร)</Text>
+                  <Text>(นางสาว ทดสอบ เอกสาร)</Text>
                   <Text>ผู้ตรวจสอบเอกสาร</Text>
                 </View>
                 <View style={styles.signatureBox}>
                   <Text style={{ marginBottom: 30 }}>...................................</Text>
-                  <Text>(นาง ครวญสอน เอกสาร)</Text>
+                  <Text>(นาง ทดสอบ เอกสาร)</Text>
                   <Text>ผู้อนุมัติเอกสาร</Text>
                 </View>
               </View>
@@ -440,8 +440,36 @@ const AllWorkplacesSummaryPDFReport = ({ searchResults, startDate, endDate }) =>
       ))}
 
       {/* Detailed Pages for Each Workplace */}
-      {searchResults?.workplaces?.map((workplace, workplaceIndex) => (
-        <Page size="A4" style={styles.page} key={workplaceIndex}>
+      {searchResults?.workplaces?.map((workplace, workplaceIndex) => {
+        // รวบรวมข้อมูลทั้งหมดของ workplace นี้
+        const allRows = [];
+        workplace.employees.forEach((employee, empIndex) => {
+          employee.specialShiftDays.forEach((day, dayIndex) => {
+            allRows.push({
+              employeeId: employee.employeeId,
+              employeeName: employee.employeeName,
+              day: day
+            });
+          });
+        });
+
+        // แบ่งเป็นหน้าๆ ละ 24 รายการ
+        const rowsPerPage = 18;
+        const totalPages = Math.ceil(allRows.length / rowsPerPage);
+        const pages = [];
+        for (let pageNum = 0; pageNum < totalPages; pageNum++) {
+          const startIdx = pageNum * rowsPerPage;
+          const endIdx = Math.min(startIdx + rowsPerPage, allRows.length);
+          pages.push({
+            rows: allRows.slice(startIdx, endIdx),
+            isLastPage: pageNum === totalPages - 1,
+            pageNum: pageNum + 1,
+            totalPages: totalPages
+          });
+        }
+
+        return pages.map((pageData, pageIdx) => (
+          <Page size="A4" style={styles.page} key={`${workplaceIndex}-${pageIdx}`}>
           {/* Date in top right corner */}
           <View style={styles.dateHeader}>
             <Text>วันที่ออกเอกสาร</Text>
@@ -479,77 +507,108 @@ const AllWorkplacesSummaryPDFReport = ({ searchResults, startDate, endDate }) =>
             <View style={styles.table}>
               {/* Header */}
               <View style={styles.tableRow}>
-                <View style={styles.tableCol}>
+                <View style={{ ...styles.tableCol, width: '12%' }}>
                   <Text style={styles.tableCellHeader}>รหัสพนักงาน</Text>
                 </View>
-                <View style={styles.tableCol}>
+                <View style={{ ...styles.tableCol, width: '20%' }}>
                   <Text style={styles.tableCellHeader}>ชื่อ - นามสกุล</Text>
                 </View>
-                <View style={styles.tableCol}>
-                  <Text style={styles.tableCellHeader}>ยอดเงิน</Text>
+                <View style={{ ...styles.tableCol, width: '12%' }}>
+                  <Text style={styles.tableCellHeader}>เงินทำงาน</Text>
                 </View>
-                <View style={styles.tableCol}>
+                <View style={{ ...styles.tableCol, width: '12%' }}>
+                  <Text style={styles.tableCellHeader}>OT</Text>
+                </View>
+                <View style={{ ...styles.tableCol, width: '14%' }}>
                   <Text style={styles.tableCellHeader}>ประจำวันที่</Text>
                 </View>
-                <View style={styles.tableCol}>
+                <View style={{ ...styles.tableCol, width: '30%' }}>
                   <Text style={styles.tableCellHeader}>หมายเหตุ</Text>
                 </View>
               </View>
 
-              {/* Employee Rows */}
-              {workplace.employees.map((employee, empIndex) => {
-                return employee.specialShiftDays.map((day, dayIndex) => (
-                  <View style={styles.tableRow} key={`${empIndex}-${dayIndex}`}>
-                    <View style={styles.tableCol}>
-                      <Text style={styles.tableCell}>{employee.employeeId}</Text>
-                    </View>
-                    <View style={styles.tableCol}>
-                      <Text style={styles.tableCellLeft}>{employee.employeeName}</Text>
-                    </View>
-                    <View style={styles.tableCol}>
-                      <Text style={styles.tableCellRight}>
-                        {(parseFloat(day.cashOfHoliday) + parseFloat(day.cashOfHolidayOt)).toLocaleString()}
-                      </Text>
-                    </View>
-                    <View style={styles.tableCol}>
-                      <Text style={styles.tableCell}>{formatShortThaiDate(day.date, currentMonth, currentYear)}</Text>
-                    </View>
-                    <View style={styles.tableCol}>
-                      <Text style={styles.tableCell}>{day.remark || '-'}</Text>
-                    </View>
+              {/* Employee Rows - แสดงเฉพาะข้อมูลของหน้านี้ */}
+              {pageData.rows.map((row, rowIndex) => (
+                <View style={styles.tableRow} key={rowIndex}>
+                  <View style={{ ...styles.tableCol, width: '12%' }}>
+                    <Text style={styles.tableCell}>{row.employeeId}</Text>
                   </View>
-                ));
-              })}
+                  <View style={{ ...styles.tableCol, width: '20%' }}>
+                    <Text style={styles.tableCellLeft}>{row.employeeName}</Text>
+                  </View>
+                  <View style={{ ...styles.tableCol, width: '12%' }}>
+                    <Text style={styles.tableCellRight}>
+                      {parseFloat(row.day.cashOfHoliday || 0).toLocaleString()}
+                    </Text>
+                  </View>
+                  <View style={{ ...styles.tableCol, width: '12%' }}>
+                    <Text style={styles.tableCellRight}>
+                      {parseFloat(row.day.cashOfHolidayOt || 0).toLocaleString()}
+                    </Text>
+                  </View>
+                  <View style={{ ...styles.tableCol, width: '14%' }}>
+                    <Text style={styles.tableCell}>{formatShortThaiDate(row.day.date, currentMonth, currentYear)}</Text>
+                  </View>
+                  <View style={{ ...styles.tableCol, width: '30%' }}>
+                    <Text style={{ ...styles.tableCellLeft, fontSize: 8}}>
+                      {row.day.remark || '-'}
+                    </Text>
+                  </View>
+                </View>
+              ))}
 
-              {/* Workplace Total Row */}
-              <View style={[styles.tableRow, styles.workplaceTotalRow]}>
-                <View style={styles.tableCol}>
-                  <Text style={styles.tableCellHeader}>รวม</Text>
+              {/* Workplace Total Row - แสดงเฉพาะหน้าสุดท้าย */}
+              {pageData.isLastPage && (
+                <View style={[styles.tableRow, styles.workplaceTotalRow]}>
+                  <View style={{ ...styles.tableCol, width: '12%' }}>
+                    <Text style={styles.tableCellHeader}>รวม</Text>
+                  </View>
+                  <View style={{ ...styles.tableCol, width: '20%' }}>
+                    <Text style={styles.tableCellHeader}>{workplace.totalEmployeesWithSpecialShift} คน</Text>
+                  </View>
+                  <View style={{ ...styles.tableCol, width: '12%' }}>
+                    <Text style={[styles.tableCellHeader, styles.tableCellRight]}>
+                      {workplace.employees.reduce((sum, emp) => 
+                        sum + emp.specialShiftDays.reduce((daySum, day) => 
+                          daySum + (parseFloat(day.cashOfHoliday) || 0), 0), 0
+                      ).toLocaleString()}
+                    </Text>
+                  </View>
+                  <View style={{ ...styles.tableCol, width: '12%' }}>
+                    <Text style={[styles.tableCellHeader, styles.tableCellRight]}>
+                      {workplace.employees.reduce((sum, emp) => 
+                        sum + emp.specialShiftDays.reduce((daySum, day) => 
+                          daySum + (parseFloat(day.cashOfHolidayOt) || 0), 0), 0
+                      ).toLocaleString()}
+                    </Text>
+                  </View>
+                  <View style={{ ...styles.tableCol, width: '14%' }}>
+                    <Text style={styles.tableCellHeader}></Text>
+                  </View>
+                  <View style={{ ...styles.tableCol, width: '30%' }}>
+                    <Text style={styles.tableCellHeader}></Text>
+                  </View>
                 </View>
-                <View style={styles.tableCol}>
-                  <Text style={styles.tableCellHeader}>{workplace.totalEmployeesWithSpecialShift} คน</Text>
-                </View>
-                <View style={styles.tableCol}>
-                  <Text style={[styles.tableCellHeader, styles.tableCellRight]}>
-                    {calculateWorkplaceTotal(workplace.employees).toLocaleString()}
-                  </Text>
-                </View>
-                <View style={styles.tableCol}>
-                  <Text style={styles.tableCellHeader}></Text>
-                </View>
-                <View style={styles.tableCol}>
-                  <Text style={styles.tableCellHeader}></Text>
-                </View>
-              </View>
+              )}
             </View>
           </View>
 
-          {/* Workplace Total */}
-          <Text style={{ fontSize: 12, textAlign: 'center', marginTop: 10, padding: 8, backgroundColor: '#e6f3ff' }}>
-            ยอดเงินรวมหน่วยงาน {workplace.workplaceName}: {calculateWorkplaceTotal(workplace.employees).toLocaleString()} บาท
-          </Text>
+          {/* Workplace Total - แสดงเฉพาะหน้าสุดท้าย */}
+          {pageData.isLastPage && (
+            <Text style={{ fontSize: 12, textAlign: 'center', marginTop: 10, padding: 8, backgroundColor: '#e6f3ff' }}>
+              ยอดเงินรวมหน่วยงาน {workplace.workplaceName}: {calculateWorkplaceTotal(workplace.employees).toLocaleString()} บาท
+            </Text>
+          )}
+
+          {/* Page indicator - แสดงเลขหน้าถ้ามีหลายหน้า */}
+          {pageData.totalPages > 1 && (
+            <Text style={{ fontSize: 9, textAlign: 'center', marginTop: 5, color: '#666' }}>
+              หน้า {pageData.pageNum}/{pageData.totalPages}
+            </Text>
+          )}
         </Page>
-      ))}
+        ));
+      })}
     </Document>
   );
 };
