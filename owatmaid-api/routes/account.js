@@ -7954,9 +7954,47 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
   
   console.log(`\n🔍 === รายการ ID ที่คิดประกันสังคม ===`);
   const taxableIds = ["1110","1445","1423","1120","1130","1530","1140","1150","1210","1230","1231","1233","1241","1242","1251","1350","1422","1423","1428","1434","1440","1441","1444","1445","1446","1520","1522","1524","1525","1526","1528","1540","1541","1550","1447","1613","1561","1542","1529","1531","1532","1533","1534","1435","1429","1427","1412","1245","1234","1159","2111","2113","2116","2117","2120","2124","2160","2430","1190","1211","1212","1214","1235","1236","1243","1351","1411","1425","1426","1431","1448","1449","1527","1562","2114","2123","1543","1443","1544"];
-  const DedutIds = ["2116"];
+  const DedutIds = ["2116", "2222"];
   console.log(`🔍 ID ที่คิดประกันสังคม: ${taxableIds.join(', ')}`);
+  console.log(`🔍 ID ที่ต้องหักออกจากฐานประกันสังคม: ${DedutIds.join(', ')}`);
   console.log(`🔍 ===============================================\n`);
+
+  // 🔍 คำนวณรายการหักที่ต้องลบออกจากฐานประกันสังคม
+  let deductSalarySocialSecurity = 0;
+  
+  console.log(`\n🔍 === การตรวจสอบรายการหักที่ต้องลบออกจากฐานประกันสังคม ===`);
+  
+  // ดึงข้อมูล deductSalary จาก employee
+  try {
+    const employeeResponse = await axios.get(sURL + '/employees/' + employeeId);
+    const deductSalaryList = employeeResponse?.data?.deductSalary || [];
+    
+    console.log(`🔍 จำนวนรายการหักทั้งหมด: ${deductSalaryList.length} รายการ`);
+    
+    for (const deductItem of deductSalaryList) {
+      console.log(`\n🔍 ตรวจสอบรายการหัก:`);
+      console.log(`🔍 - ID: ${deductItem.id}`);
+      console.log(`🔍 - ชื่อ: ${deductItem.name}`);
+      console.log(`🔍 - จำนวนเงิน: ${deductItem.amount} บาท`);
+      
+      if (DedutIds.includes(deductItem.id)) {
+        const deductAmount = parseFloat(deductItem.amount || 0);
+        deductSalarySocialSecurity += deductAmount;
+        console.log(`🔍 ✅ รายการนี้ต้องหักออกจากฐานประกันสังคม: +${deductAmount} บาท`);
+        console.log(`🔍 - ยอดรวมการหัก: ${deductSalarySocialSecurity} บาท`);
+      } else {
+        console.log(`🔍 ❌ รายการนี้ไม่ต้องหักออกจากฐานประกันสังคม`);
+      }
+    }
+    
+    console.log(`\n🔍 === สรุปรายการหักออกจากฐานประกันสังคม ===`);
+    console.log(`🔍 ยอดรวมรายการที่ต้องหักออก: ${deductSalarySocialSecurity} บาท`);
+    console.log(`🔍 ===============================================\n`);
+    
+  } catch (error) {
+    console.error(`⚠️ ไม่สามารถดึงข้อมูลรายการหักของพนักงาน ${employeeId}:`, error.message);
+    deductSalarySocialSecurity = 0;
+  }
 
   // 🔥 PRE-CALCULATE: คำนวณ sumCashWork ใหม่สำหรับพนักงานรายวันก่อนคำนวณประกันสังคม
   if (salaryToUse > 0 && dayWorkCount > 0 && typeOfemployee === 'รายวัน') {
@@ -8057,9 +8095,11 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
                   
     
     console.log(`💰 - เงินเดือนพื้นฐาน: ${parseFloat(salaryMonth || 0)} บาท`);
-    console.log(`💰 - เงินพิเศษที่คิดประกันสังคม: ${parseFloat(addSalarySocialSecurity || 0)} บาท`);
-    console.log(`💰 - เงินวันหยุดกำหนดเอง: ${parseFloat(cashcustomizeDayoff || 0)} บาท`);
-    console.log(`💰 - เงินวันหยุดนักขัติฤกษ์: ${parseFloat(publicHolidayCash || 0)} บาท`);
+    console.log(`💰 - หักรายการพิเศษ (2222, 2116): -${parseFloat(deductSalarySocialSecurity || 0)} บาท`);
+    console.log(`💰 - เงินพิเศษที่คิดประกันสังคม: +${parseFloat(addSalarySocialSecurity || 0)} บาท`);
+    console.log(`💰 - (เงินวันหยุดกำหนดเอง: ${parseFloat(cashcustomizeDayoff || 0)} บาท - อยู่ในเงินพิเศษแล้ว)`);
+    console.log(`💰 - (เงินวันหยุดนักขัติฤกษ์: ${parseFloat(publicHolidayCash || 0)} บาท - อยู่ในเงินพิเศษแล้ว)`);
+    console.log(`💰 - คำนวณ: ${parseFloat(salaryMonth || 0)} - ${parseFloat(deductSalarySocialSecurity || 0)} + ${parseFloat(addSalarySocialSecurity || 0)} = ${totalIncome} บาท`);
     console.log(`💰 - รวมรายได้ที่คิดประกันสังคม: ${totalIncome} บาท`);
     
     console.log(`\n💰 STEP 4: คำนวณประกันสังคม`);
