@@ -454,48 +454,10 @@ router.put('/:employeeId/custom-workplace', async (req, res) => {
       return res.status(400).json({ message: 'กรุณาส่ง customWorkplace เป็น object' });
     }
 
-    // ✅ จัดการ employeeCompensation แยกต่างหาก
-    let employeeCompensationData = null;
-    if (customWorkplace.employeeCompensation) {
-      const { Rate21_30_31, Rate1_20, effectiveDate, $push, ...rest } = customWorkplace.employeeCompensation;
-      
-      employeeCompensationData = {
-        Rate21_30_31: parseFloat(Rate21_30_31 || 0),
-        Rate1_20: parseFloat(Rate1_20 || 0),
-        effectiveDate: effectiveDate ? new Date(effectiveDate) : null,
-        ...rest
-      };
-
-      // ✅ ถ้ามีการส่ง $push มาให้ push history
-      if ($push && $push.history) {
-        if (!employee.customWorkplace) {
-          employee.customWorkplace = {};
-        }
-        if (!employee.customWorkplace.employeeCompensation) {
-          employee.customWorkplace.employeeCompensation = {
-            Rate21_30_31: 0,
-            Rate1_20: 0,
-            history: []
-          };
-        }
-        if (!employee.customWorkplace.employeeCompensation.history) {
-          employee.customWorkplace.employeeCompensation.history = [];
-        }
-        
-        employee.customWorkplace.employeeCompensation.history.push($push.history);
-      }
-    }
-
-    // ✅ สร้าง customWorkplace object ใหม่โดยไม่มี $push
-    const cleanedCustomWorkplace = { ...customWorkplace };
-    if (employeeCompensationData) {
-      cleanedCustomWorkplace.employeeCompensation = employeeCompensationData;
-    }
-
     // ✅ ใช้ spread operator เพื่อ merge ข้อมูลเดิมกับข้อมูลใหม่
     employee.customWorkplace = {
       ...(employee.customWorkplace || {}),
-      ...cleanedCustomWorkplace
+      ...customWorkplace
     };
     
     await employee.save();
@@ -506,8 +468,7 @@ router.put('/:employeeId/custom-workplace', async (req, res) => {
     });
   } catch (err) {
     console.error('❌ Error saving customWorkplace:', err);
-    console.error('❌ Stack trace:', err.stack);
-    res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: err.message, stack: err.stack });
+    res.status(500).json({ message: 'เกิดข้อผิดพลาด', error: err.message });
   }
 });
 
@@ -770,7 +731,8 @@ router.post("/create", async (req, res) => {
     addSalary,
     selectAddSalary,
     sumAddSalary,
-  
+    banknumber,
+    salarybank,
     
   } = req.body;
   console.log(`Name: ${name}, Id card: ${idCard}`);
@@ -936,7 +898,6 @@ router.post("/create", async (req, res) => {
     addSalary,
     selectAddSalary,
     sumAddSalary,
-   
   });
 
   try {
