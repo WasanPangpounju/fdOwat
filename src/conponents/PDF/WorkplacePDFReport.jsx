@@ -165,6 +165,11 @@ const formatShortThaiDate = (dateString, month, year) => {
     return '-';
   }
   
+  // ✅ ถ้า dateString เป็น format dd/mm/yyyy อยู่แล้ว (มี "/" อยู่) ให้คืนค่ากลับไปเลย
+  if (typeof dateString === 'string' && dateString.includes('/')) {
+    return dateString;
+  }
+  
   // If dateString is just a day number (like "21", "27")
   if (typeof dateString === 'string' && dateString.length <= 2 && !isNaN(dateString)) {
     const day = parseInt(dateString);

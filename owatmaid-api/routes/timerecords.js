@@ -2211,7 +2211,8 @@ router.post('/checkspecialtshift', async (req, res) => {
               ]
             },
             cashOfHoliday: "$employee_record.cashOfHoliday",
-            cashOfHolidayOt: "$employee_record.cashOfHolidayOt"
+            cashOfHolidayOt: "$employee_record.cashOfHolidayOt",
+            remark: "$employee_record.messageSalary"
           }
         },
         totalDays: { $sum: 1 }
