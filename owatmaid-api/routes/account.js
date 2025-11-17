@@ -7954,6 +7954,7 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
   
   console.log(`\n🔍 === รายการ ID ที่คิดประกันสังคม ===`);
   const taxableIds = ["1110","1445","1423","1120","1130","1530","1140","1150","1210","1230","1231","1233","1241","1242","1251","1350","1422","1423","1428","1434","1440","1441","1444","1445","1446","1520","1522","1524","1525","1526","1528","1540","1541","1550","1447","1613","1561","1542","1529","1531","1532","1533","1534","1435","1429","1427","1412","1245","1234","1159","2111","2113","2116","2117","2120","2124","2160","2430","1190","1211","1212","1214","1235","1236","1243","1351","1411","1425","1426","1431","1448","1449","1527","1562","2114","2123","1543","1443","1544"];
+  const DedutIds = ["2116"];
   console.log(`🔍 ID ที่คิดประกันสังคม: ${taxableIds.join(', ')}`);
   console.log(`🔍 ===============================================\n`);
 
@@ -8050,7 +8051,8 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
     console.log(`💰 - sumCashWorkMul["2"]: ${sumCashWorkMul["2"]} บาท (เก็บค่าจาก records เฉพาะวันหยุดพิเศษ)`);
     
     console.log(`\n💰 STEP 3: คำนวณรายได้รวมสำหรับประกันสังคม`);
-    const totalIncome = parseFloat(salaryMonth || 0) + 
+    const totalIncome = parseFloat(salaryMonth || 0) -
+                        parseFloat(deductSalarySocialSecurity || 0) +
                        parseFloat(addSalarySocialSecurity || 0) 
                   
     
