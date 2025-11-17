@@ -39,6 +39,18 @@ const workplaceSchema = new mongoose.Schema({
   workplaceArea: {
       type: String
   },
+    dateStartContract: {
+      type: Date,
+      required: true
+  },
+    dateEndContract: {
+      type: Date,
+      required: true
+  },
+    serviceFeePerMonth: {
+      type: String,
+      required: true
+  },
   workOfWeek: {
       type: String
   },

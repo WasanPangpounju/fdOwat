@@ -4404,8 +4404,14 @@ const getDateStyle = (day) => {
       dayNumbers.forEach(() => row4.push(''));
       row4.push('');
       overtimeLabels.forEach(label => row4.push(label));
+      
+      // 🆕 สำหรับ welfare ให้ push text ธรรมดาก่อน แล้วค่อยมา override ด้วย Rich Text ทีหลัง
+      const welfareItemsForRichText = [];
       if (workplaceAddsalary && workplaceAddsalary.length > 0) {
-        mergeWorkplaceAddsalary(workplaceAddsalary).forEach(item => row4.push(item.name));
+        mergeWorkplaceAddsalary(workplaceAddsalary).forEach(item => {
+          welfareItemsForRichText.push(item); // เก็บไว้ใช้ทีหลัง
+          row4.push(`${item.name} ${item.SpSalary}`); // ใส่ text ธรรมดาก่อน
+        });
       }
       row4.push('', '', '', '');
       
@@ -4614,22 +4620,41 @@ const getDateStyle = (day) => {
           console.log(`  Merged ${verticalRange}`);
         }
         
-        // Add text rotation to welfare columns (แถว 6)
-        console.log('🔄 Adding text rotation to welfare columns...');
+        // 🆕 Apply Rich Text ให้ welfare columns หลัง merge (ต้องทำหลัง merge เพื่อให้ cell ที่ merge แล้วรับค่า)
+        console.log('🔄 Adding Rich Text with red color to welfare columns...');
         for (let i = 0; i < welfareCount; i++) {
           try {
             const colLetter = String.fromCharCode(welfareStartCol.charCodeAt(0) + i);
-            const welfareCell = worksheet.getCell(`${colLetter}6`); // แถว 6 ไม่ใช่ 5
-            if (welfareCell) {
-              welfareCell.alignment = {
-                horizontal: 'center',
-                vertical: 'middle',
-                textRotation: 90
-              };
-              console.log(`✅ Text rotation applied to welfare cell ${colLetter}6`);
+            const welfareCell = worksheet.getCell(`${colLetter}6`); // ใช้แถว 6 (แถวแรกของ merge range)
+            
+            if (welfareCell && welfareItemsForRichText[i]) {
+              const item = welfareItemsForRichText[i];
+              if (item && item.name && item.SpSalary) {
+                // ใช้ Rich Text เพื่อทำให้ยอดเงินเป็นสีแดง
+                welfareCell.value = {
+                  richText: [
+                    {
+                      text: item.name + ' ',
+                      font: { bold: true, size: 10, color: { argb: 'FF000000' } } // สีดำ
+                    },
+                    {
+                      text: item.SpSalary,
+                      font: { bold: true, size: 10, color: { argb: 'FFFF0000' } } // สีแดง
+                    }
+                  ]
+                };
+                
+                welfareCell.alignment = {
+                  horizontal: 'center',
+                  vertical: 'middle',
+                  textRotation: 90
+                };
+                
+                console.log(`✅ Rich Text with red price applied to ${colLetter}6: "${item.name} ${item.SpSalary}"`);
+              }
             }
           } catch (rotationError) {
-            console.warn(`❌ Error applying text rotation to welfare column ${i}:`, rotationError.message);
+            console.warn(`❌ Error applying Rich Text to welfare column ${i}:`, rotationError.message);
           }
         }
       }
@@ -5078,13 +5103,15 @@ const socialSecurityColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount;
                 // รวมค่าจาก sourceId1 และ sourceId2
                 const foundSourceId1 = record.addSalaryList?.find(itemx => itemx.id === MERGE_CONFIG.sourceId1);
                 const foundSourceId2 = record.addSalaryList?.find(itemx => itemx.id === MERGE_CONFIG.sourceId2);
-                const valueSourceId1 = foundSourceId1?.message && !isNaN(foundSourceId1.message) ? parseFloat(foundSourceId1.message) : 0;
-                const valueSourceId2 = foundSourceId2?.message && !isNaN(foundSourceId2.message) ? parseFloat(foundSourceId2.message) : 0;
+                // 🆕 ใช้ countDate ถ้ามี ไม่งั้นใช้ message
+                const valueSourceId1 = foundSourceId1?.countDate || (foundSourceId1?.message && !isNaN(foundSourceId1.message) ? parseFloat(foundSourceId1.message) : 0);
+                const valueSourceId2 = foundSourceId2?.countDate || (foundSourceId2?.message && !isNaN(foundSourceId2.message) ? parseFloat(foundSourceId2.message) : 0);
                 const totalValue = valueSourceId1 + valueSourceId2;
                 empRow1.push(totalValue ? formatNumberWithComma(totalValue) : "");
               } else {
                 const found = record.addSalaryList?.find(itemx => itemx.id === item.codeSpSalary);
-                const value = found?.message;
+                // 🆕 ใช้ countDate ถ้ามี ไม่งั้นใช้ message
+                const value = found?.countDate || found?.message;
                 empRow1.push(value ? formatNumberWithComma(parseFloat(value)) : "");
               }
             });
@@ -5274,7 +5301,24 @@ const socialSecurityColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount;
           // Row 3: OT 1.5 data - using same condition as sumOvertimePerDay
           const empRow3 = ['', `${record.employeeId} โอที 1.5`];
           dayNumbers.forEach(day => {
-            const found = record?.employee_record?.find(itemx => itemx.date === day);
+            const allRecordsForDay = record?.employee_record?.filter(itemx => itemx.date === day) || [];
+            
+            // หา record ที่มี OT data ก่อน (cashOtMul = "1.5" และมี totalOtTime > 0)
+            const foundWithOT = allRecordsForDay.find(itemx => 
+              itemx.cashOtMul === "1.5" && 
+              itemx.totalOtTime && 
+              parseFloat(itemx.totalOtTime) > 0
+            );
+            
+            // หา record ที่เป็น cash_holiday
+            const cashHolidayRecord = allRecordsForDay.find(itemx => 
+              itemx.shift === "cash_holiday" && 
+              itemx.totalOtTime && 
+              parseFloat(itemx.totalOtTime) > 0
+            );
+            
+            // ถ้าไม่มี OT record ให้ใช้ record แรก
+            const found = foundWithOT || allRecordsForDay[0];
             const hasData = found && found.date; // ตรวจสอบว่ามีข้อมูลหรือไม่
             
             // ตรวจสอบว่าเป็นพนักงานข้ามหน่วยงานหรือไม่
@@ -5297,9 +5341,39 @@ const socialSecurityColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount;
               const beforeTime = found.beforeTotalOtTime ? parseFloat(found.beforeTotalOtTime) : 0;
               const totalTime = found.totalOtTime ? parseFloat(found.totalOtTime) : 0;
               const summedTime = beforeTime + totalTime;
-              empRow3.push(summedTime > 0 ? formatTimeValueForExcel(summedTime) : '');
+              
+              // ตรวจสอบว่ามี cash_holiday record หรือไม่
+              const cashHolidayOT = cashHolidayRecord?.totalOtTime ? parseFloat(cashHolidayRecord.totalOtTime) : 0;
+              
+              if (summedTime > 0 && cashHolidayOT > 0) {
+                // แสดงทั้งสองค่า โดยใช้ object เพื่อบอกว่าส่วนไหนเป็นสีแดง
+                empRow3.push({
+                  value: `${formatTimeValueForExcel(summedTime)},${formatTimeValueForExcel(cashHolidayOT)}`,
+                  normalValue: formatTimeValueForExcel(summedTime),
+                  redValue: formatTimeValueForExcel(cashHolidayOT),
+                  hasBothValues: true
+                });
+              } else if (cashHolidayOT > 0) {
+                // แสดงเฉพาะ cash_holiday เป็นสีแดง
+                empRow3.push({
+                  value: formatTimeValueForExcel(cashHolidayOT),
+                  isRed: true
+                });
+              } else {
+                // แสดงเฉพาะ OT ปกติ
+                empRow3.push(summedTime > 0 ? formatTimeValueForExcel(summedTime) : '');
+              }
             } else {
-              empRow3.push('');
+              // ตรวจสอบว่ามี cash_holiday เพียงอย่างเดียวหรือไม่
+              const cashHolidayOT = cashHolidayRecord?.totalOtTime ? parseFloat(cashHolidayRecord.totalOtTime) : 0;
+              if (cashHolidayOT > 0) {
+                empRow3.push({
+                  value: formatTimeValueForExcel(cashHolidayOT),
+                  isRed: true
+                });
+              } else {
+                empRow3.push('');
+              }
             }
           });
           
@@ -5460,11 +5534,19 @@ for (let i = 0; i < remainingCols5; i++) {
             return item;
           });
           
+          // 🆕 แปลง empRow3 เป็น values
+          const empRow3Values = empRow3.map(item => {
+            if (typeof item === 'object' && item !== null && item.hasOwnProperty('value')) {
+              return item.value;
+            }
+            return item;
+          });
+          
           // Add employee rows to worksheet
           const empRowRefs = [];
           empRowRefs.push(worksheet.addRow(empRow1Values)); // ใช้ empRow1Values แทน empRow1
           empRowRefs.push(worksheet.addRow(empRow2Values)); // ใช้ empRow2Values แทน empRow2
-          empRowRefs.push(worksheet.addRow(empRow3));
+          empRowRefs.push(worksheet.addRow(empRow3Values)); // 🆕 ใช้ empRow3Values แทน empRow3
           empRowRefs.push(worksheet.addRow(empRow4));
           empRowRefs.push(worksheet.addRow(empRow5));
           // Add employee rows to worksheet
@@ -5511,12 +5593,15 @@ for (let colIdx = 1; colIdx <= actualTotalColumns; colIdx++) {
               // ตรวจสอบว่า cellData เป็น object หรือ string
               const cellValue = (typeof cellData === 'object' && cellData !== null) ? cellData.value : cellData;
               const shouldBeRed = (typeof cellData === 'object' && cellData !== null) ? cellData.isRed : false;
+              const hasBothValues = (typeof cellData === 'object' && cellData !== null) ? cellData.hasBothValues : false;
+              const normalValue = (typeof cellData === 'object' && cellData !== null) ? cellData.normalValue : null;
+              const redValue = (typeof cellData === 'object' && cellData !== null) ? cellData.redValue : null;
               
               const colNumber = dayIdx + 3; // +3 because Excel is 1-based and we start from column C
               const cell = worksheet.getCell(actualRowNumber, colNumber);
               
-              // ตั้งค่า value ของ cell
-              cell.value = cellValue;
+              // 🔧 ย้ายการตั้งค่า cell.value ไปด้านล่าง หลังจากตรวจสอบเงื่อนไขต่างๆ แล้ว
+              // cell.value = cellValue; // ลบออก
               
               // ตรวจสอบว่าเป็นวันหยุดหรือไม่ (ใช้ลอจิกเดียวกันกับหน้าเว็บ)
               const dayNum = parseInt(day);
@@ -5618,6 +5703,40 @@ for (let colIdx = 1; colIdx <= actualTotalColumns; colIdx++) {
               
               // 🔴 ตรวจสอบว่าควรเป็นสีแดงหรือไม่ (สำหรับแถวเช้าและแถวดึก)
               const isCashHolidayWithRedText = (rowIdx === 0 || rowIdx === 1) && shouldBeRed;
+              
+              // 🆕 สำหรับแถว OT 1.5 (rowIdx === 2) - ตรวจสอบว่ามีทั้ง OT ปกติและ cash_holiday หรือไม่
+              if (rowIdx === 2 && hasBothValues && normalValue && redValue) {
+                // มีทั้ง OT ปกติและ cash_holiday - ใช้ Rich Text
+                cell.value = {
+                  richText: [
+                    {
+                      text: normalValue,
+                      font: { size: 9, color: { argb: 'FF000000' } } // สีดำ
+                    },
+                    {
+                      text: ',',
+                      font: { size: 9, color: { argb: 'FF000000' } } // สีดำ
+                    },
+                    {
+                      text: redValue,
+                      font: { size: 9, color: { argb: 'FFFF0000' }, bold: false } // สีแดง
+                    }
+                  ]
+                };
+                console.log(`Applied Rich Text with red value to OT 1.5 cell: ${normalValue},${redValue} in day ${day} (${actualRowNumber}, ${colNumber})`);
+              } else if (rowIdx === 2 && shouldBeRed) {
+                // เฉพาะ cash_holiday - แสดงสีแดงทั้งหมด
+                cell.value = cellValue;
+                cell.font = {
+                  bold: false,
+                  size: 9,
+                  color: { argb: 'FFFF0000' } // ตัวอักษรสีแดง
+                };
+                console.log(`Applied red text to OT 1.5 cash_holiday cell: ${cellValue} in day ${day} (${actualRowNumber}, ${colNumber})`);
+              } else {
+                // กรณีปกติ - ตั้งค่าตามปกติ
+                cell.value = cellValue;
+              }
 
               // Apply specific styling based on row type and cell content (ใช้ลำดับความสำคัญเหมือน HTML)
               if (isSickLeave) {
@@ -8520,7 +8639,7 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                                           const mergedItems = mergeWorkplaceAddsalary(workplaceAddsalary);
                                           return mergedItems.map((item, index) => (
                                             <th key={index} className="vertical-text align-middle">
-                                              {item.name}
+                                              {item.name} <span className="">{item.SpSalary}</span>
                                             </th>
                                           ));
                                         })()}
@@ -8985,12 +9104,13 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                         if (item.codeSpSalary === MERGE_CONFIG.displayId) {
                           const foundSourceId1 = record.addSalaryList.find(itemx => itemx.id === MERGE_CONFIG.sourceId1);
                           const foundSourceId2 = record.addSalaryList.find(itemx => itemx.id === MERGE_CONFIG.sourceId2);
-                          const valueSourceId1 = foundSourceId1?.message && !isNaN(foundSourceId1.message) ? parseFloat(foundSourceId1.message) : 0;
-                          const valueSourceId2 = foundSourceId2?.message && !isNaN(foundSourceId2.message) ? parseFloat(foundSourceId2.message) : 0;
+                          const valueSourceId1 = foundSourceId1?.countDate || foundSourceId1?.message && !isNaN(foundSourceId1.message) ? parseFloat(foundSourceId1.message) : 0;
+                          const valueSourceId2 = foundSourceId2?.countDate || foundSourceId2?.message && !isNaN(foundSourceId2.message) ? parseFloat(foundSourceId2.message) : 0;
                           displayValue = (valueSourceId1 + valueSourceId2) || "";
                         } else {
                           const found = record.addSalaryList.find(itemx => itemx.id === item.codeSpSalary);
-                          const value = found?.message;
+                          // 🆕 ใช้ countDate ถ้ามี ไม่งั้นใช้ message
+                          const value = found?.countDate || found?.message;
                           displayValue = value && !isNaN(value) ? parseFloat(value) : "";
                         }
                         
@@ -9284,6 +9404,13 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                       parseFloat(itemx.totalOtTime) > 0
                     );
                     
+                    // หา record ที่เป็น cash_holiday
+                    const cashHolidayRecord = allRecordsForDay.find(itemx => 
+                      itemx.shift === "cash_holiday" && 
+                      itemx.totalOtTime && 
+                      parseFloat(itemx.totalOtTime) > 0
+                    );
+                    
                     // ถ้าไม่มี OT record ให้ใช้ record แรก
                     const found = foundWithOT || allRecordsForDay[0];
                     
@@ -9411,7 +9538,24 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                               const beforeTime = found.beforeTotalOtTime ? parseFloat(found.beforeTotalOtTime) : 0;
                               const totalTime = found.totalOtTime ? parseFloat(found.totalOtTime) : 0;
                               const summedTime = beforeTime + totalTime;
-                              return summedTime > 0 ? formatTimeValue(summedTime) : '';
+                              
+                              // ตรวจสอบว่ามี cash_holiday record หรือไม่
+                              const cashHolidayOT = cashHolidayRecord?.totalOtTime ? parseFloat(cashHolidayRecord.totalOtTime) : 0;
+                              
+                              if (summedTime > 0 && cashHolidayOT > 0) {
+                                // แสดงทั้งสองค่า คั้นด้วยจุลภาค โดย cash_holiday เป็นสีแดง
+                                return (
+                                  <>
+                                    {formatTimeValue(summedTime)},<span style={{color: 'red'}}>{formatTimeValue(cashHolidayOT)}</span>
+                                  </>
+                                );
+                              } else if (cashHolidayOT > 0) {
+                                // แสดงเฉพาะ cash_holiday เป็นสีแดง
+                                return <span style={{color: 'red'}}>{formatTimeValue(cashHolidayOT)}</span>;
+                              } else {
+                                // แสดงเฉพาะ OT ปกติ
+                                return summedTime > 0 ? formatTimeValue(summedTime) : '';
+                              }
                             })()
                           : (specialIndividualOT15 && found?.cashOtMul?.trim() && found?.cashOtMul === "1.5")
                             ? (() => {
@@ -9419,9 +9563,28 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                                 const beforeTime = found.beforeTotalOtTime ? parseFloat(found.beforeTotalOtTime) : 0;
                                 const totalTime = found.totalOtTime ? parseFloat(found.totalOtTime) : 0;
                                 const summedTime = beforeTime + totalTime;
-                                return summedTime > 0 ? formatTimeValue(summedTime) : '';
+                                
+                                // ตรวจสอบว่ามี cash_holiday record หรือไม่
+                                const cashHolidayOT = cashHolidayRecord?.totalOtTime ? parseFloat(cashHolidayRecord.totalOtTime) : 0;
+                                
+                                if (summedTime > 0 && cashHolidayOT > 0) {
+                                  return (
+                                    <>
+                                      {formatTimeValue(summedTime)},<span style={{color: 'red'}}>{formatTimeValue(cashHolidayOT)}</span>
+                                    </>
+                                  );
+                                } else if (cashHolidayOT > 0) {
+                                  return <span style={{color: 'red'}}>{formatTimeValue(cashHolidayOT)}</span>;
+                                } else {
+                                  return summedTime > 0 ? formatTimeValue(summedTime) : '';
+                                }
                               })()
-                            : ''}
+                            : (() => {
+                                // กรณีอื่นๆ ตรวจสอบว่ามี cash_holiday หรือไม่
+                                const cashHolidayOT = cashHolidayRecord?.totalOtTime ? parseFloat(cashHolidayRecord.totalOtTime) : 0;
+                                return cashHolidayOT > 0 ? <span style={{color: 'red'}}>{formatTimeValue(cashHolidayOT)}</span> : '';
+                              })()
+                        }
                       </td>
                     );
                   })}

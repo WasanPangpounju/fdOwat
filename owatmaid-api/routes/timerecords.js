@@ -2317,13 +2317,19 @@ router.post('/checkspecialtshift', async (req, res) => {
             // เช็คว่าเป็นวันที่ 21-31 ของเดือนก่อนหน้า หรือ 1-20 ของเดือนปัจจุบัน
             if (monthNum === parseInt(prevMonthPattern) && dayNum >= 21 && dayNum <= 31) {
               prevMonthPeriodCount++;
-              console.log(`📅 [${prevMonthName} 21-31] พบ: ${emp.employeeName} วันที่ ${day.date}`);
+              // เช็คว่าวันที่เกิน 30 ในเดือนที่มีแค่ 30 วัน
+              const maxDayInMonth = new Date(prevYear, parseInt(prevMonthPattern), 0).getDate();
+              if (dayNum > maxDayInMonth) {
+                console.log(`⚠️ [INVALID DATE] พบวันที่ไม่ถูกต้อง: ${emp.employeeName} วันที่ ${day.date} (เดือน ${prevMonthPattern} มีแค่ ${maxDayInMonth} วัน)`);
+              } else {
+                console.log(`📅 [${prevMonthName} 21-31] พบ: ${emp.employeeName} วันที่ ${day.date}`);
+              }
             } else if (monthNum === parseInt(currentMonthPattern) && dayNum >= 1 && dayNum <= 20) {
               currentMonthPeriodCount++;
               console.log(`📅 [${currentMonthName} 1-20] พบ: ${emp.employeeName} วันที่ ${day.date}`);
             } else {
               // ⚠️ พบข้อมูลที่ไม่ควรอยู่ในช่วงนี้
-              console.log(`⚠️ [OUTSIDE RANGE] พบข้อมูลนอกช่วง: ${emp.employeeName} วันที่ ${day.date}`);
+              console.log(`⚠️ [OUTSIDE RANGE] พบข้อมูลนอกช่วง: ${emp.employeeName} วันที่ ${day.date} (ช่วงที่ต้องการ: 21-31/${prevMonthPattern} และ 1-20/${currentMonthPattern})`);
             }
           });
         });

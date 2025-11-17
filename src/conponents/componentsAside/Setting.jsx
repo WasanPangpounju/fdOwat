@@ -948,6 +948,10 @@ const handleRemovePublicHoliday = async (holidayToRemove) => {
   const [workplaceName, setWorkplaceName] = useState(""); //ชื่อหน่วยงาน
   const [workplaceArea, setWorkplaceArea] = useState(""); //สถานที่ปฏิบัติงาน
   const [workOfWeek, setWorkOfWeek] = useState(""); //วันทำงานต่อสัปดาห์
+  const [dateStartContract, setDateStartContract] = useState(""); //วันที่เริ่มสัญญาจ้าง
+  const [dateEndContract, setDateEndContract] = useState(""); //วันที่สิ้นสุดสัญญาจ้าง
+  const [serviceFeePerMonth, setServiceFeePerMonth] = useState(""); //ค่าบริการรายเดือน
+
 
   const [workStart1, setWorkStart1] = useState(""); //เวลาเริ่มกะเช้า
   const [workEnd1, setWorkEnd1] = useState(""); //เวลาออกกะเช้า
@@ -1527,6 +1531,383 @@ const handleRemovePublicHoliday = async (holidayToRemove) => {
     }
   };
 
+  // Function to sync wage rates (OT, dayoff, holiday) to employees
+  const syncWageRatesToEmployees = async () => {
+    try {
+      // Step 1: Ask for secret key
+      const secretKeyResult = await Swal.fire({
+        title: '🔐 ยืนยันตัวตน',
+        html: '<p>กรุณาใส่รหัสลับเพื่อใช้งานฟีเจอร์นี้</p>',
+        input: 'password',
+        inputPlaceholder: 'ใส่รหัสลับ',
+        inputAttributes: {
+          autocapitalize: 'off',
+          autocorrect: 'off'
+        },
+        showCancelButton: true,
+        confirmButtonText: 'ยืนยัน',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        inputValidator: (value) => {
+          if (!value) {
+            return 'กรุณาใส่รหัสลับ!';
+          }
+          if (value !== '8888') {
+            return 'รหัสลับไม่ถูกต้อง!';
+          }
+        }
+      });
+
+      if (!secretKeyResult.isConfirmed) {
+        return;
+      }
+
+      // ตรวจสอบว่ามีข้อมูลหน่วยงาน
+      if (!workplaceId || !_id) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'ไม่พบข้อมูลหน่วยงาน',
+          text: 'กรุณาเลือกหน่วยงานก่อนทำการซิงค์'
+        });
+        return;
+      }
+
+      // กรองพนักงานจาก employeeList ที่อยู่ในหน่วยงานเดียวกัน
+      const employees = employeeList.filter(
+        (employee) => employee.workplace === workplaceId
+      );
+
+      if (!employees || employees.length === 0) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'ไม่พบพนักงาน',
+          text: 'ไม่พบพนักงานในหน่วยงานนี้'
+        });
+        return;
+      }
+
+      // Step 2: Select which fields to sync
+      const fieldsResult = await Swal.fire({
+        title: '📋 เลือกข้อมูลที่ต้องการซิงค์',
+        html: `
+          <div style="text-align: left; padding: 15px;">
+            <p style="margin-bottom: 15px; color: #666;">
+              <i class="fas fa-info-circle"></i> เลือกข้อมูลที่ต้องการส่งให้พนักงาน
+            </p>
+            <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+              <div style="margin-bottom: 12px;">
+                <label style="cursor: pointer; display: flex; align-items: center; padding: 8px;">
+                  <input type="checkbox" id="sync_workRateOT" class="field-checkbox" style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;" checked />
+                  <div>
+                    <strong>OT รายชั่วโมง (กี่เท่า)</strong>
+                    <div style="color: #666; font-size: 13px; margin-top: 3px;">ค่า: ${workRateOT || 'ไม่ได้กำหนด'} เท่า</div>
+                  </div>
+                </label>
+              </div>
+              <div style="margin-bottom: 12px;">
+                <label style="cursor: pointer; display: flex; align-items: center; padding: 8px;">
+                  <input type="checkbox" id="sync_dayoffRateHour" class="field-checkbox" style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;" checked />
+                  <div>
+                    <strong>วันหยุดประจำสัปดาห์รายชั่วโมง (กี่เท่า)</strong>
+                    <div style="color: #666; font-size: 13px; margin-top: 3px;">ค่า: ${dayoffRateHour || 'ไม่ได้กำหนด'} เท่า</div>
+                  </div>
+                </label>
+              </div>
+              <div style="margin-bottom: 12px;">
+                <label style="cursor: pointer; display: flex; align-items: center; padding: 8px;">
+                  <input type="checkbox" id="sync_dayoffRateOT" class="field-checkbox" style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;" checked />
+                  <div>
+                    <strong>OT วันหยุดประจำสัปดาห์รายชั่วโมง (กี่เท่า)</strong>
+                    <div style="color: #666; font-size: 13px; margin-top: 3px;">ค่า: ${dayoffRateOT || 'ไม่ได้กำหนด'} เท่า</div>
+                  </div>
+                </label>
+              </div>
+              <div style="margin-bottom: 12px;">
+                <label style="cursor: pointer; display: flex; align-items: center; padding: 8px;">
+                  <input type="checkbox" id="sync_holidayHour" class="field-checkbox" style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;" checked />
+                  <div>
+                    <strong>วันหยุดนักขัตฤกษ์ รายชั่วโมง (กี่เท่า)</strong>
+                    <div style="color: #666; font-size: 13px; margin-top: 3px;">ค่า: ${holidayHour || 'ไม่ได้กำหนด'} เท่า</div>
+                  </div>
+                </label>
+              </div>
+              <div style="margin-bottom: 12px;">
+                <label style="cursor: pointer; display: flex; align-items: center; padding: 8px;">
+                  <input type="checkbox" id="sync_holidayOT" class="field-checkbox" style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;" checked />
+                  <div>
+                    <strong>วันหยุดนักขัตฤกษ์ OT รายชั่วโมง (กี่เท่า)</strong>
+                    <div style="color: #666; font-size: 13px; margin-top: 3px;">ค่า: ${holidayOT || 'ไม่ได้กำหนด'} เท่า</div>
+                  </div>
+                </label>
+              </div>
+            </div>
+            <div style="background-color: #fff3cd; padding: 10px; border-left: 4px solid #ffc107; border-radius: 4px;">
+              <small style="color: #856404;">
+                <i class="fas fa-exclamation-triangle"></i> ค่าที่เลือกจะถูกส่งไปแทนที่ค่าเดิมของพนักงานที่เลือก
+              </small>
+            </div>
+          </div>
+        `,
+        width: '600px',
+        showCancelButton: true,
+        confirmButtonText: 'ถัดไป',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#6c757d',
+        preConfirm: () => {
+          const selectedFields = {};
+          const checkboxes = document.querySelectorAll('.field-checkbox:checked');
+          
+          if (checkboxes.length === 0) {
+            Swal.showValidationMessage('กรุณาเลือกข้อมูลอย่างน้อย 1 รายการ');
+            return false;
+          }
+          
+          checkboxes.forEach(cb => {
+            const fieldName = cb.id.replace('sync_', '');
+            selectedFields[fieldName] = true;
+          });
+          
+          return selectedFields;
+        }
+      });
+
+      if (!fieldsResult.isConfirmed || !fieldsResult.value) {
+        return;
+      }
+
+      const selectedFields = fieldsResult.value;
+
+      // Step 3: Select employees
+      const employeeCheckboxHTML = `
+        <div style="text-align: left; max-height: 400px; overflow-y: auto; padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin-top: 15px;">
+          <div style="margin-bottom: 15px; padding: 10px; background-color: #f8f9fa; border-radius: 5px;">
+            <label style="cursor: pointer; font-weight: bold;">
+              <input type="checkbox" id="selectAll" style="margin-right: 8px; cursor: pointer; width: 18px; height: 18px;" />
+              เลือกทั้งหมด (${employees.length} คน)
+            </label>
+          </div>
+          ${employees.map((emp, index) => `
+            <div style="padding: 8px; border-bottom: 1px solid #eee;">
+              <label style="cursor: pointer; display: block;">
+                <input 
+                  type="checkbox" 
+                  class="employee-checkbox" 
+                  value="${emp.employeeId}" 
+                  style="margin-right: 8px; cursor: pointer; width: 18px; height: 18px;"
+                  checked
+                />
+                <strong>${emp.employeeId}</strong> - ${emp.name} ${emp.lastname || ''}
+                <span style="color: #6c757d; font-size: 12px;"> (${emp.jobtype || 'ไม่ระบุ'})</span>
+              </label>
+            </div>
+          `).join('')}
+        </div>
+      `;
+
+      const employeesResult = await Swal.fire({
+        title: '👥 เลือกพนักงาน',
+        html: `
+          <div style="text-align: left;">
+            <p style="margin-bottom: 10px;">หน่วยงาน: <strong>${workplaceName}</strong></p>
+            <div style="background-color: #e7f3ff; padding: 10px; border-left: 4px solid #2196F3; border-radius: 4px; margin-bottom: 15px;">
+              <strong>ข้อมูลที่จะส่ง:</strong>
+              <ul style="margin: 8px 0; padding-left: 20px;">
+                ${selectedFields.workRateOT ? `<li>OT รายชั่วโมง: <strong>${workRateOT}</strong> เท่า</li>` : ''}
+                ${selectedFields.dayoffRateHour ? `<li>วันหยุดประจำสัปดาห์: <strong>${dayoffRateHour}</strong> เท่า</li>` : ''}
+                ${selectedFields.dayoffRateOT ? `<li>OT วันหยุดประจำสัปดาห์: <strong>${dayoffRateOT}</strong> เท่า</li>` : ''}
+                ${selectedFields.holidayHour ? `<li>วันหยุดนักขัตฤกษ์: <strong>${holidayHour}</strong> เท่า</li>` : ''}
+                ${selectedFields.holidayOT ? `<li>OT วันหยุดนักขัตฤกษ์: <strong>${holidayOT}</strong> เท่า</li>` : ''}
+              </ul>
+            </div>
+            ${employeeCheckboxHTML}
+          </div>
+        `,
+        icon: 'question',
+        width: '700px',
+        showCancelButton: true,
+        confirmButtonText: 'ยืนยันและส่งข้อมูล',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#6c757d',
+        reverseButtons: true,
+        didOpen: () => {
+          // จัดการ Select All checkbox
+          const selectAllCheckbox = document.getElementById('selectAll');
+          const employeeCheckboxes = document.querySelectorAll('.employee-checkbox');
+          
+          selectAllCheckbox.addEventListener('change', (e) => {
+            employeeCheckboxes.forEach(cb => {
+              cb.checked = e.target.checked;
+            });
+          });
+
+          // อัพเดท Select All เมื่อมีการเปลี่ยนแปลง checkbox แต่ละตัว
+          employeeCheckboxes.forEach(cb => {
+            cb.addEventListener('change', () => {
+              const allChecked = Array.from(employeeCheckboxes).every(checkbox => checkbox.checked);
+              const someChecked = Array.from(employeeCheckboxes).some(checkbox => checkbox.checked);
+              selectAllCheckbox.checked = allChecked;
+              selectAllCheckbox.indeterminate = someChecked && !allChecked;
+            });
+          });
+
+          // ตั้งค่าเริ่มต้นของ Select All
+          selectAllCheckbox.checked = true;
+        },
+        preConfirm: () => {
+          const selectedCheckboxes = document.querySelectorAll('.employee-checkbox:checked');
+          const selectedEmployeeIds = Array.from(selectedCheckboxes).map(cb => cb.value);
+          
+          if (selectedEmployeeIds.length === 0) {
+            Swal.showValidationMessage('กรุณาเลือกพนักงานอย่างน้อย 1 คน');
+            return false;
+          }
+          
+          return selectedEmployeeIds;
+        }
+      });
+
+      if (!employeesResult.isConfirmed || !employeesResult.value) {
+        return;
+      }
+
+      const selectedEmployeeIds = employeesResult.value;
+
+      // Show loading
+      Swal.fire({
+        title: 'กำลังส่งข้อมูล...',
+        html: `กำลังซิงค์ข้อมูลให้กับพนักงาน <strong>${selectedEmployeeIds.length}</strong> คน`,
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
+      // Prepare update data for customWorkplace
+      const customWorkplaceData = {};
+      if (selectedFields.workRateOT) customWorkplaceData.workRateOT = workRateOT;
+      if (selectedFields.dayoffRateHour) customWorkplaceData.dayoffRateHour = dayoffRateHour;
+      if (selectedFields.dayoffRateOT) customWorkplaceData.dayoffRateOT = dayoffRateOT;
+      if (selectedFields.holidayHour) customWorkplaceData.holidayHour = holidayHour;
+      if (selectedFields.holidayOT) customWorkplaceData.holidayOT = holidayOT;
+
+      let successCount = 0;
+      let errorCount = 0;
+      let createdCount = 0;
+      let updatedCount = 0;
+
+      // Update selected employees
+      for (const employeeId of selectedEmployeeIds) {
+        try {
+          // Step 1: ดึง customWorkplace ที่มีอยู่ หรือสร้างจาก workplace
+          let existingCustomWorkplace = {};
+          let isNewlyCreated = false;
+
+          try {
+            // พยายามดึง customWorkplace ที่มีอยู่
+            const getResponse = await axios.get(`${endpoint}/employee/${employeeId}/custom-workplace`);
+            existingCustomWorkplace = getResponse.data.customWorkplace || {};
+          } catch (getError) {
+            // ถ้าไม่มี customWorkplace ให้สร้างจาก workplace
+            if (getError.response && getError.response.status === 404) {
+              // ไม่มี customWorkplace ยัง - ให้ส่งข้อมูลว่างๆ ไปก่อน แล้ว API จะ merge เอง
+              isNewlyCreated = true;
+              existingCustomWorkplace = {};
+            } else {
+              throw getError; // ถ้าเป็น error อื่นให้ throw ต่อ
+            }
+          }
+
+          // Step 2: Merge ข้อมูลเดิมกับข้อมูลใหม่
+          const mergedCustomWorkplace = {
+            ...existingCustomWorkplace,
+            ...customWorkplaceData
+          };
+
+          // Step 3: บันทึก customWorkplace ที่ merge แล้ว
+          await axios.put(`${endpoint}/employee/${employeeId}/custom-workplace`, {
+            customWorkplace: mergedCustomWorkplace
+          });
+
+          successCount++;
+          if (isNewlyCreated) {
+            createdCount++;
+          } else {
+            updatedCount++;
+          }
+        } catch (error) {
+          console.error(`Error updating employee ${employeeId}:`, error);
+          errorCount++;
+        }
+      }
+
+      // Show result
+      Swal.fire({
+        icon: errorCount === 0 ? 'success' : 'warning',
+        title: 'ซิงค์ข้อมูลเสร็จสิ้น',
+        html: `
+          <div style="text-align: left; padding: 15px;">
+            <p style="font-size: 16px; margin-bottom: 15px;">
+              <strong>ผลการซิงค์:</strong> (เลือก ${selectedEmployeeIds.length} คน)
+            </p>
+            <div style="background-color: #d4edda; padding: 12px; border-left: 4px solid #28a745; border-radius: 4px; margin-bottom: 10px;">
+              <p style="margin: 0; color: #155724;">
+                <i class="fas fa-check-circle"></i> <strong>สำเร็จ:</strong> ${successCount} คน
+              </p>
+              ${createdCount > 0 ? `
+                <p style="margin: 5px 0 0 0; color: #155724; font-size: 14px;">
+                  <i class="fas fa-plus-circle"></i> สร้างการตั้งค่าส่วนบุคคลใหม่: ${createdCount} คน
+                </p>
+              ` : ''}
+              ${updatedCount > 0 ? `
+                <p style="margin: 5px 0 0 0; color: #155724; font-size: 14px;">
+                  <i class="fas fa-edit"></i> อัพเดทการตั้งค่าส่วนบุคคลที่มีอยู่: ${updatedCount} คน
+                </p>
+              ` : ''}
+            </div>
+            ${errorCount > 0 ? `
+              <div style="background-color: #f8d7da; padding: 12px; border-left: 4px solid #dc3545; border-radius: 4px; margin-bottom: 10px;">
+                <p style="margin: 0; color: #721c24;">
+                  <i class="fas fa-times-circle"></i> <strong>ไม่สำเร็จ:</strong> ${errorCount} คน
+                </p>
+              </div>
+            ` : ''}
+            <div style="background-color: #fff3cd; padding: 12px; border-left: 4px solid #ffc107; border-radius: 4px; margin-bottom: 10px;">
+              <p style="margin: 0; color: #856404; font-size: 14px;">
+                <i class="fas fa-info-circle"></i> พนักงานที่อัพเดทจะมี<strong>การตั้งค่าส่วนบุคคล</strong> และไม่ได้รับผลกระทบจากการเปลี่ยนค่าที่หน่วยงาน
+              </p>
+            </div>
+            <div style="background-color: #f8f9fa; padding: 12px; border-radius: 4px; margin-top: 15px;">
+              <p style="margin: 0; font-size: 14px; color: #495057;">
+                <strong>ข้อมูลที่ถูกอัพเดทใน customWorkplace:</strong>
+              </p>
+              <ul style="margin: 8px 0; padding-left: 20px; font-size: 14px;">
+                ${selectedFields.workRateOT ? `<li>OT รายชั่วโมง → <strong>${workRateOT}</strong> เท่า</li>` : ''}
+                ${selectedFields.dayoffRateHour ? `<li>วันหยุดประจำสัปดาห์ → <strong>${dayoffRateHour}</strong> เท่า</li>` : ''}
+                ${selectedFields.dayoffRateOT ? `<li>OT วันหยุดประจำสัปดาห์ → <strong>${dayoffRateOT}</strong> เท่า</li>` : ''}
+                ${selectedFields.holidayHour ? `<li>วันหยุดนักขัตฤกษ์ → <strong>${holidayHour}</strong> เท่า</li>` : ''}
+                ${selectedFields.holidayOT ? `<li>OT วันหยุดนักขัตฤกษ์ → <strong>${holidayOT}</strong> เท่า</li>` : ''}
+              </ul>
+            </div>
+          </div>
+        `,
+        width: '600px',
+        confirmButtonText: 'ตกลง',
+        confirmButtonColor: '#28a745'
+      });
+
+    } catch (error) {
+      console.error('Error syncing wage rates to employees:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: error.message || 'ไม่สามารถซิงค์ข้อมูลได้ กรุณาลองใหม่อีกครั้ง'
+      });
+    }
+  };
+
   //set data to form
   function handleClickResult(workplace) {
     setNewWorkplace(false);
@@ -1544,6 +1925,9 @@ const handleRemovePublicHoliday = async (holidayToRemove) => {
     setWorkplaceName(workplace.workplaceName);
     setWorkplaceArea(workplace.workplaceArea);
     setWorkOfWeek(workplace.workOfWeek);
+    setDateStartContract(workplace.dateStartContract);
+    setDateEndContract(workplace.dateEndContract);
+    setServiceFeePerMonth(workplace.serviceFeePerMonth);
 
     setWorkStart1(workplace.workStart1);
     setWorkEnd1(workplace.workEnd1);
@@ -1816,6 +2200,9 @@ setWorkRateChange(workplace.workRateChange)
     setWorkplaceId("");
     setWorkplaceName("");
     setWorkplaceArea("");
+    setDateStartContract("");
+    setDateEndContract("");
+    setServiceFeePerMonth("");
     setWorkOfWeek("");
     setWorkOfHour("");
     setWorkRate("");
@@ -2057,7 +2444,10 @@ if (newWorkplace) {
     workplaceArea: "สถานที่ปฏิบัติงาน",
     workOfWeek: "จำนวนวันทำงานต่อสัปดาห์",
     workOfHour: "ชั่วโมงทำงาน",
-    workRate: "ค่าจ้างรายวัน"
+    workRate: "ค่าจ้างรายวัน",
+    dateStartContract: "วันเริ่มสัญญา",
+    dateEndContract: "วันสิ้นสุดสัญญา",
+    serviceFeePerMonth: "ค่าบริการรายเดือน"
   };
 
   const missingFields = [];
@@ -2737,6 +3127,51 @@ if (newWorkplace) {
                           />
                         </div>
                       </div>
+
+                      <div class="col-md-4">
+                        <div class="form-group">
+                          <label role="dateStartContract">วันเริ่มสัญญา<span style={{ color: "red" }}>*</span></label>
+                          <input
+                            type="date"
+                            class="form-control"
+                            id="dateStartContract"
+                            placeholder="วันเริ่มสัญญา"
+                            value={dateStartContract}
+                            onChange={(e) => setDateStartContract(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <div class="col-md-4">
+                        <div class="form-group">
+                          <label role="dateEndContract">วันสิ้นสุดสัญญา<span style={{ color: "red" }}>*</span></label>
+                          <input
+                            type="date"
+                            class="form-control"
+                            id="dateEndContract"
+                            placeholder="วันสิ้นสุดสัญญา"
+                            value={dateEndContract}
+                            onChange={(e) => setDateEndContract(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <div class="col-md-4">
+                        <div class="form-group">
+                          <label role="serviceFeePerMonth">ค่าบริการต่อเดือน<span style={{ color: "red" }}>*</span></label>
+                          <input
+                            type="text"
+                            class="form-control"
+                            id="serviceFeePerMonth"
+                            placeholder="ค่าบริการต่อเดือน"
+                            value={serviceFeePerMonth ? Number(serviceFeePerMonth).toLocaleString('en-US') : ''}
+                            onChange={(e) => {
+                              const value = e.target.value.replace(/,/g, '');
+                              if (value === '' || !isNaN(value)) {
+                                setServiceFeePerMonth(value);
+                              }
+                            }}
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </section>
@@ -2768,7 +3203,7 @@ if (newWorkplace) {
                         <input
                           type="text"
                           class="form-control"
-                          id="startOT"
+                          id="startOTMinute"
                           placeholder="นาที"
                           value={startWorkOfOTMinute}
                           onChange={(e) => setStartWorkOfOTMinute(e.target.value)}
@@ -2806,7 +3241,7 @@ if (newWorkplace) {
                           type="text"
                           // style={{ marginBottom: "0rem" }}
                           class="form-control "
-                          id="workOfHour"
+                          id="workOfMinute"
                           placeholder="นาที"
                           value={workOfMinute}
                           onChange={(e) => setWorkOfMinute(e.target.value)}
@@ -2842,7 +3277,7 @@ if (newWorkplace) {
                         <input
                           type="text"
                           class="form-control"
-                          id="endOT"
+                          id="endOTMinute"
                           placeholder="นาที"
                           value={workOfOTMinute}
                           onChange={(e) => setWorkOfOTMinute(e.target.value)}
@@ -2946,7 +3381,7 @@ if (newWorkplace) {
                         <input
                           type="text"
                           class="form-control"
-                          id="workRate"
+                          id="workRateHourly"
                           placeholder="บาท"
                           value={(parseFloat(workRate ||  0) /8) || ''} readOnly />
                       </div>
@@ -2988,7 +3423,7 @@ if (newWorkplace) {
                         <input
                           type="text"
                           class="form-control"
-                          id="workRateOT"
+                          id="workRateOTBaht"
                           placeholder="กี่บาท"
                           value={ ((parseFloat(workRate || '0')/ 8)* parseFloat(workRateOT || '0')) || '' }
                         readOnly/>
@@ -3033,7 +3468,7 @@ if (newWorkplace) {
                         <input
                           type="text"
                           class="form-control"
-                          id="dayoffRateHour"
+                          id="dayoffRateHourBaht"
                           placeholder="กี่บาท"
                           value={ ((parseFloat(workRate || '0')/ 8)* parseFloat(dayoffRateHour || '0')) || '' }
                                                 readOnly />
@@ -3075,7 +3510,7 @@ if (newWorkplace) {
                         <input
                           type="text"
                           class="form-control"
-                          id="dayoffRateOT"
+                          id="dayoffRateOTBaht"
                           placeholder="กี่บาท"
                           value={ ((parseFloat(workRate || '0')/ 8)* parseFloat(dayoffRateOT || '0')) || '' }
                         readOnly />
@@ -3120,7 +3555,7 @@ if (newWorkplace) {
                         <input
                           type="text"
                           class="form-control"
-                          id="holidayHour"
+                          id="holidayHourBaht"
                           placeholder=""
                           value={ ((parseFloat(workRate || '0')/ 8)* parseFloat(holidayHour || '0')) || '' }
                         readOnly />
@@ -3162,7 +3597,7 @@ if (newWorkplace) {
                         <input
                           type="text"
                           class="form-control"
-                          id="holidayOT"
+                          id="holidayOTBaht"
                           placeholder="กี่บาท"
                           value={ ((parseFloat(workRate || '0')/ 8)* parseFloat(holidayOT || '0')) || '' }
                         readOnly />
@@ -3247,7 +3682,7 @@ if (newWorkplace) {
                            <input
                           type="text"
                           class="form-control"
-                          id="newWorkRate"
+                          id="currentWorkRateDisplay"
                           placeholder="บาท"
                           value={parseFloat(workRate || '0')}
                           readOnly
@@ -3267,6 +3702,15 @@ if (newWorkplace) {
                             title="ส่งการตั้งค่าหน่วยงานใหม่ให้พนักงานทั้งหมด (ลบการตั้งค่าเฉพาะบุคคล)"
                           >
                             <i className="fas fa-sync-alt"></i> ซิงค์การตั้งค่าหน่วยงาน
+                          </button>
+                        </div>
+                        <div className="col-md-3">
+                          <button 
+                            className="btn btn-success" 
+                            onClick={() => syncWageRatesToEmployees()}
+                            title="ส่งค่าเท่าต่างๆ (OT, วันหยุด) ไปให้พนักงานในหน่วยงาน"
+                          >
+                            <i className="fas fa-sync"></i> ซิงค์ค่าเท่าต่างๆ
                           </button>
                         </div>
                     </div>

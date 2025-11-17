@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row'
   },
   tableColHeader: {
-    width: '25%',
+    width: '20%',
     borderStyle: 'solid',
     borderWidth: 1,
     borderLeftWidth: 0,
@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
     padding: 5
   },
   tableCol: {
-    width: '25%',
+    width: '20%',
     borderStyle: 'solid',
     borderWidth: 1,
     borderLeftWidth: 0,
@@ -243,7 +243,10 @@ const WorkplacePDFReport = ({ workplaceData, employees, summary }) => {
                 <Text style={styles.tableCellHeader}>ชื่อ - นามสกุล</Text>
               </View>
               <View style={styles.tableColHeader}>
-                <Text style={styles.tableCellHeader}>ยอดเงิน</Text>
+                <Text style={styles.tableCellHeader}>เงินทำงาน</Text>
+              </View>
+              <View style={styles.tableColHeader}>
+                <Text style={styles.tableCellHeader}>OT</Text>
               </View>
               <View style={styles.tableColHeader}>
                 <Text style={styles.tableCellHeader}>ประจำวันที่</Text>
@@ -263,7 +266,12 @@ const WorkplacePDFReport = ({ workplaceData, employees, summary }) => {
                   </View>
                   <View style={styles.tableCol}>
                     <Text style={styles.tableCellRight}>
-                      {(parseFloat(day.cashOfHoliday) + parseFloat(day.cashOfHolidayOt)).toLocaleString()}
+                      {parseFloat(day.cashOfHoliday || 0).toLocaleString()}
+                    </Text>
+                  </View>
+                  <View style={styles.tableCol}>
+                    <Text style={styles.tableCellRight}>
+                      {parseFloat(day.cashOfHolidayOt || 0).toLocaleString()}
                     </Text>
                   </View>
                   <View style={styles.tableCol}>
@@ -283,7 +291,12 @@ const WorkplacePDFReport = ({ workplaceData, employees, summary }) => {
               </View>
               <View style={styles.tableCol}>
                 <Text style={[styles.tableCellHeader, styles.tableCellRight]}>
-                  {summary.grandTotal.toLocaleString()}
+                  {(summary?.totalSpecial || 0).toLocaleString()}
+                </Text>
+              </View>
+              <View style={styles.tableCol}>
+                <Text style={[styles.tableCellHeader, styles.tableCellRight]}>
+                  {(summary?.totalOT || 0).toLocaleString()}
                 </Text>
               </View>
               <View style={styles.tableCol}>
@@ -295,7 +308,7 @@ const WorkplacePDFReport = ({ workplaceData, employees, summary }) => {
 
         {/* Grand Total */}
         <Text style={styles.grandTotal}>
-          ยอดเงินสุทธิทั้งสิ้น: {summary.grandTotal.toLocaleString()} บาท
+          ยอดเงินสุทธิทั้งสิ้น: {(summary?.grandTotal || 0).toLocaleString()} บาท
         </Text>
 
         {/* Note */}

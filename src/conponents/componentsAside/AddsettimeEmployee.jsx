@@ -190,9 +190,9 @@ const generatePDFReport = async () => {
         // สร้างตารางใหม่สำหรับ PDF โดยทำการ merge เซลล์ให้ถูกต้อง
         const pdfTable = document.createElement('table');
         pdfTable.style.width = '100%';
-        pdfTable.style.borderCollapse = 'separate';
+        pdfTable.style.borderCollapse = 'collapse';
         pdfTable.style.fontSize = '10px';
-        pdfTable.style.border = '0.3px solid #000';
+        pdfTable.style.border = '1px solid #000';
         pdfTable.style.textAlign = 'center';
         pdfTable.style.marginTop = '20px';
 
@@ -211,13 +211,14 @@ const generatePDFReport = async () => {
           { text: 'OT (ก่อนเวลาทำงาน)', rowSpan: 1, colSpan: 3 },
           { text: 'เวลาทำงาน', rowSpan: 1, colSpan: 3 },
           { text: 'OT (หลังเวลาทำงาน)', rowSpan: 1, colSpan: 3 },
-          { text: 'เงินจ้าง', rowSpan: 2, colSpan: 1 }
+          { text: 'เงินจ้าง', rowSpan: 2, colSpan: 1 },
+          { text: 'หมายเหตุ', rowSpan: 2, colSpan: 1 }
         ];
 
         headers.forEach(header => {
           const th = document.createElement('th');
           th.textContent = header.text;
-          th.style.border = '0.3px solid #000';
+          th.style.border = '1px solid #000';
           th.style.padding = '8px';
           th.style.backgroundColor = '#f8f9fa';
           th.style.fontWeight = 'bold';
@@ -243,7 +244,7 @@ const generatePDFReport = async () => {
         subHeaders.forEach(subHeader => {
           const th = document.createElement('th');
           th.textContent = subHeader;
-          th.style.border = '0.3px solid #000';
+          th.style.border = '1px solid #000';
           th.style.padding = '8px';
           th.style.backgroundColor = '#f8f9fa';
           th.style.fontWeight = 'bold';
@@ -266,22 +267,20 @@ const generatePDFReport = async () => {
             const cells = row.querySelectorAll('td, th');
             
             cells.forEach((cell, cellIndex) => {
-              // ข้ามคอลัมน์ "จัดการ" (คอลัมน์สุดท้าย)
+              // ข้ามคอลัมน์ "จัดการ" (คอลัมน์สุดท้าย) เท่านั้น
               if (cellIndex < cells.length - 1) {
                 const newCell = document.createElement('td');
                 newCell.textContent = cell.textContent.trim();
-                newCell.style.border = '0.3px solid #000';
+                newCell.style.border = '1px solid #000';
                 newCell.style.padding = '6px';
                 newCell.style.textAlign = 'center';
                 newCell.style.verticalAlign = 'middle';
                 
-                // ถ้าเป็นคอลัมล์เงินจ้าง ให้จัดรูปแบบ
+                // ถ้าเป็นคอลัมน์หมายเหตุ (คอลัมน์ก่อนคอลัมน์จัดการ)
                 if (cellIndex === cells.length - 2) {
-                  const salaryText = cell.textContent.trim();
-                  if (salaryText.includes('บาท')) {
-                    newCell.style.fontWeight = 'bold';
-                    newCell.style.color = '#d9534f';
-                  }
+                  newCell.style.fontSize = '9px';
+                  newCell.style.fontStyle = 'italic';
+                  newCell.style.color = '#555';
                 }
                 
                 newRow.appendChild(newCell);
@@ -3601,7 +3600,8 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
           <th colSpan="3">OT (ก่อนเวลาทำงาน)</th>
         <th colSpan="3">เวลาทำงาน</th>
         <th colSpan="3">OT (หลังเวลาทำงาน)</th>
-        {(wShift === "specialt_shift" || wShift === "cash_holiday") && <th colSpan="3">จ่ายสด</th>}
+        {wShift === "specialt_shift" && <th colSpan="2">จ่ายสด</th>}
+        {wShift === "cash_holiday" && <th colSpan="3">จ่ายสด</th>}
         </tr>
       {/* Second Row - Detailed Headers */}
       <tr>
@@ -3621,7 +3621,9 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
        
               <th>เงิน</th>
               <th>เงิน OT</th>
-              {/* <th>หมายเหตุ</th> */}
+             
+
+              {wShift === "cash_holiday" && <th>หมายเหตุ</th>}
             </>
           )}
         </tr>
@@ -4168,16 +4170,19 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                   onChange={(e) => wShift === "specialt_shift" ? setSpecialtSalaryOT(e.target.value) : setCashOfHolidayOt(e.target.value)}
                 />
               </td>
-              {/* <td>
-                <input
-                  type="text"
-                  className="form-control text-center"
-                  id="messageSalary"
-                  placeholder="หมายเหตุ"
-                  value={messageSalary}
-                  onChange={(e) => setMessageSalary(e.target.value)}
-                />
-              </td> */}
+              {wShift === "cash_holiday" && (
+                <td>
+                  <input
+                    type="text"
+                    className="form-control text-center"
+                    id="messageSalary"
+                    placeholder="หมายเหตุ"
+                    style={{ width: "120px" }}
+                    value={messageSalary}
+                    onChange={(e) => setMessageSalary(e.target.value)}
+                  />
+                </td>
+              )}
             </>
           )}
         </tr>
@@ -4229,6 +4234,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
         <th colSpan="3" className="text-center">เวลาทำงาน</th>
         <th colSpan="3" className="text-center">OT (หลังเวลาทำงาน)</th>
         <th rowSpan="2" className="text-center">เงินจ้าง</th>
+        <th rowSpan="2" className="text-center">หมายเหตุ</th>
         <th rowSpan="2" className="text-center">จัดการ</th>
 
 
@@ -4512,6 +4518,22 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                         ? `${parseFloat(rowData2.cashOfHoliday || '0') + parseFloat(rowData2.cashOfHolidayOt || '0')} บาท`
                         : ""}
                     </>
+                  )}
+                </th>
+
+                {/* Remarks/Notes */}
+                <th>
+                  {editMode[index] && (editData[index]?.shift || rowData2.shift) === "cash_holiday" ? (
+                    <input
+                      type="text"
+                      className="form-control form-control-sm"
+                      placeholder="หมายเหตุ"
+                      value={editData[index]?.messageSalary || ''}
+                      onChange={(e) => handleEditFieldChange(index, 'messageSalary', e.target.value)}
+                      style={{ width: "120px", fontSize: "11px" }}
+                    />
+                  ) : (
+                    rowData2.shift === "cash_holiday" && rowData2.messageSalary ? rowData2.messageSalary : ""
                   )}
                 </th>
                 

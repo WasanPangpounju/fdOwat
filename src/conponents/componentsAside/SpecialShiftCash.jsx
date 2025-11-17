@@ -38,8 +38,10 @@ function SpecialShiftCash() {
       const startDateObj = new Date(startDate);
       const endDateObj = new Date(endDate);
       
-      const startMonth = String(startDateObj.getMonth() + 1).padStart(2, '0');
-      const startYear = startDateObj.getFullYear().toString();
+      // ✅ FIX: ใช้เดือนจาก endDate เพราะงวดเงินเดือนนับตามวันที่สิ้นสุด
+      // ตัวอย่าง: 21/09 - 20/10 = งวดเดือน 10 (ตุลาคม)
+      const payrollMonth = String(endDateObj.getMonth() + 1).padStart(2, '0');
+      const payrollYear = endDateObj.getFullYear().toString();
       
       // สร้าง array ของวันที่ในช่วงที่เลือก
       const selectedDates = [];
@@ -54,8 +56,8 @@ function SpecialShiftCash() {
       console.log('Searching with:', { 
         startDate, 
         endDate,
-        month: startMonth,
-        year: startYear,
+        month: payrollMonth,
+        year: payrollYear,
         selectedDates: selectedDates
       });
 
@@ -65,8 +67,8 @@ function SpecialShiftCash() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          month: startMonth,
-          year: startYear
+          month: payrollMonth,
+          year: payrollYear
         })
       });
 
@@ -104,8 +106,8 @@ function SpecialShiftCash() {
             totalWorkplacesWithSpecialShift: filteredWorkplaces.length,
             totalEmployeesWithSpecialShift: totalEmployees,
             summary: filteredWorkplaces.length > 0 
-              ? `ช่วงวันที่ ${startDateObj.getDate()}-${endDateObj.getDate()} เดือน ${startMonth} ปี ${startYear} มี ${filteredWorkplaces.length} หน่วยงานที่มีกะพิเศษ รวม ${totalEmployees} คน`
-              : `ช่วงวันที่ ${startDateObj.getDate()}-${endDateObj.getDate()} เดือน ${startMonth} ปี ${startYear} ไม่มีหน่วยงานที่มีกะพิเศษ`
+              ? `ช่วงวันที่ ${startDateObj.getDate()}-${endDateObj.getDate()} เดือน ${payrollMonth} ปี ${payrollYear} มี ${filteredWorkplaces.length} หน่วยงานที่มีกะพิเศษ รวม ${totalEmployees} คน`
+              : `ช่วงวันที่ ${startDateObj.getDate()}-${endDateObj.getDate()} เดือน ${payrollMonth} ปี ${payrollYear} ไม่มีหน่วยงานที่มีกะพิเศษ`
           };
           
           setSearchResults(filteredData);
@@ -307,9 +309,9 @@ function SpecialShiftCash() {
       // Create filename with date range
       const startDateObj = new Date(startDate);
       const endDateObj = new Date(endDate);
-      const startMonth = String(startDateObj.getMonth() + 1).padStart(2, '0');
-      const startYear = startDateObj.getFullYear();
-      const filename = `รายงานสรุปกะพิเศษทุกหน่วยงาน_${startDateObj.getDate()}-${endDateObj.getDate()}_${startMonth}_${startYear}.pdf`;
+      const payrollMonth = String(endDateObj.getMonth() + 1).padStart(2, '0');
+      const payrollYear = endDateObj.getFullYear();
+      const filename = `รายงานสรุปกะพิเศษทุกหน่วยงาน_${startDateObj.getDate()}-${endDateObj.getDate()}_${payrollMonth}_${payrollYear}.pdf`;
       
       link.download = filename;
       document.body.appendChild(link);
