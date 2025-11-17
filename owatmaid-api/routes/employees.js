@@ -733,6 +733,7 @@ router.post("/create", async (req, res) => {
     sumAddSalary,
     banknumber,
     salarybank,
+    loanContracts,
     
   } = req.body;
   console.log(`Name: ${name}, Id card: ${idCard}`);
@@ -898,6 +899,9 @@ router.post("/create", async (req, res) => {
     addSalary,
     selectAddSalary,
     sumAddSalary,
+    banknumber,
+    salarybank,
+    loanContracts,
   });
 
   try {
