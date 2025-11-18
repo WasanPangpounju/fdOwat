@@ -4703,12 +4703,79 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
     }
 
     // Step 1: Fetch all matching time records
-    const records = await timerecordEmployee.find({
+    const allRecords = await timerecordEmployee.find({
       month: { $regex: new RegExp(month, 'i') },
       year: { $regex: new RegExp(year, 'i') },
     });
     
-    console.log(`🔍 [WORKPLACE] Found ${records.length} total records for month=${month}, year=${year}`);
+    console.log(`🔍 [WORKPLACE] Found ${allRecords.length} total records for month=${month}, year=${year}`);
+
+    // Step 1.5: กรองข้อมูลซ้ำ - เก็บเฉพาะรายการล่าสุดที่มี employee_record
+    const employeeRecordMap = new Map();
+    const recordsToDelete = [];
+
+    for (const record of allRecords) {
+      const key = `${record.employeeId}-${record.month}-${record.year}`;
+      
+      if (!employeeRecordMap.has(key)) {
+        employeeRecordMap.set(key, record);
+      } else {
+        // มีข้อมูลซ้ำ - เลือกรายการที่ดีกว่า
+        const existingRecord = employeeRecordMap.get(key);
+        const hasEmployeeRecord = record.employee_record && Array.isArray(record.employee_record) && record.employee_record.length > 0;
+        const existingHasEmployeeRecord = existingRecord.employee_record && Array.isArray(existingRecord.employee_record) && existingRecord.employee_record.length > 0;
+
+        console.log(`⚠️ พบข้อมูลซ้ำสำหรับ ${record.employeeId} เดือน ${month}/${year}`);
+        console.log(`   - รายการเก่า (_id: ${existingRecord._id}): มี employee_record = ${existingHasEmployeeRecord}, จำนวน ${existingRecord.employee_record?.length || 0} รายการ`);
+        console.log(`   - รายการใหม่ (_id: ${record._id}): มี employee_record = ${hasEmployeeRecord}, จำนวน ${record.employee_record?.length || 0} รายการ`);
+
+        if (hasEmployeeRecord && !existingHasEmployeeRecord) {
+          // รายการใหม่มีข้อมูล แต่รายการเก่าไม่มี -> ใช้รายการใหม่
+          console.log(`   ✅ เลือกรายการใหม่ (_id: ${record._id}) เพราะมี employee_record`);
+          recordsToDelete.push(existingRecord._id);
+          employeeRecordMap.set(key, record);
+        } else if (!hasEmployeeRecord && existingHasEmployeeRecord) {
+          // รายการเก่ามีข้อมูล แต่รายการใหม่ไม่มี -> ใช้รายการเก่า
+          console.log(`   ✅ เลือกรายการเก่า (_id: ${existingRecord._id}) เพราะมี employee_record`);
+          recordsToDelete.push(record._id);
+        } else if (hasEmployeeRecord && existingHasEmployeeRecord) {
+          // ทั้งสองมีข้อมูล -> เลือกรายการที่สร้างหลังสุด (ใช้ _id ใหม่กว่า)
+          if (record._id > existingRecord._id) {
+            console.log(`   ✅ เลือกรายการใหม่ (_id: ${record._id}) เพราะสร้างหลังสุด`);
+            recordsToDelete.push(existingRecord._id);
+            employeeRecordMap.set(key, record);
+          } else {
+            console.log(`   ✅ เลือกรายการเก่า (_id: ${existingRecord._id}) เพราะสร้างหลังสุด`);
+            recordsToDelete.push(record._id);
+          }
+        } else {
+          // ทั้งสองไม่มีข้อมูล -> เลือกรายการที่สร้างหลังสุด
+          if (record._id > existingRecord._id) {
+            console.log(`   ⚠️ ทั้งสองไม่มี employee_record - เลือกรายการใหม่ (_id: ${record._id})`);
+            recordsToDelete.push(existingRecord._id);
+            employeeRecordMap.set(key, record);
+          } else {
+            console.log(`   ⚠️ ทั้งสองไม่มี employee_record - เลือกรายการเก่า (_id: ${existingRecord._id})`);
+            recordsToDelete.push(record._id);
+          }
+        }
+      }
+    }
+
+    // ลบข้อมูลซ้ำออกจาก database
+    if (recordsToDelete.length > 0) {
+      console.log(`🗑️ กำลังลบข้อมูลซ้ำ ${recordsToDelete.length} รายการ...`);
+      try {
+        const deleteResult = await timerecordEmployee.deleteMany({ _id: { $in: recordsToDelete } });
+        console.log(`✅ ลบข้อมูลสำเร็จ: ${deleteResult.deletedCount} รายการ`);
+      } catch (deleteError) {
+        console.error(`❌ เกิดข้อผิดพลาดในการลบข้อมูลซ้ำ:`, deleteError);
+      }
+    }
+
+    // ใช้ข้อมูลที่กรองแล้ว
+    const records = Array.from(employeeRecordMap.values());
+    console.log(`🔍 [WORKPLACE] หลังกรองข้อมูลซ้ำเหลือ ${records.length} รายการ`);
 
     if (!records.length) {
       console.log(`❌ [WORKPLACE] No records found, returning empty result`);
