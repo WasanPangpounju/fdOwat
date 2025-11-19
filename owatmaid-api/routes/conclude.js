@@ -2711,59 +2711,39 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
     console.error(`❌ เกิดข้อผิดพลาดในการอัปเดต customizeDayoff:`, error);
   }
   
-  // ดึงข้อมูล dayoffRateHour จาก workplace API
+  // ดึงค่า workRate จาก workplace API สำหรับคำนวณ dailyWage
   let dailyWage = 0;
   try {
     const workplaceApiUrl = `http://10.10.110.7:3000/workplace/${workplaceId}`;
-    console.log(`\n🔍 ดึงข้อมูล dayoffRateHour จาก: ${workplaceApiUrl}`);
+    console.log(`\n🔍 ดึงข้อมูล workRate จาก: ${workplaceApiUrl}`);
     
     const workplaceResponse = await axios.get(workplaceApiUrl);
+    const workRate = parseFloat(workplaceResponse.data.workRate || '0');
     const workRateforHoliday = parseFloat(workplaceResponse.data.dayoffRateHour || '0');
 
-    if (workRateforHoliday > 0) {
+    
+ if (workRateforHoliday > 0) {
       dayoffRateHour = workRateforHoliday;
-      console.log(`✅ ใช้ dayoffRateHour จาก API (workplace: ${workplaceId}): ${dayoffRateHour}`);
+      console.log(`✅ ใช้ dayoffRateHour จาก API (workplace: ${workplaceId}): ${dayoffRateHour} บาท/ชั่วโมง`);
     }
-  } catch (error) {
-    console.error(`❌ ไม่สามารถดึง dayoffRateHour จาก API ได้ (workplace: ${workplaceId}):`, error.message);
-  }
-
-  // ตรวจสอบว่าเป็นพนักงานเงินเดือนหรือไม่ โดยดึงข้อมูลจาก Employee API
-  try {
-    const employeeApiUrl = `http://10.10.110.7:3000/employee/search?employeeId=${employeeId}`;
-    console.log(`\n🔍 ดึงข้อมูลพนักงานจาก: ${employeeApiUrl}`);
-    
-    const employeeResponse = await axios.get(employeeApiUrl);
-    const employeeData = employeeResponse.data.employees?.[0];
-    
-    if (employeeData) {
-      const jobtype = employeeData.jobtype || '';
-      const employeeSalary = parseFloat(employeeData.salary || '0');
-      
-      console.log(`👤 ข้อมูลพนักงาน:`);
-      console.log(`   - employeeId: ${employeeData.employeeId}`);
-      console.log(`   - jobtype: ${jobtype}`);
-      console.log(`   - salary: ${employeeSalary} บาท`);
-      
-      // ถ้าเป็นพนักงานเงินเดือน ใช้ salary หาร 30
-      if (jobtype === 'รายเดือน' && employeeSalary > 0) {
-        dailyWage = employeeSalary / 30;
-        console.log(`✅ พนักงานเงินเดือน: ${employeeSalary} ÷ 30 = ${dailyWage.toFixed(2)} บาท/วัน`);
-      } else {
-        // ถ้าเป็นรายวัน ใช้ salary โดยตรง
-        dailyWage = employeeSalary;
-        console.log(`✅ พนักงานรายวัน: ${dailyWage} บาท/วัน`);
-      }
+  
+    if (workRate > 0) {
+      dailyWage = workRate;
+      console.log(`✅ ใช้ workRate จาก API (workplace: ${workplaceId}): ${dailyWage} บาท/วัน`);
     } else {
-      throw new Error('ไม่พบข้อมูลพนักงาน');
+      // Fallback ใช้การคำนวณเดิมถ้า workRate ไม่มีหรือเป็น 0
+      dailyWage = parseFloat(salaryTmp || '0') > 1660 ? 
+                  (parseFloat(salaryTmp || '0') / 30) : 
+                  parseFloat(salaryTmp || '0');
+      console.log(`⚠️ workRate จาก API เป็น 0 หรือไม่มี, ใช้การคำนวณเดิม: ${dailyWage} บาท/วัน`);
     }
   } catch (error) {
-    console.error(`❌ ไม่สามารถดึงข้อมูลพนักงานจาก API ได้:`, error.message);
-    // Fallback ใช้ salaryTmp จาก employeeProfile
+    console.error(`❌ ไม่สามารถดึง workRate จาก API ได้ (workplace: ${workplaceId}):`, error.message);
+    // Fallback ใช้การคำนวณเดิม
     dailyWage = parseFloat(salaryTmp || '0') > 1660 ? 
                 (parseFloat(salaryTmp || '0') / 30) : 
                 parseFloat(salaryTmp || '0');
-    console.log(`🔄 ใช้การคำนวณเดิม (fallback จาก employeeProfile): ${dailyWage} บาท/วัน`);
+    console.log(`🔄 ใช้การคำนวณเดิม (fallback): ${dailyWage} บาท/วัน`);
   }
   
   const totalLostWage = notWorkedOnStopDays * dailyWage;
@@ -3530,10 +3510,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                     endDay: record.endDay || "",
                     // เพิ่มข้อมูลเดือนและปีจาก welfare record
                     welfareMonth: welfareRecord.month || "",
-                    welfareYear: welfareRecord.year || "",
-                    // เพิ่ม date และ countDate
-                    date: record.startDay ? new Date(record.startDay).getDate().toString() : "",
-                    countDate: 1 // เริ่มต้นด้วย 1 วัน
+                    welfareYear: welfareRecord.year || ""
                   });
                   console.log(`✅ [CONCLUDE] เพิ่ม welfare item: ${record.name} (${record.SpSalary})`);
                 } else {
