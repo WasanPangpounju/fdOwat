@@ -1193,4 +1193,81 @@ router.get("/check-idcard/:idCard", async (req, res) => {
   }
 });
 
+// ✅ GET /api/employees/check-bank-info
+// 🔍 ตรวจสอบข้อมูลธนาคารของพนักงาน (salarybank และ banknumber)
+router.get("/check-bank-info", async (req, res) => {
+  try {
+    // ดึงพนักงานทั้งหมด
+    const allEmployees = await Employee.find();
+    const totalEmployees = allEmployees.length;
+
+    // กรองพนักงานที่มีข้อมูลธนาคารครบถ้วน (มีทั้ง salarybank และ banknumber)
+    const employeesWithBankInfo = allEmployees.filter(employee => {
+      const hasBankName = employee.salarybank && employee.salarybank.trim() !== '';
+      const hasBankNumber = employee.banknumber && employee.banknumber.trim() !== '';
+      return hasBankName && hasBankNumber;
+    });
+
+    const countWithBankInfo = employeesWithBankInfo.length;
+    const countWithoutBankInfo = totalEmployees - countWithBankInfo;
+
+    // สร้างรายชื่อพนักงานที่มีข้อมูลธนาคาร
+    const employeeListWithBank = employeesWithBankInfo.map(employee => ({
+      employeeId: employee.employeeId,
+      prefix: employee.prefix,
+      name: employee.name,
+      lastName: employee.lastName,
+      workplace: employee.workplace,
+      salarybank: employee.salarybank,
+      banknumber: employee.banknumber,
+      position: employee.position
+    }));
+
+    // สร้างรายชื่อพนักงานที่ไม่มีข้อมูลธนาคาร
+    const employeesWithoutBankInfo = allEmployees.filter(employee => {
+      const hasBankName = employee.salarybank && employee.salarybank.trim() !== '';
+      const hasBankNumber = employee.banknumber && employee.banknumber.trim() !== '';
+      return !(hasBankName && hasBankNumber);
+    });
+
+    const employeeListWithoutBank = employeesWithoutBankInfo.map(employee => ({
+      employeeId: employee.employeeId,
+      prefix: employee.prefix,
+      name: employee.name,
+      lastName: employee.lastName,
+      workplace: employee.workplace,
+      salarybank: employee.salarybank || null,
+      banknumber: employee.banknumber || null,
+      position: employee.position,
+      missingFields: {
+        salarybank: !employee.salarybank || employee.salarybank.trim() === '',
+        banknumber: !employee.banknumber || employee.banknumber.trim() === ''
+      }
+    }));
+
+    // คำนวณเปอร์เซ็นต์
+    const percentageWithBank = totalEmployees > 0 
+      ? ((countWithBankInfo / totalEmployees) * 100).toFixed(2) 
+      : 0;
+
+    res.status(200).json({
+      summary: {
+        totalEmployees,
+        employeesWithBankInfo: countWithBankInfo,
+        employeesWithoutBankInfo: countWithoutBankInfo,
+        percentageWithBank: `${percentageWithBank}%`
+      },
+      employeesWithBankInfo: employeeListWithBank,
+      employeesWithoutBankInfo: employeeListWithoutBank
+    });
+
+  } catch (error) {
+    console.error('Error checking bank info:', error);
+    res.status(500).json({ 
+      error: "Internal server error", 
+      details: error.message 
+    });
+  }
+});
+
 module.exports = router;
