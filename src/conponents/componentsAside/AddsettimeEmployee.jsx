@@ -586,6 +586,9 @@ const [customWorkplace , setCustomWorkplace] = useState({});
   
   // State for "กะดึก" checkbox when selecting "เงินสด"
   const [isNightShiftCash, setIsNightShiftCash] = useState(false);
+  
+  // State for "3%" checkbox when selecting "เงินสด"
+  const [isThreePercent, setIsThreePercent] = useState(false);
 
   // Get the number of days in the specified month
   const numberOfDaysInMonth = new Date(2024, 2, 0).getDate();
@@ -2836,6 +2839,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
       cashOfHolidayOt: cashOfHolidayOt || "",
       payFullDay: payFullDay || false, // Add payFullDay flag
       isNightShiftCash: isNightShiftCash || false, // Add night shift cash flag
+      isThreePercent: isThreePercent || false, // Add 3% tax withholding flag
       messageSalary: messageSalary || "",
     };
 
@@ -2873,6 +2877,9 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
     
     // Reset isNightShiftCash checkbox
     setIsNightShiftCash(false);
+    
+    // Reset isThreePercent checkbox
+    setIsThreePercent(false);
     
     // ไม่ล้างค่าในฟิลด์เพื่อให้ผู้ใช้สามารถเพิ่มข้อมูลต่อเนื่องได้โดยไม่ต้องกรอกซ้ำ
     // เพียงแค่เปลี่ยนวันที่ไปวันถัดไป แต่จำค่าอื่นๆ ไว้ทั้งหมด รวมถึง OT
@@ -4181,6 +4188,19 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                     value={messageSalary}
                     onChange={(e) => setMessageSalary(e.target.value)}
                   />
+                  
+                  {/* Checkbox 3% for cash_holiday shift */}
+                  <div className="form-group mt-2">
+                    <label style={{ fontSize: "15px", marginBottom: "0" }}>
+                      <input
+                        type="checkbox"
+                        checked={isThreePercent}
+                        onChange={(e) => setIsThreePercent(e.target.checked)}
+                        style={{ marginRight: "5px" }}
+                      />
+                      3%
+                    </label>
+                  </div>
                 </td>
               )}
             </>
@@ -4524,16 +4544,40 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                 {/* Remarks/Notes */}
                 <th>
                   {editMode[index] && (editData[index]?.shift || rowData2.shift) === "cash_holiday" ? (
-                    <input
-                      type="text"
-                      className="form-control form-control-sm"
-                      placeholder="หมายเหตุ"
-                      value={editData[index]?.messageSalary || ''}
-                      onChange={(e) => handleEditFieldChange(index, 'messageSalary', e.target.value)}
-                      style={{ width: "120px", fontSize: "11px" }}
-                    />
+                    <div>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        placeholder="หมายเหตุ"
+                        value={editData[index]?.messageSalary || ''}
+                        onChange={(e) => handleEditFieldChange(index, 'messageSalary', e.target.value)}
+                        style={{ width: "120px", fontSize: "11px" }}
+                      />
+                      <div className="form-check mt-1">
+                        <input
+                          type="checkbox"
+                          className="form-check-input"
+                          id={`editIsThreePercent${index}`}
+                          checked={editData[index]?.isThreePercent || false}
+                          onChange={(e) => handleEditFieldChange(index, 'isThreePercent', e.target.checked)}
+                          style={{ fontSize: "10px" }}
+                        />
+                        <label className="form-check-label" htmlFor={`editIsThreePercent${index}`} style={{ fontSize: "10px" }}>
+                          3%
+                        </label>
+                      </div>
+                    </div>
                   ) : (
-                    rowData2.shift === "cash_holiday" && rowData2.messageSalary ? rowData2.messageSalary : ""
+                    <div>
+                      {rowData2.shift === "cash_holiday" && rowData2.messageSalary ? rowData2.messageSalary : ""}
+                      {rowData2.shift === "cash_holiday" && rowData2.isThreePercent && (
+                        <div className="mt-1">
+                          <span className="badge badge-warning" style={{ fontSize: "10px" }}>
+                            3%
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   )}
                 </th>
                 

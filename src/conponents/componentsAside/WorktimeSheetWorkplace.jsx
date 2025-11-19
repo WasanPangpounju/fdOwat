@@ -8988,41 +8988,49 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
     // ตรวจสอบว่าพนักงานคนนี้เป็นพนักงานข้ามหน่วยงานหรือไม่
     const isCrossWorkplaceEmployee = record?.isCrossWorkplace || false;
     
+    // คำนวณค่าจาก totalTime หาร 8
+    const totalTimeValue = found?.totalTime ? parseFloat(found.totalTime) : 0;
+    const rawValue = totalTimeValue > 0 ? totalTimeValue / 8 : 0;
+    const calculatedValue = rawValue > 0 ? (rawValue % 1 === 0 ? rawValue.toString() : rawValue.toFixed(1)) : '';
+    
     if (isCrossWorkplaceEmployee) {
-      // ถ้าเป็นพนักงานข้ามหน่วยงาน ให้แสดง "1" เฉพาะวันที่มาทำงานที่หน่วยงานที่เลือกเท่านั้น
-      if (isMatchSearchWorkplace) {
-        displayValue = '1';
+      // ถ้าเป็นพนักงานข้ามหน่วยงาน ให้แสดงค่าที่คำนวณ เฉพาะวันที่มาทำงานที่หน่วยงานที่เลือกเท่านั้น
+      if (isMatchSearchWorkplace && calculatedValue) {
+        displayValue = calculatedValue;
       }
       // ถ้าไม่ตรงกับ searchWorkplaceId = ไม่แสดงอะไร (วันที่ไม่ได้มาทำงานที่หน่วยงานนี้)
     } else {
       // พนักงานปกติที่สังกัดหน่วยงานนี้
       if (found?.shift === "cash_holiday") {
         // 🔥 ปรับปรุง: ตรวจสอบว่าไม่ใช่กะดึก (isNightShiftCash !== true) แสดงว่าเป็นกะเช้า
-        if (found?.isNightShiftCash !== true) {
-          // กะเช้า - แสดงเลข 1 สีแดง
-          displayValue = <span style={{ color: 'red' }}>1</span>;
+        if (found?.isNightShiftCash !== true && calculatedValue) {
+          // กะเช้า - แสดงค่าที่คำนวณสีแดง
+          displayValue = <span style={{ color: 'red' }}>{calculatedValue}</span>;
         }
         // ถ้าเป็นกะดึก (isNightShiftCash === true) ไม่แสดงอะไรในแถวเช้า
-      } else if (found?.shift === "morning_shift") {
+      } else if (found?.shift === "morning_shift" && calculatedValue) {
         // เฉพาะ morning_shift เท่านั้น
-        displayValue = '1';
+        displayValue = calculatedValue;
       }
     }
   }
 
-  // เพิ่มเงื่อนไขพิเศษ: ถ้าเป็นวันหยุดส่วนบุคคลแต่มี totalTime ให้แสดงเลข 1
+  // เพิ่มเงื่อนไขพิเศษ: ถ้าเป็นวันหยุดส่วนบุคคลแต่มี totalTime ให้แสดงค่าที่คำนวณ
   // แต่ไม่แสดงถ้าเป็น cash_holiday กะดึก (ใช้ isNightShiftCash)
   if (specialIndividual && found?.totalTime && found.totalTime.trim() !== '') {
+    const totalTimeValue = parseFloat(found.totalTime);
+    const rawValue = totalTimeValue > 0 ? totalTimeValue / 8 : 0;
+    const calculatedValue = rawValue > 0 ? (rawValue % 1 === 0 ? rawValue.toString() : rawValue.toFixed(1)) : '';
     // ตรวจสอบว่าเป็น cash_holiday หรือไม่
     if (found?.shift === "cash_holiday") {
       // ถ้าไม่ใช่กะดึก (isNightShiftCash !== true) ให้แสดงในแถวเช้า
-      if (found?.isNightShiftCash !== true) {
-        displayValue = "1";
+      if (found?.isNightShiftCash !== true && calculatedValue) {
+        displayValue = calculatedValue;
       }
       // ถ้าเป็นกะดึก (isNightShiftCash === true) ไม่แสดงอะไรในแถวเช้า
-    } else {
+    } else if (calculatedValue) {
       // ไม่ใช่ cash_holiday ให้แสดงปกติ (เฉพาะ specialt_shift หรือวันหยุดพิเศษที่ไม่ใช่ cash_holiday)
-      displayValue = "1";
+      displayValue = calculatedValue;
     }
   }
 
@@ -9236,33 +9244,38 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                       let backgroundColor = {};
                       let displayValue = '';
                       
+                      // คำนวณค่าจาก totalTime หาร 8
+                      const totalTimeValue = found?.totalTime ? parseFloat(found.totalTime) : 0;
+                      const rawValue = totalTimeValue > 0 ? totalTimeValue / 8 : 0;
+                      const calculatedValue = rawValue > 0 ? (rawValue % 1 === 0 ? rawValue.toString() : rawValue.toFixed(1)) : '';
+                      
                       if (isSpecialHoliday) {
                         backgroundColor = { backgroundColor: "#00ff00" }; // สีเขียวสำหรับวันหยุดพิเศษ
-                        // ถ้าเป็น cash_holiday กะดึก ให้แสดงเลข 1 สีแดง
-                        if (isCashHolidayNight) {
-                          displayValue = <span style={{ color: 'red' }}>1</span>;
+                        // ถ้าเป็น cash_holiday กะดึก ให้แสดงค่าที่คำนวณสีแดง
+                        if (isCashHolidayNight && calculatedValue) {
+                          displayValue = <span style={{ color: 'red' }}>{calculatedValue}</span>;
                         }
                       } else if (isDayOffOnly) {
                         backgroundColor = { backgroundColor: "#9e9e9e" }; 
-                        // แสดงเลข 1 ถ้ามี totalTime และเป็น night_shift
-                        if (found?.totalTime && found.totalTime.trim() !== '' && found?.shift === "night_shift") {
-                          displayValue = '1';
+                        // แสดงค่าที่คำนวณ ถ้ามี totalTime และเป็น night_shift
+                        if (found?.totalTime && found.totalTime.trim() !== '' && found?.shift === "night_shift" && calculatedValue) {
+                          displayValue = calculatedValue;
                         }
-                        // แสดงเลข 1 สีแดงถ้าเป็น cash_holiday กะดึก (ใช้ isNightShiftCash)
-                        if (isCashHolidayNight && found?.totalTime && found.totalTime.trim() !== '') {
-                          displayValue = <span style={{ color: 'red'}}>1</span>;
+                        // แสดงค่าที่คำนวณสีแดงถ้าเป็น cash_holiday กะดึก (ใช้ isNightShiftCash)
+                        if (isCashHolidayNight && found?.totalTime && found.totalTime.trim() !== '' && calculatedValue) {
+                          displayValue = <span style={{ color: 'red'}}>{calculatedValue}</span>;
                         }
                       } else if (isDayoffWorkplace || isInvalidDate) {
                         backgroundColor = { backgroundColor: "#9e9e9e" }; // สีเทาสำหรับวันหยุดหรือวันที่ไม่มีอยู่จริง
-                        // แสดงเลข 1 สีแดงถ้าเป็น cash_holiday กะดึกในวันหยุด
-                        if (isCashHolidayNight && found?.totalTime && found.totalTime.trim() !== '') {
-                          displayValue = <span style={{ color: 'red',}}>1</span>;
+                        // แสดงค่าที่คำนวณสีแดงถ้าเป็น cash_holiday กะดึกในวันหยุด
+                        if (isCashHolidayNight && found?.totalTime && found.totalTime.trim() !== '' && calculatedValue) {
+                          displayValue = <span style={{ color: 'red',}}>{calculatedValue}</span>;
                         }
-                      } else if (isNightShiftWork) {
-                        displayValue = '1'; // แสดงเลข 1 เมื่อมาทำงานกะดึก
-                      } else if (isCashHolidayNight) {
-                        // แสดงเลข 1 สีแดงสำหรับ cash_holiday กะดึก (ใช้ isNightShiftCash flag)
-                        displayValue = <span style={{ color: 'red' }}>1</span>;
+                      } else if (isNightShiftWork && calculatedValue) {
+                        displayValue = calculatedValue; // แสดงค่าที่คำนวณ เมื่อมาทำงานกะดึก
+                      } else if (isCashHolidayNight && calculatedValue) {
+                        // แสดงค่าที่คำนวณสีแดงสำหรับ cash_holiday กะดึก (ใช้ isNightShiftCash flag)
+                        displayValue = <span style={{ color: 'red' }}>{calculatedValue}</span>;
                       }
                       
                       if (isSickLeave) {
@@ -9271,13 +9284,11 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
 
                       if (specialIndividualNight) {
                         backgroundColor = { backgroundColor: "#9e9e9e" }; // สีม่วงสำหรับวันหยุดพิเศษ
-                        // ถ้าเป็น cash_holiday กะดึกในวันหยุดพิเศษ ให้แสดงเลข 1 สีแดง
-                        if (isCashHolidayNight && found?.totalTime && found.totalTime.trim() !== '') {
-                          displayValue = <span style={{ color: 'red' }}>1</span>;
+                        // ถ้าเป็น cash_holiday กะดึกในวันหยุดพิเศษ ให้แสดงค่าที่คำนวณสีแดง
+                        if (isCashHolidayNight && found?.totalTime && found.totalTime.trim() !== '' && calculatedValue) {
+                          displayValue = <span style={{ color: 'red' }}>{calculatedValue}</span>;
                         }
-                      }
-                      
-                      return (
+                      }                      return (
                         <td key={i} className="text-center align-middle" style={backgroundColor}>
                           {displayValue}
                         </td>
@@ -9384,6 +9395,146 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                     </td>
 
 
+                    </tr>
+                    {/* แถวบ่าย */}
+                    <tr>
+                    <td></td>
+                    <td><span style={{ float: "right" }}>บ่าย</span></td>
+                    {dayNumbers.map((day, i) => {
+                      // หา record ทั้งหมดของวันนี้
+                      const allRecordsForDay = record?.employee_record?.filter(itemx => itemx.date === day) || [];
+                      
+                      // หา afternoon_shift record
+                      const afternoonShiftRecord = allRecordsForDay.find(itemx => itemx.shift === "afternoon_shift");
+                      
+                      // หา cash_holiday record สำหรับกะบ่าย (ใช้ isAfternoonShiftCash)
+                      const cashHolidayAfternoonRecord = allRecordsForDay.find(itemx => {
+                        return itemx.shift === "cash_holiday" && itemx.isAfternoonShiftCash === true;
+                      });
+                      
+                      const found = afternoonShiftRecord || cashHolidayAfternoonRecord || allRecordsForDay[0];
+                      
+                      // ตรวจสอบว่าเป็นการทำงานกะบ่ายหรือไม่
+                      const isAfternoonShiftWork = found?.dayType === "work" && found?.shift === "afternoon_shift";
+                      
+                      // ตรวจสอบว่าเป็น cash_holiday กะบ่ายหรือไม่
+                      const isCashHolidayAfternoon = found?.shift === "cash_holiday" && found?.isAfternoonShiftCash === true;
+                      
+                      // ตรวจสอบว่าวันนี้อยู่ใน stopDaysList หรือไม่
+                      const isInStopDaysList = record?.stopDaysList?.some(stopDay => {
+                        const stopDayDate = parseInt(stopDay.date);
+                        const currentDay = parseInt(day);
+                        return stopDayDate === currentDay;
+                      });
+
+                      // ตรวจสอบทั้ง specialt_shift และ stopDaysList สำหรับกะบ่าย
+                      const specialIndividualAfternoon = (found?.dayType === "work" && found?.shift === "specialt_shift") || isInStopDaysList;
+                      
+                      const dayNum = parseInt(day);
+                      let actualMonth, actualYear;
+                      
+                      // ตรวจสอบว่าเป็นวันไหนจากเดือนไหน
+                      if (dayNum >= 21) {
+                        if (parseInt(month) === 1) {
+                          actualMonth = 12;
+                          actualYear = parseInt(year) - 1;
+                        } else {
+                          actualMonth = parseInt(month) - 1;
+                          actualYear = parseInt(year);
+                        }
+                      } else {
+                        actualMonth = parseInt(month);
+                        actualYear = parseInt(year);
+                      }
+                      
+                      // ตรวจสอบว่าวันที่นี้มีอยู่จริงในเดือนนั้นหรือไม่
+                      const daysInActualMonth = new Date(actualYear, actualMonth, 0).getDate();
+                      const isInvalidDate = dayNum > daysInActualMonth;
+
+                      // สร้างวันที่ในรูปแบบ YYYY-MM-DD
+                      const targetDateStr = `${actualYear}-${actualMonth.toString().padStart(2, '0')}-${dayNum.toString().padStart(2, '0')}`;
+                      
+                      // ตรวจสอบจาก dayoffWorkplace
+                      const isDayoffWorkplace = weekendData && weekendData.dayoffWorkplace && Array.isArray(weekendData.dayoffWorkplace) && weekendData.dayoffWorkplace.includes(targetDateStr);
+                      
+                      const isSickLeave = record?.addSalaryList?.some(salaryItem => {
+                        if (salaryItem.welfareType === "ลาป่วย" || 
+                            salaryItem.welfareType === "ลาคลอด" ||
+                            salaryItem.name?.includes("ลาป่วย") || 
+                            salaryItem.name?.includes("ป่วย") ||
+                            salaryItem.name?.includes("ลาพักร้อน") ||
+                            salaryItem.name?.includes("ชดเชย") ||
+                            salaryItem.name?.includes("ลากิจ")) {
+                          const leaveDates = salaryItem.dates || [];
+                          return leaveDates.some(leaveDate => {
+                            const leaveDayNum = parseInt(leaveDate.date);
+                            return leaveDayNum === dayNum;
+                          });
+                        }
+                        return false;
+                      });
+                      
+                      // ตรวจสอบจาก dayOffOnly
+                      const isDayOffOnly = weekendData && Array.isArray(weekendData) && weekendData.find(item => item.date === targetDateStr && item.type === 'dayOffOnly');
+                      
+                      const isWork = found?.dayType === "work";
+                      
+                      // ตรวจสอบว่าเป็นวันหยุดพิเศษหรือไม่
+                      const isSpecialHoliday = record?.personalDayOff?.some(personalDay => {
+                        const personalDayDate = parseInt(personalDay.date);
+                        const currentDay = parseInt(day);
+                        return personalDayDate === currentDay;
+                      }) || record?.stopDaysList?.some(stopDay => {
+                        const stopDayDate = parseInt(stopDay.date);
+                        const currentDay = parseInt(day);
+                        return stopDayDate === currentDay;
+                      });
+                      
+                      // กำหนดสีพื้นหลังและค่าที่จะแสดง
+                      let backgroundColor = {};
+                      let displayValue = '';
+                      
+                      // ตรวจสอบวันที่ 31 ของเดือนที่มี 31 วัน หรือวันนักขัตฤกษ์
+                      if (isInvalidDate || isDayoffWorkplace || isDayOffOnly) {
+                        backgroundColor = { backgroundColor: "#9e9e9e" }; // สีเทา
+                      } else if (isSpecialHoliday) {
+                        backgroundColor = { backgroundColor: "#00ff00" };
+                        if (isCashHolidayAfternoon) {
+                          displayValue = <span style={{ color: 'red', fontWeight: 'bold' }}>1</span>;
+                        }
+                      } else if (isAfternoonShiftWork || isCashHolidayAfternoon) {
+                        displayValue = '1';
+                      }
+                      
+                      if (isSickLeave) {
+                        backgroundColor = { backgroundColor: "#c5eaebff", color: "black" };
+                      }
+
+                      if (specialIndividualAfternoon) {
+                        backgroundColor = { backgroundColor: "#9e9e9e", color: "red" };
+                      }
+                      
+                      return (
+                        <td key={i} className="text-center align-middle" style={backgroundColor}>
+                          {displayValue}
+                        </td>
+                      );
+                    })}
+                    <td className="text-center align-middle"></td>
+                    <td className="text-center align-middle" style={{backgroundColor:"#fcdfca"}}></td>
+                    <td className="text-center p-1 align-middle"></td>
+                    <td className="p-1 align-middle"></td>
+                    <td className="p-1 align-middle"></td>
+                    <td className="p-1 align-middle"></td>
+                    {(() => {
+                      const merged = mergeWorkplaceAddsalary(workplaceAddsalary);
+                      return merged.map((item, i) => (
+                        <td key={i} className="text-center"></td>
+                      ));
+                    })()}
+                    <td className="text-center align-middle text-red p-1"></td>
+                    <td className="text-center align-middle text-red p-1"></td>
+                    <td className="text-center align-middle text-red p-1"></td>
                     </tr>
                     {/*  */}
                     <tr>

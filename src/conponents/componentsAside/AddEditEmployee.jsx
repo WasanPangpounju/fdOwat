@@ -51,6 +51,7 @@ import districtsData from "./LocationData/json/thai_amphures.json";
 import subDistrictsData from "./LocationData/json/thai_tambons.json";
 
 function AddEditEmployee() {
+  const [activeTab, setActiveTab] = useState('createEdit');
   const [showPopup, setShowPopup] = useState(false);
   const [formattedDate, setFormattedDate] = useState("");
   const popupRef = useRef(null);
@@ -127,6 +128,8 @@ function AddEditEmployee() {
 
   const [searchEmployeeId, setSearchEmployeeId] = useState("");
   const [searchEmployeeName, setSearchEmployeeName] = useState("");
+  const [searchIdCard, setSearchIdCard] = useState("");
+  const [searchPhone, setSearchPhone] = useState("");
 
   const options = [];
 
@@ -1130,7 +1133,8 @@ function AddEditEmployee() {
     const data = {
       employeeId: searchEmployeeId,
       name: searchEmployeeName,
-      idCard: "",
+      idCard: searchIdCard,
+      phoneNumber: searchPhone,
       workPlace: "",
     };
 
@@ -1149,6 +1153,8 @@ function AddEditEmployee() {
         //clean form
         setSearchEmployeeId("");
         setSearchEmployeeName("");
+        setSearchIdCard("");
+        setSearchPhone("");
         set_id(response.data.employees[0]._id);
 
         // Set search values
@@ -1399,8 +1405,78 @@ function AddEditEmployee() {
               </div>
             </div>
           </div>
+
+          {/* Tab Navigation */}
+          <div className="container-fluid" style={{ padding: '0 15px', marginBottom: '20px' }}>
+            <ul className="nav nav-tabs" role="tablist" style={{ 
+              borderBottom: '2px solid #dee2e6',
+              backgroundColor: '#f8f9fa'
+            }}>
+              <li className="nav-item">
+                <button 
+                  className={`nav-link ${activeTab === 'createEdit' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('createEdit')}
+                  type="button"
+                  style={{
+                    border: 'none',
+                    borderBottom: activeTab === 'createEdit' ? '3px solid #007bff' : 'none',
+                    backgroundColor: activeTab === 'createEdit' ? '#fff' : 'transparent',
+                    color: activeTab === 'createEdit' ? '#007bff' : '#495057',
+                    fontWeight: activeTab === 'createEdit' ? 'bold' : 'normal',
+                    padding: '12px 24px',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  <i className="fas fa-user-edit"></i> สร้าง/แก้ไข พนักงาน
+                </button>
+              </li>
+              <li className="nav-item">
+                <button 
+                  className={`nav-link ${activeTab === 'welfare' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('welfare')}
+                  type="button"
+                  style={{
+                    border: 'none',
+                    borderBottom: activeTab === 'welfare' ? '3px solid #007bff' : 'none',
+                    backgroundColor: activeTab === 'welfare' ? '#fff' : 'transparent',
+                    color: activeTab === 'welfare' ? '#007bff' : '#495057',
+                    fontWeight: activeTab === 'welfare' ? 'bold' : 'normal',
+                    padding: '12px 24px',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  <i className="fas fa-hand-holding-usd"></i> เพิ่ม/ลบ สวัสดิการ
+                </button>
+              </li>
+              <li className="nav-item">
+                <button 
+                  className={`nav-link ${activeTab === 'other' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('other')}
+                  type="button"
+                  style={{
+                    border: 'none',
+                    borderBottom: activeTab === 'other' ? '3px solid #007bff' : 'none',
+                    backgroundColor: activeTab === 'other' ? '#fff' : 'transparent',
+                    color: activeTab === 'other' ? '#007bff' : '#495057',
+                    fontWeight: activeTab === 'other' ? 'bold' : 'normal',
+                    padding: '12px 24px',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  <i className="fas fa-cog"></i> อื่นๆ
+                </button>
+              </li>
+            </ul>
+          </div>
+
           {/* <!-- /.content-header -->
 <!-- Main content --> */}
+          
+          {/* Tab Content */}
+          {activeTab === 'createEdit' && (
           <section class="content">
             <div class="row">
               <div class="col-md-12">
@@ -1445,6 +1521,40 @@ function AddEditEmployee() {
                                 </div>
                               </div>
                             </div>
+                            <div class="row">
+                              <div class="col-md-6">
+                                <div class="form-group">
+                                  <label role="searchIdCard">
+                                    เลขบัตรประชาชน
+                                  </label>
+                                  <input
+                                    type="text"
+                                    class="form-control"
+                                    id="searchIdCard"
+                                    placeholder="เลขบัตรประชาชน"
+                                    value={searchIdCard}
+                                    onChange={(e) =>
+                                      setSearchIdCard(e.target.value)
+                                    }
+                                  />
+                                </div>
+                              </div>
+                              <div class="col-md-6">
+                                <div class="form-group">
+                                  <label role="searchPhone">เบอร์มือถือ</label>
+                                  <input
+                                    type="text"
+                                    class="form-control"
+                                    id="searchPhone"
+                                    placeholder="เบอร์มือถือ"
+                                    value={searchPhone}
+                                    onChange={(e) =>
+                                      setSearchPhone(e.target.value)
+                                    }
+                                  />
+                                </div>
+                              </div>
+                            </div>
                             <div class="d-flex justify-content-center">
                               <button class="btn b_save">
                                 <i class="nav-icon fas fa-search"></i> &nbsp;
@@ -1483,10 +1593,31 @@ function AddEditEmployee() {
                                     {searchResult.map((workplace) => (
                                       <li
                                         key={workplace.id}
-                                        style={{ cursor: "pointer" }}
+                                        style={{ cursor: "pointer", marginBottom: "10px" }}
                                       >
-                                        รหัส {workplace.employeeId} ชื่อ{" "}
-                                        {workplace.name} {workplace.lastName}
+                                        <div>
+                                          <strong>รหัส:</strong> {workplace.employeeId} | 
+                                          <strong> ชื่อ:</strong> {workplace.name} {workplace.lastName}
+                                        </div>
+                                        <div style={{ fontSize: "14px", color: "#666", marginTop: "5px" }}>
+                                          <strong>บัตรประชาชน:</strong> {workplace.idCard || '-'} | 
+                                          <strong> เบอร์มือถือ:</strong> {workplace.phoneNumber || '-'}
+                                        </div>
+                                        <button
+                                          type="button"
+                                          name=""
+                                          value=""
+                                          onClick={() => setActiveTab('welfare')}
+                                          className="btn btn-info"
+                                          style={{
+                                            width: "8rem",
+                                            marginLeft: "4rem",
+                                            marginRight: "1rem",
+                                            marginTop: "1rem",                                            
+                                          }}
+                                        >
+                                          &nbsp;สวัสดิการ
+                                        </button>
                                         <button
                                           type="button"
                                           name="delete"
@@ -1498,6 +1629,7 @@ function AddEditEmployee() {
                                           style={{
                                             width: "5rem",
                                             marginLeft: "1rem",
+                                            marginTop: "1rem",                                            
                                           }}
                                         >
                                           &nbsp;ลบ
@@ -2642,6 +2774,43 @@ function AddEditEmployee() {
             </div>
             {/* <!-- /.container-fluid --> */}
           </section>
+          )}
+
+          {/* Tab 2: เพิ่ม/ลบ สวัสดิการ */}
+          {/* มาจาก section Employee ต่อด้วย salary เอามาตั้งแต่ กรอบ section */}
+          {activeTab === 'welfare' && (
+            <section className="content">
+              <div className="container-fluid">
+                <h2 className="title">ข้อมูลพนักงาน</h2>
+                <h2 className="title">ข้อมูลส่วนบุคคลพนักงาน</h2>
+                <h2 className="title">ข้อมูลสุขภาพ</h2>
+
+                <section className="Frame">
+                  <div className="col-md-12">
+                    <p style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                    </p>
+                  </div>
+                </section>
+              </div>
+            </section>
+          )}
+
+          {/* Tab 3: อื่นๆ */}
+          {activeTab === 'other' && (
+            <section className="content">
+              <div className="container-fluid">
+                <h2 className="title">ตั้งค่าการทำงานเฉพาะบุคคล</h2>
+                <section className="Frame">
+                  <div className="col-md-12">
+                    <p style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                      เนื้อหาอื่นๆ จะแสดงที่นี่
+                    </p>
+                  </div>
+                </section>
+              </div>
+            </section>
+          )}
+
         </div>
       </div>
     {/* </body> */}

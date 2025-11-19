@@ -2132,26 +2132,23 @@ router.post('/checkspecialtshift', async (req, res) => {
     
     console.log(`🔍 [DEBUG] Searching for special shift in period: ${targetMonth} (${targetYear})`);
     console.log(`🔍 [DEBUG] Date range: 21/${prevMonthPattern}/${prevYear} - 20/${currentMonthPattern}/${targetYear}`);
-    console.log(`🔍 [DEBUG] Searching in 2 months: ${prevMonthPattern} and ${currentMonthPattern}`);
     console.log(`📌 [FILTER RULE] เฉพาะ: วันที่ 21-31 ของเดือน ${prevMonthPattern} และ วันที่ 1-20 ของเดือน ${currentMonthPattern}`);
     console.log(`❌ [EXCLUDE] ไม่เอา: วันที่ 1-20 ของเดือน ${prevMonthPattern} และ วันที่ 21-31 ของเดือน ${currentMonthPattern}`);
     
-    // ✅ FIX: ข้อมูลวันที่ 21-31 ของเดือนก่อนหน้าอาจเก็บไว้ในเดือนก่อนหน้า (ตาม setToWorkplaceTimerecords)
-    // ต้องค้นหาทั้ง 2 เดือน: เดือนก่อนหน้า (สำหรับวันที่ 21-31) และเดือนปัจจุบัน (สำหรับวันที่ 1-20)
-    console.log(`� [LOGIC FIX] ค้นหาข้อมูลจาก 2 เดือน: ${prevMonthPattern}/${prevYear} และ ${currentMonthPattern}/${targetYear}`);
+    // ✅ FIX: ถ้าเลือกเดือน 11 จะแสดงวันที่ 21/10-20/11
+    // ✅ FIX: ถ้าเลือกเดือน 12 จะแสดงวันที่ 21/11-20/12
+    // ระบบเก็บข้อมูลรอบเดือนไว้ใน document.month = เดือนที่เลือก
+    console.log(`🔍 [LOGIC FIX] ค้นหาข้อมูลจากเดือน ${currentMonthPattern} ที่เก็บช่วงวันที่: 21/${prevMonthPattern} - 20/${currentMonthPattern}`);
     
     // ใช้ aggregation pipeline เพื่อหาหน่วยงานที่มีกะพิเศษในช่วงวันที่ที่ระบุ
     const pipeline = [];
 
-    // ✅ Match stage - ค้นหาทั้ง 2 เดือน
+    // ✅ Match stage - ค้นหาเฉพาะเดือนที่เลือก (เพราะระบบเก็บข้อมูลรอบเดือนไว้ใน document.month)
     const matchConditions = {
       $and: [
         { 
           year: targetYear.toString(),
-          $or: [
-            { month: prevMonthPattern },    // เดือนก่อนหน้า (สำหรับวันที่ 21-31)
-            { month: currentMonthPattern }  // เดือนปัจจุบัน (สำหรับวันที่ 1-20)
-          ]
+          month: currentMonthPattern  // เดือนที่เลือก (เก็บข้อมูลรอบ 21/prev-20/current)
         },
         { 'employee_record.shift': 'cash_holiday' }
       ]
@@ -2200,6 +2197,7 @@ router.post('/checkspecialtshift', async (req, res) => {
           employeeId: "$employeeId",
           employeeName: "$employeeName"
         },
+    // logic
         specialShiftDays: { 
           $push: {
             date: {
