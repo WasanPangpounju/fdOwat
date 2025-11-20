@@ -948,6 +948,10 @@ const handleRemovePublicHoliday = async (holidayToRemove) => {
   const [workplaceName, setWorkplaceName] = useState(""); //ชื่อหน่วยงาน
   const [workplaceArea, setWorkplaceArea] = useState(""); //สถานที่ปฏิบัติงาน
   const [workOfWeek, setWorkOfWeek] = useState(""); //วันทำงานต่อสัปดาห์
+  const [dateStartContract, setDateStartContract] = useState(""); //วันที่เริ่มสัญญาจ้าง
+  const [dateEndContract, setDateEndContract] = useState(""); //วันที่สิ้นสุดสัญญาจ้าง
+  const [serviceFeePerMonth, setServiceFeePerMonth] = useState(""); //ค่าบริการรายเดือน
+
 
   const [workStart1, setWorkStart1] = useState(""); //เวลาเริ่มกะเช้า
   const [workEnd1, setWorkEnd1] = useState(""); //เวลาออกกะเช้า
@@ -1921,6 +1925,9 @@ const handleRemovePublicHoliday = async (holidayToRemove) => {
     setWorkplaceName(workplace.workplaceName);
     setWorkplaceArea(workplace.workplaceArea);
     setWorkOfWeek(workplace.workOfWeek);
+    setDateStartContract(workplace.dateStartContract);
+    setDateEndContract(workplace.dateEndContract);
+    setServiceFeePerMonth(workplace.serviceFeePerMonth);
 
     setWorkStart1(workplace.workStart1);
     setWorkEnd1(workplace.workEnd1);
@@ -2193,6 +2200,9 @@ setWorkRateChange(workplace.workRateChange)
     setWorkplaceId("");
     setWorkplaceName("");
     setWorkplaceArea("");
+    setDateStartContract("");
+    setDateEndContract("");
+    setServiceFeePerMonth("");
     setWorkOfWeek("");
     setWorkOfHour("");
     setWorkRate("");
@@ -2434,7 +2444,10 @@ if (newWorkplace) {
     workplaceArea: "สถานที่ปฏิบัติงาน",
     workOfWeek: "จำนวนวันทำงานต่อสัปดาห์",
     workOfHour: "ชั่วโมงทำงาน",
-    workRate: "ค่าจ้างรายวัน"
+    workRate: "ค่าจ้างรายวัน",
+    dateStartContract: "วันเริ่มสัญญา",
+    dateEndContract: "วันสิ้นสุดสัญญา",
+    serviceFeePerMonth: "ค่าบริการรายเดือน"
   };
 
   const missingFields = [];
@@ -3110,6 +3123,51 @@ if (newWorkplace) {
                                 /\D/g,
                                 ""
                               );
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <div class="col-md-4">
+                        <div class="form-group">
+                          <label role="dateStartContract">วันเริ่มสัญญา<span style={{ color: "red" }}>*</span></label>
+                          <input
+                            type="date"
+                            class="form-control"
+                            id="dateStartContract"
+                            placeholder="วันเริ่มสัญญา"
+                            value={dateStartContract}
+                            onChange={(e) => setDateStartContract(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <div class="col-md-4">
+                        <div class="form-group">
+                          <label role="dateEndContract">วันสิ้นสุดสัญญา<span style={{ color: "red" }}>*</span></label>
+                          <input
+                            type="date"
+                            class="form-control"
+                            id="dateEndContract"
+                            placeholder="วันสิ้นสุดสัญญา"
+                            value={dateEndContract}
+                            onChange={(e) => setDateEndContract(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <div class="col-md-4">
+                        <div class="form-group">
+                          <label role="serviceFeePerMonth">ค่าบริการต่อเดือน<span style={{ color: "red" }}>*</span></label>
+                          <input
+                            type="text"
+                            class="form-control"
+                            id="serviceFeePerMonth"
+                            placeholder="ค่าบริการต่อเดือน"
+                            value={serviceFeePerMonth ? Number(serviceFeePerMonth).toLocaleString('en-US') : ''}
+                            onChange={(e) => {
+                              const value = e.target.value.replace(/,/g, '');
+                              if (value === '' || !isNaN(value)) {
+                                setServiceFeePerMonth(value);
+                              }
                             }}
                           />
                         </div>

@@ -6401,7 +6401,8 @@ let timeCashWorkMul = {
         console.log(`📅 จำนวนวันหยุดที่กำหนดทั้งหมด: ${stopDaysList.length} วัน`);
         
         // ตรวจสอบการมาทำงานในวันหยุด
-        let workedOnStopDays = 0;
+        let workedOnStopDays = 0; // จำนวนวันหยุดที่มาทำงาน (นับเป็นจำนวนครั้ง)
+        let workedOnStopDaysCount = 0; // จำนวนวันจริงๆ (รวม 0.5 วัน ถ้าทำงานไม่ครบ 8 ชม.)
         
         stopDaysList.forEach(stopDay => {
           // หาข้อมูลการทำงานของวันนั้น
@@ -6429,8 +6430,19 @@ let timeCashWorkMul = {
             const isCashHoliday = recordForDay.shift === 'cash_holiday';
             
             if (hasWorked && !isCashHoliday) {
-              workedOnStopDays++;
-              console.log(`✅ วันที่ ${stopDay.date}/${stopDay.month}/${stopDay.year} - มาทำงาน (${recordForDay.totalTime} ชม.) shift: ${recordForDay.shift || 'ไม่ระบุ'}`);
+              workedOnStopDays++; // นับจำนวนวันหยุดที่มาทำงาน
+              
+              // 🔧 คำนวณจำนวนวันที่แท้จริงตามชั่วโมงทำงาน
+              const workHours = parseFloat(recordForDay.totalTime);
+              let dayCount = 0;
+              if (workHours >= 8) {
+                dayCount = 1; // นับเป็น 1 วันเต็ม
+              } else if (workHours > 0 && workHours < 8) {
+                dayCount = 0.5; // นับเป็น 0.5 วัน
+              }
+              workedOnStopDaysCount += dayCount; // รวมจำนวนวันจริง
+              
+              console.log(`✅ วันที่ ${stopDay.date}/${stopDay.month}/${stopDay.year} - มาทำงาน (${recordForDay.totalTime} ชม. = ${dayCount} วัน) shift: ${recordForDay.shift || 'ไม่ระบุ'}`);
             } else if (hasWorked && isCashHoliday) {
               console.log(`⚠️ วันที่ ${stopDay.date}/${stopDay.month}/${stopDay.year} - มาทำงานแต่เป็น cash_holiday ไม่นับ (${recordForDay.totalTime} ชม.) shift: ${recordForDay.shift}`);
             } else {
@@ -6447,28 +6459,41 @@ let timeCashWorkMul = {
         console.log(`\n📊 === สรุปการมาทำงานในวันหยุด ===`);
         console.log(`📅 จำนวนวันหยุดทั้งหมด: ${stopDaysList.length} วัน`);
         console.log(`✅ มาทำงานในวันหยุด: ${workedOnStopDays} วัน`);
+        console.log(`🔢 จำนวนวันจริง (รวม 0.5 วัน): ${workedOnStopDaysCount} วัน`);
         console.log(`🔢 กำหนดค่า customizeDayoff = ${customizeDayoff}`);
         
-        // สำหรับหน่วยงานพิเศษ: ปรับ dayWorkCount โดยหัก workedOnStopDays
+        // สำหรับหน่วยงานพิเศษ: ปรับ dayWorkCount โดยหัก workedOnStopDaysCount (จำนวนวันจริง)
         if (["5", "6", "7"].includes(workOfWeek)) {
           const originalDayWorkCount = dayWorkCount;
-          dayWorkCount = dayWorkCount - workedOnStopDays; // 🔧 แก้ไข: หัก workedOnStopDays
+          dayWorkCount = dayWorkCount - workedOnStopDaysCount; // 🔧 แก้ไข: หัก workedOnStopDaysCount (จำนวนวันจริง)
           console.log(`\n🔄 === ปรับ dayWorkCount สำหรับหน่วยงาน ${workOfWeek} วัน ===`);
           console.log(`📊 dayWorkCount เดิม: ${originalDayWorkCount} วัน`);
-          console.log(`📊 workedOnStopDays: ${workedOnStopDays} วัน`);
+          console.log(`📊 workedOnStopDaysCount: ${workedOnStopDaysCount} วัน (จำนวนวันจริง)`);
           console.log(`📊 dayWorkCount ใหม่: ${dayWorkCount} วัน`);
-          console.log(`📝 สูตร: dayWorkCount - workedOnStopDays = ${originalDayWorkCount} - ${workedOnStopDays} = ${dayWorkCount}`);
+          console.log(`📝 สูตร: dayWorkCount - workedOnStopDaysCount = ${originalDayWorkCount} - ${workedOnStopDaysCount} = ${dayWorkCount}`);
         } else {
           // 🔧 แก้ไข: สำหรับหน่วยงานปกติ ให้ใช้วิธีการคำนวณ customizeDayoff จากจำนวนวันที่มาทำงานใน dayType: "stop"
           console.log(`\n🔄 === คำนวณ customizeDayoff สำหรับหน่วยงานปกติ ===`);
-          let stopDayWorkCount = 0;
+          let stopDayWorkCount = 0; // จำนวนวันหยุดที่มาทำงาน (นับเป็นจำนวนครั้ง)
+          let stopDayWorkDaysCount = 0; // จำนวนวันจริงๆ (รวม 0.5 วัน)
           
           employee_record.forEach(record => {
             if (record.dayType === "stop" && record.totalTime && 
                 record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0 &&
                 record.shift !== 'cash_holiday') { // เพิ่มเงื่อนไขไม่นับ cash_holiday
               stopDayWorkCount++;
-              console.log(`✅ วันที่ ${record.date} - dayType: "stop" มีการทำงาน (${record.totalTime} ชม.) shift: ${record.shift || 'ไม่ระบุ'}`);
+              
+              // 🔧 คำนวณจำนวนวันจริงตามชั่วโมงทำงาน
+              const workHours = parseFloat(record.totalTime);
+              let dayCount = 0;
+              if (workHours >= 8) {
+                dayCount = 1; // นับเป็น 1 วันเต็ม
+              } else if (workHours > 0 && workHours < 8) {
+                dayCount = 0.5; // นับเป็น 0.5 วัน
+              }
+              stopDayWorkDaysCount += dayCount;
+              
+              console.log(`✅ วันที่ ${record.date} - dayType: "stop" มีการทำงาน (${record.totalTime} ชม. = ${dayCount} วัน) shift: ${record.shift || 'ไม่ระบุ'}`);
             } else if (record.dayType === "stop" && record.totalTime && 
                       record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0 &&
                       record.shift === 'cash_holiday') {
@@ -6478,6 +6503,14 @@ let timeCashWorkMul = {
           
           customizeDayoff = stopDayWorkCount;
           console.log(`🔢 หน่วยงานปกติ - กำหนดค่า customizeDayoff = ${customizeDayoff} (จากการนับ dayType: "stop" ที่มีการทำงาน)`);
+          console.log(`🔢 จำนวนวันจริง (รวม 0.5 วัน): ${stopDayWorkDaysCount} วัน`);
+          
+          // 🔧 หัก dayWorkCount ด้วยจำนวนวันจริง
+          if (stopDayWorkDaysCount > 0) {
+            const originalDayWorkCount = dayWorkCount;
+            dayWorkCount = dayWorkCount - stopDayWorkDaysCount;
+            console.log(`🔄 ปรับ dayWorkCount: ${originalDayWorkCount} - ${stopDayWorkDaysCount} = ${dayWorkCount} วัน`);
+          }
         }
         
         // คำนวณค่าแรงสำหรับวันหยุดที่มาทำงาน (ถ้าต้องการ)

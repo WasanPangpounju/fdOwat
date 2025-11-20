@@ -124,6 +124,47 @@ function AddEditEmployee() {
     borderLeft: "2px solid #000",
   };
 
+  // Tab State
+  const [activeTab, setActiveTab] = useState("tab1");
+  const [selectedEmployeeForSalary, setSelectedEmployeeForSalary] = useState(null);
+
+  // เมื่อมีการเลือกพนักงานใน Tab 1 จะส่งไปให้ Tab 2
+  const handleEmployeeSelectForSalary = async (employee) => {
+    setSelectedEmployeeForSalary(employee);
+    
+    // ดึงข้อมูลพนักงานแบบเต็มจาก API
+    try {
+      const response = await axios.post(endpoint + "/employee/search", {
+        employeeId: employee.employeeId,
+        name: '',
+        idCard: '',
+        workPlace: ''
+      });
+      
+      if (response.data && response.data.employees && response.data.employees.length > 0) {
+        const fullEmployeeData = response.data.employees[0];
+        setEmployeeData(fullEmployeeData);
+        
+        // Set ข้อมูลต่างๆ
+        setEmployeeId(fullEmployeeData.employeeId || '');
+        setName(fullEmployeeData.name || '');
+        setLastName(fullEmployeeData.lastName || '');
+        setPosition(fullEmployeeData.position || '');
+        setWorkplace(fullEmployeeData.workplace || '');
+        setJobtype(fullEmployeeData.jobtype || '');
+        setSalary(fullEmployeeData.salary || '');
+        setStartjob(fullEmployeeData.startjob || '');
+        setExceptjob(fullEmployeeData.exceptjob || '');
+        
+        console.log('Loaded employee data for salary:', fullEmployeeData);
+      }
+    } catch (error) {
+      console.error('Error loading employee data:', error);
+    }
+    
+    setActiveTab("tab2"); // เปลี่ยนไป Tab 2 อัตโนมัติ
+  };
+
   const [newWorkplace, setNewWorkplace] = useState(true);
 
   const [searchEmployeeId, setSearchEmployeeId] = useState("");
@@ -155,6 +196,30 @@ function AddEditEmployee() {
   const [startjob, setStartjob] = useState(""); //วันที่เริ่มงาน
   const [endjob, setEndjob] = useState(""); //วันที่ลาออก
   const [exceptjob, setExceptjob] = useState(""); //วันที่บรรจุ
+  
+  // Salary Tab 2 States
+  const [paymentMethod, setPaymentMethod] = useState(""); //วิธีจ่ายเงิน
+  const [bank, setBank] = useState(""); //ธนาคาร
+  const [accountNumber, setAccountNumber] = useState(""); //เลขบัญชี
+  
+  // Benefits States
+  const [salaryadd1, setSalaryadd1] = useState(false); //ค่ารถ
+  const [salaryadd1Value, setSalaryadd1Value] = useState(""); //จำนวนค่ารถ
+  const [salaryadd2, setSalaryadd2] = useState(false); //ค่าอาหาร
+  const [salaryadd2Value, setSalaryadd2Value] = useState(""); //จำนวนค่าอาหาร
+  const [salaryadd3, setSalaryadd3] = useState(false); //เบี้ยขยัน
+  const [salaryadd3Value, setSalaryadd3Value] = useState(""); //จำนวนเบี้ยขยัน
+  const [salaryadd4, setSalaryadd4] = useState(false); //ค่าโทรศัพท์
+  const [salaryadd4Value, setSalaryadd4Value] = useState(""); //จำนวนค่าโทรศัพท์
+  const [salaryadd5, setSalaryadd5] = useState(false); //เงินประจำตำแหน่ง
+  const [salaryadd5Value, setSalaryadd5Value] = useState(""); //จำนวนเงินประจำตำแหน่ง
+  
+  // Leave Balance States
+  const [businessLeave, setBusinessLeave] = useState(""); //วันลากิจ
+  const [sickLeave, setSickLeave] = useState(""); //วันลาป่วย
+  const [vacationLeave, setVacationLeave] = useState(""); //วันลาพักร้อน
+  const [maternityLeave, setMaternityLeave] = useState(""); //วันลาคลอด
+  
   const [prefix, setPrefix] = useState(""); //นำหน้าชื่อ
   const [name, setName] = useState(""); //ชื่อ
   const [lastName, setLastName] = useState(""); //นามสกุล
@@ -315,6 +380,7 @@ function AddEditEmployee() {
   const [workplacearea, setWorkplacearea] = useState(""); //
 
   const [workplaceSelection, setWorkplaceSelection] = useState([]);
+  const [addSalaryWorkplace, setAddSalaryWorkplace] = useState([]);
 
   useEffect(() => {
     const storedValue = sessionStorage.getItem("empSelect");
@@ -331,6 +397,80 @@ function AddEditEmployee() {
       })
       .catch((error) => console.error("Error fetching employees:", error));
   }, []);
+
+  // useEffect สำหรับ Tab 2 - ดึงข้อมูล workplace เมื่อเปิด Tab 2
+  useEffect(() => {
+    if (selectedEmployeeForSalary && activeTab === "tab2") {
+      // ดึงข้อมูล workplace ต่างๆ
+      const fetchWorkplaceData = async () => {
+        try {
+          const workplaceResponse = await axios.get(endpoint + "/employee/workplaceSelection");
+          if (workplaceResponse.data) {
+            setWorkplaceSelection(workplaceResponse.data);
+          }
+          
+          const addSalaryResponse = await axios.get(endpoint + "/employee/addSalaryWorkplace");
+          if (addSalaryResponse.data) {
+            setAddSalaryWorkplace(addSalaryResponse.data);
+          }
+          
+          console.log('Workplace data loaded for Tab 2');
+        } catch (error) {
+          console.error('Error loading workplace data:', error);
+        }
+      };
+      
+      fetchWorkplaceData();
+    }
+  }, [selectedEmployeeForSalary, activeTab]);
+
+  // useEffect สำหรับโหลด benefits เมื่อมี workplace และ addSalaryWorkplace
+  useEffect(() => {
+    if (workplace && addSalaryWorkplace.length > 0 && activeTab === "tab2") {
+      handleWorkplaceForSalary(workplace);
+    }
+  }, [workplace, addSalaryWorkplace, activeTab]);
+
+  // Handle Change function for updating employee data in Tab 2
+  const handleChange = (field, value) => {
+    setEmployeeData((prevData) => ({
+      ...prevData,
+      [field]: value,
+    }));
+  };
+
+  // Handle Workplace function for benefits in Tab 2
+  const handleWorkplaceForSalary = async (selectedWorkplace) => {
+    console.log('handleWorkplaceForSalary called with:', selectedWorkplace);
+    
+    if (!selectedWorkplace) {
+      console.log('No workplace selected');
+      return;
+    }
+
+    try {
+      const matchedWorkplace = addSalaryWorkplace.find(
+        (place) => place.workPlace === selectedWorkplace
+      );
+
+      if (matchedWorkplace) {
+        console.log('Matched workplace found:', matchedWorkplace);
+        
+        // Set benefits based on workplace
+        setSalaryadd1(matchedWorkplace.salaryadd1 || false);
+        setSalaryadd2(matchedWorkplace.salaryadd2 || false);
+        setSalaryadd3(matchedWorkplace.salaryadd3 || false);
+        setSalaryadd4(matchedWorkplace.salaryadd4 || false);
+        setSalaryadd5(matchedWorkplace.salaryadd5 || false);
+        
+        console.log('Benefits set successfully');
+      } else {
+        console.log('No matching workplace found in addSalaryWorkplace');
+      }
+    } catch (error) {
+      console.error('Error in handleWorkplaceForSalary:', error);
+    }
+  };
 
   //   const handleDateOfBirth = (date) => {
   //     setDateOfBirth(date);
@@ -1405,73 +1545,6 @@ function AddEditEmployee() {
               </div>
             </div>
           </div>
-
-          {/* Tab Navigation */}
-          <div className="container-fluid" style={{ padding: '0 15px', marginBottom: '20px' }}>
-            <ul className="nav nav-tabs" role="tablist" style={{ 
-              borderBottom: '2px solid #dee2e6',
-              backgroundColor: '#f8f9fa'
-            }}>
-              <li className="nav-item">
-                <button 
-                  className={`nav-link ${activeTab === 'createEdit' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('createEdit')}
-                  type="button"
-                  style={{
-                    border: 'none',
-                    borderBottom: activeTab === 'createEdit' ? '3px solid #007bff' : 'none',
-                    backgroundColor: activeTab === 'createEdit' ? '#fff' : 'transparent',
-                    color: activeTab === 'createEdit' ? '#007bff' : '#495057',
-                    fontWeight: activeTab === 'createEdit' ? 'bold' : 'normal',
-                    padding: '12px 24px',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease'
-                  }}
-                >
-                  <i className="fas fa-user-edit"></i> สร้าง/แก้ไข พนักงาน
-                </button>
-              </li>
-              <li className="nav-item">
-                <button 
-                  className={`nav-link ${activeTab === 'welfare' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('welfare')}
-                  type="button"
-                  style={{
-                    border: 'none',
-                    borderBottom: activeTab === 'welfare' ? '3px solid #007bff' : 'none',
-                    backgroundColor: activeTab === 'welfare' ? '#fff' : 'transparent',
-                    color: activeTab === 'welfare' ? '#007bff' : '#495057',
-                    fontWeight: activeTab === 'welfare' ? 'bold' : 'normal',
-                    padding: '12px 24px',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease'
-                  }}
-                >
-                  <i className="fas fa-hand-holding-usd"></i> เพิ่ม/ลบ สวัสดิการ
-                </button>
-              </li>
-              <li className="nav-item">
-                <button 
-                  className={`nav-link ${activeTab === 'other' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('other')}
-                  type="button"
-                  style={{
-                    border: 'none',
-                    borderBottom: activeTab === 'other' ? '3px solid #007bff' : 'none',
-                    backgroundColor: activeTab === 'other' ? '#fff' : 'transparent',
-                    color: activeTab === 'other' ? '#007bff' : '#495057',
-                    fontWeight: activeTab === 'other' ? 'bold' : 'normal',
-                    padding: '12px 24px',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease'
-                  }}
-                >
-                  <i className="fas fa-cog"></i> อื่นๆ
-                </button>
-              </li>
-            </ul>
-          </div>
-
           {/* <!-- /.content-header -->
 <!-- Main content --> */}
           
@@ -1595,29 +1668,8 @@ function AddEditEmployee() {
                                         key={workplace.id}
                                         style={{ cursor: "pointer", marginBottom: "10px" }}
                                       >
-                                        <div>
-                                          <strong>รหัส:</strong> {workplace.employeeId} | 
-                                          <strong> ชื่อ:</strong> {workplace.name} {workplace.lastName}
-                                        </div>
-                                        <div style={{ fontSize: "14px", color: "#666", marginTop: "5px" }}>
-                                          <strong>บัตรประชาชน:</strong> {workplace.idCard || '-'} | 
-                                          <strong> เบอร์มือถือ:</strong> {workplace.phoneNumber || '-'}
-                                        </div>
-                                        <button
-                                          type="button"
-                                          name=""
-                                          value=""
-                                          onClick={() => setActiveTab('welfare')}
-                                          className="btn btn-info"
-                                          style={{
-                                            width: "8rem",
-                                            marginLeft: "4rem",
-                                            marginRight: "1rem",
-                                            marginTop: "1rem",                                            
-                                          }}
-                                        >
-                                          &nbsp;สวัสดิการ
-                                        </button>
+                                        รหัส {workplace.employeeId} ชื่อ{" "}
+                                        {workplace.name} {workplace.lastName}
                                         <button
                                           type="button"
                                           name="delete"
@@ -1629,7 +1681,6 @@ function AddEditEmployee() {
                                           style={{
                                             width: "5rem",
                                             marginLeft: "1rem",
-                                            marginTop: "1rem",                                            
                                           }}
                                         >
                                           &nbsp;ลบ
@@ -2774,47 +2825,6 @@ function AddEditEmployee() {
             </div>
             {/* <!-- /.container-fluid --> */}
           </section>
-          )}
-
-          {/* Tab 2: เพิ่ม/ลบ สวัสดิการ */}
-          {/* มาจาก section Employee.jsx ต่อด้วย Salary.jsx เอามาตั้งแต่ กรอบ section */}
-          {activeTab === 'welfare' && (
-            <section className="content">
-              <div className="container-fluid">
-                <h2 className="title">ข้อมูลพนักงาน</h2>
-                <h2 className="title">ข้อมูลส่วนบุคคลพนักงาน</h2>
-                <h2 className="title">ข้อมูลสุขภาพ</h2>
-                <h2 className="title">เงินเดือนและสวัสดิการ</h2>
-                <h2 className="title">ข้อมูลพนักงาน</h2>
-                <h2 className="title">การบันทึกเวลาและการลา</h2>
-                <h2 className="title">เงินเพิ่มพิเศษ</h2>
-                <section className="Frame">
-                  <div className="col-md-12">
-                    <p style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-                    </p>
-                  </div>
-                </section>
-              </div>
-            </section>
-          )}
-
-          {/* Tab 3: อื่นๆ */}
-          {/* มาจาก section addsettingemp.jsx เอามาตั้งแต่ กรอบ section */}
-          {activeTab === 'other' && (
-            <section className="content">
-              <div className="container-fluid">
-                <h2 className="title">ตั้งค่าการทำงานเฉพาะบุคคล</h2>
-                <section className="Frame">
-                  <div className="col-md-12">
-                    <p style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-                      เนื้อหาอื่นๆ จะแสดงที่นี่
-                    </p>
-                  </div>
-                </section>
-              </div>
-            </section>
-          )}
-
         </div>
       </div>
     {/* </body> */}

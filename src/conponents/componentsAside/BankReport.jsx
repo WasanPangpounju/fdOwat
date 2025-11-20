@@ -1290,7 +1290,7 @@ const BankReportPDF = () => {
                     </select>
                     </div>
                     
-                    <div className="col-md-4">
+                    {/* <div className="col-md-4">
                       <label>ประเภทภาษี</label>
                       <div className="form-group">
                         <style jsx>{`
@@ -1391,7 +1391,7 @@ const BankReportPDF = () => {
                           <span className="checkbox-label">ภ.ง.ด.1</span>
                         </label>
                       </div>
-                    </div>
+                    </div> */}
                   </div>
                 </div>
 
