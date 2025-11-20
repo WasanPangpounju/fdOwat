@@ -2777,14 +2777,17 @@ function AddEditEmployee() {
           )}
 
           {/* Tab 2: เพิ่ม/ลบ สวัสดิการ */}
-          {/* มาจาก section Employee ต่อด้วย salary เอามาตั้งแต่ กรอบ section */}
+          {/* มาจาก section Employee.jsx ต่อด้วย Salary.jsx เอามาตั้งแต่ กรอบ section */}
           {activeTab === 'welfare' && (
             <section className="content">
               <div className="container-fluid">
                 <h2 className="title">ข้อมูลพนักงาน</h2>
                 <h2 className="title">ข้อมูลส่วนบุคคลพนักงาน</h2>
                 <h2 className="title">ข้อมูลสุขภาพ</h2>
-
+                <h2 className="title">เงินเดือนและสวัสดิการ</h2>
+                <h2 className="title">ข้อมูลพนักงาน</h2>
+                <h2 className="title">การบันทึกเวลาและการลา</h2>
+                <h2 className="title">เงินเพิ่มพิเศษ</h2>
                 <section className="Frame">
                   <div className="col-md-12">
                     <p style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
@@ -2796,6 +2799,7 @@ function AddEditEmployee() {
           )}
 
           {/* Tab 3: อื่นๆ */}
+          {/* มาจาก section addsettingemp.jsx เอามาตั้งแต่ กรอบ section */}
           {activeTab === 'other' && (
             <section className="content">
               <div className="container-fluid">
