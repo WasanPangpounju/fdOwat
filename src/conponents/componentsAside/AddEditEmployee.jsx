@@ -124,8 +124,8 @@ function AddEditEmployee() {
     borderLeft: "2px solid #000",
   };
 
-  // Tab State
-  const [activeTab, setActiveTab] = useState("tab1");
+  // Tab State for Salary (removed duplicate - already declared at line 54)
+  // const [activeTab, setActiveTab] = useState("tab1");
   const [selectedEmployeeForSalary, setSelectedEmployeeForSalary] = useState(null);
 
   // เมื่อมีการเลือกพนักงานใน Tab 1 จะส่งไปให้ Tab 2
@@ -2825,6 +2825,8 @@ function AddEditEmployee() {
             </div>
             {/* <!-- /.container-fluid --> */}
           </section>
+          )}
+
         </div>
       </div>
     {/* </body> */}
