@@ -123,6 +123,47 @@ function AddEditEmployee() {
     borderLeft: "2px solid #000",
   };
 
+  // Tab State
+  const [activeTab, setActiveTab] = useState("tab1");
+  const [selectedEmployeeForSalary, setSelectedEmployeeForSalary] = useState(null);
+
+  // เมื่อมีการเลือกพนักงานใน Tab 1 จะส่งไปให้ Tab 2
+  const handleEmployeeSelectForSalary = async (employee) => {
+    setSelectedEmployeeForSalary(employee);
+    
+    // ดึงข้อมูลพนักงานแบบเต็มจาก API
+    try {
+      const response = await axios.post(endpoint + "/employee/search", {
+        employeeId: employee.employeeId,
+        name: '',
+        idCard: '',
+        workPlace: ''
+      });
+      
+      if (response.data && response.data.employees && response.data.employees.length > 0) {
+        const fullEmployeeData = response.data.employees[0];
+        setEmployeeData(fullEmployeeData);
+        
+        // Set ข้อมูลต่างๆ
+        setEmployeeId(fullEmployeeData.employeeId || '');
+        setName(fullEmployeeData.name || '');
+        setLastName(fullEmployeeData.lastName || '');
+        setPosition(fullEmployeeData.position || '');
+        setWorkplace(fullEmployeeData.workplace || '');
+        setJobtype(fullEmployeeData.jobtype || '');
+        setSalary(fullEmployeeData.salary || '');
+        setStartjob(fullEmployeeData.startjob || '');
+        setExceptjob(fullEmployeeData.exceptjob || '');
+        
+        console.log('Loaded employee data for salary:', fullEmployeeData);
+      }
+    } catch (error) {
+      console.error('Error loading employee data:', error);
+    }
+    
+    setActiveTab("tab2"); // เปลี่ยนไป Tab 2 อัตโนมัติ
+  };
+
   const [newWorkplace, setNewWorkplace] = useState(true);
 
   const [searchEmployeeId, setSearchEmployeeId] = useState("");
@@ -152,6 +193,30 @@ function AddEditEmployee() {
   const [startjob, setStartjob] = useState(""); //วันที่เริ่มงาน
   const [endjob, setEndjob] = useState(""); //วันที่ลาออก
   const [exceptjob, setExceptjob] = useState(""); //วันที่บรรจุ
+  
+  // Salary Tab 2 States
+  const [paymentMethod, setPaymentMethod] = useState(""); //วิธีจ่ายเงิน
+  const [bank, setBank] = useState(""); //ธนาคาร
+  const [accountNumber, setAccountNumber] = useState(""); //เลขบัญชี
+  
+  // Benefits States
+  const [salaryadd1, setSalaryadd1] = useState(false); //ค่ารถ
+  const [salaryadd1Value, setSalaryadd1Value] = useState(""); //จำนวนค่ารถ
+  const [salaryadd2, setSalaryadd2] = useState(false); //ค่าอาหาร
+  const [salaryadd2Value, setSalaryadd2Value] = useState(""); //จำนวนค่าอาหาร
+  const [salaryadd3, setSalaryadd3] = useState(false); //เบี้ยขยัน
+  const [salaryadd3Value, setSalaryadd3Value] = useState(""); //จำนวนเบี้ยขยัน
+  const [salaryadd4, setSalaryadd4] = useState(false); //ค่าโทรศัพท์
+  const [salaryadd4Value, setSalaryadd4Value] = useState(""); //จำนวนค่าโทรศัพท์
+  const [salaryadd5, setSalaryadd5] = useState(false); //เงินประจำตำแหน่ง
+  const [salaryadd5Value, setSalaryadd5Value] = useState(""); //จำนวนเงินประจำตำแหน่ง
+  
+  // Leave Balance States
+  const [businessLeave, setBusinessLeave] = useState(""); //วันลากิจ
+  const [sickLeave, setSickLeave] = useState(""); //วันลาป่วย
+  const [vacationLeave, setVacationLeave] = useState(""); //วันลาพักร้อน
+  const [maternityLeave, setMaternityLeave] = useState(""); //วันลาคลอด
+  
   const [prefix, setPrefix] = useState(""); //นำหน้าชื่อ
   const [name, setName] = useState(""); //ชื่อ
   const [lastName, setLastName] = useState(""); //นามสกุล
@@ -312,6 +377,7 @@ function AddEditEmployee() {
   const [workplacearea, setWorkplacearea] = useState(""); //
 
   const [workplaceSelection, setWorkplaceSelection] = useState([]);
+  const [addSalaryWorkplace, setAddSalaryWorkplace] = useState([]);
 
   useEffect(() => {
     const storedValue = sessionStorage.getItem("empSelect");
@@ -328,6 +394,80 @@ function AddEditEmployee() {
       })
       .catch((error) => console.error("Error fetching employees:", error));
   }, []);
+
+  // useEffect สำหรับ Tab 2 - ดึงข้อมูล workplace เมื่อเปิด Tab 2
+  useEffect(() => {
+    if (selectedEmployeeForSalary && activeTab === "tab2") {
+      // ดึงข้อมูล workplace ต่างๆ
+      const fetchWorkplaceData = async () => {
+        try {
+          const workplaceResponse = await axios.get(endpoint + "/employee/workplaceSelection");
+          if (workplaceResponse.data) {
+            setWorkplaceSelection(workplaceResponse.data);
+          }
+          
+          const addSalaryResponse = await axios.get(endpoint + "/employee/addSalaryWorkplace");
+          if (addSalaryResponse.data) {
+            setAddSalaryWorkplace(addSalaryResponse.data);
+          }
+          
+          console.log('Workplace data loaded for Tab 2');
+        } catch (error) {
+          console.error('Error loading workplace data:', error);
+        }
+      };
+      
+      fetchWorkplaceData();
+    }
+  }, [selectedEmployeeForSalary, activeTab]);
+
+  // useEffect สำหรับโหลด benefits เมื่อมี workplace และ addSalaryWorkplace
+  useEffect(() => {
+    if (workplace && addSalaryWorkplace.length > 0 && activeTab === "tab2") {
+      handleWorkplaceForSalary(workplace);
+    }
+  }, [workplace, addSalaryWorkplace, activeTab]);
+
+  // Handle Change function for updating employee data in Tab 2
+  const handleChange = (field, value) => {
+    setEmployeeData((prevData) => ({
+      ...prevData,
+      [field]: value,
+    }));
+  };
+
+  // Handle Workplace function for benefits in Tab 2
+  const handleWorkplaceForSalary = async (selectedWorkplace) => {
+    console.log('handleWorkplaceForSalary called with:', selectedWorkplace);
+    
+    if (!selectedWorkplace) {
+      console.log('No workplace selected');
+      return;
+    }
+
+    try {
+      const matchedWorkplace = addSalaryWorkplace.find(
+        (place) => place.workPlace === selectedWorkplace
+      );
+
+      if (matchedWorkplace) {
+        console.log('Matched workplace found:', matchedWorkplace);
+        
+        // Set benefits based on workplace
+        setSalaryadd1(matchedWorkplace.salaryadd1 || false);
+        setSalaryadd2(matchedWorkplace.salaryadd2 || false);
+        setSalaryadd3(matchedWorkplace.salaryadd3 || false);
+        setSalaryadd4(matchedWorkplace.salaryadd4 || false);
+        setSalaryadd5(matchedWorkplace.salaryadd5 || false);
+        
+        console.log('Benefits set successfully');
+      } else {
+        console.log('No matching workplace found in addSalaryWorkplace');
+      }
+    } catch (error) {
+      console.error('Error in handleWorkplaceForSalary:', error);
+    }
+  };
 
   //   const handleDateOfBirth = (date) => {
   //     setDateOfBirth(date);
@@ -1399,6 +1539,78 @@ function AddEditEmployee() {
               </div>
             </div>
           </div>
+
+          {/* Tab Navigation */}
+          <div className="container-fluid">
+            <div className="card">
+              <div className="card-header p-0">
+                <ul className="nav nav-tabs" style={{ borderBottom: 'none' }}>
+                  <li className="nav-item">
+                    <button
+                      className={`nav-link ${activeTab === 'tab1' ? 'active' : ''}`}
+                      onClick={() => setActiveTab('tab1')}
+                      style={{
+                        backgroundColor: activeTab === 'tab1' ? '#fff' : '#f4f6f9',
+                        border: '1px solid #dee2e6',
+                        borderBottom: activeTab === 'tab1' ? '2px solid #007bff' : '1px solid #dee2e6',
+                        fontWeight: activeTab === 'tab1' ? 'bold' : 'normal',
+                        color: activeTab === 'tab1' ? '#007bff' : '#6c757d',
+                        cursor: 'pointer',
+                        padding: '10px 20px',
+                        borderRadius: '5px 5px 0 0',
+                        marginRight: '3px'
+                      }}
+                    >
+                      <i className="fas fa-user mr-2"></i>
+                      สร้าง/แก้ไข พนักงาน
+                    </button>
+                  </li>
+                  <li className="nav-item">
+                    <button
+                      className={`nav-link ${activeTab === 'tab2' ? 'active' : ''}`}
+                      onClick={() => setActiveTab('tab2')}
+                      style={{
+                        backgroundColor: activeTab === 'tab2' ? '#fff' : '#f4f6f9',
+                        border: '1px solid #dee2e6',
+                        borderBottom: activeTab === 'tab2' ? '2px solid #007bff' : '1px solid #dee2e6',
+                        fontWeight: activeTab === 'tab2' ? 'bold' : 'normal',
+                        color: activeTab === 'tab2' ? '#007bff' : '#6c757d',
+                        cursor: 'pointer',
+                        padding: '10px 20px',
+                        borderRadius: '5px 5px 0 0',
+                        marginRight: '3px'
+                      }}
+                    >
+                      <i className="fas fa-clipboard mr-2"></i>
+                      เพิ่ม/ลบ สวัสดิการ
+                    </button>
+                  </li>
+                  <li className="nav-item">
+                    <button
+                      className={`nav-link ${activeTab === 'tab3' ? 'active' : ''}`}
+                      onClick={() => setActiveTab('tab3')}
+                      style={{
+                        backgroundColor: activeTab === 'tab3' ? '#fff' : '#f4f6f9',
+                        border: '1px solid #dee2e6',
+                        borderBottom: activeTab === 'tab3' ? '2px solid #007bff' : '1px solid #dee2e6',
+                        fontWeight: activeTab === 'tab3' ? 'bold' : 'normal',
+                        color: activeTab === 'tab3' ? '#007bff' : '#6c757d',
+                        cursor: 'pointer',
+                        padding: '10px 20px',
+                        borderRadius: '5px 5px 0 0'
+                      }}
+                    >
+                      <i className="fas fa-cog mr-2"></i>
+                      อื่นๆ
+                    </button>
+                  </li>
+                </ul>
+              </div>
+              <div className="card-body">
+                {/* Tab Content */}
+                {activeTab === 'tab1' && (
+                  <div className="tab-content-1">
+                    {/* เนื้อหาเดิมของเว็บไซต์อยู่ใน Tab 1 */}
           {/* <!-- /.content-header -->
 <!-- Main content --> */}
           <section class="content">
@@ -1483,25 +1695,37 @@ function AddEditEmployee() {
                                     {searchResult.map((workplace) => (
                                       <li
                                         key={workplace.id}
-                                        style={{ cursor: "pointer" }}
+                                        style={{ cursor: "pointer", marginBottom: "10px" }}
                                       >
-                                        รหัส {workplace.employeeId} ชื่อ{" "}
-                                        {workplace.name} {workplace.lastName}
-                                        <button
-                                          type="button"
-                                          name="delete"
-                                          value="delete"
-                                          onClick={() =>
-                                            handleDelete(workplace._id)
-                                          } // Pass the actual employeeId
-                                          className="btn btn-danger"
-                                          style={{
-                                            width: "5rem",
-                                            marginLeft: "1rem",
-                                          }}
-                                        >
-                                          &nbsp;ลบ
-                                        </button>
+                                        <div className="d-flex align-items-center justify-content-between bg-light p-3 rounded">
+                                          <div onClick={() => handleClickResult(workplace)}>
+                                            <strong>รหัส {workplace.employeeId}</strong> ชื่อ{" "}
+                                            {workplace.name} {workplace.lastName}
+                                          </div>
+                                          <div>
+                                            <button
+                                              type="button"
+                                              className="btn btn-info btn-sm mr-2"
+                                              onClick={() => handleEmployeeSelectForSalary(workplace)}
+                                              title="ดูข้อมูลเงินเดือน"
+                                            >
+                                              <i className="fas fa-money-bill-wave mr-1"></i>
+                                              เงินเดือน
+                                            </button>
+                                            <button
+                                              type="button"
+                                              name="delete"
+                                              value="delete"
+                                              onClick={() =>
+                                                handleDelete(workplace._id)
+                                              } // Pass the actual employeeId
+                                              className="btn btn-danger btn-sm"
+                                            >
+                                              <i className="fas fa-trash mr-1"></i>
+                                              ลบ
+                                            </button>
+                                          </div>
+                                        </div>
                                       </li>
                                     ))}
                                   </ul>
@@ -2642,6 +2866,528 @@ function AddEditEmployee() {
             </div>
             {/* <!-- /.container-fluid --> */}
           </section>
+                  </div>
+                )}
+                {activeTab === 'tab2' && (
+                  <div className="tab-content-2">
+                    {/* ข้อมูลเงินเดือนและสวัสดิการ */}
+                    <div className="container-fluid">
+                      <h2 className="head-title mb-4" style={{ color: '#28a745', fontWeight: 'bold' }}>
+                        <i className="fas fa-money-bill-wave mr-2"></i>
+                        เงินเดือนและสวัสดิการ
+                      </h2>
+                      
+                      {/* แสดงข้อมูลพนักงานที่เลือก */}
+                      {selectedEmployeeForSalary && (
+                        <div className="alert alert-info mb-4">
+                          <h5><i className="fas fa-user mr-2"></i>ข้อมูลพนักงานที่เลือก:</h5>
+                          <p className="mb-1"><strong>รหัสพนักงาน:</strong> {selectedEmployeeForSalary.employeeId}</p>
+                          <p className="mb-1"><strong>ชื่อ-นามสกุล:</strong> {selectedEmployeeForSalary.name} {selectedEmployeeForSalary.lastName}</p>
+                          <p className="mb-0"><strong>ตำแหน่ง:</strong> {selectedEmployeeForSalary.position}</p>
+                        </div>
+                      )}
+
+                      {/* ฟอร์มข้อมูลพนักงาน */}
+                      <div className="card shadow-sm mb-4">
+                        <div className="card-header bg-success text-white">
+                          <h5 className="mb-0"><i className="fas fa-user-tie mr-2"></i>ข้อมูลพนักงาน</h5>
+                        </div>
+                        <div className="card-body">
+                          <div className="row">
+                            <div className="col-md-4">
+                              <div className="form-group">
+                                <label className="font-weight-bold">รหัสพนักงาน</label>
+                                <input
+                                  type="text"
+                                  className="form-control"
+                                  placeholder="รหัสพนักงาน"
+                                  value={selectedEmployeeForSalary?.employeeId || employeeId}
+                                  onChange={(e) => setEmployeeId(e.target.value)}
+                                  onInput={(e) => {
+                                    e.target.value = e.target.value.replace(/\D/g, "");
+                                  }}
+                                />
+                              </div>
+                            </div>
+                            <div className="col-md-4">
+                              <div className="form-group">
+                                <label className="font-weight-bold">ชื่อพนักงาน</label>
+                                <input
+                                  type="text"
+                                  className="form-control"
+                                  placeholder="ชื่อพนักงาน"
+                                  value={selectedEmployeeForSalary ? 
+                                    `${selectedEmployeeForSalary.name || ""} ${selectedEmployeeForSalary.lastName || ""}` : 
+                                    `${name || ""} ${lastName || ""}`
+                                  }
+                                  readOnly
+                                />
+                              </div>
+                            </div>
+                            <div className="col-md-4">
+                              <div className="form-group">
+                                <label className="font-weight-bold">ตำแหน่ง</label>
+                                <input
+                                  type="text"
+                                  className="form-control"
+                                  placeholder="ตำแหน่ง"
+                                  value={selectedEmployeeForSalary?.position || position}
+                                  onChange={(e) => setPosition(e.target.value)}
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="row">
+                            <div className="col-md-4">
+                              <div className="form-group">
+                                <label className="font-weight-bold">หน่วยงาน</label>
+                                <input
+                                  type="text"
+                                  className="form-control"
+                                  placeholder="หน่วยงาน"
+                                  value={selectedEmployeeForSalary?.workplace || workplace}
+                                  onChange={(e) => setWorkplace(e.target.value)}
+                                />
+                              </div>
+                            </div>
+                            <div className="col-md-4">
+                              <div className="form-group">
+                                <label className="font-weight-bold">ประเภทการจ้าง</label>
+                                <select
+                                  className="form-control"
+                                  value={selectedEmployeeForSalary?.jobtype || jobtype}
+                                  onChange={(e) => setJobtype(e.target.value)}
+                                >
+                                  <option value="">ไม่ระบุ</option>
+                                  <option value="รายวัน">รายวัน</option>
+                                  <option value="รายเดือน">รายเดือน</option>
+                                  <option value="รายครั้ง">รายครั้ง</option>
+                                </select>
+                              </div>
+                            </div>
+                            <div className="col-md-4">
+                              <div className="form-group">
+                                <label className="font-weight-bold">อัตราเงินเดือน</label>
+                                <input
+                                  type="text"
+                                  className="form-control"
+                                  placeholder="จำนวนเงิน"
+                                  value={salary}
+                                  onChange={(e) => setSalary(e.target.value)}
+                                  onInput={(e) => {
+                                    e.target.value = e.target.value.replace(/\D/g, "");
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* ฟอร์มวันที่เริ่มงานและวันที่บรรจุ */}
+                      <div className="card shadow-sm mb-4">
+                        <div className="card-header bg-primary text-white">
+                          <h5 className="mb-0"><i className="fas fa-calendar-check mr-2"></i>วันที่เริ่มงานและวันที่บรรจุ</h5>
+                        </div>
+                        <div className="card-body">
+                          <div className="row">
+                            <div className="col-md-4">
+                              <div className="form-group">
+                                <label className="font-weight-bold">
+                                  <i className="fas fa-calendar-day mr-2 text-primary"></i>
+                                  วันที่เริ่มงาน
+                                </label>
+                                <input
+                                  type="date"
+                                  className="form-control"
+                                  value={startjob}
+                                  onChange={(e) => setStartjob(e.target.value)}
+                                />
+                              </div>
+                            </div>
+                            <div className="col-md-4">
+                              <div className="form-group">
+                                <label className="font-weight-bold">
+                                  <i className="fas fa-calendar-plus mr-2 text-success"></i>
+                                  วันที่บรรจุ
+                                </label>
+                                <input
+                                  type="date"
+                                  className="form-control"
+                                  value={exceptjob}
+                                  onChange={(e) => setExceptjob(e.target.value)}
+                                />
+                              </div>
+                            </div>
+                            <div className="col-md-4">
+                              <div className="form-group">
+                                <label className="font-weight-bold">
+                                  <i className="fas fa-calculator mr-2 text-info"></i>
+                                  วันที่เริ่มต้นคำนวณ
+                                </label>
+                                <input
+                                  type="date"
+                                  className="form-control"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* ฟอร์มข้อมูลเงินเดือนเพิ่มเติม */}
+                      <div className="card shadow-sm mb-4">
+                        <div className="card-header bg-info text-white">
+                          <h5 className="mb-0"><i className="fas fa-coins mr-2"></i>ข้อมูลเงินเดือนและสวัสดิการ</h5>
+                        </div>
+                        <div className="card-body">
+                          <p className="text-muted">
+                            <i className="fas fa-info-circle mr-2"></i>
+                            คุณสามารถกรอกข้อมูลเงินเดือนและสวัสดิการเพิ่มเติมได้ที่นี่
+                          </p>
+                          <div className="row">
+                            <div className="col-md-12">
+                              <div className="form-group">
+                                <label className="font-weight-bold">วิธีจ่ายเงิน</label>
+                                <select 
+                                  className="form-control"
+                                  value={paymentMethod}
+                                  onChange={(e) => {
+                                    setPaymentMethod(e.target.value);
+                                    handleChange('paymentMethod', e.target.value);
+                                  }}
+                                >
+                                  <option value="">เลือกวิธีจ่ายเงิน</option>
+                                  <option value="เงินสด">เงินสด</option>
+                                  <option value="โอนเข้าบัญชี">โอนเข้าบัญชี</option>
+                                  <option value="เช็ค">เช็ค</option>
+                                </select>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="row">
+                            <div className="col-md-6">
+                              <div className="form-group">
+                                <label className="font-weight-bold">ธนาคาร</label>
+                                <input
+                                  type="text"
+                                  className="form-control"
+                                  placeholder="ชื่อธนาคาร"
+                                  value={bank}
+                                  onChange={(e) => {
+                                    setBank(e.target.value);
+                                    handleChange('bank', e.target.value);
+                                  }}
+                                />
+                              </div>
+                            </div>
+                            <div className="col-md-6">
+                              <div className="form-group">
+                                <label className="font-weight-bold">เลขบัญชี</label>
+                                <input
+                                  type="text"
+                                  className="form-control"
+                                  placeholder="เลขที่บัญชี"
+                                  value={accountNumber}
+                                  onChange={(e) => {
+                                    const value = e.target.value.replace(/\D/g, "");
+                                    setAccountNumber(value);
+                                    handleChange('accountNumber', value);
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* ฟอร์มเงินเพิ่มพิเศษและสวัสดิการ */}
+                      <div className="card shadow-sm mb-4">
+                        <div className="card-header bg-warning text-dark">
+                          <h5 className="mb-0"><i className="fas fa-gift mr-2"></i>เงินเพิ่มพิเศษและสวัสดิการ</h5>
+                        </div>
+                        <div className="card-body">
+                          <div className="row mb-3">
+                            <div className="col-md-12">
+                              <h6 className="font-weight-bold text-secondary mb-3">
+                                <i className="fas fa-hand-holding-usd mr-2"></i>
+                                เงินเพิ่มพิเศษ
+                              </h6>
+                            </div>
+                          </div>
+                          <div className="row">
+                            <div className="col-md-4">
+                              <div className="custom-control custom-checkbox mb-3">
+                                <input
+                                  type="checkbox"
+                                  className="custom-control-input"
+                                  id="salaryadd1"
+                                  checked={salaryadd1}
+                                  onChange={(e) => {
+                                    setSalaryadd1(e.target.checked);
+                                    handleChange('salaryadd1', e.target.checked);
+                                  }}
+                                />
+                                <label className="custom-control-label font-weight-bold" htmlFor="salaryadd1">
+                                  <i className="fas fa-car mr-2 text-primary"></i>
+                                  ค่ารถ
+                                </label>
+                                <input
+                                  type="text"
+                                  className="form-control mt-2"
+                                  placeholder="จำนวนเงิน"
+                                  value={salaryadd1Value}
+                                  onChange={(e) => {
+                                    const value = e.target.value.replace(/\D/g, "");
+                                    setSalaryadd1Value(value);
+                                    handleChange('salaryadd1Value', value);
+                                  }}
+                                />
+                              </div>
+                            </div>
+                            <div className="col-md-4">
+                              <div className="custom-control custom-checkbox mb-3">
+                                <input
+                                  type="checkbox"
+                                  className="custom-control-input"
+                                  id="salaryadd2"
+                                  checked={salaryadd2}
+                                  onChange={(e) => {
+                                    setSalaryadd2(e.target.checked);
+                                    handleChange('salaryadd2', e.target.checked);
+                                  }}
+                                />
+                                <label className="custom-control-label font-weight-bold" htmlFor="salaryadd2">
+                                  <i className="fas fa-utensils mr-2 text-success"></i>
+                                  ค่าอาหาร
+                                </label>
+                                <input
+                                  type="text"
+                                  className="form-control mt-2"
+                                  placeholder="จำนวนเงิน"
+                                  value={salaryadd2Value}
+                                  onChange={(e) => {
+                                    const value = e.target.value.replace(/\D/g, "");
+                                    setSalaryadd2Value(value);
+                                    handleChange('salaryadd2Value', value);
+                                  }}
+                                />
+                              </div>
+                            </div>
+                            <div className="col-md-4">
+                              <div className="custom-control custom-checkbox mb-3">
+                                <input
+                                  type="checkbox"
+                                  className="custom-control-input"
+                                  id="salaryadd3"
+                                  checked={salaryadd3}
+                                  onChange={(e) => {
+                                    setSalaryadd3(e.target.checked);
+                                    handleChange('salaryadd3', e.target.checked);
+                                  }}
+                                />
+                                <label className="custom-control-label font-weight-bold" htmlFor="salaryadd3">
+                                  <i className="fas fa-award mr-2 text-warning"></i>
+                                  เบี้ยขยัน
+                                </label>
+                                <input
+                                  type="text"
+                                  className="form-control mt-2"
+                                  placeholder="จำนวนเงิน"
+                                  value={salaryadd3Value}
+                                  onChange={(e) => {
+                                    const value = e.target.value.replace(/\D/g, "");
+                                    setSalaryadd3Value(value);
+                                    handleChange('salaryadd3Value', value);
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                          <div className="row">
+                            <div className="col-md-4">
+                              <div className="custom-control custom-checkbox mb-3">
+                                <input
+                                  type="checkbox"
+                                  className="custom-control-input"
+                                  id="salaryadd4"
+                                  checked={salaryadd4}
+                                  onChange={(e) => {
+                                    setSalaryadd4(e.target.checked);
+                                    handleChange('salaryadd4', e.target.checked);
+                                  }}
+                                />
+                                <label className="custom-control-label font-weight-bold" htmlFor="salaryadd4">
+                                  <i className="fas fa-phone mr-2 text-info"></i>
+                                  ค่าโทรศัพท์
+                                </label>
+                                <input
+                                  type="text"
+                                  className="form-control mt-2"
+                                  placeholder="จำนวนเงิน"
+                                  value={salaryadd4Value}
+                                  onChange={(e) => {
+                                    const value = e.target.value.replace(/\D/g, "");
+                                    setSalaryadd4Value(value);
+                                    handleChange('salaryadd4Value', value);
+                                  }}
+                                />
+                              </div>
+                            </div>
+                            <div className="col-md-4">
+                              <div className="custom-control custom-checkbox mb-3">
+                                <input
+                                  type="checkbox"
+                                  className="custom-control-input"
+                                  id="salaryadd5"
+                                  checked={salaryadd5}
+                                  onChange={(e) => {
+                                    setSalaryadd5(e.target.checked);
+                                    handleChange('salaryadd5', e.target.checked);
+                                  }}
+                                />
+                                <label className="custom-control-label font-weight-bold" htmlFor="salaryadd5">
+                                  <i className="fas fa-briefcase mr-2 text-danger"></i>
+                                  เงินประจำตำแหน่ง
+                                </label>
+                                <input
+                                  type="text"
+                                  className="form-control mt-2"
+                                  placeholder="จำนวนเงิน"
+                                  value={salaryadd5Value}
+                                  onChange={(e) => {
+                                    const value = e.target.value.replace(/\D/g, "");
+                                    setSalaryadd5Value(value);
+                                    handleChange('salaryadd5Value', value);
+                                  }}
+                                />
+                              </div>
+                            </div>
+                            <div className="col-md-4">
+                              <div className="form-group">
+                                <label className="font-weight-bold">
+                                  <i className="fas fa-calendar-alt mr-2 text-secondary"></i>
+                                  ประเภทการจ่าย
+                                </label>
+                                <select className="form-control">
+                                  <option value="">เลือกประเภท</option>
+                                  <option value="daily">รายวัน</option>
+                                  <option value="monthly">รายเดือน</option>
+                                </select>
+                              </div>
+                            </div>
+                          </div>
+
+                          <hr />
+
+                          <div className="row mb-3 mt-4">
+                            <div className="col-md-12">
+                              <h6 className="font-weight-bold text-secondary mb-3">
+                                <i className="fas fa-umbrella-beach mr-2"></i>
+                                วันลาคงเหลือและสวัสดิการ
+                              </h6>
+                            </div>
+                          </div>
+                          <div className="row">
+                            <div className="col-md-3">
+                              <div className="form-group">
+                                <label className="font-weight-bold">
+                                  <i className="fas fa-business-time mr-2 text-primary"></i>
+                                  วันลากิจคงเหลือ
+                                </label>
+                                <input
+                                  type="text"
+                                  className="form-control"
+                                  placeholder="จำนวนวัน"
+                                  value={businessLeave}
+                                  onChange={(e) => {
+                                    const value = e.target.value.replace(/\D/g, "");
+                                    setBusinessLeave(value);
+                                    handleChange('businessLeave', value);
+                                  }}
+                                />
+                              </div>
+                            </div>
+                            <div className="col-md-3">
+                              <div className="form-group">
+                                <label className="font-weight-bold">
+                                  <i className="fas fa-clinic-medical mr-2 text-danger"></i>
+                                  วันลาป่วยคงเหลือ
+                                </label>
+                                <input
+                                  type="text"
+                                  className="form-control"
+                                  placeholder="จำนวนวัน"
+                                  value={sickLeave}
+                                  onChange={(e) => {
+                                    const value = e.target.value.replace(/\D/g, "");
+                                    setSickLeave(value);
+                                    handleChange('sickLeave', value);
+                                  }}
+                                />
+                              </div>
+                            </div>
+                            <div className="col-md-3">
+                              <div className="form-group">
+                                <label className="font-weight-bold">
+                                  <i className="fas fa-plane-departure mr-2 text-info"></i>
+                                  วันลาพักร้อนคงเหลือ
+                                </label>
+                                <input
+                                  type="text"
+                                  className="form-control"
+                                  placeholder="จำนวนวัน"
+                                  value={vacationLeave}
+                                  onChange={(e) => {
+                                    const value = e.target.value.replace(/\D/g, "");
+                                    setVacationLeave(value);
+                                    handleChange('vacationLeave', value);
+                                  }}
+                                />
+                              </div>
+                            </div>
+                            <div className="col-md-3">
+                              <div className="form-group">
+                                <label className="font-weight-bold">
+                                  <i className="fas fa-baby mr-2 text-warning"></i>
+                                  วันลาคลอด
+                                </label>
+                                <input
+                                  type="text"
+                                  className="form-control"
+                                  placeholder="จำนวนวัน"
+                                  value={maternityLeave}
+                                  onChange={(e) => {
+                                    const value = e.target.value.replace(/\D/g, "");
+                                    setMaternityLeave(value);
+                                    handleChange('maternityLeave', value);
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* ปุ่มบันทึก */}
+                      <div className="text-center mb-4">
+                        <button className="btn btn-success btn-lg px-5">
+                          <i className="fas fa-save mr-2"></i>
+                          บันทึกข้อมูลเงินเดือน
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {activeTab === 'tab3' && (
+                  <div className="tab-content-3">
+                  
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     {/* </body> */}

@@ -5083,14 +5083,11 @@ const socialSecurityColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount;
           empRow1.push(record.dayWorkCount || '');
           // รวมวันหยุด (คอลัมน์ 1441)
           empRow1.push(record.customizeDayoff || '');
-          // วันนักขัต (คอลัมน์ 1434) - ตรวจสอบประเภทพนักงาน
-          const employeeForRow1Col1434 = employeeList.find(emp => emp.employeeId === record.employeeId);
+          // วันนักขัต (คอลัมน์ 1434)
           if (record?.isCrossWorkplace) {
             empRow1.push('0'); // พนักงานข้ามหน่วยงานแสดง 0
-          } else if (employeeForRow1Col1434?.jobtype === "รายเดือน") {
-            empRow1.push('0'); // พนักงานรายเดือนแสดง 0
           } else {
-            empRow1.push(record.publicHolidayCount || ''); // พนักงานรายวันแสดงจำนวนวันจริง
+            empRow1.push(record.publicHolidayCount || '');
           }
           empRow1.push(record.sumOtPublicHoliday || '');
           empRow1.push(record.sumOt1p5 || '');
@@ -5244,21 +5241,8 @@ const socialSecurityColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount;
           
           // Use exact same calculations as the web table to ensure consistency
           empRow2.push(formatNumberWithComma(record.sumCashWork) || '');                    // เงินวันทำงาน
-          
-          // ตรวจสอบประเภทพนักงาน ถ้าเป็นรายเดือนให้แสดง publicHolidayCash แทน cashcustomizeDayoff
-          const employeeForRow2 = employeeList.find(emp => emp.employeeId === record.employeeId);
-          if (employeeForRow2?.jobtype === "รายเดือน") {
-            empRow2.push(record.publicHolidayCash ? formatNumberWithComma(parseFloat(record.publicHolidayCash).toFixed(2)) : '');  // รวมวันหยุด (รายเดือน)
-          } else {
-            empRow2.push(formatNumberWithComma(record.cashcustomizeDayoff) || '');           // รวมวันหยุด (รายวัน)
-          }
-          
-          // ตรวจสอบประเภทพนักงาน ถ้าเป็นรายเดือนให้แสดง 0
-          if (employeeForRow2?.jobtype === "รายเดือน") {
-            empRow2.push('0');                                                               // รวมเงินทำงานนักขัติ (รายเดือน)
-          } else {
-            empRow2.push(formatNumberWithComma(record.publicHolidayCash) || '');             // รวมเงินทำงานนักขัติ (รายวัน)
-          }
+          empRow2.push(formatNumberWithComma(record.cashcustomizeDayoff) || '');           // รวมวันหยุด
+          empRow2.push(formatNumberWithComma(record.publicHolidayCash) || '');             // รวมเงินทำงานนักขัติ
           empRow2.push(formatNumberWithComma(record.sumCashWorkMul?.["2"]) || '');         // รวมเงินทำงานโอที2
           empRow2.push(formatNumberWithComma(record.sumCashWorkMul?.["1.5"]) || '');       // โอที 1.5
           empRow2.push(record.sumCashWorkMul?.["3"] ? formatNumberWithComma(parseFloat(record.sumCashWorkMul["3"]).toFixed(2)) : ''); // โอที 3
@@ -5395,14 +5379,17 @@ for (let i = 0; i < remainingCols3; i++) {
             // 🆕 ตรวจสอบว่าเป็น cash_holiday หรือไม่ - ถ้าใช่ไม่แสดงค่า
             const isCashHoliday = found?.shift === "cash_holiday";
             
+            // 🆕 ตรวจสอบว่า cashWorkMul = 2 หรือไม่
+            const isCashWorkMul2 = found?.cashWorkMul === 2;
+            
             // กำหนดเงื่อนไขการแสดงผล
             let shouldShowData = false;
             if (isCrossWorkplaceEmployee) {
-              // พนักงานข้ามหน่วยงาน: แสดงเฉพาะวันที่มาทำงานที่หน่วยงานที่เลือก และต้องเป็น dayType "stop" และมี totalTime และไม่ใช่ cash_holiday
-              shouldShowData = found && isMatchSearchWorkplace && found?.dayType === "stop" && found.totalTime && !isCashHoliday;
+              // พนักงานข้ามหน่วยงาน: แสดงเฉพาะวันที่มาทำงานที่หน่วยงานที่เลือก และต้องเป็น dayType "stop" และมี totalTime และไม่ใช่ cash_holiday และ cashWorkMul = 2
+              shouldShowData = found && isMatchSearchWorkplace && found?.dayType === "stop" && found.totalTime && !isCashHoliday && isCashWorkMul2;
             } else {
-              // พนักงานปกติ: แสดงทุกวันที่มีข้อมูล dayType "stop" และมี totalTime และไม่ใช่ cash_holiday
-              shouldShowData = found?.dayType === "stop" && found.totalTime && !isCashHoliday;
+              // พนักงานปกติ: แสดงทุกวันที่มีข้อมูล dayType "stop" และมี totalTime และไม่ใช่ cash_holiday และ cashWorkMul = 2
+              shouldShowData = found?.dayType === "stop" && found.totalTime && !isCashHoliday && isCashWorkMul2;
             }
             
             // ตรวจสอบประเภทพนักงาน ถ้าเป็นรายเดือนไม่ให้แสดง totalTime
@@ -9051,9 +9038,7 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                       if (record?.isCrossWorkplace) {
                         return <span style={{ color: 'red' }}>0</span>;
                       }
-                      // ตรวจสอบประเภทพนักงาน ถ้าเป็นรายเดือนให้แสดง publicHolidayCount แทน customizeDayoff
-                      const employee = employeeList.find(emp => emp.employeeId === record.employeeId);
-                      return employee?.jobtype === "รายเดือน" ? (record.publicHolidayCount || '') : (record.customizeDayoff || '');
+                      return record.customizeDayoff || '';
                     })()} 
                       
                       </td>
@@ -9067,9 +9052,7 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                       if (record?.isCrossWorkplace) {
                         return <span style={{ color: 'red' }}>0</span>;
                       }
-                      // ตรวจสอบประเภทพนักงาน ถ้าเป็นรายเดือนให้แสดง 0
-                      const employee = employeeList.find(emp => emp.employeeId === record.employeeId);
-                      return employee?.jobtype === "รายเดือน" ? "0" : (record.publicHolidayCount || '');
+                      return record.publicHolidayCount || '';
                     })()} 
                     </td>
 
@@ -9291,17 +9274,7 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
 
                     <td  className="text-center align-middle" style={{backgroundColor:"#fcdfca"}}>
                        {/* รวมเงินจ่ายนักขัต*/}
-                       {(() => {
-                        // ตรวจสอบประเภทพนักงาน ถ้าเป็นรายเดือนให้แสดง publicHolidayCash แทน cashcustomizeDayoff
-                        const employee = employeeList.find(emp => emp.employeeId === record.employeeId);
-                        if (employee?.jobtype === "รายเดือน") {
-                          return record.publicHolidayCash ? formatNumberWithComma(parseFloat(record.publicHolidayCash).toFixed(2)) : '';
-                        } else {
-                          return record.cashcustomizeDayoff ? formatNumberWithComma(parseFloat(record.cashcustomizeDayoff).toFixed(2)) : '';
-                        }
-                      })()}
-
-                     
+                       {record.cashcustomizeDayoff ? formatNumberWithComma(parseFloat(record.cashcustomizeDayoff).toFixed(2)) : ''}
                       </td>
 
                       <td  className="text-center p-1 align-middle">
@@ -9310,11 +9283,6 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                         // ตรวจสอบว่าเป็นพนักงานข้ามหน่วยงานหรือไม่
                         if (record?.isCrossWorkplace) {
                           return <span style={{ color: 'red' }}>0</span>;
-                        }
-                        // ตรวจสอบประเภทพนักงาน ถ้าเป็นรายเดือนให้แสดง 0
-                        const employee = employeeList.find(emp => emp.employeeId === record.employeeId);
-                        if (employee?.jobtype === "รายเดือน") {
-                          return '0';
                         }
                         return record.publicHolidayCash ? formatNumberWithComma(record.publicHolidayCash) : '';
                       })()}

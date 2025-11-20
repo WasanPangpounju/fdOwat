@@ -779,22 +779,19 @@ useEffect(() => {
 // ...existing code...
 
 const handleAddLoan = () => {
-    // ตรวจสอบข้อมูลพื้นฐาน
-    if (!loanAmount || !loanContractCode || !minusId || !misnusName || !interestRate) {
-        showToast('กรุณากรอกข้อมูลให้ครบถ้วน:\n- จำนวนเงิน\n- รหัสสัญญาเงินกู้\n- รหัสเงินหัก\n- ชื่อรายการเงินหัก\n- ระยะเวลา', 'error');
+    // ตรวจสอบข้อมูลพื้นฐาน (ไม่บังคับระยะเวลา)
+    if (!loanAmount || !loanContractCode || !minusId || !misnusName) {
+        showToast('กรุณากรอกข้อมูลให้ครบถ้วน:\n- จำนวนเงิน\n- รหัสสัญญาเงินกู้\n- รหัสเงินหัก\n- ชื่อรายการเงินหัก', 'error');
         return;
     }
 
-    // ตรวจสอบว่ามีการใส่ยอดเงินในเดือนใดเดือนหนึ่งอย่างน้อง
-    if (!monthlyPayments || monthlyPayments.length === 0) {
-        showToast('กรุณาเลือกระยะเวลาผ่อนชำระก่อน', 'error');
-        return;
-    }
-
-    const hasAmount = monthlyPayments.some(month => month.amount && Number(month.amount) > 0);
-    if (!hasAmount) {
-        showToast('กรุณาใส่ยอดเงินอย่างน้อยหนึ่งเดือน', 'error');
-        return;
+    // ถ้ามีการเลือกระยะเวลา ต้องใส่ยอดเงินอย่างน้อยหนึ่งเดือน
+    if (interestRate && monthlyPayments && monthlyPayments.length > 0) {
+        const hasAmount = monthlyPayments.some(month => month.amount && Number(month.amount) > 0);
+        if (!hasAmount) {
+            showToast('กรุณาใส่ยอดเงินอย่างน้อยหนึ่งเดือน', 'error');
+            return;
+        }
     }
 
     const amount = Number(loanAmount);
@@ -2131,7 +2128,7 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                         <div className="form-group mb-4">
                                             <label style={{ fontWeight: 'bold', fontSize: '16px', color: '#333' }}>
                                                 <i className="fas fa-calendar mr-2 text-info"></i>
-                                                ระยะเวลา (เดือน) <span style={{ color: 'red' }}>*</span>
+                                                ระยะเวลา (เดือน)
                                             </label>
                                             <select 
                                                 className="form-control form-control-lg"
