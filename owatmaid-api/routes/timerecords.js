@@ -2503,6 +2503,8 @@ router.put('/updateworkplacetimerecords/:workplaceRecordId', async (req, res) =>
 
 // API สำหรับเช็คการจ่ายสด (cash_holiday)
 // รับ parameters: startDate (วัน/เดือน), endDate (วัน/เดือน), year (พ.ศ.)
+// หมายเหตุ: รอบการจ่ายเงินคือวันที่ 21 ของเดือนก่อนหน้า ถึงวันที่ 20 ของเดือนปัจจุบัน
+// ข้อมูลจะถูกเก็บในเดือนของวันที่สิ้นสุดรอบ (วันที่ 20)
 router.post('/checkcashholiday', async (req, res) => {
   try {
     const { startDate, endDate, year } = req.body;
@@ -2523,31 +2525,33 @@ router.post('/checkcashholiday', async (req, res) => {
     // แปลง พ.ศ. เป็น ค.ศ.
     const yearAD = parseInt(year) - 543;
 
-    // สร้าง array ของเดือนที่ต้องค้นหา
+    // คำนวณหาเดือนที่ต้องค้นหาในฐานข้อมูล
+    // กฎ: ข้อมูลวันที่ 21-30/31 จะถูกเก็บในเดือนถัดไป
+    //     ข้อมูลวันที่ 1-20 จะถูกเก็บในเดือนเดียวกัน
     let monthsToSearch = [];
     
-    if (startMonth === endMonth) {
-      // กรณีเดือนเดียวกัน
-      monthsToSearch = [startMonth.toString()];
+    // ถ้าเริ่มต้นที่วันที่ >= 21 แสดงว่าข้อมูลจะอยู่ในเดือนถัดไป
+    if (startDay >= 21) {
+      const dataMonth = startMonth === 12 ? 1 : startMonth + 1;
+      monthsToSearch.push(dataMonth.toString());
     } else {
-      // กรณีข้ามเดือน (เช่น 21/09 - 20/10)
-      // ถ้า startMonth > endMonth แสดงว่าข้ามปี (เช่น 12 - 01)
-      if (startMonth < endMonth) {
-        for (let m = startMonth; m <= endMonth; m++) {
-          monthsToSearch.push(m.toString());
-        }
-      } else {
-        // ข้ามปี
-        for (let m = startMonth; m <= 12; m++) {
-          monthsToSearch.push(m.toString());
-        }
-        for (let m = 1; m <= endMonth; m++) {
-          monthsToSearch.push(m.toString());
-        }
+      monthsToSearch.push(startMonth.toString());
+    }
+    
+    // ถ้าสิ้นสุดที่วันที่ <= 20 แสดงว่าข้อมูลจะอยู่ในเดือนเดียวกัน
+    if (endDay <= 20) {
+      if (!monthsToSearch.includes(endMonth.toString())) {
+        monthsToSearch.push(endMonth.toString());
+      }
+    } else {
+      // ถ้าสิ้นสุดที่วันที่ >= 21 แสดงว่าข้อมูลจะอยู่ในเดือนถัดไป
+      const dataMonth = endMonth === 12 ? 1 : endMonth + 1;
+      if (!monthsToSearch.includes(dataMonth.toString())) {
+        monthsToSearch.push(dataMonth.toString());
       }
     }
 
-    console.log(`📅 [checkcashholiday] เดือนที่จะค้นหา:`, monthsToSearch);
+    console.log(`📅 [checkcashholiday] เดือนที่จะค้นหาในฐานข้อมูล:`, monthsToSearch);
 
     // Query ข้อมูลจาก timerecordEmployee
     const timerecords = await timerecordEmployee.find({
@@ -2563,46 +2567,53 @@ router.post('/checkcashholiday', async (req, res) => {
 
     timerecords.forEach(record => {
       const { employeeId, employeeName, prefix, month, employee_record } = record;
+      const dataMonth = parseInt(month);
 
       // กรองเฉพาะ records ที่เป็น cash_holiday และอยู่ในช่วงวันที่ที่ต้องการ
       const cashHolidayRecords = employee_record.filter(emp_rec => {
         if (emp_rec.shift !== 'cash_holiday') return false;
 
         const recordDay = parseInt(emp_rec.date);
-        const recordMonth = parseInt(month);
-
-        // ตรวจสอบว่าวันและเดือนอยู่ในช่วงที่กำหนดหรือไม่
-        if (startMonth === endMonth) {
-          // เดือนเดียวกัน
-          return recordMonth === startMonth && recordDay >= startDay && recordDay <= endDay;
-        } else {
-          // ข้ามเดือน
-          if (recordMonth === startMonth) {
-            // เดือนแรก: ตั้งแต่ startDay ถึงวันสุดท้ายของเดือน
-            return recordDay >= startDay;
-          } else if (recordMonth === endMonth) {
-            // เดือนหลัง: ตั้งแต่วันที่ 1 ถึง endDay
-            return recordDay <= endDay;
-          } else if (monthsToSearch.includes(recordMonth.toString())) {
-            // เดือนที่อยู่ระหว่าง: ทุกวัน
-            return true;
-          }
+        
+        // คำนวณเดือนจริงของข้อมูล
+        // ถ้าวันที่ >= 21 แสดงว่าเป็นข้อมูลของเดือนก่อนหน้า
+        let actualMonth = dataMonth;
+        if (recordDay >= 21) {
+          actualMonth = dataMonth === 1 ? 12 : dataMonth - 1;
         }
-        return false;
+
+        // ตรวจสอบว่าอยู่ในช่วงที่ต้องการหรือไม่
+        // สร้าง comparable date (yyyymmdd format)
+        const recordDate = actualMonth * 100 + recordDay;
+        const startDateComp = startMonth * 100 + startDay;
+        const endDateComp = endMonth * 100 + endDay;
+
+        // กรณีไม่ข้ามปี
+        if (startMonth <= endMonth) {
+          return recordDate >= startDateComp && recordDate <= endDateComp;
+        } else {
+          // กรณีข้ามปี (เช่น 12/25 - 01/20)
+          return recordDate >= startDateComp || recordDate <= endDateComp;
+        }
       });
 
       // สร้างรายการสำหรับแต่ละ cash_holiday record
       cashHolidayRecords.forEach(emp_rec => {
-        const displayMonth = parseInt(month);
-        const displayDay = parseInt(emp_rec.date);
+        const recordDay = parseInt(emp_rec.date);
+        
+        // คำนวณเดือนจริงที่จะแสดงผล
+        let displayMonth = dataMonth;
+        if (recordDay >= 21) {
+          displayMonth = dataMonth === 1 ? 12 : dataMonth - 1;
+        }
         
         results.push({
           employeeId: employeeId,
           employeeName: `${prefix || ''}${employeeName}`.trim(),
           workplaceId: emp_rec.workplaceId,
           workplaceName: emp_rec.workplaceName,
-          date: `${displayDay}/${displayMonth}/${year}`,
-          day: displayDay,
+          date: `${recordDay}/${displayMonth}/${year}`,
+          day: recordDay,
           month: displayMonth,
           year: year,
           shift: emp_rec.shift,
@@ -2622,8 +2633,19 @@ router.post('/checkcashholiday', async (req, res) => {
 
     // เรียงลำดับตามวันที่
     results.sort((a, b) => {
-      if (a.month !== b.month) return a.month - b.month;
-      return a.day - b.day;
+      // สร้าง comparable date
+      const dateA = a.month * 100 + a.day;
+      const dateB = b.month * 100 + b.day;
+      
+      // กรณีข้ามปี ต้องจัดการพิเศษ
+      if (startMonth > endMonth) {
+        // ถ้าเดือนมากกว่าหรือเท่ากับ startMonth ถือว่าเป็นปีก่อน (ให้ค่าน้อยกว่า)
+        const adjustedA = a.month >= startMonth ? dateA - 1300 : dateA;
+        const adjustedB = b.month >= startMonth ? dateB - 1300 : dateB;
+        return adjustedA - adjustedB;
+      }
+      
+      return dateA - dateB;
     });
 
     // สรุปยอดรวม
@@ -2643,7 +2665,8 @@ router.post('/checkcashholiday', async (req, res) => {
         startDate: startDate,
         endDate: endDate,
         year: year,
-        yearAD: yearAD.toString()
+        yearAD: yearAD.toString(),
+        note: 'รอบการจ่ายเงิน: วันที่ 21 ของเดือนก่อนหน้า ถึงวันที่ 20 ของเดือนปัจจุบัน'
       },
       summary: summary,
       data: results
