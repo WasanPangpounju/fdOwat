@@ -2501,5 +2501,162 @@ router.put('/updateworkplacetimerecords/:workplaceRecordId', async (req, res) =>
   }
 });
 
+// API สำหรับเช็คการจ่ายสด (cash_holiday)
+// รับ parameters: startDate (วัน/เดือน), endDate (วัน/เดือน), year (พ.ศ.)
+router.post('/checkcashholiday', async (req, res) => {
+  try {
+    const { startDate, endDate, year } = req.body;
+
+    // ตรวจสอบ parameters ที่จำเป็น
+    if (!startDate || !endDate || !year) {
+      return res.status(400).json({ 
+        error: 'กรุณาระบุ startDate (dd/mm), endDate (dd/mm) และ year (พ.ศ.)' 
+      });
+    }
+
+    // แปลง startDate และ endDate เป็น [วัน, เดือน]
+    const [startDay, startMonth] = startDate.split('/').map(Number);
+    const [endDay, endMonth] = endDate.split('/').map(Number);
+
+    console.log(`🔍 [checkcashholiday] ค้นหาการจ่ายสด: ${startDay}/${startMonth} - ${endDay}/${endMonth} ปี ${year}`);
+
+    // แปลง พ.ศ. เป็น ค.ศ.
+    const yearAD = parseInt(year) - 543;
+
+    // สร้าง array ของเดือนที่ต้องค้นหา
+    let monthsToSearch = [];
+    
+    if (startMonth === endMonth) {
+      // กรณีเดือนเดียวกัน
+      monthsToSearch = [startMonth.toString()];
+    } else {
+      // กรณีข้ามเดือน (เช่น 21/09 - 20/10)
+      // ถ้า startMonth > endMonth แสดงว่าข้ามปี (เช่น 12 - 01)
+      if (startMonth < endMonth) {
+        for (let m = startMonth; m <= endMonth; m++) {
+          monthsToSearch.push(m.toString());
+        }
+      } else {
+        // ข้ามปี
+        for (let m = startMonth; m <= 12; m++) {
+          monthsToSearch.push(m.toString());
+        }
+        for (let m = 1; m <= endMonth; m++) {
+          monthsToSearch.push(m.toString());
+        }
+      }
+    }
+
+    console.log(`📅 [checkcashholiday] เดือนที่จะค้นหา:`, monthsToSearch);
+
+    // Query ข้อมูลจาก timerecordEmployee
+    const timerecords = await timerecordEmployee.find({
+      year: yearAD.toString(),
+      month: { $in: monthsToSearch },
+      'employee_record.shift': 'cash_holiday'
+    });
+
+    console.log(`📊 [checkcashholiday] พบ timerecords: ${timerecords.length} รายการ`);
+
+    // ประมวลผลข้อมูล
+    const results = [];
+
+    timerecords.forEach(record => {
+      const { employeeId, employeeName, prefix, month, employee_record } = record;
+
+      // กรองเฉพาะ records ที่เป็น cash_holiday และอยู่ในช่วงวันที่ที่ต้องการ
+      const cashHolidayRecords = employee_record.filter(emp_rec => {
+        if (emp_rec.shift !== 'cash_holiday') return false;
+
+        const recordDay = parseInt(emp_rec.date);
+        const recordMonth = parseInt(month);
+
+        // ตรวจสอบว่าวันและเดือนอยู่ในช่วงที่กำหนดหรือไม่
+        if (startMonth === endMonth) {
+          // เดือนเดียวกัน
+          return recordMonth === startMonth && recordDay >= startDay && recordDay <= endDay;
+        } else {
+          // ข้ามเดือน
+          if (recordMonth === startMonth) {
+            // เดือนแรก: ตั้งแต่ startDay ถึงวันสุดท้ายของเดือน
+            return recordDay >= startDay;
+          } else if (recordMonth === endMonth) {
+            // เดือนหลัง: ตั้งแต่วันที่ 1 ถึง endDay
+            return recordDay <= endDay;
+          } else if (monthsToSearch.includes(recordMonth.toString())) {
+            // เดือนที่อยู่ระหว่าง: ทุกวัน
+            return true;
+          }
+        }
+        return false;
+      });
+
+      // สร้างรายการสำหรับแต่ละ cash_holiday record
+      cashHolidayRecords.forEach(emp_rec => {
+        const displayMonth = parseInt(month);
+        const displayDay = parseInt(emp_rec.date);
+        
+        results.push({
+          employeeId: employeeId,
+          employeeName: `${prefix || ''}${employeeName}`.trim(),
+          workplaceId: emp_rec.workplaceId,
+          workplaceName: emp_rec.workplaceName,
+          date: `${displayDay}/${displayMonth}/${year}`,
+          day: displayDay,
+          month: displayMonth,
+          year: year,
+          shift: emp_rec.shift,
+          startTime: emp_rec.startTime,
+          endTime: emp_rec.endTime,
+          totalTime: emp_rec.totalTime,
+          startOtTime: emp_rec.startOtTime,
+          endOtTime: emp_rec.endOtTime,
+          totalOtTime: emp_rec.totalOtTime,
+          cashOfHoliday: emp_rec.cashOfHoliday || '0',
+          cashOfHolidayOt: emp_rec.cashOfHolidayOt || '0',
+          messageSalary: emp_rec.messageSalary || '',
+          totalCash: (parseFloat(emp_rec.cashOfHoliday || 0) + parseFloat(emp_rec.cashOfHolidayOt || 0)).toString()
+        });
+      });
+    });
+
+    // เรียงลำดับตามวันที่
+    results.sort((a, b) => {
+      if (a.month !== b.month) return a.month - b.month;
+      return a.day - b.day;
+    });
+
+    // สรุปยอดรวม
+    const summary = {
+      totalRecords: results.length,
+      totalEmployees: [...new Set(results.map(r => r.employeeId))].length,
+      totalCashOfHoliday: results.reduce((sum, r) => sum + parseFloat(r.cashOfHoliday || 0), 0).toFixed(2),
+      totalCashOfHolidayOt: results.reduce((sum, r) => sum + parseFloat(r.cashOfHolidayOt || 0), 0).toFixed(2),
+      grandTotal: results.reduce((sum, r) => sum + parseFloat(r.totalCash || 0), 0).toFixed(2)
+    };
+
+    console.log(`✅ [checkcashholiday] พบข้อมูลการจ่ายสด: ${results.length} รายการ`);
+
+    res.status(200).json({
+      success: true,
+      searchCriteria: {
+        startDate: startDate,
+        endDate: endDate,
+        year: year,
+        yearAD: yearAD.toString()
+      },
+      summary: summary,
+      data: results
+    });
+
+  } catch (error) {
+    console.error('❌ [checkcashholiday] Error:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      message: error.message 
+    });
+  }
+});
+
 
 module.exports = router;
