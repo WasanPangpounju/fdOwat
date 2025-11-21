@@ -2790,21 +2790,49 @@ router.post('/confirmcashpayment', async (req, res) => {
         
         const dataMonthStr = dataMonth.toString().padStart(2, '0');
         
-        console.log(`📝 [confirmcashpayment] อัพเดต employee ${item.employeeId}, วันที่ ${day}/${month}, เดือนในDB: ${dataMonthStr}`);
+        console.log(`📝 [confirmcashpayment] อัพเดต employee ${item.employeeId}, วันที่ ${day}/${month}, เดือนในDB: ${dataMonthStr}, workplaceId: ${item.workplaceId}`);
         
-        // อัพเดต employee_record
+        // ค้นหา document ก่อน
+        const employeeDoc = await timerecordEmployee.findOne({
+          year: yearAD.toString(),
+          month: dataMonthStr,
+          employeeId: item.employeeId
+        });
+        
+        if (!employeeDoc) {
+          console.log(`❌ [confirmcashpayment] ไม่พบ employee document: ${item.employeeId}, year: ${yearAD}, month: ${dataMonthStr}`);
+          return null;
+        }
+        
+        // หา index ของ employee_record ที่ตรงกัน
+        const recordIndex = employeeDoc.employee_record.findIndex(rec => 
+          rec.workplaceId === item.workplaceId &&
+          rec.date === day.toString() &&
+          rec.shift === 'cash_holiday'
+        );
+        
+        if (recordIndex === -1) {
+          console.log(`❌ [confirmcashpayment] ไม่พบ record: workplaceId=${item.workplaceId}, date=${day}, shift=cash_holiday`);
+          console.log(`📋 Available records:`, employeeDoc.employee_record.map(r => ({
+            workplaceId: r.workplaceId,
+            date: r.date,
+            shift: r.shift
+          })));
+          return null;
+        }
+        
+        console.log(`🎯 [confirmcashpayment] พบ record ที่ index ${recordIndex}`);
+        
+        // อัพเดตโดยใช้ array index
         const updateResult = await timerecordEmployee.updateOne(
           {
             year: yearAD.toString(),
             month: dataMonthStr,
-            employeeId: item.employeeId,
-            'employee_record.workplaceId': item.workplaceId,
-            'employee_record.date': day.toString(),
-            'employee_record.shift': 'cash_holiday'
+            employeeId: item.employeeId
           },
           {
             $set: {
-              'employee_record.$.cashPaymentApprovalId': savedApproval._id.toString()
+              [`employee_record.${recordIndex}.cashPaymentApprovalId`]: savedApproval._id.toString()
             }
           }
         );
@@ -2812,7 +2840,7 @@ router.post('/confirmcashpayment', async (req, res) => {
         if (updateResult.modifiedCount > 0) {
           console.log(`✅ [confirmcashpayment] อัพเดตสำเร็จ: ${item.employeeId} วันที่ ${day}/${month}`);
         } else {
-          console.log(`⚠️ [confirmcashpayment] ไม่พบข้อมูลที่ตรงกัน: ${item.employeeId} วันที่ ${day}/${month}`);
+          console.log(`⚠️ [confirmcashpayment] Update failed: ${item.employeeId}`);
         }
         
         return updateResult;
