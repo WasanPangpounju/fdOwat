@@ -2565,24 +2565,14 @@ router.post('/checkcashholiday', async (req, res) => {
 
     // ประมวลผลข้อมูล
     const results = [];
-    let totalFiltered = 0; // นับจำนวนที่ถูกกรองออก
 
     timerecords.forEach(record => {
       const { employeeId, employeeName, prefix, month, employee_record } = record;
       const dataMonth = parseInt(month);
-
-      // นับจำนวนรายการที่ถูกกรองออก
-      const totalCashHoliday = employee_record.filter(emp_rec => emp_rec.shift === 'cash_holiday').length;
       
       // กรองเฉพาะ records ที่เป็น cash_holiday และอยู่ในช่วงวันที่ที่ต้องการ
       const cashHolidayRecords = employee_record.filter(emp_rec => {
         if (emp_rec.shift !== 'cash_holiday') return false;
-
-        // ✅ กรองออกถ้ามี cashPaymentApprovalId แล้ว (ถูกอนุมัติไปแล้ว)
-        if (emp_rec.cashPaymentApprovalId) {
-          console.log(`⏭️ [checkcashholiday] ข้าม: ${employeeId} วันที่ ${emp_rec.date} (อนุมัติแล้ว: ${emp_rec.cashPaymentApprovalId})`);
-          return false;
-        }
 
         const recordDay = parseInt(emp_rec.date);
         
@@ -2607,14 +2597,6 @@ router.post('/checkcashholiday', async (req, res) => {
           return recordDate >= startDateComp || recordDate <= endDateComp;
         }
       });
-
-      // นับจำนวนที่ถูกกรองออก
-      const filteredCount = totalCashHoliday - cashHolidayRecords.length;
-      totalFiltered += filteredCount;
-      
-      if (filteredCount > 0) {
-        console.log(`📊 [checkcashholiday] พนักงาน ${employeeId}: มี ${totalCashHoliday} รายการ, กรองออก ${filteredCount} รายการ (อนุมัติแล้ว)`);
-      }
 
       // สร้างรายการสำหรับแต่ละ cash_holiday record
       cashHolidayRecords.forEach(emp_rec => {
@@ -2673,11 +2655,10 @@ router.post('/checkcashholiday', async (req, res) => {
       totalEmployees: [...new Set(results.map(r => r.employeeId))].length,
       totalCashOfHoliday: results.reduce((sum, r) => sum + parseFloat(r.cashOfHoliday || 0), 0).toFixed(2),
       totalCashOfHolidayOt: results.reduce((sum, r) => sum + parseFloat(r.cashOfHolidayOt || 0), 0).toFixed(2),
-      grandTotal: results.reduce((sum, r) => sum + parseFloat(r.totalCash || 0), 0).toFixed(2),
-      filteredOutApproved: totalFiltered // จำนวนที่ถูกกรองออกเพราะอนุมัติแล้ว
+      grandTotal: results.reduce((sum, r) => sum + parseFloat(r.totalCash || 0), 0).toFixed(2)
     };
 
-    console.log(`✅ [checkcashholiday] พบข้อมูลการจ่ายสด: ${results.length} รายการ (กรองออก: ${totalFiltered} รายการ)`);
+    console.log(`✅ [checkcashholiday] พบข้อมูลการจ่ายสด: ${results.length} รายการ`);
 
     res.status(200).json({
       success: true,
@@ -2774,9 +2755,8 @@ router.post('/confirmcashpayment', async (req, res) => {
 
     console.log('✅ [confirmcashpayment] บันทึกการอนุมัติสำเร็จ:', savedApproval._id);
 
-    // ✅ อัพเดต employee_record ให้มี cashPaymentApprovalId
-    // วนลูปแต่ละ item เพื่อหา employee_record และอัพเดต
-    const updatePromises = items.map(async (item) => {
+    // ✅ ลบ employee_record ที่อนุมัติแล้วออกจากฐานข้อมูล
+    const deletePromises = items.map(async (item) => {
       try {
         // แปลงวันที่จาก format "21/9/2568" เป็น components
         const [day, month, yearBE] = item.date.split('/').map(Number);
@@ -2790,60 +2770,41 @@ router.post('/confirmcashpayment', async (req, res) => {
         
         const dataMonthStr = dataMonth.toString().padStart(2, '0');
         
-        console.log(`📝 [confirmcashpayment] อัพเดต employee ${item.employeeId}, วันที่ ${day}/${month}, เดือนในDB: ${dataMonthStr}, workplaceId: ${item.workplaceId}`);
+        console.log(`�️ [confirmcashpayment] ลบ record: employee ${item.employeeId}, วันที่ ${day}/${month}, เดือนในDB: ${dataMonthStr}, workplaceId: ${item.workplaceId}`);
         
-        // ค้นหา document ก่อน
-        const employeeDoc = await timerecordEmployee.findOne({
-          year: yearAD.toString(),
-          month: dataMonthStr,
-          employeeId: item.employeeId
-        });
-        
-        if (!employeeDoc) {
-          console.log(`❌ [confirmcashpayment] ไม่พบ employee document: ${item.employeeId}, year: ${yearAD}, month: ${dataMonthStr}`);
-          return null;
-        }
-        
-        // หา index ของ employee_record ที่ตรงกัน
-        const recordIndex = employeeDoc.employee_record.findIndex(rec => 
-          rec.workplaceId === item.workplaceId &&
-          rec.date === day.toString() &&
-          rec.shift === 'cash_holiday'
+        // ลบ record ออกจาก employee_record array โดยใช้ $pull
+        const deleteResult = await timerecordEmployee.updateOne(
+          {
+            year: yearAD.toString(),
+            month: dataMonthStr,
+            employeeId: item.employeeId
+          },
+          {
+            $pull: {
+              employee_record: {
+                workplaceId: item.workplaceId,
+                date: day.toString(),
+                shift: 'cash_holiday'
+              }
+            }
+          }
         );
         
-        if (recordIndex === -1) {
-          console.log(`❌ [confirmcashpayment] ไม่พบ record: workplaceId=${item.workplaceId}, date=${day}, shift=cash_holiday`);
-          console.log(`📋 Available records:`, employeeDoc.employee_record.map(r => ({
-            workplaceId: r.workplaceId,
-            date: r.date,
-            shift: r.shift
-          })));
-          return null;
-        }
-        
-        console.log(`🎯 [confirmcashpayment] พบ record ที่ index ${recordIndex}`);
-        
-        // อัพเดต employee_record array โดยตรง
-        employeeDoc.employee_record[recordIndex].cashPaymentApprovalId = savedApproval._id.toString();
-        
-        // บันทึกกลับลง database
-        const updateResult = await employeeDoc.save();
-        
-        if (updateResult) {
-          console.log(`✅ [confirmcashpayment] อัพเดตสำเร็จ: ${item.employeeId} วันที่ ${day}/${month} (approvalId: ${savedApproval._id.toString().substring(0, 8)}...)`);
+        if (deleteResult.modifiedCount > 0) {
+          console.log(`✅ [confirmcashpayment] ลบสำเร็จ: ${item.employeeId} วันที่ ${day}/${month} workplaceId: ${item.workplaceId}`);
         } else {
-          console.log(`⚠️ [confirmcashpayment] Update failed: ${item.employeeId}`);
+          console.log(`⚠️ [confirmcashpayment] ไม่พบ record ที่จะลบ: ${item.employeeId}`);
         }
         
-        return updateResult;
+        return deleteResult;
       } catch (error) {
-        console.error(`❌ [confirmcashpayment] Error updating employee ${item.employeeId}:`, error);
+        console.error(`❌ [confirmcashpayment] Error deleting record for employee ${item.employeeId}:`, error);
         return null;
       }
     });
     
-    await Promise.all(updatePromises);
-    console.log('✅ [confirmcashpayment] อัพเดต employee_record ทั้งหมดเสร็จสิ้น');
+    await Promise.all(deletePromises);
+    console.log('✅ [confirmcashpayment] ลบ employee_record ที่อนุมัติแล้วทั้งหมดเสร็จสิ้น');
 
     res.json({
       success: true,
