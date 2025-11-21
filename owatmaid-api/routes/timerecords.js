@@ -2823,22 +2823,14 @@ router.post('/confirmcashpayment', async (req, res) => {
         
         console.log(`🎯 [confirmcashpayment] พบ record ที่ index ${recordIndex}`);
         
-        // อัพเดตโดยใช้ array index
-        const updateResult = await timerecordEmployee.updateOne(
-          {
-            year: yearAD.toString(),
-            month: dataMonthStr,
-            employeeId: item.employeeId
-          },
-          {
-            $set: {
-              [`employee_record.${recordIndex}.cashPaymentApprovalId`]: savedApproval._id.toString()
-            }
-          }
-        );
+        // อัพเดต employee_record array โดยตรง
+        employeeDoc.employee_record[recordIndex].cashPaymentApprovalId = savedApproval._id.toString();
         
-        if (updateResult.modifiedCount > 0) {
-          console.log(`✅ [confirmcashpayment] อัพเดตสำเร็จ: ${item.employeeId} วันที่ ${day}/${month}`);
+        // บันทึกกลับลง database
+        const updateResult = await employeeDoc.save();
+        
+        if (updateResult) {
+          console.log(`✅ [confirmcashpayment] อัพเดตสำเร็จ: ${item.employeeId} วันที่ ${day}/${month} (approvalId: ${savedApproval._id.toString().substring(0, 8)}...)`);
         } else {
           console.log(`⚠️ [confirmcashpayment] Update failed: ${item.employeeId}`);
         }
