@@ -4,6 +4,7 @@ const sURL = 'http://localhost:3000';
 const timerecordEmployee = require('./models/periodtimerecordModel');
 const workplaceTimerecords = require('./models/periodworkplacetimerecordModel');
 const welfare = require('./models/welfareModel');
+const CashPaymentApproval = require('./models/cashPaymentApprovalModel');
 
 const axios = require('axios');
 
@@ -2675,6 +2676,272 @@ router.post('/checkcashholiday', async (req, res) => {
   } catch (error) {
     console.error('❌ [checkcashholiday] Error:', error);
     res.status(500).json({ 
+      error: 'Internal server error',
+      message: error.message 
+    });
+  }
+});
+
+// API: บันทึกการยืนยันการเบิกจ่าย
+router.post('/confirmcashpayment', async (req, res) => {
+  try {
+    const { 
+      items, 
+      totalAmount, 
+      totalDeduction, 
+      netAmount, 
+      startDate, 
+      endDate, 
+      approvedBy, 
+      note 
+    } = req.body;
+
+    console.log('📝 [confirmcashpayment] รับคำขอยืนยันการเบิกจ่าย:', {
+      itemsCount: items?.length,
+      totalAmount,
+      totalDeduction,
+      netAmount,
+      startDate,
+      endDate,
+      approvedBy
+    });
+
+    // Validate required fields
+    if (!items || items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'กรุณาระบุรายการที่ต้องการอนุมัติ'
+      });
+    }
+
+    if (!startDate || !endDate) {
+      return res.status(400).json({
+        success: false,
+        error: 'กรุณาระบุช่วงวันที่'
+      });
+    }
+
+    if (!approvedBy) {
+      return res.status(400).json({
+        success: false,
+        error: 'กรุณาระบุผู้อนุมัติ'
+      });
+    }
+
+    // แปลงวันที่เป็น Date object
+    const startDateObj = new Date(startDate);
+    const endDateObj = new Date(endDate);
+    
+    // สร้างปี พ.ศ.
+    const year = (endDateObj.getFullYear() + 543).toString();
+
+    // สร้างเอกสารการอนุมัติใหม่
+    const approval = new CashPaymentApproval({
+      startDate: startDateObj,
+      endDate: endDateObj,
+      year: year,
+      approvedBy: approvedBy,
+      approvedAt: new Date(),
+      totalAmount: totalAmount,
+      totalDeduction: totalDeduction,
+      netAmount: netAmount,
+      items: items,
+      status: 'approved',
+      note: note || ''
+    });
+
+    // บันทึกลงฐานข้อมูล
+    const savedApproval = await approval.save();
+
+    console.log('✅ [confirmcashpayment] บันทึกการอนุมัติสำเร็จ:', savedApproval._id);
+
+    res.json({
+      success: true,
+      message: 'บันทึกการยืนยันการเบิกจ่ายสำเร็จ',
+      approvalId: savedApproval._id,
+      data: {
+        approvalId: savedApproval._id,
+        approvedAt: savedApproval.approvedAt,
+        totalItems: items.length,
+        netAmount: netAmount
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ [confirmcashpayment] Error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Internal server error',
+      message: error.message 
+    });
+  }
+});
+
+// API: ดูรายการที่ยืนยันการอนุมัติแล้ว
+router.post('/getcashpaymentapprovals', async (req, res) => {
+  try {
+    const { startDate, endDate, year, status, workplaceId } = req.body;
+
+    console.log('🔍 [getcashpaymentapprovals] ค้นหารายการที่อนุมัติ:', {
+      startDate,
+      endDate,
+      year,
+      status,
+      workplaceId
+    });
+
+    // สร้าง query filter
+    let filter = {};
+
+    // ถ้าระบุช่วงวันที่
+    if (startDate && endDate) {
+      const startDateObj = new Date(startDate);
+      const endDateObj = new Date(endDate);
+      
+      filter.$or = [
+        {
+          startDate: { $lte: endDateObj },
+          endDate: { $gte: startDateObj }
+        }
+      ];
+    }
+
+    // ถ้าระบุปี
+    if (year) {
+      filter.year = year;
+    }
+
+    // ถ้าระบุสถานะ
+    if (status) {
+      filter.status = status;
+    }
+
+    // ถ้าระบุหน่วยงาน
+    if (workplaceId) {
+      filter['items.workplaceId'] = workplaceId;
+    }
+
+    console.log('🔍 [getcashpaymentapprovals] Filter:', JSON.stringify(filter));
+
+    // ค้นหาข้อมูล
+    const approvals = await CashPaymentApproval.find(filter)
+      .sort({ approvedAt: -1 })
+      .lean();
+
+    console.log('✅ [getcashpaymentapprovals] พบข้อมูล:', approvals.length, 'รายการ');
+
+    // ถ้าระบุ workplaceId ให้กรองเฉพาะ items ของหน่วยงานนั้น
+    let processedApprovals = approvals;
+    if (workplaceId) {
+      processedApprovals = approvals.map(approval => {
+        const filteredItems = approval.items.filter(item => item.workplaceId === workplaceId);
+        const itemsTotalAmount = filteredItems.reduce((sum, item) => sum + item.totalCash, 0);
+        const itemsDeduction = filteredItems.reduce((sum, item) => sum + item.deduction, 0);
+        const itemsNetAmount = filteredItems.reduce((sum, item) => sum + item.netAmount, 0);
+        
+        return {
+          ...approval,
+          items: filteredItems,
+          totalAmount: itemsTotalAmount,
+          totalDeduction: itemsDeduction,
+          netAmount: itemsNetAmount
+        };
+      }).filter(approval => approval.items.length > 0);
+    }
+
+    // สรุปข้อมูล
+    const summary = {
+      totalApprovals: processedApprovals.length,
+      totalItems: processedApprovals.reduce((sum, a) => sum + a.items.length, 0),
+      totalAmount: processedApprovals.reduce((sum, a) => sum + a.totalAmount, 0),
+      totalDeduction: processedApprovals.reduce((sum, a) => sum + a.totalDeduction, 0),
+      totalNetAmount: processedApprovals.reduce((sum, a) => sum + a.netAmount, 0)
+    };
+
+    // จัดกลุ่มตามหน่วยงาน
+    const workplaceGroups = {};
+    processedApprovals.forEach(approval => {
+      approval.items.forEach(item => {
+        if (!workplaceGroups[item.workplaceId]) {
+          workplaceGroups[item.workplaceId] = {
+            workplaceId: item.workplaceId,
+            workplaceName: item.workplaceName,
+            totalAmount: 0,
+            totalDeduction: 0,
+            netAmount: 0,
+            itemCount: 0,
+            approvals: []
+          };
+        }
+        
+        workplaceGroups[item.workplaceId].totalAmount += item.totalCash;
+        workplaceGroups[item.workplaceId].totalDeduction += item.deduction;
+        workplaceGroups[item.workplaceId].netAmount += item.netAmount;
+        workplaceGroups[item.workplaceId].itemCount += 1;
+        
+        // เพิ่มข้อมูลการอนุมัติ
+        const existingApproval = workplaceGroups[item.workplaceId].approvals.find(
+          a => a.approvalId.toString() === approval._id.toString()
+        );
+        
+        if (!existingApproval) {
+          workplaceGroups[item.workplaceId].approvals.push({
+            approvalId: approval._id,
+            approvedBy: approval.approvedBy,
+            approvedAt: approval.approvedAt,
+            status: approval.status
+          });
+        }
+      });
+    });
+
+    const workplacesList = Object.values(workplaceGroups);
+
+    res.json({
+      success: true,
+      summary: summary,
+      workplaces: workplacesList,
+      approvals: processedApprovals,
+      message: `พบข้อมูลการอนุมัติ ${processedApprovals.length} รายการ`
+    });
+
+  } catch (error) {
+    console.error('❌ [getcashpaymentapprovals] Error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Internal server error',
+      message: error.message 
+    });
+  }
+});
+
+// API: ดูรายละเอียดการอนุมัติ
+router.get('/getcashpaymentapproval/:approvalId', async (req, res) => {
+  try {
+    const { approvalId } = req.params;
+
+    console.log('🔍 [getcashpaymentapproval] ดูรายละเอียดการอนุมัติ:', approvalId);
+
+    const approval = await CashPaymentApproval.findById(approvalId).lean();
+
+    if (!approval) {
+      return res.status(404).json({
+        success: false,
+        error: 'ไม่พบข้อมูลการอนุมัติ'
+      });
+    }
+
+    console.log('✅ [getcashpaymentapproval] พบข้อมูล');
+
+    res.json({
+      success: true,
+      data: approval
+    });
+
+  } catch (error) {
+    console.error('❌ [getcashpaymentapproval] Error:', error);
+    res.status(500).json({ 
+      success: false,
       error: 'Internal server error',
       message: error.message 
     });
