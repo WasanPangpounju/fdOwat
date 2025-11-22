@@ -291,6 +291,53 @@ router.get("/delete-all", async (req, res) => {
   }
 });
 
+// ✅ GET /api/employees/social-security-checked
+// 🔍 ดึงรายการ id ที่มี socialSecurityCheck: true จาก newAddSalary
+// ⚠️ ต้องอยู่ก่อน route /:employeeId เพื่อป้องกัน route conflict
+router.get("/social-security-checked", async (req, res) => {
+  try {
+    const employees = await Employee.find();
+    
+    // รวบรวม id ทั้งหมดที่มี socialSecurityCheck: true
+    const socialSecurityCheckedIds = [];
+    
+    employees.forEach(employee => {
+      if (employee.newAddSalary && Array.isArray(employee.newAddSalary)) {
+        employee.newAddSalary.forEach(item => {
+          if (item.socialSecurityCheck === true && item.id) {
+            socialSecurityCheckedIds.push({
+              id: item.id,
+              name: item.name || '',
+              employeeId: employee.employeeId,
+              employeeName: employee.name,
+              workplace: employee.workplace
+            });
+          }
+        });
+      }
+    });
+
+    // นับจำนวน unique id
+    const uniqueIds = [...new Set(socialSecurityCheckedIds.map(item => item.id))];
+
+    res.status(200).json({
+      summary: {
+        totalItems: socialSecurityCheckedIds.length,
+        uniqueIds: uniqueIds.length,
+        uniqueIdList: uniqueIds
+      },
+      items: socialSecurityCheckedIds
+    });
+
+  } catch (error) {
+    console.error('Error fetching social security checked items:', error);
+    res.status(500).json({ 
+      error: "Internal server error", 
+      details: error.message 
+    });
+  }
+});
+
 // ✅ GET /api/employees/check-bank-info
 // 🔍 ตรวจสอบข้อมูลธนาคารของพนักงาน (salarybank และ banknumber)
 // ⚠️ ต้องอยู่ก่อน route /:employeeId เพื่อป้องกัน route conflict

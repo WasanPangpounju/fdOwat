@@ -4,7 +4,6 @@ const sURL = 'http://localhost:3000';
 const timerecordEmployee = require('./models/periodtimerecordModel');
 const workplaceTimerecords = require('./models/periodworkplacetimerecordModel');
 const welfare = require('./models/welfareModel');
-const CashPaymentApproval = require('./models/cashPaymentApprovalModel');
 
 const axios = require('axios');
 
@@ -2504,8 +2503,6 @@ router.put('/updateworkplacetimerecords/:workplaceRecordId', async (req, res) =>
 
 // API สำหรับเช็คการจ่ายสด (cash_holiday)
 // รับ parameters: startDate (วัน/เดือน), endDate (วัน/เดือน), year (พ.ศ.)
-// หมายเหตุ: รอบการจ่ายเงินคือวันที่ 21 ของเดือนก่อนหน้า ถึงวันที่ 20 ของเดือนปัจจุบัน
-// ข้อมูลจะถูกเก็บในเดือนของวันที่สิ้นสุดรอบ (วันที่ 20)
 router.post('/checkcashholiday', async (req, res) => {
   try {
     const { startDate, endDate, year } = req.body;
@@ -2526,33 +2523,31 @@ router.post('/checkcashholiday', async (req, res) => {
     // แปลง พ.ศ. เป็น ค.ศ.
     const yearAD = parseInt(year) - 543;
 
-    // คำนวณหาเดือนที่ต้องค้นหาในฐานข้อมูล
-    // กฎ: ข้อมูลวันที่ 21-30/31 จะถูกเก็บในเดือนถัดไป
-    //     ข้อมูลวันที่ 1-20 จะถูกเก็บในเดือนเดียวกัน
+    // สร้าง array ของเดือนที่ต้องค้นหา
     let monthsToSearch = [];
     
-    // ถ้าเริ่มต้นที่วันที่ >= 21 แสดงว่าข้อมูลจะอยู่ในเดือนถัดไป
-    if (startDay >= 21) {
-      const dataMonth = startMonth === 12 ? 1 : startMonth + 1;
-      monthsToSearch.push(dataMonth.toString());
+    if (startMonth === endMonth) {
+      // กรณีเดือนเดียวกัน
+      monthsToSearch = [startMonth.toString()];
     } else {
-      monthsToSearch.push(startMonth.toString());
-    }
-    
-    // ถ้าสิ้นสุดที่วันที่ <= 20 แสดงว่าข้อมูลจะอยู่ในเดือนเดียวกัน
-    if (endDay <= 20) {
-      if (!monthsToSearch.includes(endMonth.toString())) {
-        monthsToSearch.push(endMonth.toString());
-      }
-    } else {
-      // ถ้าสิ้นสุดที่วันที่ >= 21 แสดงว่าข้อมูลจะอยู่ในเดือนถัดไป
-      const dataMonth = endMonth === 12 ? 1 : endMonth + 1;
-      if (!monthsToSearch.includes(dataMonth.toString())) {
-        monthsToSearch.push(dataMonth.toString());
+      // กรณีข้ามเดือน (เช่น 21/09 - 20/10)
+      // ถ้า startMonth > endMonth แสดงว่าข้ามปี (เช่น 12 - 01)
+      if (startMonth < endMonth) {
+        for (let m = startMonth; m <= endMonth; m++) {
+          monthsToSearch.push(m.toString());
+        }
+      } else {
+        // ข้ามปี
+        for (let m = startMonth; m <= 12; m++) {
+          monthsToSearch.push(m.toString());
+        }
+        for (let m = 1; m <= endMonth; m++) {
+          monthsToSearch.push(m.toString());
+        }
       }
     }
 
-    console.log(`📅 [checkcashholiday] เดือนที่จะค้นหาในฐานข้อมูล:`, monthsToSearch);
+    console.log(`📅 [checkcashholiday] เดือนที่จะค้นหา:`, monthsToSearch);
 
     // Query ข้อมูลจาก timerecordEmployee
     const timerecords = await timerecordEmployee.find({
@@ -2568,53 +2563,46 @@ router.post('/checkcashholiday', async (req, res) => {
 
     timerecords.forEach(record => {
       const { employeeId, employeeName, prefix, month, employee_record } = record;
-      const dataMonth = parseInt(month);
-      
+
       // กรองเฉพาะ records ที่เป็น cash_holiday และอยู่ในช่วงวันที่ที่ต้องการ
       const cashHolidayRecords = employee_record.filter(emp_rec => {
         if (emp_rec.shift !== 'cash_holiday') return false;
 
         const recordDay = parseInt(emp_rec.date);
-        
-        // คำนวณเดือนจริงของข้อมูล
-        // ถ้าวันที่ >= 21 แสดงว่าเป็นข้อมูลของเดือนก่อนหน้า
-        let actualMonth = dataMonth;
-        if (recordDay >= 21) {
-          actualMonth = dataMonth === 1 ? 12 : dataMonth - 1;
-        }
+        const recordMonth = parseInt(month);
 
-        // ตรวจสอบว่าอยู่ในช่วงที่ต้องการหรือไม่
-        // สร้าง comparable date (yyyymmdd format)
-        const recordDate = actualMonth * 100 + recordDay;
-        const startDateComp = startMonth * 100 + startDay;
-        const endDateComp = endMonth * 100 + endDay;
-
-        // กรณีไม่ข้ามปี
-        if (startMonth <= endMonth) {
-          return recordDate >= startDateComp && recordDate <= endDateComp;
+        // ตรวจสอบว่าวันและเดือนอยู่ในช่วงที่กำหนดหรือไม่
+        if (startMonth === endMonth) {
+          // เดือนเดียวกัน
+          return recordMonth === startMonth && recordDay >= startDay && recordDay <= endDay;
         } else {
-          // กรณีข้ามปี (เช่น 12/25 - 01/20)
-          return recordDate >= startDateComp || recordDate <= endDateComp;
+          // ข้ามเดือน
+          if (recordMonth === startMonth) {
+            // เดือนแรก: ตั้งแต่ startDay ถึงวันสุดท้ายของเดือน
+            return recordDay >= startDay;
+          } else if (recordMonth === endMonth) {
+            // เดือนหลัง: ตั้งแต่วันที่ 1 ถึง endDay
+            return recordDay <= endDay;
+          } else if (monthsToSearch.includes(recordMonth.toString())) {
+            // เดือนที่อยู่ระหว่าง: ทุกวัน
+            return true;
+          }
         }
+        return false;
       });
 
       // สร้างรายการสำหรับแต่ละ cash_holiday record
       cashHolidayRecords.forEach(emp_rec => {
-        const recordDay = parseInt(emp_rec.date);
-        
-        // คำนวณเดือนจริงที่จะแสดงผล
-        let displayMonth = dataMonth;
-        if (recordDay >= 21) {
-          displayMonth = dataMonth === 1 ? 12 : dataMonth - 1;
-        }
+        const displayMonth = parseInt(month);
+        const displayDay = parseInt(emp_rec.date);
         
         results.push({
           employeeId: employeeId,
           employeeName: `${prefix || ''}${employeeName}`.trim(),
           workplaceId: emp_rec.workplaceId,
           workplaceName: emp_rec.workplaceName,
-          date: `${recordDay}/${displayMonth}/${year}`,
-          day: recordDay,
+          date: `${displayDay}/${displayMonth}/${year}`,
+          day: displayDay,
           month: displayMonth,
           year: year,
           shift: emp_rec.shift,
@@ -2634,19 +2622,8 @@ router.post('/checkcashholiday', async (req, res) => {
 
     // เรียงลำดับตามวันที่
     results.sort((a, b) => {
-      // สร้าง comparable date
-      const dateA = a.month * 100 + a.day;
-      const dateB = b.month * 100 + b.day;
-      
-      // กรณีข้ามปี ต้องจัดการพิเศษ
-      if (startMonth > endMonth) {
-        // ถ้าเดือนมากกว่าหรือเท่ากับ startMonth ถือว่าเป็นปีก่อน (ให้ค่าน้อยกว่า)
-        const adjustedA = a.month >= startMonth ? dateA - 1300 : dateA;
-        const adjustedB = b.month >= startMonth ? dateB - 1300 : dateB;
-        return adjustedA - adjustedB;
-      }
-      
-      return dateA - dateB;
+      if (a.month !== b.month) return a.month - b.month;
+      return a.day - b.day;
     });
 
     // สรุปยอดรวม
@@ -2666,8 +2643,7 @@ router.post('/checkcashholiday', async (req, res) => {
         startDate: startDate,
         endDate: endDate,
         year: year,
-        yearAD: yearAD.toString(),
-        note: 'รอบการจ่ายเงิน: วันที่ 21 ของเดือนก่อนหน้า ถึงวันที่ 20 ของเดือนปัจจุบัน'
+        yearAD: yearAD.toString()
       },
       summary: summary,
       data: results
@@ -2676,323 +2652,6 @@ router.post('/checkcashholiday', async (req, res) => {
   } catch (error) {
     console.error('❌ [checkcashholiday] Error:', error);
     res.status(500).json({ 
-      error: 'Internal server error',
-      message: error.message 
-    });
-  }
-});
-
-// API: บันทึกการยืนยันการเบิกจ่าย
-router.post('/confirmcashpayment', async (req, res) => {
-  try {
-    const { 
-      items, 
-      totalAmount, 
-      totalDeduction, 
-      netAmount, 
-      startDate, 
-      endDate, 
-      approvedBy, 
-      note 
-    } = req.body;
-
-    console.log('📝 [confirmcashpayment] รับคำขอยืนยันการเบิกจ่าย:', {
-      itemsCount: items?.length,
-      totalAmount,
-      totalDeduction,
-      netAmount,
-      startDate,
-      endDate,
-      approvedBy
-    });
-
-    // Validate required fields
-    if (!items || items.length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'กรุณาระบุรายการที่ต้องการอนุมัติ'
-      });
-    }
-
-    if (!startDate || !endDate) {
-      return res.status(400).json({
-        success: false,
-        error: 'กรุณาระบุช่วงวันที่'
-      });
-    }
-
-    if (!approvedBy) {
-      return res.status(400).json({
-        success: false,
-        error: 'กรุณาระบุผู้อนุมัติ'
-      });
-    }
-
-    // แปลงวันที่เป็น Date object
-    const startDateObj = new Date(startDate);
-    const endDateObj = new Date(endDate);
-    
-    // สร้างปี พ.ศ.
-    const year = (endDateObj.getFullYear() + 543).toString();
-
-    // สร้างเอกสารการอนุมัติใหม่
-    const approval = new CashPaymentApproval({
-      startDate: startDateObj,
-      endDate: endDateObj,
-      year: year,
-      approvedBy: approvedBy,
-      approvedAt: new Date(),
-      totalAmount: totalAmount,
-      totalDeduction: totalDeduction,
-      netAmount: netAmount,
-      items: items,
-      status: 'approved',
-      note: note || ''
-    });
-
-    // บันทึกลงฐานข้อมูล
-    const savedApproval = await approval.save();
-
-    console.log('✅ [confirmcashpayment] บันทึกการอนุมัติสำเร็จ:', savedApproval._id);
-
-    // ✅ ลบ employee_record ที่อนุมัติแล้วออกจากฐานข้อมูล
-    const deletePromises = items.map(async (item) => {
-      try {
-        // แปลงวันที่จาก format "21/9/2568" เป็น components
-        const [day, month, yearBE] = item.date.split('/').map(Number);
-        const yearAD = yearBE - 543;
-        
-        // หาเดือนที่เก็บข้อมูลในฐานข้อมูล
-        let dataMonth = month;
-        if (day >= 21) {
-          dataMonth = month === 12 ? 1 : month + 1;
-        }
-        
-        const dataMonthStr = dataMonth.toString().padStart(2, '0');
-        
-        console.log(`�️ [confirmcashpayment] ลบ record: employee ${item.employeeId}, วันที่ ${day}/${month}, เดือนในDB: ${dataMonthStr}, workplaceId: ${item.workplaceId}`);
-        
-        // ลบ record ออกจาก employee_record array โดยใช้ $pull
-        const deleteResult = await timerecordEmployee.updateOne(
-          {
-            year: yearAD.toString(),
-            month: dataMonthStr,
-            employeeId: item.employeeId
-          },
-          {
-            $pull: {
-              employee_record: {
-                workplaceId: item.workplaceId,
-                date: day.toString(),
-                shift: 'cash_holiday'
-              }
-            }
-          }
-        );
-        
-        if (deleteResult.modifiedCount > 0) {
-          console.log(`✅ [confirmcashpayment] ลบสำเร็จ: ${item.employeeId} วันที่ ${day}/${month} workplaceId: ${item.workplaceId}`);
-        } else {
-          console.log(`⚠️ [confirmcashpayment] ไม่พบ record ที่จะลบ: ${item.employeeId}`);
-        }
-        
-        return deleteResult;
-      } catch (error) {
-        console.error(`❌ [confirmcashpayment] Error deleting record for employee ${item.employeeId}:`, error);
-        return null;
-      }
-    });
-    
-    await Promise.all(deletePromises);
-    console.log('✅ [confirmcashpayment] ลบ employee_record ที่อนุมัติแล้วทั้งหมดเสร็จสิ้น');
-
-    res.json({
-      success: true,
-      message: 'บันทึกการยืนยันการเบิกจ่ายสำเร็จ',
-      approvalId: savedApproval._id,
-      data: {
-        approvalId: savedApproval._id,
-        approvedAt: savedApproval.approvedAt,
-        totalItems: items.length,
-        netAmount: netAmount
-      }
-    });
-
-  } catch (error) {
-    console.error('❌ [confirmcashpayment] Error:', error);
-    res.status(500).json({ 
-      success: false,
-      error: 'Internal server error',
-      message: error.message 
-    });
-  }
-});
-
-// API: ดูรายการที่ยืนยันการอนุมัติแล้ว
-router.post('/getcashpaymentapprovals', async (req, res) => {
-  try {
-    const { startDate, endDate, year, status, workplaceId } = req.body;
-
-    console.log('🔍 [getcashpaymentapprovals] ค้นหารายการที่อนุมัติ:', {
-      startDate,
-      endDate,
-      year,
-      status,
-      workplaceId
-    });
-
-    // สร้าง query filter
-    let filter = {};
-
-    // ถ้าระบุช่วงวันที่
-    if (startDate && endDate) {
-      const startDateObj = new Date(startDate);
-      const endDateObj = new Date(endDate);
-      
-      filter.$or = [
-        {
-          startDate: { $lte: endDateObj },
-          endDate: { $gte: startDateObj }
-        }
-      ];
-    }
-
-    // ถ้าระบุปี
-    if (year) {
-      filter.year = year;
-    }
-
-    // ถ้าระบุสถานะ
-    if (status) {
-      filter.status = status;
-    }
-
-    // ถ้าระบุหน่วยงาน
-    if (workplaceId) {
-      filter['items.workplaceId'] = workplaceId;
-    }
-
-    console.log('🔍 [getcashpaymentapprovals] Filter:', JSON.stringify(filter));
-
-    // ค้นหาข้อมูล
-    const approvals = await CashPaymentApproval.find(filter)
-      .sort({ approvedAt: -1 })
-      .lean();
-
-    console.log('✅ [getcashpaymentapprovals] พบข้อมูล:', approvals.length, 'รายการ');
-
-    // ถ้าระบุ workplaceId ให้กรองเฉพาะ items ของหน่วยงานนั้น
-    let processedApprovals = approvals;
-    if (workplaceId) {
-      processedApprovals = approvals.map(approval => {
-        const filteredItems = approval.items.filter(item => item.workplaceId === workplaceId);
-        const itemsTotalAmount = filteredItems.reduce((sum, item) => sum + item.totalCash, 0);
-        const itemsDeduction = filteredItems.reduce((sum, item) => sum + item.deduction, 0);
-        const itemsNetAmount = filteredItems.reduce((sum, item) => sum + item.netAmount, 0);
-        
-        return {
-          ...approval,
-          items: filteredItems,
-          totalAmount: itemsTotalAmount,
-          totalDeduction: itemsDeduction,
-          netAmount: itemsNetAmount
-        };
-      }).filter(approval => approval.items.length > 0);
-    }
-
-    // สรุปข้อมูล
-    const summary = {
-      totalApprovals: processedApprovals.length,
-      totalItems: processedApprovals.reduce((sum, a) => sum + a.items.length, 0),
-      totalAmount: processedApprovals.reduce((sum, a) => sum + a.totalAmount, 0),
-      totalDeduction: processedApprovals.reduce((sum, a) => sum + a.totalDeduction, 0),
-      totalNetAmount: processedApprovals.reduce((sum, a) => sum + a.netAmount, 0)
-    };
-
-    // จัดกลุ่มตามหน่วยงาน
-    const workplaceGroups = {};
-    processedApprovals.forEach(approval => {
-      approval.items.forEach(item => {
-        if (!workplaceGroups[item.workplaceId]) {
-          workplaceGroups[item.workplaceId] = {
-            workplaceId: item.workplaceId,
-            workplaceName: item.workplaceName,
-            totalAmount: 0,
-            totalDeduction: 0,
-            netAmount: 0,
-            itemCount: 0,
-            approvals: []
-          };
-        }
-        
-        workplaceGroups[item.workplaceId].totalAmount += item.totalCash;
-        workplaceGroups[item.workplaceId].totalDeduction += item.deduction;
-        workplaceGroups[item.workplaceId].netAmount += item.netAmount;
-        workplaceGroups[item.workplaceId].itemCount += 1;
-        
-        // เพิ่มข้อมูลการอนุมัติ
-        const existingApproval = workplaceGroups[item.workplaceId].approvals.find(
-          a => a.approvalId.toString() === approval._id.toString()
-        );
-        
-        if (!existingApproval) {
-          workplaceGroups[item.workplaceId].approvals.push({
-            approvalId: approval._id,
-            approvedBy: approval.approvedBy,
-            approvedAt: approval.approvedAt,
-            status: approval.status
-          });
-        }
-      });
-    });
-
-    const workplacesList = Object.values(workplaceGroups);
-
-    res.json({
-      success: true,
-      summary: summary,
-      workplaces: workplacesList,
-      approvals: processedApprovals,
-      message: `พบข้อมูลการอนุมัติ ${processedApprovals.length} รายการ`
-    });
-
-  } catch (error) {
-    console.error('❌ [getcashpaymentapprovals] Error:', error);
-    res.status(500).json({ 
-      success: false,
-      error: 'Internal server error',
-      message: error.message 
-    });
-  }
-});
-
-// API: ดูรายละเอียดการอนุมัติ
-router.get('/getcashpaymentapproval/:approvalId', async (req, res) => {
-  try {
-    const { approvalId } = req.params;
-
-    console.log('🔍 [getcashpaymentapproval] ดูรายละเอียดการอนุมัติ:', approvalId);
-
-    const approval = await CashPaymentApproval.findById(approvalId).lean();
-
-    if (!approval) {
-      return res.status(404).json({
-        success: false,
-        error: 'ไม่พบข้อมูลการอนุมัติ'
-      });
-    }
-
-    console.log('✅ [getcashpaymentapproval] พบข้อมูล');
-
-    res.json({
-      success: true,
-      data: approval
-    });
-
-  } catch (error) {
-    console.error('❌ [getcashpaymentapproval] Error:', error);
-    res.status(500).json({ 
-      success: false,
       error: 'Internal server error',
       message: error.message 
     });
