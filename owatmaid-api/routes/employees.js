@@ -302,8 +302,9 @@ router.get("/social-security-checked", async (req, res) => {
     const socialSecurityCheckedIds = [];
     
     employees.forEach(employee => {
-      if (employee.AddSalary && Array.isArray(employee.AddSalary)) {
-        employee.AddSalary.forEach(item => {
+      // ตรวจสอบจาก newAddSalary
+      if (employee.addSalary && Array.isArray(employee.addSalary)) {
+        employee.addSalary.forEach(item => {
           if (item.socialSecurityCheck === true && item.id) {
             socialSecurityCheckedIds.push({
               id: item.id,
