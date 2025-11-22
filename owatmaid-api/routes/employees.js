@@ -302,8 +302,8 @@ router.get("/social-security-checked", async (req, res) => {
     const socialSecurityCheckedIds = [];
     
     employees.forEach(employee => {
-      if (employee.newAddSalary && Array.isArray(employee.newAddSalary)) {
-        employee.newAddSalary.forEach(item => {
+      if (employee.AddSalary && Array.isArray(employee.AddSalary)) {
+        employee.AddSalary.forEach(item => {
           if (item.socialSecurityCheck === true && item.id) {
             socialSecurityCheckedIds.push({
               id: item.id,

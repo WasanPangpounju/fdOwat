@@ -413,6 +413,10 @@ const employeeSchema = new mongoose.Schema({
         StaffType: String,
         nameType: String,
         message: String,
+        socialSecurityCheck: {
+          type: Boolean,
+          default: false
+        },
       },
     ],
     deductSalary: [
@@ -424,6 +428,10 @@ const employeeSchema = new mongoose.Schema({
         installment: String,
         nameType: String,
         message: String,
+        socialSecurityCheck: {
+          type: Boolean,
+          default: false
+        },
       },
     ],
 
