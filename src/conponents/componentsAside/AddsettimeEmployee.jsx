@@ -3338,18 +3338,25 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
     const selectedStaffId = e.target.value;
     setStaffId(selectedStaffId);
     setSearchEmployeeId(selectedStaffId);
-    // Find the corresponding employee and set the staffName
+    // Find the corresponding employee and auto-fill all fields
     const selectedEmployee = employeeList.find(
       (employee) => employee.employeeId === selectedStaffId
     );
     if (selectedEmployee) {
-      // setStaffName(selectedEmployee.name);
-      // setStaffLastname(selectedEmployee.lastName);
+      setStaffName(selectedEmployee.name);
+      setStaffLastname(selectedEmployee.lastName);
       setStaffFullName(selectedEmployee.name + " " + selectedEmployee.lastName);
+      setSearchWorkPlace(selectedEmployee.workplace || "");
+      setSearchPhoneNumber(selectedEmployee.phoneNumber || "");
+      setSearchIdCard(selectedEmployee.idCard || "");
     } else {
       setStaffName("");
+      setStaffLastname("");
       setStaffFullName("");
       setSearchEmployeeName("");
+      setSearchWorkPlace("");
+      setSearchPhoneNumber("");
+      setSearchIdCard("");
     }
   };
 
@@ -3376,6 +3383,119 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
     // setStaffName(selectedStaffName);
     setStaffFullName(selectedStaffName);
     setSearchEmployeeName(selectedEmployeeFName);
+  };
+
+  // Handler for workplace field - check if combined with name to auto-fill
+  const handleWorkPlaceChange = (e) => {
+    const value = e.target.value;
+    setSearchWorkPlace(value);
+    
+    // Auto-fill if workplace + name are both filled
+    if (value && staffName) {
+      const matchedEmployee = employeeList.find(
+        (emp) => emp.workplace === value && emp.name === staffName
+      );
+      
+      if (matchedEmployee) {
+        setStaffId(matchedEmployee.employeeId);
+        setStaffLastname(matchedEmployee.lastName);
+        setSearchPhoneNumber(matchedEmployee.phoneNumber || "");
+        setSearchIdCard(matchedEmployee.idCard || "");
+      }
+    }
+  };
+
+  // Handler for name field - check combinations to auto-fill
+  const handleNameChange = (e) => {
+    const value = e.target.value;
+    setStaffName(value);
+    
+    // Auto-fill if name + lastName are both filled
+    if (value && staffLastname) {
+      const matchedEmployee = employeeList.find(
+        (emp) => emp.name === value && emp.lastName === staffLastname
+      );
+      
+      if (matchedEmployee) {
+        setStaffId(matchedEmployee.employeeId);
+        setSearchWorkPlace(matchedEmployee.workplace || "");
+        setSearchPhoneNumber(matchedEmployee.phoneNumber || "");
+        setSearchIdCard(matchedEmployee.idCard || "");
+      }
+    }
+    // Auto-fill if workplace + name are both filled
+    else if (value && searchWorkPlace) {
+      const matchedEmployee = employeeList.find(
+        (emp) => emp.name === value && emp.workplace === searchWorkPlace
+      );
+      
+      if (matchedEmployee) {
+        setStaffId(matchedEmployee.employeeId);
+        setStaffLastname(matchedEmployee.lastName);
+        setSearchPhoneNumber(matchedEmployee.phoneNumber || "");
+        setSearchIdCard(matchedEmployee.idCard || "");
+      }
+    }
+  };
+
+  // Handler for lastName field - check if combined with name to auto-fill
+  const handleLastNameChange = (e) => {
+    const value = e.target.value;
+    setStaffLastname(value);
+    
+    // Auto-fill if name + lastName are both filled
+    if (staffName && value) {
+      const matchedEmployee = employeeList.find(
+        (emp) => emp.name === staffName && emp.lastName === value
+      );
+      
+      if (matchedEmployee) {
+        setStaffId(matchedEmployee.employeeId);
+        setSearchWorkPlace(matchedEmployee.workplace || "");
+        setSearchPhoneNumber(matchedEmployee.phoneNumber || "");
+        setSearchIdCard(matchedEmployee.idCard || "");
+      }
+    }
+  };
+
+  // Handler for phone number field - auto-fill when match found
+  const handlePhoneNumberChange = (e) => {
+    const value = e.target.value.replace(/\D/g, "");
+    setSearchPhoneNumber(value);
+    
+    if (value) {
+      const matchedEmployee = employeeList.find(
+        (emp) => emp.phoneNumber && emp.phoneNumber.includes(value)
+      );
+      
+      if (matchedEmployee) {
+        setStaffId(matchedEmployee.employeeId);
+        setStaffName(matchedEmployee.name);
+        setStaffLastname(matchedEmployee.lastName);
+        setSearchWorkPlace(matchedEmployee.workplace || "");
+        setSearchIdCard(matchedEmployee.idCard || "");
+      }
+    }
+  };
+
+  // Handler for ID card field - auto-fill when match found
+  const handleIdCardChange = (e) => {
+    const value = e.target.value.replace(/\D/g, "");
+    setSearchIdCard(value);
+    
+    if (value) {
+      const matchedEmployee = employeeList.find(
+        (emp) => emp.idCard && emp.idCard.includes(value)
+      );
+      
+      if (matchedEmployee) {
+        setStaffId(matchedEmployee.employeeId);
+        setStaffName(matchedEmployee.name);
+        setStaffLastname(matchedEmployee.lastName);
+        setSearchWorkPlace(matchedEmployee.workplace || "");
+        setSearchPhoneNumber(matchedEmployee.phoneNumber || "");
+      }
+    }
   };
 
   return (
@@ -3412,12 +3532,17 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                             />
                             <datalist id="staffIdList">
                               <option value="" />
-                              {employeeList.map((employee) => (
-                                <option
-                                  key={employee.employeeId}
-                                  value={employee.employeeId}
-                                />
-                              ))}
+                              {employeeList
+                                .filter((employee) => {
+                                  if (searchWorkPlace && employee.workplace !== searchWorkPlace) return false;
+                                  return true;
+                                })
+                                .map((employee) => (
+                                  <option
+                                    key={employee.employeeId}
+                                    value={employee.employeeId}
+                                  />
+                                ))}
                             </datalist>
                           </div>
                         </div>
@@ -3430,13 +3555,19 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                               id="searchWorkPlace"
                               placeholder="หน่วยงาน"
                               value={searchWorkPlace}
-                              onChange={(e) => setSearchWorkPlace(e.target.value)}
+                              onChange={handleWorkPlaceChange}
                               list="workPlaceList"
                             />
                             <datalist id="workPlaceList">
-                              {[...new Set(employeeList.map((employee) => employee.workplace))].map((workplace, index) => (
-                                <option key={index} value={workplace} />
-                              ))}
+                              {[...new Set(employeeList
+                                .filter((employee) => {
+                                  if (staffId && employee.employeeId !== staffId) return false;
+                                  return true;
+                                })
+                                .map((employee) => employee.workplace))]
+                                .map((workplace, index) => (
+                                  <option key={index} value={workplace} />
+                                ))}
                             </datalist>
                           </div>
                         </div>
@@ -3453,16 +3584,22 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                               id="staffFirstName"
                               placeholder="ชื่อ"
                               value={staffName}
-                              onChange={(e) => setStaffName(e.target.value)}
+                              onChange={handleNameChange}
                               list="staffFirstNameList"
                             />
                             <datalist id="staffFirstNameList">
-                              {employeeList.map((employee) => (
-                                <option
-                                  key={employee.employeeId}
-                                  value={employee.name}
-                                />
-                              ))}
+                              {employeeList
+                                .filter((employee) => {
+                                  if (searchWorkPlace && employee.workplace !== searchWorkPlace) return false;
+                                  if (staffId && employee.employeeId !== staffId) return false;
+                                  return true;
+                                })
+                                .map((employee) => (
+                                  <option
+                                    key={employee.employeeId}
+                                    value={employee.name}
+                                  />
+                                ))}
                             </datalist>
                           </div>
                         </div>
@@ -3475,16 +3612,23 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                               id="staffLastName"
                               placeholder="นามสกุล"
                               value={staffLastname}
-                              onChange={(e) => setStaffLastname(e.target.value)}
+                              onChange={handleLastNameChange}
                               list="staffLastNameList"
                             />
                             <datalist id="staffLastNameList">
-                              {employeeList.map((employee) => (
-                                <option
-                                  key={employee.employeeId}
-                                  value={employee.lastName}
-                                />
-                              ))}
+                              {employeeList
+                                .filter((employee) => {
+                                  if (searchWorkPlace && employee.workplace !== searchWorkPlace) return false;
+                                  if (staffId && employee.employeeId !== staffId) return false;
+                                  if (staffName && employee.name !== staffName) return false;
+                                  return true;
+                                })
+                                .map((employee) => (
+                                  <option
+                                    key={employee.employeeId}
+                                    value={employee.lastName}
+                                  />
+                                ))}
                             </datalist>
                           </div>
                         </div>
@@ -3501,19 +3645,22 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                               id="searchPhoneNumber"
                               placeholder="เบอร์โทรศัพท์"
                               value={searchPhoneNumber}
-                              onChange={(e) => setSearchPhoneNumber(e.target.value)}
-                              onInput={(e) => {
-                                e.target.value = e.target.value.replace(/\D/g, "");
-                              }}
+                              onChange={handlePhoneNumberChange}
                               list="phoneNumberList"
                             />
                             <datalist id="phoneNumberList">
-                              {employeeList.map((employee) => (
-                                <option
-                                  key={employee.employeeId}
-                                  value={employee.phoneNumber}
-                                />
-                              ))}
+                              {employeeList
+                                .filter((employee) => {
+                                  if (searchWorkPlace && employee.workplace !== searchWorkPlace) return false;
+                                  if (staffId && employee.employeeId !== staffId) return false;
+                                  return true;
+                                })
+                                .map((employee) => (
+                                  <option
+                                    key={employee.employeeId}
+                                    value={employee.phoneNumber}
+                                  />
+                                ))}
                             </datalist>
                           </div>
                         </div>
@@ -3526,19 +3673,22 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                               id="searchIdCard"
                               placeholder="หมายเลขบัตรประชาชน"
                               value={searchIdCard}
-                              onChange={(e) => setSearchIdCard(e.target.value)}
-                              onInput={(e) => {
-                                e.target.value = e.target.value.replace(/\D/g, "");
-                              }}
+                              onChange={handleIdCardChange}
                               list="idCardList"
                             />
                             <datalist id="idCardList">
-                              {employeeList.map((employee) => (
-                                <option
-                                  key={employee.employeeId}
-                                  value={employee.idCard}
-                                />
-                              ))}
+                              {employeeList
+                                .filter((employee) => {
+                                  if (searchWorkPlace && employee.workplace !== searchWorkPlace) return false;
+                                  if (staffId && employee.employeeId !== staffId) return false;
+                                  return true;
+                                })
+                                .map((employee) => (
+                                  <option
+                                    key={employee.employeeId}
+                                    value={employee.idCard}
+                                  />
+                                ))}
                             </datalist>
                           </div>
                         </div>
