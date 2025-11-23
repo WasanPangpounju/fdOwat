@@ -39,6 +39,7 @@ const periodEmployeeTimerecordSchema = new mongoose.Schema({
 specialtSalary: String,
 specialtSalaryOT: String,
         messageSalary: String,
+        isThreePercent: { type: Boolean, default: false },
         dayType: String,
         addSalaryDaily: [
           {

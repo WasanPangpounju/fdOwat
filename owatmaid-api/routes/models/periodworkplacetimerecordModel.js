@@ -25,6 +25,7 @@ const periodWorkplaceTimerecordSchema = new mongoose.Schema({
     specialtSalary: String,
     specialtSalaryOT: String,
             messageSalary: String,
+            isThreePercent: { type: Boolean, default: false },
   }],
   isNightShiftCash: { type: Boolean, default: false }
 });
