@@ -17,6 +17,8 @@ function SpecialShiftCash() {
   const [searchResults, setSearchResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [hasSearched, setHasSearched] = useState(false); // เพิ่ม state เพื่อเช็คว่ามีการค้นหาแล้วหรือยัง
+  const [showResults, setShowResults] = useState(false); // ควบคุมการแสดงผลข้อมูล
 
   // Generate years array (current year and previous 5 years)
   const years = Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i);
@@ -34,94 +36,142 @@ function SpecialShiftCash() {
     setError('');
     
     try {
-      // แปลงวันที่ให้อยู่ในรูปแบบ month/year
       const startDateObj = new Date(startDate);
       const endDateObj = new Date(endDate);
       
-      // ✅ FIX: ใช้เดือนจาก endDate เพราะงวดเงินเดือนนับตามวันที่สิ้นสุด
-      // ตัวอย่าง: 21/09 - 20/10 = งวดเดือน 10 (ตุลาคม)
-      const payrollMonth = String(endDateObj.getMonth() + 1).padStart(2, '0');
-      const payrollYear = endDateObj.getFullYear().toString();
+      // หาเดือนและปีที่ครอบคลุมช่วงวันที่ที่เลือก
+      const monthsToFetch = [];
+      const currentDate = new Date(startDateObj);
       
-      // สร้าง array ของวันที่ในช่วงที่เลือก
-      const selectedDates = [];
-      const currentDate = new Date(startDate);
-      const endDateCheck = new Date(endDate);
-      
-      while (currentDate <= endDateCheck) {
-        selectedDates.push(String(currentDate.getDate()));
-        currentDate.setDate(currentDate.getDate() + 1);
-      }
-      
-      console.log('Searching with:', { 
-        startDate, 
-        endDate,
-        month: payrollMonth,
-        year: payrollYear,
-        selectedDates: selectedDates
-      });
-
-      const response = await fetch('http://10.10.110.7:3000/timerecord/checkspecialtshift', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          month: payrollMonth,
-          year: payrollYear
-        })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
+      // วนลูปเพื่อหาทุกเดือนที่อยู่ในช่วงวันที่
+      while (currentDate <= endDateObj) {
+        const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+        const year = currentDate.getFullYear().toString();
         
-        // กรองข้อมูลตามช่วงวันที่ที่เลือก
-        if (data.workplaces && data.workplaces.length > 0) {
-          const filteredWorkplaces = data.workplaces.map(workplace => {
-            const filteredEmployees = workplace.employees.map(employee => {
-              const filteredDays = employee.specialShiftDays.filter(day => {
-                // แยกวันที่จาก format "21/07/2568" เพื่อเปรียบเทียบ
-                const dayNumber = day.date.split('/')[0];
-                return selectedDates.includes(dayNumber);
-              });
-              
-              return {
-                ...employee,
-                specialShiftDays: filteredDays
-              };
-            }).filter(employee => employee.specialShiftDays.length > 0); // เก็บเฉพาะพนักงานที่มีวันทำงานในช่วงที่เลือก
-            
-            return {
-              ...workplace,
-              employees: filteredEmployees,
-              totalEmployeesWithSpecialShift: filteredEmployees.length
-            };
-          }).filter(workplace => workplace.employees.length > 0); // เก็บเฉพาะหน่วยงานที่มีพนักงานทำงานในช่วงที่เลือก
-          
-          // อัปเดตข้อมูลสรุป
-          const totalEmployees = filteredWorkplaces.reduce((sum, wp) => sum + wp.totalEmployeesWithSpecialShift, 0);
-          const filteredData = {
-            ...data,
-            workplaces: filteredWorkplaces,
-            totalWorkplacesWithSpecialShift: filteredWorkplaces.length,
-            totalEmployeesWithSpecialShift: totalEmployees,
-            summary: filteredWorkplaces.length > 0 
-              ? `ช่วงวันที่ ${startDateObj.getDate()}-${endDateObj.getDate()} เดือน ${payrollMonth} ปี ${payrollYear} มี ${filteredWorkplaces.length} หน่วยงานที่มีกะพิเศษ รวม ${totalEmployees} คน`
-              : `ช่วงวันที่ ${startDateObj.getDate()}-${endDateObj.getDate()} เดือน ${payrollMonth} ปี ${payrollYear} ไม่มีหน่วยงานที่มีกะพิเศษ`
-          };
-          
-          setSearchResults(filteredData);
-        } else {
-          setSearchResults(data);
+        // เช็คว่ามีในรายการแล้วหรือยัง
+        if (!monthsToFetch.some(m => m.month === month && m.year === year)) {
+          monthsToFetch.push({ month, year });
         }
         
-        console.log('Filtered search results:', data);
-      } else {
-        throw new Error('เกิดข้อผิดพลาดในการค้นหาข้อมูล');
+        // ไปเดือนถัดไป
+        currentDate.setMonth(currentDate.getMonth() + 1);
       }
+      
+      console.log('Fetching data for months:', monthsToFetch);
+      console.log('Date range:', { startDate, endDate });
+
+      // ดึงข้อมูลจากทุกเดือนที่ต้องการ
+      const fetchPromises = monthsToFetch.map(({ month, year }) =>
+        fetch('http://10.10.110.7:3000/timerecord/checkspecialtshift', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ month, year })
+        }).then(res => res.json())
+      );
+
+      const allMonthsData = await Promise.all(fetchPromises);
+      
+      // รวมข้อมูลจากทุกเดือน
+      const combinedWorkplaces = {};
+      
+      allMonthsData.forEach(monthData => {
+        if (!monthData.workplaces || monthData.workplaces.length === 0) return;
+        
+        monthData.workplaces.forEach(workplace => {
+          const workplaceId = workplace.workplaceId;
+          
+          // สร้าง workplace ใหม่ถ้ายังไม่มี
+          if (!combinedWorkplaces[workplaceId]) {
+            combinedWorkplaces[workplaceId] = {
+              ...workplace,
+              employees: []
+            };
+          }
+          
+          // ประมวลผลพนักงานแต่ละคน
+          workplace.employees.forEach(employee => {
+            const employeeId = employee.employeeId;
+            
+            // หาพนักงานในข้อมูลรวม
+            let existingEmployee = combinedWorkplaces[workplaceId].employees.find(
+              emp => emp.employeeId === employeeId
+            );
+            
+            // ถ้ายังไม่มีพนักงานคนนี้ ให้สร้างใหม่
+            if (!existingEmployee) {
+              existingEmployee = {
+                ...employee,
+                specialShiftDays: []
+              };
+              combinedWorkplaces[workplaceId].employees.push(existingEmployee);
+            }
+            
+            // กรองวันทำงานที่อยู่ในช่วงวันที่ที่เลือก
+            const filteredDays = employee.specialShiftDays.filter(day => {
+              // แปลงวันที่จาก format dd/mm/yyyy เป็น Date object
+              const dateParts = day.date.split('/');
+              if (dateParts.length !== 3) return false;
+              
+              const dayDate = new Date(
+                parseInt(dateParts[2]) - 543, // แปลง พ.ศ. เป็น ค.ศ.
+                parseInt(dateParts[1]) - 1,
+                parseInt(dateParts[0])
+              );
+              
+              // เช็คว่าวันที่อยู่ในช่วงที่เลือกหรือไม่
+              return dayDate >= startDateObj && dayDate <= endDateObj;
+            });
+            
+            // รวมวันทำงานเข้าไป
+            existingEmployee.specialShiftDays.push(...filteredDays);
+          });
+        });
+      });
+      
+      // แปลง object กลับเป็น array และกรองเฉพาะที่มีข้อมูล
+      const filteredWorkplaces = Object.values(combinedWorkplaces)
+        .map(workplace => {
+          // กรองพนักงานที่มีวันทำงาน
+          const filteredEmployees = workplace.employees.filter(
+            emp => emp.specialShiftDays.length > 0
+          );
+          
+          return {
+            ...workplace,
+            employees: filteredEmployees,
+            totalEmployeesWithSpecialShift: filteredEmployees.length
+          };
+        })
+        .filter(workplace => workplace.employees.length > 0);
+      
+      // สร้างข้อมูลสรุป
+      const totalEmployees = filteredWorkplaces.reduce(
+        (sum, wp) => sum + wp.totalEmployeesWithSpecialShift, 
+        0
+      );
+      
+      const filteredData = {
+        workplaces: filteredWorkplaces,
+        totalWorkplacesWithSpecialShift: filteredWorkplaces.length,
+        totalEmployeesWithSpecialShift: totalEmployees,
+        startDate: startDate,
+        endDate: endDate,
+        summary: filteredWorkplaces.length > 0 
+          ? `ช่วงวันที่ ${startDateObj.toLocaleDateString('th-TH')} - ${endDateObj.toLocaleDateString('th-TH')} มี ${filteredWorkplaces.length} หน่วยงานที่มีกะพิเศษ รวม ${totalEmployees} คน`
+          : `ช่วงวันที่ ${startDateObj.toLocaleDateString('th-TH')} - ${endDateObj.toLocaleDateString('th-TH')} ไม่มีหน่วยงานที่มีกะพิเศษ`
+      };
+      
+      setSearchResults(filteredData);
+      setHasSearched(true);
+      setShowResults(filteredWorkplaces.length > 0);
+      console.log('Filtered results by custom date range:', filteredData);
     } catch (error) {
       console.error('Error searching:', error);
       setError('เกิดข้อผิดพลาดในการค้นหาข้อมูล: ' + error.message);
+      setHasSearched(true);
+      setShowResults(false);
     } finally {
       setLoading(false);
     }
@@ -292,7 +342,19 @@ function SpecialShiftCash() {
         }
       });
 
-      // Generate PDF
+      // สร้าง filename จากวันที่ที่เลือก
+      const startDateObj = new Date(startDate);
+      const endDateObj = new Date(endDate);
+      
+      // Format วันที่สำหรับชื่อไฟล์
+      const formatDateForFilename = (date) => {
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}-${month}-${year}`;
+      };
+
+      // Generate PDF with current searchResults (filtered by custom date range)
       const blob = await pdf(
         <AllWorkplacesSummaryPDFReport 
           searchResults={searchResults}
@@ -306,12 +368,7 @@ function SpecialShiftCash() {
       const link = document.createElement('a');
       link.href = url;
       
-      // Create filename with date range
-      const startDateObj = new Date(startDate);
-      const endDateObj = new Date(endDate);
-      const payrollMonth = String(endDateObj.getMonth() + 1).padStart(2, '0');
-      const payrollYear = endDateObj.getFullYear();
-      const filename = `รายงานสรุปกะพิเศษทุกหน่วยงาน_${startDateObj.getDate()}-${endDateObj.getDate()}_${payrollMonth}_${payrollYear}.pdf`;
+      const filename = `รายงานสรุปกะพิเศษทุกหน่วยงาน_${formatDateForFilename(startDateObj)}_ถึง_${formatDateForFilename(endDateObj)}.pdf`;
       
       link.download = filename;
       document.body.appendChild(link);
@@ -511,10 +568,17 @@ function SpecialShiftCash() {
                       </h5>
                     </div>
                     <div className="card-body">
-                      {!searchResults ? (
+                      {!hasSearched ? (
                         <div className="text-center py-5">
                           <i className="fas fa-search fa-3x text-muted mb-3"></i>
-                          <p className="text-muted fs-5">กรุณาค้นหาข้อมูลเพื่อแสดงผลลัพธ์</p>
+                          <p className="text-muted fs-5">กรุณาเลือกช่วงวันที่และกดค้นหาข้อมูล</p>
+                          <p className="text-muted">ระบุวันที่เริ่มต้นและวันที่สิ้นสุดเพื่อดูข้อมูลกะพิเศษ</p>
+                        </div>
+                      ) : !showResults ? (
+                        <div className="text-center py-5">
+                          <i className="fas fa-inbox fa-3x text-warning mb-3"></i>
+                          <p className="text-muted fs-5">ไม่พบข้อมูลกะพิเศษในช่วงวันที่ที่เลือก</p>
+                          <p className="text-muted">ลองเลือกช่วงวันที่อื่นหรือตรวจสอบข้อมูลอีกครั้ง</p>
                         </div>
                       ) : (
                         <div>
