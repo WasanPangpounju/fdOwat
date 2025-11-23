@@ -270,16 +270,26 @@ const generatePDFReport = async () => {
               // ข้ามคอลัมน์ "จัดการ" (คอลัมน์สุดท้าย) เท่านั้น
               if (cellIndex < cells.length - 1) {
                 const newCell = document.createElement('td');
-                newCell.textContent = cell.textContent.trim();
                 newCell.style.border = '1px solid #000';
                 newCell.style.padding = '6px';
                 newCell.style.textAlign = 'center';
                 newCell.style.verticalAlign = 'middle';
                 
+                // Clone เซลล์ทั้งหมดรวม HTML structure
+                const cellClone = cell.cloneNode(true);
+                
+                // ลบ elements ที่ไม่ต้องการ (ปุ่ม, input, form-check) แต่เก็บ badge
+                cellClone.querySelectorAll('button').forEach(el => el.remove());
+                cellClone.querySelectorAll('input').forEach(el => el.remove());
+                cellClone.querySelectorAll('.form-check').forEach(el => el.remove());
+                cellClone.querySelectorAll('.form-control').forEach(el => el.remove());
+                
+                // คัดลอก innerHTML รวม badge ทั้งหมด
+                newCell.innerHTML = cellClone.innerHTML;
+                
                 // ถ้าเป็นคอลัมน์หมายเหตุ (คอลัมน์ก่อนคอลัมน์จัดการ)
                 if (cellIndex === cells.length - 2) {
                   newCell.style.fontSize = '9px';
-                  newCell.style.fontStyle = 'italic';
                   newCell.style.color = '#555';
                 }
                 
@@ -3009,6 +3019,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
       ...editData, 
       [index]: { 
         ...rowData,
+        shift: rowData.shift || 'morning_shift',
         beforeStartOtTime: rowData.beforeStartOtTime || '',
         beforeEndOtTime: rowData.beforeEndOtTime || '',
         beforeTotalOtTime: rowData.beforeTotalOtTime || '',
@@ -3022,6 +3033,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
         specialtSalaryOT: rowData.specialtSalaryOT || '',
         cashOfHoliday: rowData.cashOfHoliday || '',
         cashOfHolidayOt: rowData.cashOfHolidayOt || '',
+        messageSalary: rowData.messageSalary || '',
         payFullDay: rowData.payFullDay || false,
         isNightShiftCash: rowData.isNightShiftCash || false,
         isThreePercent: rowData.isThreePercent || false      } 
@@ -4293,20 +4305,27 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                 <th>{rowData2.workplaceName}</th>
                 <th>{groupOptions[parseInt(rowData2.wGroup) -1 ] || ""}</th> 
                 <th>{rowData2.date}</th>
-                <th>
+                <th style={{ minWidth: "90px" }}>
                   {editMode[index] ? (
                     <div>
                       <select
                         className="form-control form-control-sm"
-                        value={editData[index]?.shift || rowData2.shift}
+                        value={editData[index]?.shift ?? rowData2.shift}
                         onChange={(e) => {
-                          handleEditFieldChange(index, 'shift', e.target.value);
-                          // Reset checkbox when changing shift
-                          if (e.target.value !== "cash_holiday") {
-                            handleEditFieldChange(index, 'isNightShiftCash', false);
-                          }
+                          const newShift = e.target.value;
+                          const currentEditData = editData[index] || {};
+                          
+                          setEditData({
+                            ...editData,
+                            [index]: {
+                              ...currentEditData,
+                              shift: newShift,
+                              isNightShiftCash: newShift === "cash_holiday" ? currentEditData.isNightShiftCash : false,
+                              isThreePercent: newShift === "cash_holiday" ? currentEditData.isThreePercent : false
+                            }
+                          });
                         }}
-                        style={{ width: "100px", fontSize: "12px" }}
+                        style={{ width: "85px", fontSize: "11px", padding: "2px 4px" }}
                       >
                         <option value="morning_shift">กะเช้า</option>
                         <option value="afternoon_shift">กะบ่าย</option>
@@ -4316,7 +4335,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                       </select>
                       
                       {/* Show checkbox when editing and shift is "เงินสด" */}
-                      {(editData[index]?.shift || rowData2.shift) === "cash_holiday" && (
+                      {(editData[index]?.shift ?? rowData2.shift) === "cash_holiday" && (
                         <div className="form-check mt-1">
                           <input
                             type="checkbox"
@@ -4359,40 +4378,40 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                 </th>
                 
                 {/* OT Before Work */}
-                <th>
+                <th style={{ minWidth: "70px" }}>
                   {editMode[index] ? (
                     <input
                       type="text"
                       className="form-control form-control-sm"
                       value={editData[index]?.beforeStartOtTime || ''}
                       onChange={(e) => handleEditFieldChange(index, 'beforeStartOtTime', e.target.value)}
-                      style={{ width: "80px", fontSize: "12px" }}
+                      style={{ width: "65px", fontSize: "11px", padding: "2px 4px" }}
                     />
                   ) : (
                     rowData2.beforeStartOtTime
                   )}
                 </th>
-                <th>
+                <th style={{ minWidth: "70px" }}>
                   {editMode[index] ? (
                     <input
                       type="text"
                       className="form-control form-control-sm"
                       value={editData[index]?.beforeEndOtTime || ''}
                       onChange={(e) => handleEditFieldChange(index, 'beforeEndOtTime', e.target.value)}
-                      style={{ width: "80px", fontSize: "12px" }}
+                      style={{ width: "65px", fontSize: "11px", padding: "2px 4px" }}
                     />
                   ) : (
                     rowData2.beforeEndOtTime
                   )}
                 </th>
-                <th>
+                <th style={{ minWidth: "70px" }}>
                   {editMode[index] ? (
                     <input
                       type="text"
                       className="form-control form-control-sm"
                       value={editData[index]?.beforeTotalOtTime || ''}
                       onChange={(e) => handleEditFieldChange(index, 'beforeTotalOtTime', e.target.value)}
-                      style={{ width: "80px", fontSize: "12px" }}
+                      style={{ width: "65px", fontSize: "11px", padding: "2px 4px" }}
                     />
                   ) : (
                     rowData2.beforeTotalOtTime
@@ -4400,33 +4419,33 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                 </th>
 
                 {/* Work Time */}
-                <th>
+                <th style={{ minWidth: "70px" }}>
                   {editMode[index] ? (
                     <input
                       type="text"
                       className="form-control form-control-sm"
                       value={editData[index]?.startTime || ''}
                       onChange={(e) => handleEditFieldChange(index, 'startTime', e.target.value)}
-                      style={{ width: "80px", fontSize: "12px" }}
+                      style={{ width: "65px", fontSize: "11px", padding: "2px 4px" }}
                     />
                   ) : (
                     rowData2.startTime
                   )}
                 </th>
-                <th>
+                <th style={{ minWidth: "70px" }}>
                   {editMode[index] ? (
                     <input
                       type="text"
                       className="form-control form-control-sm"
                       value={editData[index]?.endTime || ''}
                       onChange={(e) => handleEditFieldChange(index, 'endTime', e.target.value)}
-                      style={{ width: "80px", fontSize: "12px" }}
+                      style={{ width: "65px", fontSize: "11px", padding: "2px 4px" }}
                     />
                   ) : (
                     rowData2.endTime
                   )}
                 </th>
-                <th>
+                <th style={{ minWidth: "90px" }}>
                   {editMode[index] ? (
                     <div>
                       <input
@@ -4434,7 +4453,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                         className="form-control form-control-sm"
                         value={editData[index]?.totalTime || ''}
                         onChange={(e) => handleEditFieldChange(index, 'totalTime', e.target.value)}
-                        style={{ width: "80px", fontSize: "12px" }}
+                        style={{ width: "65px", fontSize: "11px", padding: "2px 4px" }}
                       />
                       {editData[index]?.totalTime && parseFloat(editData[index]?.totalTime) < 8 && (
                         <div className="form-check mt-1">
@@ -4467,40 +4486,40 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                 </th>
                 
                 {/* OT After Work */}
-                <th>
+                <th style={{ minWidth: "70px" }}>
                   {editMode[index] ? (
                     <input
                       type="text"
                       className="form-control form-control-sm"
                       value={editData[index]?.startOtTime || ''}
                       onChange={(e) => handleEditFieldChange(index, 'startOtTime', e.target.value)}
-                      style={{ width: "80px", fontSize: "12px" }}
+                      style={{ width: "65px", fontSize: "11px", padding: "2px 4px" }}
                     />
                   ) : (
                     rowData2.startOtTime
                   )}
                 </th>
-                <th>
+                <th style={{ minWidth: "70px" }}>
                   {editMode[index] ? (
                     <input
                       type="text"
                       className="form-control form-control-sm"
                       value={editData[index]?.endOtTime || ''}
                       onChange={(e) => handleEditFieldChange(index, 'endOtTime', e.target.value)}
-                      style={{ width: "80px", fontSize: "12px" }}
+                      style={{ width: "65px", fontSize: "11px", padding: "2px 4px" }}
                     />
                   ) : (
                     rowData2.endOtTime
                   )}
                 </th>
-                <th>
+                <th style={{ minWidth: "70px" }}>
                   {editMode[index] ? (
                     <input
                       type="text"
                       className="form-control form-control-sm"
                       value={editData[index]?.totalOtTime || ''}
                       onChange={(e) => handleEditFieldChange(index, 'totalOtTime', e.target.value)}
-                      style={{ width: "80px", fontSize: "12px" }}
+                      style={{ width: "65px", fontSize: "11px", padding: "2px 4px" }}
                     />
                   ) : (
                     rowData2.totalOtTime
@@ -4508,7 +4527,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                 </th>
 
                 {/* Salary */}
-                <th>
+                <th style={{ minWidth: "80px" }}>
                   {editMode[index] ? (
                     <div className="d-flex flex-column" style={{ gap: "2px" }}>
                       {((editData[index]?.shift || rowData2.shift) === "specialt_shift" || (editData[index]?.shift || rowData2.shift) === "cash_holiday") && (
@@ -4523,7 +4542,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                             onChange={(e) => handleEditFieldChange(index, 
                               (editData[index]?.shift || rowData2.shift) === "specialt_shift" ? 'specialtSalary' : 'cashOfHoliday', 
                               e.target.value)}
-                            style={{ width: "80px", fontSize: "11px" }}
+                            style={{ width: "70px", fontSize: "10px", padding: "2px 4px" }}
                           />
                           <input
                             type="number"
@@ -4535,7 +4554,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                             onChange={(e) => handleEditFieldChange(index, 
                               (editData[index]?.shift || rowData2.shift) === "specialt_shift" ? 'specialtSalaryOT' : 'cashOfHolidayOt', 
                               e.target.value)}
-                            style={{ width: "80px", fontSize: "11px" }}
+                            style={{ width: "70px", fontSize: "10px", padding: "2px 4px" }}
                           />
                         </>
                       )}
@@ -4552,7 +4571,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                 </th>
 
                 {/* Remarks/Notes */}
-                <th>
+                <th style={{ minWidth: "100px" }}>
                   {editMode[index] && (editData[index]?.shift || rowData2.shift) === "cash_holiday" ? (
                     <div>
                       <input
@@ -4561,7 +4580,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                         placeholder="หมายเหตุ"
                         value={editData[index]?.messageSalary || ''}
                         onChange={(e) => handleEditFieldChange(index, 'messageSalary', e.target.value)}
-                        style={{ width: "120px", fontSize: "11px" }}
+                        style={{ width: "95px", fontSize: "10px", padding: "2px 4px" }}
                       />
                       <div className="form-check mt-1">
                         <input
@@ -4600,7 +4619,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                       <button 
                         type="button"
                         className="btn btn-success btn-sm"
-                        style={{ padding: "0.25rem 0.5rem" }}
+                        style={{ width: "2rem", padding: "0.25rem 0.25rem", fontSize: "12px" }}
                         onClick={() => handleSaveEdit(index)}
                         title="บันทึก"
                       >
@@ -4609,7 +4628,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                       <button 
                         type="button"
                         className="btn btn-secondary btn-sm"
-                        style={{ padding: "0.25rem 0.5rem" }}
+                        style={{ width: "2rem", padding: "0.25rem 0.25rem", fontSize: "12px" }}
                         onClick={() => handleCancelEdit(index)}
                         title="ยกเลิก"
                       >
@@ -4621,7 +4640,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                       <button 
                         type="button"
                         className="btn btn-warning btn-sm"
-                        style={{ width: "2.5rem", padding: "0.25rem 0.5rem" }}
+                        style={{ width: "2rem", padding: "0.25rem 0.25rem", fontSize: "12px" }}
                         onClick={() => handleStartEdit(index)}
                         title="แก้ไข"
                       >
@@ -4630,7 +4649,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                       <button 
                         type="button"
                         className="btn btn-danger btn-sm"
-                        style={{ width: "2.5rem", padding: "0.25rem 0.5rem" }}
+                        style={{ width: "2rem", padding: "0.25rem 0.25rem", fontSize: "12px" }}
                         onClick={() => handleDeleteRow(rowData2.tmpIndex)}
                         title="ลบ"
                       >
