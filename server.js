@@ -48,11 +48,16 @@
 // app.listen(5173, () => console.log("Server is running on page 5173"));
 // server.js
 
-const express = require('express');
-const bodyParser = require('body-parser');
-const cors = require('cors');
-const mysql = require('mysql');
-const path = require('path');
+import express from 'express';
+import bodyParser from 'body-parser';
+import cors from 'cors';
+import mysql from 'mysql';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const app = express();
 
