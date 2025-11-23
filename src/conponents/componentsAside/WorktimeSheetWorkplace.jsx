@@ -4194,6 +4194,58 @@ const getDateStyle = (day) => {
     }
   };
 
+   // ฟังก์ชันแปลง column number เป็น letter (รองรับ AA, AB, etc.)
+   const getColumnLetter = (col) => {
+     let letter = '';
+     while (col > 0) {
+       const remainder = (col - 1) % 26;
+       letter = String.fromCharCode(65 + remainder) + letter;
+       col = Math.floor((col - 1) / 26);
+     }
+     return letter;
+   };
+
+   // ฟังก์ชัน merge ช่องที่มีค่าเหมือนกันติดกัน
+   const mergeConsecutiveSameCells = (worksheet, rowNumber, startCol, endCol) => {
+     try {
+       let mergeStartCol = null;
+       let mergeStartValue = null;
+       
+       for (let col = startCol; col <= endCol + 1; col++) {
+         const currentCell = col <= endCol ? worksheet.getCell(rowNumber, col) : null;
+         const currentValue = currentCell ? currentCell.value : null;
+         
+         if (mergeStartCol === null) {
+           // เริ่มต้นกลุ่ม merge ใหม่
+           mergeStartCol = col;
+           mergeStartValue = currentValue;
+         } else if (col > endCol || currentValue !== mergeStartValue) {
+           // ถ้าค่าเปลี่ยนหรือถึงท้ายแล้ว ให้ merge กลุ่มก่อนหน้า
+           const mergeEndCol = col - 1;
+           if (mergeEndCol > mergeStartCol && mergeStartValue) {
+             // มีอย่างน้อย 2 cell ที่ต้อง merge
+             const startColLetter = getColumnLetter(mergeStartCol);
+             const endColLetter = getColumnLetter(mergeEndCol);
+             const range = `${startColLetter}${rowNumber}:${endColLetter}${rowNumber}`;
+             
+             try {
+               worksheet.mergeCells(range);
+               console.log(`✅ Merged consecutive cells: ${range} with value "${mergeStartValue}"`);
+             } catch (mergeError) {
+               console.warn(`⚠️ Could not merge ${range}:`, mergeError.message);
+             }
+           }
+           
+           // เริ่มกลุ่มใหม่
+           mergeStartCol = col;
+           mergeStartValue = currentValue;
+         }
+       }
+     } catch (error) {
+       console.error('Error in mergeConsecutiveSameCells:', error);
+     }
+   };
+
    const generateExcel = async () => {
       console.log('🚀 Starting Excel generation...');
     
@@ -4368,12 +4420,11 @@ const getDateStyle = (day) => {
       dayNumbers.forEach(day => row1.push(day));
       row1.push('รวมวันทำงาน');
       row1.push('ค่าล่วงเวลา', '', '', '', ''); // ค่าล่วงเวลา จะ merge 5 คอลัมน์
-      // 🆕 แทนที่จะใส่ "สวัสดิการ" หลายครั้ง ใส่ครั้งเดียวแล้ว merge
+      // 🆕 ใส่ "สวัสดิการ" ทุกช่องแล้วค่อย merge
       if (workplaceAddsalary && workplaceAddsalary.length > 0) {
-        row1.push('สวัสดิการ'); // ครั้งแรก
-        // ใส่ค่าว่างสำหรับคอลัมน์ที่เหลือ (จะถูก merge)
-        for (let i = 1; i < mergeWorkplaceAddsalary(workplaceAddsalary).length; i++) {
-          row1.push('');
+        // ใส่ "สวัสดิการ" ทุกคอลัมน์
+        for (let i = 0; i < mergeWorkplaceAddsalary(workplaceAddsalary).length; i++) {
+          row1.push('สวัสดิการ');
         }
       }
       row1.push('วัน Cash Holiday', 'หักประกันสังคม %', 'เงินสงเคราะห์ลูกจ้าง', 'หมายเหตุ');
@@ -4426,6 +4477,12 @@ const getDateStyle = (day) => {
       const headerRow4 = worksheet.addRow(row4);
       
       console.log('Header rows added to worksheet successfully');
+      
+      // 🆕 Merge consecutive same cells in row 5 (สำหรับ "สวัสดิการ" และช่องอื่นๆ ที่มีค่าซ้ำติดกัน)
+      console.log('🔗 Merging consecutive same cells in row 5...');
+      // คำนวณช่วงคอลัมน์ทั้งหมดในแถว 5
+      const totalColumns = row1.length;
+      mergeConsecutiveSameCells(worksheet, 5, 1, totalColumns);
       
       // Apply vertical middle alignment to all header rows
       console.log('🎨 Applying vertical middle alignment to header rows...');
@@ -4587,37 +4644,35 @@ const getDateStyle = (day) => {
         
         console.log(`📊 Welfare columns: ${welfareStartCol} to ${welfareEndCol} (${welfareCount} columns)`);
         
-        // 🆕 Merge หัวข้อ "สวัสดิการ" ในแถว 5 แนวนอน (ครอบคลุมทุกคอลัมน์สวัสดิการ)
-        const welfareHeaderRange = `${welfareStartCol}5:${welfareEndCol}5`;
-        console.log(`🔗 Merging สวัสดิการ header horizontally: ${welfareHeaderRange}`);
-        const mergedWelfareHeader = safeMergeCell(welfareHeaderRange);
-        console.log(`Welfare header merge result: ${mergedWelfareHeader ? '✅ SUCCESS' : '❌ FAILED'}`);
-        
-        // ตั้งค่าหัวข้อ "สวัสดิการ" ให้อยู่ตรงกลาง
-        if (mergedWelfareHeader) {
-          try {
-            const welfareHeaderCell = worksheet.getCell(`${welfareStartCol}5`);
-            welfareHeaderCell.value = 'สวัสดิการ';
-            welfareHeaderCell.font = { bold: true, size: 14, color: { argb: 'FF000000' } };
-            welfareHeaderCell.alignment = { horizontal: 'center', vertical: 'middle' };
-            welfareHeaderCell.fill = {
-              type: 'pattern',
-              pattern: 'solid',
-              fgColor: { argb: 'FFE0E0E0' } // สีเทาอ่อนเพื่อให้เด่น
-            };
-            console.log('✅ Set สวัสดิการ header text and styling');
-          } catch (error) {
-            console.warn('❌ Error setting สวัสดิการ header:', error);
-          }
+        // 🆕 Merge แถว 1-4 (header rows ก่อนตาราง) ของคอลัมน์สวัสดิการ
+        for (let rowNum = 1; rowNum <= 4; rowNum++) {
+          const welfareTopRange = `${welfareStartCol}${rowNum}:${welfareEndCol}${rowNum}`;
+          safeMergeCell(welfareTopRange);
+          console.log(`🔗 Merged welfare columns in row ${rowNum}: ${welfareTopRange}`);
         }
         
-        // Merge แต่ละคอลัมน์สวัสดิการแนวตั้ง (rows 6-8) สำหรับชื่อสวัสดิการแต่ละตัว
-        console.log('🔗 Merging individual welfare columns vertically (rows 6-8)...');
+        // 🆕 ตั้งค่า style ให้ cell แรกของสวัสดิการในแถว 5 (merge จะทำโดย mergeConsecutiveSameCells)
+        try {
+          const welfareHeaderCell = worksheet.getCell(`${welfareStartCol}5`);
+          welfareHeaderCell.font = { bold: true, size: 14, color: { argb: 'FF000000' } };
+          welfareHeaderCell.alignment = { horizontal: 'center', vertical: 'middle' };
+          welfareHeaderCell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFE0E0E0' } // สีเทาอ่อนเพื่อให้เด่น
+          };
+          console.log('✅ Set สวัสดิการ header styling (merge will be done by mergeConsecutiveSameCells)');
+        } catch (error) {
+          console.warn('❌ Error setting สวัสดิการ header:', error);
+        }
+        
+        // Merge แต่ละคอลัมน์สวัสดิการแนวตั้ง (rows 6-8) สำหรับชื่อสวัสดิการแต่ละตัว (แยกออกจาก "วัน Cash Holiday")
+        console.log('🔗 Merging individual welfare columns vertically (rows 6-8) แยกจาก "วัน Cash Holiday"...');
         for (let i = 0; i < welfareCount; i++) {
           const colLetter = String.fromCharCode(welfareStartCol.charCodeAt(0) + i);
           const verticalRange = `${colLetter}6:${colLetter}8`;
           safeMergeCell(verticalRange);
-          console.log(`  Merged ${verticalRange}`);
+          console.log(`  Merged ${verticalRange} (สวัสดิการคอลัมน์ที่ ${i + 1})`);
         }
         
         // 🆕 Apply Rich Text ให้ welfare columns หลัง merge (ต้องทำหลัง merge เพื่อให้ cell ที่ merge แล้วรับค่า)
@@ -4732,7 +4787,7 @@ try {
     try {
       const cashHolidayCell = worksheet.getCell(`${cashHolidayCol}5`);
       if (cashHolidayCell) {
-        cashHolidayCell.value = 'วัน Cash Holiday'; // ตั้งค่าข้อความใหม่
+        cashHolidayCell.value = 'ทำงานวันหยุด(จ่ายสด)'; // ตั้งค่าข้อความใหม่
         cashHolidayCell.alignment = {
           horizontal: 'center',
           vertical: 'middle',
@@ -5022,6 +5077,7 @@ const socialSecurityColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount;
             // กำหนดค่าที่จะแสดง
             let displayValue = '';
             let shouldBeRed = false; // ตัวแปรบอกว่าต้องเป็นสีแดงหรือไม่ (สำหรับแถวเช้า)
+            let shouldBeGray = false; // ตัวแปรบอกว่าต้องเป็นสีเทาหรือไม่ (สำหรับขาดงาน)
             
             if (isWork) {
               // เปรียบเทียบ workplaceId ของ record กับ searchWorkplaceId ที่เลือก
@@ -5031,10 +5087,18 @@ const socialSecurityColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount;
               // ตรวจสอบว่าพนักงานคนนี้เป็นพนักงานข้ามหน่วยงานหรือไม่
               const isCrossWorkplaceEmployee = record?.isCrossWorkplace || false;
               
+              // คำนวณค่าจาก totalTime หาร 8
+              const totalTimeValue = found?.totalTime ? parseFloat(found.totalTime) : 0;
+              const rawValue = totalTimeValue > 0 ? totalTimeValue / 8 : 0;
+              const calculatedValue = rawValue > 0 ? (rawValue % 1 === 0 ? rawValue.toString() : rawValue.toFixed(1)) : '';
+              
               if (isCrossWorkplaceEmployee) {
-                // ถ้าเป็นพนักงานข้ามหน่วยงาน ให้แสดง "1" เฉพาะวันที่มาทำงานที่หน่วยงานที่เลือกเท่านั้น
-                if (isMatchSearchWorkplace) {
-                  displayValue = '1';
+                // ถ้าเป็นพนักงานข้ามหน่วยงาน ให้แสดงค่าที่คำนวณ เฉพาะวันที่มาทำงานที่หน่วยงานที่เลือกเท่านั้น
+                if (isMatchSearchWorkplace && calculatedValue) {
+                  displayValue = calculatedValue;
+                } else if (isMatchSearchWorkplace && !calculatedValue) {
+                  // มาทำงานแต่ไม่มี totalTime = ขาดงาน
+                  shouldBeGray = true;
                 }
                 // ถ้าไม่ตรงกับ searchWorkplaceId = ไม่แสดงอะไร (วันที่ไม่ได้มาทำงานที่หน่วยงานนี้)
               } else {
@@ -5042,41 +5106,55 @@ const socialSecurityColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount;
                 if (found?.shift === "cash_holiday") {
                   // 🔥 ปรับปรุง: ใช้ isNightShiftCash แทนการตรวจสอบเวลา
                   if (found?.isNightShiftCash !== true) {
-                    // กะเช้า - แสดงเลข 1 สีแดง
-                    displayValue = '1';
-                    shouldBeRed = true; // เลข 1 สีแดงสำหรับ cash_holiday กะเช้า
+                    // กะเช้า - แสดงค่าที่คำนวณสีแดง
+                    if (calculatedValue) {
+                      displayValue = calculatedValue;
+                      shouldBeRed = true; // สีแดงสำหรับ cash_holiday กะเช้า
+                    } else {
+                      // cash_holiday แต่ไม่มี totalTime = ขาดงาน
+                      shouldBeGray = true;
+                    }
                   }
                   // ถ้าเป็นกะดึก (isNightShiftCash === true) ไม่แสดงอะไรในแถวเช้า
                 } else if (found?.shift === "morning_shift") {
                   // เฉพาะ morning_shift เท่านั้น
-                  if (isMatchSearchWorkplace) {
-                    displayValue = '1';
+                  if (calculatedValue) {
+                    if (isMatchSearchWorkplace) {
+                      displayValue = calculatedValue;
+                    } else {
+                      displayValue = `${calculatedValue}\n${found?.workplaceId || ''}`;
+                    }
                   } else {
-                    displayValue = `1\n${found?.workplaceId || ''}`;
+                    // morning_shift แต่ไม่มี totalTime = ขาดงาน
+                    shouldBeGray = true;
                   }
                 }
               }
             }
 
-            // เพิ่มเงื่อนไขพิเศษ: ถ้าเป็นวันหยุดส่วนบุคคลแต่มี totalTime ให้แสดงเลข 1
+            // เพิ่มเงื่อนไขพิเศษ: ถ้าเป็นวันหยุดส่วนบุคคลแต่มี totalTime ให้แสดงค่าที่คำนวณ
             // แต่ไม่แสดงถ้าเป็น cash_holiday กะดึก (ใช้ isNightShiftCash)
             if (specialIndividual && found?.totalTime && found.totalTime.trim() !== '') {
+              const totalTimeValue = parseFloat(found.totalTime);
+              const rawValue = totalTimeValue > 0 ? totalTimeValue / 8 : 0;
+              const calculatedValue = rawValue > 0 ? (rawValue % 1 === 0 ? rawValue.toString() : rawValue.toFixed(1)) : '';
+              
               // ตรวจสอบว่าเป็น cash_holiday หรือไม่
               if (found?.shift === "cash_holiday") {
                 // ถ้าไม่ใช่กะดึก (isNightShiftCash !== true) ให้แสดงในแถวเช้า
-                if (found?.isNightShiftCash !== true) {
-                  displayValue = "1";
-                  shouldBeRed = true; // เลข 1 สีแดงสำหรับ cash_holiday ในวันหยุดพิเศษ
+                if (found?.isNightShiftCash !== true && calculatedValue) {
+                  displayValue = calculatedValue;
+                  shouldBeRed = true; // สีแดงสำหรับ cash_holiday ในวันหยุดพิเศษ
                 }
                 // ถ้าเป็นกะดึก (isNightShiftCash === true) ไม่แสดงอะไรในแถวเช้า
-              } else {
+              } else if (calculatedValue) {
                 // ไม่ใช่ cash_holiday ให้แสดงปกติ (เฉพาะ specialt_shift หรือวันหยุดพิเศษที่ไม่ใช่ cash_holiday)
-                displayValue = "1";
+                displayValue = calculatedValue;
               }
             }
             
-            // เก็บข้อมูลว่าต้องเป็นสีแดงหรือไม่
-            empRow1.push({ value: displayValue, isRed: shouldBeRed });
+            // เก็บข้อมูลว่าต้องเป็นสีแดงหรือสีเทา
+            empRow1.push({ value: displayValue, isRed: shouldBeRed, isGray: shouldBeGray });
           });
           
           // Summary columns
@@ -5118,10 +5196,197 @@ const socialSecurityColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount;
           empRow1.push(''); // หักประกันสังคม
           empRow1.push(''); // เงินสงเคราะห์ลูกจ้าง
           empRow1.push(''); // หมายเหตุ
+          
+          // Row Afternoon: Afternoon shift data (บ่าย)
+          const empRowAfternoon = ['', 'บ่าย'];
+          dayNumbers.forEach(day => {
+            // หา record ทั้งหมดของวันนี้
+            const allRecordsForDay = record?.employee_record?.filter(itemx => itemx.date === day) || [];
+            
+            // หา afternoon_shift record
+            const afternoonShiftRecord = allRecordsForDay.find(itemx => itemx.shift === "afternoon_shift");
+            
+            // หา cash_holiday record สำหรับกะบ่าย (ใช้ isAfternoonShiftCash)
+            const cashHolidayAfternoonRecord = allRecordsForDay.find(itemx => {
+              return itemx.shift === "cash_holiday" && itemx.isAfternoonShiftCash === true;
+            });
+            
+            const found = afternoonShiftRecord || cashHolidayAfternoonRecord || allRecordsForDay[0];
+            
+            // ตรวจสอบว่าเป็นการทำงานกะบ่ายหรือไม่
+            const isAfternoonShiftWork = found?.dayType === "work" && found?.shift === "afternoon_shift";
+            
+            // ตรวจสอบว่าเป็น cash_holiday กะบ่ายหรือไม่
+            const isCashHolidayAfternoon = found?.shift === "cash_holiday" && found?.isAfternoonShiftCash === true;
+            
+            // ตรวจสอบว่าวันนี้อยู่ใน stopDaysList หรือไม่
+            const isInStopDaysList = record?.stopDaysList?.some(stopDay => {
+              const stopDayDate = parseInt(stopDay.date);
+              const currentDay = parseInt(day);
+              return stopDayDate === currentDay;
+            });
+
+            // ตรวจสอบทั้ง specialt_shift และ stopDaysList สำหรับกะบ่าย
+            const specialIndividualAfternoon = (found?.dayType === "work" && found?.shift === "specialt_shift") || isInStopDaysList;
+            const dayNum = parseInt(day);
+            let actualMonth, actualYear;
+            
+            // ตรวจสอบว่าเป็นวันไหนจากเดือนไหน (ตารางแสดงข้ามเดือน 21-31 เดือนก่อน และ 1-20 เดือนปัจจุบัน)
+            if (dayNum >= 21) {
+              // วันที่ 21-31 เป็นของเดือนก่อนหน้า
+              if (parseInt(month) === 1) {
+                actualMonth = 12;
+                actualYear = parseInt(year) - 1;
+              } else {
+                actualMonth = parseInt(month) - 1;
+                actualYear = parseInt(year);
+              }
+            } else {
+              // วันที่ 1-20 เป็นของเดือนปัจจุบัน
+              actualMonth = parseInt(month);
+              actualYear = parseInt(year);
+            }
+            
+            // ตรวจสอบว่าวันที่นี้มีอยู่จริงในเดือนนั้นหรือไม่
+            const daysInActualMonth = new Date(actualYear, actualMonth, 0).getDate();
+            const isInvalidDate = dayNum > daysInActualMonth;
+
+            // สร้างวันที่ในรูปแบบ YYYY-MM-DD เพื่อเปรียบเทียบกับข้อมูลจาก API
+            const targetDateStr = `${actualYear}-${actualMonth.toString().padStart(2, '0')}-${dayNum.toString().padStart(2, '0')}`;
+            
+            // ตรวจสอบจาก dayoffWorkplace
+            const isDayoffWorkplace = weekendData && weekendData.dayoffWorkplace && Array.isArray(weekendData.dayoffWorkplace) && weekendData.dayoffWorkplace.includes(targetDateStr);
+            
+            // ตรวจสอบการลาป่วย
+            const isSickLeave = record?.addSalaryList?.some(salaryItem => {
+              // เช็คเฉพาะ welfare ที่เป็นการลาป่วย หรือ ลาพักร้อน
+              if (salaryItem.welfareType === "ลาป่วย" || 
+                  salaryItem.welfareType === "ลาคลอด" ||
+                  salaryItem.name?.includes("ลาป่วย") || 
+                  salaryItem.name?.includes("ป่วย") ||
+                  salaryItem.name?.includes("ลาพักร้อน") ||
+                  salaryItem.name?.includes("ชดเชย") ||
+                  salaryItem.name?.includes("ลากิจ")) {
+                
+                // แปลง date string เป็น array ของวันที่
+                const dates = salaryItem.date ? salaryItem.date.split(',').map(d => d.trim()) : [];
+                const currentDay = parseInt(day);
+                
+                const isMatch = dates.some(dateStr => parseInt(dateStr) === currentDay);
+                return isMatch;
+              }
+              return false;
+            });
+            
+            // ตรวจสอบจาก dayOffOnly
+            const isDayOffOnly = weekendData && Array.isArray(weekendData) && weekendData.find(item => item.date === targetDateStr && item.type === 'dayOffOnly');
+            
+            // ตรวจสอบว่าเป็นวันหยุดพิเศษหรือไม่
+            const isSpecialHoliday = record?.personalDayOff?.some(personalDay => {
+              const personalDayDate = parseInt(personalDay.date);
+              const currentDay = parseInt(day);
+              return personalDayDate === currentDay;
+            }) || record?.stopDaysList?.some(stopDay => {
+              const stopDayDate = parseInt(stopDay.date);
+              const currentDay = parseInt(day);
+              return stopDayDate === currentDay;
+            });
+            
+            // กำหนดค่าที่จะแสดง
+            let displayValue = '';
+            let shouldBeRed = false;
+            let shouldBeGray = false;
+            let shouldBeSickLeave = false;
+            
+            // ตรวจสอบวันที่ 31 ของเดือนที่มี 31 วัน หรือวันนักขัตฤกษ์
+            if (isInvalidDate || isDayoffWorkplace || isDayOffOnly) {
+              shouldBeGray = true; // สีเทา
+            } else if (isSpecialHoliday) {
+              // วันหยุดพิเศษ: สีเขียว #00ff00 (จะจัดการใน cell styling)
+              if (isCashHolidayAfternoon) {
+                displayValue = '1';
+                shouldBeRed = true;
+              }
+            } else if (isAfternoonShiftWork || isCashHolidayAfternoon) {
+              displayValue = '1';
+              if (isCashHolidayAfternoon) {
+                shouldBeRed = true;
+              }
+            }
+            
+            if (isSickLeave) {
+              shouldBeSickLeave = true; // สี #c5eaebff
+            }
+
+            if (specialIndividualAfternoon) {
+              shouldBeGray = true;
+              shouldBeRed = true; // ตัวอักษรสีแดง
+            }
+            
+            // เก็บข้อมูลว่าต้องเป็นสีอะไร
+            empRowAfternoon.push({ 
+              value: displayValue, 
+              isRed: shouldBeRed, 
+              isGray: shouldBeGray, 
+              isSickLeave: shouldBeSickLeave
+            });
+          });
+          
+          // Add summary columns to afternoon row (same as night shift)
+          empRowAfternoon.push(formatNumberWithComma(record.sumCashWork) || '');                    // เงินวันทำงาน
+          empRowAfternoon.push(formatNumberWithComma(record.cashcustomizeDayoff) || '');           // รวมวันหยุด
+          empRowAfternoon.push(formatNumberWithComma(record.publicHolidayCash) || '');             // รวมเงินทำงานนักขัติ
+          empRowAfternoon.push(formatNumberWithComma(record.sumCashWorkMul?.["2"]) || '');         // รวมเงินทำงานโอที2
+          empRowAfternoon.push(formatNumberWithComma(record.sumCashWorkMul?.["1.5"]) || '');       // โอที 1.5
+          empRowAfternoon.push(record.sumCashWorkMul?.["3"] ? formatNumberWithComma(parseFloat(record.sumCashWorkMul["3"]).toFixed(2)) : ''); // โอที 3
+          
+          if (workplaceAddsalary && workplaceAddsalary.length > 0) {
+            mergeWorkplaceAddsalary(workplaceAddsalary).forEach(item => {
+              if (item.codeSpSalary === MERGE_CONFIG.displayId) {
+                // รวมค่าจาก sourceId1 และ sourceId2
+                const foundSourceId1 = record.addSalaryList?.find(itemx => itemx.id === MERGE_CONFIG.sourceId1);
+                const foundSourceId2 = record.addSalaryList?.find(itemx => itemx.id === MERGE_CONFIG.sourceId2);
+                const valueSourceId1 = parseFloat(foundSourceId1?.SpSalary || 0);
+                const valueSourceId2 = parseFloat(foundSourceId2?.SpSalary || 0);
+                const totalValue = valueSourceId1 + valueSourceId2;
+                empRowAfternoon.push(totalValue === 0 ? "NO" : formatNumberWithComma(totalValue.toFixed(2)));
+              } else {
+                const found = record.addSalaryList?.find(itemx => itemx.id === item.codeSpSalary);
+                const value = parseFloat(found?.SpSalary || 0);
+                empRowAfternoon.push(value === 0 ? "NO" : formatNumberWithComma(value.toFixed(2)));
+              }
+            });
+          }
+          
+          empRowAfternoon.push(record.specialShiftTotalSalary ? formatNumberWithComma(parseFloat(record.specialShiftTotalSalary).toFixed(2)) : ''); // วัน Cash Holiday
+          // เพิ่ม social security column - ใช้ logic เดียวกับหน้าเว็บ
+          empRowAfternoon.push(
+            (record.tax && parseFloat(record.tax) > 0 
+              ? formatNumberWithComma(parseFloat(record.tax).toFixed(2)) 
+              : '') || 
+            (record.socialSecurity && parseFloat(record.socialSecurity) >= 50 
+              ? formatNumberWithComma(parseFloat(record.socialSecurity).toFixed(2)) 
+              : '')
+          );
+          
+          // เพิ่ม employee allowance column (เงินสงเคราะห์ลูกจ้าง)
+          empRowAfternoon.push(record.employeeCompensation ? formatNumberWithComma(parseFloat(record.employeeCompensation).toFixed(2)) : '');
+          
+          // Add empty cells for remaining columns
+          empRowAfternoon.push(''); // หมายเหตุ
+          
           // Row 2: Night shift data (ดึก) - Use same values as web table
           const empRow2 = ['', 'ดึก'];
           dayNumbers.forEach(day => {
-            // หา record ทั้งหมดของวันนี้
+            const dayNum = parseInt(day);
+            
+            // 🆕 ถ้าเป็นวันที่ 1-20 ให้เป็นช่องว่าง (เพราะข้อมูลแสดงในแถวบ่ายแล้ว)
+            if (dayNum >= 1 && dayNum <= 20) {
+              empRow2.push('');
+              return; // ข้ามไปวันถัดไป
+            }
+            
+            // หา record ทั้งหมดของวันนี้ (เฉพาะวันที่ 21-31)
             const allRecordsForDay = record?.employee_record?.filter(itemx => itemx.date === day) || [];
             
             // 🔥 แก้ไข: สำหรับแถวดึก ให้หา night_shift record ก่อน และ cash_holiday กะดึก
@@ -5149,7 +5414,6 @@ const socialSecurityColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount;
 
             // ตรวจสอบทั้ง specialt_shift และ stopDaysList สำหรับกะดึก
             const specialIndividualNight = (found?.dayType === "work" && found?.shift === "specialt_shift") || isInStopDaysList;
-            const dayNum = parseInt(day);
             let actualMonth, actualYear;
             
             // ตรวจสอบว่าเป็นวันไหนจากเดือนไหน (ตารางแสดงข้ามเดือน 21-31 เดือนก่อน และ 1-20 เดือนปัจจุบัน)
@@ -5239,48 +5503,24 @@ const socialSecurityColIndex = totalWorkDaysColIndex + 6 + welfareColumnsCount;
             empRow2.push({ value: displayValue, isRed: shouldBeRed });
           });
           
-          // Use exact same calculations as the web table to ensure consistency
-          empRow2.push(formatNumberWithComma(record.sumCashWork) || '');                    // เงินวันทำงาน
-          empRow2.push(formatNumberWithComma(record.cashcustomizeDayoff) || '');           // รวมวันหยุด
-          empRow2.push(formatNumberWithComma(record.publicHolidayCash) || '');             // รวมเงินทำงานนักขัติ
-          empRow2.push(formatNumberWithComma(record.sumCashWorkMul?.["2"]) || '');         // รวมเงินทำงานโอที2
-          empRow2.push(formatNumberWithComma(record.sumCashWorkMul?.["1.5"]) || '');       // โอที 1.5
-          empRow2.push(record.sumCashWorkMul?.["3"] ? formatNumberWithComma(parseFloat(record.sumCashWorkMul["3"]).toFixed(2)) : ''); // โอที 3
+          // 🆕 แถวดึกไม่แสดง summary columns เพราะข้อมูลถูกย้ายไปแสดงในแถวบ่ายแล้ว - ใส่ช่องว่างทั้งหมด
+          empRow2.push(''); // เงินวันทำงาน
+          empRow2.push(''); // รวมวันหยุด
+          empRow2.push(''); // รวมเงินทำงานนักขัติ
+          empRow2.push(''); // รวมเงินทำงานโอที2
+          empRow2.push(''); // โอที 1.5
+          empRow2.push(''); // โอที 3
           
           if (workplaceAddsalary && workplaceAddsalary.length > 0) {
             mergeWorkplaceAddsalary(workplaceAddsalary).forEach(item => {
-              if (item.codeSpSalary === MERGE_CONFIG.displayId) {
-                // รวมค่าจาก sourceId1 และ sourceId2
-                const foundSourceId1 = record.addSalaryList?.find(itemx => itemx.id === MERGE_CONFIG.sourceId1);
-                const foundSourceId2 = record.addSalaryList?.find(itemx => itemx.id === MERGE_CONFIG.sourceId2);
-                const valueSourceId1 = parseFloat(foundSourceId1?.SpSalary || 0);
-                const valueSourceId2 = parseFloat(foundSourceId2?.SpSalary || 0);
-                const totalValue = valueSourceId1 + valueSourceId2;
-                empRow2.push(totalValue === 0 ? "NO" : formatNumberWithComma(totalValue.toFixed(2)));
-              } else {
-                const found = record.addSalaryList?.find(itemx => itemx.id === item.codeSpSalary);
-                const value = parseFloat(found?.SpSalary || 0);
-                empRow2.push(value === 0 ? "NO" : formatNumberWithComma(value.toFixed(2)));
-              }
+              empRow2.push(''); // สวัสดิการทั้งหมดเป็นช่องว่าง
             });
           }
           
-          empRow2.push(record.specialShiftTotalSalary ? formatNumberWithComma(parseFloat(record.specialShiftTotalSalary).toFixed(2)) : ''); // วัน Cash Holiday
-          // เพิ่ม social security column - ใช้ logic เดียวกับหน้าเว็บ
-          empRow2.push(
-            (record.tax && parseFloat(record.tax) > 0 
-              ? formatNumberWithComma(parseFloat(record.tax).toFixed(2)) 
-              : '') || 
-            (record.socialSecurity && parseFloat(record.socialSecurity) >= 50 
-              ? formatNumberWithComma(parseFloat(record.socialSecurity).toFixed(2)) 
-              : '')
-          );
-          
-          // เพิ่ม employee allowance column (เงินสงเคราะห์ลูกจ้าง)
-          empRow2.push(record.employeeCompensation ? formatNumberWithComma(parseFloat(record.employeeCompensation).toFixed(2)) : '');
-          
-          // Add empty cells for remaining columns - ใช้การนับอัตโนมัติ  
-         empRow2.push(''); // หมายเหตุ
+          empRow2.push(''); // วัน Cash Holiday
+          empRow2.push(''); // ประกันสังคม
+          empRow2.push(''); // เงินสงเคราะห์ลูกจ้าง
+          empRow2.push(''); // หมายเหตุ
           
           // Row 3: OT 1.5 data - using same condition as sumOvertimePerDay
           const empRow3 = ['', `${record.employeeId} โอที 1.5`];
@@ -5514,6 +5754,14 @@ for (let i = 0; i < remainingCols5; i++) {
             return item;
           });
           
+          // 🆕 แปลง empRowAfternoon เป็น values
+          const empRowAfternoonValues = empRowAfternoon.map(item => {
+            if (typeof item === 'object' && item !== null && item.hasOwnProperty('value')) {
+              return item.value;
+            }
+            return item;
+          });
+          
           const empRow2Values = empRow2.map(item => {
             if (typeof item === 'object' && item !== null && item.hasOwnProperty('value')) {
               return item.value;
@@ -5532,44 +5780,18 @@ for (let i = 0; i < remainingCols5; i++) {
           // Add employee rows to worksheet
           const empRowRefs = [];
           empRowRefs.push(worksheet.addRow(empRow1Values)); // ใช้ empRow1Values แทน empRow1
+          empRowRefs.push(worksheet.addRow(empRowAfternoonValues)); // 🆕 เพิ่มแถวบ่าย
           empRowRefs.push(worksheet.addRow(empRow2Values)); // ใช้ empRow2Values แทน empRow2
           empRowRefs.push(worksheet.addRow(empRow3Values)); // 🆕 ใช้ empRow3Values แทน empRow3
           empRowRefs.push(worksheet.addRow(empRow4));
           empRowRefs.push(worksheet.addRow(empRow5));
           // Add employee rows to worksheet
 
-// เพิ่มเส้นขอบหนาที่แถว โอที3 (แถวสุดท้ายของพนักงาน)
-const lastRowRef = empRowRefs[4]; // แถว โอที3
-lastRowRef.eachCell((cell, colNumber) => {
-  // คงค่า border เดิมไว้ แต่เปลี่ยนเฉพาะ bottom เป็นสีแดง
-  cell.border = {
-    top: { style: 'thin', color: { argb: 'FF000000' } }, // สีดำ
-    left: { style: 'thin', color: { argb: 'FF000000' } }, // สีดำ
-    bottom: { style: 'medium', color: { argb: 'FFFF0000' } }, // สีแดง และหนาขึ้น
-    right: { style: 'thin', color: { argb: 'FF000000' } } // สีดำ
-  };
-});
-
-          
-          // Apply thick bottom border to OT3 row (empRow5)
-         const ot3RowNumber = currentRowIndex + 4; // empRow5 is the 5th row (index 4)
-const actualTotalColumns = row1.length; // ใช้จำนวนคอลัมน์จริงจาก header
-
-for (let colIdx = 1; colIdx <= actualTotalColumns; colIdx++) {
-    const cell = worksheet.getCell(ot3RowNumber, colIdx);
-    if (!cell.border) cell.border = {};
-    
-    cell.border = {
-        ...cell.border,
-        bottom: { style: 'double', color: { argb: 'FF000000' } }
-    };
-}
-          
           // Apply gray styling to empty cells in employee day columns
           console.log(`🎨 Applying styling to cells for employee ${record.employeeName || record.name}...`);
           
-          const employeeRows = [empRow1, empRow2, empRow3, empRow4, empRow5];
-          const rowNames = ['เช้า', 'ดึก', 'โอที 1.5', 'โอที 2', 'โอที 3'];
+          const employeeRows = [empRow1, empRowAfternoon, empRow2, empRow3, empRow4, empRow5];
+          const rowNames = ['เช้า', 'บ่าย', 'ดึก', 'โอที 1.5', 'โอที 2', 'โอที 3'];
           
           employeeRows.forEach((empRow, rowIdx) => {
             const actualRowNumber = currentRowIndex + rowIdx;
@@ -5662,8 +5884,8 @@ for (let colIdx = 1; colIdx <= actualTotalColumns; colIdx++) {
               }
 
               // ตรวจสอบว่ามีค่าโอที 2 หรือ โอที 3 ในวันนี้หรือไม่
-              const ot2Value = employeeRows[3]?.[dayIdx + 2]; // โอที 2 (empRow4)
-              const ot3Value = employeeRows[4]?.[dayIdx + 2]; // โอที 3 (empRow5)
+              const ot2Value = employeeRows[4]?.[dayIdx + 2]; // โอที 2 (empRow4) - เปลี่ยนจาก [3] เป็น [4]
+              const ot3Value = employeeRows[5]?.[dayIdx + 2]; // โอที 3 (empRow5) - เปลี่ยนจาก [4] เป็น [5]
               const hasOT2 = ot2Value && ot2Value !== '' && ot2Value !== null && ot2Value !== undefined;
               const hasOT3 = ot3Value && ot3Value !== '' && ot3Value !== null && ot3Value !== undefined;
               
@@ -5688,11 +5910,18 @@ for (let colIdx = 1; colIdx <= actualTotalColumns; colIdx++) {
                 return false;
               });
               
-              // 🔴 ตรวจสอบว่าควรเป็นสีแดงหรือไม่ (สำหรับแถวเช้าและแถวดึก)
-              const isCashHolidayWithRedText = (rowIdx === 0 || rowIdx === 1) && shouldBeRed;
+              // 🆕 ตรวจสอบ flags พิเศษสำหรับแถวบ่าย (rowIdx === 1)
+              const shouldBeGrayAfternoon = (typeof cellData === 'object' && cellData !== null) ? cellData.isGray : false;
+              const shouldBeSickLeaveAfternoon = (typeof cellData === 'object' && cellData !== null) ? cellData.isSickLeave : false;
               
-              // 🆕 สำหรับแถว OT 1.5 (rowIdx === 2) - ตรวจสอบว่ามีทั้ง OT ปกติและ cash_holiday หรือไม่
-              if (rowIdx === 2 && hasBothValues && normalValue && redValue) {
+              // 🆕 ตรวจสอบ flag สำหรับขาดงาน (isGray)
+              const shouldBeGrayAbsent = (typeof cellData === 'object' && cellData !== null) ? cellData.isGray : false;
+              
+              // 🔴 ตรวจสอบว่าควรเป็นสีแดงหรือไม่ (สำหรับแถวเช้า แถวบ่าย และแถวดึก)
+              const isCashHolidayWithRedText = (rowIdx === 0 || rowIdx === 1 || rowIdx === 2) && shouldBeRed;
+              
+              // 🆕 สำหรับแถว OT 1.5 (rowIdx === 3) - ตรวจสอบว่ามีทั้ง OT ปกติและ cash_holiday หรือไม่ (เปลี่ยนจาก rowIdx === 2)
+              if (rowIdx === 3 && hasBothValues && normalValue && redValue) {
                 // มีทั้ง OT ปกติและ cash_holiday - ใช้ Rich Text
                 cell.value = {
                   richText: [
@@ -5711,7 +5940,7 @@ for (let colIdx = 1; colIdx <= actualTotalColumns; colIdx++) {
                   ]
                 };
                 console.log(`Applied Rich Text with red value to OT 1.5 cell: ${normalValue},${redValue} in day ${day} (${actualRowNumber}, ${colNumber})`);
-              } else if (rowIdx === 2 && shouldBeRed) {
+              } else if (rowIdx === 3 && shouldBeRed) {
                 // เฉพาะ cash_holiday - แสดงสีแดงทั้งหมด
                 cell.value = cellValue;
                 cell.font = {
@@ -5726,7 +5955,46 @@ for (let colIdx = 1; colIdx <= actualTotalColumns; colIdx++) {
               }
 
               // Apply specific styling based on row type and cell content (ใช้ลำดับความสำคัญเหมือน HTML)
-              if (isSickLeave) {
+              if (rowIdx === 0 && shouldBeGrayAbsent && !cellValue) {
+                // 🆕 แถวเช้า - ขาดงาน (ไม่มี totalTime) - สีเทา (ความสำคัญสูงสุดสำหรับกรณีขาดงาน)
+                cell.fill = {
+                  type: 'pattern',
+                  pattern: 'solid',
+                  fgColor: { argb: 'FF9E9E9E' } // สีเทา #9e9e9e
+                };
+                cell.font = {
+                  bold: false,
+                  size: 14,
+                  color: { argb: 'FF000000' }
+                };
+                console.log(`Applied gray to absent cell in ${rowNames[rowIdx]} row, day ${day} (${actualRowNumber}, ${colNumber})`);
+              } else if (rowIdx === 1 && shouldBeSickLeaveAfternoon) {
+                // 🆕 แถวบ่าย - วันลา - สีฟ้าอ่อน (ความสำคัญสูงสุด)
+                cell.fill = {
+                  type: 'pattern',
+                  pattern: 'solid',
+                  fgColor: { argb: 'FFC5EAEB' } // สีฟ้าอ่อน #c5eaebff
+                };
+                cell.font = {
+                  bold: false,
+                  size: 14,
+                  color: { argb: 'FF000000' } // ตัวอักษรสีดำ
+                };
+                console.log(`Applied sick leave color to afternoon cell in ${rowNames[rowIdx]} row, day ${day} (${actualRowNumber}, ${colNumber})`);
+              } else if (rowIdx === 1 && shouldBeGrayAfternoon) {
+                // 🆕 แถวบ่าย - วันหยุด - สีเทา
+                cell.fill = {
+                  type: 'pattern',
+                  pattern: 'solid',
+                  fgColor: { argb: 'FF9E9E9E' } // สีเทา #9e9e9e
+                };
+                cell.font = {
+                  bold: false,
+                  size: 14,
+                  color: shouldBeRed ? { argb: 'FFFF0000' } : { argb: 'FF000000' } // สีแดงถ้าเป็น cash_holiday
+                };
+                console.log(`Applied gray to afternoon cell in ${rowNames[rowIdx]} row, day ${day} (${actualRowNumber}, ${colNumber})`);
+              } else if (isSickLeave) {
                 // 🖤 วันลา - สีฟ้าอ่อน (ความสำคัญสูงสุด)
                 cell.fill = {
                   type: 'pattern',
@@ -5735,7 +6003,7 @@ for (let colIdx = 1; colIdx <= actualTotalColumns; colIdx++) {
                 };
                 cell.font = {
                   bold: false,
-                  size: rowIdx <= 1 ? 14 : 9,
+                  size: rowIdx <= 2 ? 14 : 9,
                   color: { argb: 'FF000000' } // ตัวอักษรสีดำ
                 };
                 console.log(`Applied sick leave color to cell in ${rowNames[rowIdx]} row, day ${day} (${actualRowNumber}, ${colNumber})`);
@@ -5748,7 +6016,7 @@ for (let colIdx = 1; colIdx <= actualTotalColumns; colIdx++) {
                 };
                 cell.font = {
                   bold: false,
-                  size: rowIdx <= 1 ? 14 : 9,
+                  size: rowIdx <= 2 ? 14 : 9,
                   color: { argb: 'FFFF0000' } // ตัวอักษรสีแดง
                 };
                 console.log(`Applied gray background with red text to special individual cell in ${rowNames[rowIdx]} row, day ${day} (${actualRowNumber}, ${colNumber})`);
@@ -5761,7 +6029,7 @@ for (let colIdx = 1; colIdx <= actualTotalColumns; colIdx++) {
                 };
                 cell.font = {
                   bold: false,
-                  size: rowIdx <= 1 ? 14 : 9,
+                  size: rowIdx <= 2 ? 14 : 9,
                   color: { argb: 'FFFF0000' } // ตัวอักษรสีแดงตัวปกติ
                 };
                 console.log(`Applied ${isPersonalDayOff ? 'green' : 'gray'} background with RED text to cash_holiday cell in ${rowNames[rowIdx]} row, day ${day} (${actualRowNumber}, ${colNumber})`);
@@ -5774,11 +6042,11 @@ for (let colIdx = 1; colIdx <= actualTotalColumns; colIdx++) {
                 };
                 cell.font = {
                   bold: false,
-                  size: rowIdx <= 1 ? 14 : 9,
+                  size: rowIdx <= 2 ? 14 : 9,
                   color: { argb: 'FF000000' }
                 };
                 console.log(`Applied green to personal day off cell in ${rowNames[rowIdx]} row, day ${day} (${actualRowNumber}, ${colNumber})`);
-              } else if (rowIdx === 3) { // โอที 2 (empRow4) - ตรวจสอบก่อนวันหยุดหน่วยงาน
+              } else if (rowIdx === 4) { // โอที 2 (empRow4) - ตรวจสอบก่อนวันหยุดหน่วยงาน
                 // 🆕 ตรวจสอบว่าเป็น cash_holiday หรือไม่
                 const isCashHolidayForOT2 = foundRecord?.shift === "cash_holiday";
                 
@@ -5847,7 +6115,7 @@ for (let colIdx = 1; colIdx <= actualTotalColumns; colIdx++) {
                     color: { argb: 'FF000000' } // ตัวอักษรสีดำ
                   };
                 }
-              } else if (rowIdx === 4) { // โอที 3 (empRow5) - ตรวจสอบก่อนวันหยุดหน่วยงาน
+              } else if (rowIdx === 5) { // โอที 3 (empRow5) - ตรวจสอบก่อนวันหยุดหน่วยงาน (เปลี่ยนจาก rowIdx === 4 เป็น 5)
                 if (cellValue && cellValue !== '' && cellValue !== null && cellValue !== undefined) {
                   // โอที 3 มีค่า - สีชมพู
                   cell.fill = {
@@ -5923,7 +6191,7 @@ for (let colIdx = 1; colIdx <= actualTotalColumns; colIdx++) {
             });
           });
           
-          currentRowIndex += 5; // เพิ่มแถวไป 5 แถว
+          currentRowIndex += 6; // เพิ่มแถวไป 6 แถว (เช้า, บ่าย, ดึก, OT1.5, OT2, OT3)
           if ((idx + 1) % employeesPerPage === 0 && idx !== dataArray.length - 1) {
     pageBreakRows.push(currentRowIndex - 1);
   }
@@ -7550,35 +7818,34 @@ if (!isSummaryRow2 && colIndex >= 3 && colIndex <= 2 + dayNumbers.length) { // �
         console.warn('Error forcing alignment:', forceAlignError.message);
       }
 
-      // Apply red borders to separate employees
-console.log('🔴 Applying red borders to separate employees...');
-const totalEmployees = dataArray.length;
-for (let i = 0; i < totalEmployees; i++) {
-  const ot3RowNumber = 9 + (i * 5) + 4; // แถวที่ 13, 18, 23, ... (แถว โอที3 ของแต่ละคน) เปลี่ยนจาก 5 เป็น 9 เนื่องจากมีแถวว่าง 4 แถว
-  
-  // คำนวณจำนวนคอลัมน์ที่แน่นอนโดยใช้ notesColIndex เป็นฐาน
-  const actualColumns = row1.length;
+      // Apply thick borders to separate employees (under OT3 row)
+      console.log('🔴 Applying employee divider borders...');
+      const totalEmployees = dataArray.length;
+      for (let i = 0; i < totalEmployees; i++) {
+        // คำนวณแถว OT3: 8 แถว header + (i * 6 แถวต่อคน) + 5 (index ของ OT3)
+        const ot3RowNumber = 8 + (i * 6) + 6; // แถวที่ 14, 20, 26, ...
+        
+        const actualColumns = row1.length;
+        
+        // วาดเส้นใต้ OT3 ทุกคอลัมน์
+        for (let col = 1; col <= actualColumns; col++) {
+          const cell = worksheet.getCell(ot3RowNumber, col);
+          
+          cell.border = {
+            top: { style: 'thin', color: { argb: 'FF000000' } },
+            left: { style: 'thin', color: { argb: 'FF000000' } },
+            bottom: { style: 'thick', color: { argb: 'FF000000' } },
+            right: { style: 'thin', color: { argb: 'FF000000' } }
+          };
+        }
+      }
+      console.log(`✅ Applied divider borders to ${totalEmployees} employees`);
 
-// วน loop ตามจำนวนคอลัมน์จริง
-for (let col = 1; col <= actualColumns; col++) {
-    const cell = worksheet.getCell(ot3RowNumber, col);
-    
-    // เพิ่มเส้นขอบล่างสีแดง
-    cell.border = {
-        top: { style: 'thin', color: { argb: 'FF000000' } },
-        left: { style: 'thin', color: { argb: 'FF000000' } },
-        bottom: { style: 'thick', color: { argb: 'FF000000' } },
-        right: { style: 'thin', color: { argb: 'FF000000' } }
-    };
-}
-}
-console.log(`✅ Applied red borders to ${totalEmployees} employees`);
-
-// Final fix: Ensure OT 3 summary row has proper borders
+      // Final fix: Ensure OT 3 summary row has proper borders
 console.log('🔲 Final fix: Ensuring OT 3 summary row borders...');
 try {
-  const summaryStartRowIndex = 9 + (dataArray.length * 5); // Start of summary rows (เปลี่ยนจาก 7 เป็น 9 เนื่องจากมีแถวว่าง 4 แถว)
-  const ot3SummaryRowNumber = summaryStartRowIndex + 5; // OT 3 is the 6th summary row (0-based +5)
+  const summaryStartRowIndex = 8 + (dataArray.length * 6); // Start of summary rows (8 header rows + n employees * 6 rows)
+  const ot3SummaryRowNumber = summaryStartRowIndex + 6; // OT 3 is the 6th summary row
   
   console.log(`Fixing borders for OT 3 summary row at row ${ot3SummaryRowNumber}`);
   
@@ -7612,6 +7879,168 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
   console.warn('Error in final OT 3 border fix:', borderFixError.message);
 }
 
+      // เพิ่มส่วนข้อมูลเพิ่มเติมด้านล่างตาราง (2 คอลัมน์)
+      console.log('📝 Adding footer information...');
+      
+      if (workplaceData) {
+        worksheet.addRow([]); // เว้นบรรทัด
+        
+        // การบริหารจัดการ
+        const mgmtRow = worksheet.addRow(['การบริหารจัดการ', '', `สัญญา ${workplaceData.countEmployee || '-'} คน/วัน`]);
+        mgmtRow.getCell(1).font = { bold: true, size: 16 };
+        mgmtRow.getCell(3).font = { size: 16 };
+        mgmtRow.getCell(1).alignment = { horizontal: 'left', vertical: 'top' };
+        mgmtRow.getCell(3).alignment = { horizontal: 'left', vertical: 'top', wrapText: true };
+        
+        // Merge A+B สำหรับคอลัมน์ซ้าย และคอลัมน์ขวาจาก C ถึง AG
+        worksheet.mergeCells(mgmtRow.number, 1, mgmtRow.number, 2);
+        worksheet.mergeCells(mgmtRow.number, 3, mgmtRow.number, 33); // C=3 ถึง AG=33
+        
+        mgmtRow.getCell(1).border = {
+          top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' }
+        };
+        mgmtRow.getCell(3).border = {
+          top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' }
+        };
+        
+        // เวลาปฏิบัติงาน
+        let workTimeText = '';
+        if (workplaceData.workTimeDay) {
+          workplaceData.workTimeDay.filter(wt => wt.workOrStop === 'work').forEach((workTime, idx) => {
+            if (workTime.allTimes) {
+              workTime.allTimes.forEach(shift => {
+                if (shift.shift) {
+                  const otHours = shift.resultTimeOT ? parseFloat(shift.resultTimeOT.replace('.', ':').split(':')[0]) + (parseFloat(shift.resultTimeOT.replace('.', ':').split(':')[1] || 0) / 60) : 0;
+                  workTimeText += `${workTime.startDay} ถึง ${workTime.endDay} (${shift.shift}) เวลา ${shift.startTime || '-'} - ${shift.endTime || '-'} น.`;
+                  if (otHours > 0) workTimeText += ` (โอทีวันละ ${otHours.toFixed(1)} ชม.)`;
+                  workTimeText += '\n';
+                }
+              });
+            }
+          });
+        }
+        const timeRow = worksheet.addRow(['เวลาปฏิบัติงาน', '', workTimeText]);
+        timeRow.getCell(1).font = { bold: true, size: 16 };
+        timeRow.getCell(3).font = { size: 16 };
+        timeRow.getCell(1).alignment = { horizontal: 'left', vertical: 'top' };
+        timeRow.getCell(3).alignment = { horizontal: 'left', vertical: 'top', wrapText: true };
+        
+        // Merge A+B สำหรับคอลัมน์ซ้าย และคอลัมน์ขวาจาก C ถึง AG
+        worksheet.mergeCells(timeRow.number, 1, timeRow.number, 2);
+        worksheet.mergeCells(timeRow.number, 3, timeRow.number, 33);
+        
+        timeRow.getCell(1).border = {
+          top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' }
+        };
+        timeRow.getCell(3).border = {
+          top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' }
+        };
+        timeRow.height = 60;
+        
+        // วันหยุด
+        let holidayText = '';
+        if (workplaceData.workTimeDay) {
+          workplaceData.workTimeDay.filter(wt => wt.workOrStop === 'stop').forEach(stopDay => {
+            holidayText += `${stopDay.startDay}${stopDay.endDay !== stopDay.startDay ? ` ถึง ${stopDay.endDay}` : ''} `;
+          });
+        }
+        holidayText += `และนักขัตฤกษ์ ${workplaceData.publicHoliday ? workplaceData.publicHoliday.length : 0} วัน/ปี`;
+        const holidayRow = worksheet.addRow(['วันหยุด', '', holidayText]);
+        holidayRow.getCell(1).font = { bold: true, size: 16 };
+        holidayRow.getCell(3).font = { size: 16 };
+        holidayRow.getCell(1).alignment = { horizontal: 'left', vertical: 'top' };
+        holidayRow.getCell(3).alignment = { horizontal: 'left', vertical: 'top', wrapText: true };
+        
+        // Merge A+B สำหรับคอลัมน์ซ้าย และคอลัมน์ขวาจาก C ถึง AG
+        worksheet.mergeCells(holidayRow.number, 1, holidayRow.number, 2);
+        worksheet.mergeCells(holidayRow.number, 3, holidayRow.number, 33);
+        
+        holidayRow.getCell(1).border = {
+          top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' }
+        };
+        holidayRow.getCell(3).border = {
+          top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' }
+        };
+        
+        // ค่าแรงตามตำแหน่ง
+        let salaryText = `ค่าแรง ${workplaceData.workRate || '-'}.-/วัน `;
+        if (workplaceData.addSalary && workplaceData.addSalary.length > 0) {
+          workplaceData.addSalary.filter(s => s.roundOfSalary === 'daily').forEach(salary => {
+            salaryText += `${salary.name} ${salary.SpSalary}.-/วัน `;
+          });
+          workplaceData.addSalary.filter(s => s.roundOfSalary === 'monthly').forEach(salary => {
+            salaryText += `${salary.name} ${salary.SpSalary}.-/เดือน `;
+          });
+        }
+        const salaryRow = worksheet.addRow(['ค่าแรงตามตำแหน่ง', '', salaryText]);
+        salaryRow.getCell(1).font = { bold: true, size: 16 };
+        salaryRow.getCell(3).font = { size: 16 };
+        salaryRow.getCell(1).alignment = { horizontal: 'left', vertical: 'top' };
+        salaryRow.getCell(3).alignment = { horizontal: 'left', vertical: 'top', wrapText: true };
+        
+        // Merge A+B สำหรับคอลัมน์ซ้าย และคอลัมน์ขวาจาก C ถึง AG
+        worksheet.mergeCells(salaryRow.number, 1, salaryRow.number, 2);
+        worksheet.mergeCells(salaryRow.number, 3, salaryRow.number, 33);
+        
+        salaryRow.getCell(1).border = {
+          top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' }
+        };
+        salaryRow.getCell(3).border = {
+          top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' }
+        };
+        salaryRow.height = 40;
+        
+        // อื่นๆ
+        let otherText = `พักร้อน ${workplaceData.workRateDayoff || '-'} วัน/ปี\n`;
+        otherText += `ลากิจ ${workplaceData.personalLeave || '-'} วัน/ปี\n`;
+        otherText += `ลาป่วย ${workplaceData.sickLeave || '-'} วัน/ปี\n`;
+        otherText += 'จ่ายป่วยมีใบแพทย์ 30 วัน/ปี (เสื้อฟอร์มฟรี 1 ตัว/ชุด เมื่ออายุงานครบ 1 ปี)\n';
+        otherText += 'มาตรการโควิด ทางบริษัทออกค่าชุดตรวจโควิดแบบ ATK ให้เดือนละ 2 ชุด/คน';
+        const otherRow = worksheet.addRow(['อื่นๆ', '', otherText]);
+        otherRow.getCell(1).font = { bold: true, size: 16 };
+        otherRow.getCell(3).font = { size: 16 };
+        otherRow.getCell(1).alignment = { horizontal: 'left', vertical: 'top' };
+        otherRow.getCell(3).alignment = { horizontal: 'left', vertical: 'top', wrapText: true };
+        
+        // Merge A+B สำหรับคอลัมน์ซ้าย และคอลัมน์ขวาจาก C ถึง AG
+        worksheet.mergeCells(otherRow.number, 1, otherRow.number, 2);
+        worksheet.mergeCells(otherRow.number, 3, otherRow.number, 33);
+        
+        otherRow.getCell(1).border = {
+          top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' }
+        };
+        otherRow.getCell(3).border = {
+          top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' }
+        };
+        otherRow.height = 80;
+        
+        // หมายเหตุ (merge A-AG)
+        const remarkHeaderRow = worksheet.addRow(['หมายเหตุ:']);
+        remarkHeaderRow.getCell(1).font = { bold: true, size: 16 };
+        remarkHeaderRow.getCell(1).alignment = { horizontal: 'left', vertical: 'top' };
+        worksheet.mergeCells(remarkHeaderRow.number, 1, remarkHeaderRow.number, 33); // A ถึง AG
+        remarkHeaderRow.getCell(1).border = {
+          top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' }
+        };
+        
+        const remarkText = 'ช่องของการคำนวณค่าจ้าง/สวัสดิการ/โอที 1.5 เท่า 2 เท่า 3 เท่าอาจมีการปรับเปลี่ยนในการบันทึกข้อมูลได้เพื่อให้เป็นไปตามข้อกำหนดของหน่วยงานนั้นๆ และเพื่อให้การคำนวณค่าจ้างมีความสะดวกรวดเร็วถูกต้อง';
+        const remarkRow = worksheet.addRow([remarkText]);
+        remarkRow.getCell(1).font = { size: 16 };
+        remarkRow.getCell(1).alignment = { horizontal: 'left', vertical: 'top', wrapText: true };
+        worksheet.mergeCells(remarkRow.number, 1, remarkRow.number, 33); // A ถึง AG
+        remarkRow.getCell(1).border = {
+          top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' }
+        };
+        remarkRow.height = 40;
+        
+        // ตั้งความกว้างคอลัมน์
+        worksheet.getColumn(1).width = 15;
+        worksheet.getColumn(2).width = 55;
+        
+        console.log('✅ Added footer information from workplaceData');
+      } else {
+        console.log('⚠️ No workplaceData found');
+      }
 
       
       // Generate Excel file using ExcelJS
@@ -8217,14 +8646,13 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
 
 <section class="content">
             <div class="row">
-              <div class="">
+              <div class="col-12">
                 <section class="Frame">
                   <div class="col-md-12">
                     <h2 class="title">ค้นหา</h2>
-                    <div class="col-md-12">
+                    <div class="px-3">
                       {/* <form onSubmit={handleSearch}> */}
                       <form 
-                        className="container"
                         onSubmit={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
@@ -9127,9 +9555,220 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
             
                         </tr>
 
+                    {/* แถวบ่าย */}
                     <tr>
                     <td></td>
+                    <td><span style={{ float: "right" }}>บ่าย</span></td>
+                    {dayNumbers.map((day, i) => {
+                      // หา record ทั้งหมดของวันนี้
+                      const allRecordsForDay = record?.employee_record?.filter(itemx => itemx.date === day) || [];
+                      
+                      // หา afternoon_shift record
+                      const afternoonShiftRecord = allRecordsForDay.find(itemx => itemx.shift === "afternoon_shift");
+                      
+                      // หา cash_holiday record สำหรับกะบ่าย (ใช้ isAfternoonShiftCash)
+                      const cashHolidayAfternoonRecord = allRecordsForDay.find(itemx => {
+                        return itemx.shift === "cash_holiday" && itemx.isAfternoonShiftCash === true;
+                      });
+                      
+                      const found = afternoonShiftRecord || cashHolidayAfternoonRecord || allRecordsForDay[0];
+                      
+                      // ตรวจสอบว่าเป็นการทำงานกะบ่ายหรือไม่
+                      const isAfternoonShiftWork = found?.dayType === "work" && found?.shift === "afternoon_shift";
+                      
+                      // ตรวจสอบว่าเป็น cash_holiday กะบ่ายหรือไม่
+                      const isCashHolidayAfternoon = found?.shift === "cash_holiday" && found?.isAfternoonShiftCash === true;
+                      
+                      // ตรวจสอบว่าวันนี้อยู่ใน stopDaysList หรือไม่
+                      const isInStopDaysList = record?.stopDaysList?.some(stopDay => {
+                        const stopDayDate = parseInt(stopDay.date);
+                        const currentDay = parseInt(day);
+                        return stopDayDate === currentDay;
+                      });
+
+                      // ตรวจสอบทั้ง specialt_shift และ stopDaysList สำหรับกะบ่าย
+                      const specialIndividualAfternoon = (found?.dayType === "work" && found?.shift === "specialt_shift") || isInStopDaysList;
+                      const dayNum = parseInt(day);
+                      let actualMonth, actualYear;
+                      
+                      // ตรวจสอบว่าเป็นวันไหนจากเดือนไหน (ตารางแสดงข้ามเดือน 21-31 เดือนก่อน และ 1-20 เดือนปัจจุบัน)
+                      if (dayNum >= 21) {
+                        // วันที่ 21-31 เป็นของเดือนก่อนหน้า
+                        if (parseInt(month) === 1) {
+                          actualMonth = 12;
+                          actualYear = parseInt(year) - 1;
+                        } else {
+                          actualMonth = parseInt(month) - 1;
+                          actualYear = parseInt(year);
+                        }
+                      } else {
+                        // วันที่ 1-20 เป็นของเดือนปัจจุบัน
+                        actualMonth = parseInt(month);
+                        actualYear = parseInt(year);
+                      }
+                      
+                      // ตรวจสอบว่าวันที่นี้มีอยู่จริงในเดือนนั้นหรือไม่
+                      const daysInActualMonth = new Date(actualYear, actualMonth, 0).getDate();
+                      const isInvalidDate = dayNum > daysInActualMonth;
+
+                      // สร้างวันที่ในรูปแบบ YYYY-MM-DD เพื่อเปรียบเทียบกับข้อมูลจาก API
+                      const targetDateStr = `${actualYear}-${actualMonth.toString().padStart(2, '0')}-${dayNum.toString().padStart(2, '0')}`;
+                      
+                      // ตรวจสอบจาก dayoffWorkplace
+                      const isDayoffWorkplace = weekendData && weekendData.dayoffWorkplace && Array.isArray(weekendData.dayoffWorkplace) && weekendData.dayoffWorkplace.includes(targetDateStr);
+                      const isSickLeave = record?.addSalaryList?.some(salaryItem => {
+    // เช็คเฉพาะ welfare ที่เป็นการลาป่วย หรือ ลาพักร้อน
+    if (salaryItem.welfareType === "ลาป่วย" || 
+        salaryItem.welfareType === "ลาคลอด" ||
+        salaryItem.name?.includes("ลาป่วย") || 
+        salaryItem.name?.includes("ป่วย") ||
+        salaryItem.name?.includes("ลาพักร้อน") ||
+        salaryItem.name?.includes("ชดเชย") ||
+                  salaryItem.name?.includes("ลากิจ")) {
+      
+      // แปลง date string เป็น array ของวันที่
+      const dates = salaryItem.date ? salaryItem.date.split(',').map(d => d.trim()) : [];
+      const currentDay = parseInt(day);
+      
+      const isMatch = dates.some(dateStr => parseInt(dateStr) === currentDay);
+      return isMatch;
+    }
+    return false;
+  });
+                      
+                      // ตรวจสอบจาก dayOffOnly
+                      const isDayOffOnly = weekendData && Array.isArray(weekendData) && weekendData.find(item => item.date === targetDateStr && item.type === 'dayOffOnly');
+                      const isWork = found?.dayType === "work"
+                      
+                      // ตรวจสอบว่าเป็นวันหยุดพิเศษหรือไม่
+                      const isSpecialHoliday = record?.personalDayOff?.some(personalDay => {
+                        const personalDayDate = parseInt(personalDay.date);
+                        const currentDay = parseInt(day);
+                        return personalDayDate === currentDay;
+                      }) || record?.stopDaysList?.some(stopDay => {
+                        const stopDayDate = parseInt(stopDay.date);
+                        const currentDay = parseInt(day);
+                        return stopDayDate === currentDay;
+                      });
+                      
+                      // กำหนดสีพื้นหลังและค่าที่จะแสดง
+                      let backgroundColor = {};
+                      let displayValue = '';
+                      
+                      // ตรวจสอบวันที่ 31 ของเดือนที่มี 31 วัน หรือวันนักขัตฤกษ์
+                      if (isInvalidDate || isDayoffWorkplace || isDayOffOnly) {
+                        backgroundColor = { backgroundColor: "#9e9e9e" }; // สีเทา
+                      } else if (isSpecialHoliday) {
+                        backgroundColor = { backgroundColor: "#00ff00" };
+                        if (isCashHolidayAfternoon) {
+                          displayValue = <span style={{ color: 'red', fontWeight: 'bold' }}>1</span>;
+                        }
+                      } else if (isAfternoonShiftWork || isCashHolidayAfternoon) {
+                        displayValue = '1';
+                      }
+                      
+                      if (isSickLeave) {
+                        backgroundColor = { backgroundColor: "#c5eaebff", color: "black" };
+                      }
+
+                      if (specialIndividualAfternoon) {
+                        backgroundColor = { backgroundColor: "#9e9e9e", color: "red" };
+                      }                      return (
+                        <td key={i} className="text-center align-middle" style={backgroundColor}>
+                          {displayValue}
+                        </td>
+                      );
+                    })}
+
+                    <td  className="text-center align-middle">
+                    {/* เงินวันทำงาน */}
+                      {record.sumCashWork ? formatNumberWithComma(record.sumCashWork) : ''}
+                      </td>
+
+                    <td  className="text-center align-middle" style={{backgroundColor:"#fcdfca"}}>
+                       {/* รวมเงินจ่ายนักขัต*/}
+                       {record.cashcustomizeDayoff ? formatNumberWithComma(parseFloat(record.cashcustomizeDayoff).toFixed(2)) : ''}
+                      </td>
+
+                      <td  className="text-center p-1 align-middle">
+                      {/* รวมเงินทำงานนักขัติ */}
+                      {(() => {
+                        // ตรวจสอบว่าเป็นพนักงานข้ามหน่วยงานหรือไม่
+                        if (record?.isCrossWorkplace) {
+                          return <span style={{ color: 'red' }}>0</span>;
+                        }
+                        return record.publicHolidayCash ? formatNumberWithComma(record.publicHolidayCash) : '';
+                      })()}
+                      </td>
+
+                    <td className="p-1 align-middle">
+                      {/* รวมเงินทำงานโอที2*/}
+                      {record.sumCashWorkMul["2"] ? formatNumberWithComma(record.sumCashWorkMul["2"]) : ''}
+                    </td>
+                    {/* คำนวณเงินโอทีื3 */}
+                    <td className="p-1 align-middle">
+                      {record.sumCashWorkMul["1.5"] ? formatNumberWithComma(record.sumCashWorkMul["1.5"]) : ''} 
+                      </td>
+                   <td className="p-1 align-middle">
+                      {
+                        record.sumCashWorkMul["3"]
+                          ? formatNumberWithComma(parseFloat(record.sumCashWorkMul["3"]).toFixed(2))
+                          : ""
+                      }
+                    </td>
                     
+
+                    
+                    
+                    {(() => {
+                      const mergedItems = mergeWorkplaceAddsalary(workplaceAddsalary);
+                      return mergedItems.map((item, i) => {
+                        let value = 0;
+                        if (item.codeSpSalary === MERGE_CONFIG.displayId) {
+                          // รวมค่าจาก sourceId1 และ sourceId2
+                          const foundSourceId1 = record.addSalaryList.find(itemx => itemx.id === MERGE_CONFIG.sourceId1);
+                          const foundSourceId2 = record.addSalaryList.find(itemx => itemx.id === MERGE_CONFIG.sourceId2);
+                          const valueSourceId1 = parseFloat(foundSourceId1?.SpSalary || 0);
+                          const valueSourceId2 = parseFloat(foundSourceId2?.SpSalary || 0);
+                          value = valueSourceId1 + valueSourceId2;
+                        } else {
+                          const found = record.addSalaryList.find(itemx => itemx.id === item.codeSpSalary);
+                          value = parseFloat(found?.SpSalary || 0);
+                        }
+                        
+                        const isZero = value === 0;
+
+                        return (
+                          <td
+                            key={i}
+                            className={`text-center p-1 align-middle ${isZero ? "bg-secondary text-white fw-bold" : ""}`}
+                          >
+                            {isZero ? "NO" : formatNumberWithComma(value.toFixed(2))}
+                          </td>
+                        );
+                      });
+                    })()}
+                     <td className="text-center align-middle text-red p-1">
+                      {/* จ่ายสด  */}
+                    {(record.specialShiftTotalSalary && parseFloat(record.specialShiftTotalSalary) >= 50 ? formatNumberWithComma(parseFloat(record.specialShiftTotalSalary).toFixed(2)) : '') || (record.tax ? formatNumberWithComma(parseFloat(record.specialShiftTotalSalary).toFixed(2)) : '')} 
+
+                    </td>
+                      <td className="text-center align-middle text-red p-1">
+                      {/* หักประกันสังคม  */}
+                    {(record.tax && parseFloat(record.tax) > 0 ? formatNumberWithComma(parseFloat(record.tax).toFixed(2)) : '') || (record.socialSecurity && parseFloat(record.socialSecurity) >= 50 ? formatNumberWithComma(parseFloat(record.socialSecurity).toFixed(2)) : '')} 
+
+                    </td>
+
+                    <td className="text-center align-middle text-red p-1">
+                      {/* เงินสงเคราะห์ลูกจ้าง  */}
+                      {record.employeeCompensation ? formatNumberWithComma(parseFloat(record.employeeCompensation).toFixed(2)) : ''}
+                    </td>
+
+
+                    </tr>
+                    {/* แถวดึก */}
+                    <tr>
+                    <td></td>
                     <td><span style={{ float: "right" }}>ดึก</span></td>
                     {dayNumbers.map((day, i) => {
                       // หา record ทั้งหมดของวันนี้
@@ -9271,215 +9910,6 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                         if (isCashHolidayNight && found?.totalTime && found.totalTime.trim() !== '' && calculatedValue) {
                           displayValue = <span style={{ color: 'red' }}>{calculatedValue}</span>;
                         }
-                      }                      return (
-                        <td key={i} className="text-center align-middle" style={backgroundColor}>
-                          {displayValue}
-                        </td>
-                      );
-                    })}
-
-                    <td  className="text-center align-middle">
-                    {/* เงินวันทำงาน */}
-                      {record.sumCashWork ? formatNumberWithComma(record.sumCashWork) : ''}
-                      </td>
-
-                    <td  className="text-center align-middle" style={{backgroundColor:"#fcdfca"}}>
-                       {/* รวมเงินจ่ายนักขัต*/}
-                       {record.cashcustomizeDayoff ? formatNumberWithComma(parseFloat(record.cashcustomizeDayoff).toFixed(2)) : ''}
-                      </td>
-
-                      <td  className="text-center p-1 align-middle">
-                      {/* รวมเงินทำงานนักขัติ */}
-                      {(() => {
-                        // ตรวจสอบว่าเป็นพนักงานข้ามหน่วยงานหรือไม่
-                        if (record?.isCrossWorkplace) {
-                          return <span style={{ color: 'red' }}>0</span>;
-                        }
-                        return record.publicHolidayCash ? formatNumberWithComma(record.publicHolidayCash) : '';
-                      })()}
-                      </td>
-
-                    <td className="p-1 align-middle">
-                      {/* รวมเงินทำงานโอที2*/}
-                      {record.sumCashWorkMul["2"] ? formatNumberWithComma(record.sumCashWorkMul["2"]) : ''}
-                    </td>
-                    {/* คำนวณเงินโอทีื3 */}
-                    <td className="p-1 align-middle">
-                      {record.sumCashWorkMul["1.5"] ? formatNumberWithComma(record.sumCashWorkMul["1.5"]) : ''} 
-                      </td>
-                   <td className="p-1 align-middle">
-                      {
-                        record.sumCashWorkMul["3"]
-                          ? formatNumberWithComma(parseFloat(record.sumCashWorkMul["3"]).toFixed(2))
-                          : ""
-                      }
-                    </td>
-                    
-
-                    
-                    
-                    {(() => {
-                      const mergedItems = mergeWorkplaceAddsalary(workplaceAddsalary);
-                      return mergedItems.map((item, i) => {
-                        let value = 0;
-                        if (item.codeSpSalary === MERGE_CONFIG.displayId) {
-                          // รวมค่าจาก sourceId1 และ sourceId2
-                          const foundSourceId1 = record.addSalaryList.find(itemx => itemx.id === MERGE_CONFIG.sourceId1);
-                          const foundSourceId2 = record.addSalaryList.find(itemx => itemx.id === MERGE_CONFIG.sourceId2);
-                          const valueSourceId1 = parseFloat(foundSourceId1?.SpSalary || 0);
-                          const valueSourceId2 = parseFloat(foundSourceId2?.SpSalary || 0);
-                          value = valueSourceId1 + valueSourceId2;
-                        } else {
-                          const found = record.addSalaryList.find(itemx => itemx.id === item.codeSpSalary);
-                          value = parseFloat(found?.SpSalary || 0);
-                        }
-                        
-                        const isZero = value === 0;
-
-                        return (
-                          <td
-                            key={i}
-                            className={`text-center p-1 align-middle ${isZero ? "bg-secondary text-white fw-bold" : ""}`}
-                          >
-                            {isZero ? "NO" : formatNumberWithComma(value.toFixed(2))}
-                          </td>
-                        );
-                      });
-                    })()}
-                     <td className="text-center align-middle text-red p-1">
-                      {/* จ่ายสด  */}
-                    {(record.specialShiftTotalSalary && parseFloat(record.specialShiftTotalSalary) >= 50 ? formatNumberWithComma(parseFloat(record.specialShiftTotalSalary).toFixed(2)) : '') || (record.tax ? formatNumberWithComma(parseFloat(record.specialShiftTotalSalary).toFixed(2)) : '')} 
-
-                    </td>
-                      <td className="text-center align-middle text-red p-1">
-                      {/* หักประกันสังคม  */}
-                    {(record.tax && parseFloat(record.tax) > 0 ? formatNumberWithComma(parseFloat(record.tax).toFixed(2)) : '') || (record.socialSecurity && parseFloat(record.socialSecurity) >= 50 ? formatNumberWithComma(parseFloat(record.socialSecurity).toFixed(2)) : '')} 
-
-                    </td>
-
-                    <td className="text-center align-middle text-red p-1">
-                      {/* เงินสงเคราะห์ลูกจ้าง  */}
-                      {record.employeeCompensation ? formatNumberWithComma(parseFloat(record.employeeCompensation).toFixed(2)) : ''}
-                    </td>
-
-
-                    </tr>
-                    {/* แถวบ่าย */}
-                    <tr>
-                    <td></td>
-                    <td><span style={{ float: "right" }}>บ่าย</span></td>
-                    {dayNumbers.map((day, i) => {
-                      // หา record ทั้งหมดของวันนี้
-                      const allRecordsForDay = record?.employee_record?.filter(itemx => itemx.date === day) || [];
-                      
-                      // หา afternoon_shift record
-                      const afternoonShiftRecord = allRecordsForDay.find(itemx => itemx.shift === "afternoon_shift");
-                      
-                      // หา cash_holiday record สำหรับกะบ่าย (ใช้ isAfternoonShiftCash)
-                      const cashHolidayAfternoonRecord = allRecordsForDay.find(itemx => {
-                        return itemx.shift === "cash_holiday" && itemx.isAfternoonShiftCash === true;
-                      });
-                      
-                      const found = afternoonShiftRecord || cashHolidayAfternoonRecord || allRecordsForDay[0];
-                      
-                      // ตรวจสอบว่าเป็นการทำงานกะบ่ายหรือไม่
-                      const isAfternoonShiftWork = found?.dayType === "work" && found?.shift === "afternoon_shift";
-                      
-                      // ตรวจสอบว่าเป็น cash_holiday กะบ่ายหรือไม่
-                      const isCashHolidayAfternoon = found?.shift === "cash_holiday" && found?.isAfternoonShiftCash === true;
-                      
-                      // ตรวจสอบว่าวันนี้อยู่ใน stopDaysList หรือไม่
-                      const isInStopDaysList = record?.stopDaysList?.some(stopDay => {
-                        const stopDayDate = parseInt(stopDay.date);
-                        const currentDay = parseInt(day);
-                        return stopDayDate === currentDay;
-                      });
-
-                      // ตรวจสอบทั้ง specialt_shift และ stopDaysList สำหรับกะบ่าย
-                      const specialIndividualAfternoon = (found?.dayType === "work" && found?.shift === "specialt_shift") || isInStopDaysList;
-                      
-                      const dayNum = parseInt(day);
-                      let actualMonth, actualYear;
-                      
-                      // ตรวจสอบว่าเป็นวันไหนจากเดือนไหน
-                      if (dayNum >= 21) {
-                        if (parseInt(month) === 1) {
-                          actualMonth = 12;
-                          actualYear = parseInt(year) - 1;
-                        } else {
-                          actualMonth = parseInt(month) - 1;
-                          actualYear = parseInt(year);
-                        }
-                      } else {
-                        actualMonth = parseInt(month);
-                        actualYear = parseInt(year);
-                      }
-                      
-                      // ตรวจสอบว่าวันที่นี้มีอยู่จริงในเดือนนั้นหรือไม่
-                      const daysInActualMonth = new Date(actualYear, actualMonth, 0).getDate();
-                      const isInvalidDate = dayNum > daysInActualMonth;
-
-                      // สร้างวันที่ในรูปแบบ YYYY-MM-DD
-                      const targetDateStr = `${actualYear}-${actualMonth.toString().padStart(2, '0')}-${dayNum.toString().padStart(2, '0')}`;
-                      
-                      // ตรวจสอบจาก dayoffWorkplace
-                      const isDayoffWorkplace = weekendData && weekendData.dayoffWorkplace && Array.isArray(weekendData.dayoffWorkplace) && weekendData.dayoffWorkplace.includes(targetDateStr);
-                      
-                      const isSickLeave = record?.addSalaryList?.some(salaryItem => {
-                        if (salaryItem.welfareType === "ลาป่วย" || 
-                            salaryItem.welfareType === "ลาคลอด" ||
-                            salaryItem.name?.includes("ลาป่วย") || 
-                            salaryItem.name?.includes("ป่วย") ||
-                            salaryItem.name?.includes("ลาพักร้อน") ||
-                            salaryItem.name?.includes("ชดเชย") ||
-                            salaryItem.name?.includes("ลากิจ")) {
-                          const leaveDates = salaryItem.dates || [];
-                          return leaveDates.some(leaveDate => {
-                            const leaveDayNum = parseInt(leaveDate.date);
-                            return leaveDayNum === dayNum;
-                          });
-                        }
-                        return false;
-                      });
-                      
-                      // ตรวจสอบจาก dayOffOnly
-                      const isDayOffOnly = weekendData && Array.isArray(weekendData) && weekendData.find(item => item.date === targetDateStr && item.type === 'dayOffOnly');
-                      
-                      const isWork = found?.dayType === "work";
-                      
-                      // ตรวจสอบว่าเป็นวันหยุดพิเศษหรือไม่
-                      const isSpecialHoliday = record?.personalDayOff?.some(personalDay => {
-                        const personalDayDate = parseInt(personalDay.date);
-                        const currentDay = parseInt(day);
-                        return personalDayDate === currentDay;
-                      }) || record?.stopDaysList?.some(stopDay => {
-                        const stopDayDate = parseInt(stopDay.date);
-                        const currentDay = parseInt(day);
-                        return stopDayDate === currentDay;
-                      });
-                      
-                      // กำหนดสีพื้นหลังและค่าที่จะแสดง
-                      let backgroundColor = {};
-                      let displayValue = '';
-                      
-                      // ตรวจสอบวันที่ 31 ของเดือนที่มี 31 วัน หรือวันนักขัตฤกษ์
-                      if (isInvalidDate || isDayoffWorkplace || isDayOffOnly) {
-                        backgroundColor = { backgroundColor: "#9e9e9e" }; // สีเทา
-                      } else if (isSpecialHoliday) {
-                        backgroundColor = { backgroundColor: "#00ff00" };
-                        if (isCashHolidayAfternoon) {
-                          displayValue = <span style={{ color: 'red', fontWeight: 'bold' }}>1</span>;
-                        }
-                      } else if (isAfternoonShiftWork || isCashHolidayAfternoon) {
-                        displayValue = '1';
-                      }
-                      
-                      if (isSickLeave) {
-                        backgroundColor = { backgroundColor: "#c5eaebff", color: "black" };
-                      }
-
-                      if (specialIndividualAfternoon) {
-                        backgroundColor = { backgroundColor: "#9e9e9e", color: "red" };
                       }
                       
                       return (
@@ -10453,6 +10883,95 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
 
                               </tbody>
                             </table>
+
+                            {/* ส่วนข้อมูลเพิ่มเติมด้านล่างตาราง */}
+                            {workplaceData && (
+                            <div className="mt-4 p-3" style={{ backgroundColor: '#f8f9fa', border: '1px solid #dee2e6', fontSize: '0.85em' }}>
+                              {/* การบริหารจัดการ */}
+                              <div className="row mb-3">
+                                <div className="col-md-3" style={{ fontWeight: 'bold' }}>การบริหารจัดการ</div>
+                                <div className="col-md-9">
+                                  สัญญา {workplaceData.countEmployee || '-'} คน/วัน
+                                </div>
+                              </div>
+
+                              {/* เวลาปฏิบัติงาน */}
+                              <div className="row mb-3">
+                                <div className="col-md-3" style={{ fontWeight: 'bold' }}>เวลาปฏิบัติงาน</div>
+                                <div className="col-md-9">
+                                  {workplaceData.workTimeDay && workplaceData.workTimeDay.filter(wt => wt.workOrStop === 'work').map((workTime, idx) => (
+                                    <div key={idx} className="mb-2">
+                                      {workTime.allTimes && workTime.allTimes.map((shift, sIdx) => {
+                                        if (!shift.shift) return null;
+                                        const otHours = shift.resultTimeOT ? parseFloat(shift.resultTimeOT.replace('.', ':').split(':')[0]) + (parseFloat(shift.resultTimeOT.replace('.', ':').split(':')[1] || 0) / 60) : 0;
+                                        return (
+                                          <div key={sIdx}>
+                                            {workTime.startDay} ถึง {workTime.endDay} ({shift.shift}) เวลา {shift.startTime || '-'} - {shift.endTime || '-'} น.
+                                            {otHours > 0 && ` (โอทีวันละ ${otHours.toFixed(1)} ชม.)`}
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {/* วันหยุด */}
+                              <div className="row mb-3">
+                                <div className="col-md-3" style={{ fontWeight: 'bold' }}>วันหยุด</div>
+                                <div className="col-md-9">
+                                  {workplaceData.workTimeDay && workplaceData.workTimeDay.filter(wt => wt.workOrStop === 'stop').map((stopDay, idx) => (
+                                    <span key={idx}>{stopDay.startDay}{stopDay.endDay !== stopDay.startDay ? ` ถึง ${stopDay.endDay}` : ''} </span>
+                                  ))}
+                                  และนักขัตฤกษ์ {workplaceData.publicHoliday ? workplaceData.publicHoliday.length : 0} วัน/ปี
+                                </div>
+                              </div>
+
+                              {/* ค่าแรงตามตำแหน่ง */}
+                              <div className="row mb-3">
+                                <div className="col-md-3" style={{ fontWeight: 'bold' }}>ค่าแรงตามตำแหน่ง</div>
+                                <div className="col-md-9">
+                                  {workplaceData.addSalary && workplaceData.addSalary.length > 0 ? (
+                                    <div>
+                                      ค่าแรง {workplaceData.workRate || '-'}.-/วัน 
+                                      {workplaceData.addSalary.filter(s => s.roundOfSalary === 'daily').map((salary, idx) => (
+                                        <span key={idx}> {salary.name} {salary.SpSalary}.-/วัน</span>
+                                      ))}
+                                      {workplaceData.addSalary.filter(s => s.roundOfSalary === 'monthly').map((salary, idx) => (
+                                        <span key={idx}> {salary.name} {salary.SpSalary}.-/เดือน</span>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    `ค่าแรง ${workplaceData.workRate || '-'}.-/วัน`
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* อื่นๆ */}
+                              <div className="row mb-3">
+                                <div className="col-md-3" style={{ fontWeight: 'bold' }}>อื่นๆ</div>
+                                <div className="col-md-9">
+                                  <div>พักร้อน {workplaceData.workRateDayoff || '-'} วัน/ปี</div>
+                                  <div>ลากิจ {workplaceData.personalLeave || '-'} วัน/ปี</div>
+                                  <div>ลาป่วย {workplaceData.sickLeave || '-'} วัน/ปี</div>
+                                  <div>จ่ายป่วยมีใบแพทย์ 30 วัน/ปี (เสื้อฟอร์มฟรี 1 ตัว/ชุด เมื่ออายุงานครบ 1 ปี)</div>
+                                  <div>มาตรการโควิด ทางบริษัทออกค่าชุดตรวจโควิดแบบ ATK ให้เดือนละ 2 ชุด/คน</div>
+                                </div>
+                              </div>
+
+                              {/* หมายเหตุ */}
+                              <div className="row">
+                                <div className="col-12">
+                                  <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>หมายเหตุ:</div>
+                                  <div>
+                                    ช่องของการคำนวณค่าจ้าง/สวัสดิการ/โอที 1.5 เท่า 2 เท่า 3 เท่าอาจมีการปรับเปลี่ยนในการบันทึกข้อมูลได้
+                                    เพื่อให้เป็นไปตามข้อกำหนดของหน่วยงานนั้นๆ และเพื่อให้การคำนวณค่าจ้างมีความสะดวกรวดเร็วถูกต้อง
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            )}
+
                           </div>
                         </div>
                       )}
