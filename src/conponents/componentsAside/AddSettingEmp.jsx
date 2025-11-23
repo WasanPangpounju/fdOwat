@@ -1168,63 +1168,146 @@ const handleRemovePublicHoliday = async (holidayToRemove) => {
     setShowEmployeeListResult([]);
     // setWorkTimeDay_specialwork([]);
 
-      if (!searchEmployeeId) {
-    alert('กรุณากรอกรหัสพนักงาน');
-    return;
-  }
+    // Frontend filtering when using new search fields
+    if (searchPhoneNumber || searchIdCard || searchWorkPlace || staffName || staffLastname) {
+      let filtered = [...employeeList];
 
-  try {
-    // 🔍 ค้นหาพนักงานจาก employeeId เท่านั้น
-    const empRes = await axios.post(endpoint + "/employee/search", {
-      employeeId: searchEmployeeId,
-      name: "",
-      idCard: "",
-      workPlace: "",
-    });
+      if (searchEmployeeId) {
+        filtered = filtered.filter(emp => 
+          emp.employeeId && emp.employeeId.includes(searchEmployeeId)
+        );
+      }
 
-    const employee = empRes.data.employees?.[0];
+      if (staffName) {
+        filtered = filtered.filter(emp => 
+          emp.name && emp.name.toLowerCase().includes(staffName.toLowerCase())
+        );
+      }
 
-    if (!employee) {
-      alert('ไม่พบพนักงานรหัส: ' + searchEmployeeId);
-      return;
-    }
+      if (staffLastname) {
+        filtered = filtered.filter(emp => 
+          emp.lastName && emp.lastName.toLowerCase().includes(staffLastname.toLowerCase())
+        );
+      }
 
-    let finalWorkplace = {};
+      if (searchWorkPlace) {
+        filtered = filtered.filter(emp => 
+          emp.workplace && emp.workplace.toLowerCase().includes(searchWorkPlace.toLowerCase())
+        );
+      }
 
-    // ✅ ถ้ามี customWorkplace → ใช้เลย
-    if (employee.customWorkplace && Object.keys(employee.customWorkplace).length > 0) {
-      finalWorkplace = employee.customWorkplace;
-      console.log("✅ ใช้การตั้งค่าเฉพาะบุคคล");
-    } else {
-      // 🔁 ไม่มี custom → ดึง workplace ปกติ
-      if (!employee.workplace) {
-        alert("พนักงานไม่มีข้อมูล workplace");
+      if (searchPhoneNumber) {
+        filtered = filtered.filter(emp => 
+          emp.phoneNumber && emp.phoneNumber.includes(searchPhoneNumber)
+        );
+      }
+
+      if (searchIdCard) {
+        filtered = filtered.filter(emp => 
+          emp.idCard && emp.idCard.includes(searchIdCard)
+        );
+      }
+
+      if (filtered.length === 0) {
+        alert('ไม่พบพนักงานตามเงื่อนไขที่ค้นหา');
         return;
       }
 
-            const wpRes = await axios.get(`${endpoint}/workplace/${employee.workplace}`);
-      finalWorkplace = wpRes.data || {};
-      console.log("✅ ใช้การตั้งค่าหน่วยงานปกติ");
+      // Load first result
+      const employee = filtered[0];
+      
+      let finalWorkplace = {};
+
+      // ✅ ถ้ามี customWorkplace → ใช้เลย
+      if (employee.customWorkplace && Object.keys(employee.customWorkplace).length > 0) {
+        finalWorkplace = employee.customWorkplace;
+        console.log("✅ ใช้การตั้งค่าเฉพาะบุคคล");
+      } else {
+        // 🔁 ไม่มี custom → ดึง workplace ปกติ
+        if (!employee.workplace) {
+          alert("พนักงานไม่มีข้อมูล workplace");
+          return;
+        }
+
+        try {
+          const wpRes = await axios.get(`${endpoint}/workplace/${employee.workplace}`);
+          finalWorkplace = wpRes.data || {};
+          console.log("✅ ใช้การตั้งค่าหน่วยงานปกติ");
+        } catch (err) {
+          console.error("❌ Error loading workplace:", err);
+          alert('เกิดข้อผิดพลาดในการโหลดข้อมูลหน่วยงาน');
+          return;
+        }
+      }
+
+      const employeeWithWorkplace = {
+        ...employee,
+        effectiveWorkplace: finalWorkplace,
+      };
+
+      handleClickResult(finalWorkplace);
+      setShowEmployeeListResult([employeeWithWorkplace]);
+      return;
     }
 
-        // 🧾 รวมข้อมูลกลับเป็นชุดเดียว
-    const employeeWithWorkplace = {
-      ...employee,
-      effectiveWorkplace: finalWorkplace,
-    };
+    // Original search by employeeId only
+    if (!searchEmployeeId) {
+      alert('กรุณากรอกข้อมูลการค้นหาอย่างน้อย 1 ช่อง');
+      return;
+    }
 
-    // แสดงข้อมูลวันหยุดใน console
-    console.log("📅 วันหยุดของพนักงาน:", finalWorkplace.daysOff);
-    console.log("✅ ข้อมูลพนักงาน:", employeeWithWorkplace);
+    try {
+      // 🔍 ค้นหาพนักงานจาก employeeId เท่านั้น
+      const empRes = await axios.post(endpoint + "/employee/search", {
+        employeeId: searchEmployeeId,
+        name: "",
+        idCard: "",
+        workPlace: "",
+      });
 
-    // โหลดข้อมูลไปยังฟอร์ม
-    handleClickResult(finalWorkplace);
-    setShowEmployeeListResult([employeeWithWorkplace]);
+      const employee = empRes.data.employees?.[0];
 
-  } catch (err) {
-    console.error("❌ handleSearch error:", err);
-    alert('เกิดข้อผิดพลาดในการค้นหา: ' + err.message);
-  }
+      if (!employee) {
+        alert('ไม่พบพนักงานรหัส: ' + searchEmployeeId);
+        return;
+      }
+
+      let finalWorkplace = {};
+
+      // ✅ ถ้ามี customWorkplace → ใช้เลย
+      if (employee.customWorkplace && Object.keys(employee.customWorkplace).length > 0) {
+        finalWorkplace = employee.customWorkplace;
+        console.log("✅ ใช้การตั้งค่าเฉพาะบุคคล");
+      } else {
+        // 🔁 ไม่มี custom → ดึง workplace ปกติ
+        if (!employee.workplace) {
+          alert("พนักงานไม่มีข้อมูล workplace");
+          return;
+        }
+
+        const wpRes = await axios.get(`${endpoint}/workplace/${employee.workplace}`);
+        finalWorkplace = wpRes.data || {};
+        console.log("✅ ใช้การตั้งค่าหน่วยงานปกติ");
+      }
+
+      // 🧾 รวมข้อมูลกลับเป็นชุดเดียว
+      const employeeWithWorkplace = {
+        ...employee,
+        effectiveWorkplace: finalWorkplace,
+      };
+
+      // แสดงข้อมูลวันหยุดใน console
+      console.log("📅 วันหยุดของพนักงาน:", finalWorkplace.daysOff);
+      console.log("✅ ข้อมูลพนักงาน:", employeeWithWorkplace);
+
+      // โหลดข้อมูลไปยังฟอร์ม
+      handleClickResult(finalWorkplace);
+      setShowEmployeeListResult([employeeWithWorkplace]);
+
+    } catch (err) {
+      console.error("❌ handleSearch error:", err);
+      alert('เกิดข้อผิดพลาดในการค้นหา: ' + err.message);
+    }
 
   }
 
@@ -2252,10 +2335,13 @@ if (newWorkplace) {
 //===== โค้ดเพิ่มเติมสำหรับการทำงานเฉพาะบุคคล
   const [searchEmployeeId, setSearchEmployeeId] = useState("");
   const [searchEmployeeName, setSearchEmployeeName] = useState("");
-  const [staffId, setStaffId] = useState(""); //รหัสหน่วยงาน
-  const [staffName, setStaffName] = useState(""); //รหัสหน่วยงาน
-  const [staffLastname, setStaffLastname] = useState(""); //รหัสหน่วยงาน
-  const [staffFullName, setStaffFullName] = useState(""); //รหัสหน่วยงาน
+  const [staffId, setStaffId] = useState(""); //รหัสพนักงาน
+  const [staffName, setStaffName] = useState(""); //ชื่อ
+  const [staffLastname, setStaffLastname] = useState(""); //นามสกุล
+  const [staffFullName, setStaffFullName] = useState(""); //ชื่อเต็ม
+  const [searchWorkPlace, setSearchWorkPlace] = useState(""); //หน่วยงาน
+  const [searchPhoneNumber, setSearchPhoneNumber] = useState(""); //เบอร์โทรศัพท์
+  const [searchIdCard, setSearchIdCard] = useState(""); //บัตรประชาชน
 
 
   const handleStaffIdChange = (e) => {
@@ -2317,6 +2403,52 @@ if (newWorkplace) {
     // setStaffName(selectedStaffName);
     setStaffFullName(selectedStaffName);
     setSearchEmployeeName(selectedStaffName);
+  };
+
+  const handleStaffFirstNameChange = (e) => {
+    const selectedFirstName = e.target.value;
+    setStaffName(selectedFirstName);
+
+    // Find employee by first name
+    const selectedEmployee = employeeList.find(
+      (employee) => employee.name === selectedFirstName
+    );
+
+    if (selectedEmployee) {
+      setStaffId(selectedEmployee.employeeId);
+      setSearchEmployeeId(selectedEmployee.employeeId);
+      setStaffLastname(selectedEmployee.lastName);
+      setWorkplaceIdEMP(selectedEmployee.workplace);
+    }
+  };
+
+  const handleStaffLastNameChange = (e) => {
+    const selectedLastName = e.target.value;
+    setStaffLastname(selectedLastName);
+
+    // Find employee by last name
+    const selectedEmployee = employeeList.find(
+      (employee) => employee.lastName === selectedLastName
+    );
+
+    if (selectedEmployee) {
+      setStaffId(selectedEmployee.employeeId);
+      setSearchEmployeeId(selectedEmployee.employeeId);
+      setStaffName(selectedEmployee.name);
+      setWorkplaceIdEMP(selectedEmployee.workplace);
+    }
+  };
+
+  const handleWorkPlaceChange = (e) => {
+    setSearchWorkPlace(e.target.value);
+  };
+
+  const handlePhoneNumberChange = (e) => {
+    setSearchPhoneNumber(e.target.value);
+  };
+
+  const handleIdCardChange = (e) => {
+    setSearchIdCard(e.target.value);
   };
 
 
@@ -2553,7 +2685,8 @@ async function handleDeleteCustomWorkplace() {
               <section class="Frame">
                 <div class="col-md-12">
                   <form onSubmit={handleSearch}>
-                                                            <div class="row">
+                    {/* Row 1: รหัสพนักงาน | หน่วยงาน */}
+                    <div class="row">
                       <div class="col-md-6">
                         <div class="form-group">
                           <label role="searchEmployeeId">รหัสพนักงาน</label>
@@ -2585,22 +2718,114 @@ async function handleDeleteCustomWorkplace() {
                       </div>
                       <div class="col-md-6">
                         <div class="form-group">
-                          <label role="searchname">ชื่อพนักงาน</label>
-                          {/* <input type="text" class="form-control" id="searchname" placeholder="ชื่อพนักงาน" value={searchEmployeeName} onChange={(e) => setSearchEmployeeName(e.target.value)} /> */}
+                          <label role="searchWorkPlace">หน่วยงาน</label>
                           <input
                             type="text"
                             className="form-control"
-                            id="staffName"
-                            placeholder="ชื่อพนักงาน"
-                            value={staffFullName}
-                            onChange={handleStaffNameChange}
-                            list="staffNameList"
+                            id="searchWorkPlace"
+                            placeholder="หน่วยงาน"
+                            value={searchWorkPlace}
+                            onChange={handleWorkPlaceChange}
+                            list="workPlaceList"
                           />
-                          <datalist id="staffNameList">
+                          <datalist id="workPlaceList">
+                            {[...new Set(employeeList.map((employee) => employee.workplace))].map((workplace, index) => (
+                              <option key={index} value={workplace} />
+                            ))}
+                          </datalist>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Row 2: ชื่อ | นามสกุล */}
+                    <div class="row">
+                      <div class="col-md-6">
+                        <div class="form-group">
+                          <label role="searchFirstName">ชื่อ</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            id="staffFirstName"
+                            placeholder="ชื่อ"
+                            value={staffName}
+                            onChange={handleStaffFirstNameChange}
+                            list="staffFirstNameList"
+                          />
+                          <datalist id="staffFirstNameList">
                             {employeeList.map((employee) => (
                               <option
                                 key={employee.employeeId}
-                                value={employee.name + " " + employee.lastName}
+                                value={employee.name}
+                              />
+                            ))}
+                          </datalist>
+                        </div>
+                      </div>
+                      <div class="col-md-6">
+                        <div class="form-group">
+                          <label role="searchLastName">นามสกุล</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            id="staffLastName"
+                            placeholder="นามสกุล"
+                            value={staffLastname}
+                            onChange={handleStaffLastNameChange}
+                            list="staffLastNameList"
+                          />
+                          <datalist id="staffLastNameList">
+                            {employeeList.map((employee) => (
+                              <option
+                                key={employee.employeeId}
+                                value={employee.lastName}
+                              />
+                            ))}
+                          </datalist>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Row 3: เบอร์โทรศัพท์ | บัตรประชาชน */}
+                    <div class="row">
+                      <div class="col-md-6">
+                        <div class="form-group">
+                          <label role="searchPhoneNumber">เบอร์โทรศัพท์</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            id="searchPhoneNumber"
+                            placeholder="เบอร์โทรศัพท์"
+                            value={searchPhoneNumber}
+                            onChange={handlePhoneNumberChange}
+                            list="phoneNumberList"
+                          />
+                          <datalist id="phoneNumberList">
+                            {employeeList.map((employee) => (
+                              <option
+                                key={employee.employeeId}
+                                value={employee.phoneNumber}
+                              />
+                            ))}
+                          </datalist>
+                        </div>
+                      </div>
+                      <div class="col-md-6">
+                        <div class="form-group">
+                          <label role="searchIdCard">หมายเลขบัตรประชาชน</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            id="searchIdCard"
+                            placeholder="หมายเลขบัตรประชาชน"
+                            value={searchIdCard}
+                            onChange={handleIdCardChange}
+                            list="idCardList"
+                          />
+                          <datalist id="idCardList">
+                            {employeeList.map((employee) => (
+                              <option
+                                key={employee.employeeId}
+                                value={employee.idCard}
                               />
                             ))}
                           </datalist>

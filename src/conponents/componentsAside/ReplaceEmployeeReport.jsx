@@ -24,12 +24,31 @@ import employeeData from "./timerecord.json"; // นำเข้าไฟล์ 
 
 function ReplaceEmployeeReport({ employeeList, workplaceList }) {
 
-  const [searchWorkplaceId, setSearchWorkplaceId] = useState(""); //รหัสหน่วยงาน
+  const [searchWorkplaceId, setSearchWorkplaceId] = useState(""); //รหัสพนักงาน
   const [searchWorkplaceName, setSearchWorkplaceName] = useState(""); //ชื่อหน่วยงาน
+  const [searchWorkPlace, setSearchWorkPlace] = useState("");
+  const [searchPhoneNumber, setSearchPhoneNumber] = useState("");
+  const [searchIdCard, setSearchIdCard] = useState("");
+  const [staffName, setStaffName] = useState("");
+  const [staffLastname, setStaffLastname] = useState("");
+  const [allEmployees, setAllEmployees] = useState([]);
 
   const [employeeListResult, setEmployeeListResult] = useState([]);
   const [showEmployeeListResult, setShowEmployeeListResult] = useState([]);
   const [searchResult, setSearchResult] = useState([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+
+  useEffect(() => {
+    // Fetch all employees for frontend filtering
+    fetch(endpoint + "/employee/list")
+      .then((response) => response.json())
+      .then((data) => {
+        setAllEmployees(data);
+      })
+      .catch((error) => {
+        console.error("Error fetching employees:", error);
+      });
+  }, []);
 
   const [workDate, setWorkDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -150,11 +169,48 @@ function ReplaceEmployeeReport({ employeeList, workplaceList }) {
 
   }, [selectedDateEnd]);
 
+  const handleSelectEmployee = (employee) => {
+    setSearchWorkplaceId(employee.employeeId);
+    setStaffName(employee.name);
+    setStaffLastname(employee.lastName);
+    setSearchWorkPlace(employee.workplace);
+    setSearchPhoneNumber(employee.phoneNumber);
+    setSearchIdCard(employee.idCard);
+    setShowSearchResults(false);
+  };
+
   async function handleSearch(event) {
     event.preventDefault();
     console.log("testtest");
     //clean list employee
     setShowEmployeeListResult([]);
+
+    // Check if using new search fields
+    const usingNewFields = searchWorkPlace || searchPhoneNumber || searchIdCard || staffName || staffLastname;
+
+    if (usingNewFields) {
+      // Frontend filtering
+      const filteredEmployees = allEmployees.filter((emp) => {
+        const matchesId = !searchWorkplaceId || emp.employeeId === searchWorkplaceId;
+        const matchesName = !staffName || emp.name?.toLowerCase().includes(staffName.toLowerCase());
+        const matchesLastName = !staffLastname || emp.lastName?.toLowerCase().includes(staffLastname.toLowerCase());
+        const matchesWorkPlace = !searchWorkPlace || emp.workplace?.toLowerCase().includes(searchWorkPlace.toLowerCase());
+        const matchesPhone = !searchPhoneNumber || emp.phoneNumber?.includes(searchPhoneNumber);
+        const matchesIdCard = !searchIdCard || emp.idCard?.includes(searchIdCard);
+        
+        return matchesId && matchesName && matchesLastName && matchesWorkPlace && matchesPhone && matchesIdCard;
+      });
+
+      if (filteredEmployees.length > 0) {
+        setEmployeeListResult(filteredEmployees);
+        setShowSearchResults(true);
+      } else {
+        alert("ไม่พบข้อมูลพนักงานที่ตรงกับเงื่อนไขการค้นหา");
+        setEmployeeListResult([]);
+        setShowSearchResults(false);
+      }
+      return;
+    }
 
     //get value from form search
     const data = {
@@ -163,7 +219,6 @@ function ReplaceEmployeeReport({ employeeList, workplaceList }) {
     };
 
     try {
-
       const filteredList = workplaceList.filter((workplace) => {
         const idMatch = workplace.workplaceId
           .toString()
@@ -176,23 +231,12 @@ function ReplaceEmployeeReport({ employeeList, workplaceList }) {
       setSearchResult(filteredList);
       setFilteredWorkplaceList(filteredList);
       console.log("filteredList", filteredList);
-      if (response.data.workplaces.length < 1) {
-        window.location.reload();
-      } else {
-        const data1 = {
-          employeeId: "",
-          name: "",
-          idCard: "",
-          //   workPlace: searchWorkplaceId,
-          workPlace: searchResult.workplaceId,
-        };
 
-        const filteredEmployees = employeeList.filter(
-          (employee) => employee.workplace === searchWorkplaceId
-        );
-        // console.log('searchWorkplaceId',searchWorkplaceId);
-        await setEmployeeListResult(filteredEmployees);
-      }
+      const filteredEmployees = employeeList.filter(
+        (employee) => employee.workplace === searchWorkplaceId
+      );
+      // console.log('searchWorkplaceId',searchWorkplaceId);
+      await setEmployeeListResult(filteredEmployees);
     } catch (error) {
       // setMessage('ไม่พบผลการค้นหา กรุณาตรวจสอบข้อมูลที่ใช้ในการค้นหาอีกครั้ง');
       // alert("กรุณาตรวจสอบข้อมูลในช่องค้นหา", error);
@@ -415,32 +459,22 @@ function ReplaceEmployeeReport({ employeeList, workplaceList }) {
               <section class="Frame">
                 <div class="col-md-12">
                   <form onSubmit={handleSearch}>
+                    {/* Row 1: รหัสพนักงาน | ชื่อหน่วยงาน */}
                     <div class="row">
                       <div class="col-md-6">
                         <div class="form-group">
                           <label role="searchWorkplaceId">รหัสพนักงาน</label>
-                          {/* <input
-                            type="text"
-                            class="form-control"
-                            id="searchWorkplaceId"
-                            placeholder="รหัสพนักงาน"
-                            value={searchWorkplaceId}
-                            onChange={(e) =>
-                              setSearchWorkplaceId(e.target.value)
-                            }
-                          /> */}
                           <input
                             type="text"
                             className="form-control"
                             id="searchWorkplaceId"
-                            list="workplaceIds" // Associate the datalist with the input
+                            list="workplaceIds"
                             placeholder="รหัสพนักงาน"
                             value={searchWorkplaceId}
                             onChange={(e) =>
                               setSearchWorkplaceId(e.target.value)
                             }
                             onInput={(e) => {
-                              // Remove any non-digit characters
                               e.target.value = e.target.value.replace(
                                 /\D/g,
                                 ""
@@ -452,31 +486,172 @@ function ReplaceEmployeeReport({ employeeList, workplaceList }) {
                               <option
                                 key={workplace.employeeId}
                                 value={workplace.employeeId}
-                              >
-                                {workplace.employeeId}
-                              </option>
+                              />
                             ))}
                           </datalist>
                         </div>
                       </div>
                       <div class="col-md-6">
                         <div class="form-group">
-                          <label role="searchWorkplaceName">ชื่อพนักงาน</label>
+                          <label role="searchWorkPlace">ชื่อหน่วยงาน</label>
                           <input
                             type="text"
-                            class="form-control"
-                            id="searchWorkplaceName"
-                            placeholder="ชื่อพนักงาน"
-                            value={searchWorkplaceName}
-                            onChange={(e) =>
-                              setSearchWorkplaceName(e.target.value)
-                            }
+                            className="form-control"
+                            id="searchWorkPlace"
+                            placeholder="ชื่อหน่วยงาน"
+                            value={searchWorkPlace}
+                            onChange={(e) => setSearchWorkPlace(e.target.value)}
+                            list="workPlaceList"
                           />
+                          <datalist id="workPlaceList">
+                            {[...new Set(employeeList.map(emp => emp.workplace))].map((workplace, index) => (
+                              <option key={index} value={workplace} />
+                            ))}
+                          </datalist>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Row 2: ชื่อ | นามสกุล */}
+                    <div class="row">
+                      <div class="col-md-6">
+                        <div class="form-group">
+                          <label role="staffName">ชื่อ</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            id="staffName"
+                            placeholder="ชื่อ"
+                            value={staffName}
+                            onChange={(e) => setStaffName(e.target.value)}
+                            list="firstNameList"
+                          />
+                          <datalist id="firstNameList">
+                            {[...new Set(employeeList.map(emp => emp.name))].map((name, index) => (
+                              <option key={index} value={name} />
+                            ))}
+                          </datalist>
+                        </div>
+                      </div>
+                      <div class="col-md-6">
+                        <div class="form-group">
+                          <label role="staffLastname">นามสกุล</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            id="staffLastname"
+                            placeholder="นามสกุล"
+                            value={staffLastname}
+                            onChange={(e) => setStaffLastname(e.target.value)}
+                            list="lastNameList"
+                          />
+                          <datalist id="lastNameList">
+                            {[...new Set(employeeList.map(emp => emp.lastName))].map((lastName, index) => (
+                              <option key={index} value={lastName} />
+                            ))}
+                          </datalist>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Row 3: เบอร์โทรศัพท์ | หมายเลขบัตรประชาชน */}
+                    <div class="row">
+                      <div class="col-md-6">
+                        <div class="form-group">
+                          <label role="searchPhoneNumber">เบอร์โทรศัพท์</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            id="searchPhoneNumber"
+                            placeholder="เบอร์โทรศัพท์"
+                            value={searchPhoneNumber}
+                            onChange={(e) => setSearchPhoneNumber(e.target.value)}
+                            list="phoneNumberList"
+                          />
+                          <datalist id="phoneNumberList">
+                            {employeeList.map((employee) => (
+                              <option
+                                key={employee.employeeId}
+                                value={employee.phoneNumber}
+                              />
+                            ))}
+                          </datalist>
+                        </div>
+                      </div>
+                      <div class="col-md-6">
+                        <div class="form-group">
+                          <label role="searchIdCard">หมายเลขบัตรประชาชน</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            id="searchIdCard"
+                            placeholder="หมายเลขบัตรประชาชน"
+                            value={searchIdCard}
+                            onChange={(e) => setSearchIdCard(e.target.value)}
+                            list="idCardList"
+                          />
+                          <datalist id="idCardList">
+                            {employeeList.map((employee) => (
+                              <option
+                                key={employee.employeeId}
+                                value={employee.idCard}
+                              />
+                            ))}
+                          </datalist>
                         </div>
                       </div>
                     </div>
                   </form>
                   <br />
+                  
+                  {/* Search Results Display */}
+                  {showSearchResults && employeeListResult.length > 0 && (
+                    <div className="search-results-container" style={{ marginTop: "1rem", marginBottom: "1rem" }}>
+                      <h5 className="text-center">ผลการค้นหา: พบ {employeeListResult.length} รายการ</h5>
+                      <div className="table-responsive">
+                        <table className="table table-hover table-bordered">
+                          <thead className="table-light">
+                            <tr>
+                              <th>รหัสพนักงาน</th>
+                              <th>ชื่อ</th>
+                              <th>นามสกุล</th>
+                              <th>หน่วยงาน</th>
+                              <th>เบอร์โทรศัพท์</th>
+                              <th>เลือก</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {employeeListResult.map((employee, index) => (
+                              <tr key={index} style={{ cursor: "pointer" }}>
+                                <td>{employee.employeeId}</td>
+                                <td>{employee.name}</td>
+                                <td>{employee.lastName}</td>
+                                <td>{employee.workplace}</td>
+                                <td>{employee.phoneNumber}</td>
+                                <td>
+                                  <button 
+                                    className="btn btn-sm btn-primary"
+                                    onClick={() => handleSelectEmployee(employee)}
+                                  >
+                                    เลือก
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      <div className="text-center">
+                        <button 
+                          className="btn btn-secondary"
+                          onClick={() => setShowSearchResults(false)}
+                        >
+                          ปิด
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  
                   {/* <div class="d-flex justify-content-center">
                                         <h2 class="title">ผลลัพธ์ {searchResult.length} รายการ</h2>
                                     </div> */}

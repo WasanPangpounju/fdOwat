@@ -374,10 +374,13 @@ const generatePDFReport = async () => {
     setCashSalary(!cashSalary); // Toggle the checkbox state
   };
 
-  const [staffId, setStaffId] = useState(""); //รหัสหน่วยงาน
-  const [staffName, setStaffName] = useState(""); //รหัสหน่วยงาน
-  const [staffLastname, setStaffLastname] = useState(""); //รหัสหน่วยงาน
-  const [staffFullName, setStaffFullName] = useState(""); //รหัสหน่วยงาน
+  const [staffId, setStaffId] = useState(""); //รหัสพนักงาน
+  const [staffName, setStaffName] = useState(""); //ชื่อ
+  const [staffLastname, setStaffLastname] = useState(""); //นามสกุล
+  const [staffFullName, setStaffFullName] = useState(""); //ชื่อเต็ม
+  const [searchWorkPlace, setSearchWorkPlace] = useState(""); //หน่วยงาน
+  const [searchPhoneNumber, setSearchPhoneNumber] = useState(""); //เบอร์โทรศัพท์
+  const [searchIdCard, setSearchIdCard] = useState(""); //บัตรประชาชน
 
   const [updateButton, setUpdateButton] = useState(false); // Initially, set to false
   const [timeRecord_id, setTimeRecord_id] = useState("");
@@ -3386,49 +3389,11 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                 <section class="Frame">
                   <div class="col-md-12">
                     <form onSubmit={handleSearch}>
-                      {/* <div class="row">
-                                                <div className="col-md-2">
-                                                    <div className="form-group">
-                                                        <input
-                                                            type="text"
-                                                            className="form-control"
-                                                            id="staffId"
-                                                            placeholder="รหัสพนักงาน"
-                                                            value={staffId}
-                                                            onChange={handleStaffIdChange}
-                                                            list="staffIdList"
-                                                        />
-                                                        <datalist id="staffIdList">
-                                                            {employeeList.map(employee => (
-                                                                <option key={employee.employeeId} value={employee.employeeId} />
-                                                            ))}
-                                                        </datalist>
-                                                    </div>
-                                                </div>
-                                                <div className="col-md-2">
-                                                    <div className="form-group">
-                                                        <input
-                                                            type="text"
-                                                            className="form-control"
-                                                            id="staffName"
-                                                            placeholder="ชื่อพนักงาน"
-                                                            value={staffFullName}
-                                                            onChange={handleStaffNameChange}
-                                                            list="staffNameList"
-                                                        />
-                                                        <datalist id="staffNameList">
-                                                            {employeeList.map(employee => (
-                                                                <option key={employee.employeeId} value={employee.name + " " + employee.lastName} />
-                                                            ))}
-                                                        </datalist>
-                                                    </div>
-                                                </div>
-                                            </div> */}
+                      {/* Row 1: รหัสพนักงาน | หน่วยงาน */}
                       <div class="row">
                         <div class="col-md-6">
                           <div class="form-group">
                             <label role="searchEmployeeId">รหัสพนักงาน</label>
-                            {/* <input type="text" class="form-control" id="searchEmployeeId" placeholder="รหัสพนักงาน" value={searchEmployeeId} onChange={(e) => setSearchEmployeeId(e.target.value)} /> */}
                             <input
                               type="text"
                               className="form-control"
@@ -3458,24 +3423,120 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                         </div>
                         <div class="col-md-6">
                           <div class="form-group">
-                            <label role="searchname">ชื่อพนักงาน</label>
-                            {/* <input type="text" class="form-control" id="searchname" placeholder="ชื่อพนักงาน" value={searchEmployeeName} onChange={(e) => setSearchEmployeeName(e.target.value)} /> */}
+                            <label role="searchWorkPlace">หน่วยงาน</label>
                             <input
                               type="text"
                               className="form-control"
-                              id="staffName"
-                              placeholder="ชื่อพนักงาน"
-                              value={staffFullName}
-                              onChange={handleStaffNameChange}
-                              list="staffNameList"
+                              id="searchWorkPlace"
+                              placeholder="หน่วยงาน"
+                              value={searchWorkPlace}
+                              onChange={(e) => setSearchWorkPlace(e.target.value)}
+                              list="workPlaceList"
                             />
-                            <datalist id="staffNameList">
+                            <datalist id="workPlaceList">
+                              {[...new Set(employeeList.map((employee) => employee.workplace))].map((workplace, index) => (
+                                <option key={index} value={workplace} />
+                              ))}
+                            </datalist>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Row 2: ชื่อ | นามสกุล */}
+                      <div class="row">
+                        <div class="col-md-6">
+                          <div class="form-group">
+                            <label role="searchFirstName">ชื่อ</label>
+                            <input
+                              type="text"
+                              className="form-control"
+                              id="staffFirstName"
+                              placeholder="ชื่อ"
+                              value={staffName}
+                              onChange={(e) => setStaffName(e.target.value)}
+                              list="staffFirstNameList"
+                            />
+                            <datalist id="staffFirstNameList">
                               {employeeList.map((employee) => (
                                 <option
                                   key={employee.employeeId}
-                                  value={
-                                    employee.name + " " + employee.lastName
-                                  }
+                                  value={employee.name}
+                                />
+                              ))}
+                            </datalist>
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                          <div class="form-group">
+                            <label role="searchLastName">นามสกุล</label>
+                            <input
+                              type="text"
+                              className="form-control"
+                              id="staffLastName"
+                              placeholder="นามสกุล"
+                              value={staffLastname}
+                              onChange={(e) => setStaffLastname(e.target.value)}
+                              list="staffLastNameList"
+                            />
+                            <datalist id="staffLastNameList">
+                              {employeeList.map((employee) => (
+                                <option
+                                  key={employee.employeeId}
+                                  value={employee.lastName}
+                                />
+                              ))}
+                            </datalist>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Row 3: เบอร์โทรศัพท์ | บัตรประชาชน */}
+                      <div class="row">
+                        <div class="col-md-6">
+                          <div class="form-group">
+                            <label role="searchPhoneNumber">เบอร์โทรศัพท์</label>
+                            <input
+                              type="text"
+                              className="form-control"
+                              id="searchPhoneNumber"
+                              placeholder="เบอร์โทรศัพท์"
+                              value={searchPhoneNumber}
+                              onChange={(e) => setSearchPhoneNumber(e.target.value)}
+                              onInput={(e) => {
+                                e.target.value = e.target.value.replace(/\D/g, "");
+                              }}
+                              list="phoneNumberList"
+                            />
+                            <datalist id="phoneNumberList">
+                              {employeeList.map((employee) => (
+                                <option
+                                  key={employee.employeeId}
+                                  value={employee.phoneNumber}
+                                />
+                              ))}
+                            </datalist>
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                          <div class="form-group">
+                            <label role="searchIdCard">หมายเลขบัตรประชาชน</label>
+                            <input
+                              type="text"
+                              className="form-control"
+                              id="searchIdCard"
+                              placeholder="หมายเลขบัตรประชาชน"
+                              value={searchIdCard}
+                              onChange={(e) => setSearchIdCard(e.target.value)}
+                              onInput={(e) => {
+                                e.target.value = e.target.value.replace(/\D/g, "");
+                              }}
+                              list="idCardList"
+                            />
+                            <datalist id="idCardList">
+                              {employeeList.map((employee) => (
+                                <option
+                                  key={employee.employeeId}
+                                  value={employee.idCard}
                                 />
                               ))}
                             </datalist>

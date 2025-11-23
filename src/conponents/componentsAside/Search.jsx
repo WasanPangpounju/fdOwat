@@ -17,7 +17,9 @@ function Search({ workplaceList, employeeList }) {
   const [message, setMessage] = useState("");
   const [employeeId, setEmployeeId] = useState("");
   const [name, setName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [idCard, setIdCard] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [workPlace, setWorkPlace] = useState("");
   const [employeesResult, setEmployeesResult] = useState([]);
   const [selectedCount, setSelectedCount] = useState(0);
@@ -91,6 +93,52 @@ function Search({ workplaceList, employeeList }) {
   async function handleSearch(event) {
     event.preventDefault();
 
+    // ถ้ามีการค้นหาด้วย phoneNumber หรือ lastName ให้ filter จาก employeeList ตรงนี้เลย
+    if (phoneNumber || lastName) {
+      let filteredResults = employeeList;
+
+      // กรองตามเงื่อนไขต่างๆ
+      if (employeeId) {
+        filteredResults = filteredResults.filter(emp => 
+          emp.employeeId && emp.employeeId.includes(employeeId)
+        );
+      }
+      if (name) {
+        filteredResults = filteredResults.filter(emp => 
+          emp.name && emp.name.toLowerCase().includes(name.toLowerCase())
+        );
+      }
+      if (lastName) {
+        filteredResults = filteredResults.filter(emp => 
+          emp.lastName && emp.lastName.toLowerCase().includes(lastName.toLowerCase())
+        );
+      }
+      if (phoneNumber) {
+        filteredResults = filteredResults.filter(emp => 
+          emp.phoneNumber && emp.phoneNumber.includes(phoneNumber)
+        );
+      }
+      if (idCard) {
+        filteredResults = filteredResults.filter(emp => 
+          emp.idCard && emp.idCard.includes(idCard)
+        );
+      }
+      if (workPlace) {
+        filteredResults = filteredResults.filter(emp => 
+          emp.workPlace && emp.workPlace.toLowerCase().includes(workPlace.toLowerCase())
+        );
+      }
+
+      setEmployeesResult(filteredResults);
+      setMessage(`ผลการค้นหา ${filteredResults.length} รายการ`);
+      
+      if (filteredResults.length === 0) {
+        setMessage("ไม่พบผลการค้นหา กรุณาตรวจสอบข้อมูลที่ใช้ในการค้นหาอีกครั้ง");
+      }
+      return;
+    }
+
+    // ถ้าไม่มี phoneNumber หรือ lastName ให้ใช้ API เดิม
     const data = {
       employeeId: employeeId,
       name: name,
@@ -125,26 +173,40 @@ function Search({ workplaceList, employeeList }) {
     }
   };
 
-  // function handleNameChange(event) {
-  //   setName(event.target.value);
-  // }
   const handleNameChange = (e) => {
-    const name = e.target.value;
-    setEmployeeName(name);
-
-    // Find the employee matching the name input
-    const employee = employeeList.find(
-      (emp) => `${emp.name} ${emp.lastName}` === name
-    );
+    const inputName = e.target.value;
+    setName(inputName);
+    
+    // Find employee by first name
+    const employee = employeeList.find((emp) => emp.name === inputName);
     if (employee) {
       setEmployeeId(employee.employeeId);
+      setLastName(employee.lastName);
     } else {
-      setEmployeeId(""); // Clear if not found
+      setEmployeeId("");
+    }
+  };
+
+  const handleLastNameChange = (e) => {
+    const inputLastName = e.target.value;
+    setLastName(inputLastName);
+    
+    // Find employee by last name
+    const employee = employeeList.find((emp) => emp.lastName === inputLastName);
+    if (employee) {
+      setEmployeeId(employee.employeeId);
+      setName(employee.name);
+    } else {
+      setEmployeeId("");
     }
   };
 
   function handleIdCardChange(event) {
     setIdCard(event.target.value);
+  }
+
+  function handlePhoneNumberChange(event) {
+    setPhoneNumber(event.target.value);
   }
 
   function handleWorkPlaceChange(event) {
@@ -229,14 +291,29 @@ function Search({ workplaceList, employeeList }) {
                           </div>
                           <div class="col-md-6">
                             <div class="form-group">
-                              <label role="name">ชื่อพนักงาน</label>
+                              <label role="workPlace">หน่วยงาน</label>
+                              <input
+                                type="text"
+                                name="workPlace"
+                                class="form-control"
+                                id="workPlace"
+                                placeholder="หน่วยงาน"
+                                onChange={handleWorkPlaceChange}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                        <div class="row">
+                          <div class="col-md-6">
+                            <div class="form-group">
+                              <label role="name">ชื่อ</label>
                               <input
                                 type="text"
                                 name="name"
                                 class="form-control"
                                 id="name"
-                                placeholder="ชื่อพนักงาน"
-                                value={employeeName}
+                                placeholder="ชื่อ"
+                                value={name}
                                 onChange={handleNameChange}
                                 list="staffNameList"
                               />
@@ -244,9 +321,30 @@ function Search({ workplaceList, employeeList }) {
                                 {employeeList.map((employee) => (
                                   <option
                                     key={employee.employeeId}
-                                    value={
-                                      employee.name + " " + employee.lastName
-                                    }
+                                    value={employee.name}
+                                  />
+                                ))}
+                              </datalist>
+                            </div>
+                          </div>
+                          <div class="col-md-6">
+                            <div class="form-group">
+                              <label role="lastName">นามสกุล</label>
+                              <input
+                                type="text"
+                                name="lastName"
+                                class="form-control"
+                                id="lastName"
+                                placeholder="นามสกุล"
+                                value={lastName}
+                                onChange={handleLastNameChange}
+                                list="staffLastNameList"
+                              />
+                              <datalist id="staffLastNameList">
+                                {employeeList.map((employee) => (
+                                  <option
+                                    key={employee.employeeId}
+                                    value={employee.lastName}
                                   />
                                 ))}
                               </datalist>
@@ -254,6 +352,27 @@ function Search({ workplaceList, employeeList }) {
                           </div>
                         </div>
                         <div class="row">
+                          <div class="col-md-6">
+                            <div class="form-group">
+                              <label role="phoneNumber">เบอร์โทรศัพท์</label>
+                              <input
+                                type="text"
+                                name="phoneNumber"
+                                class="form-control"
+                                id="phoneNumber"
+                                placeholder="เบอร์โทรศัพท์"
+                                value={phoneNumber}
+                                onChange={handlePhoneNumberChange}
+                                onInput={(e) => {
+                                  // Remove any non-digit characters
+                                  e.target.value = e.target.value.replace(
+                                    /\D/g,
+                                    ""
+                                  );
+                                }}
+                              />
+                            </div>
+                          </div>
                           <div class="col-md-6">
                             <div class="form-group">
                               <label role="idCard">หมายเลขบัตรประชาชน</label>
@@ -271,19 +390,6 @@ function Search({ workplaceList, employeeList }) {
                                     ""
                                   );
                                 }}
-                              />
-                            </div>
-                          </div>
-                          <div class="col-md-6">
-                            <div class="form-group">
-                              <label role="workPlace">หน่วยงาน</label>
-                              <input
-                                type="text"
-                                name="workPlace"
-                                class="form-control"
-                                id="workPlace"
-                                placeholder="หน่วยงาน"
-                                onChange={handleWorkPlaceChange}
                               />
                             </div>
                           </div>

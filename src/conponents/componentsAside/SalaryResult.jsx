@@ -81,6 +81,10 @@ function Salaryresult() {
   const [staffName, setStaffName] = useState(""); //รหัสหน่วยงาน
   const [staffLastname, setStaffLastname] = useState(""); //รหัสหน่วยงาน
   const [staffFullName, setStaffFullName] = useState(""); //รหัสหน่วยงาน
+  const [searchWorkPlace, setSearchWorkPlace] = useState("");
+  const [searchPhoneNumber, setSearchPhoneNumber] = useState("");
+  const [searchIdCard, setSearchIdCard] = useState("");
+  const [allEmployees, setAllEmployees] = useState([]);
 
   const [alldaywork, setAlldaywork] = useState([]);
   const [alldayworkLower, setAlldayworkLower] = useState([]);
@@ -118,6 +122,18 @@ function Salaryresult() {
   const [remainName, setRemainName] = useState("");
   const [remainSalary, setRemainSalary] = useState(""); //
   const [remainComment, setRemainComment] = useState(""); //
+
+  useEffect(() => {
+    // Fetch all employees for frontend filtering
+    fetch(endpoint + "/employee/list")
+      .then((response) => response.json())
+      .then((data) => {
+        setAllEmployees(data);
+      })
+      .catch((error) => {
+        console.error("Error fetching employees:", error);
+      });
+  }, []);
 
   useEffect(() => {
     setMonth("01");
@@ -2042,6 +2058,39 @@ useEffect(() => {
 }, [loading]);
 
   async function handleSearchAccounting() {
+    // Check if using new search fields for frontend filtering
+    const usingNewFields = searchWorkPlace || searchPhoneNumber || searchIdCard || staffName || staffLastname;
+    
+    if (usingNewFields && allEmployees.length > 0) {
+      // Frontend filtering
+      const filteredEmployees = allEmployees.filter((emp) => {
+        const matchesId = !staffId || emp.employeeId === staffId;
+        const matchesName = !staffName || emp.name?.toLowerCase().includes(staffName.toLowerCase());
+        const matchesLastName = !staffLastname || emp.lastName?.toLowerCase().includes(staffLastname.toLowerCase());
+        const matchesWorkPlace = !searchWorkPlace || emp.workplace?.toLowerCase().includes(searchWorkPlace.toLowerCase());
+        const matchesPhone = !searchPhoneNumber || emp.phoneNumber?.includes(searchPhoneNumber);
+        const matchesIdCard = !searchIdCard || emp.idCard?.includes(searchIdCard);
+        
+        return matchesId && matchesName && matchesLastName && matchesWorkPlace && matchesPhone && matchesIdCard;
+      });
+
+      if (filteredEmployees.length > 0) {
+        // Use the first matching employee
+        const selectedEmployee = filteredEmployees[0];
+        setStaffId(selectedEmployee.employeeId);
+        setStaffName(selectedEmployee.name);
+        setStaffLastname(selectedEmployee.lastName);
+        setStaffFullName(selectedEmployee.name + " " + selectedEmployee.lastName);
+        setSearchWorkPlace(selectedEmployee.workplace);
+        setSearchPhoneNumber(selectedEmployee.phoneNumber);
+        setSearchIdCard(selectedEmployee.idCard);
+        // Continue with normal search using the selected employee ID
+      } else {
+        alert("ไม่พบข้อมูลพนักงานที่ตรงกับเงื่อนไขการค้นหา");
+        return;
+      }
+    }
+    
     event.preventDefault();
 
 setAccountingResult({});
@@ -2195,11 +2244,11 @@ try {
                 <div class="col-md-12">
                   {/* <form onSubmit={handleSearch}> */}
                   <form>
+                    {/* Row 1: รหัสพนักงาน | ชื่อหน่วยงาน */}
                     <div class="row">
                       <div class="col-md-6">
                         <div class="form-group">
                           <label role="searchEmployeeId">รหัสพนักงาน</label>
-                          {/* <input type="text" class="form-control" id="searchEmployeeId" placeholder="รหัสพนักงาน" value={searchEmployeeId} onChange={(e) => setSearchEmployeeId(e.target.value)} /> */}
                           <input
                             type="text"
                             className="form-control"
@@ -2208,7 +2257,6 @@ try {
                             value={staffId == "null" ? "" : staffId}
                             onChange={handleStaffIdChange}
                             onInput={(e) => {
-                              // Remove any non-digit characters
                               e.target.value = e.target.value.replace(/\D/g, "");
                             }}
                             list="staffIdList"
@@ -2225,22 +2273,108 @@ try {
                       </div>
                       <div class="col-md-6">
                         <div class="form-group">
-                          <label role="searchname">ชื่อพนักงาน</label>
-                          {/* <input type="text" class="form-control" id="searchname" placeholder="ชื่อพนักงาน" value={searchEmployeeName} onChange={(e) => setSearchEmployeeName(e.target.value)} /> */}
+                          <label role="searchWorkPlace">ชื่อหน่วยงาน</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            id="searchWorkPlace"
+                            placeholder="ชื่อหน่วยงาน"
+                            value={searchWorkPlace}
+                            onChange={(e) => setSearchWorkPlace(e.target.value)}
+                            list="workPlaceList"
+                          />
+                          <datalist id="workPlaceList">
+                            {[...new Set(employeeList.map(emp => emp.workplace))].map((workplace, index) => (
+                              <option key={index} value={workplace} />
+                            ))}
+                          </datalist>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Row 2: ชื่อ | นามสกุล */}
+                    <div class="row">
+                      <div class="col-md-6">
+                        <div class="form-group">
+                          <label role="staffName">ชื่อ</label>
                           <input
                             type="text"
                             className="form-control"
                             id="staffName"
-                            placeholder="ชื่อพนักงาน"
-                            value={staffFullName == "null" ? "" : staffFullName}
-                            onChange={handleStaffNameChange}
-                            list="staffNameList"
+                            placeholder="ชื่อ"
+                            value={staffName}
+                            onChange={(e) => setStaffName(e.target.value)}
+                            list="firstNameList"
                           />
-                          <datalist id="staffNameList">
+                          <datalist id="firstNameList">
+                            {[...new Set(employeeList.map(emp => emp.name))].map((name, index) => (
+                              <option key={index} value={name} />
+                            ))}
+                          </datalist>
+                        </div>
+                      </div>
+                      <div class="col-md-6">
+                        <div class="form-group">
+                          <label role="staffLastname">นามสกุล</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            id="staffLastname"
+                            placeholder="นามสกุล"
+                            value={staffLastname}
+                            onChange={(e) => setStaffLastname(e.target.value)}
+                            list="lastNameList"
+                          />
+                          <datalist id="lastNameList">
+                            {[...new Set(employeeList.map(emp => emp.lastName))].map((lastName, index) => (
+                              <option key={index} value={lastName} />
+                            ))}
+                          </datalist>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Row 3: เบอร์โทรศัพท์ | หมายเลขบัตรประชาชน */}
+                    <div class="row">
+                      <div class="col-md-6">
+                        <div class="form-group">
+                          <label role="searchPhoneNumber">เบอร์โทรศัพท์</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            id="searchPhoneNumber"
+                            placeholder="เบอร์โทรศัพท์"
+                            value={searchPhoneNumber}
+                            onChange={(e) => setSearchPhoneNumber(e.target.value)}
+                            list="phoneNumberList"
+                          />
+                          <datalist id="phoneNumberList">
                             {employeeList.map((employee) => (
                               <option
                                 key={employee.employeeId}
-                                value={employee.name + " " + employee.lastName}
+                                value={employee.phoneNumber}
+                              />
+                            ))}
+                          </datalist>
+                        </div>
+                      </div>
+                      <div class="col-md-6">
+                        <div class="form-group">
+                          <label role="searchIdCard">หมายเลขบัตรประชาชน</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            id="searchIdCard"
+                            placeholder="หมายเลขบัตรประชาชน"
+                            value={searchIdCard}
+                            onChange={(e) => setSearchIdCard(e.target.value)}
+                            list="idCardList"
+                          />
+                          <datalist id="idCardList">
+                            {employeeList.map((employee) => (
+                              <option
+                                key={employee.employeeId}
+                                value={employee.idCard}
                               />
                             ))}
                           </datalist>
@@ -2248,6 +2382,7 @@ try {
                       </div>
                     </div>
 
+                    {/* Row 4: เดือน | ปี */}
                     <div class="row">
                       <div class="col-md-6">
                         <div class="form-group">

@@ -169,8 +169,12 @@ function AddEditEmployee() {
 
   const [searchEmployeeId, setSearchEmployeeId] = useState("");
   const [searchEmployeeName, setSearchEmployeeName] = useState("");
+  const [searchFirstName, setSearchFirstName] = useState("");
+  const [searchLastName, setSearchLastName] = useState("");
   const [searchIdCard, setSearchIdCard] = useState("");
   const [searchPhone, setSearchPhone] = useState("");
+  const [searchWorkPlace, setSearchWorkPlace] = useState("");
+  const [allEmployees, setAllEmployees] = useState([]);
 
   const options = [];
 
@@ -183,6 +187,26 @@ function AddEditEmployee() {
       </option>
     );
   }
+
+  // Fetch all employees for frontend filtering
+  useEffect(() => {
+    const fetchAllEmployees = async () => {
+      try {
+        const response = await axios.get(endpoint + "/employee/list");
+        if (response.data) {
+          setAllEmployees(response.data);
+          console.log("Loaded employees:", response.data.length);
+          // Debug: Check phone field name
+          if (response.data.length > 0) {
+            console.log("Sample employee data:", response.data[0]);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching all employees:", error);
+      }
+    };
+    fetchAllEmployees();
+  }, []);
 
   const [_id, set_id] = useState("");
   const [employeeId, setEmployeeId] = useState("");
@@ -1269,12 +1293,112 @@ function AddEditEmployee() {
   async function handleSearch(event) {
     event.preventDefault();
 
-    // get value from form search
+    // Frontend filtering when using phoneNumber, lastName, or workPlace
+    if (searchPhone || searchLastName || searchWorkPlace) {
+      let filtered = [...allEmployees];
+
+      if (searchEmployeeId) {
+        filtered = filtered.filter(emp => 
+          emp.employeeId && emp.employeeId.includes(searchEmployeeId)
+        );
+      }
+
+      if (searchFirstName) {
+        filtered = filtered.filter(emp => 
+          emp.name && emp.name.toLowerCase().includes(searchFirstName.toLowerCase())
+        );
+      }
+
+      if (searchLastName) {
+        filtered = filtered.filter(emp => 
+          emp.lastName && emp.lastName.toLowerCase().includes(searchLastName.toLowerCase())
+        );
+      }
+
+      if (searchWorkPlace) {
+        filtered = filtered.filter(emp => 
+          emp.workplace && emp.workplace.toLowerCase().includes(searchWorkPlace.toLowerCase())
+        );
+      }
+
+      if (searchPhone) {
+        filtered = filtered.filter(emp => 
+          emp.phoneNumber && emp.phoneNumber.includes(searchPhone)
+        );
+      }
+
+      if (searchIdCard) {
+        filtered = filtered.filter(emp => 
+          emp.idCard && emp.idCard.includes(searchIdCard)
+        );
+      }
+
+      if (filtered.length === 0) {
+        setEmployeeId("");
+        setName("");
+        alert("ไม่พบข้อมูล");
+        return;
+      }
+
+      // Use first result from filtered list
+      setSearchResult(filtered);
+      const employee = filtered[0];
+      
+      //clean form
+      setSearchEmployeeId("");
+      setSearchEmployeeName("");
+      setSearchFirstName("");
+      setSearchLastName("");
+      setSearchIdCard("");
+      setSearchPhone("");
+      setSearchWorkPlace("");
+      set_id(employee._id);
+
+      // Set search values
+      setEmployeeId(employee.employeeId);
+      setWorkplace(employee.workplace);
+      setPosition(employee.position);
+      setSalary(employee.salary);
+      setJobtype(employee.jobtype);
+      setPrefix(employee.prefix);
+      setName(employee.name);
+      setLastName(employee.lastName);
+      setNickName(employee.nickName);
+      setGender(employee.gender === "male" ? "ชาย" : "หญิง");
+      setFormattedDate(employee.dateOfBirth);
+      setAge(employee.age);
+      setIdCard(employee.idCard);
+      setEthnicity(employee.ethnicity);
+      setReligion(employee.religion);
+      setMaritalStatus(employee.maritalStatus);
+      setMilitaryStatus(employee.militaryStatus);
+      setAddress(employee.address);
+      setProvince(employee.province);
+      setDistrict(employee.district);
+      setSubDistrict(employee.subDistrict);
+      setPostalCode(employee.postalCode);
+      setHouseNumber(employee.houseNumber);
+      setProvince2(employee.province2);
+      setDistrict2(employee.district2);
+      setSubDistrict2(employee.subDistrict2);
+      setPostalCode2(employee.postalCode2);
+      setHouseNumber2(employee.houseNumber2);
+      setCopyAddress(employee.copyAddress);
+      setCurrentAddress(employee.currentAddress);
+      setPhoneNumber(employee.phoneNumber);
+      setEmergencyContactNumber(employee.emergencyContactNumber);
+      setEmergencyRelationship(employee.emergencyRelationship);
+      setEmergencyName(employee.emergencyName);
+      setIdLine(employee.idLine);
+      setNewEmp(false);
+      return;
+    }
+
+    // Original API search when using only basic fields
     const data = {
       employeeId: searchEmployeeId,
-      name: searchEmployeeName,
+      name: searchFirstName || searchEmployeeName,
       idCard: searchIdCard,
-      phoneNumber: searchPhone,
       workPlace: "",
     };
 
@@ -1293,8 +1417,11 @@ function AddEditEmployee() {
         //clean form
         setSearchEmployeeId("");
         setSearchEmployeeName("");
+        setSearchFirstName("");
+        setSearchLastName("");
         setSearchIdCard("");
         setSearchPhone("");
+        setSearchWorkPlace("");
         set_id(response.data.employees[0]._id);
 
         // Set search values
@@ -1560,6 +1687,7 @@ function AddEditEmployee() {
                       <section class="Frame">
                         <div class="col-md-12">
                           <form onSubmit={handleSearch}>
+                            {/* Row 1: รหัสพนักงาน | หน่วยงาน */}
                             <div class="row">
                               <div class="col-md-6">
                                 <div class="form-group">
@@ -1580,49 +1708,85 @@ function AddEditEmployee() {
                               </div>
                               <div class="col-md-6">
                                 <div class="form-group">
-                                  <label role="searchname">ชื่อพนักงาน</label>
+                                  <label role="searchWorkPlace">หน่วยงาน</label>
                                   <input
                                     type="text"
                                     class="form-control"
-                                    id="searchname"
-                                    placeholder="ชื่อพนักงาน"
-                                    value={searchEmployeeName}
+                                    id="searchWorkPlace"
+                                    placeholder="หน่วยงาน"
+                                    value={searchWorkPlace}
                                     onChange={(e) =>
-                                      setSearchEmployeeName(e.target.value)
+                                      setSearchWorkPlace(e.target.value)
                                     }
                                   />
                                 </div>
                               </div>
                             </div>
+
+                            {/* Row 2: ชื่อ | นามสกุล */}
                             <div class="row">
                               <div class="col-md-6">
                                 <div class="form-group">
-                                  <label role="searchIdCard">
-                                    เลขบัตรประชาชน
-                                  </label>
+                                  <label role="searchFirstName">ชื่อ</label>
                                   <input
                                     type="text"
                                     class="form-control"
-                                    id="searchIdCard"
-                                    placeholder="เลขบัตรประชาชน"
-                                    value={searchIdCard}
+                                    id="searchFirstName"
+                                    placeholder="ชื่อ"
+                                    value={searchFirstName}
                                     onChange={(e) =>
-                                      setSearchIdCard(e.target.value)
+                                      setSearchFirstName(e.target.value)
                                     }
                                   />
                                 </div>
                               </div>
                               <div class="col-md-6">
                                 <div class="form-group">
-                                  <label role="searchPhone">เบอร์มือถือ</label>
+                                  <label role="searchLastName">นามสกุล</label>
+                                  <input
+                                    type="text"
+                                    class="form-control"
+                                    id="searchLastName"
+                                    placeholder="นามสกุล"
+                                    value={searchLastName}
+                                    onChange={(e) =>
+                                      setSearchLastName(e.target.value)
+                                    }
+                                  />
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Row 3: เบอร์โทรศัพท์ | หมายเลขบัตรประชาชน */}
+                            <div class="row">
+                              <div class="col-md-6">
+                                <div class="form-group">
+                                  <label role="searchPhone">เบอร์โทรศัพท์</label>
                                   <input
                                     type="text"
                                     class="form-control"
                                     id="searchPhone"
-                                    placeholder="เบอร์มือถือ"
+                                    placeholder="เบอร์โทรศัพท์"
                                     value={searchPhone}
                                     onChange={(e) =>
                                       setSearchPhone(e.target.value)
+                                    }
+                                  />
+                                </div>
+                              </div>
+                              <div class="col-md-6">
+                                <div class="form-group">
+                                  <label role="searchIdCard">
+                                    หมายเลขบัตรประชาชน
+                                  </label>
+                                  <input
+                                    type="text"
+                                    class="form-control"
+                                    id="searchIdCard"
+                                    placeholder="หมายเลขบัตรประชาชน"
+                                    value={searchIdCard}
+                                    onChange={(e) =>
+                                      setSearchIdCard(e.target.value)
                                     }
                                   />
                                 </div>
