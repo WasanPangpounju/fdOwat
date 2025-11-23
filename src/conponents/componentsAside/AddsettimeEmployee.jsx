@@ -2759,6 +2759,16 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
 
           // setRowDataList2(response.data.recordworkplace[0].employee_workplaceRecord);
           if (name != "") {
+            // Debug: Check if isThreePercent exists in the data
+            console.log('📋 Employee Records from API:', response?.data?.result?.[0]?.employee_record);
+            response?.data?.result?.[0]?.employee_record?.forEach((record, index) => {
+              console.log(`Record ${index}:`, {
+                shift: record.shift,
+                isNightShiftCash: record.isNightShiftCash,
+                isThreePercent: record.isThreePercent,
+                messageSalary: record.messageSalary
+              });
+            });
             
             setRowDataList2(
               response?.data?.result?.[0]?.employee_record
@@ -3013,8 +3023,8 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
         cashOfHoliday: rowData.cashOfHoliday || '',
         cashOfHolidayOt: rowData.cashOfHolidayOt || '',
         payFullDay: rowData.payFullDay || false,
-        isNightShiftCash: rowData.isNightShiftCash || false
-      } 
+        isNightShiftCash: rowData.isNightShiftCash || false,
+        isThreePercent: rowData.isThreePercent || false      } 
     });
   };
 
@@ -3434,7 +3444,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                             </datalist>
                           </div>
                         </div>
-                        <div class="col-md-6"> 
+                        <div class="col-md-6">
                           <div class="form-group">
                             <label role="searchname">ชื่อพนักงาน</label>
                             {/* <input type="text" class="form-control" id="searchname" placeholder="ชื่อพนักงาน" value={searchEmployeeName} onChange={(e) => setSearchEmployeeName(e.target.value)} /> */}
@@ -4338,8 +4348,8 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                       
                       {/* Show badge when shift is cash_holiday and isNightShiftCash is true */}
                       {rowData2.shift === "cash_holiday" && rowData2.isNightShiftCash && (
-                        <div>
-                          <span className="badge badge-info" style={{ fontSize: "10px" }}>
+                        <div style={{ marginTop: "0.25rem" }}>
+                          <span style={{ fontSize: "10px", backgroundColor: "#17a2b8", color: "white", padding: "0.25em 0.4em", borderRadius: "0.25rem", display: "inline-block", fontWeight: "700", lineHeight: "1", textAlign: "center", whiteSpace: "nowrap", verticalAlign: "baseline" }}>
                             กะดึก
                           </span>
                         </div>
@@ -4569,10 +4579,12 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                     </div>
                   ) : (
                     <div>
-                      {rowData2.shift === "cash_holiday" && rowData2.messageSalary ? rowData2.messageSalary : ""}
+                      {rowData2.shift === "cash_holiday" && rowData2.messageSalary && (
+                        <div>{rowData2.messageSalary}</div>
+                      )}
                       {rowData2.shift === "cash_holiday" && rowData2.isThreePercent && (
-                        <div className="mt-1">
-                          <span className="badge badge-warning" style={{ fontSize: "10px" }}>
+                        <div style={{ marginTop: "0.25rem" }}>
+                          <span style={{ fontSize: "10px", backgroundColor: "#ffc107", color: "#212529", padding: "0.25em 0.4em", borderRadius: "0.25rem", display: "inline-block", fontWeight: "700", lineHeight: "1", textAlign: "center", whiteSpace: "nowrap", verticalAlign: "baseline" }}>
                             3%
                           </span>
                         </div>
