@@ -18,6 +18,10 @@ let cachedTaxableIds = null;
 let cacheTimestamp = null;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 นาที
 
+// Cache สำหรับเก็บ DedutIds
+let cachedDedutIds = null;
+let cacheDedutTimestamp = null;
+
 // ฟังก์ชันดึงข้อมูล taxableIds จาก API
 async function fetchTaxableIds() {
   // ตรวจสอบ cache ก่อน
@@ -45,6 +49,36 @@ async function fetchTaxableIds() {
       return cachedTaxableIds;
     }
     return [];
+  }
+}
+
+// ฟังก์ชันดึงข้อมูล DedutIds จาก API
+async function fetchDedutIds() {
+  // ตรวจสอบ cache ก่อน
+  const now = Date.now();
+  if (cachedDedutIds && cacheDedutTimestamp && (now - cacheDedutTimestamp < CACHE_DURATION)) {
+    console.log(`✅ ใช้ DedutIds จาก cache (${cachedDedutIds.length} รายการ)`);
+    return cachedDedutIds;
+  }
+
+  try {
+    const response = await axios.get('http://10.10.110.7:3000/employee/Deduct-social-security-checked');
+    if (response.data && response.data.summary && response.data.summary.uniqueIdList) {
+      cachedDedutIds = response.data.summary.uniqueIdList;
+      cacheDedutTimestamp = Date.now();
+      console.log(`✅ ดึง DedutIds จาก API สำเร็จ: ${cachedDedutIds.length} รายการ`);
+      return cachedDedutIds;
+    }
+    console.warn('⚠️ ไม่พบข้อมูล uniqueIdList สำหรับ DedutIds จาก API, ใช้ค่า default');
+    return ["2116", "2222"]; // fallback เดิม
+  } catch (error) {
+    console.error('❌ Error fetching DedutIds from API:', error.message);
+    // fallback to cached data if available
+    if (cachedDedutIds) {
+      console.warn('⚠️ ใช้ข้อมูล cache เดิมแทน');
+      return cachedDedutIds;
+    }
+    return ["2116", "2222"]; // fallback เดิม
   }
 }
 
@@ -8097,9 +8131,10 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
   console.log(`\n🔍 === รายการ ID ที่คิดประกันสังคม ===`);
   // ดึง taxableIds จาก API แทน hardcode
   const taxableIds = await fetchTaxableIds();
-  const DedutIds = ["2116", "2222"];
+  // ดึง DedutIds จาก API แทน hardcode
+  const DedutIds = await fetchDedutIds();
   console.log(`🔍 ID ที่คิดประกันสังคม (จาก API): ${taxableIds.join(', ')}`);
-  console.log(`🔍 ID ที่ต้องหักออกจากฐานประกันสังคม: ${DedutIds.join(', ')}`);
+  console.log(`🔍 ID ที่ต้องหักออกจากฐานประกันสังคม (จาก API): ${DedutIds.join(', ')}`);
   console.log(`🔍 ===============================================\n`);
 
   // 🔍 คำนวณรายการหักที่ต้องลบออกจากฐานประกันสังคม
