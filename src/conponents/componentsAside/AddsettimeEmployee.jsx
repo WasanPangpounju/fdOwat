@@ -270,16 +270,26 @@ const generatePDFReport = async () => {
               // ข้ามคอลัมน์ "จัดการ" (คอลัมน์สุดท้าย) เท่านั้น
               if (cellIndex < cells.length - 1) {
                 const newCell = document.createElement('td');
-                newCell.textContent = cell.textContent.trim();
                 newCell.style.border = '1px solid #000';
                 newCell.style.padding = '6px';
                 newCell.style.textAlign = 'center';
                 newCell.style.verticalAlign = 'middle';
                 
+                // Clone เซลล์ทั้งหมดรวม HTML structure
+                const cellClone = cell.cloneNode(true);
+                
+                // ลบ elements ที่ไม่ต้องการ (ปุ่ม, input, form-check) แต่เก็บ badge
+                cellClone.querySelectorAll('button').forEach(el => el.remove());
+                cellClone.querySelectorAll('input').forEach(el => el.remove());
+                cellClone.querySelectorAll('.form-check').forEach(el => el.remove());
+                cellClone.querySelectorAll('.form-control').forEach(el => el.remove());
+                
+                // คัดลอก innerHTML รวม badge ทั้งหมด
+                newCell.innerHTML = cellClone.innerHTML;
+                
                 // ถ้าเป็นคอลัมน์หมายเหตุ (คอลัมน์ก่อนคอลัมน์จัดการ)
                 if (cellIndex === cells.length - 2) {
                   newCell.style.fontSize = '9px';
-                  newCell.style.fontStyle = 'italic';
                   newCell.style.color = '#555';
                 }
                 
@@ -364,10 +374,13 @@ const generatePDFReport = async () => {
     setCashSalary(!cashSalary); // Toggle the checkbox state
   };
 
-  const [staffId, setStaffId] = useState(""); //รหัสหน่วยงาน
-  const [staffName, setStaffName] = useState(""); //รหัสหน่วยงาน
-  const [staffLastname, setStaffLastname] = useState(""); //รหัสหน่วยงาน
-  const [staffFullName, setStaffFullName] = useState(""); //รหัสหน่วยงาน
+  const [staffId, setStaffId] = useState(""); //รหัสพนักงาน
+  const [staffName, setStaffName] = useState(""); //ชื่อ
+  const [staffLastname, setStaffLastname] = useState(""); //นามสกุล
+  const [staffFullName, setStaffFullName] = useState(""); //ชื่อเต็ม
+  const [searchWorkPlace, setSearchWorkPlace] = useState(""); //หน่วยงาน
+  const [searchPhoneNumber, setSearchPhoneNumber] = useState(""); //เบอร์โทรศัพท์
+  const [searchIdCard, setSearchIdCard] = useState(""); //บัตรประชาชน
 
   const [updateButton, setUpdateButton] = useState(false); // Initially, set to false
   const [timeRecord_id, setTimeRecord_id] = useState("");
@@ -2759,6 +2772,16 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
 
           // setRowDataList2(response.data.recordworkplace[0].employee_workplaceRecord);
           if (name != "") {
+            // Debug: Check if isThreePercent exists in the data
+            console.log('📋 Employee Records from API:', response?.data?.result?.[0]?.employee_record);
+            response?.data?.result?.[0]?.employee_record?.forEach((record, index) => {
+              console.log(`Record ${index}:`, {
+                shift: record.shift,
+                isNightShiftCash: record.isNightShiftCash,
+                isThreePercent: record.isThreePercent,
+                messageSalary: record.messageSalary
+              });
+            });
             
             setRowDataList2(
               response?.data?.result?.[0]?.employee_record
@@ -2999,6 +3022,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
       ...editData, 
       [index]: { 
         ...rowData,
+        shift: rowData.shift || 'morning_shift',
         beforeStartOtTime: rowData.beforeStartOtTime || '',
         beforeEndOtTime: rowData.beforeEndOtTime || '',
         beforeTotalOtTime: rowData.beforeTotalOtTime || '',
@@ -3012,9 +3036,10 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
         specialtSalaryOT: rowData.specialtSalaryOT || '',
         cashOfHoliday: rowData.cashOfHoliday || '',
         cashOfHolidayOt: rowData.cashOfHolidayOt || '',
+        messageSalary: rowData.messageSalary || '',
         payFullDay: rowData.payFullDay || false,
-        isNightShiftCash: rowData.isNightShiftCash || false
-      } 
+        isNightShiftCash: rowData.isNightShiftCash || false,
+        isThreePercent: rowData.isThreePercent || false      } 
     });
   };
 
@@ -3313,18 +3338,25 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
     const selectedStaffId = e.target.value;
     setStaffId(selectedStaffId);
     setSearchEmployeeId(selectedStaffId);
-    // Find the corresponding employee and set the staffName
+    // Find the corresponding employee and auto-fill all fields
     const selectedEmployee = employeeList.find(
       (employee) => employee.employeeId === selectedStaffId
     );
     if (selectedEmployee) {
-      // setStaffName(selectedEmployee.name);
-      // setStaffLastname(selectedEmployee.lastName);
+      setStaffName(selectedEmployee.name);
+      setStaffLastname(selectedEmployee.lastName);
       setStaffFullName(selectedEmployee.name + " " + selectedEmployee.lastName);
+      setSearchWorkPlace(selectedEmployee.workplace || "");
+      setSearchPhoneNumber(selectedEmployee.phoneNumber || "");
+      setSearchIdCard(selectedEmployee.idCard || "");
     } else {
       setStaffName("");
+      setStaffLastname("");
       setStaffFullName("");
       setSearchEmployeeName("");
+      setSearchWorkPlace("");
+      setSearchPhoneNumber("");
+      setSearchIdCard("");
     }
   };
 
@@ -3353,6 +3385,119 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
     setSearchEmployeeName(selectedEmployeeFName);
   };
 
+  // Handler for workplace field - check if combined with name to auto-fill
+  const handleWorkPlaceChange = (e) => {
+    const value = e.target.value;
+    setSearchWorkPlace(value);
+    
+    // Auto-fill if workplace + name are both filled
+    if (value && staffName) {
+      const matchedEmployee = employeeList.find(
+        (emp) => emp.workplace === value && emp.name === staffName
+      );
+      
+      if (matchedEmployee) {
+        setStaffId(matchedEmployee.employeeId);
+        setStaffLastname(matchedEmployee.lastName);
+        setSearchPhoneNumber(matchedEmployee.phoneNumber || "");
+        setSearchIdCard(matchedEmployee.idCard || "");
+      }
+    }
+  };
+
+  // Handler for name field - check combinations to auto-fill
+  const handleNameChange = (e) => {
+    const value = e.target.value;
+    setStaffName(value);
+    
+    // Auto-fill if name + lastName are both filled
+    if (value && staffLastname) {
+      const matchedEmployee = employeeList.find(
+        (emp) => emp.name === value && emp.lastName === staffLastname
+      );
+      
+      if (matchedEmployee) {
+        setStaffId(matchedEmployee.employeeId);
+        setSearchWorkPlace(matchedEmployee.workplace || "");
+        setSearchPhoneNumber(matchedEmployee.phoneNumber || "");
+        setSearchIdCard(matchedEmployee.idCard || "");
+      }
+    }
+    // Auto-fill if workplace + name are both filled
+    else if (value && searchWorkPlace) {
+      const matchedEmployee = employeeList.find(
+        (emp) => emp.name === value && emp.workplace === searchWorkPlace
+      );
+      
+      if (matchedEmployee) {
+        setStaffId(matchedEmployee.employeeId);
+        setStaffLastname(matchedEmployee.lastName);
+        setSearchPhoneNumber(matchedEmployee.phoneNumber || "");
+        setSearchIdCard(matchedEmployee.idCard || "");
+      }
+    }
+  };
+
+  // Handler for lastName field - check if combined with name to auto-fill
+  const handleLastNameChange = (e) => {
+    const value = e.target.value;
+    setStaffLastname(value);
+    
+    // Auto-fill if name + lastName are both filled
+    if (staffName && value) {
+      const matchedEmployee = employeeList.find(
+        (emp) => emp.name === staffName && emp.lastName === value
+      );
+      
+      if (matchedEmployee) {
+        setStaffId(matchedEmployee.employeeId);
+        setSearchWorkPlace(matchedEmployee.workplace || "");
+        setSearchPhoneNumber(matchedEmployee.phoneNumber || "");
+        setSearchIdCard(matchedEmployee.idCard || "");
+      }
+    }
+  };
+
+  // Handler for phone number field - auto-fill when match found
+  const handlePhoneNumberChange = (e) => {
+    const value = e.target.value.replace(/\D/g, "");
+    setSearchPhoneNumber(value);
+    
+    if (value) {
+      const matchedEmployee = employeeList.find(
+        (emp) => emp.phoneNumber && emp.phoneNumber.includes(value)
+      );
+      
+      if (matchedEmployee) {
+        setStaffId(matchedEmployee.employeeId);
+        setStaffName(matchedEmployee.name);
+        setStaffLastname(matchedEmployee.lastName);
+        setSearchWorkPlace(matchedEmployee.workplace || "");
+        setSearchIdCard(matchedEmployee.idCard || "");
+      }
+    }
+  };
+
+  // Handler for ID card field - auto-fill when match found
+  const handleIdCardChange = (e) => {
+    const value = e.target.value.replace(/\D/g, "");
+    setSearchIdCard(value);
+    
+    if (value) {
+      const matchedEmployee = employeeList.find(
+        (emp) => emp.idCard && emp.idCard.includes(value)
+      );
+      
+      if (matchedEmployee) {
+        setStaffId(matchedEmployee.employeeId);
+        setStaffName(matchedEmployee.name);
+        setStaffLastname(matchedEmployee.lastName);
+        setSearchWorkPlace(matchedEmployee.workplace || "");
+        setSearchPhoneNumber(matchedEmployee.phoneNumber || "");
+      }
+    }
+  };
+
   return (
     <section class="content">
       <div class="row">
@@ -3364,49 +3509,11 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                 <section class="Frame">
                   <div class="col-md-12">
                     <form onSubmit={handleSearch}>
-                      {/* <div class="row">
-                                                <div className="col-md-2">
-                                                    <div className="form-group">
-                                                        <input
-                                                            type="text"
-                                                            className="form-control"
-                                                            id="staffId"
-                                                            placeholder="รหัสพนักงาน"
-                                                            value={staffId}
-                                                            onChange={handleStaffIdChange}
-                                                            list="staffIdList"
-                                                        />
-                                                        <datalist id="staffIdList">
-                                                            {employeeList.map(employee => (
-                                                                <option key={employee.employeeId} value={employee.employeeId} />
-                                                            ))}
-                                                        </datalist>
-                                                    </div>
-                                                </div>
-                                                <div className="col-md-2">
-                                                    <div className="form-group">
-                                                        <input
-                                                            type="text"
-                                                            className="form-control"
-                                                            id="staffName"
-                                                            placeholder="ชื่อพนักงาน"
-                                                            value={staffFullName}
-                                                            onChange={handleStaffNameChange}
-                                                            list="staffNameList"
-                                                        />
-                                                        <datalist id="staffNameList">
-                                                            {employeeList.map(employee => (
-                                                                <option key={employee.employeeId} value={employee.name + " " + employee.lastName} />
-                                                            ))}
-                                                        </datalist>
-                                                    </div>
-                                                </div>
-                                            </div> */}
+                      {/* Row 1: รหัสพนักงาน | หน่วยงาน */}
                       <div class="row">
                         <div class="col-md-6">
                           <div class="form-group">
                             <label role="searchEmployeeId">รหัสพนักงาน</label>
-                            {/* <input type="text" class="form-control" id="searchEmployeeId" placeholder="รหัสพนักงาน" value={searchEmployeeId} onChange={(e) => setSearchEmployeeId(e.target.value)} /> */}
                             <input
                               type="text"
                               className="form-control"
@@ -3425,37 +3532,163 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                             />
                             <datalist id="staffIdList">
                               <option value="" />
-                              {employeeList.map((employee) => (
-                                <option
-                                  key={employee.employeeId}
-                                  value={employee.employeeId}
-                                />
-                              ))}
+                              {employeeList
+                                .filter((employee) => {
+                                  if (searchWorkPlace && employee.workplace !== searchWorkPlace) return false;
+                                  return true;
+                                })
+                                .map((employee) => (
+                                  <option
+                                    key={employee.employeeId}
+                                    value={employee.employeeId}
+                                  />
+                                ))}
                             </datalist>
                           </div>
                         </div>
-                        <div class="col-md-6"> 
+                        <div class="col-md-6">
                           <div class="form-group">
-                            <label role="searchname">ชื่อพนักงาน</label>
-                            {/* <input type="text" class="form-control" id="searchname" placeholder="ชื่อพนักงาน" value={searchEmployeeName} onChange={(e) => setSearchEmployeeName(e.target.value)} /> */}
+                            <label role="searchWorkPlace">หน่วยงาน</label>
                             <input
                               type="text"
                               className="form-control"
-                              id="staffName"
-                              placeholder="ชื่อพนักงาน"
-                              value={staffFullName}
-                              onChange={handleStaffNameChange}
-                              list="staffNameList"
+                              id="searchWorkPlace"
+                              placeholder="หน่วยงาน"
+                              value={searchWorkPlace}
+                              onChange={handleWorkPlaceChange}
+                              list="workPlaceList"
                             />
-                            <datalist id="staffNameList">
-                              {employeeList.map((employee) => (
-                                <option
-                                  key={employee.employeeId}
-                                  value={
-                                    employee.name + " " + employee.lastName
-                                  }
-                                />
-                              ))}
+                            <datalist id="workPlaceList">
+                              {[...new Set(employeeList
+                                .filter((employee) => {
+                                  if (staffId && employee.employeeId !== staffId) return false;
+                                  return true;
+                                })
+                                .map((employee) => employee.workplace))]
+                                .map((workplace, index) => (
+                                  <option key={index} value={workplace} />
+                                ))}
+                            </datalist>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Row 2: ชื่อ | นามสกุล */}
+                      <div class="row">
+                        <div class="col-md-6">
+                          <div class="form-group">
+                            <label role="searchFirstName">ชื่อ</label>
+                            <input
+                              type="text"
+                              className="form-control"
+                              id="staffFirstName"
+                              placeholder="ชื่อ"
+                              value={staffName}
+                              onChange={handleNameChange}
+                              list="staffFirstNameList"
+                            />
+                            <datalist id="staffFirstNameList">
+                              {employeeList
+                                .filter((employee) => {
+                                  if (searchWorkPlace && employee.workplace !== searchWorkPlace) return false;
+                                  if (staffId && employee.employeeId !== staffId) return false;
+                                  return true;
+                                })
+                                .map((employee) => (
+                                  <option
+                                    key={employee.employeeId}
+                                    value={employee.name}
+                                  />
+                                ))}
+                            </datalist>
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                          <div class="form-group">
+                            <label role="searchLastName">นามสกุล</label>
+                            <input
+                              type="text"
+                              className="form-control"
+                              id="staffLastName"
+                              placeholder="นามสกุล"
+                              value={staffLastname}
+                              onChange={handleLastNameChange}
+                              list="staffLastNameList"
+                            />
+                            <datalist id="staffLastNameList">
+                              {employeeList
+                                .filter((employee) => {
+                                  if (searchWorkPlace && employee.workplace !== searchWorkPlace) return false;
+                                  if (staffId && employee.employeeId !== staffId) return false;
+                                  if (staffName && employee.name !== staffName) return false;
+                                  return true;
+                                })
+                                .map((employee) => (
+                                  <option
+                                    key={employee.employeeId}
+                                    value={employee.lastName}
+                                  />
+                                ))}
+                            </datalist>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Row 3: เบอร์โทรศัพท์ | บัตรประชาชน */}
+                      <div class="row">
+                        <div class="col-md-6">
+                          <div class="form-group">
+                            <label role="searchPhoneNumber">เบอร์โทรศัพท์</label>
+                            <input
+                              type="text"
+                              className="form-control"
+                              id="searchPhoneNumber"
+                              placeholder="เบอร์โทรศัพท์"
+                              value={searchPhoneNumber}
+                              onChange={handlePhoneNumberChange}
+                              list="phoneNumberList"
+                            />
+                            <datalist id="phoneNumberList">
+                              {employeeList
+                                .filter((employee) => {
+                                  if (searchWorkPlace && employee.workplace !== searchWorkPlace) return false;
+                                  if (staffId && employee.employeeId !== staffId) return false;
+                                  return true;
+                                })
+                                .map((employee) => (
+                                  <option
+                                    key={employee.employeeId}
+                                    value={employee.phoneNumber}
+                                  />
+                                ))}
+                            </datalist>
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                          <div class="form-group">
+                            <label role="searchIdCard">หมายเลขบัตรประชาชน</label>
+                            <input
+                              type="text"
+                              className="form-control"
+                              id="searchIdCard"
+                              placeholder="หมายเลขบัตรประชาชน"
+                              value={searchIdCard}
+                              onChange={handleIdCardChange}
+                              list="idCardList"
+                            />
+                            <datalist id="idCardList">
+                              {employeeList
+                                .filter((employee) => {
+                                  if (searchWorkPlace && employee.workplace !== searchWorkPlace) return false;
+                                  if (staffId && employee.employeeId !== staffId) return false;
+                                  return true;
+                                })
+                                .map((employee) => (
+                                  <option
+                                    key={employee.employeeId}
+                                    value={employee.idCard}
+                                  />
+                                ))}
                             </datalist>
                           </div>
                         </div>
@@ -4283,20 +4516,27 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                 <th>{rowData2.workplaceName}</th>
                 <th>{groupOptions[parseInt(rowData2.wGroup) -1 ] || ""}</th> 
                 <th>{rowData2.date}</th>
-                <th>
+                <th style={{ minWidth: "90px" }}>
                   {editMode[index] ? (
                     <div>
                       <select
                         className="form-control form-control-sm"
-                        value={editData[index]?.shift || rowData2.shift}
+                        value={editData[index]?.shift ?? rowData2.shift}
                         onChange={(e) => {
-                          handleEditFieldChange(index, 'shift', e.target.value);
-                          // Reset checkbox when changing shift
-                          if (e.target.value !== "cash_holiday") {
-                            handleEditFieldChange(index, 'isNightShiftCash', false);
-                          }
+                          const newShift = e.target.value;
+                          const currentEditData = editData[index] || {};
+                          
+                          setEditData({
+                            ...editData,
+                            [index]: {
+                              ...currentEditData,
+                              shift: newShift,
+                              isNightShiftCash: newShift === "cash_holiday" ? currentEditData.isNightShiftCash : false,
+                              isThreePercent: newShift === "cash_holiday" ? currentEditData.isThreePercent : false
+                            }
+                          });
                         }}
-                        style={{ width: "100px", fontSize: "12px" }}
+                        style={{ width: "85px", fontSize: "11px", padding: "2px 4px" }}
                       >
                         <option value="morning_shift">กะเช้า</option>
                         <option value="afternoon_shift">กะบ่าย</option>
@@ -4306,7 +4546,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                       </select>
                       
                       {/* Show checkbox when editing and shift is "เงินสด" */}
-                      {(editData[index]?.shift || rowData2.shift) === "cash_holiday" && (
+                      {(editData[index]?.shift ?? rowData2.shift) === "cash_holiday" && (
                         <div className="form-check mt-1">
                           <input
                             type="checkbox"
@@ -4338,8 +4578,8 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                       
                       {/* Show badge when shift is cash_holiday and isNightShiftCash is true */}
                       {rowData2.shift === "cash_holiday" && rowData2.isNightShiftCash && (
-                        <div>
-                          <span className="badge badge-info" style={{ fontSize: "10px" }}>
+                        <div style={{ marginTop: "0.25rem" }}>
+                          <span style={{ fontSize: "10px", backgroundColor: "#17a2b8", color: "white", padding: "0.25em 0.4em", borderRadius: "0.25rem", display: "inline-block", fontWeight: "700", lineHeight: "1", textAlign: "center", whiteSpace: "nowrap", verticalAlign: "baseline" }}>
                             กะดึก
                           </span>
                         </div>
@@ -4349,40 +4589,40 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                 </th>
                 
                 {/* OT Before Work */}
-                <th>
+                <th style={{ minWidth: "70px" }}>
                   {editMode[index] ? (
                     <input
                       type="text"
                       className="form-control form-control-sm"
                       value={editData[index]?.beforeStartOtTime || ''}
                       onChange={(e) => handleEditFieldChange(index, 'beforeStartOtTime', e.target.value)}
-                      style={{ width: "80px", fontSize: "12px" }}
+                      style={{ width: "65px", fontSize: "11px", padding: "2px 4px" }}
                     />
                   ) : (
                     rowData2.beforeStartOtTime
                   )}
                 </th>
-                <th>
+                <th style={{ minWidth: "70px" }}>
                   {editMode[index] ? (
                     <input
                       type="text"
                       className="form-control form-control-sm"
                       value={editData[index]?.beforeEndOtTime || ''}
                       onChange={(e) => handleEditFieldChange(index, 'beforeEndOtTime', e.target.value)}
-                      style={{ width: "80px", fontSize: "12px" }}
+                      style={{ width: "65px", fontSize: "11px", padding: "2px 4px" }}
                     />
                   ) : (
                     rowData2.beforeEndOtTime
                   )}
                 </th>
-                <th>
+                <th style={{ minWidth: "70px" }}>
                   {editMode[index] ? (
                     <input
                       type="text"
                       className="form-control form-control-sm"
                       value={editData[index]?.beforeTotalOtTime || ''}
                       onChange={(e) => handleEditFieldChange(index, 'beforeTotalOtTime', e.target.value)}
-                      style={{ width: "80px", fontSize: "12px" }}
+                      style={{ width: "65px", fontSize: "11px", padding: "2px 4px" }}
                     />
                   ) : (
                     rowData2.beforeTotalOtTime
@@ -4390,33 +4630,33 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                 </th>
 
                 {/* Work Time */}
-                <th>
+                <th style={{ minWidth: "70px" }}>
                   {editMode[index] ? (
                     <input
                       type="text"
                       className="form-control form-control-sm"
                       value={editData[index]?.startTime || ''}
                       onChange={(e) => handleEditFieldChange(index, 'startTime', e.target.value)}
-                      style={{ width: "80px", fontSize: "12px" }}
+                      style={{ width: "65px", fontSize: "11px", padding: "2px 4px" }}
                     />
                   ) : (
                     rowData2.startTime
                   )}
                 </th>
-                <th>
+                <th style={{ minWidth: "70px" }}>
                   {editMode[index] ? (
                     <input
                       type="text"
                       className="form-control form-control-sm"
                       value={editData[index]?.endTime || ''}
                       onChange={(e) => handleEditFieldChange(index, 'endTime', e.target.value)}
-                      style={{ width: "80px", fontSize: "12px" }}
+                      style={{ width: "65px", fontSize: "11px", padding: "2px 4px" }}
                     />
                   ) : (
                     rowData2.endTime
                   )}
                 </th>
-                <th>
+                <th style={{ minWidth: "90px" }}>
                   {editMode[index] ? (
                     <div>
                       <input
@@ -4424,7 +4664,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                         className="form-control form-control-sm"
                         value={editData[index]?.totalTime || ''}
                         onChange={(e) => handleEditFieldChange(index, 'totalTime', e.target.value)}
-                        style={{ width: "80px", fontSize: "12px" }}
+                        style={{ width: "65px", fontSize: "11px", padding: "2px 4px" }}
                       />
                       {editData[index]?.totalTime && parseFloat(editData[index]?.totalTime) < 8 && (
                         <div className="form-check mt-1">
@@ -4457,40 +4697,40 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                 </th>
                 
                 {/* OT After Work */}
-                <th>
+                <th style={{ minWidth: "70px" }}>
                   {editMode[index] ? (
                     <input
                       type="text"
                       className="form-control form-control-sm"
                       value={editData[index]?.startOtTime || ''}
                       onChange={(e) => handleEditFieldChange(index, 'startOtTime', e.target.value)}
-                      style={{ width: "80px", fontSize: "12px" }}
+                      style={{ width: "65px", fontSize: "11px", padding: "2px 4px" }}
                     />
                   ) : (
                     rowData2.startOtTime
                   )}
                 </th>
-                <th>
+                <th style={{ minWidth: "70px" }}>
                   {editMode[index] ? (
                     <input
                       type="text"
                       className="form-control form-control-sm"
                       value={editData[index]?.endOtTime || ''}
                       onChange={(e) => handleEditFieldChange(index, 'endOtTime', e.target.value)}
-                      style={{ width: "80px", fontSize: "12px" }}
+                      style={{ width: "65px", fontSize: "11px", padding: "2px 4px" }}
                     />
                   ) : (
                     rowData2.endOtTime
                   )}
                 </th>
-                <th>
+                <th style={{ minWidth: "70px" }}>
                   {editMode[index] ? (
                     <input
                       type="text"
                       className="form-control form-control-sm"
                       value={editData[index]?.totalOtTime || ''}
                       onChange={(e) => handleEditFieldChange(index, 'totalOtTime', e.target.value)}
-                      style={{ width: "80px", fontSize: "12px" }}
+                      style={{ width: "65px", fontSize: "11px", padding: "2px 4px" }}
                     />
                   ) : (
                     rowData2.totalOtTime
@@ -4498,7 +4738,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                 </th>
 
                 {/* Salary */}
-                <th>
+                <th style={{ minWidth: "80px" }}>
                   {editMode[index] ? (
                     <div className="d-flex flex-column" style={{ gap: "2px" }}>
                       {((editData[index]?.shift || rowData2.shift) === "specialt_shift" || (editData[index]?.shift || rowData2.shift) === "cash_holiday") && (
@@ -4513,7 +4753,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                             onChange={(e) => handleEditFieldChange(index, 
                               (editData[index]?.shift || rowData2.shift) === "specialt_shift" ? 'specialtSalary' : 'cashOfHoliday', 
                               e.target.value)}
-                            style={{ width: "80px", fontSize: "11px" }}
+                            style={{ width: "70px", fontSize: "10px", padding: "2px 4px" }}
                           />
                           <input
                             type="number"
@@ -4525,7 +4765,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                             onChange={(e) => handleEditFieldChange(index, 
                               (editData[index]?.shift || rowData2.shift) === "specialt_shift" ? 'specialtSalaryOT' : 'cashOfHolidayOt', 
                               e.target.value)}
-                            style={{ width: "80px", fontSize: "11px" }}
+                            style={{ width: "70px", fontSize: "10px", padding: "2px 4px" }}
                           />
                         </>
                       )}
@@ -4542,7 +4782,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                 </th>
 
                 {/* Remarks/Notes */}
-                <th>
+                <th style={{ minWidth: "100px" }}>
                   {editMode[index] && (editData[index]?.shift || rowData2.shift) === "cash_holiday" ? (
                     <div>
                       <input
@@ -4551,7 +4791,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                         placeholder="หมายเหตุ"
                         value={editData[index]?.messageSalary || ''}
                         onChange={(e) => handleEditFieldChange(index, 'messageSalary', e.target.value)}
-                        style={{ width: "120px", fontSize: "11px" }}
+                        style={{ width: "95px", fontSize: "10px", padding: "2px 4px" }}
                       />
                       <div className="form-check mt-1">
                         <input
@@ -4569,10 +4809,12 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                     </div>
                   ) : (
                     <div>
-                      {rowData2.shift === "cash_holiday" && rowData2.messageSalary ? rowData2.messageSalary : ""}
+                      {rowData2.shift === "cash_holiday" && rowData2.messageSalary && (
+                        <div>{rowData2.messageSalary}</div>
+                      )}
                       {rowData2.shift === "cash_holiday" && rowData2.isThreePercent && (
-                        <div className="mt-1">
-                          <span className="badge badge-warning" style={{ fontSize: "10px" }}>
+                        <div style={{ marginTop: "0.25rem" }}>
+                          <span style={{ fontSize: "10px", backgroundColor: "#ffc107", color: "#212529", padding: "0.25em 0.4em", borderRadius: "0.25rem", display: "inline-block", fontWeight: "700", lineHeight: "1", textAlign: "center", whiteSpace: "nowrap", verticalAlign: "baseline" }}>
                             3%
                           </span>
                         </div>
@@ -4588,7 +4830,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                       <button 
                         type="button"
                         className="btn btn-success btn-sm"
-                        style={{ padding: "0.25rem 0.5rem" }}
+                        style={{ width: "2rem", padding: "0.25rem 0.25rem", fontSize: "12px" }}
                         onClick={() => handleSaveEdit(index)}
                         title="บันทึก"
                       >
@@ -4597,7 +4839,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                       <button 
                         type="button"
                         className="btn btn-secondary btn-sm"
-                        style={{ padding: "0.25rem 0.5rem" }}
+                        style={{ width: "2rem", padding: "0.25rem 0.25rem", fontSize: "12px" }}
                         onClick={() => handleCancelEdit(index)}
                         title="ยกเลิก"
                       >
@@ -4609,7 +4851,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                       <button 
                         type="button"
                         className="btn btn-warning btn-sm"
-                        style={{ width: "2.5rem", padding: "0.25rem 0.5rem" }}
+                        style={{ width: "2rem", padding: "0.25rem 0.25rem", fontSize: "12px" }}
                         onClick={() => handleStartEdit(index)}
                         title="แก้ไข"
                       >
@@ -4618,7 +4860,7 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
                       <button 
                         type="button"
                         className="btn btn-danger btn-sm"
-                        style={{ width: "2.5rem", padding: "0.25rem 0.5rem" }}
+                        style={{ width: "2rem", padding: "0.25rem 0.25rem", fontSize: "12px" }}
                         onClick={() => handleDeleteRow(rowData2.tmpIndex)}
                         title="ลบ"
                       >

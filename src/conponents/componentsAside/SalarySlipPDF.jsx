@@ -331,6 +331,10 @@ const [isGeneratingExcel, setIsGeneratingExcel] = useState(false);
   const [staffName, setStaffName] = useState(""); //รหัสหน่วยงาน
   const [staffLastname, setStaffLastname] = useState(""); //รหัสหน่วยงาน
   const [staffFullName, setStaffFullName] = useState(""); //รหัสหน่วยงาน
+  const [searchWorkPlace, setSearchWorkPlace] = useState("");
+  const [searchPhoneNumber, setSearchPhoneNumber] = useState("");
+  const [searchIdCard, setSearchIdCard] = useState("");
+  const [allEmployees, setAllEmployees] = useState([]);
 
   const [searchEmployeeId, setSearchEmployeeId] = useState("");
   const [searchEmployeeName, setSearchEmployeeName] = useState("");
@@ -341,6 +345,18 @@ const [isGeneratingExcel, setIsGeneratingExcel] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(false); // เพิ่ม loading state สำหรับข้อมูล
   const [basicSettings, setBasicSettings] = useState([]);
   const [paymentDate, setPaymentDate] = useState("");
+
+  useEffect(() => {
+    // Fetch all employees for frontend filtering
+    fetch(endpoint + "/employee/list")
+      .then((response) => response.json())
+      .then((data) => {
+        setAllEmployees(data);
+      })
+      .catch((error) => {
+        console.error("Error fetching employees:", error);
+      });
+  }, []);
 
   const [month, setMonth] = useState("01");
   const currentYear = new Date().getFullYear(); // 2024
@@ -1520,12 +1536,44 @@ const handleSearchData = async () => {
           const responseData = mainResponse.data.result; // แก้ไข: เข้าถึง result array
           console.log("🔄 Processing Option 2 (Employee filter)");
 
+          // Check if using new search fields for frontend filtering
+          const usingNewFields = searchWorkPlace || searchPhoneNumber || searchIdCard || staffName || staffLastname;
+
+          let targetEmployeeId = searchEmployeeId;
+
+          // Frontend filtering if new fields are used
+          if (usingNewFields && allEmployees.length > 0) {
+            console.log("🔍 Using frontend filtering with new search fields");
+            const filtered = allEmployees.filter((emp) => {
+              let match = true;
+              if (staffId && emp.employeeId !== staffId) match = false;
+              if (searchWorkPlace && !emp.workplace?.toLowerCase().includes(searchWorkPlace.toLowerCase())) match = false;
+              if (staffName && !emp.name?.toLowerCase().includes(staffName.toLowerCase())) match = false;
+              if (staffLastname && !emp.lastName?.toLowerCase().includes(staffLastname.toLowerCase())) match = false;
+              if (searchPhoneNumber && !emp.phoneNumber?.includes(searchPhoneNumber)) match = false;
+              if (searchIdCard && !emp.idCard?.includes(searchIdCard)) match = false;
+              return match;
+            });
+
+            console.log("✅ Frontend filter results:", filtered.length, "employees");
+            if (filtered.length > 0) {
+              targetEmployeeId = filtered[0].employeeId;
+              setSearchEmployeeId(targetEmployeeId);
+              setStaffId(targetEmployeeId);
+              console.log("🎯 Selected employee ID:", targetEmployeeId);
+            } else {
+              console.log("⚠️ No matching employee found");
+              setResponseDataAll([]);
+              return;
+            }
+          }
+
           // ถ้าเป็น option2 และมี employeeId ให้เรียก conclude API สำหรับพนักงานคนนั้น
-          if (searchEmployeeId) {
+          if (targetEmployeeId) {
             console.log("📡 Step 3: Calling conclude API for specific employee");
             try {
               const concludeData = {
-                employeeId: searchEmployeeId,
+                employeeId: targetEmployeeId,
                 month: month.toString().padStart(2, '0'),
                 year: year.toString()
               };
@@ -1541,15 +1589,15 @@ const handleSearchData = async () => {
                 }
               );
 
-              console.log(`✅ Conclude API success for employee ${searchEmployeeId}`);
+              console.log(`✅ Conclude API success for employee ${targetEmployeeId}`);
             } catch (concludeError) {
-              console.warn(`⚠️ Conclude API error for employee ${searchEmployeeId}:`, concludeError);
+              console.warn(`⚠️ Conclude API error for employee ${targetEmployeeId}:`, concludeError);
             }
           }
 
-          // Filter data based on searchEmployeeId if provided
-          const filteredData = searchEmployeeId
-            ? responseData.filter((item) => item.employeeId === searchEmployeeId)
+          // Filter data based on targetEmployeeId if provided
+          const filteredData = targetEmployeeId
+            ? responseData.filter((item) => item.employeeId === targetEmployeeId)
             : responseData;
 
           console.log("👤 After employee filter:", filteredData.length, "records");
@@ -7577,8 +7625,9 @@ const generateExcel = async () => {
                   {selectedOption === "option2" && (
                     <div>
                       <h2>แบบพนักงาน</h2>
-                      <div class="row">
-                        <div class="col-md-3">
+                      {/* Row 1: รหัสพนักงาน | ชื่อหน่วยงาน */}
+                      <div class="row mb-3">
+                        <div class="col-md-6">
                           <label role="searchEmployeeId">รหัสพนักงาน</label>
                           <input
                             type="text"
@@ -7588,7 +7637,6 @@ const generateExcel = async () => {
                             value={staffId}
                             onChange={handleStaffIdChange2}
                             onInput={(e) => {
-                              // Remove any non-digit characters
                               e.target.value = e.target.value.replace(/\D/g, "");
                             }}
                             list="staffIdList"
@@ -7602,33 +7650,155 @@ const generateExcel = async () => {
                             ))}
                           </datalist>
                         </div>
-                        <div class="col-md-3">
-                          <label role="searchname">ชื่อพนักงาน</label>
+                        <div class="col-md-6">
+                          <label role="searchWorkPlace">ชื่อหน่วยงาน</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            id="searchWorkPlace"
+                            placeholder="ชื่อหน่วยงาน"
+                            value={searchWorkPlace}
+                            onChange={(e) => setSearchWorkPlace(e.target.value)}
+                            list="workPlaceListEmp"
+                          />
+                          <datalist id="workPlaceListEmp">
+                            {[...new Set(employeeList.map(emp => emp.workplace))].map((workplace, index) => (
+                              <option key={index} value={workplace} />
+                            ))}
+                          </datalist>
+                        </div>
+                      </div>
+
+                      {/* Row 2: ชื่อ | นามสกุล */}
+                      <div class="row mb-3">
+                        <div class="col-md-6">
+                          <label role="staffName">ชื่อ</label>
                           <input
                             type="text"
                             className="form-control"
                             id="staffName"
-                            placeholder="ชื่อพนักงาน"
-                            value={staffFullName}
-                            onChange={handleStaffNameChange2}
-                            list="staffNameList"
+                            placeholder="ชื่อ"
+                            value={staffName}
+                            onChange={(e) => setStaffName(e.target.value)}
+                            list="firstNameListEmp"
                           />
-                          <datalist id="staffNameList">
+                          <datalist id="firstNameListEmp">
+                            {[...new Set(employeeList.map(emp => emp.name))].map((name, index) => (
+                              <option key={index} value={name} />
+                            ))}
+                          </datalist>
+                        </div>
+                        <div class="col-md-6">
+                          <label role="staffLastname">นามสกุล</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            id="staffLastname"
+                            placeholder="นามสกุล"
+                            value={staffLastname}
+                            onChange={(e) => setStaffLastname(e.target.value)}
+                            list="lastNameListEmp"
+                          />
+                          <datalist id="lastNameListEmp">
+                            {[...new Set(employeeList.map(emp => emp.lastName))].map((lastName, index) => (
+                              <option key={index} value={lastName} />
+                            ))}
+                          </datalist>
+                        </div>
+                      </div>
+
+                      {/* Row 3: เบอร์โทรศัพท์ | หมายเลขบัตรประชาชน */}
+                      <div class="row mb-3">
+                        <div class="col-md-6">
+                          <label role="searchPhoneNumber">เบอร์โทรศัพท์</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            id="searchPhoneNumber"
+                            placeholder="เบอร์โทรศัพท์"
+                            value={searchPhoneNumber}
+                            onChange={(e) => setSearchPhoneNumber(e.target.value)}
+                            list="phoneNumberListEmp"
+                          />
+                          <datalist id="phoneNumberListEmp">
                             {employeeList.map((employee) => (
                               <option
                                 key={employee.employeeId}
-                                value={employee.name + " " + employee.lastName}
+                                value={employee.phoneNumber}
                               />
                             ))}
                           </datalist>
                         </div>
-                        <div class="col-md-3 d-flex align-items-end">
+                        <div class="col-md-6">
+                          <label role="searchIdCard">หมายเลขบัตรประชาชน</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            id="searchIdCard"
+                            placeholder="หมายเลขบัตรประชาชน"
+                            value={searchIdCard}
+                            onChange={(e) => setSearchIdCard(e.target.value)}
+                            list="idCardListEmp"
+                          />
+                          <datalist id="idCardListEmp">
+                            {employeeList.map((employee) => (
+                              <option
+                                key={employee.employeeId}
+                                value={employee.idCard}
+                              />
+                            ))}
+                          </datalist>
+                        </div>
+                      </div>
+
+                      {/* Row 4: เดือน | ปี */}
+                      <div class="row mb-3">
+                        <div class="col-md-6">
+                          <label role="month">เดือน</label>
+                          <select
+                            className="form-control"
+                            value={month}
+                            onChange={(e) => setMonth(e.target.value)}
+                          >
+                            <option value="01">มกราคม</option>
+                            <option value="02">กุมภาพันธ์</option>
+                            <option value="03">มีนาคม</option>
+                            <option value="04">เมษายน</option>
+                            <option value="05">พฤษภาคม</option>
+                            <option value="06">มิถุนายน</option>
+                            <option value="07">กรกฎาคม</option>
+                            <option value="08">สิงหาคม</option>
+                            <option value="09">กันยายน</option>
+                            <option value="10">ตุลาคม</option>
+                            <option value="11">พฤศจิกายน</option>
+                            <option value="12">ธันวาคม</option>
+                          </select>
+                        </div>
+                        <div class="col-md-6">
+                          <label role="year">ปี</label>
+                          <select
+                            className="form-control"
+                            value={year}
+                            onChange={(e) => setYear(e.target.value)}
+                          >
+                            {years.map((y) => (
+                              <option key={y} value={y}>
+                                {y + 543}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Search Button */}
+                      <div class="row mt-4">
+                        <div class="col-md-12 d-flex justify-content-center">
                           <button
                             type="button"
                             className={`btn btn-primary ${isLoadingData ? 'btn-loading' : ''}`}
                             onClick={handleSearchData}
-                            disabled={isLoadingData || (!staffId.trim() && !staffFullName.trim())}
-                            style={{ height: '38px' }}
+                            disabled={isLoadingData}
+                            style={{ minWidth: '150px' }}
                           >
                             {isLoadingData ? (
                               <>

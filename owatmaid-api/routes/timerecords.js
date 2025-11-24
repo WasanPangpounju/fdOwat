@@ -724,7 +724,8 @@ const setToWorkplaceTimerecords = async (employeeId, employeeName, employee_reco
     for (const record of employee_record) {
       const { workplaceId, workplaceName, wGroup, date, shift, startTime, endTime, totalTime, 
         beforeStartOtTime, beforeEndOtTime, beforeTotalOtTime, 
-        startOtTime, endOtTime, totalOtTime, cashSalary, specialtSalary, specialtSalaryOT, messageSalary } = record;
+        startOtTime, endOtTime, totalOtTime, cashSalary, specialtSalary, specialtSalaryOT, messageSalary,
+        payFullDay, isNightShiftCash, isThreePercent } = record;
 
       let numericDate = Number(date);
       let numericMonth = Number(month);
@@ -770,7 +771,10 @@ const setToWorkplaceTimerecords = async (employeeId, employeeName, employee_reco
             cashSalary,
             specialtSalary,
             specialtSalaryOT,
-            messageSalary
+            messageSalary,
+            payFullDay,
+            isNightShiftCash,
+            isThreePercent
           });
         }
 
@@ -825,7 +829,10 @@ console.log(`✅ Completely replaced workplace record for workplaceId: ${workpla
             cashSalary,
             specialtSalary,
             specialtSalaryOT,
-            messageSalary
+            messageSalary,
+            payFullDay,
+            isNightShiftCash,
+            isThreePercent
           }]
         });
 

@@ -208,40 +208,28 @@ const formatThaiDate = (date) => {
 };
 
 // Helper function to format date as dd/mm/yyyy in Buddhist year
-const formatShortThaiDate = (dateString, month, year) => {
+const formatShortThaiDate = (dateString) => {
   if (!dateString || dateString === 'null' || dateString === 'undefined') {
     return '-';
   }
   
-  // ถ้า dateString มาในรูปแบบ "21/07/2568" แล้ว ก็ส่งกลับไปตามเดิม
+  // ถ้า dateString มาในรูปแบบ "dd/mm/yyyy" แล้ว ก็ส่งกลับไปตามเดิม
   if (typeof dateString === 'string' && dateString.includes('/')) {
-    // ตรวจสอบว่าปีถูกต้องหรือไม่ ถ้าเป็น 3xxx ให้แก้ไข
+    // ตรวจสอบว่าปีถูกต้องหรือไม่
     const parts = dateString.split('/');
     if (parts.length === 3) {
       const day = parts[0];
       const monthPart = parts[1];
       let yearPart = parseInt(parts[2]);
       
-      // แก้ไขปีที่ผิดรูปแบบ
-      if (yearPart > 3000) {
-        yearPart = yearPart - 543; // แปลงกลับเป็น ค.ศ. แล้วบวก 543 ใหม่
-        yearPart = yearPart + 543;
-      } else if (yearPart < 2500) {
-        yearPart = yearPart + 543; // ถ้าเป็น ค.ศ. ให้แปลงเป็น พ.ศ.
+      // แก้ไขปีถ้าจำเป็น
+      if (yearPart < 2500 && yearPart > 1900) {
+        yearPart = yearPart + 543; // แปลง ค.ศ. เป็น พ.ศ.
       }
       
       return `${day}/${monthPart}/${yearPart}`;
     }
     return dateString;
-  }
-  
-  // If dateString is just a day number (like "21", "27")
-  if (typeof dateString === 'string' && dateString.length <= 2 && !isNaN(dateString)) {
-    const day = parseInt(dateString);
-    const monthNum = month ? parseInt(month) : new Date().getMonth() + 1;
-    const yearNum = year ? parseInt(year) + 543 : new Date().getFullYear() + 543;
-    
-    return `${day.toString().padStart(2, '0')}/${monthNum.toString().padStart(2, '0')}/${yearNum}`;
   }
   
   // Try to parse as full date
@@ -286,10 +274,6 @@ const AllWorkplacesSummaryPDFReport = ({ searchResults, startDate, endDate }) =>
   const currentDate = new Date();
   const startDateObj = new Date(startDate);
   const endDateObj = new Date(endDate);
-  
-  // Extract month and year from searchResults or current date
-  const currentMonth = searchResults?.month || (currentDate.getMonth() + 1).toString().padStart(2, '0');
-  const currentYear = searchResults?.year || currentDate.getFullYear().toString();
 
   // Calculate grand total for all workplaces
   const grandTotal = searchResults?.workplaces?.reduce((total, workplace) => {
@@ -547,7 +531,7 @@ const AllWorkplacesSummaryPDFReport = ({ searchResults, startDate, endDate }) =>
                     </Text>
                   </View>
                   <View style={{ ...styles.tableCol, width: '14%' }}>
-                    <Text style={styles.tableCell}>{formatShortThaiDate(row.day.date, currentMonth, currentYear)}</Text>
+                    <Text style={styles.tableCell}>{formatShortThaiDate(row.day.date)}</Text>
                   </View>
                   <View style={{ ...styles.tableCol, width: '30%' }}>
                     <Text style={{ ...styles.tableCellLeft, fontSize: 8}}>
