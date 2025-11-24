@@ -16,11 +16,30 @@ const axios = require('axios');
 // Cache สำหรับเก็บ taxableIds เพื่อลดการเรียก API ซ้ำๆ
 let cachedTaxableIds = null;
 let cacheTimestamp = null;
-const CACHE_DURATION = 5 * 60 * 1000; // 5 นาที
+const CACHE_DURATION = 30 * 100; // 30 วินาที (ลดจาก 5 นาที)
 
 // Cache สำหรับเก็บ DedutIds
 let cachedDedutIds = null;
 let cacheDedutTimestamp = null;
+
+// ฟังก์ชันสำหรับ clear cache (เรียกใช้เมื่อต้องการอัพเดทข้อมูลทันที)
+function clearTaxableIdsCache() {
+  cachedTaxableIds = null;
+  cacheTimestamp = null;
+  console.log('🔄 ล้าง cache taxableIds แล้ว');
+}
+
+function clearDedutIdsCache() {
+  cachedDedutIds = null;
+  cacheDedutTimestamp = null;
+  console.log('🔄 ล้าง cache DedutIds แล้ว');
+}
+
+function clearAllCache() {
+  clearTaxableIdsCache();
+  clearDedutIdsCache();
+  console.log('🔄 ล้าง cache ทั้งหมดแล้ว');
+}
 
 // ฟังก์ชันดึงข้อมูล taxableIds จาก API
 async function fetchTaxableIds() {
