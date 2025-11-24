@@ -1,0 +1,204 @@
+
+      worksheet.addRow([]);
+      worksheet.addRow([]);
+      worksheet.addRow([]);
+      
+      // สร้างตารางข้อมูลเพิ่มเติมแบบสวยงาม (กว้าง 7 คอลัมน์)
+      // ดึงข้อมูลจาก API
+      let managementData = 'พนง 2 คน'; // ค่าเริ่มต้น
+      let workTimeData = 'เวลาดด'; // ค่าเริ่มต้น
+      let workDaysData = 'จันทร์ - เสาร์'; // ค่าเริ่มต้น
+      let holidayData = 'หยุดอาทิตย์และวันพักผ่อน'; // ค่าเริ่มต้น
+      let oldSalaryData = 'ค่าแรง 331 บาท โอทีวันละ 1 ชม X 62 = 62.0625 บาท'; // ค่าเริ่มต้น
+      let newSalaryData = 'ค่าแรง 372 บาท/วัน โอทีวันละ 1.5 ชม./วัน=104.625 บาท'; // ค่าเริ่มต้น
+      let welfareData = 'พักร้อน 6 วัน/ปี ต้องทำงานครบ 1 ปีก่อน จ่ายปรมาแล้วตัดกษณี'; // ค่าเริ่มต้น
+      let importantNote1 = 'ข้องของการค้ำประวัดค่าจ้าง/ขอกิจการ/โอที.5ก่าง 21ก่า 3เก่าอยู่การปรับอบ้นการบันทึกของ่ายได้'; // ค่าเริ่มต้น
+      let importantNote2 = 'เพื่อให้เป็นไปตามข้อตกลงของทหยวยสหกันนุร และเพื่อให้การจ่ายค่าจ้างตรงได้เรดตอรงข้างใดระดบอยลาง'; // ค่าเริ่มต้น
+      
+      // เรียก API เพื่อดึงข้อมูลหน่วยงาน
+      try {
+        console.log('🌐 Fetching workplace information from API...');
+        console.log('📍 Workplace ID:', searchWorkplaceId);
+        
+        if (!searchWorkplaceId) {
+          console.warn('⚠️ No workplace ID provided, using default values');
+        } else {
+          const response = await fetch(`${endpoint}/workplace/${searchWorkplaceId}`);
+          if (response.ok) {
+            const workplaceInfo = await response.json();
+            console.log('✅ API Response:', workplaceInfo);
+            
+            // อัพเดตข้อมูลจาก API (ปรับตามโครงสร้างข้อมูลที่ได้จาก API)
+            if (workplaceInfo) {
+              // ข้อมูลการบริหารจัดการจาก workTimeDayPerson
+              if (workplaceInfo.workTimeDayPerson && workplaceInfo.workTimeDayPerson.length > 0) {
+                const personData = workplaceInfo.workTimeDayPerson[0]; // เอาข้อมูลตัวแรก
+                
+                if (personData.allTimesPerson && personData.allTimesPerson.length > 0) {
+                  // รวมจำนวนคนทั้งหมด
+                  const totalPerson = personData.allTimesPerson.reduce((total, person) => {
+                    return total + parseInt(person.countPerson || 0);
+                  }, 0);
+                  
+                  managementData = `พนง ${totalPerson} คน`;
+                  
+                  // สร้างรายละเอียดตำแหน่งงาน
+                  const positionDetails = personData.allTimesPerson.map(person => 
+                    `${person.positionWork} ${person.countPerson} คน`
+                  ).join(', ');
+                  
+                  // เพิ่มรายละเอียดตำแหน่งในข้อมูลการบริหาร
+                  managementData += ` (${positionDetails})`;
+                  
+                  console.log('👥 Personnel Data:', personData.allTimesPerson);
+                  console.log('📊 Total Personnel:', totalPerson);
+                }
+              } else {
+                // fallback ถ้าไม่มีข้อมูล workTimeDayPerson
+                managementData = workplaceInfo.countEmployee ? `พนง ${workplaceInfo.countEmployee} คน` : managementData;
+              }
+              
+              // ข้อมูลเวลาทำงานและวันทำงาน
+              if (workplaceInfo.workTimeDay && workplaceInfo.workTimeDay.length > 0) {
+                // หาข้อมูลวันที่มีการทำงาน (workOrStop = "work")
+                const workDays = workplaceInfo.workTimeDay.filter(day => day.workOrStop === "work");
+                
+                if (workDays.length > 0) {
+                  // เอาข้อมูลวันทำงานตัวแรก
+                  const workTime = workDays[0];
+                  
+                  // วันทำงาน: วันจันทร์ - เสาร์
+                  workDaysData = `วัน${workTime.startDay} - ${workTime.endDay}`;
+                  
+                  // เวลาทำงาน: startTime-endTime
+                  if (workTime.allTimes && workTime.allTimes.length > 0) {
+                    const timeSlot = workTime.allTimes[0]; // เอาข้อมูลเวลาตัวแรก
+                    
+                    if (timeSlot.startTime && timeSlot.endTime) {
+                      workTimeData = `${workDaysData} เวลา ${timeSlot.startTime}-${timeSlot.endTime}`;
+                      
+                      // เพิ่มข้อมูล OT ถ้ามี
+                      if (timeSlot.startTimeOT && timeSlot.endTimeOT) {
+                        workTimeData += ` (OT: ${timeSlot.startTimeOT}-${timeSlot.endTimeOT})`;
+                      }
+                    } else {
+                      workTimeData = workDaysData; // ถ้าไม่มีเวลา ใช้แค่วันทำงาน
+                    }
+                  } else {
+                    workTimeData = workDaysData; // ถ้าไม่มี allTimes ใช้แค่วันทำงาน
+                  }
+                  
+                  console.log('📅 Work Days Found:', workDays.length);
+                  console.log('🕐 Work Time Data:', workTimeData);
+                } else {
+                  console.warn('⚠️ No work days found (workOrStop = "work")');
+                }
+              }
+              
+              // ข้อมูลอื่นๆ
+              holidayData = workplaceInfo.holiday || workplaceInfo.holidays || holidayData;
+              oldSalaryData = workplaceInfo.oldSalary || workplaceInfo.old_salary || oldSalaryData;
+              newSalaryData = workplaceInfo.newSalary || workplaceInfo.new_salary || newSalaryData;
+              welfareData = workplaceInfo.welfare || workplaceInfo.benefits || welfareData;
+              importantNote1 = workplaceInfo.importantNote1 || workplaceInfo.important_note_1 || importantNote1;
+              importantNote2 = workplaceInfo.importantNote2 || workplaceInfo.important_note_2 || importantNote2;
+              
+              console.log('📋 Processed data:');
+              console.log('- Management:', managementData);
+              console.log('- Work Days:', workDaysData);
+              console.log('- Work Time:', workTimeData);
+            }
+          } else {
+            console.warn('⚠️ API call failed, using default values');
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error fetching workplace info:', error);
+        console.log('📋 Using default values for workplace information');
+      }
+      
+      const infoTable = [
+        ['รายการ', '', 'รายละเอียด', '', '', '', ''],
+        ['การบริหารจัดการ', '', managementData, '', '', '', ''],
+        ['เวลาปฏิบัติงาน', '', workTimeData, '', '', '', ''],
+        ['วันทำงาน', '', workDaysData, '', '', '', ''],
+        ['วันหยุด', '', holidayData, '', '', '', ''],
+        ['ค่าแรง 1/1/63', '', oldSalaryData, '', '', '', ''],
+        ['ค่าแรงใหม่เริ่ม 1/1/68', '', newSalaryData, '', '', '', ''],
+        ['สวัสดิการ', '', welfareData, '', '', '', ''],
+        ['หมายเหตุสำคัญ', '', importantNote1, '', '', '', ''],
+        ['', '', importantNote2, '', '', '', '']
+      ];
+      
+      // เพิ่มแถวตารางข้อมูลเพิ่มเติม
+      const additionalTableRows = [];
+      infoTable.forEach((rowData, index) => {
+        const newRow = worksheet.addRow(rowData);
+        additionalTableRows.push(newRow);
+        
+        // จัดสไตล์สำหรับแต่ละแถว (7 คอลัมน์)
+        for (let cellIndex = 1; cellIndex <= 7; cellIndex++) {
+          const cell = newRow.getCell(cellIndex);
+          
+          if (index === 0) {
+            // Header row - สีฟ้า ตัวหนา
+            cell.font = { bold: true, size: 12, name: 'Angsana New', color: { argb: 'FFFFFFFF' } };
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } };
+          } else if (index >= 8) {
+            // หมายเหตุสำคัญ - สีแดง ตัวหนา
+            cell.font = { bold: true, size: 11, name: 'Angsana New', color: { argb: 'FFFF0000' } };
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFE6E6' } };
+          } else {
+            // แถวปกติ - สีเทาอ่อนสลับ
+            const bgColor = index % 2 === 1 ? 'FFF2F2F2' : 'FFFFFFFF';
+            if (cellIndex <= 2) {
+              // คอลัมน์รายการ (A-B) - ตัวหนา
+              cell.font = { bold: true, size: 11, name: 'Angsana New' };
+            } else {
+              // คอลัมน์รายละเอียด (C-G) - ตัวปกติ
+              cell.font = { size: 11, name: 'Angsana New' };
+            }
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgColor } };
+          }
+          
+          // จัด alignment
+          cell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
+          
+          // เพิ่ม border
+          cell.border = {
+            top: { style: 'thin' }, bottom: { style: 'thin' },
+            left: { style: 'thin' }, right: { style: 'thin' }
+          };
+        }
+        
+        // Merge cells สำหรับแต่ละแถว
+        try {
+          // Merge รายการ (คอลัมน์ A-B)
+          const rowNum = newRow.number;
+          worksheet.mergeCells(`A${rowNum}:B${rowNum}`);
+          
+          // Merge รายละเอียด (คอลัมน์ C-G)
+          worksheet.mergeCells(`C${rowNum}:P${rowNum}`);
+        } catch (mergeError) {
+          console.warn('Warning: Could not merge cells for row', newRow.number, mergeError.message);
+        }
+      });
+      
+      // ปรับความกว้างคอลัมน์สำหรับตารางข้อมูลเพิ่มเติม (7 คอลัมน์)
+      worksheet.getColumn(1).width = Math.max(worksheet.getColumn(1).width || 0, 15); // รายการ A
+      worksheet.getColumn(2).width = Math.max(worksheet.getColumn(2).width || 0, 15); // รายการ B
+      worksheet.getColumn(3).width = Math.max(worksheet.getColumn(3).width || 0, 20); // รายละเอียด C
+      worksheet.getColumn(4).width = Math.max(worksheet.getColumn(4).width || 0, 20); // รายละเอียด D
+      worksheet.getColumn(5).width = Math.max(worksheet.getColumn(5).width || 0, 20); // รายละเอียด E
+      worksheet.getColumn(6).width = Math.max(worksheet.getColumn(6).width || 0, 20); // รายละเอียด F
+      worksheet.getColumn(7).width = Math.max(worksheet.getColumn(7).width || 0, 20); // รายละเอียด G
+      worksheet.getColumn(8).width = Math.max(worksheet.getColumn(8).width || 0, 20); // รายละเอียด H
+      worksheet.getColumn(9).width = Math.max(worksheet.getColumn(9).width || 0, 20); // รายละเอียด I
+      worksheet.getColumn(10).width = Math.max(worksheet.getColumn(10).width || 0, 20); // รายละเอียด J
+      worksheet.getColumn(11).width = Math.max(worksheet.getColumn(11).width || 0, 20); // รายละเอียด K
+      worksheet.getColumn(12).width = Math.max(worksheet.getColumn(12).width || 0, 20); // รายละเอียด L
+      worksheet.getColumn(13).width = Math.max(worksheet.getColumn(13).width || 0, 20); // รายละเอียด M
+      worksheet.getColumn(14).width = Math.max(worksheet.getColumn(14).width || 0, 20); // รายละเอียด N
+      worksheet.getColumn(15).width = Math.max(worksheet.getColumn(15).width || 0, 20); // รายละเอียด O
+      worksheet.getColumn(16).width = Math.max(worksheet.getColumn(16).width || 0, 20); // รายละเอียด P
+     
