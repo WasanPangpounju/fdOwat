@@ -8976,91 +8976,105 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                     >
 
                               <thead>
-                                {/* ---------------- แถวที่ 1 ---------------- */}
-                                <tr >
-                                  <th rowSpan="5" className="text-center   ">ลำดับ</th>
-                                  <th rowSpan="4" colSpan="1" className="text-center">ชื่อ - สกุล</th>
-                                  {dayNumbers.map((day, idx) => (
-                                      <th 
-                                        key={idx} 
-                                        rowSpan={4} 
-                                        className="text-center" 
-                                        style={getDateStyle(day)}
-                                      >
-                                        {day}
-                                      </th>
-                                    ))}
-                                  <th rowSpan="4" className="vertical-text " style={{backgroundColor:'#fff7c2'}}> รวมวันทำงาน</th>
+                              {/* ---------------- แถวที่ 1 ---------------- */}
+                              <tr>
+                                <th rowSpan="5" className="text-center" style={{width: "50px",minWidth: "50px",maxWidth: "50px"}}>ลำดับ</th>
+                                <th rowSpan="4" colSpan="1" className="text-center">ชื่อ - สกุล</th>
+                                {dayNumbers.map((day, idx) => (
+                                  <th 
+                                    key={idx} 
+                                    rowSpan={4} 
+                                    className="text-center" 
+                                    style={getDateStyle(day)}
+                                  >
+                                    {day}
+                                  </th>
+                                ))}
+                                <th rowSpan="4" className="vertical-text" style={{backgroundColor:'#fff7c2',width: "15px",minWidth: "10px",maxWidth: "20px"}}>รวมวันทำงาน</th>
 
-                                  {/* ค่าล่วงเวลา → 5 คอลัมน์ */}
-                        
-                                  <th style={{backgroundColor:'#fff7c2'}} colSpan="5" className="text-center  align-middle">ค่าล่วงเวลา</th>
-                                  <th  colSpan={mergeWorkplaceAddsalary(workplaceAddsalary).length} className="text-center p-2">สวัสดิการ</th>
+                                {/* ค่าล่วงเวลา → 5 คอลัมน์ */}
+                                <th style={{backgroundColor:'#fff7c2'}} colSpan="5" className="text-center align-middle">ค่าล่วงเวลา</th>
+                                <th colSpan={mergeWorkplaceAddsalary(workplaceAddsalary).length} className="text-center p-2">สวัสดิการ</th>
 
-                                  <th rowSpan={4}  className="vertical-text ">ทำงานวันหยุด(จ่ายสด)</th>
-                                  <th rowSpan={4}  className="vertical-text ">หักประกันสังคม %</th>
-                                  <th rowSpan={4}  className="vertical-text ">เงินสงเคราะห์ลูกจ้าง</th>
-                                  <th rowSpan={4} className="vertical-text ">หมายเหตุ</th>
-                                </tr>
+                                <th rowSpan={4} className="vertical-text">ทำงานวันหยุด(จ่ายสด)</th>
+                                <th rowSpan={4} className="vertical-text">หักประกันสังคม %</th>
+                                <th rowSpan={4} className="vertical-text">เงินสงเคราะห์ลูกจ้าง</th>
+                                <th rowSpan={4} className="vertical-text">หมายเหตุ</th>
+                              </tr>
 
-                                {/* ---------------- แถวที่ 2 ---------------- */}
-                                <tr>
-                                  <th style={{backgroundColor:'#fff7c2'}} >1441</th>
-                                  <th style={{backgroundColor:'#fff7c2'}}>1434</th>
-                                  <th style={{backgroundColor:'#fff7c2'}}>1130</th>
-                                  <th style={{backgroundColor:'#fff7c2'}}>1120</th>
-                                  <th style={{backgroundColor:'#fff7c2'}}>1140</th>
+                              {/* ---------------- แถวที่ 2 ---------------- */}
+                              <tr>
+                                {/* เพิ่ม style width ที่เท่ากันสำหรับแต่ละคอลัมน์โอที */}
+                                <th style={{backgroundColor:'#fff7c2', width: '30px', minWidth: '30px'}}>1441</th>
+                                <th style={{backgroundColor:'#fff7c2', width: '30px', minWidth: '30px'}}>1434</th>
+                                <th style={{backgroundColor:'#fff7c2', width: '30px', minWidth: '30px'}}>1130</th>
+                                <th style={{backgroundColor:'#fff7c2', width: '30px', minWidth: '30px'}}>1120</th>
+                                <th style={{backgroundColor:'#fff7c2', width: '30px', minWidth: '30px'}}>1140</th>
 
-                                  {(() => {
-                                    const mergedItems = mergeWorkplaceAddsalary(workplaceAddsalary);
-                                    return mergedItems.map((item, i) => (
-                                      <th key={i} className="text-center ">{item.codeSpSalary} </th>
-                                    ));
-                                  })()}
-                                </tr>
+                                {(() => {
+                                  const mergedItems = mergeWorkplaceAddsalary(workplaceAddsalary);
+                                  return mergedItems.map((item, i) => (
+                                    <th key={i} className="text-center" style={{width: '30px', minWidth: '30px'}}>
+                                      {item.codeSpSalary} 
+                                    </th>
+                                  ));
+                                })()}
+                              </tr>
 
-                                {/* ---------------- แถวที่ 3 ---------------- */}
-                                <tr>
-                                    <td className="text-bold align-middle" style={{backgroundColor:'#fff7c2'}}>วัน</td>
-                                    <td className="text-bold align-middle" style={{backgroundColor:'#fff7c2'}}>วัน</td>
-                                    <td className="text-bold align-middle" style={{backgroundColor:'#fff7c2'}}>ชม</td>
-                                    <td className="text-bold align-middle" style={{backgroundColor:'#fff7c2'}}>ชม</td>
-                                    <td className="text-bold align-middle" style={{backgroundColor:'#fff7c2'}}>ชม</td>
-                                     {(() => {
-                                       const mergedItems = mergeWorkplaceAddsalary(workplaceAddsalary);
-                                       return mergedItems.map((_, i) => (
-                                         <th key={i}></th>
-                                       ));
-                                     })()}
+                              {/* ---------------- แถวที่ 3 ---------------- */}
+                              <tr>
+                                <td className="text-bold align-middle" style={{backgroundColor:'#fff7c2', width: '30px', minWidth: '30px'}}>วัน</td>
+                                <td className="text-bold align-middle" style={{backgroundColor:'#fff7c2', width: '30px', minWidth: '30px'}}>วัน</td>
+                                <td className="text-bold align-middle" style={{backgroundColor:'#fff7c2', width: '30px', minWidth: '30px'}}>ชม</td>
+                                <td className="text-bold align-middle" style={{backgroundColor:'#fff7c2', width: '30px', minWidth: '30px'}}>ชม</td>
+                                <td className="text-bold align-middle" style={{backgroundColor:'#fff7c2', width: '30px', minWidth: '30px'}}>ชม</td>
+                                
+                                {(() => {
+                                  const mergedItems = mergeWorkplaceAddsalary(workplaceAddsalary);
+                                  return mergedItems.map((_, i) => (
+                                    <th key={i} style={{width: '30px', minWidth: '30px'}}></th>
+                                  ));
+                                })()}
+                              </tr>
 
-                                </tr>
-
-                                {/* ---------------- แถวที่ 4 ---------------- */}
-                                    <tr>
-                                                                    {overtimeLabels.map((label, index) => {
-                                    // เพิ่ม input ตรงตำแหน่งก่อน "โอที1" (index 2)
-                                   
-                              
-                                    return (
-                                        <th key={index} style={{backgroundColor:'#fff7c2'}} className="vertical-text align-middle">
-                                            {label}
-                                        </th>
-                                    );
-                                })}
-    
-
-                                        {/* สวัสดิการตามหน่วยงาน */}
-                                        {(() => {
-                                          const mergedItems = mergeWorkplaceAddsalary(workplaceAddsalary);
-                                          return mergedItems.map((item, index) => (
-                                            <th key={index} className="vertical-text align-middle">
-                                              {item.name} <span className="">{item.SpSalary}</span>
-                                            </th>
-                                          ));
-                                        })()}
-
-                                    </tr>
-                              </thead>
+                              {/* ---------------- แถวที่ 4 ---------------- */}
+                              <tr>
+                                {overtimeLabels.map((label, index) => (
+                                  <th 
+                                    key={index} 
+                                    className="vertical-text align-middle" 
+                                    style={{ 
+                                      backgroundColor: '#fff7c2', 
+                                      width: '30px', 
+                                      minWidth: '30px',
+                                      writingMode: 'vertical-rl',
+                                      textOrientation: 'mixed'
+                                    }}
+                                  >
+                                    {label}
+                                  </th>
+                                ))}
+                                
+                                {/* สวัสดิการตามหน่วยงาน */}
+                                {(() => {
+                                  const mergedItems = mergeWorkplaceAddsalary(workplaceAddsalary);
+                                  return mergedItems.map((item, index) => (
+                                    <th 
+                                      key={index} 
+                                      className="vertical-text align-middle" 
+                                      style={{ 
+                                        width: '30px', 
+                                        minWidth: '30px',
+                                        writingMode: 'vertical-rl',
+                                        textOrientation: 'mixed'
+                                      }}
+                                    >
+                                      {item.name} <span>{item.SpSalary}</span>
+                                    </th>
+                                  ));
+                                })()}
+                              </tr>
+                            </thead>
 
                               <tbody>
                             
