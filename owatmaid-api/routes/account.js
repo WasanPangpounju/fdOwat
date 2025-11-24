@@ -13,7 +13,40 @@ const welfare = require('./models/welfareModel');
 
 const axios = require('axios');
 
+// Cache สำหรับเก็บ taxableIds เพื่อลดการเรียก API ซ้ำๆ
+let cachedTaxableIds = null;
+let cacheTimestamp = null;
+const CACHE_DURATION = 5 * 60 * 1000; // 5 นาที
 
+// ฟังก์ชันดึงข้อมูล taxableIds จาก API
+async function fetchTaxableIds() {
+  // ตรวจสอบ cache ก่อน
+  const now = Date.now();
+  if (cachedTaxableIds && cacheTimestamp && (now - cacheTimestamp < CACHE_DURATION)) {
+    console.log(`✅ ใช้ taxableIds จาก cache (${cachedTaxableIds.length} รายการ)`);
+    return cachedTaxableIds;
+  }
+
+  try {
+    const response = await axios.get('http://10.10.110.7:3000/employee/social-security-checked');
+    if (response.data && response.data.summary && response.data.summary.uniqueIdList) {
+      cachedTaxableIds = response.data.summary.uniqueIdList;
+      cacheTimestamp = Date.now();
+      console.log(`✅ ดึง taxableIds จาก API สำเร็จ: ${cachedTaxableIds.length} รายการ`);
+      return cachedTaxableIds;
+    }
+    console.warn('⚠️ ไม่พบข้อมูล uniqueIdList จาก API, ใช้ค่า default');
+    return [];
+  } catch (error) {
+    console.error('❌ Error fetching taxableIds from API:', error.message);
+    // fallback to cached data if available
+    if (cachedTaxableIds) {
+      console.warn('⚠️ ใช้ข้อมูล cache เดิมแทน');
+      return cachedTaxableIds;
+    }
+    return [];
+  }
+}
 
 const getDayNumberFromName = (dayName) => {
   const daysMap = {
@@ -3647,7 +3680,8 @@ async function checkCalSocial(id) {
 // }
 
 async function checkCalTax(id) {
-  const idList = await ["1110","1445","1120","1130","1530","1140","1150","1230","1231","1233","1241","1242","1251","1350","1422","1423","1428","1434","1440","1441","1444","1445","1446","1520","1522","1524","1525","1526","1528","1540","1541","1550","1447","1613","1561","1542","1529","1531","1532","1533","1534","1435","1429","1427","1412","1245","1234","1159","2111","2113","2116","2117","2120","2124","2160","2430","1190","1211","1212","1214","1235","1236","1243","1351","1411","1425","1426","1431","1448","1449","1527","1562","2114","2123","1543","1443","1544"];
+  // ดึงรายการ ID จาก API
+  const idList = await fetchTaxableIds();
   
   const idToCheck = await id;
   
@@ -8061,9 +8095,10 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
   console.log(`🔍 ยอดรวมเงินพิเศษที่คิดประกันสังคม: ${addSalarySocialSecurity} บาท`);
   
   console.log(`\n🔍 === รายการ ID ที่คิดประกันสังคม ===`);
-  const taxableIds = ["1110","1445","1423","1120","1130","1530","1140","1150","1210","1230","1231","1233","1241","1242","1251","1350","1422","1423","1428","1434","1440","1441","1444","1445","1446","1520","1522","1524","1525","1526","1528","1540","1541","1550","1447","1613","1561","1542","1529","1531","1532","1533","1534","1435","1429","1427","1412","1245","1234","1159","2111","2113","2116","2117","2120","2124","2160","2430","1190","1211","1212","1214","1235","1236","1243","1351","1411","1425","1426","1431","1448","1449","1527","1562","2114","2123","1543","1443","1544"];
+  // ดึง taxableIds จาก API แทน hardcode
+  const taxableIds = await fetchTaxableIds();
   const DedutIds = ["2116", "2222"];
-  console.log(`🔍 ID ที่คิดประกันสังคม: ${taxableIds.join(', ')}`);
+  console.log(`🔍 ID ที่คิดประกันสังคม (จาก API): ${taxableIds.join(', ')}`);
   console.log(`🔍 ID ที่ต้องหักออกจากฐานประกันสังคม: ${DedutIds.join(', ')}`);
   console.log(`🔍 ===============================================\n`);
 
