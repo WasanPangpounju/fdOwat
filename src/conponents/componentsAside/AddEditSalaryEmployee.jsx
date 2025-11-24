@@ -206,7 +206,12 @@ function AddEditSalaryEmployee() {
     };
 
     const [rowDataList, setRowDataList] = useState(new Array(numberOfRows).fill(initialRowData));
-searchDeductSalaryList
+
+    // State สำหรับ inline editing
+    const [editingRowIndex, setEditingRowIndex] = useState(null);
+    const [editingRowIndex2, setEditingRowIndex2] = useState(null);
+    const [editingData, setEditingData] = useState(null);
+    const [editingData2, setEditingData2] = useState(null);
 
     // Toast Notification Function
     const showToast = (message, type = 'success') => {
@@ -613,15 +618,27 @@ useEffect(() => {
         }
     };
 
-    // Function to handle editing a row
-    const handleEditRow = async (index) => {
-        // You can implement the edit logic here, e.g., open a modal for editing
-        // console.log('Edit row at index:', index);
-        const tmp = await rowDataList2[index];
-        // alert(tmp.staffId);
-        await setAddSalaryId(tmp.workplaceId);
-        await setAddSalaryName(tmp.workplaceName);
+    // Function to handle editing a row (เงินเพิ่ม)
+    const handleEditRow = (index) => {
+        const item = rowDataList2[index];
+        setEditingRowIndex2(index);
+        setEditingData2({ ...item });
+    };
 
+    // Function to save inline edit (เงินเพิ่ม)
+    const handleSaveEdit2 = (index) => {
+        const newDataList = [...rowDataList2];
+        newDataList[index] = { ...editingData2 };
+        setRowDataList2(newDataList);
+        setEditingRowIndex2(null);
+        setEditingData2(null);
+        showToast('แก้ไขรายการเงินเพิ่มสำเร็จ', 'success');
+    };
+
+    // Function to cancel inline edit (เงินเพิ่ม)
+    const handleCancelEdit2 = () => {
+        setEditingRowIndex2(null);
+        setEditingData2(null);
     };
 
 
@@ -658,6 +675,29 @@ useEffect(() => {
                 showToast('ลบรายการเงินหักสำเร็จ', 'success');
             }
         );
+    };
+
+    // Function to handle editing a row (เงินหัก)
+    const handleEditRow2 = (index) => {
+        const item = rowDataList[index];
+        setEditingRowIndex(index);
+        setEditingData({ ...item });
+    };
+
+    // Function to save inline edit (เงินหัก)
+    const handleSaveEdit = (index) => {
+        const newDataList = [...rowDataList];
+        newDataList[index] = { ...editingData };
+        setRowDataList(newDataList);
+        setEditingRowIndex(null);
+        setEditingData(null);
+        showToast('แก้ไขรายการเงินหักสำเร็จ', 'success');
+    };
+
+    // Function to cancel inline edit (เงินหัก)
+    const handleCancelEdit = () => {
+        setEditingRowIndex(null);
+        setEditingData(null);
     };
 
 
@@ -1103,11 +1143,11 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                 <label role="">รายวัน/รายเดือน</label>
                                                             </div>
                                                         </div>
-                                                        {/* <div class="col-md-2">
+                                                        <div class="col-md-2">
                                                             <div class="form-group">
                                                                 <label role="">ประกันสังคม</label>
                                                             </div>
-                                                        </div> */}
+                                                        </div> 
                                                         <div class="col-md-2">
                                                             <div class="form-group">
                                                                 <label role="">ประเภทพนักงาน</label>
@@ -1165,7 +1205,7 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                 <option value="monthly">รายเดือน</option>
                                                             </select>
                                                         </div>
-                                                        {/* <div class="col-md-2">
+                                                         <div class="col-md-2">
                                                             <select
                                                                 name="socialSecurityType"
                                                                 className="form-control"
@@ -1183,7 +1223,7 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                 <option value="yes">คิดประกันสังคม</option>
                                                                 <option value="no">ไม่คิดประกันสังคม</option>
                                                             </select>
-                                                        </div> */}
+                                                        </div> 
                                                         <div className="col-md-2">
                                                             <select
                                                                 name="StaffType"
@@ -1354,6 +1394,108 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                             {rowDataList2.map((item, index) => (
                                                                                 item.name && (
                                                                                     <tr key={index}>
+                                                                                        {editingRowIndex2 === index ? (
+                                                                                            // 🔧 โหมดแก้ไข
+                                                                                            <>
+                                                                                                <td className="text-center p-2">
+                                                                                                    <input
+                                                                                                        type="text"
+                                                                                                        className="form-control form-control-sm text-center"
+                                                                                                        value={editingData2?.id || ''}
+                                                                                                        readOnly
+                                                                                                        style={{ backgroundColor: '#f0f0f0' }}
+                                                                                                    />
+                                                                                                </td>
+                                                                                                <td className="p-2">
+                                                                                                    <input
+                                                                                                        type="text"
+                                                                                                        className="form-control form-control-sm"
+                                                                                                        value={editingData2?.name || ''}
+                                                                                                        onChange={(e) => setEditingData2({...editingData2, name: e.target.value})}
+                                                                                                    />
+                                                                                                </td>
+                                                                                                <td className="p-2">
+                                                                                                    <input
+                                                                                                        type="text"
+                                                                                                        className="form-control form-control-sm"
+                                                                                                        value={editingData2?.SpSalary || ''}
+                                                                                                        onChange={(e) => setEditingData2({...editingData2, SpSalary: e.target.value})}
+                                                                                                        onInput={(e) => {
+                                                                                                            e.target.value = e.target.value.replace(/[^0-9.]/g, '');
+                                                                                                        }}
+                                                                                                    />
+                                                                                                </td>
+                                                                                                <td className="p-2">
+                                                                                                    <select
+                                                                                                        className="form-control form-control-sm"
+                                                                                                        value={editingData2?.roundOfSalary || ''}
+                                                                                                        onChange={(e) => setEditingData2({...editingData2, roundOfSalary: e.target.value})}
+                                                                                                    >
+                                                                                                        <option value="">เลือก</option>
+                                                                                                        <option value="daily">รายวัน</option>
+                                                                                                        <option value="monthly">รายเดือน</option>
+                                                                                                    </select>
+                                                                                                </td>
+                                                                                                <td className="p-2">
+                                                                                                    <select
+                                                                                                        className="form-control form-control-sm"
+                                                                                                        value={editingData2?.socialSecurityCheck === true ? "yes" : editingData2?.socialSecurityCheck === false ? "no" : ""}
+                                                                                                        onChange={(e) => {
+                                                                                                            const value = e.target.value === "yes" ? true : e.target.value === "no" ? false : null;
+                                                                                                            setEditingData2({...editingData2, socialSecurityCheck: value});
+                                                                                                        }}
+                                                                                                    >
+                                                                                                        <option value="">เลือก</option>
+                                                                                                        <option value="yes">คิดประกันสังคม</option>
+                                                                                                        <option value="no">ไม่คิดประกันสังคม</option>
+                                                                                                    </select>
+                                                                                                </td>
+                                                                                                <td className="p-2">
+                                                                                                    <select
+                                                                                                        className="form-control form-control-sm"
+                                                                                                        value={editingData2?.StaffType || ''}
+                                                                                                        onChange={(e) => setEditingData2({...editingData2, StaffType: e.target.value})}
+                                                                                                    >
+                                                                                                        <option value="">เลือก</option>
+                                                                                                        <option value="all">ทั้งหมด</option>
+                                                                                                        <option value="header">หัวหน้างาน</option>
+                                                                                                        <option value="หัวหน้าควบคุมงาน">หัวหน้าควบคุมงาน</option>
+                                                                                                        <option value="พนักงานทำความสะอาด">พนักงานทำความสะอาด</option>
+                                                                                                    </select>
+                                                                                                </td>
+                                                                                                <td className="p-2">
+                                                                                                    <input
+                                                                                                        type="text"
+                                                                                                        className="form-control form-control-sm"
+                                                                                                        value={editingData2?.message || ''}
+                                                                                                        onChange={(e) => setEditingData2({...editingData2, message: e.target.value})}
+                                                                                                        placeholder="หมายเหตุ"
+                                                                                                    />
+                                                                                                </td>
+                                                                                                <td className="text-center p-2">
+                                                                                                    <div className="btn-group-vertical btn-group-sm" role="group">
+                                                                                                        <button
+                                                                                                            type="button"
+                                                                                                            className="btn btn-success btn-sm mb-1"
+                                                                                                            onClick={() => handleSaveEdit2(index)}
+                                                                                                            title="บันทึก"
+                                                                                                        >
+                                                                                                            <i className="fas fa-check"></i>
+                                                                                                        </button>
+                                                                                                        <button
+                                                                                                            type="button"
+                                                                                                            className="btn btn-secondary btn-sm"
+                                                                                                            onClick={handleCancelEdit2}
+                                                                                                            title="ยกเลิก"
+                                                                                                        >
+                                                                                                            <i className="fas fa-times"></i>
+                                                                                                        </button>
+                                                                                                    </div>
+                                                                                                </td>
+                                                                                            </>
+                                                                                        ) : (
+                                                                                            // 👁️ โหมดแสดงผล
+                                                                                            <>
                                                                                         <td className="text-center p-3 font-weight-bold text-primary">
                                                                                             {item.id}
                                                                                         </td>
@@ -1374,7 +1516,7 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                                                 <span className="text-bold">รายเดือน</span>
                                                                                             )}
                                                                                         </td>
-                                                                                        {/* <td className="text-center p-3">
+                                                                                         <td className="text-center p-3">
                                                                                           
                                                                                             {(item.socialSecurityCheck === true || item.socialSecurityCheck === "yes" || item.socialSecurityCheck === "คิด") && (
                                                                                                 <span className="badge badge-success">คิดประกันสังคม</span>
@@ -1385,7 +1527,7 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                                             {(item.socialSecurityCheck === null || item.socialSecurityCheck === undefined || item.socialSecurityCheck === "") && (
                                                                                                 <span className="badge badge-secondary">ไม่ระบุ</span>
                                                                                             )}
-                                                                                        </td> */}
+                                                                                        </td> 
                                                                                         <td className="text-center p-3">
                                                                                             {item.StaffType === "header" && (
                                                                                                 <span className="">หัวหน้างาน</span>
@@ -1403,15 +1545,27 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                                             </small>
                                                                                         </td>
                                                                                         <td className="text-center p-3">
-                                                                                            <button 
-                                                                                                type="button"
-                                                                                                className="btn btn-danger btn-sm"
-                                                                                                onClick={() => handleDeleteRow(index)}
-                                                                                                title="ลบรายการ"
-                                                                                            >
-                                                                                                <i className="fas fa-trash"></i>
-                                                                                            </button>
+                                                                                            <div className="btn-group" role="group">
+                                                                                                <button 
+                                                                                                    type="button"
+                                                                                                    className="btn btn-info btn-sm"
+                                                                                                    onClick={() => handleEditRow(index)}
+                                                                                                    title="แก้ไขรายการ"
+                                                                                                >
+                                                                                                    <i className="fas fa-edit"></i>
+                                                                                                </button>
+                                                                                                <button 
+                                                                                                    type="button"
+                                                                                                    className="btn btn-danger btn-sm"
+                                                                                                    onClick={() => handleDeleteRow(index)}
+                                                                                                    title="ลบรายการ"
+                                                                                                >
+                                                                                                    <i className="fas fa-trash"></i>
+                                                                                                </button>
+                                                                                            </div>
                                                                                         </td>
+                                                                                        </>
+                                                                                        )}
                                                                                     </tr>
                                                                                 )
                                                                             ))}
@@ -1455,11 +1609,11 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                 <label role="">การหักเงิน</label>
                                                             </div>
                                                         </div>
-                                                        {/* <div class="col-md-2">
+                                                        <div class="col-md-2">
                                                             <div class="form-group">
                                                                 <label role="">ประกันสังคม</label>
                                                             </div>
-                                                        </div> */}
+                                                        </div> 
                                                         {/* <div class="col-md-2">
                                                             <div class="form-group">
                                                                 <label role="">จำนวนงวด</label>
@@ -1522,7 +1676,7 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                 <option value="installment">ผ่อนจ่าย</option>
                                                             </select>
                                                         </div>
-                                                        {/* <div class="col-md-2">
+                                                        <div class="col-md-2">
                                                             <select
                                                                 name="minusSocialSecurityType"
                                                                 className="form-control"
@@ -1540,8 +1694,8 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                 <option value="yes">คิดประกันสังคม</option>
                                                                 <option value="no">ไม่คิดประกันสังคม</option>
                                                             </select>
-                                                        </div> */}
-                                                        {/* <div className="col-md-2">
+                                                        </div>
+                                                        <div className="col-md-2">
 
                                                             {payType == "installment" ? (
                                                                 <select
@@ -1568,7 +1722,7 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                 </select>
                                                             )}
 
-                                                        </div> */}
+                                                        </div>
 
                                                         <div class="col-md-2">
                                                             <input type="text" class="form-control" id="minusStaffType" placeholder="หมายเหตุ" value={minusStaffType} onChange={(e) => setMinusStaffType(e.target.value)} />
@@ -1641,6 +1795,81 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                             {rowDataList.map((item, index) => (
                                                                                 item.name && (
                                                                                     <tr key={index}>
+                                                                                        {editingRowIndex === index ? (
+                                                                                            // 🔧 โหมดแก้ไข
+                                                                                            <>
+                                                                                                <td className="text-center p-2">
+                                                                                                    <input
+                                                                                                        type="text"
+                                                                                                        className="form-control form-control-sm text-center"
+                                                                                                        value={editingData?.id || ''}
+                                                                                                        readOnly
+                                                                                                        style={{ backgroundColor: '#f0f0f0' }}
+                                                                                                    />
+                                                                                                </td>
+                                                                                                <td className="p-2">
+                                                                                                    <input
+                                                                                                        type="text"
+                                                                                                        className="form-control form-control-sm"
+                                                                                                        value={editingData?.name || ''}
+                                                                                                        onChange={(e) => setEditingData({...editingData, name: e.target.value})}
+                                                                                                    />
+                                                                                                </td>
+                                                                                                <td className="p-2">
+                                                                                                    <input
+                                                                                                        type="text"
+                                                                                                        className="form-control form-control-sm"
+                                                                                                        value={editingData?.amount || ''}
+                                                                                                        onChange={(e) => setEditingData({...editingData, amount: e.target.value})}
+                                                                                                        onInput={(e) => {
+                                                                                                            e.target.value = e.target.value.replace(/[^0-9.]/g, '');
+                                                                                                        }}
+                                                                                                    />
+                                                                                                </td>
+                                                                                                <td className="p-2">
+                                                                                                    <select
+                                                                                                        className="form-control form-control-sm"
+                                                                                                        value={editingData?.payType || ''}
+                                                                                                        onChange={(e) => setEditingData({...editingData, payType: e.target.value})}
+                                                                                                    >
+                                                                                                        <option value="">เลือก</option>
+                                                                                                        <option value="immedate">ทั้งหมด</option>
+                                                                                                        <option value="installment">ผ่อนจ่าย</option>
+                                                                                                    </select>
+                                                                                                </td>
+                                                                                                <td className="p-2">
+                                                                                                    <input
+                                                                                                        type="text"
+                                                                                                        className="form-control form-control-sm"
+                                                                                                        value={editingData?.message || ''}
+                                                                                                        onChange={(e) => setEditingData({...editingData, message: e.target.value})}
+                                                                                                        placeholder="หมายเหตุ"
+                                                                                                    />
+                                                                                                </td>
+                                                                                                <td className="text-center p-2">
+                                                                                                    <div className="btn-group-vertical btn-group-sm" role="group">
+                                                                                                        <button
+                                                                                                            type="button"
+                                                                                                            className="btn btn-success btn-sm mb-1"
+                                                                                                            onClick={() => handleSaveEdit(index)}
+                                                                                                            title="บันทึก"
+                                                                                                        >
+                                                                                                            <i className="fas fa-check"></i>
+                                                                                                        </button>
+                                                                                                        <button
+                                                                                                            type="button"
+                                                                                                            className="btn btn-secondary btn-sm"
+                                                                                                            onClick={handleCancelEdit}
+                                                                                                            title="ยกเลิก"
+                                                                                                        >
+                                                                                                            <i className="fas fa-times"></i>
+                                                                                                        </button>
+                                                                                                    </div>
+                                                                                                </td>
+                                                                                            </>
+                                                                                        ) : (
+                                                                                            // 👁️ โหมดแสดงผล
+                                                                                            <>
                                                                                         <td className="text-center font-weight-bold text-primary p-3">
                                                                                             {item.id}
                                                                                         </td>
@@ -1678,15 +1907,27 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                                             </small>
                                                                                         </td>
                                                                                         <td className="text-center p-2">
-                                                                                            <button
-                                                                                                type="button"
-                                                                                                className="btn btn-danger btn-sm"
-                                                                                                onClick={() => handleDeleteRow2(index)}
-                                                                                                title="ลบรายการ"
-                                                                                            >
-                                                                                                <i className="fas fa-trash"></i>
-                                                                                            </button>
+                                                                                            <div className="btn-group" role="group">
+                                                                                                <button
+                                                                                                    type="button"
+                                                                                                    className="btn btn-info btn-sm"
+                                                                                                    onClick={() => handleEditRow(index)}
+                                                                                                    title="แก้ไขรายการ"
+                                                                                                >
+                                                                                                    <i className="fas fa-edit"></i>
+                                                                                                </button>
+                                                                                                <button
+                                                                                                    type="button"
+                                                                                                    className="btn btn-danger btn-sm"
+                                                                                                    onClick={() => handleDeleteRow2(index)}
+                                                                                                    title="ลบรายการ"
+                                                                                                >
+                                                                                                    <i className="fas fa-trash"></i>
+                                                                                                </button>
+                                                                                            </div>
                                                                                         </td>
+                                                                                            </>
+                                                                                        )}
                                                                                     </tr>
                                                                                 )
                                                                             ))}

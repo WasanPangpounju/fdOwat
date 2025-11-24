@@ -268,7 +268,7 @@ function SpecialShiftCash() {
     }
   };
 
-  // Handle generate summary PDF for all workplaces
+
   const handleGenerateSummaryPDF = async () => {
     if (!searchResults || !searchResults.workplaces || searchResults.workplaces.length === 0) {
       Swal.fire({

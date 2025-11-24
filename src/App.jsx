@@ -9,6 +9,7 @@ import { useLocation } from "react-router-dom";
 import WorkplaceSpecialShiftDetail from "./conponents/componentsAside/WorkplaceSpecialShiftDetail";
 
 import LoginForm from "./conponents/Login";
+import CashComponent from "./conponents/componentsAside/CashComponent";
 
 import BankReport from "./conponents/componentsAside/BankReport";
 import BankReportExecutiveCommittee from "./conponents/componentsAside/BankReportExecutiveCommittee";
@@ -306,6 +307,10 @@ useEffect(() => {
               <Route
                 path="/worktimesheetworkplace"
                 element={<WorktimeSheetWorkplace employeeList={employeeList} />}
+              />
+              <Route
+                path="/cash"
+                element={<CashComponent  />}
               />
               <Route
                 path="/worktimesheetworkplacefor10105"
