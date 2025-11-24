@@ -23,6 +23,7 @@ import {
 registerLocale("th", th);
 setDefaultLocale("th");
 import EmployeesSelected from "./EmployeesSelected";
+import Employee from "./Employee";
 import locationData from "./LocationData/locationData";
 // const toBuddhistYear = (date, formatString) => {
 //     const christianYear = getYear(date);
@@ -127,8 +128,15 @@ function AddEditEmployee() {
   // Tab State for Salary (removed duplicate - already declared at line 54)
   // const [activeTab, setActiveTab] = useState("tab1");
   const [selectedEmployeeForSalary, setSelectedEmployeeForSalary] = useState(null);
+  const [selectedEmployeeForTab2, setSelectedEmployeeForTab2] = useState(null);
 
   // เมื่อมีการเลือกพนักงานใน Tab 1 จะส่งไปให้ Tab 2
+  const handleEmployeeSelectForTab2 = async (employee) => {
+    console.log('🎯 Selected employee for Tab 2:', employee);
+    setSelectedEmployeeForTab2(employee);
+    setActiveTab("tab2"); // เปลี่ยนไป Tab 2 อัตโนมัติ
+  };
+
   const handleEmployeeSelectForSalary = async (employee) => {
     setSelectedEmployeeForSalary(employee);
     
@@ -1675,6 +1683,109 @@ function AddEditEmployee() {
           {/* <!-- /.content-header -->
 <!-- Main content --> */}
           
+          {/* Tab Navigation */}
+          <div className="container-fluid" style={{ marginBottom: '20px' }}>
+            <ul className="nav nav-tabs" role="tablist" style={{ 
+              borderBottom: '2px solid #dee2e6'
+            }}>
+              <li className="nav-item">
+                <button
+                  className={`nav-link ${activeTab === 'createEdit' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('createEdit')}
+                  type="button"
+                  style={{
+                    border: 'none',
+                    borderBottom: activeTab === 'createEdit' ? '3px solid #007bff' : '3px solid transparent',
+                    backgroundColor: 'transparent',
+                    color: activeTab === 'createEdit' ? '#007bff' : '#6c757d',
+                    cursor: 'pointer',
+                    padding: '12px 25px',
+                    fontWeight: activeTab === 'createEdit' ? 'bold' : '500',
+                    fontSize: '15px',
+                    marginRight: '5px',
+                    transition: 'all 0.3s ease'
+                  }}
+                  onMouseOver={(e) => {
+                    if (activeTab !== 'createEdit') {
+                      e.target.style.color = '#007bff';
+                    }
+                  }}
+                  onMouseOut={(e) => {
+                    if (activeTab !== 'createEdit') {
+                      e.target.style.color = '#6c757d';
+                    }
+                  }}
+                >
+                  <i className="fas fa-search" style={{ marginRight: '8px' }}></i>
+                  ค้นหาพนักงาน
+                </button>
+              </li>
+              <li className="nav-item">
+                <button
+                  className={`nav-link ${activeTab === 'tab2' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('tab2')}
+                  type="button"
+                  style={{
+                    border: 'none',
+                    borderBottom: activeTab === 'tab2' ? '3px solid #007bff' : '3px solid transparent',
+                    backgroundColor: 'transparent',
+                    color: activeTab === 'tab2' ? '#007bff' : '#6c757d',
+                    cursor: 'pointer',
+                    padding: '12px 25px',
+                    fontWeight: activeTab === 'tab2' ? 'bold' : '500',
+                    fontSize: '15px',
+                    marginRight: '5px',
+                    transition: 'all 0.3s ease'
+                  }}
+                  onMouseOver={(e) => {
+                    if (activeTab !== 'tab2') {
+                      e.target.style.color = '#007bff';
+                    }
+                  }}
+                  onMouseOut={(e) => {
+                    if (activeTab !== 'tab2') {
+                      e.target.style.color = '#6c757d';
+                    }
+                  }}
+                >
+                  <i className="fas fa-user-circle" style={{ marginRight: '8px' }}></i>
+                  ข้อมูลพนักงาน
+                </button>
+              </li>
+              <li className="nav-item">
+                <button
+                  className={`nav-link ${activeTab === 'tab3' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('tab3')}
+                  type="button"
+                  style={{
+                    border: 'none',
+                    borderBottom: activeTab === 'tab3' ? '3px solid #007bff' : '3px solid transparent',
+                    backgroundColor: 'transparent',
+                    color: activeTab === 'tab3' ? '#007bff' : '#6c757d',
+                    cursor: 'pointer',
+                    padding: '12px 25px',
+                    fontWeight: activeTab === 'tab3' ? 'bold' : '500',
+                    fontSize: '15px',
+                    transition: 'all 0.3s ease'
+                  }}
+                  onMouseOver={(e) => {
+                    if (activeTab !== 'tab3') {
+                      e.target.style.color = '#007bff';
+                    }
+                  }}
+                  onMouseOut={(e) => {
+                    if (activeTab !== 'tab3') {
+                      e.target.style.color = '#6c757d';
+                    }
+                  }}
+                >
+                  <i className="fas fa-cog" style={{ marginRight: '8px' }}></i>
+                  อื่นๆ
+                </button>
+              </li>
+            </ul>
+          </div>
+
           {/* Tab Content */}
           {activeTab === 'createEdit' && (
           <section class="content">
@@ -1834,6 +1945,17 @@ function AddEditEmployee() {
                                       >
                                         รหัส {workplace.employeeId} ชื่อ{" "}
                                         {workplace.name} {workplace.lastName}
+                                        <button
+                                          type="button"
+                                          onClick={() => handleEmployeeSelectForTab2(workplace)}
+                                          className="btn btn-success"
+                                          style={{
+                                            width: "5rem",
+                                            marginLeft: "1rem",
+                                          }}
+                                        >
+                                          เลือก
+                                        </button>
                                         <button
                                           type="button"
                                           name="delete"
@@ -2988,6 +3110,110 @@ function AddEditEmployee() {
               </div>
             </div>
             {/* <!-- /.container-fluid --> */}
+          </section>
+          )}
+
+          {/* Tab 2 Content - Employee Component */}
+          {activeTab === 'tab2' && (
+            <section class="content">
+              <div className="container-fluid">
+                <div className="row">
+                  <div className="col-12">
+                    {/* Header with selected employee info */}
+                    {selectedEmployeeForTab2 && (
+                      <div className="alert alert-info" style={{ 
+                        marginBottom: '20px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between'
+                      }}>
+                        <div>
+                          <i className="fas fa-info-circle" style={{ marginRight: '8px' }}></i>
+                          กำลังแสดงข้อมูลพนักงาน: <strong>{selectedEmployeeForTab2.name} {selectedEmployeeForTab2.lastName}</strong> 
+                          <span style={{ 
+                            marginLeft: '10px',
+                            padding: '4px 12px',
+                            background: '#007bff',
+                            color: 'white',
+                            borderRadius: '15px',
+                            fontSize: '13px'
+                          }}>
+                            รหัส: {selectedEmployeeForTab2.employeeId}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab('createEdit')}
+                          className="btn btn-sm btn-secondary"
+                        >
+                          <i className="fas fa-arrow-left" style={{ marginRight: '5px' }}></i>
+                          กลับไปค้นหา
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Employee Component */}
+                    <Employee preSelectedEmployee={selectedEmployeeForTab2} />
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* Tab 3 Content */}
+          {activeTab === 'tab3' && (
+          <section class="content">
+            <div class="row">
+              <div class="col-md-12">
+                <div class="container-fluid">
+                  <div class="row">
+                    <div class="col-md-12">
+                      <section class="Frame">
+                        <div class="col-md-12">
+                          <h3>แท็บที่ 3 - เนื้อหาเพิ่มเติม</h3>
+                          <p>สามารถเพิ่มฟอร์มหรือเนื้อหาอื่นๆ ได้ที่นี่</p>
+                          
+                          {/* ตัวอย่างฟอร์ม */}
+                          <div class="row">
+                            <div class="col-md-6">
+                              <div class="form-group">
+                                <label>ข้อมูลตัวอย่าง 1</label>
+                                <input
+                                  type="text"
+                                  class="form-control"
+                                  placeholder="กรอกข้อมูล"
+                                />
+                              </div>
+                            </div>
+                            <div class="col-md-6">
+                              <div class="form-group">
+                                <label>ข้อมูลตัวอย่าง 2</label>
+                                <input
+                                  type="text"
+                                  class="form-control"
+                                  placeholder="กรอกข้อมูล"
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          <div class="row">
+                            <div class="col-md-12">
+                              <button type="button" class="btn btn-primary">
+                                บันทึก
+                              </button>
+                              <button type="button" class="btn btn-secondary ml-2">
+                                ยกเลิก
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </section>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </section>
           )}
 

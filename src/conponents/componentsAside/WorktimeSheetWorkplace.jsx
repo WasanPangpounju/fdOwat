@@ -10930,7 +10930,7 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
                               {/* ค่าแรงตามตำแหน่ง */}
                               <div className="row mb-3">
                                 <div className="col-md-3" style={{ fontWeight: 'bold' }}>ค่าแรงตามตำแหน่ง</div>
-                                <div className="col-md-9">
+                                <div className="col-md-9">  
                                   {workplaceData.addSalary && workplaceData.addSalary.length > 0 ? (
                                     <div>
                                       ค่าแรง {workplaceData.workRate || '-'}.-/วัน 

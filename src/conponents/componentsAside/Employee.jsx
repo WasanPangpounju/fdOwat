@@ -17,7 +17,7 @@ import provincesData from "./LocationData/json/thai_provinces.json";
 import districtsData from "./LocationData/json/thai_amphures.json";
 import subDistrictsData from "./LocationData/json/thai_tambons.json";
 
-function Employee() {
+function Employee({ preSelectedEmployee = null }) {
   // const locationData = {
   //   กรุงเทพ: {
   //     districts: {
@@ -369,6 +369,40 @@ function Employee() {
       calculateAge(dob);
     }
   }, [day, month, year]);
+
+  // 🔄 Auto-fill employee data when typing employeeId manually
+  useEffect(() => {
+    // ถ้า employeeId ว่างหรือสั้นกว่า 3 ตัวอักษร ไม่ต้อง fetch
+    if (!employeeId || employeeId.length < 3) {
+      return;
+    }
+
+    // ใช้ debounce เพื่อลด API calls ระหว่างพิมพ์
+    const timeoutId = setTimeout(async () => {
+      try {
+        console.log(`🔍 Auto-fetching employee data for ID: ${employeeId}`);
+        
+        const response = await axios.get(`${endpoint}/employee/${employeeId}`);
+        
+        if (response.data) {
+          console.log('✅ Employee found, auto-filling form...', response.data);
+          
+          // เรียกใช้ onEmployeeSelect ที่มีอยู่แล้ว เพื่อ fill ข้อมูลทั้งหมด
+          onEmployeeSelect(response.data);
+        }
+      } catch (error) {
+        if (error.response?.status === 404) {
+          console.log('❌ Employee not found with ID:', employeeId);
+          // ไม่ทำอะไร ให้ user พิมพ์ต่อได้
+        } else {
+          console.error('Error fetching employee:', error);
+        }
+      }
+    }, 800); // รอ 800ms หลังจากหยุดพิมพ์
+
+    // Cleanup function - ยกเลิก timeout ถ้า employeeId เปลี่ยนก่อนหมดเวลา
+    return () => clearTimeout(timeoutId);
+  }, [employeeId]); // ทำงานทุกครั้งที่ employeeId เปลี่ยน
 
   //Update localStorage
   function updateEmployeeLocal(emp) {
@@ -1058,42 +1092,77 @@ function Employee() {
     }
   }, [workplace, workplaceSelection]);
 
+  // 🎯 Auto-load employee data from Tab 1 selection
+  useEffect(() => {
+    if (preSelectedEmployee) {
+      console.log('🎯 Loading pre-selected employee:', preSelectedEmployee);
+      
+      // ดึงข้อมูลเต็มจาก API
+      const fetchFullEmployeeData = async () => {
+        try {
+          const response = await axios.get(`${endpoint}/employee/${preSelectedEmployee.employeeId}`);
+          
+          if (response.data) {
+            console.log('✅ Employee data loaded:', response.data);
+            onEmployeeSelect(response.data);
+          }
+        } catch (error) {
+          console.error('Error loading employee:', error);
+          // ถ้าเกิด error ให้ใช้ข้อมูลที่มีแทน
+          onEmployeeSelect(preSelectedEmployee);
+        }
+      };
+
+      fetchFullEmployeeData();
+    }
+  }, [preSelectedEmployee]);
+
   console.log("province", province);
   console.log("district", district);
   console.log("subDistrict", subDistrict);
 
+  // ตรวจสอบว่าถูกเรียกใช้จาก Tab หรือไม่
+  const isEmbedded = preSelectedEmployee !== null;
+
   return (
     <div class="hold-transition sidebar-mini" className="editlaout">
       <div class="wrapper">
-        <div class="content-wrapper">
-          <ol class="breadcrumb">
-            <li class="breadcrumb-item">
-              <i class="fas fa-home"></i> <a href="index.php">หน้าหลัก</a>
-            </li>
-            <li class="breadcrumb-item">
-              <a href="#"> ระบบจัดการพนักงาน</a>
-            </li>
-            <li class="breadcrumb-item active">ข้อมูลส่วนบุคคลพนักงาน</li>
-          </ol>
-          <div class="content-header">
-            <div class="container-fluid">
-              <div class="row mb-2">
-                <h1 class="m-0">
-                  <i class="far fa-arrow-alt-circle-right"></i>{" "}
-                  ข้อมูลส่วนบุคคลพนักงาน
-                </h1>
+        <div class="content-wrapper" style={isEmbedded ? { background: 'transparent', padding: 0 } : {}}>
+          {!isEmbedded && (
+            <>
+              <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                  <i class="fas fa-home"></i> <a href="index.php">หน้าหลัก</a>
+                </li>
+                <li class="breadcrumb-item">
+                  <a href="#"> ระบบจัดการพนักงาน</a>
+                </li>
+                <li class="breadcrumb-item active">ข้อมูลส่วนบุคคลพนักงาน</li>
+              </ol>
+              <div class="content-header">
+                <div class="container-fluid">
+                  <div class="row mb-2">
+                    <h1 class="m-0">
+                      <i class="far fa-arrow-alt-circle-right"></i>{" "}
+                      ข้อมูลส่วนบุคคลพนักงาน
+                    </h1>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-          <section class="content">
+            </>
+          )}
+          <section class="content" style={isEmbedded ? { padding: '20px' } : {}}>
             <div class="container-fluid">
               <div class="row">
-                <div class="col-md-9">
+                <div class={isEmbedded ? "col-md-12" : "col-md-9"}>
                   <form onSubmit={handleManageEmployee}>
-                    <h2 class="title">ข้อมูลพนักงาน</h2>
+                    {!isEmbedded && <h2 class="title">ข้อมูลพนักงาน</h2>}
+                    
+                    {/* แสดงข้อความเมื่อมีการเลือกพนักงานจาก Tab 1 - ซ่อนเพราะมีใน header card แล้ว */}
+                    
                     <div class="row">
                       <div class="col-md-12">
-                        <section class="Frame">
+                        <section class="Frame" style={isEmbedded ? { border: 'none', boxShadow: 'none' } : {}}>
                           <div class="col-md-12">
                             <div class="row">
                               <div class="col-md-3">
@@ -2552,11 +2621,13 @@ function Employee() {
                     </div>
                   </form>
                 </div>
-                <div class="col-md-3">
-                  <section class="Frame">
-                    <EmployeesSelected onEmployeeSelect={onEmployeeSelect} />
-                  </section>
-                </div>
+                {!isEmbedded && (
+                  <div class="col-md-3">
+                    <section class="Frame">
+                      <EmployeesSelected onEmployeeSelect={onEmployeeSelect} />
+                    </section>
+                  </div>
+                )}
               </div>
             </div>
             {/* <!-- /.container-fluid --> */}

@@ -2002,9 +2002,9 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                                 <th className="text-center" width="15%">
                                                                                     <i className="fas fa-credit-card mr-1"></i>การหักเงิน
                                                                                 </th>
-                                                                                {/* <th className="text-center" width="20%">
+                                                                                <th className="text-center" width="20%">
                                                                                     <i className="fas fa-shield-alt mr-1"></i>ประกันสังคม
-                                                                                </th> */}
+                                                                                </th>
                                                                                 <th className="text-center" width="17%">
                                                                                     <i className="fas fa-sticky-note mr-1"></i>หมายเหตุ
                                                                                 </th>
@@ -2060,6 +2060,17 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                                                     </select>
                                                                                                 </td>
                                                                                                 <td className="p-2">
+                                                                                                    <select
+                                                                                                        className="form-control form-control-sm"
+                                                                                                        value={editingData?.socialSecurityCheck || ''}
+                                                                                                        onChange={(e) => setEditingData({...editingData, socialSecurityCheck: e.target.value})}
+                                                                                                    >
+                                                                                                        <option value="">ไม่ระบุ</option>
+                                                                                                        <option value="yes">คิดประกันสังคม</option>
+                                                                                                        <option value="no">ไม่คิดประกันสังคม</option>
+                                                                                                    </select>
+                                                                                                </td>
+                                                                                                <td className="p-2">
                                                                                                     <input
                                                                                                         type="text"
                                                                                                         className="form-control form-control-sm"
@@ -2111,7 +2122,7 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                                                 <span className="">ผ่อนจ่าย</span>
                                                                                             )}
                                                                                         </td>
-                                                                                        {/* <td className="text-center p-3">
+                                                                                        <td className="text-center p-3">
                                                                                            
                                                                                             {(item.socialSecurityCheck === true || item.socialSecurityCheck === "yes" || item.socialSecurityCheck === "คิด") && (
                                                                                                 <span className="badge badge-success">คิดประกันสังคม</span>
@@ -2122,7 +2133,7 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                                             {(item.socialSecurityCheck === null || item.socialSecurityCheck === undefined || item.socialSecurityCheck === "") && (
                                                                                                 <span className="badge badge-secondary">ไม่ระบุ</span>
                                                                                             )}
-                                                                                        </td> */}
+                                                                                        </td>
                                                                                         <td className="text-center p-3">
                                                                                             <small className="">
                                                                                                 {item.message || '-'}
@@ -2133,7 +2144,7 @@ const calculateRemaining = (totalAmount, totalPaid) => {
                                                                                                 <button
                                                                                                     type="button"
                                                                                                     className="btn btn-info btn-sm"
-                                                                                                    onClick={() => handleEditRow(index)}
+                                                                                                    onClick={() => handleEditRow2(index)}
                                                                                                     title="แก้ไขรายการ"
                                                                                                 >
                                                                                                     <i className="fas fa-edit"></i>

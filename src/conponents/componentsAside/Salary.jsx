@@ -669,6 +669,40 @@ const handleWorkplace = async (event) => {
     }
   }, [selectedDateSalaryupdate]);
 
+  // 🔄 Auto-fill employee data when typing employeeId manually
+  useEffect(() => {
+    // ถ้า employeeId ว่างหรือสั้นกว่า 3 ตัวอักษร ไม่ต้อง fetch
+    if (!employeeData.employeeId || employeeData.employeeId.length < 3) {
+      return;
+    }
+
+    // ใช้ debounce เพื่อลด API calls ระหว่างพิมพ์
+    const timeoutId = setTimeout(async () => {
+      try {
+        console.log(`🔍 Auto-fetching employee data for ID: ${employeeData.employeeId}`);
+        
+        const response = await axios.get(`${endpoint}/employee/${employeeData.employeeId}`);
+        
+        if (response.data) {
+          console.log('✅ Employee found, auto-filling salary form...', response.data);
+          
+          // เรียกใช้ onEmployeeSelect ที่มีอยู่แล้ว เพื่อ fill ข้อมูลทั้งหมด
+          await onEmployeeSelect(response.data);
+        }
+      } catch (error) {
+        if (error.response?.status === 404) {
+          console.log('❌ Employee not found with ID:', employeeData.employeeId);
+          // ไม่ทำอะไร ให้ user พิมพ์ต่อได้
+        } else {
+          console.error('Error fetching employee:', error);
+        }
+      }
+    }, 800); // รอ 800ms หลังจากหยุดพิมพ์
+
+    // Cleanup function - ยกเลิก timeout ถ้า employeeId เปลี่ยนก่อนหมดเวลา
+    return () => clearTimeout(timeoutId);
+  }, [employeeData.employeeId]); // ทำงานทุกครั้งที่ employeeId เปลี่ยน
+
   const toggleDatePickerSalaryupdate = () => {
     setShowDatePickerSalaryupdate(!showDatePickerSalaryupdate);
   };
