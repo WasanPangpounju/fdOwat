@@ -1417,12 +1417,12 @@ await console.log('countDay '+ countDay + ' dayOffSumWork ' + dayOffSumWork  + '
 console.log('workDaySocial '+ (workDaySocial * salary) + 'sumSocial '+ sumSocial );
 
 // ============= เริ่มการคำนวณฐานประกันสังคมแบบใหม่ =============
-// ขั้นตอน 1: หักรายการ id 2222, 2116 ออกจากฐานประกันสังคมก่อน
+// ขั้นตอน 1: หักรายการที่ต้องหักออกจากฐานประกันสังคมก่อน
 console.log('\n📊 === การคำนวณฐานประกันสังคม ===');
 console.log('ฐานประกันสังคมเริ่มต้น:', sumSocial);
 
 let deductFromSocial = 0;
-const deductIdsForSocial = ['2222', '2116'];
+const deductIdsForSocial = await fetchDedutIds(); // ดึงจาก API
 
 // วนหาค่าหักที่ต้องลบออกจากฐานประกันสังคม
 if (deductSalaryList && deductSalaryList.length > 0) {
@@ -1436,7 +1436,7 @@ if (deductSalaryList && deductSalaryList.length > 0) {
 }
 
 // ขั้นตอน 2: คำนวณฐานประกันสังคมใหม่
-console.log('รวมรายการหัก (2222, 2116):', deductFromSocial);
+console.log(`รวมรายการหัก (${deductIdsForSocial.join(', ')}):`, deductFromSocial);
 sumSocial = sumSocial - deductFromSocial;
 console.log('ฐานประกันสังคมหลังหักรายการพิเศษ:', sumSocial);
 // ============= สิ้นสุดการคำนวณฐานประกันสังคมแบบใหม่ =============
@@ -2562,7 +2562,7 @@ if(! dayW.includes( getDayNumberFromDate( responseConclude.data.recordConclude[c
     console.log('ฐานประกันสังคมเริ่มต้น:', sumSocial);
     
     let deductFromSocial = 0;
-    const deductIdsForSocial = ['2222', '2116'];
+    const deductIdsForSocial = await fetchDedutIds(); // ดึงจาก API
     
     // วนหาค่าหักที่ต้องลบออกจากฐานประกันสังคม
     if (deductSalaryList && deductSalaryList.length > 0) {
@@ -2576,7 +2576,7 @@ if(! dayW.includes( getDayNumberFromDate( responseConclude.data.recordConclude[c
     }
     
     // คำนวณฐานประกันสังคมใหม่
-    console.log('รวมรายการหัก (2222, 2116):', deductFromSocial);
+    console.log(`รวมรายการหัก (${deductIdsForSocial.join(', ')}):`, deductFromSocial);
     sumSocial = sumSocial - deductFromSocial;
     console.log('ฐานประกันสังคมหลังหักรายการพิเศษ:', sumSocial);
     // ============= สิ้นสุดการคำนวณฐานประกันสังคมแบบใหม่ =============
@@ -4559,7 +4559,7 @@ console.log('\n📊 === การคำนวณฐานประกันส�
 console.log('ฐานประกันสังคมเริ่มต้น:', sumSocial);
 
 let deductFromSocial = 0;
-const deductIdsForSocial = ['2222', '2116'];
+const deductIdsForSocial = await fetchDedutIds(); // ดึงจาก API
 
 // วนหาค่าหักที่ต้องลบออกจากฐานประกันสังคม
 if (deductSalaryList && deductSalaryList.length > 0) {
@@ -4573,7 +4573,7 @@ if (deductSalaryList && deductSalaryList.length > 0) {
 }
 
 // คำนวณฐานประกันสังคมใหม่
-console.log('รวมรายการหัก (2222, 2116):', deductFromSocial);
+console.log(`รวมรายการหัก (${deductIdsForSocial.join(', ')}):`, deductFromSocial);
 sumSocial = sumSocial - deductFromSocial;
 console.log('ฐานประกันสังคมหลังหักรายการพิเศษ:', sumSocial);
 // ============= สิ้นสุดการคำนวณฐานประกันสังคมแบบใหม่ =============
@@ -8266,7 +8266,7 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
                   
     
     console.log(`💰 - เงินเดือนพื้นฐาน: ${parseFloat(salaryMonth || 0)} บาท`);
-    console.log(`💰 - หักรายการพิเศษ (2222, 2116): -${parseFloat(deductSalarySocialSecurity || 0)} บาท`);
+    console.log(`💰 - หักรายการพิเศษ (${DedutIds.join(', ')}): -${parseFloat(deductSalarySocialSecurity || 0)} บาท`);
     console.log(`💰 - เงินพิเศษที่คิดประกันสังคม: +${parseFloat(addSalarySocialSecurity || 0)} บาท`);
     console.log(`💰 - (เงินวันหยุดกำหนดเอง: ${parseFloat(cashcustomizeDayoff || 0)} บาท - อยู่ในเงินพิเศษแล้ว)`);
     console.log(`💰 - (เงินวันหยุดนักขัติฤกษ์: ${parseFloat(publicHolidayCash || 0)} บาท - อยู่ในเงินพิเศษแล้ว)`);
