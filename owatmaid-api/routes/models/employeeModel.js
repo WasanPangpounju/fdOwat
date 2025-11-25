@@ -296,6 +296,10 @@ const employeeSchema = new mongoose.Schema({
     branchBank: { // สาขาธนาคาร
       type: String,
     },
+     ApplyeveryDay: {
+    type: Boolean,
+    default: false
+  },
     idLine: {
       type: String,
     },

@@ -183,6 +183,10 @@ const workplaceSchema = new mongoose.Schema({
   workRateDayoffRate: {
       type: String
   },
+  ApplyeveryDay: {
+    type: Boolean,
+    default: false
+  },
   // เพิ่มใน workplaceSchema
 employeeCompensation: {
   Rate21_30_31: { type: Number, default: 0 }, // เงินสงเคราะห์ลูกจ้าง วันที่ 21-30/31
@@ -236,6 +240,10 @@ employeeCompensation: {
   workcount5: String,
   workcount6: String,
   workcount7: String,
+   ApplyeveryDay: {
+    type: Boolean,
+    default: false
+  },
 
   addSalary: [{
       name: String,
