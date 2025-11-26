@@ -787,7 +787,13 @@ if(promise) {
         if(response.data.addSalary[k].roundOfSalary == "daily" ) {
           if( response.data.addSalary[k].SpSalary !== "") {
             let dailyTmp = await response.data.addSalary[k];
-            dailyTmp.message = await countDay;
+            // ✅ ตรวจสอบว่าเป็นหน่วยงาน 10806 หรือไม่
+            if (data.workplace === '10806') {
+              dailyTmp.message = "1";  // หน่วยงาน 10806 ใช้ message = 1
+              console.log(`✅ [ACCOUNT-10806] สวัสดิการรายวัน ID:${dailyTmp.id} - message = 1`);
+            } else {
+              dailyTmp.message = await countDay;  // หน่วยงานอื่นใช้ countDay ตามปกติ
+            }
             await addSalaryList.push(dailyTmp);
           }
 
@@ -1232,7 +1238,13 @@ console.log(addSalaryDayArray.length);
 for (let k = 0; k < (response?.data?.addSalary?.length || 0); k++) {
   if(response.data.addSalary[k].roundOfSalary == "daily" && response.data.addSalary[k].SpSalary !== "") {
     let dailyTmp = await {...response.data.addSalary[k]};
-    dailyTmp.message = await countDay;
+    // ✅ ตรวจสอบว่าเป็นหน่วยงาน 10806 หรือไม่
+    if (data.workplace === '10806') {
+      dailyTmp.message = "1";  // หน่วยงาน 10806 ใช้ message = 1
+      console.log(`✅ [ACCOUNT-10806-Loop2] สวัสดิการรายวัน ID:${dailyTmp.id} - message = 1`);
+    } else {
+      dailyTmp.message = await countDay;  // หน่วยงานอื่นใช้ countDay ตามปกติ
+    }
     await addSalaryList.push(dailyTmp);
   }
 }
@@ -4141,7 +4153,13 @@ if(promise) {
         if(response.data.addSalary[k].roundOfSalary == "daily" ) {
           if( response.data.addSalary[k].SpSalary !== "") {
             let dailyTmp = await response.data.addSalary[k];
-            dailyTmp.message = await countDay;
+            // ✅ ตรวจสอบว่าเป็นหน่วยงาน 10806 หรือไม่
+            if (data.workplace === '10806') {
+              dailyTmp.message = "1";  // หน่วยงาน 10806 ใช้ message = 1
+              console.log(`✅ [ACCOUNT-10806-Loop3] สวัสดิการรายวัน ID:${dailyTmp.id} - message = 1`);
+            } else {
+              dailyTmp.message = await countDay;  // หน่วยงานอื่นใช้ countDay ตามปกติ
+            }
             await addSalaryList.push(dailyTmp);
           }
 
