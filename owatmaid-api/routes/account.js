@@ -6049,11 +6049,21 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         if (workplaceId === '10806' && record.addSalaryList) {
           console.log(`🏢 พบพนักงานหน่วยงาน 10806: ${record.employeeId}`);
           
-          // นับจำนวนวันที่ทำงานจริง (มี allTimes > 0) = dayWorkCount
+          // นับจำนวนวันที่ทำงานจริง (มี totalTime > 0 หรือ allTimes > 0) = dayWorkCount
           let dayWorkCount = 0;
           if (record.employee_record && Array.isArray(record.employee_record)) {
-            dayWorkCount = record.employee_record.filter(day => parseFloat(day.allTimes || 0) > 0).length;
+            dayWorkCount = record.employee_record.filter(day => {
+              const totalTime = parseFloat(day.totalTime || day.allTimes || 0);
+              return totalTime > 0;
+            }).length;
           }
+          
+          // ถ้ายังได้ 0 ให้ลองใช้ dayWorkCount จาก record
+          if (dayWorkCount === 0 && record.dayWorkCount) {
+            dayWorkCount = parseInt(record.dayWorkCount) || 0;
+            console.log(`📊 ใช้ dayWorkCount จาก record: ${dayWorkCount} วัน`);
+          }
+          
           console.log(`📊 จำนวนวันทำงานจริง (dayWorkCount): ${dayWorkCount} วัน`);
           
           // ปรับ message เป็น dayWorkCount และ SpSalary ให้เป็นค่าต่อวัน สำหรับสวัสดิการที่มี roundOfSalary เป็น "daily"
