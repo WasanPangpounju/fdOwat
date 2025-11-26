@@ -13,7 +13,93 @@ const welfare = require('./models/welfareModel');
 
 const axios = require('axios');
 
+// Cache สำหรับเก็บ taxableIds เพื่อลดการเรียก API ซ้ำๆ
+let cachedTaxableIds = null;
+let cacheTimestamp = null;
+const CACHE_DURATION = 30 * 100; // 30 วินาที (ลดจาก 5 นาที)
 
+// Cache สำหรับเก็บ DedutIds
+let cachedDedutIds = null;
+let cacheDedutTimestamp = null;
+
+// ฟังก์ชันสำหรับ clear cache (เรียกใช้เมื่อต้องการอัพเดทข้อมูลทันที)
+function clearTaxableIdsCache() {
+  cachedTaxableIds = null;
+  cacheTimestamp = null;
+  console.log('🔄 ล้าง cache taxableIds แล้ว');
+}
+
+function clearDedutIdsCache() {
+  cachedDedutIds = null;
+  cacheDedutTimestamp = null;
+  console.log('🔄 ล้าง cache DedutIds แล้ว');
+}
+
+function clearAllCache() {
+  clearTaxableIdsCache();
+  clearDedutIdsCache();
+  console.log('🔄 ล้าง cache ทั้งหมดแล้ว');
+}
+
+// ฟังก์ชันดึงข้อมูล taxableIds จาก API
+async function fetchTaxableIds() {
+  // ตรวจสอบ cache ก่อน
+  const now = Date.now();
+  if (cachedTaxableIds && cacheTimestamp && (now - cacheTimestamp < CACHE_DURATION)) {
+    console.log(`✅ ใช้ taxableIds จาก cache (${cachedTaxableIds.length} รายการ)`);
+    return cachedTaxableIds;
+  }
+
+  try {
+    const response = await axios.get('http://10.10.110.7:3000/employee/social-security-checked');
+    if (response.data && response.data.summary && response.data.summary.uniqueIdList) {
+      cachedTaxableIds = response.data.summary.uniqueIdList;
+      cacheTimestamp = Date.now();
+      console.log(`✅ ดึง taxableIds จาก API สำเร็จ: ${cachedTaxableIds.length} รายการ`);
+      return cachedTaxableIds;
+    }
+    console.warn('⚠️ ไม่พบข้อมูล uniqueIdList จาก API, ใช้ค่า default');
+    return [];
+  } catch (error) {
+    console.error('❌ Error fetching taxableIds from API:', error.message);
+    // fallback to cached data if available
+    if (cachedTaxableIds) {
+      console.warn('⚠️ ใช้ข้อมูล cache เดิมแทน');
+      return cachedTaxableIds;
+    }
+    return [];
+  }
+}
+
+// ฟังก์ชันดึงข้อมูล DedutIds จาก API
+async function fetchDedutIds() {
+  // ตรวจสอบ cache ก่อน
+  const now = Date.now();
+  if (cachedDedutIds && cacheDedutTimestamp && (now - cacheDedutTimestamp < CACHE_DURATION)) {
+    console.log(`✅ ใช้ DedutIds จาก cache (${cachedDedutIds.length} รายการ)`);
+    return cachedDedutIds;
+  }
+
+  try {
+    const response = await axios.get('http://10.10.110.7:3000/employee/Deduct-social-security-checked');
+    if (response.data && response.data.summary && response.data.summary.uniqueIdList) {
+      cachedDedutIds = response.data.summary.uniqueIdList;
+      cacheDedutTimestamp = Date.now();
+      console.log(`✅ ดึง DedutIds จาก API สำเร็จ: ${cachedDedutIds.length} รายการ`);
+      return cachedDedutIds;
+    }
+    console.warn('⚠️ ไม่พบข้อมูล uniqueIdList สำหรับ DedutIds จาก API, ใช้ค่า default');
+    return ["2116", "2222"]; // fallback เดิม
+  } catch (error) {
+    console.error('❌ Error fetching DedutIds from API:', error.message);
+    // fallback to cached data if available
+    if (cachedDedutIds) {
+      console.warn('⚠️ ใช้ข้อมูล cache เดิมแทน');
+      return cachedDedutIds;
+    }
+    return ["2116", "2222"]; // fallback เดิม
+  }
+}
 
 const getDayNumberFromName = (dayName) => {
   const daysMap = {
@@ -1350,12 +1436,12 @@ await console.log('countDay '+ countDay + ' dayOffSumWork ' + dayOffSumWork  + '
 console.log('workDaySocial '+ (workDaySocial * salary) + 'sumSocial '+ sumSocial );
 
 // ============= เริ่มการคำนวณฐานประกันสังคมแบบใหม่ =============
-// ขั้นตอน 1: หักรายการ id 2222, 2116 ออกจากฐานประกันสังคมก่อน
+// ขั้นตอน 1: หักรายการที่ต้องหักออกจากฐานประกันสังคมก่อน
 console.log('\n📊 === การคำนวณฐานประกันสังคม ===');
 console.log('ฐานประกันสังคมเริ่มต้น:', sumSocial);
 
 let deductFromSocial = 0;
-const deductIdsForSocial = ['2222', '2116'];
+const deductIdsForSocial = await fetchDedutIds(); // ดึงจาก API
 
 // วนหาค่าหักที่ต้องลบออกจากฐานประกันสังคม
 if (deductSalaryList && deductSalaryList.length > 0) {
@@ -1369,7 +1455,7 @@ if (deductSalaryList && deductSalaryList.length > 0) {
 }
 
 // ขั้นตอน 2: คำนวณฐานประกันสังคมใหม่
-console.log('รวมรายการหัก (2222, 2116):', deductFromSocial);
+console.log(`รวมรายการหัก (${deductIdsForSocial.join(', ')}):`, deductFromSocial);
 sumSocial = sumSocial - deductFromSocial;
 console.log('ฐานประกันสังคมหลังหักรายการพิเศษ:', sumSocial);
 // ============= สิ้นสุดการคำนวณฐานประกันสังคมแบบใหม่ =============
@@ -2495,7 +2581,7 @@ if(! dayW.includes( getDayNumberFromDate( responseConclude.data.recordConclude[c
     console.log('ฐานประกันสังคมเริ่มต้น:', sumSocial);
     
     let deductFromSocial = 0;
-    const deductIdsForSocial = ['2222', '2116'];
+    const deductIdsForSocial = await fetchDedutIds(); // ดึงจาก API
     
     // วนหาค่าหักที่ต้องลบออกจากฐานประกันสังคม
     if (deductSalaryList && deductSalaryList.length > 0) {
@@ -2509,7 +2595,7 @@ if(! dayW.includes( getDayNumberFromDate( responseConclude.data.recordConclude[c
     }
     
     // คำนวณฐานประกันสังคมใหม่
-    console.log('รวมรายการหัก (2222, 2116):', deductFromSocial);
+    console.log(`รวมรายการหัก (${deductIdsForSocial.join(', ')}):`, deductFromSocial);
     sumSocial = sumSocial - deductFromSocial;
     console.log('ฐานประกันสังคมหลังหักรายการพิเศษ:', sumSocial);
     // ============= สิ้นสุดการคำนวณฐานประกันสังคมแบบใหม่ =============
@@ -3647,7 +3733,8 @@ async function checkCalSocial(id) {
 // }
 
 async function checkCalTax(id) {
-  const idList = await ["1110","1445","1120","1130","1530","1140","1150","1230","1231","1233","1241","1242","1251","1350","1422","1423","1428","1434","1440","1441","1444","1445","1446","1520","1522","1524","1525","1526","1528","1540","1541","1550","1447","1613","1561","1542","1529","1531","1532","1533","1534","1435","1429","1427","1412","1245","1234","1159","2111","2113","2116","2117","2120","2124","2160","2430","1190","1211","1212","1214","1235","1236","1243","1351","1411","1425","1426","1431","1448","1449","1527","1562","2114","2123","1543","1443","1544"];
+  // ดึงรายการ ID จาก API
+  const idList = await fetchTaxableIds();
   
   const idToCheck = await id;
   
@@ -4491,7 +4578,7 @@ console.log('\n📊 === การคำนวณฐานประกันส�
 console.log('ฐานประกันสังคมเริ่มต้น:', sumSocial);
 
 let deductFromSocial = 0;
-const deductIdsForSocial = ['2222', '2116'];
+const deductIdsForSocial = await fetchDedutIds(); // ดึงจาก API
 
 // วนหาค่าหักที่ต้องลบออกจากฐานประกันสังคม
 if (deductSalaryList && deductSalaryList.length > 0) {
@@ -4505,7 +4592,7 @@ if (deductSalaryList && deductSalaryList.length > 0) {
 }
 
 // คำนวณฐานประกันสังคมใหม่
-console.log('รวมรายการหัก (2222, 2116):', deductFromSocial);
+console.log(`รวมรายการหัก (${deductIdsForSocial.join(', ')}):`, deductFromSocial);
 sumSocial = sumSocial - deductFromSocial;
 console.log('ฐานประกันสังคมหลังหักรายการพิเศษ:', sumSocial);
 // ============= สิ้นสุดการคำนวณฐานประกันสังคมแบบใหม่ =============
@@ -6401,7 +6488,8 @@ let timeCashWorkMul = {
         console.log(`📅 จำนวนวันหยุดที่กำหนดทั้งหมด: ${stopDaysList.length} วัน`);
         
         // ตรวจสอบการมาทำงานในวันหยุด
-        let workedOnStopDays = 0;
+        let workedOnStopDays = 0; // จำนวนวันหยุดที่มาทำงาน (นับเป็นจำนวนครั้ง)
+        let workedOnStopDaysCount = 0; // จำนวนวันจริงๆ (รวม 0.5 วัน ถ้าทำงานไม่ครบ 8 ชม.)
         
         stopDaysList.forEach(stopDay => {
           // หาข้อมูลการทำงานของวันนั้น
@@ -6429,8 +6517,20 @@ let timeCashWorkMul = {
             const isCashHoliday = recordForDay.shift === 'cash_holiday';
             
             if (hasWorked && !isCashHoliday) {
-              workedOnStopDays++;
-              console.log(`✅ วันที่ ${stopDay.date}/${stopDay.month}/${stopDay.year} - มาทำงาน (${recordForDay.totalTime} ชม.) shift: ${recordForDay.shift || 'ไม่ระบุ'}`);
+              workedOnStopDays++; // นับจำนวนวันหยุดที่มาทำงาน
+              
+              // 🔧 คำนวณจำนวนวันที่แท้จริงตามชั่วโมงทำงาน
+              const workHours = parseFloat(recordForDay.totalTime);
+              let dayCount = 0;
+              if (workHours >= 8) {
+                dayCount = 1; // นับเป็น 1 วันเต็ม
+              } else if (workHours > 0 && workHours < 8) {
+                dayCount = 0.5; // นับเป็น 0.5 วัน
+              }
+              workedOnStopDaysCount += dayCount; // รวมจำนวนวันจริง
+              
+              console.log(`✅ วันที่ ${stopDay.date}/${stopDay.month}/${stopDay.year} - มาทำงาน (${recordForDay.totalTime} ชม. = ${dayCount} วัน) shift: ${recordForDay.shift || 'ไม่ระบุ'}`);
+              console.log(`   🔢 workedOnStopDaysCount สะสม: ${workedOnStopDaysCount} วัน`);
             } else if (hasWorked && isCashHoliday) {
               console.log(`⚠️ วันที่ ${stopDay.date}/${stopDay.month}/${stopDay.year} - มาทำงานแต่เป็น cash_holiday ไม่นับ (${recordForDay.totalTime} ชม.) shift: ${recordForDay.shift}`);
             } else {
@@ -6446,29 +6546,44 @@ let timeCashWorkMul = {
         
         console.log(`\n📊 === สรุปการมาทำงานในวันหยุด ===`);
         console.log(`📅 จำนวนวันหยุดทั้งหมด: ${stopDaysList.length} วัน`);
-        console.log(`✅ มาทำงานในวันหยุด: ${workedOnStopDays} วัน`);
+        console.log(`✅ มาทำงานในวันหยุด: ${workedOnStopDays} วัน (จำนวนครั้ง)`);
+        console.log(`🔢 จำนวนวันจริง (รวม 0.5 วัน): ${workedOnStopDaysCount} วัน`);
         console.log(`🔢 กำหนดค่า customizeDayoff = ${customizeDayoff}`);
+        console.log(`\n🔍 === dayWorkCount ก่อนหักวันหยุด ===`);
+        console.log(`📊 dayWorkCount ปัจจุบัน: ${dayWorkCount} วัน`);
         
-        // สำหรับหน่วยงานพิเศษ: ปรับ dayWorkCount โดยหัก workedOnStopDays
+        // สำหรับหน่วยงานพิเศษ: ปรับ dayWorkCount โดยหัก workedOnStopDaysCount (จำนวนวันจริง)
         if (["5", "6", "7"].includes(workOfWeek)) {
           const originalDayWorkCount = dayWorkCount;
-          dayWorkCount = dayWorkCount - workedOnStopDays; // 🔧 แก้ไข: หัก workedOnStopDays
+          dayWorkCount = dayWorkCount - workedOnStopDaysCount; // 🔧 แก้ไข: หัก workedOnStopDaysCount (จำนวนวันจริง)
           console.log(`\n🔄 === ปรับ dayWorkCount สำหรับหน่วยงาน ${workOfWeek} วัน ===`);
           console.log(`📊 dayWorkCount เดิม: ${originalDayWorkCount} วัน`);
-          console.log(`📊 workedOnStopDays: ${workedOnStopDays} วัน`);
+          console.log(`📊 workedOnStopDaysCount: ${workedOnStopDaysCount} วัน (จำนวนวันจริง)`);
           console.log(`📊 dayWorkCount ใหม่: ${dayWorkCount} วัน`);
-          console.log(`📝 สูตร: dayWorkCount - workedOnStopDays = ${originalDayWorkCount} - ${workedOnStopDays} = ${dayWorkCount}`);
+          console.log(`📝 สูตร: dayWorkCount - workedOnStopDaysCount = ${originalDayWorkCount} - ${workedOnStopDaysCount} = ${dayWorkCount}`);
         } else {
           // 🔧 แก้ไข: สำหรับหน่วยงานปกติ ให้ใช้วิธีการคำนวณ customizeDayoff จากจำนวนวันที่มาทำงานใน dayType: "stop"
           console.log(`\n🔄 === คำนวณ customizeDayoff สำหรับหน่วยงานปกติ ===`);
-          let stopDayWorkCount = 0;
+          let stopDayWorkCount = 0; // จำนวนวันหยุดที่มาทำงาน (นับเป็นจำนวนครั้ง)
+          let stopDayWorkDaysCount = 0; // จำนวนวันจริงๆ (รวม 0.5 วัน)
           
           employee_record.forEach(record => {
             if (record.dayType === "stop" && record.totalTime && 
                 record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0 &&
                 record.shift !== 'cash_holiday') { // เพิ่มเงื่อนไขไม่นับ cash_holiday
               stopDayWorkCount++;
-              console.log(`✅ วันที่ ${record.date} - dayType: "stop" มีการทำงาน (${record.totalTime} ชม.) shift: ${record.shift || 'ไม่ระบุ'}`);
+              
+              // 🔧 คำนวณจำนวนวันจริงตามชั่วโมงทำงาน
+              const workHours = parseFloat(record.totalTime);
+              let dayCount = 0;
+              if (workHours >= 8) {
+                dayCount = 1; // นับเป็น 1 วันเต็ม
+              } else if (workHours > 0 && workHours < 8) {
+                dayCount = 0.5; // นับเป็น 0.5 วัน
+              }
+              stopDayWorkDaysCount += dayCount;
+              
+              console.log(`✅ วันที่ ${record.date} - dayType: "stop" มีการทำงาน (${record.totalTime} ชม. = ${dayCount} วัน) shift: ${record.shift || 'ไม่ระบุ'}`);
             } else if (record.dayType === "stop" && record.totalTime && 
                       record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0 &&
                       record.shift === 'cash_holiday') {
@@ -6478,6 +6593,14 @@ let timeCashWorkMul = {
           
           customizeDayoff = stopDayWorkCount;
           console.log(`🔢 หน่วยงานปกติ - กำหนดค่า customizeDayoff = ${customizeDayoff} (จากการนับ dayType: "stop" ที่มีการทำงาน)`);
+          console.log(`🔢 จำนวนวันจริง (รวม 0.5 วัน): ${stopDayWorkDaysCount} วัน`);
+          
+          // 🔧 หัก dayWorkCount ด้วยจำนวนวันจริง
+          if (stopDayWorkDaysCount > 0) {
+            const originalDayWorkCount = dayWorkCount;
+            dayWorkCount = dayWorkCount - stopDayWorkDaysCount;
+            console.log(`🔄 ปรับ dayWorkCount: ${originalDayWorkCount} - ${stopDayWorkDaysCount} = ${dayWorkCount} วัน`);
+          }
         }
         
         // คำนวณค่าแรงสำหรับวันหยุดที่มาทำงาน (ถ้าต้องการ)
@@ -7120,6 +7243,9 @@ if (record?.dayType === "work") {
     dayWorkCount += dayCount;
     countedWorkDates.add(record.date);
     console.log(`✅ นับวันที่ ${record.date} เป็นวันทำงาน (dayType: ${record.dayType}, shift: ${record.shift}, ชั่วโมง: ${workHours}, นับ: ${dayCount} วัน, dayWorkCount รวม = ${dayWorkCount})`);
+    
+    // 🔍 แสดงรายการวันที่นับไปแล้วทั้งหมด
+    console.log(`   📋 วันที่นับแล้ว: [${Array.from(countedWorkDates).join(', ')}]`);
   } else if (countedWorkDates.has(record.date)) {
     console.log(`⚠️ วันที่ ${record.date} ถูกนับแล้ว ข้ามการนับวัน`);
   } else if (isSpecialShift) {
@@ -8022,10 +8148,12 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
   console.log(`🔍 ยอดรวมเงินพิเศษที่คิดประกันสังคม: ${addSalarySocialSecurity} บาท`);
   
   console.log(`\n🔍 === รายการ ID ที่คิดประกันสังคม ===`);
-  const taxableIds = ["1110","1445","1423","1120","1130","1530","1140","1150","1210","1230","1231","1233","1241","1242","1251","1350","1422","1423","1428","1434","1440","1441","1444","1445","1446","1520","1522","1524","1525","1526","1528","1540","1541","1550","1447","1613","1561","1542","1529","1531","1532","1533","1534","1435","1429","1427","1412","1245","1234","1159","2111","2113","2116","2117","2120","2124","2160","2430","1190","1211","1212","1214","1235","1236","1243","1351","1411","1425","1426","1431","1448","1449","1527","1562","2114","2123","1543","1443","1544"];
-  const DedutIds = ["2116", "2222"];
-  console.log(`🔍 ID ที่คิดประกันสังคม: ${taxableIds.join(', ')}`);
-  console.log(`🔍 ID ที่ต้องหักออกจากฐานประกันสังคม: ${DedutIds.join(', ')}`);
+  // ดึง taxableIds จาก API แทน hardcode
+  const taxableIds = await fetchTaxableIds();
+  // ดึง DedutIds จาก API แทน hardcode
+  const DedutIds = await fetchDedutIds();
+  console.log(`🔍 ID ที่คิดประกันสังคม (จาก API): ${taxableIds.join(', ')}`);
+  console.log(`🔍 ID ที่ต้องหักออกจากฐานประกันสังคม (จาก API): ${DedutIds.join(', ')}`);
   console.log(`🔍 ===============================================\n`);
 
   // 🔍 คำนวณรายการหักที่ต้องลบออกจากฐานประกันสังคม
@@ -8157,7 +8285,7 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
                   
     
     console.log(`💰 - เงินเดือนพื้นฐาน: ${parseFloat(salaryMonth || 0)} บาท`);
-    console.log(`💰 - หักรายการพิเศษ (2222, 2116): -${parseFloat(deductSalarySocialSecurity || 0)} บาท`);
+    console.log(`💰 - หักรายการพิเศษ (${DedutIds.join(', ')}): -${parseFloat(deductSalarySocialSecurity || 0)} บาท`);
     console.log(`💰 - เงินพิเศษที่คิดประกันสังคม: +${parseFloat(addSalarySocialSecurity || 0)} บาท`);
     console.log(`💰 - (เงินวันหยุดกำหนดเอง: ${parseFloat(cashcustomizeDayoff || 0)} บาท - อยู่ในเงินพิเศษแล้ว)`);
     console.log(`💰 - (เงินวันหยุดนักขัติฤกษ์: ${parseFloat(publicHolidayCash || 0)} บาท - อยู่ในเงินพิเศษแล้ว)`);
