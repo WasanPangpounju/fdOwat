@@ -6049,32 +6049,33 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         if (workplaceId === '10806' && record.addSalaryList) {
           console.log(`🏢 พบพนักงานหน่วยงาน 10806: ${record.employeeId}`);
           
-          // นับจำนวนวันที่ทำงานจริง (มี allTimes > 0)
-          let workDaysCount = 0;
+          // นับจำนวนวันที่ทำงานจริง (มี allTimes > 0) = dayWorkCount
+          let dayWorkCount = 0;
           if (record.employee_record && Array.isArray(record.employee_record)) {
-            workDaysCount = record.employee_record.filter(day => parseFloat(day.allTimes || 0) > 0).length;
+            dayWorkCount = record.employee_record.filter(day => parseFloat(day.allTimes || 0) > 0).length;
           }
-          console.log(`📊 จำนวนวันทำงานจริง: ${workDaysCount} วัน`);
+          console.log(`📊 จำนวนวันทำงานจริง (dayWorkCount): ${dayWorkCount} วัน`);
           
-          // ปรับ message เป็น "1" และ SpSalary ให้เป็นค่าต่อวัน สำหรับสวัสดิการที่มี roundOfSalary เป็น "daily"
+          // ปรับ message เป็น dayWorkCount และ SpSalary ให้เป็นค่าต่อวัน สำหรับสวัสดิการที่มี roundOfSalary เป็น "daily"
           let updatedCount = 0;
           record.addSalaryList = record.addSalaryList.map(item => {
-            if (item.roundOfSalary === 'daily' && item.message !== '1') {
+            if (item.roundOfSalary === 'daily' && parseFloat(item.message || 0) !== dayWorkCount) {
               const originalMessage = item.message;
               const originalSpSalary = parseFloat(item.SpSalary || 0);
-              const originalDays = parseFloat(originalMessage || workDaysCount || 1);
+              const originalDays = parseFloat(originalMessage || dayWorkCount || 1);
               
-              // คำนวณ SpSalary ต่อวัน = ยอดรวม / จำนวนวัน
+              // คำนวณ SpSalary ต่อวัน = ยอดรวม / จำนวนวันเดิม
               const spSalaryPerDay = originalDays > 0 ? (originalSpSalary / originalDays) : originalSpSalary;
               
               console.log(`✅ [ACCOUNT-10806] ปรับ ${item.name} (ID:${item.id}):`);
-              console.log(`   - message: "${originalMessage}" → "1"`);
-              console.log(`   - SpSalary: "${originalSpSalary}" (${originalDays} วัน) → "${spSalaryPerDay.toFixed(2)}" (1 วัน)`);
+              console.log(`   - message: "${originalMessage}" → "${dayWorkCount}"`);
+              console.log(`   - SpSalary: "${originalSpSalary}" (${originalDays} วัน) → "${spSalaryPerDay.toFixed(2)}" (ต่อวัน)`);
+              console.log(`   - ยอดรวมใหม่: ${spSalaryPerDay.toFixed(2)} × ${dayWorkCount} = ${(spSalaryPerDay * dayWorkCount).toFixed(2)}`);
               
               updatedCount++;
               return { 
                 ...item, 
-                message: '1',
+                message: dayWorkCount.toString(),  // ✅ ใช้ dayWorkCount แทน "1"
                 SpSalary: spSalaryPerDay.toFixed(2)
               };
             }
@@ -6083,6 +6084,8 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           
           if (updatedCount > 0) {
             console.log(`✅ [ACCOUNT-10806] อัปเดตสำเร็จ ${updatedCount} รายการสำหรับพนักงาน ${record.employeeId}`);
+          } else {
+            console.log(`ℹ️ [ACCOUNT-10806] ไม่มีรายการที่ต้องอัปเดตสำหรับพนักงาน ${record.employeeId}`);
           }
         }
       } catch (error) {
