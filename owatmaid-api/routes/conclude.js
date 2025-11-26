@@ -2762,7 +2762,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
 
   // ตรวจสอบว่าเป็นพนักงานเงินเดือนหรือไม่ โดยดึงข้อมูลจาก Employee API
   try {
-    const employeeApiUrl = `http://10.10.110.7:3000/employees/search`;
+    const employeeApiUrl = `http://10.10.110.7:3000/employee/search`;
     console.log(`\n🔍 ดึงข้อมูลพนักงานจาก: ${employeeApiUrl} (employeeId: ${employeeId})`);
     
     const employeeResponse = await axios.post(employeeApiUrl, { employeeId: employeeId });
