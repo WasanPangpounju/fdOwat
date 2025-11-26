@@ -1409,7 +1409,7 @@ const BankReportPDF = () => {
             <i className="fas fa-home"></i> <a href="index.php">หน้าหลัก</a>
           </li>
           <li className="breadcrumb-item">
-            <a href="#"> ระบบเงินเดือน</a>
+            <a href="#"> ระบบผู้บริหาร</a>
           </li>
           <li className="breadcrumb-item active">ออกรายงานธนาคาร</li>
         </ol>

@@ -8618,23 +8618,23 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
     //   <div class="wrapper">
     //     <div class="content-wrapper">
     <div className="hold-transition sidebar-mini editlaout">
-    <div className="wrapper">
-      <div className="content-wrapper">
+      <div className="wrapper">
+        <div className="content-wrapper">
 
           {/* <!-- Content Header (Page header) --> */}
-          <ol class="breadcrumb">
-            <li class="breadcrumb-item">
+          <ol className="breadcrumb">
+            <li className="breadcrumb-item">
               <i class="fas fa-home"></i> <a href="index.php">หน้าหลัก</a>
             </li>
-            <li class="breadcrumb-item">
+            <li className="breadcrumb-item">
               <a href="#"> ระบบเงินเดือน</a>
             </li>
-            <li class="breadcrumb-item active">ตารางเวลาทำงานพนักงาน</li>
+            <li className="breadcrumb-item active">ตารางเวลาทำงานพนักงาน</li>
           </ol>
-          <div class="content-header">
-            <div class="container-fluid">
-              <div class="row mb-2">
-                <h1 class="m-0">
+          <div className="content-header">
+            <div className="container-fluid">
+              <div className="row mb-2">
+                <h1 className="m-0">
                   <i class="far fa-arrow-alt-circle-right"></i>{" "}
                   ตารางเวลาทำงานพนักงาน
                 </h1>
@@ -8644,20 +8644,21 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
           {/* <!-- /.content-header -->
 <!-- Main content --> */}
 
-<section class="content">
-            <div class="row">
-              <div class="col-12">
+<section className="content">
+            <div className="row">
+              <div className="col-12">
                 <section class="Frame">
                   <div class="col-md-12">
                     <h2 class="title">ค้นหา</h2>
                     <div class="px-3">
                       {/* <form onSubmit={handleSearch}> */}
-                      <form 
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          return false;
-                        }}
+                      <div style={{ margin: '0 auto', maxWidth: '1200px' }}>
+                        <form 
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            return false;
+                          }}
                       >
                         <div class="row">
                           <div class="col-md-3">
@@ -8962,23 +8963,31 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
 
                       {/* แสดงตารางทันที */}
                       {showTable && (
-                      <div className="pt-3">
-                          <div className="table " >
+                      <div className="pt-3" style={{ marginTop: '1rem' }}>
+                          <div className="table" style={{
+                            // overflowX: 'auto',
+                            width: '100%',
+                            maxWidth: '1200px', // ปรับขนาดตารางสูงสุด
+                            margin: '0 auto',   // จัดกลางและเว้นขอบซ้ายขวา
+                            padding: 0
+                          }}>
                           <table
-                      className="excel-style-table  "
+                      className="excel-style-table"
                       style={{
-                        fontSize: "8px",
-                        width: "100%",
-                        margin: "0 auto",
-                        borderCollapse: "collapse",
-                        border: "1px solid #000",
+                        fontSize: '8px',
+                        width: '100%',
+                        tableLayout: 'auto', // ให้ browser จัดขนาดคอลัมน์อัตโนมัติ
+                        borderCollapse: 'collapse',
+                        border: '1px solid #000',
+                        margin: '0 auto',
+                        padding: 0
                       }}
                     >
 
                               <thead>
                               {/* ---------------- แถวที่ 1 ---------------- */}
                               <tr>
-                                <th rowSpan="5" className="text-center" style={{width: "50px",minWidth: "50px",maxWidth: "50px"}}>ลำดับ</th>
+                                <th rowSpan="5" className="text-center">ลำดับ</th>
                                 <th rowSpan="4" colSpan="1" className="text-center">ชื่อ - สกุล</th>
                                 {dayNumbers.map((day, idx) => (
                                   <th 
@@ -8990,7 +8999,7 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                                     {day}
                                   </th>
                                 ))}
-                                <th rowSpan="4" className="vertical-text" style={{backgroundColor:'#fff7c2',width: "15px",minWidth: "10px",maxWidth: "20px"}}>รวมวันทำงาน</th>
+                                <th rowSpan="4" className="vertical-text" style={{backgroundColor:'#fff7c2'}}>รวมวันทำงาน</th>
 
                                 {/* ค่าล่วงเวลา → 5 คอลัมน์ */}
                                 <th style={{backgroundColor:'#fff7c2'}} colSpan="5" className="text-center align-middle">ค่าล่วงเวลา</th>
@@ -9005,16 +9014,16 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                               {/* ---------------- แถวที่ 2 ---------------- */}
                               <tr>
                                 {/* เพิ่ม style width ที่เท่ากันสำหรับแต่ละคอลัมน์โอที */}
-                                <th style={{backgroundColor:'#fff7c2', width: '30px', minWidth: '30px'}}>1441</th>
-                                <th style={{backgroundColor:'#fff7c2', width: '30px', minWidth: '30px'}}>1434</th>
-                                <th style={{backgroundColor:'#fff7c2', width: '30px', minWidth: '30px'}}>1130</th>
-                                <th style={{backgroundColor:'#fff7c2', width: '30px', minWidth: '30px'}}>1120</th>
-                                <th style={{backgroundColor:'#fff7c2', width: '30px', minWidth: '30px'}}>1140</th>
+                                <th style={{backgroundColor:'#fff7c2'}}>1441</th>
+                                <th style={{backgroundColor:'#fff7c2'}}>1434</th>
+                                <th style={{backgroundColor:'#fff7c2'}}>1130</th>
+                                <th style={{backgroundColor:'#fff7c2'}}>1120</th>
+                                <th style={{backgroundColor:'#fff7c2'}}>1140</th>
 
                                 {(() => {
                                   const mergedItems = mergeWorkplaceAddsalary(workplaceAddsalary);
                                   return mergedItems.map((item, i) => (
-                                    <th key={i} className="text-center" style={{width: '30px', minWidth: '30px'}}>
+                                    <th key={i} className="text-center" >
                                       {item.codeSpSalary} 
                                     </th>
                                   ));
@@ -9023,16 +9032,16 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
 
                               {/* ---------------- แถวที่ 3 ---------------- */}
                               <tr>
-                                <td className="text-bold align-middle" style={{backgroundColor:'#fff7c2', width: '30px', minWidth: '30px'}}>วัน</td>
-                                <td className="text-bold align-middle" style={{backgroundColor:'#fff7c2', width: '30px', minWidth: '30px'}}>วัน</td>
-                                <td className="text-bold align-middle" style={{backgroundColor:'#fff7c2', width: '30px', minWidth: '30px'}}>ชม</td>
-                                <td className="text-bold align-middle" style={{backgroundColor:'#fff7c2', width: '30px', minWidth: '30px'}}>ชม</td>
-                                <td className="text-bold align-middle" style={{backgroundColor:'#fff7c2', width: '30px', minWidth: '30px'}}>ชม</td>
+                                <td className="text-bold align-middle" style={{backgroundColor:'#fff7c2'}}>วัน</td>
+                                <td className="text-bold align-middle" style={{backgroundColor:'#fff7c2'}}>วัน</td>
+                                <td className="text-bold align-middle" style={{backgroundColor:'#fff7c2'}}>ชม</td>
+                                <td className="text-bold align-middle" style={{backgroundColor:'#fff7c2'}}>ชม</td>
+                                <td className="text-bold align-middle" style={{backgroundColor:'#fff7c2'}}>ชม</td>
                                 
                                 {(() => {
                                   const mergedItems = mergeWorkplaceAddsalary(workplaceAddsalary);
                                   return mergedItems.map((_, i) => (
-                                    <th key={i} style={{width: '30px', minWidth: '30px'}}></th>
+                                    <th key={i}></th>
                                   ));
                                 })()}
                               </tr>
@@ -9045,8 +9054,6 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                                     className="vertical-text align-middle" 
                                     style={{ 
                                       backgroundColor: '#fff7c2', 
-                                      width: '30px', 
-                                      minWidth: '30px',
                                       writingMode: 'vertical-rl',
                                       textOrientation: 'mixed'
                                     }}
@@ -9063,8 +9070,6 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                                       key={index} 
                                       className="vertical-text align-middle" 
                                       style={{ 
-                                        width: '30px', 
-                                        minWidth: '30px',
                                         writingMode: 'vertical-rl',
                                         textOrientation: 'mixed'
                                       }}
@@ -10993,6 +10998,7 @@ const found = record?.employee_record?.find(itemx => itemx.date === day);
 
                       
                     </form>
+                  </div>
 
                       {/* <button
                         onClick={generatePDFTest123}

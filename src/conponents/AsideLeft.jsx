@@ -339,7 +339,7 @@ function AsideLeft() {
                         <Link to="/bankReportExecutiveCommittee" className="nav-link"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px", marginLeft: '1rem' }}></i> ออกรายงานธนาคารผู้บริหาร</Link>
                       </li>
                      <li className="nav-item bg-success">
-                        <Link to="/bankReportExecutiveCommittee" className="nav-link"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px", marginLeft: '1rem' }}></i>ตาราง8</Link>
+                        <Link to="/WorktimeSheetWorkplaceExecutive" className="nav-link"><i className="nav-icon far fa-dot-circle" style={{ fontSize: "14px", marginLeft: '1rem' }}></i>ตาราง8</Link>
                       </li>
                       
                       <li className="nav-item">
