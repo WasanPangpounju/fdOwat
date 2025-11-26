@@ -6443,7 +6443,6 @@ let timeCashWorkMul = {
               workedOnStopDaysCount += dayCount; // รวมจำนวนวันจริง
               
               console.log(`✅ วันที่ ${stopDay.date}/${stopDay.month}/${stopDay.year} - มาทำงาน (${recordForDay.totalTime} ชม. = ${dayCount} วัน) shift: ${recordForDay.shift || 'ไม่ระบุ'}`);
-              console.log(`   🔢 workedOnStopDaysCount สะสม: ${workedOnStopDaysCount} วัน`);
             } else if (hasWorked && isCashHoliday) {
               console.log(`⚠️ วันที่ ${stopDay.date}/${stopDay.month}/${stopDay.year} - มาทำงานแต่เป็น cash_holiday ไม่นับ (${recordForDay.totalTime} ชม.) shift: ${recordForDay.shift}`);
             } else {
@@ -6459,11 +6458,9 @@ let timeCashWorkMul = {
         
         console.log(`\n📊 === สรุปการมาทำงานในวันหยุด ===`);
         console.log(`📅 จำนวนวันหยุดทั้งหมด: ${stopDaysList.length} วัน`);
-        console.log(`✅ มาทำงานในวันหยุด: ${workedOnStopDays} วัน (จำนวนครั้ง)`);
+        console.log(`✅ มาทำงานในวันหยุด: ${workedOnStopDays} วัน`);
         console.log(`🔢 จำนวนวันจริง (รวม 0.5 วัน): ${workedOnStopDaysCount} วัน`);
         console.log(`🔢 กำหนดค่า customizeDayoff = ${customizeDayoff}`);
-        console.log(`\n🔍 === dayWorkCount ก่อนหักวันหยุด ===`);
-        console.log(`📊 dayWorkCount ปัจจุบัน: ${dayWorkCount} วัน`);
         
         // สำหรับหน่วยงานพิเศษ: ปรับ dayWorkCount โดยหัก workedOnStopDaysCount (จำนวนวันจริง)
         if (["5", "6", "7"].includes(workOfWeek)) {
@@ -7156,9 +7153,6 @@ if (record?.dayType === "work") {
     dayWorkCount += dayCount;
     countedWorkDates.add(record.date);
     console.log(`✅ นับวันที่ ${record.date} เป็นวันทำงาน (dayType: ${record.dayType}, shift: ${record.shift}, ชั่วโมง: ${workHours}, นับ: ${dayCount} วัน, dayWorkCount รวม = ${dayWorkCount})`);
-    
-    // 🔍 แสดงรายการวันที่นับไปแล้วทั้งหมด
-    console.log(`   📋 วันที่นับแล้ว: [${Array.from(countedWorkDates).join(', ')}]`);
   } else if (countedWorkDates.has(record.date)) {
     console.log(`⚠️ วันที่ ${record.date} ถูกนับแล้ว ข้ามการนับวัน`);
   } else if (isSpecialShift) {
