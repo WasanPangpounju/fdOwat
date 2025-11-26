@@ -2475,8 +2475,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
 
   
   console.log(`\n🔍 === ตรวจสอบการมาทำงานในวันหยุดที่กำหนด ===`);
-  let workedOnStopDays = 0; // จำนวนวันหยุดที่มาทำงาน (นับจำนวนครั้ง)
-  let workedOnStopDaysCount = 0; // จำนวนวันจริงๆ (รวม 0.5 วัน ถ้าทำงานไม่ครบ 8 ชม.)
+  let workedOnStopDays = 0;
   let notWorkedOnStopDays = 0;
   const attendanceDetails = [];
 
@@ -2535,18 +2534,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
       const isValidShift = recordForDay.shift === 'morning_shift' || recordForDay.shift === 'night_shift';
       
       if (hasWorked && isValidShift) {
-        workedOnStopDays++; // นับจำนวนครั้ง
-        
-        // 🔧 คำนวณจำนวนวันที่แท้จริงตามชั่วโมงทำงาน
-        const workHours = parseFloat(recordForDay.totalTime);
-        let dayCount = 0;
-        if (workHours >= 8) {
-          dayCount = 1; // นับเป็น 1 วันเต็ม
-        } else if (workHours > 0 && workHours < 8) {
-          dayCount = 0.5; // นับเป็น 0.5 วัน
-        }
-        workedOnStopDaysCount += dayCount; // รวมจำนวนวันจริง
-        
+        workedOnStopDays++;
         attendanceDetails.push({
           date: `${stopDay.date}/${stopDay.month}/${stopDay.year}`,
           dayName: stopDay.dayName,
@@ -2554,11 +2542,10 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
           totalTime: recordForDay.totalTime,
           otTime: recordForDay.totalOtTime || '0',
           dayType: recordForDay.dayType || 'ไม่ระบุ',
-          shift: recordForDay.shift || 'ไม่ระบุ',
-          dayCount: dayCount // เพิ่มข้อมูลจำนวนวันที่นับ
+          shift: recordForDay.shift || 'ไม่ระบุ'
         });
         
-        console.log(`   ✅ วันที่ ${stopDay.date}/${stopDay.month}/${stopDay.year} (${stopDay.dayName}) - มาทำงาน ${recordForDay.totalTime} ชั่วโมง (shift: ${recordForDay.shift}) - นับ ${dayCount} วัน (workedOnStopDaysCount: ${workedOnStopDaysCount})`);
+        console.log(`   ✅ วันที่ ${stopDay.date}/${stopDay.month}/${stopDay.year} (${stopDay.dayName}) - มาทำงาน ${recordForDay.totalTime} ชั่วโมง (shift: ${recordForDay.shift}) - นับใน customizeDayoff`);
       } else if (hasWorked && !isValidShift) {
         // มาทำงานแต่ shift ไม่ใช่ morning_shift หรือ night_shift - ไม่นับใน customizeDayoff
         attendanceDetails.push({
@@ -2603,8 +2590,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
   // แสดงสรุปผล
   console.log(`\n📊 === สรุปการมาทำงานในวันหยุด (หลังกรอง specialt_shift) ===`);
   console.log(`📅 จำนวนวันหยุดที่ใช้ในการคำนวณ: ${filteredStopDaysList.length} วัน`);
-  console.log(`✅ มาทำงาน: ${workedOnStopDays} ครั้ง`);
-  console.log(`🔢 จำนวนวันจริง (รวม 0.5 วัน): ${workedOnStopDaysCount} วัน`);
+  console.log(`✅ มาทำงาน: ${workedOnStopDays} วัน`);
   console.log(`❌ ไม่มาทำงาน: ${notWorkedOnStopDays} วัน`);
   console.log(`\n📋 รายละเอียดการมาทำงาน:`);
   console.log(`┌─────────────────┬──────────┬─────────────┬────────────┬──────────┬──────────┬──────────────┐`);
@@ -2617,12 +2603,10 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
   
   console.log(`└─────────────────┴──────────┴─────────────┴────────────┴──────────┴──────────┴──────────────┘`);
   
-  // อัปเดตค่า customizeDayoff ใน database ให้เท่ากับ workedOnStopDaysCount (จำนวนวันจริง)
+  // อัปเดตค่า customizeDayoff ใน database ให้เท่ากับ workedOnStopDays
   try {
     console.log(`\n📝 === อัปเดต customizeDayoff ===`);
-    console.log(`🔄 กำลังอัปเดต customizeDayoff จาก ${employeeProfile[0].customizeDayoff || 0} เป็น ${workedOnStopDaysCount}`);
-    console.log(`   📊 workedOnStopDays (จำนวนครั้ง): ${workedOnStopDays} ครั้ง`);
-    console.log(`   📊 workedOnStopDaysCount (จำนวนวันจริง): ${workedOnStopDaysCount} วัน`);
+    console.log(`🔄 กำลังอัปเดต customizeDayoff จาก ${employeeProfile[0].customizeDayoff || 0} เป็น ${workedOnStopDays}`);
     console.log(`👤 EmployeeId ที่ใช้ในการค้นหา: "${employeeId}" (type: ${typeof employeeId})`);
     
     // ตรวจสอบก่อนว่ามีพนักงานคนนี้หรือไม่
@@ -2640,11 +2624,11 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
     
     const updateResult = await Employee.updateOne(
       { employeeId: employeeId },
-      { $set: { customizeDayoff: workedOnStopDaysCount } },  // ✅ ใช้ workedOnStopDaysCount (จำนวนวันจริง)
+      { $set: { customizeDayoff: workedOnStopDays } },
       { upsert: false, strict: false }  // เพิ่ม strict: false
     );
     
-    console.log(`✅ อัปเดต customizeDayoff สำเร็จ: ${workedOnStopDaysCount} วัน`);
+    console.log(`✅ อัปเดต customizeDayoff สำเร็จ: ${workedOnStopDays} วัน`);
     console.log(`📊 Update result:`, updateResult);
     
     // 2. อัปเดต timerecordEmployee collection ด้วย
@@ -2655,10 +2639,10 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
         month: month,
         year: year
       },
-      { $set: { customizeDayoff: workedOnStopDaysCount.toString() } }  // ✅ ใช้ workedOnStopDaysCount แปลงเป็น string
+      { $set: { customizeDayoff: workedOnStopDays.toString() } }  // แปลงเป็น string
     );
     
-    console.log(`✅ อัปเดต timerecordEmployee collection สำเร็จ: ${workedOnStopDaysCount} วัน`);
+    console.log(`✅ อัปเดต timerecordEmployee collection สำเร็จ: ${workedOnStopDays} วัน`);
     console.log(`📊 TimeRecord Update result:`, timeRecordUpdateResult);
     
     // ตรวจสอบข้อมูลใน timerecordEmployee หลังอัปเดต
