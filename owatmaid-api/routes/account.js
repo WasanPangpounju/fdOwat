@@ -6069,16 +6069,19 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                 // คำนวณ SpSalary ต่อวัน = ยอดรวม / จำนวนวันเดิม
                 const spSalaryPerDay = originalDays > 0 ? (originalSpSalary / originalDays) : originalSpSalary;
                 
+                // คำนวณยอดรวมใหม่ = ราคาต่อวัน × จำนวนวันจริง
+                const newTotalSpSalary = spSalaryPerDay * dayWorkCount;
+                
                 console.log(`✅ [ACCOUNT-10806] ปรับ ${item.name} (ID:${item.id}):`);
                 console.log(`   - message: "${originalMessage}" → "${dayWorkCount}"`);
-                console.log(`   - SpSalary: "${originalSpSalary}" (${originalDays} วัน) → "${spSalaryPerDay.toFixed(2)}" (ต่อวัน)`);
-                console.log(`   - ยอดรวมใหม่: ${spSalaryPerDay.toFixed(2)} × ${dayWorkCount} = ${(spSalaryPerDay * dayWorkCount).toFixed(2)}`);
+                console.log(`   - ราคาต่อวัน: ${spSalaryPerDay.toFixed(2)} บาท`);
+                console.log(`   - SpSalary: "${originalSpSalary}" → "${newTotalSpSalary.toFixed(2)}" (${spSalaryPerDay.toFixed(2)} × ${dayWorkCount})`);
                 
                 updatedCount++;
                 return { 
                   ...item, 
                   message: dayWorkCount.toString(),  // ✅ ใช้ dayWorkCount จาก record
-                  SpSalary: spSalaryPerDay.toFixed(2)
+                  SpSalary: newTotalSpSalary.toFixed(2)  // ✅ ยอดรวม = ราคาต่อวัน × จำนวนวัน
                 };
               }
             }
