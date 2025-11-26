@@ -6042,62 +6042,78 @@ router.post('/searchtimerecordemployee', async (req, res) => {
       }
     }
 
-    // ✅ ปรับ message และ SpSalary สำหรับหน่วยงาน 10806 ก่อนส่ง response
-    console.log(`\n🔧 === ตรวจสอบและปรับ message และ SpSalary สำหรับหน่วยงาน 10806 ===`);
+    // ✅ ปรับ message และ SpSalary สำหรับหน่วยงานที่มี ApplyeveryDay = true
+    console.log(`\n🔧 === ตรวจสอบและปรับ message และ SpSalary สำหรับหน่วยงานที่ต้องคำนวณทุกวัน ===`);
     for (const record of updatedRecords) {
       try {
-        // ✅ ใช้ regularAgency เพื่อเช็คหน่วยงานหลักของพนักงาน (เร็วและแม่นยำ)
+        // ✅ ใช้ regularAgency เพื่อเช็คหน่วยงานหลักของพนักงาน
         const regularAgency = record.regularAgency || record.employee_record?.[0]?.workplaceId;
+        
+        if (!regularAgency) {
+          console.log(`⚠️ ไม่พบ regularAgency สำหรับพนักงาน ${record.employeeId}`);
+          continue;
+        }
         
         console.log(`🔍 [DEBUG] พนักงาน ${record.employeeId}: regularAgency = "${regularAgency}"`);
         
-        if (regularAgency === '10806' && record.addSalaryList) {
-          console.log(`🏢 ✅ พบพนักงานสังกัดหน่วยงาน 10806: ${record.employeeId} (${record.employeeName})`);
+        // ✅ เรียก API เพื่อเช็ค ApplyeveryDay
+        try {
+          const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${regularAgency}`);
+          const applyEveryDay = workplaceResponse.data?.ApplyeveryDay || false;
+          const workplaceName = workplaceResponse.data?.workplaceName || '';
           
-          // ✅ ใช้ dayWorkCount จาก record โดยตรง (รวมทุกหน่วยงานที่ทำงาน)
-          let dayWorkCount = parseFloat(record.dayWorkCount) || 0;
+          console.log(`🏢 หน่วยงาน ${regularAgency} (${workplaceName}): ApplyeveryDay = ${applyEveryDay}`);
           
-          console.log(`📊 จำนวนวันทำงานทั้งหมด: ${dayWorkCount} วัน`);
-          
-          // ปรับ message และ SpSalary สำหรับสวัสดิการที่มี roundOfSalary เป็น "daily"
-          let updatedCount = 0;
-          record.addSalaryList = record.addSalaryList.map(item => {
-            if (item.roundOfSalary === 'daily') {
-              const currentMessage = parseFloat(item.message || 0);
-              
-              // ตรวจสอบว่าต้องอัปเดตหรือไม่
-              if (Math.abs(currentMessage - dayWorkCount) > 0.01 || parseFloat(item.SpSalary || 0) > 100) {
-                const originalMessage = item.message;
-                const originalSpSalary = parseFloat(item.SpSalary || 0);
-                const originalDays = parseFloat(originalMessage || dayWorkCount || 1);
+          if (applyEveryDay && record.addSalaryList) {
+            console.log(`🏢 ✅ พบพนักงานสังกัดหน่วยงานที่ต้องคำนวณทุกวัน: ${record.employeeId} (${record.employeeName})`);
+            
+            // ✅ ใช้ dayWorkCount จาก record โดยตรง
+            let dayWorkCount = parseFloat(record.dayWorkCount) || 0;
+            
+            console.log(`📊 จำนวนวันทำงานทั้งหมด: ${dayWorkCount} วัน`);
+            
+            // ปรับ message และ SpSalary สำหรับสวัสดิการที่มี roundOfSalary เป็น "daily"
+            let updatedCount = 0;
+            record.addSalaryList = record.addSalaryList.map(item => {
+              if (item.roundOfSalary === 'daily') {
+                const currentMessage = parseFloat(item.message || 0);
                 
-                // คำนวณ SpSalary ต่อวัน = ยอดรวม / จำนวนวันเดิม
-                const spSalaryPerDay = originalDays > 0 ? (originalSpSalary / originalDays) : originalSpSalary;
-                
-                // คำนวณยอดรวมใหม่ = ราคาต่อวัน × จำนวนวันจริง
-                const newTotalSpSalary = spSalaryPerDay * dayWorkCount;
-                
-                console.log(`✅ [ACCOUNT-10806] ปรับ ${item.name} (ID:${item.id}):`);
-                console.log(`   - message: "${originalMessage}" → "${dayWorkCount}"`);
-                console.log(`   - ราคาต่อวัน: ${spSalaryPerDay.toFixed(2)} บาท`);
-                console.log(`   - SpSalary: "${originalSpSalary}" → "${newTotalSpSalary.toFixed(2)}" (${spSalaryPerDay.toFixed(2)} × ${dayWorkCount})`);
-                
-                updatedCount++;
-                return { 
-                  ...item, 
-                  message: dayWorkCount.toString(),
-                  SpSalary: newTotalSpSalary.toFixed(2)
-                };
+                // ตรวจสอบว่าต้องอัปเดตหรือไม่
+                if (Math.abs(currentMessage - dayWorkCount) > 0.01 || parseFloat(item.SpSalary || 0) > 100) {
+                  const originalMessage = item.message;
+                  const originalSpSalary = parseFloat(item.SpSalary || 0);
+                  const originalDays = parseFloat(originalMessage || dayWorkCount || 1);
+                  
+                  // คำนวณ SpSalary ต่อวัน = ยอดรวม / จำนวนวันเดิม
+                  const spSalaryPerDay = originalDays > 0 ? (originalSpSalary / originalDays) : originalSpSalary;
+                  
+                  // คำนวณยอดรวมใหม่ = ราคาต่อวัน × จำนวนวันจริง
+                  const newTotalSpSalary = spSalaryPerDay * dayWorkCount;
+                  
+                  console.log(`✅ [APPLY-EVERYDAY] ปรับ ${item.name} (ID:${item.id}):`);
+                  console.log(`   - message: "${originalMessage}" → "${dayWorkCount}"`);
+                  console.log(`   - ราคาต่อวัน: ${spSalaryPerDay.toFixed(2)} บาท`);
+                  console.log(`   - SpSalary: "${originalSpSalary}" → "${newTotalSpSalary.toFixed(2)}" (${spSalaryPerDay.toFixed(2)} × ${dayWorkCount})`);
+                  
+                  updatedCount++;
+                  return { 
+                    ...item, 
+                    message: dayWorkCount.toString(),
+                    SpSalary: newTotalSpSalary.toFixed(2)
+                  };
+                }
               }
+              return item;
+            });
+            
+            if (updatedCount > 0) {
+              console.log(`✅ [APPLY-EVERYDAY] อัปเดตสำเร็จ ${updatedCount} รายการสำหรับพนักงาน ${record.employeeId}`);
+            } else {
+              console.log(`ℹ️ [APPLY-EVERYDAY] ไม่มีรายการที่ต้องอัปเดตสำหรับพนักงาน ${record.employeeId}`);
             }
-            return item;
-          });
-          
-          if (updatedCount > 0) {
-            console.log(`✅ [ACCOUNT-10806] อัปเดตสำเร็จ ${updatedCount} รายการสำหรับพนักงาน ${record.employeeId}`);
-          } else {
-            console.log(`ℹ️ [ACCOUNT-10806] ไม่มีรายการที่ต้องอัปเดตสำหรับพนักงาน ${record.employeeId}`);
           }
+        } catch (workplaceError) {
+          console.error(`❌ Error fetching workplace data for ${regularAgency}:`, workplaceError.message);
         }
       } catch (error) {
         console.error(`❌ Error adjusting message for employee ${record.employeeId}:`, error);
