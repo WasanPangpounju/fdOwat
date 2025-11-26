@@ -6049,45 +6049,38 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         if (workplaceId === '10806' && record.addSalaryList) {
           console.log(`🏢 พบพนักงานหน่วยงาน 10806: ${record.employeeId}`);
           
-          // นับจำนวนวันที่ทำงานจริง (มี totalTime > 0 หรือ allTimes > 0) = dayWorkCount
-          let dayWorkCount = 0;
-          if (record.employee_record && Array.isArray(record.employee_record)) {
-            dayWorkCount = record.employee_record.filter(day => {
-              const totalTime = parseFloat(day.totalTime || day.allTimes || 0);
-              return totalTime > 0;
-            }).length;
-          }
+          // ✅ ใช้ dayWorkCount จาก record โดยตรง (ค่าที่คำนวณจาก conclude แล้ว)
+          let dayWorkCount = parseInt(record.dayWorkCount) || 0;
           
-          // ถ้ายังได้ 0 ให้ลองใช้ dayWorkCount จาก record
-          if (dayWorkCount === 0 && record.dayWorkCount) {
-            dayWorkCount = parseInt(record.dayWorkCount) || 0;
-            console.log(`📊 ใช้ dayWorkCount จาก record: ${dayWorkCount} วัน`);
-          }
-          
-          console.log(`📊 จำนวนวันทำงานจริง (dayWorkCount): ${dayWorkCount} วัน`);
+          console.log(`📊 จำนวนวันทำงานจริง (dayWorkCount จาก record): ${dayWorkCount} วัน`);
           
           // ปรับ message เป็น dayWorkCount และ SpSalary ให้เป็นค่าต่อวัน สำหรับสวัสดิการที่มี roundOfSalary เป็น "daily"
           let updatedCount = 0;
           record.addSalaryList = record.addSalaryList.map(item => {
-            if (item.roundOfSalary === 'daily' && parseFloat(item.message || 0) !== dayWorkCount) {
-              const originalMessage = item.message;
-              const originalSpSalary = parseFloat(item.SpSalary || 0);
-              const originalDays = parseFloat(originalMessage || dayWorkCount || 1);
+            if (item.roundOfSalary === 'daily') {
+              const currentMessage = parseFloat(item.message || 0);
               
-              // คำนวณ SpSalary ต่อวัน = ยอดรวม / จำนวนวันเดิม
-              const spSalaryPerDay = originalDays > 0 ? (originalSpSalary / originalDays) : originalSpSalary;
-              
-              console.log(`✅ [ACCOUNT-10806] ปรับ ${item.name} (ID:${item.id}):`);
-              console.log(`   - message: "${originalMessage}" → "${dayWorkCount}"`);
-              console.log(`   - SpSalary: "${originalSpSalary}" (${originalDays} วัน) → "${spSalaryPerDay.toFixed(2)}" (ต่อวัน)`);
-              console.log(`   - ยอดรวมใหม่: ${spSalaryPerDay.toFixed(2)} × ${dayWorkCount} = ${(spSalaryPerDay * dayWorkCount).toFixed(2)}`);
-              
-              updatedCount++;
-              return { 
-                ...item, 
-                message: dayWorkCount.toString(),  // ✅ ใช้ dayWorkCount แทน "1"
-                SpSalary: spSalaryPerDay.toFixed(2)
-              };
+              // ตรวจสอบว่าต้องอัปเดตหรือไม่
+              if (currentMessage !== dayWorkCount || parseFloat(item.SpSalary || 0) > 100) {
+                const originalMessage = item.message;
+                const originalSpSalary = parseFloat(item.SpSalary || 0);
+                const originalDays = parseFloat(originalMessage || dayWorkCount || 1);
+                
+                // คำนวณ SpSalary ต่อวัน = ยอดรวม / จำนวนวันเดิม
+                const spSalaryPerDay = originalDays > 0 ? (originalSpSalary / originalDays) : originalSpSalary;
+                
+                console.log(`✅ [ACCOUNT-10806] ปรับ ${item.name} (ID:${item.id}):`);
+                console.log(`   - message: "${originalMessage}" → "${dayWorkCount}"`);
+                console.log(`   - SpSalary: "${originalSpSalary}" (${originalDays} วัน) → "${spSalaryPerDay.toFixed(2)}" (ต่อวัน)`);
+                console.log(`   - ยอดรวมใหม่: ${spSalaryPerDay.toFixed(2)} × ${dayWorkCount} = ${(spSalaryPerDay * dayWorkCount).toFixed(2)}`);
+                
+                updatedCount++;
+                return { 
+                  ...item, 
+                  message: dayWorkCount.toString(),  // ✅ ใช้ dayWorkCount จาก record
+                  SpSalary: spSalaryPerDay.toFixed(2)
+                };
+              }
             }
             return item;
           });
@@ -6095,7 +6088,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           if (updatedCount > 0) {
             console.log(`✅ [ACCOUNT-10806] อัปเดตสำเร็จ ${updatedCount} รายการสำหรับพนักงาน ${record.employeeId}`);
           } else {
-            console.log(`ℹ️ [ACCOUNT-10806] ไม่มีรายการที่ต้องอัปเดตสำหรับพนักงาน ${record.employeeId}`);
+            console.log(`ℹ️ [ACCOUNT-10806] ไม่มีรายการที่ต้องอัปเดตสำหรับพนักงาน ${record.employeeId} (message อาจถูกต้องแล้ว)`);
           }
         }
       } catch (error) {
