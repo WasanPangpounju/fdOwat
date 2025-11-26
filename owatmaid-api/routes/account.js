@@ -6038,8 +6038,8 @@ router.post('/searchtimerecordemployee', async (req, res) => {
       }
     }
 
-    // ✅ ปรับ message สำหรับหน่วยงาน 10806 ก่อนส่ง response
-    console.log(`\n🔧 === ตรวจสอบและปรับ message สำหรับหน่วยงาน 10806 ===`);
+    // ✅ ปรับ message และ SpSalary สำหรับหน่วยงาน 10806 ก่อนส่ง response
+    console.log(`\n🔧 === ตรวจสอบและปรับ message และ SpSalary สำหรับหน่วยงาน 10806 ===`);
     for (const record of updatedRecords) {
       try {
         const Employee = require('./models/employeeModel');
@@ -6049,13 +6049,34 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         if (workplaceId === '10806' && record.addSalaryList) {
           console.log(`🏢 พบพนักงานหน่วยงาน 10806: ${record.employeeId}`);
           
-          // ปรับ message เป็น "1" สำหรับสวัสดิการที่มี roundOfSalary เป็น "daily"
+          // นับจำนวนวันที่ทำงานจริง (มี allTimes > 0)
+          let workDaysCount = 0;
+          if (record.employee_record && Array.isArray(record.employee_record)) {
+            workDaysCount = record.employee_record.filter(day => parseFloat(day.allTimes || 0) > 0).length;
+          }
+          console.log(`📊 จำนวนวันทำงานจริง: ${workDaysCount} วัน`);
+          
+          // ปรับ message เป็น "1" และ SpSalary ให้เป็นค่าต่อวัน สำหรับสวัสดิการที่มี roundOfSalary เป็น "daily"
           let updatedCount = 0;
           record.addSalaryList = record.addSalaryList.map(item => {
             if (item.roundOfSalary === 'daily' && item.message !== '1') {
-              console.log(`✅ [ACCOUNT-10806] ปรับ message: ${item.name} (ID:${item.id}) จาก "${item.message}" → "1"`);
+              const originalMessage = item.message;
+              const originalSpSalary = parseFloat(item.SpSalary || 0);
+              const originalDays = parseFloat(originalMessage || workDaysCount || 1);
+              
+              // คำนวณ SpSalary ต่อวัน = ยอดรวม / จำนวนวัน
+              const spSalaryPerDay = originalDays > 0 ? (originalSpSalary / originalDays) : originalSpSalary;
+              
+              console.log(`✅ [ACCOUNT-10806] ปรับ ${item.name} (ID:${item.id}):`);
+              console.log(`   - message: "${originalMessage}" → "1"`);
+              console.log(`   - SpSalary: "${originalSpSalary}" (${originalDays} วัน) → "${spSalaryPerDay.toFixed(2)}" (1 วัน)`);
+              
               updatedCount++;
-              return { ...item, message: '1' };
+              return { 
+                ...item, 
+                message: '1',
+                SpSalary: spSalaryPerDay.toFixed(2)
+              };
             }
             return item;
           });
