@@ -2771,20 +2771,26 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
     if (employeeData) {
       const jobtype = employeeData.jobtype || '';
       const employeeSalary = parseFloat(employeeData.salary || '0');
+      const employeeWorkRate = parseFloat(employeeData.workRate || '0');
       
       console.log(`👤 ข้อมูลพนักงาน:`);
       console.log(`   - employeeId: ${employeeData.employeeId}`);
       console.log(`   - jobtype: ${jobtype}`);
       console.log(`   - salary: ${employeeSalary} บาท`);
+      console.log(`   - workRate: ${employeeWorkRate} บาท`);
       
       // ถ้าเป็นพนักงานเงินเดือน ใช้ salary หาร 30
       if (jobtype === 'รายเดือน' && employeeSalary > 0) {
         dailyWage = employeeSalary / 30;
         console.log(`✅ พนักงานเงินเดือน: ${employeeSalary} ÷ 30 = ${dailyWage.toFixed(2)} บาท/วัน`);
-      } else {
-        // ถ้าเป็นรายวัน ใช้ salary โดยตรง
+      } else if (jobtype === 'รายวัน' && employeeWorkRate > 0) {
+        // ถ้าเป็นรายวัน ใช้ workRate แทน salary
+        dailyWage = employeeWorkRate;
+        console.log(`✅ พนักงานรายวัน: ใช้ workRate = ${dailyWage} บาท/วัน`);
+      } else if (employeeSalary > 0) {
+        // fallback ใช้ salary ถ้าไม่มี workRate
         dailyWage = employeeSalary;
-        console.log(`✅ พนักงานรายวัน: ${dailyWage} บาท/วัน`);
+        console.log(`⚠️ พนักงานรายวัน (fallback): ใช้ salary = ${dailyWage} บาท/วัน`);
       }
     } else {
       throw new Error('ไม่พบข้อมูลพนักงาน');
