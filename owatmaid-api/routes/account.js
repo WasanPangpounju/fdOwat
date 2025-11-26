@@ -6038,6 +6038,37 @@ router.post('/searchtimerecordemployee', async (req, res) => {
       }
     }
 
+    // ✅ ปรับ message สำหรับหน่วยงาน 10806 ก่อนส่ง response
+    console.log(`\n🔧 === ตรวจสอบและปรับ message สำหรับหน่วยงาน 10806 ===`);
+    for (const record of updatedRecords) {
+      try {
+        const Employee = require('./models/employeeModel');
+        const employeeData = await Employee.findOne({ employeeId: record.employeeId });
+        const workplaceId = employeeData?.workplace;
+        
+        if (workplaceId === '10806' && record.addSalaryList) {
+          console.log(`🏢 พบพนักงานหน่วยงาน 10806: ${record.employeeId}`);
+          
+          // ปรับ message เป็น "1" สำหรับสวัสดิการที่มี roundOfSalary เป็น "daily"
+          let updatedCount = 0;
+          record.addSalaryList = record.addSalaryList.map(item => {
+            if (item.roundOfSalary === 'daily' && item.message !== '1') {
+              console.log(`✅ [ACCOUNT-10806] ปรับ message: ${item.name} (ID:${item.id}) จาก "${item.message}" → "1"`);
+              updatedCount++;
+              return { ...item, message: '1' };
+            }
+            return item;
+          });
+          
+          if (updatedCount > 0) {
+            console.log(`✅ [ACCOUNT-10806] อัปเดตสำเร็จ ${updatedCount} รายการสำหรับพนักงาน ${record.employeeId}`);
+          }
+        }
+      } catch (error) {
+        console.error(`❌ Error adjusting message for employee ${record.employeeId}:`, error);
+      }
+    }
+
     res.status(200).json({ result: updatedRecords });
 
   } catch (error) {
