@@ -1209,8 +1209,25 @@ if (isSpecialWorkplace7Days) {
 // แก้ไขส่วนการสร้าง addSalaryList
 for (let c = 0; c < concludeRecord.length; c++) {
   
+  // ตรวจสอบว่าเป็นหน่วยงานพิเศษ 10806 (คำนวณ daily แบบ dayWorkCount = 1)
+  if (concludeRecord[c].workplaceId === '10806') {
+    // สำหรับหน่วยงาน 10806 - ตรวจสอบว่ามี allTimes หรือไม่
+    if (parseFloat(concludeRecord[c].allTimes || 0) > 0) {
+      // มี allTimes (มาทำงาน) ให้เพิ่มเงินพิเศษรายวันโดย message = 1 (นับทีละวัน)
+      let adjustedAddSalaryDaily = addSalaryDaily.map(item => ({
+        ...item,
+        message: "1"  // กำหนด message = 1 สำหรับทุกวันที่มาทำงาน
+      }));
+      await addSalaryList.push(adjustedAddSalaryDaily);
+      console.log(`✅ [10806] วันที่ ${concludeRecord[c].day} - allTimes: ${concludeRecord[c].allTimes} - เพิ่มเงินพิเศษรายวัน (message: 1)`);
+    } else {
+      // ไม่มี allTimes (ไม่มาทำงาน) ไม่เพิ่มเงินพิเศษ
+      await addSalaryList.push([]);
+      console.log(`❌ [10806] วันที่ ${concludeRecord[c].day} - allTimes: 0 - ไม่เพิ่มเงินพิเศษ`);
+    }
+  } 
   // ตรวจสอบว่าเป็นหน่วยงานพิเศษ 7 วัน
-  if (isSpecialWorkplace7Days) {
+  else if (isSpecialWorkplace7Days) {
     // สำหรับหน่วยงานพิเศษ 7 วัน - ตรวจสอบว่ามี allTimes หรือไม่
     if (parseFloat(concludeRecord[c].allTimes || 0) > 0) {
       // มี allTimes (มาทำงาน) ให้เพิ่มเงินพิเศษรายวันพร้อมปรับ message เป็น totalWorkDays
@@ -1258,13 +1275,17 @@ for (let c = 0; c < concludeRecord.length; c++) {
 }
 
 // เพิ่ม log สรุปจำนวนวันที่มี allTimes
-console.log(`\n📊 === สรุป addSalaryList สำหรับหน่วยงานพิเศษ 7 วัน ===`);
+console.log(`\n📊 === สรุป addSalaryList ===`);
 let countDaysWithAllTimes = 0;
 let countAddSalaryWithItems = 0;
+let count10806WithDaily = 0;
 
 concludeRecord.forEach((record, index) => {
   if (parseFloat(record.allTimes || 0) > 0) {
     countDaysWithAllTimes++;
+    if (record.workplaceId === '10806') {
+      count10806WithDaily++;
+    }
   }
   if (addSalaryList[index] && addSalaryList[index].length > 0) {
     countAddSalaryWithItems++;
@@ -1273,6 +1294,9 @@ concludeRecord.forEach((record, index) => {
 
 console.log(`📅 จำนวนวันที่มี allTimes > 0: ${countDaysWithAllTimes} วัน`);
 console.log(`💵 จำนวนวันที่มี addSalaryList: ${countAddSalaryWithItems} วัน`);
+if (count10806WithDaily > 0) {
+  console.log(`🏢 หน่วยงาน 10806 - จำนวนวันที่ได้เงินพิเศษ (message=1): ${count10806WithDaily} วัน`);
+}
 console.log(`✅ ต้องตรงกัน: ${countDaysWithAllTimes === countAddSalaryWithItems ? 'ถูกต้อง' : 'ไม่ตรงกัน!'}`);
 
     // ❌ ลบ loop ซ้ำนี้ออก - ข้อมูลถูก push แล้วในส่วนบน (บรรทัด 1189-1254)
