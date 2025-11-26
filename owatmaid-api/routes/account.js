@@ -6049,8 +6049,8 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         if (workplaceId === '10806' && record.addSalaryList) {
           console.log(`🏢 พบพนักงานหน่วยงาน 10806: ${record.employeeId}`);
           
-          // ✅ ใช้ dayWorkCount จาก record โดยตรง (ค่าที่คำนวณจาก conclude แล้ว)
-          let dayWorkCount = parseInt(record.dayWorkCount) || 0;
+          // ✅ ใช้ dayWorkCount จาก record โดยตรง (รักษาทศนิยมไว้ เช่น 22.5 วัน)
+          let dayWorkCount = parseFloat(record.dayWorkCount) || 0;
           
           console.log(`📊 จำนวนวันทำงานจริง (dayWorkCount จาก record): ${dayWorkCount} วัน`);
           
@@ -6060,8 +6060,8 @@ router.post('/searchtimerecordemployee', async (req, res) => {
             if (item.roundOfSalary === 'daily') {
               const currentMessage = parseFloat(item.message || 0);
               
-              // ตรวจสอบว่าต้องอัปเดตหรือไม่
-              if (currentMessage !== dayWorkCount || parseFloat(item.SpSalary || 0) > 100) {
+              // ตรวจสอบว่าต้องอัปเดตหรือไม่ (ใช้ Math.abs เพื่อเปรียบเทียบทศนิยม)
+              if (Math.abs(currentMessage - dayWorkCount) > 0.01 || parseFloat(item.SpSalary || 0) > 100) {
                 const originalMessage = item.message;
                 const originalSpSalary = parseFloat(item.SpSalary || 0);
                 const originalDays = parseFloat(originalMessage || dayWorkCount || 1);
