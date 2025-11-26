@@ -2488,12 +2488,21 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
     // หาข้อมูลการทำงานของวันนั้นใน employee_record
     const recordForDay = employee_record.find(record => {
       const recordDate = parseInt(record.date);
-      const recordMonth = recordDate > 20 ? prevMonth : monthInt;
-      const recordYear = recordDate > 20 && prevMonth === 12 ? prevYear : yearInt;
       
-      return recordDate === stopDay.date && 
-             recordMonth === stopDay.month && 
-             recordYear === stopDay.year;
+      // 🔧 แก้ไข: เปรียบเทียบเฉพาะวันที่ และเดือน+ปี ที่ตรงกับ stopDay
+      // ถ้า stopDay.month == monthInt (เดือนปัจจุบัน) ให้เช็ควันที่ 1-20
+      // ถ้า stopDay.month == prevMonth (เดือนก่อน) ให้เช็ควันที่ 21-31
+      let isMatchingDate = false;
+      
+      if (stopDay.month === monthInt && recordDate >= 1 && recordDate <= 20) {
+        // วันหยุดในเดือนปัจจุบัน (1-20)
+        isMatchingDate = (recordDate === stopDay.date);
+      } else if (stopDay.month === prevMonth && recordDate >= 21) {
+        // วันหยุดในเดือนก่อนหน้า (21-31)
+        isMatchingDate = (recordDate === stopDay.date);
+      }
+      
+      return isMatchingDate;
     });
     
     // ถ้าพบข้อมูลและมี shift: "specialt_shift" ให้เอาออก (return false)
@@ -2517,12 +2526,19 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
     // หาข้อมูลการทำงานของวันนั้นใน employee_record
     const recordForDay = employee_record.find(record => {
       const recordDate = parseInt(record.date);
-      const recordMonth = recordDate > 20 ? prevMonth : monthInt;
-      const recordYear = recordDate > 20 && prevMonth === 12 ? prevYear : yearInt;
       
-      return recordDate === stopDay.date && 
-             recordMonth === stopDay.month && 
-             recordYear === stopDay.year;
+      // 🔧 แก้ไข: เปรียบเทียบเฉพาะวันที่ และเดือน+ปี ที่ตรงกับ stopDay
+      let isMatchingDate = false;
+      
+      if (stopDay.month === monthInt && recordDate >= 1 && recordDate <= 20) {
+        // วันหยุดในเดือนปัจจุบัน (1-20)
+        isMatchingDate = (recordDate === stopDay.date);
+      } else if (stopDay.month === prevMonth && recordDate >= 21) {
+        // วันหยุดในเดือนก่อนหน้า (21-31)
+        isMatchingDate = (recordDate === stopDay.date);
+      }
+      
+      return isMatchingDate;
     });
     
     if (recordForDay) {
