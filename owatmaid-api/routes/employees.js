@@ -291,248 +291,6 @@ router.get("/delete-all", async (req, res) => {
   }
 });
 
-// ✅ GET /api/employees/social-security-checked
-// 🔍 ดึงรายการ id ที่มี socialSecurityCheck: true จาก newAddSalary
-// ⚠️ ต้องอยู่ก่อน route /:employeeId เพื่อป้องกัน route conflict
-router.get("/social-security-checked", async (req, res) => {
-  try {
-    const employees = await Employee.find();
-    
-    // รวบรวม id ทั้งหมดที่มี socialSecurityCheck: true
-    const socialSecurityCheckedIds = [];
-    
-    employees.forEach(employee => {
-      // ตรวจสอบจาก newAddSalary
-      if (employee.addSalary && Array.isArray(employee.addSalary)) {
-        employee.addSalary.forEach(item => {
-          if (item.socialSecurityCheck === true && item.id) {
-            socialSecurityCheckedIds.push({
-              id: item.id,
-              name: item.name || '',
-              employeeId: employee.employeeId,
-              employeeName: employee.name,
-              workplace: employee.workplace
-            });
-          }
-        });
-      }
-    });
-
-    // นับจำนวน unique id
-    const uniqueIds = [...new Set(socialSecurityCheckedIds.map(item => item.id))];
-
-    res.status(200).json({
-      summary: {
-        totalItems: socialSecurityCheckedIds.length,
-        uniqueIds: uniqueIds.length,
-        uniqueIdList: uniqueIds
-      },
-      items: socialSecurityCheckedIds
-    });
-
-  } catch (error) {
-    console.error('Error fetching social security checked items:', error);
-    res.status(500).json({ 
-      error: "Internal server error", 
-      details: error.message 
-    });
-  }
-});
-
-// ✅ GET /api/employees/check-bank-info
-// 🔍 ตรวจสอบข้อมูลธนาคารของพนักงาน (salarybank และ banknumber)
-// ⚠️ ต้องอยู่ก่อน route /:employeeId เพื่อป้องกัน route conflict
-router.get("/check-bank-info", async (req, res) => {
-  try {
-    // ดึงพนักงานทั้งหมด
-    const allEmployees = await Employee.find();
-    const totalEmployees = allEmployees.length;
-
-    // กรองพนักงานที่มีข้อมูลธนาคารครบถ้วน (มีทั้ง salarybank และ banknumber)
-    const employeesWithBankInfo = allEmployees.filter(employee => {
-      const hasBankName = employee.salarybank && employee.salarybank.trim() !== '';
-      const hasBankNumber = employee.banknumber && employee.banknumber.trim() !== '';
-      return hasBankName && hasBankNumber;
-    });
-
-    const countWithBankInfo = employeesWithBankInfo.length;
-    const countWithoutBankInfo = totalEmployees - countWithBankInfo;
-
-    // สร้างรายชื่อพนักงานที่มีข้อมูลธนาคาร
-    const employeeListWithBank = employeesWithBankInfo.map(employee => ({
-      employeeId: employee.employeeId,
-      prefix: employee.prefix,
-      name: employee.name,
-      lastName: employee.lastName,
-      workplace: employee.workplace,
-      salarybank: employee.salarybank,
-      banknumber: employee.banknumber,
-      position: employee.position
-    }));
-
-    // สร้างรายชื่อพนักงานที่ไม่มีข้อมูลธนาคาร
-    const employeesWithoutBankInfo = allEmployees.filter(employee => {
-      const hasBankName = employee.salarybank && employee.salarybank.trim() !== '';
-      const hasBankNumber = employee.banknumber && employee.banknumber.trim() !== '';
-      return !(hasBankName && hasBankNumber);
-    });
-
-    const employeeListWithoutBank = employeesWithoutBankInfo.map(employee => ({
-      employeeId: employee.employeeId,
-      prefix: employee.prefix,
-      name: employee.name,
-      lastName: employee.lastName,
-      workplace: employee.workplace,
-      salarybank: employee.salarybank || null,
-      banknumber: employee.banknumber || null,
-      position: employee.position,
-      missingFields: {
-        salarybank: !employee.salarybank || employee.salarybank.trim() === '',
-        banknumber: !employee.banknumber || employee.banknumber.trim() === ''
-      }
-    }));
-
-    // คำนวณเปอร์เซ็นต์
-    const percentageWithBank = totalEmployees > 0 
-      ? ((countWithBankInfo / totalEmployees) * 100).toFixed(2) 
-      : 0;
-
-    res.status(200).json({
-      summary: {
-        totalEmployees,
-        employeesWithBankInfo: countWithBankInfo,
-        employeesWithoutBankInfo: countWithoutBankInfo,
-        percentageWithBank: `${percentageWithBank}%`
-      },
-      employeesWithBankInfo: employeeListWithBank,
-      employeesWithoutBankInfo: employeeListWithoutBank
-    });
-
-  } catch (error) {
-    console.error('Error checking bank info:', error);
-    res.status(500).json({ 
-      error: "Internal server error", 
-      details: error.message 
-    });
-  }
-});
-
-// ✅ GET /api/employees/check-idcard/:idCard
-// 🔍 ตรวจสอบว่าเลขบัตรประชาชนมีอยู่ในระบบแล้วหรือไม่
-// ⚠️ ต้องอยู่ก่อน route /:employeeId เพื่อป้องกัน route conflict
-router.get("/check-idcard/:idCard", async (req, res) => {
-  try {
-    const { idCard } = req.params;
-    
-    if (!idCard) {
-      return res.status(400).json({ error: "idCard is required" });
-    }
-
-    // Query employee by idCard
-    const employee = await Employee.findOne({ idCard: idCard });
-
-    if (!employee) {
-      return res.status(404).json({ 
-        exists: false,
-        message: "เลขบัตรประชาชนนี้ยังไม่มีในระบบ"
-      });
-    }
-
-    res.status(200).json({
-      exists: true,
-      message: `เลขบัตรประจำตัวประชาชน "${idCard}" มีอยู่ในระบบแล้ว`,
-      employee: {
-        _id: employee._id,
-        employeeId: employee.employeeId,
-        prefix: employee.prefix,
-        name: employee.name,
-        lastName: employee.lastName,
-        workplace: employee.workplace,
-        position: employee.position,
-        idCard: employee.idCard
-      }
-    });
-
-  } catch (error) {
-    console.error('Error checking idCard:', error);
-    res.status(500).json({ 
-      error: "Internal server error", 
-      details: error.message 
-    });
-  }
-});
-
-// ✅ GET /api/employees/filter-by-jobtype/:jobtype
-// 🔍 กรองพนักงานตาม jobtype และแสดง workplace ในวงเล็บ
-// ⚠️ ต้องอยู่ก่อน route /:employeeId เพื่อป้องกัน route conflict
-router.get("/filter-by-jobtype/:jobtype", async (req, res) => {
-  try {
-    const { jobtype } = req.params;
-    
-    if (!jobtype) {
-      return res.status(400).json({ error: "jobtype is required" });
-    }
-
-    // Query employees by jobtype
-    const employees = await Employee.find({ jobtype: jobtype });
-
-    if (employees.length === 0) {
-      return res.status(404).json({ 
-        message: `ไม่พบพนักงานที่มี jobtype: ${jobtype}`,
-        count: 0,
-        employees: []
-      });
-    }
-
-    // Format employee data with workplace in parentheses
-    const formattedEmployees = employees.map(employee => {
-      // Format dates
-      let formattedEmployee = { ...employee.toObject() };
-      
-      if (formattedEmployee.startjob) {
-        const [day, month, year] = formattedEmployee.startjob.split('/');
-        formattedEmployee.startjob = `${month}/${day}/${year}`;
-      }
-      
-      if (formattedEmployee.exceptjob) {
-        const [day, month, year] = formattedEmployee.exceptjob.split('/');
-        formattedEmployee.exceptjob = `${month}/${day}/${year}`;
-      }
-
-      // Ensure arrays exist
-      if (!formattedEmployee.addSalary) {
-        formattedEmployee.addSalary = [];
-      }
-      if (!formattedEmployee.deductSalary) {
-        formattedEmployee.deductSalary = [];
-      }
-      if (!formattedEmployee.department) {
-        formattedEmployee.department = '';
-      }
-
-      // Add formatted display name with workplace in parentheses
-      const workplace = formattedEmployee.workplace || 'ไม่ระบุสถานที่ทำงาน';
-      formattedEmployee.displayName = `${formattedEmployee.name} (${workplace})`;
-
-      return formattedEmployee;
-    });
-
-    res.status(200).json({
-      message: `พบพนักงาน jobtype: ${jobtype} จำนวน ${employees.length} คน`,
-      jobtype: jobtype,
-      count: employees.length,
-      employees: formattedEmployees
-    });
-
-  } catch (error) {
-    console.error('Error filtering employees by jobtype:', error);
-    res.status(500).json({ 
-      error: "Internal server error", 
-      details: error.message 
-    });
-  }
-});
-
 // Get  employee by Id
 router.get("/:employeeId", async (req, res) => {
   try {
@@ -1318,6 +1076,120 @@ router.post("/updateemployees", async (req, res) => {
   } catch (error) {
     console.error('Error updating employee:', error);
     res.status(500).json({ error: "Internal server error", details: error.message });
+  }
+});
+
+// ✅ GET /api/employees/filter-by-jobtype/:jobtype
+// 🔍 กรองพนักงานตาม jobtype และแสดง workplace ในวงเล็บ
+router.get("/filter-by-jobtype/:jobtype", async (req, res) => {
+  try {
+    const { jobtype } = req.params;
+    
+    if (!jobtype) {
+      return res.status(400).json({ error: "jobtype is required" });
+    }
+
+    // Query employees by jobtype
+    const employees = await Employee.find({ jobtype: jobtype });
+
+    if (employees.length === 0) {
+      return res.status(404).json({ 
+        message: `ไม่พบพนักงานที่มี jobtype: ${jobtype}`,
+        count: 0,
+        employees: []
+      });
+    }
+
+    // Format employee data with workplace in parentheses
+    const formattedEmployees = employees.map(employee => {
+      // Format dates
+      let formattedEmployee = { ...employee.toObject() };
+      
+      if (formattedEmployee.startjob) {
+        const [day, month, year] = formattedEmployee.startjob.split('/');
+        formattedEmployee.startjob = `${month}/${day}/${year}`;
+      }
+      
+      if (formattedEmployee.exceptjob) {
+        const [day, month, year] = formattedEmployee.exceptjob.split('/');
+        formattedEmployee.exceptjob = `${month}/${day}/${year}`;
+      }
+
+      // Ensure arrays exist
+      if (!formattedEmployee.addSalary) {
+        formattedEmployee.addSalary = [];
+      }
+      if (!formattedEmployee.deductSalary) {
+        formattedEmployee.deductSalary = [];
+      }
+      if (!formattedEmployee.department) {
+        formattedEmployee.department = '';
+      }
+
+      // Add formatted display name with workplace in parentheses
+      const workplace = formattedEmployee.workplace || 'ไม่ระบุสถานที่ทำงาน';
+      formattedEmployee.displayName = `${formattedEmployee.name} (${workplace})`;
+
+      return formattedEmployee;
+    });
+
+    res.status(200).json({
+      message: `พบพนักงาน jobtype: ${jobtype} จำนวน ${employees.length} คน`,
+      jobtype: jobtype,
+      count: employees.length,
+      employees: formattedEmployees
+    });
+
+  } catch (error) {
+    console.error('Error filtering employees by jobtype:', error);
+    res.status(500).json({ 
+      error: "Internal server error", 
+      details: error.message 
+    });
+  }
+});
+
+// ✅ GET /api/employees/check-idcard/:idCard
+// 🔍 ตรวจสอบว่าเลขบัตรประชาชนมีอยู่ในระบบแล้วหรือไม่
+router.get("/check-idcard/:idCard", async (req, res) => {
+  try {
+    const { idCard } = req.params;
+    
+    if (!idCard) {
+      return res.status(400).json({ error: "idCard is required" });
+    }
+
+    // Query employee by idCard
+    const employee = await Employee.findOne({ idCard: idCard });
+
+    if (!employee) {
+      return res.status(404).json({ 
+        exists: false,
+        message: "เลขบัตรประชาชนนี้ยังไม่มีในระบบ"
+      });
+    }
+
+    res.status(200).json({
+      exists: true,
+      message: `เลขบัตรประจำตัวประชาชน "${idCard}" มีอยู่ในระบบแล้ว`,
+      employee: {
+        _id: employee._id,
+        employeeId: employee.employeeId,
+        prefix: employee.prefix,
+        name: employee.name,
+        lastName: employee.lastName,
+        workplace: employee.workplace,
+        position: employee.position,
+        idCard: employee.idCard
+      }
+    });
+
+  } catch (error) {
+    console.error('Error checking idCard:', error);
+    res.status(500).json({ 
+      error: "Internal server error", 
+      details: error.message 
+    });
   }
 });
 
