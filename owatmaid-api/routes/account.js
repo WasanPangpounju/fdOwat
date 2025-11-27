@@ -554,8 +554,8 @@ upSalary_month = await date.getMonth() + 1; // Use getMonth() for local time
 try {
 let startDay = getDayNumber(item.startDay);
 let endDay = getDayNumber(item.endDay);
-  // console.log('startDay '+ startDay );
-  // console.log('endDay ' + endDay );
+  // ...existing code...
+  // ...existing code...
 
   if (startDay <= endDay) {
     for (let i = startDay; i <= endDay; i++) {
@@ -573,13 +573,13 @@ let endDay = getDayNumber(item.endDay);
 
 }
 } catch (error) {
-  console.error(error.message);
+  // ...existing code...
 }
           }
         })
       }
 
-      console.log('dayOffList ' + dayOffList);
+  // ...existing code...
           // Format the new month as a two-digit string (e.g. "01", "02", ...)
     const newMonthStringX = (month -1).toLocaleString('en-US', {
       minimumIntegerDigits: 2,
@@ -602,14 +602,14 @@ let endDay = getDayNumber(item.endDay);
 
   let endM1 = new Date(year, previousMonthStringX, 0).getDate();
 
-      // console.log(year + '-' + month + ' ' + previousMonthStringX  + endM1);
+  // ...existing code...
 for(m1 = 21; m1 <= endM1; m1 ++){
   let dateString = `${year}-${previousMonthStringX}-${m1.toString().padStart(2, '0')}`;
-  // console.log(dateString);
+  // ...existing code...
 
   let dayNumber = new Date(dateString).getDay(); // getDay() returns the day of the week (0-6)
 
-  // console.log('m1 ' + dayNumber + ' ' + JSON.stringify(dayNumber, null, 2));
+  // ...existing code...
 
   if (dayOffList.includes(dayNumber)) {
       dayOffSum += 1;
@@ -619,11 +619,11 @@ for(m1 = 21; m1 <= endM1; m1 ++){
 
 for(m2 = 1; m2 <= 20; m2 ++){
   let dateString = `${year}-${month}-${m2.toString().padStart(2, '0')}`;
-  // console.log(dateString);
+  // ...existing code...
 
   let dayNumber = new Date(dateString).getDay(); // getDay() returns the day of the week (0-6)
 
-  // console.log('m2 ' + dayNumber + ' ' + JSON.stringify(dayNumber, null, 2));
+  // ...existing code...
 
   if (dayOffList.includes(dayNumber)) {
       dayOffSum += 1;
@@ -632,8 +632,8 @@ for(m2 = 1; m2 <= 20; m2 ++){
 
 }
 
-console.log('dayOffSum ' + dayOffSum);
-      // console.log(foundWorkplace.daysOff);
+// ...existing code...
+  // ...existing code...
 
       await Promise.all( foundWorkplace.daysOff.map(async item => {
 
@@ -661,7 +661,7 @@ console.log('dayOffSum ' + dayOffSum);
   }
   
   // Log the adjusted date (in the format: "day/month")
-  // console.log(`${day1.getDate()}/${month1String }`);
+  // ...existing code...
 
     // Format the new month as a two-digit string (e.g. "01", "02", ...)
     const newMonthString = (month -1).toLocaleString('en-US', {
@@ -684,16 +684,16 @@ console.log('dayOffSum ' + dayOffSum);
   });
 
 if(month !== "01" && month !== "12" && year == year1 ) {
-// console.log(month + ' x ' + month1String )
+// ...existing code...
 
   if(month == month1String && year == year1 && day1.getDate()  <= 20) {
-    // console.log(year + ' ' + year1 + ' ' + month + ' ' + month1String);
+  // ...existing code...
 
     await specialDaylist.push(day1.getDate() );
     holidayRate = await parseFloat(response.data.salary || '0') + upsalary || parseFloat(foundWorkplace.workRate || '0') + upsalary ;
   } else {
     if(previousMonthString  == month1String && day1.getDate() >= 21) {
-      console.log(year + ' ' + year1 + ' ' + month + ' ' + month1String);
+  // ...existing code...
 
       await specialDaylist.push(day1.getDate() );
 // holidayRate = await response.data.salary || foundWorkplace.workRate;
@@ -729,7 +729,7 @@ holidayRate = await parseFloat(response.data.salary || '0') + upsalary || parseF
        }
 
 
-// console.log(year + ' ' + year1 + ' ' + month + ' ' + month1String);
+// ...existing code...
       })
     );
 
@@ -738,7 +738,7 @@ holidayRate = await parseFloat(response.data.salary || '0') + upsalary || parseF
 
     } else {
       // Workplace with the given ID not found
-      // await console.log('Workplace not found');
+  // ...existing code...
     }
 
     // data.employeeId = responseConclude.data.recordConclude[c].employeeId;
@@ -775,10 +775,10 @@ if(promise) {
 //data non social
 // sumAddSalaryBeforeTaxNonSocial = sumAddSalaryBeforeTaxNonSocial  + parseFloat(response.data.addSalary[k].SpSalary || 0);
 }
-          // console.log('tax' + response.data.addSalary[k].id || '0'); 
+          // ...existing code...
 
         } else {
-          // console.log('non tax' + response.data.addSalary[k].id || '0');
+          // ...existing code...
           // sumAddSalaryAfterTax  = sumAddSalaryAfterTax  + parseFloat(response.data.addSalary[k].SpSalary || 0);
         }
       }
@@ -790,7 +790,7 @@ if(promise) {
             // ✅ ตรวจสอบว่าเป็นหน่วยงาน 10806 หรือไม่
             if (data.workplace === '10806') {
               dailyTmp.message = "1";  // หน่วยงาน 10806 ใช้ message = 1
-              console.log(`✅ [ACCOUNT-10806] สวัสดิการรายวัน ID:${dailyTmp.id} - message = 1`);
+              // ...existing code...
             } else {
               dailyTmp.message = await countDay;  // หน่วยงานอื่นใช้ countDay ตามปกติ
             }
@@ -804,7 +804,7 @@ if(promise) {
           }
 
         }
-// console.log(response.data.addSalary[k].roundOfSalary );
+// ...existing code...
     }
 
     for (let l = 0; l < (response?.data?.deductSalary?.length || 0); l++) {
@@ -843,14 +843,14 @@ await deductSalaryList.push(response.data.deductSalary[l] );
             results.forEach((result, k) => {
                 if (result === true) {
                     sumSocial += parseFloat(response.data.addSalary[k].SpSalary || 0);
-                    // console.log(`Promise ${k} is resolved`);
-                    // console.log(response.data.addSalary[k].SpSalary);
+                    // ...existing code...
+                    // ...existing code...
                 }
             });
-            // console.log(sumSocial);
+            // ...existing code...
         })
         .catch(error => {
-            console.error('Error occurred while processing promises:', error);
+            // ...existing code...
         });
     
 
@@ -871,8 +871,8 @@ await Promise.all(promises1)
 
           }
 
-            // console.log(`Promise ${k} is resolved`);
-            // console.log(response.data.addSalary[k].SpSalary);
+            // ...existing code...
+            // ...existing code...
         }  else {
           if(response.data.addSalary[k].roundOfSalary === "daily") {
             sumNonTaxNonSalary+= parseFloat(response.data.addSalary[k].SpSalary || 0) * countDay;
@@ -882,10 +882,10 @@ await Promise.all(promises1)
 
         }
     });
-    // console.log(sumCalTax);
+  // ...existing code...
 })
 .catch(error => {
-    console.error('Error occurred while processing promises:', error);
+  // ...existing code...
 });
 
 //check deduct calculate tax
@@ -902,21 +902,21 @@ await Promise.all(promisesDeduct)
 
         }
     });
-    // console.log(sumCalTax);
+  // ...existing code...
 })
 .catch(error => {
-    console.error('Error occurred while processing promises:', error);
+  // ...existing code...
 });
 
 addSalaryDayArray = [];  
 
-// console.log('responseConclude.data.recordConclude[c].concludeRecord' + responseConclude.data.recordConclude[0].concludeRecord);
+// ...existing code...
 let x  = '';
 //ss1
 for (let i = 0; i < responseConclude.data.recordConclude[c].concludeRecord.length; i++) {
   x=   response.data.workplace || '';
   if(responseConclude.data.recordConclude[c].concludeRecord[i].workType == 'specialtSalary' || x[0] == '3') {
-    // console.log('* ' + x[0] + JSON.stringify(responseConclude.data.recordConclude[c].concludeRecord[i]));
+  // ...existing code...
     amountDay += parseFloat(responseConclude.data.recordConclude[c].concludeRecord[i].workRate || 0);
     amountOt += parseFloat(responseConclude.data.recordConclude[c].concludeRecord[i].workRateOT || 0);
     countHour += parseFloat(responseConclude.data.recordConclude[c].concludeRecord[i].allTimes || 0);
@@ -934,7 +934,7 @@ for (let i = 0; i < responseConclude.data.recordConclude[c].concludeRecord.lengt
       workDaylist.push(responseConclude.data.recordConclude[c].concludeRecord[i].day.split("/")[0] );
 //count day work
 dayOffWork += 1;
-      console.log('process x');
+  // ...existing code...
     }
 
 
@@ -1003,7 +1003,7 @@ dayOffWork += 1;
     hourThree = Number(hourThree) + Number(responseConclude.data.recordConclude[c].concludeRecord[i].otTimes || 0);
   }
 
-  // console.log('work rate '+ parseFloat(responseConclude.data.recordConclude[c].concludeRecord[i].workRate ) + 'salary ' + parseFloat(salary) );
+  // ...existing code...
 
   //check work rate is not standard day
   // if(((parseFloat(responseConclude.data.recordConclude[c].concludeRecord[i].workRate) == parseFloat(salary)) || (parseFloat(responseConclude.data.recordConclude[c].concludeRecord[i].workRate) == parseFloat(salary) + parseFloat(upsalary) ) ) || parseFloat(salary) > 1660 ) {
@@ -1014,10 +1014,10 @@ dayOffWork += 1;
     ) {
 
     
-    // console.log('responseConclude.data.recordConclude[c].concludeRecord[i].workRate ' + responseConclude.data.recordConclude[c].concludeRecord[i].workRate + ' salary ' + salary)
+  // ...existing code...
     if(parseInt(responseConclude.data.recordConclude[c].concludeRecord[i].day) <=   20) {
-      // console.log('day ' + responseConclude.data.recordConclude[c].concludeRecord[i].day);
-      // console.log('responseConclude.data.recordConclude[c].concludeRecord[i].workRate ' + responseConclude.data.recordConclude[c].concludeRecord[i].workRate + ' salary ' + salary)
+  // ...existing code...
+  // ...existing code...
   
     }
   
@@ -1028,7 +1028,7 @@ dayOffWork += 1;
 // dayOffWork += 1;
 countHourWork += parseFloat(responseConclude.data.recordConclude[c].concludeRecord[i].allTimes || 0);
 
-// console.log('*work rate '+ parseFloat(responseConclude.data.recordConclude[c].concludeRecord[i].workRate ) + 'salary ' + parseFloat(salary) );
+// ...existing code...
 
   } else {
     let [hoursTmp, minutesTmp] = (responseConclude.data.recordConclude[c].concludeRecord[i].otTimes || '0.0').toString().split('.').map(Number);
@@ -1043,10 +1043,10 @@ countHourWork += parseFloat(responseConclude.data.recordConclude[c].concludeReco
     countDay++;
 
     if(dayOffList.includes( getDayNumberFromDate( responseConclude.data.recordConclude[c].concludeRecord[i].day) ) ) {
-// console.log(getDayNumberFromDate( responseConclude.data.recordConclude[c].concludeRecord[i].day) );
+// ...existing code...
 dayOffSumWork += 1;      
     }
-// console.log(getDayNumberFromDate( responseConclude.data.recordConclude[c].concludeRecord[i].day) );
+// ...existing code...
 
     // workDaylist.push(responseConclude.data.recordConclude[c].concludeRecord[i].day.split("/")[0] );
 if( parseFloat(responseConclude.data.recordConclude[c].concludeRecord[i].workRate) > 0 ) {
@@ -1054,8 +1054,8 @@ if( parseFloat(responseConclude.data.recordConclude[c].concludeRecord[i].workRat
 }
 
     //check addSalary day from conclude
-    // console.log("addSalary "+ JSON.stringify( responseConclude.data.recordConclude[c].addSalary ,null,2) );
-// console.log(responseConclude.data.recordConclude[c].addSalary[i].length );
+  // ...existing code...
+// ...existing code...
 if(responseConclude.data.recordConclude[c].addSalary[i]) {
 
   let c = 0;
@@ -1090,10 +1090,10 @@ if(tmp.id === item.id) {
   })
 
   if (! checkAddSalaryDay ) {
-    // await console.log(" push " + item.id );
+  // ...existing code...
     await addSalaryDayArray.push(item);
   } else {
-    // await console.log('update"' + item.id );
+  // ...existing code...
   }
 
 if(item.id == '1230') {
@@ -1108,7 +1108,7 @@ if(item.id == '1520') {
 if(item.id == '1535') {
   x1535 += parseFloat(item.SpSalary);
 } else {
-  // console.log(item.SpSalary);
+  // ...existing code...
   
 }
 
@@ -1119,7 +1119,7 @@ if(item.id == '1535') {
   }
 
 }
-// await console.log('addSalaryDayArray '+ JSON.stringify(addSalaryDayArray ,null,2));
+// ...existing code...
 
 //set data to position , tel , travel
 if(x1230 >0 ) {
@@ -1147,10 +1147,10 @@ try {
   
   if (["5", "6", "7"].includes(workOfWeek)) {
     isSpecialWorkplace7Days = true;
-    console.log(`\n✅ หน่วยงานพิเศษ ${workOfWeek} วัน - จะคิดเงินเพิ่มรายวันทุกวันที่มี allTimes > 0`);
+  // ...existing code...
   }
 } catch (error) {
-  console.error(`❌ ไม่สามารถตรวจสอบ workOfWeek ได้:`, error.message);
+  // ...existing code...
 }
 
 let totalWorkDays = 0;
@@ -1161,13 +1161,13 @@ if (isSpecialWorkplace7Days) {
     return record.totalTime && record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0;
   }).length;
   
-  console.log(`📊 หน่วยงานพิเศษ - จำนวนวันทำงานจริง (จาก totalTime): ${totalWorkDays} วัน`);
+  // ...existing code...
   
   // แสดงรายละเอียดการนับเพื่อตรวจสอบ
-  console.log(`📋 รายละเอียดการนับวัน:`);
+  // ...existing code...
   responseConclude.data.recordConclude[c].concludeRecord.forEach((record, index) => {
     const hasTotalTime = record.totalTime && record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0;
-    console.log(`   วันที่ ${record.day}: totalTime = "${record.totalTime || 'ไม่มี'}" ${hasTotalTime ? '✅ นับ' : '❌ ไม่นับ'}`);
+  // ...existing code...
   });
 }
 
@@ -1176,13 +1176,13 @@ if (isSpecialWorkplace7Days) {
     ...item,
     message: totalWorkDays.toString()  // อัปเดต message เป็นจำนวนวันจริงที่มา
   }));
-  console.log(`🔧 อัปเดต addSalaryDayArray message เป็น: ${totalWorkDays}`);
+  // ...existing code...
 }
 
 // เพิ่มการตรวจสอบเพิ่มเติม:
 
 // เพิ่ม log สรุปจำนวนวันที่มี totalTime (แทน allTimes)
-console.log(`\n📊 === สรุป addSalaryList สำหรับหน่วยงานพิเศษ ===`);
+// ...existing code...
 let countDaysWithTotalTime = 0;
 
 responseConclude.data.recordConclude[c].concludeRecord.forEach((record, index) => {
@@ -1191,15 +1191,15 @@ responseConclude.data.recordConclude[c].concludeRecord.forEach((record, index) =
   }
 });
 
-console.log(`📅 จำนวนวันที่มี totalTime > 0: ${countDaysWithTotalTime} วัน`);
-console.log(`💵 จำนวน addSalaryDayArray: ${addSalaryDayArray.length} รายการ`);
-console.log(`✅ ต้องตรงกัน: ${countDaysWithTotalTime === totalWorkDays ? 'ถูกต้อง' : 'ไม่ตรงกัน!'}`);
+// ...existing code...
+// ...existing code...
+// ...existing code...
 
 // ตรวจสอบค่า message หลังจากอัปเดต
 if (isSpecialWorkplace7Days && addSalaryDayArray.length > 0) {
-  console.log(`\n📝 ตรวจสอบค่า message หลังอัปเดต:`);
+  // ...existing code...
   addSalaryDayArray.forEach((item, index) => {
-    console.log(`   - ${item.name} (ID: ${item.id}): message = "${item.message}"`);
+  // ...existing code...
   });
 }
 
@@ -1209,15 +1209,15 @@ responseConclude.data.recordConclude[c].concludeRecord.forEach((record, index) =
   }
 });
 
-console.log(`📅 จำนวนวันที่มี totalTime > 0: ${countDaysWithTotalTime} วัน`);
-console.log(`💵 จำนวน addSalaryDayArray: ${addSalaryDayArray.length} รายการ`);
-console.log(`✅ ต้องตรงกัน: ${countDaysWithTotalTime === totalWorkDays ? 'ถูกต้อง' : 'ไม่ตรงกัน!'}`);
+// ...existing code...
+// ...existing code...
+// ...existing code...
 
 // ตรวจสอบค่า message หลังจากอัปเดต
 if (isSpecialWorkplace7Days && addSalaryDayArray.length > 0) {
-  console.log(`\n📝 ตรวจสอบค่า message หลังอัปเดต:`);
+  // ...existing code...
   addSalaryDayArray.forEach((item, index) => {
-    console.log(`   - ${item.name} (ID: ${item.id}): message = "${item.message}"`);
+  // ...existing code...
   });
 }
 
@@ -1232,7 +1232,7 @@ data.accountingRecord.amountOt = amountOt;
 // sumSocial = await sumSocial + amountDay;
 sumCalTax = await sumCalTax + amountDay;
 sumCalTax = await sumCalTax + amountOt;
-console.log(addSalaryDayArray.length);
+// ...existing code...
 
 // เพิ่มสวัสดิการรายวันเข้า addSalaryList พร้อมกับ countDay ที่ถูกต้อง
 for (let k = 0; k < (response?.data?.addSalary?.length || 0); k++) {
@@ -1241,7 +1241,7 @@ for (let k = 0; k < (response?.data?.addSalary?.length || 0); k++) {
     // ✅ ตรวจสอบว่าเป็นหน่วยงาน 10806 หรือไม่
     if (data.workplace === '10806') {
       dailyTmp.message = "1";  // หน่วยงาน 10806 ใช้ message = 1
-      console.log(`✅ [ACCOUNT-10806-Loop2] สวัสดิการรายวัน ID:${dailyTmp.id} - message = 1`);
+  // ...existing code...
     } else {
       dailyTmp.message = await countDay;  // หน่วยงานอื่นใช้ countDay ตามปกติ
     }
@@ -1251,7 +1251,7 @@ for (let k = 0; k < (response?.data?.addSalary?.length || 0); k++) {
 
 //concat addSalary
 addSalaryList  = await addSalaryList .concat(addSalaryDayArray);
-console.log(addSalaryList .length);
+// ...existing code...
 // Variables for summation
 let sumAddSalaryBeforeTaxTmp = 0;
 let sumAddSalaryBeforeTaxNonSocialTmp = 0;
@@ -1308,12 +1308,12 @@ if(item.id === '1231') {
     } else {
 
     let taxStatus = await checkCalTax(item.id);
-    // console.log('taxStatus ' + item.id + ' ' + taxStatus + ' ' + item.SpSalary);
+  // ...existing code...
 
     if (taxStatus) {
       // Calculate tax
       let socialStatus = await checkCalSocial(item.id);
-      // console.log('socialStatus ' + item.id + ' ' + socialStatus + ' ' + item.SpSalary);
+  // ...existing code...
 
       if (socialStatus) {
         // Calculate social
@@ -1333,9 +1333,9 @@ if(item.id === '1231') {
   sumAddSalaryBeforeTax = sumAddSalaryBeforeTaxTmp;
   sumAddSalaryBeforeTaxNonSocial = sumAddSalaryBeforeTaxNonSocialTmp;
   sumAddSalaryAfterTax = sumAddSalaryAfterTaxTmp;
-  // console.log('sumAddSalaryBeforeTax ' + sumAddSalaryBeforeTax);
-  // console.log('sumAddSalaryBeforeTaxNonSocial ' + sumAddSalaryBeforeTaxNonSocial);
-  // console.log('sumAddSalaryAfterTax ' + sumAddSalaryAfterTax);
+  // ...existing code...
+  // ...existing code...
+  // ...existing code...
 
 })();
 
@@ -1383,27 +1383,27 @@ if (data?.accountingRecord?.sickLeaveWithCertificate ?? false) {
     data.accountingRecord.sickLeaveWithCertificate =  await 0;
 }
 
-// await console.log(sumSocial );
+// ...existing code...
 
 const intersection = await workDaylist.filter(day => specialDaylist.includes(Number(day) ));
-// console.log('workDaylist :' + workDaylist );
-console.log('');
-console.log('specialDaylist ' + JSON.stringify(specialDaylist,null,2) );
+// ...existing code...
+// ...existing code...
+// ...existing code...
 
-await console.log(data.employeeId + ' ' + month);
-// await console.log('workDaylist' + JSON.stringify(workDaylist,null,2))
-await console.log('specialDaylist' + JSON.stringify(specialDaylist,null,2));
+// ...existing code...
+// ...existing code...
+// ...existing code...
 
-await console.log('intersection: ' + intersection); // Output: ['2', '3', '4']
-await console.log('total ' + total );
-// console.log('specialDaylist.length ' + specialDaylist.length + 'intersection.length '+ intersection.length + 'holidayRate '+ holidayRate )
+// ...existing code...
+// ...existing code...
+// ...existing code...
 let s1 = await specialDaylist.length ||0;
 let s2 = await intersection.length || 0;
 let calSP = await ((s1 - s2) * parseFloat(holidayRate) );
-console.log('s1 ' + s1);
-console.log('s2 ' + s2);
+// ...existing code...
+// ...existing code...
 
-console.log('calSP '+ calSP );
+// ...existing code...
 // sumSocial  = await sumSocial  + calSP ;
 
 let workDaySocial = await countDay - dayOffSum - s2;
@@ -1444,13 +1444,13 @@ data.accountingRecord.amountCountDayWork = await salary ||0;
 
 }
 
-await console.log('countDay '+ countDay + ' dayOffSumWork ' + dayOffSumWork  + ' s2 '  +s2 + 'workDaySocial ' + workDaySocial );
-console.log('workDaySocial '+ (workDaySocial * salary) + 'sumSocial '+ sumSocial );
+// ...existing code...
+// ...existing code...
 
 // ============= เริ่มการคำนวณฐานประกันสังคมแบบใหม่ =============
 // ขั้นตอน 1: หักรายการที่ต้องหักออกจากฐานประกันสังคมก่อน
-console.log('\n📊 === การคำนวณฐานประกันสังคม ===');
-console.log('ฐานประกันสังคมเริ่มต้น:', sumSocial);
+// ...existing code...
+// ...existing code...
 
 let deductFromSocial = 0;
 const deductIdsForSocial = await fetchDedutIds(); // ดึงจาก API
@@ -1461,15 +1461,15 @@ if (deductSalaryList && deductSalaryList.length > 0) {
     if (deductIdsForSocial.includes(deductItem.id)) {
       const deductAmount = parseFloat(deductItem.amount || 0);
       deductFromSocial += deductAmount;
-      console.log(`- หัก ${deductItem.name || 'รหัส ' + deductItem.id}: -${deductAmount} บาท`);
+  // ...existing code...
     }
   }
 }
 
 // ขั้นตอน 2: คำนวณฐานประกันสังคมใหม่
-console.log(`รวมรายการหัก (${deductIdsForSocial.join(', ')}):`, deductFromSocial);
+// ...existing code...
 sumSocial = sumSocial - deductFromSocial;
-console.log('ฐานประกันสังคมหลังหักรายการพิเศษ:', sumSocial);
+// ...existing code...
 // ============= สิ้นสุดการคำนวณฐานประกันสังคมแบบใหม่ =============
 
     // Other properties
@@ -1505,7 +1505,7 @@ if (sumSocial > 15000) {
 if (sumSocial < 1650) {
   sumSocial = await 83; // Set sumSocial to 83
 }
-console.log('ฐานประกันสังคมสุดท้าย (หลังปรับขีดจำกัด):', sumSocial);
+// ...existing code...
 
 // Calculate socialSecurity based on sumSocial
 // data.accountingRecord.socialSecurity = Math.ceil((sumSocial * 0.05)) || 0;
@@ -1572,18 +1572,18 @@ await salaryRecord.save();
         dataList.push(data);
 }  else {
   dataList.push([]);
-  console.log('emty data not save');
+  // ...existing code...
 }
 
 // console.log('upsalary ' + upsalary);
-console.log('upsalary year' + upSalary_year + ' month ' + upSalary_month);
+// ...existing code...
 
       }
     } else {
-      console.log('no data conclude');
+  // ...existing code...
     }
 
-    // console.log(JSON.stringify(dataList, null, 2));
+  // ...existing code...
 
     if (dataList.length > 0) {
       res.json(dataList);
@@ -1593,7 +1593,7 @@ console.log('upsalary year' + upSalary_year + ' month ' + upSalary_month);
   }     //check accounting record in database
 
   } catch (error) {
-    console.error(error);
+  // ...existing code...
     res.status(500).json({ error: 'Internal server error' });
   }
 
@@ -1621,14 +1621,14 @@ const data = await {};
       employeeId : employeeId 
       // req.params.employeeId
     };
-await console.log(dataSearch);
+// ...existing code...
 
 //get data from conclude record
     const responseConclude = await axios.post(sURL + '/conclude/search', dataSearch);
-    await console.log(responseConclude.data.recordConclude.length );
+  // ...existing code...
     if(responseConclude.data.recordConclude.length > 0 ) {
-      // console.log(responseConclude.data.recordConclude.length );
-// await console.log(JSON.stringify(responseConclude.data,null,2) );
+  // ...existing code...
+// ...existing code...
 
 data.year = await responseConclude.data.recordConclude[0].year; 
 data.month = await responseConclude.data.recordConclude[0].month;
@@ -1643,7 +1643,7 @@ let amountDay = await 0;
 let amountOt = await 0;
 let amountSpecial  = await 0;
 //loop count data
-// await console.log(responseConclude.data.recordConclude[0].concludeRecord);
+// ...existing code...
 for(let i =0; i < responseConclude.data.recordConclude[0].concludeRecord.length; i++) {
   amountDay  = await amountDay + parseFloat(responseConclude.data.recordConclude[0].concludeRecord[i].workRate || 0 );
   amountOt = await amountOt + parseFloat(responseConclude.data.recordConclude[0].concludeRecord[i].workRateOT || 0 );
@@ -1654,35 +1654,35 @@ for(let i =0; i < responseConclude.data.recordConclude[0].concludeRecord.length;
     countDay  = await countDay   + 1;
   }
 }
-// await console.log(amountSpecial );
+// ...existing code...
 
 data.accountingRecord.countDay = await countDay;
 data.accountingRecord.amountDay = await amountDay  ;
 data.accountingRecord.amountOt = await amountOt;
 data.accountingRecord.amountSpecial = await amountSpecial;
 
-// await console.log(responseConclude.data.recordConclude[0].concludeRecord.length);
+// ...existing code...
 
 //xxxx
     } else {
-console.log('no data conclude');
+// ...existing code...
     }
 
     //get employee data by employeeId
       const response = await axios.get(sURL + '/employee/'+ employeeId);
       if(response) {
         data.workplace = await response.data.workplace;
-console.log(response.data.addSalary.length);
+// ...existing code...
 
 let position1230 = await '1230';
 const addSalary = await response.data.addSalary.find(salary => salary.id === position1230 );
 
 if (addSalary) {
-  // console.log('Found addSalary:', addSalary);
+  // ...existing code...
   data.accountingRecord.amountPosition = await addSalary.SpSalary;
   // Handle addSalary found
 } else {
-  // console.log('No addSalary found with the provided ID.');
+  // ...existing code...
   data.accountingRecord.amountPosition = await 0;
   // Handle no addSalary found
 }
@@ -1710,7 +1710,7 @@ data.accountingRecord.bank = await 0;
 data.accountingRecord.total = await 0;
 
       }
-    // await console.log(response.data.workplace );
+  // ...existing code...
     // console.log(data);
 
     // const accountingData = await accounting.findOne({ employeeId: req.params.employeeId});
