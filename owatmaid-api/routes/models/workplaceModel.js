@@ -240,7 +240,8 @@ employeeCompensation: {
   workcount5: String,
   workcount6: String,
   workcount7: String,
-   ApplyeveryDay: {
+
+  ApplyeveryDay: {
     type: Boolean,
     default: false
   },
