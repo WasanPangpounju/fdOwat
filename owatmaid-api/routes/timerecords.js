@@ -1746,42 +1746,26 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
 //search timerecordEmployee 
 router.post('/searchtimerecordemployee', async (req, res) => {
   try {
-    const { employeeId,
-      employeeName,
-      month,
-     year} = req.body;
-
-    // Construct the search query based on the provided parameters
+    const { employeeId, employeeName, month, year } = req.body;
     const query = {};
-
     if (employeeId !== '') {
-      query.employeeId= employeeId;
+      query.employeeId = employeeId;
     }
-
-
     if (employeeName !== '') {
       query.employeeName = { $regex: new RegExp(employeeName, 'i') };
     }
-
     if (month !== '') {
-      //query.month = new Date(date);
-      query.month = { $regex: new RegExp(month , 'i') };
+      query.month = { $regex: new RegExp(month, 'i') };
     }
-
-    if (year!== '') {
-      query.year = { $regex: new RegExp(year , 'i') };
+    if (year !== '') {
+      query.year = { $regex: new RegExp(year, 'i') };
     }
-
-    if (employeeId == '' && employeeName == '' && month == '' && year== '') {
+    if (employeeId == '' && employeeName == '' && month == '' && year == '') {
       res.status(200).json({});
     }
-
-    // Query the workplace collection for matching documents
     const result = await timerecordEmployee.find(query);
-
-    await res.status(200).json({ result});
+    await res.status(200).json({ result });
   } catch (error) {
-    console.error(error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
@@ -1792,49 +1776,34 @@ router.post('/createtimerecordemployee', async (req, res) => {
   const currentYear = currentDate.getFullYear();
 
   const {
-year,
+    year,
     employeeId,
     employeeName,
     month,
     employee_record
   } = req.body;
 
-  // Debug: Log payFullDay data
-  console.log('📋 Employee Record Data:', JSON.stringify(employee_record, null, 2));
-  employee_record.forEach((record, index) => {
-    if (record.payFullDay !== undefined) {
-      console.log(`✅ Record ${index}: payFullDay = ${record.payFullDay}, totalTime = ${record.totalTime}`);
-    }
-  });
-
-  // Create timerecordEmployee 
   const timerecordEmployeeData = new timerecordEmployee({
-year,
+    year,
     employeeId,
     employeeName,
     month,
     employee_record
   });
-// console.log(workplaceTimeRecordData );
 
   try {
-    // Delete existing records for the same employee and month timerecordId
     await timerecordEmployee.deleteMany({
       year,
       employeeId,
       employeeName,
-      month    });
-      
+      month
+    });
     await timerecordEmployeeData.save();
-
-    if(timerecordEmployeeData) {
-      await setToWorkplaceTimerecords(employeeId, employeeName,  employee_record, year, month) 
+    if (timerecordEmployeeData) {
+      await setToWorkplaceTimerecords(employeeId, employeeName, employee_record, year, month);
     }
-
     await res.json(timerecordEmployeeData);
-
   } catch (err) {
-    console.log(err);
     res.status(400).json({ error: err.message });
   }
 
