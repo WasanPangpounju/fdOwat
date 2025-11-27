@@ -26,19 +26,19 @@ let cacheDedutTimestamp = null;
 function clearTaxableIdsCache() {
   cachedTaxableIds = null;
   cacheTimestamp = null;
-  console.log('🔄 ล้าง cache taxableIds แล้ว');
+  // ...existing code...
 }
 
 function clearDedutIdsCache() {
   cachedDedutIds = null;
   cacheDedutTimestamp = null;
-  console.log('🔄 ล้าง cache DedutIds แล้ว');
+  // ...existing code...
 }
 
 function clearAllCache() {
   clearTaxableIdsCache();
   clearDedutIdsCache();
-  console.log('🔄 ล้าง cache ทั้งหมดแล้ว');
+  // ...existing code...
 }
 
 // ฟังก์ชันดึงข้อมูล taxableIds จาก API
@@ -46,7 +46,7 @@ async function fetchTaxableIds() {
   // ตรวจสอบ cache ก่อน
   const now = Date.now();
   if (cachedTaxableIds && cacheTimestamp && (now - cacheTimestamp < CACHE_DURATION)) {
-    console.log(`✅ ใช้ taxableIds จาก cache (${cachedTaxableIds.length} รายการ)`);
+  // ...existing code...
     return cachedTaxableIds;
   }
 
@@ -55,16 +55,16 @@ async function fetchTaxableIds() {
     if (response.data && response.data.summary && response.data.summary.uniqueIdList) {
       cachedTaxableIds = response.data.summary.uniqueIdList;
       cacheTimestamp = Date.now();
-      console.log(`✅ ดึง taxableIds จาก API สำเร็จ: ${cachedTaxableIds.length} รายการ`);
+  // ...existing code...
       return cachedTaxableIds;
     }
-    console.warn('⚠️ ไม่พบข้อมูล uniqueIdList จาก API, ใช้ค่า default');
+  // ...existing code...
     return [];
   } catch (error) {
-    console.error('❌ Error fetching taxableIds from API:', error.message);
+  // ...existing code...
     // fallback to cached data if available
     if (cachedTaxableIds) {
-      console.warn('⚠️ ใช้ข้อมูล cache เดิมแทน');
+  // ...existing code...
       return cachedTaxableIds;
     }
     return [];
@@ -76,7 +76,7 @@ async function fetchDedutIds() {
   // ตรวจสอบ cache ก่อน
   const now = Date.now();
   if (cachedDedutIds && cacheDedutTimestamp && (now - cacheDedutTimestamp < CACHE_DURATION)) {
-    console.log(`✅ ใช้ DedutIds จาก cache (${cachedDedutIds.length} รายการ)`);
+  // ...existing code...
     return cachedDedutIds;
   }
 
@@ -85,16 +85,16 @@ async function fetchDedutIds() {
     if (response.data && response.data.summary && response.data.summary.uniqueIdList) {
       cachedDedutIds = response.data.summary.uniqueIdList;
       cacheDedutTimestamp = Date.now();
-      console.log(`✅ ดึง DedutIds จาก API สำเร็จ: ${cachedDedutIds.length} รายการ`);
+  // ...existing code...
       return cachedDedutIds;
     }
-    console.warn('⚠️ ไม่พบข้อมูล uniqueIdList สำหรับ DedutIds จาก API, ใช้ค่า default');
+  // ...existing code...
     return ["2116", "2222"]; // fallback เดิม
   } catch (error) {
-    console.error('❌ Error fetching DedutIds from API:', error.message);
+  // ...existing code...
     // fallback to cached data if available
     if (cachedDedutIds) {
-      console.warn('⚠️ ใช้ข้อมูล cache เดิมแทน');
+  // ...existing code...
       return cachedDedutIds;
     }
     return ["2116", "2222"]; // fallback เดิม
@@ -138,37 +138,37 @@ const isDateInStopRange = (dayOfWeek, workTimeDay) => {
 
 // ฟังก์ชันสร้าง personalDayOff สำหรับหน่วยงานปกติ
 const createPersonalDayOffForRegularWorkplace = async (employeeId, employee_record, month, year) => {
-  console.log(`\n📋 === สร้าง personalDayOff สำหรับหน่วยงานปกติ ===`);
-  console.log(`👤 EmployeeId: ${employeeId}`);
-  console.log(`📅 Month: ${month}, Year: ${year}`);
+  // ...existing code...
+  // ...existing code...
+  // ...existing code...
   
   try {
     // ดึงข้อมูลพนักงานและหน่วยงาน
     const employeeResponse = await axios.get(sURL + '/employee/' + employeeId);
     if (!employeeResponse || !employeeResponse.data) {
-      console.log(`❌ ไม่พบข้อมูลพนักงาน ${employeeId}`);
+  // ...existing code...
       return [];
     }
     
     const workplaceId = employeeResponse.data.workplace;
-    console.log(`🏢 WorkplaceId: ${workplaceId}`);
+  // ...existing code...
     
     // ดึงข้อมูลหน่วยงาน
     const workplaceResponse = await axios.get(sURL + '/workplace/' + workplaceId);
     if (!workplaceResponse || !workplaceResponse.data) {
-      console.log(`❌ ไม่พบข้อมูลหน่วยงาน ${workplaceId}`);
+  // ...existing code...
       return [];
     }
     
     const workplace = workplaceResponse.data;
     const workTimeDay = workplace.workTimeDay || [];
     
-    console.log(`📋 จำนวนกฎการทำงาน: ${workTimeDay.length} รายการ`);
+  // ...existing code...
     
     // หาวันหยุดตามกฎของหน่วยงาน
     const stopDays = [];
     workTimeDay.forEach((schedule, index) => {
-      console.log(`📌 กฎที่ ${index + 1}: ${schedule.startDay} ถึง ${schedule.endDay} (${schedule.workOrStop})`);
+  // ...existing code...
       
       if (schedule.workOrStop === 'stop') {
         stopDays.push({
@@ -181,11 +181,11 @@ const createPersonalDayOffForRegularWorkplace = async (employeeId, employee_reco
     });
     
     if (stopDays.length === 0) {
-      console.log(`ℹ️ ไม่มีกฎวันหยุดที่กำหนด`);
+  // ...existing code...
       return [];
     }
     
-    console.log(`🚫 วันหยุดที่กำหนด: ${stopDays.length} ช่วง`);
+  // ...existing code...
     
     // นับจำนวนวันหยุดในรอบเงินเดือน (21 เดือนก่อน - 20 เดือนปัจจุบัน)
     const monthInt = parseInt(month);
@@ -224,7 +224,7 @@ const createPersonalDayOffForRegularWorkplace = async (employeeId, employee_reco
             dayName: dayName,
             reason: 'วันหยุดตามกำหนด'
           });
-          console.log(`✅ เพิ่ม personalDayOff: วันที่ ${day}/${prevMonth}/${prevYear} (${dayName})`);
+          // ...existing code...
         }
       }
     }
@@ -251,7 +251,7 @@ const createPersonalDayOffForRegularWorkplace = async (employeeId, employee_reco
             dayName: dayName,
             reason: 'วันหยุดตามกำหนด'
           });
-          console.log(`✅ เพิ่ม personalDayOff: วันที่ ${day}/${monthInt}/${yearInt} (${dayName})`);
+          // ...existing code...
         }
       }
     }
@@ -279,20 +279,20 @@ const createPersonalDayOffForRegularWorkplace = async (employeeId, employee_reco
             dayName: dayName,
             reason: 'วันหยุดตามกำหนด'
           });
-          console.log(`✅ เพิ่ม personalDayOff: วันที่ ${day}/${monthInt}/${yearInt} (${dayName})`);
+          // ...existing code...
         } else {
           // ถ้าพนักงานมาทำงานในวันหยุด ให้อัปเดต dayType เป็น "stop"
-          console.log(`🔄 พนักงานมาทำงานในวันหยุด วันที่ ${day} - อัปเดต dayType เป็น "stop"`);
+          // ...existing code...
           workRecord.dayType = "stop";
         }
       }
     }
     
-    console.log(`📊 สรุป personalDayOff ที่สร้าง: ${personalDayOffList.length} วัน`);
+  // ...existing code...
     return personalDayOffList;
     
   } catch (error) {
-    console.error(`❌ เกิดข้อผิดพลาดในการสร้าง personalDayOff:`, error);
+  // ...existing code...
     return [];
   }
 };
@@ -315,7 +315,7 @@ const acount = await accounting.find();
  res.status(200).send(acount );
 
   } catch (e) {
-    console.log(e);
+  // ...existing code...
     res.status(500).send(e);
   }
   
@@ -327,7 +327,7 @@ router.get('/listdelete', async (req, res) => {
     const result = await accounting.deleteMany({});
     res.status(200).send({ message: `${result.deletedCount} document(s) were deleted.` });
   } catch (e) {
-    console.log(e);
+  // ...existing code...
     res.status(500).send(e);
   }  
 });
@@ -344,7 +344,7 @@ router.get('/accountdelete', async (req, res) => {
     const result = await accounting.deleteMany({ year, month, employeeId });
     res.status(200).send({ message: `${result.deletedCount} document(s) were deleted.` });
   } catch (e) {
-    console.error('Error deleting documents:', e);
+  // ...existing code...
     res.status(500).send({ message: 'An error occurred while deleting documents.' });
   }
 });
@@ -399,14 +399,14 @@ const dataList = [];
 
 
 if(accountData ) {
-  // console.log(JSON.stringify(accountData ,null,2));
-  await console.log('* isset accounting');
-  // await console.log(accountData );
+  // ...existing code...
+  // ...existing code...
+  // ...existing code...
 await dataList .push(accountData );
     await res.json(dataList );
 
 } else {
-  await console.log('* accounting not save');
+  // ...existing code...
 
     const responseConclude = await axios.post(sURL + '/conclude/search', dataSearch);
 
@@ -510,10 +510,10 @@ costtype = await response.data.costtype  ||0;
 
 salary = await response.data.salary || 0;
 
-// await console.log(response.data);
+// ...existing code...
 
 //ss
-// console.log(response.data.workplace );
+// ...existing code...
     // Find the workplace with the matching ID
     const foundWorkplace = await workplaceList.data.find(workplace => workplace.workplaceId === response.data.workplace );
 
@@ -532,7 +532,7 @@ upSalary_month = await date.getMonth() + 1; // Use getMonth() for local time
 //check up Salary with month and year
 
       amountSpecial = await foundWorkplace.holiday || 0;
-      // await console.log("workTimeDay " + JSON.stringify(foundWorkplace.workTimeDay ) );
+  // ...existing code...
 
       //employee salary is not set use with workplace
       if(salary === 0 ) {
@@ -542,13 +542,13 @@ upSalary_month = await date.getMonth() + 1; // Use getMonth() for local time
       }
       
       // Found the workplace
-      // await console.log('Found workplace:', foundWorkplace);
+  // ...existing code...
       
-      // console.log(JSON.stringify( foundWorkplace.workTimeDay,null,2));
+  // ...existing code...
       if(foundWorkplace.workTimeDay ){
         await foundWorkplace.workTimeDay.map(item => {
           if(item.workOrStop === 'stop'){
-            // console.log(JSON.stringify( item.workOrStop ,null,2));
+            // ...existing code...
 
             //get day off of week
 try {
