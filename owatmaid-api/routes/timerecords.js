@@ -1389,11 +1389,20 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
 
     // ใช้ aggregation pipeline สำหรับการค้นหาที่ซับซ้อน
     const pipeline = [];
+
     // Match stage
     const matchConditions = {};
-    if (month) matchConditions.month = month;
-    if (year) matchConditions.year = year;
-    if (employeeId) matchConditions.employeeId = employeeId;
+    if (month !== '') {
+      matchConditions.month = { $regex: new RegExp(month, 'i') };
+    }
+    if (year !== '') {
+      matchConditions.year = { $regex: new RegExp(year, 'i') };
+    }
+     if (employeeId && employeeId !== '') {
+      matchConditions.employeeId = employeeId;
+    }
+    
+    
     pipeline.push({ $match: matchConditions });
 
     // ถ้ามี workplaceId ให้กรองเฉพาะ employee_record ที่ตรงกับ workplaceId
@@ -1417,85 +1426,130 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
       });
     }
 
-    if (!month && !year && !workplaceId) {
+    if (month == '' && year == '' && workplaceId == '') {
       return res.status(200).json({ result: [] });
     }
 
-    const result = await timerecordEmployee.aggregate(pipeline).exec();
+    const result = await timerecordEmployee.aggregate(pipeline);
 
-    // Batch welfare query
-    const allIds = result.map(r => r.employeeId);
-    const welfareQuery = { employeeId: { $in: allIds } };
-    if (year) welfareQuery.year = year;
-    const welfareRecords = await welfare.find(welfareQuery).lean();
-    // Group welfare by employeeId
-    const welfareByEmployee = {};
-    for (const w of welfareRecords) {
-      if (!welfareByEmployee[w.employeeId]) welfareByEmployee[w.employeeId] = [];
-      welfareByEmployee[w.employeeId].push(w);
-    }
-
+    // เพิ่มข้อมูล welfare/leave ลงใน addSalaryList และตรวจสอบ typeOfemployee
     for (let timeRecord of result) {
       try {
+        // ตรวจสอบและเพิ่ม typeOfemployee หากยังไม่มี
         let needUpdate = false;
         const updatedEmployeeRecord = [];
-        let typeOfemployee = timeRecord.typeOfemployee || '';
+        let typeOfemployee = timeRecord.typeOfemployee || ''; // ดึงจากระดับ root ก่อน
+        
+        // หากยังไม่มี typeOfemployee ที่ระดับ root ให้ดึงจาก employee API
         if (!typeOfemployee || typeOfemployee === '') {
           typeOfemployee = await getEmployeeJobType(timeRecord.employeeId);
           needUpdate = true;
+          console.log(`🔄 [SEARCH] เพิ่ม typeOfemployee สำหรับพนักงาน ${timeRecord.employeeId}: ${typeOfemployee}`);
         }
+        
+        // คัดลอก employee_record โดยไม่เปลี่ยนแปลง (ไม่เพิ่ม typeOfemployee ในแต่ละ record)
         for (const record of timeRecord.employee_record) {
           updatedEmployeeRecord.push(record);
         }
+        
+        // อัปเดตฐานข้อมูลหากจำเป็น - เพิ่ม typeOfemployee ที่ระดับ root
         if (needUpdate) {
           await timerecordEmployee.findByIdAndUpdate(
             timeRecord._id,
-            {
+            { 
               employee_record: updatedEmployeeRecord,
-              typeOfemployee: typeOfemployee
+              typeOfemployee: typeOfemployee // เพิ่มที่ระดับ root
             },
             { new: true }
           );
-          timeRecord.typeOfemployee = typeOfemployee;
+          timeRecord.typeOfemployee = typeOfemployee; // เพิ่มในผลลัพธ์ที่ส่งกลับ
+          console.log(`✅ [SEARCH] อัปเดต typeOfemployee ในฐานข้อมูลสำหรับพนักงาน ${timeRecord.employeeId}`);
         }
+
+        // ตรวจสอบให้แน่ใจว่า typeOfemployee แสดงใน response
         if (!timeRecord.typeOfemployee) {
           timeRecord.typeOfemployee = typeOfemployee;
         }
-        // Use batch welfare
-        const employeeWelfare = welfareByEmployee[timeRecord.employeeId] || [];
-        // ...existing code for processing employeeWelfare instead of welfareRecords...
-        // ...welfare processing logic (reuse your logic, just replace welfareRecords with employeeWelfare)...
+
+        // ค้นหาข้อมูล welfare ของพนักงาน
+        const welfareQuery = { employeeId: timeRecord.employeeId };
+        
+        // ถ้ามีการระบุ year ให้กรองตามปี
+        if (year && year !== '') {
+          welfareQuery.year = year;
+        }
+        
+        // Debug: Log the welfare query
+        console.log('🔍 Welfare Query for employee:', timeRecord.employeeId, welfareQuery);
+        
+        const welfareRecords = await welfare.find(welfareQuery);
+        
+        // Debug: Log the welfare results
+        console.log('📊 Welfare Records found:', welfareRecords.length, 'records for employee:', timeRecord.employeeId);
+        
+        // Debug: Check what welfare data exists for this employee (without month/year filter)
+        const allWelfareForEmployee = await welfare.find({ employeeId: timeRecord.employeeId });
+        console.log('🔎 All welfare records for employee:', timeRecord.employeeId, 'count:', allWelfareForEmployee.length);
+        if (allWelfareForEmployee.length > 0) {
+          console.log('📋 Sample welfare record structure:', JSON.stringify(allWelfareForEmployee[0], null, 2));
+        }
+        
+        // รวม addSalaryList จากข้อมูล welfare ทั้งหมด
         let addSalaryFromWelfare = [];
+        // สำหรับ id เฉพาะที่จะใช้ logic รวมตาม startDay
         const targetIds = new Set(['1423', '1234']);
-        const welfareAgg = new Map();
+        // ใช้ Map สำหรับรวมรายการของ id เฉพาะ: อนุญาต id ซ้ำได้ แต่ถ้า startDay ซ้ำจะไม่รวม; ถ้า startDay ต่างกันให้รวมและบวกเงิน
+        const welfareAgg = new Map(); // key = welfareId, value = { item, seenDates: Set<string> }
+
         const normalizeStartDay = (d) => {
           if (!d) return '';
           const dt = new Date(d);
           return isNaN(dt.getTime()) ? '' : dt.toISOString().slice(0, 10);
         };
-        employeeWelfare.forEach(welfareRecord => {
+        
+        welfareRecords.forEach(welfareRecord => {
           if (welfareRecord.record && Array.isArray(welfareRecord.record)) {
             welfareRecord.record.forEach(record => {
-              // ...existing code for shouldInclude and aggregation...
+              // 🎯 กรองเฉพาะ records ที่อยู่ในรอบเงินเดือน (21 เดือนก่อน - 20 เดือนปัจจุบัน)
               let shouldInclude = true;
-              if (month && record.startDay) {
+              
+              if (month && month !== '' && record.startDay) {
                 const recordStartDate = new Date(record.startDay);
+                
+                // คำนวณรอบเงินเดือน: 21 เดือนก่อน - 20 เดือนปัจจุบัน
                 const currentYear = parseInt(year) || new Date().getFullYear();
                 const currentMonth = parseInt(month);
+                
+                // วันที่เริ่มรอบ: 21 ของเดือนก่อน
                 let startYear = currentYear;
                 let startMonth = currentMonth - 1;
                 if (startMonth < 1) {
                   startMonth = 12;
                   startYear--;
                 }
-                const periodStartDate = new Date(startYear, startMonth - 1, 21);
-                const periodEndDate = new Date(currentYear, currentMonth - 1, 20, 23, 59, 59);
+                const periodStartDate = new Date(startYear, startMonth - 1, 21); // month - 1 เพราะ JS month เริ่มจาก 0
+                
+                // วันที่สิ้นสุดรอบ: 20 ของเดือนปัจจุบัน
+                const periodEndDate = new Date(currentYear, currentMonth - 1, 20, 23, 59, 59); // สิ้นสุดวัน
+                
+                // ตรวจสอบว่า startDay อยู่ในรอบเงินเดือนหรือไม่
                 shouldInclude = recordStartDate >= periodStartDate && recordStartDate <= periodEndDate;
+                
+                console.log(`🔍 [TIMERECORDS] กรองตามรอบเงินเดือน:`);
+                console.log(`   - เดือนที่เลือก: ${month}/${year}`);
+                console.log(`   - รอบเงินเดือน: ${periodStartDate.toISOString().slice(0,10)} ถึง ${periodEndDate.toISOString().slice(0,10)}`);
+                console.log(`   - startDay: ${record.startDay}`);
+                console.log(`   - recordDate: ${recordStartDate.toISOString().slice(0,10)}`);
+                console.log(`   - include: ${shouldInclude}`);
               }
+              
               if (!shouldInclude) return;
+
               const welfareId = record.id || record.welfareType || "";
               const amount = parseFloat(record.SpSalary || '0') || 0;
+
               if (targetIds.has(welfareId)) {
+                // ใช้ logic เฉพาะ: รวมหลาย startDay เป็น 1 รายการต่อ id, เก็บข้อมูลวันที่ทั้งหมด
                 const startKey = normalizeStartDay(record.startDay);
                 if (!welfareAgg.has(welfareId)) {
                   const baseItem = {
@@ -1511,30 +1565,36 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
                     endDay: record.endDay || "",
                     welfareMonth: welfareRecord.month || "",
                     welfareYear: welfareRecord.year || "",
+                    // เพิ่ม date/month/year ตามที่ขอ
                     date: startKey ? startKey.split('-')[2] : (welfareRecord.month ? '01' : ''),
-                    countDate: 1,
+                    countDate: 1, // เริ่มต้นด้วย 1 วัน
                     month: startKey ? startKey.split('-')[1] : (welfareRecord.month || ''),
                     year: startKey ? startKey.split('-')[0] : (welfareRecord.year || ''),
                   };
                   welfareAgg.set(welfareId, { item: baseItem, seenDates: new Set(startKey ? [startKey] : []) });
+                  console.log(`✅ [TIMERECORDS] (target) สร้างกลุ่ม id=${welfareId}, startDay=${startKey}, amount=${amount}`);
                 } else {
                   const agg = welfareAgg.get(welfareId);
                   if (startKey && agg.seenDates.has(startKey)) {
-                    // skip duplicate
+                    console.log(`🚫 [TIMERECORDS] (target) ข้าม (id ซ้ำ + startDay ซ้ำ) id=${welfareId}, startDay=${startKey}, amount=${amount}`);
                   } else {
                     const current = parseFloat(agg.item.SpSalary || '0') || 0;
                     agg.item.SpSalary = String(current + amount);
                     if (startKey) {
                       agg.seenDates.add(startKey);
+                      // รวมวันที่ในฟิลด์ date โดยคั่นด้วย comma
                       const currentDate = agg.item.date || '';
                       const newDate = startKey.split('-')[2];
                       if (currentDate && !currentDate.split(',').includes(newDate)) {
                         agg.item.date = currentDate + ',' + newDate;
+                        // อัปเดต countDate เมื่อมีการเพิ่มวันใหม่
                         agg.item.countDate = (agg.item.countDate || 1) + 1;
                       } else if (!currentDate) {
                         agg.item.date = newDate;
                         agg.item.countDate = 1;
                       }
+                      
+                      // อัปเดต startDay เป็นวันที่เก่าสุด
                       if (!agg.item.startDay) {
                         agg.item.startDay = startKey;
                         agg.item.month = startKey.split('-')[1];
@@ -1549,27 +1609,37 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
                         }
                       }
                     }
+                    console.log(`🔄 [TIMERECORDS] (target) รวม id=${welfareId}, +${amount} ⇒ ${agg.item.SpSalary}, dates=${agg.item.date}, countDate=${agg.item.countDate}`);
                   }
                 }
               } else {
+                // 🎯 สำหรับ id อื่นๆ: ใช้ logic รวม SpSalary ถ้า id เดียวกัน
                 const existingIndex = addSalaryFromWelfare.findIndex(existingItem => existingItem.id === welfareId);
+                
                 if (existingIndex !== -1) {
+                  // ถ้ามี id เดียวกันแล้ว ให้รวม SpSalary
                   const existingAmount = parseFloat(addSalaryFromWelfare[existingIndex].SpSalary || '0') || 0;
                   const newTotal = existingAmount + amount;
                   addSalaryFromWelfare[existingIndex].SpSalary = String(newTotal);
+                  
+                  // รวมวันที่ในฟิลด์ date
                   const currentStartDay = normalizeStartDay(record.startDay);
                   if (currentStartDay) {
                     const existingDate = addSalaryFromWelfare[existingIndex].date || '';
                     const newDate = currentStartDay.split('-')[2];
                     if (existingDate && !existingDate.split(',').includes(newDate)) {
                       addSalaryFromWelfare[existingIndex].date = existingDate + ',' + newDate;
+                      // อัปเดต countDate เมื่อมีการเพิ่มวันใหม่
                       addSalaryFromWelfare[existingIndex].countDate = (addSalaryFromWelfare[existingIndex].countDate || 1) + 1;
                     } else if (!existingDate) {
                       addSalaryFromWelfare[existingIndex].date = newDate;
                       addSalaryFromWelfare[existingIndex].countDate = 1;
                     }
                   }
+                  
+                  console.log(`🔄 [TIMERECORDS] (normal) รวม id=${welfareId}, ${existingAmount} + ${amount} ⇒ ${newTotal}, countDate=${addSalaryFromWelfare[existingIndex].countDate}`);
                 } else {
+                  // ถ้าไม่มี id เดียวกัน ให้เพิ่มใหม่
                   addSalaryFromWelfare.push({
                     id: welfareId,
                     name: record.name || record.welfareTypeEn || "",
@@ -1583,48 +1653,89 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
                     endDay: record.endDay || "",
                     welfareMonth: welfareRecord.month || "",
                     welfareYear: welfareRecord.year || "",
+                    // เพิ่ม date/month/year ตามที่ขอ
                     date: record.startDay ? normalizeStartDay(record.startDay).split('-')[2] : (welfareRecord.month ? '01' : ''),
-                    countDate: 1,
+                    countDate: 1, // เริ่มต้นด้วย 1 วัน
                     month: record.startDay ? normalizeStartDay(record.startDay).split('-')[1] : (welfareRecord.month || ''),
                     year: record.startDay ? normalizeStartDay(record.startDay).split('-')[0] : (welfareRecord.year || ''),
                   });
+                  console.log(`✅ [TIMERECORDS] (normal) เพิ่ม welfare item ใหม่: ${record.name} (${record.SpSalary})`);
                 }
               }
             });
           }
         });
+
+        // รวมผลของกลุ่ม target ids เข้ากับรายการปกติ
         const targetMergedItems = Array.from(welfareAgg.values()).map(v => v.item);
         addSalaryFromWelfare = [...addSalaryFromWelfare, ...targetMergedItems];
+        console.log(`📊 [TIMERECORDS] สรุป welfare หลังประมวลผล: normal=${addSalaryFromWelfare.length - targetMergedItems.length} + target=${targetMergedItems.length} → total=${addSalaryFromWelfare.length}`);
+
+        // รวม addSalaryList เดิมกับข้อมูลจาก welfare
         if (!timeRecord.addSalaryList) {
           timeRecord.addSalaryList = [];
         }
+        
+        // 🎯 ลบข้อมูล welfare เดิมออกก่อนเพิ่มใหม่ เพื่อป้องกันการซ้ำ และ sync กับ DB
+        const originalLength = timeRecord.addSalaryList ? timeRecord.addSalaryList.length : 0;
+        
+        // สร้าง Set ของ welfare IDs ที่มีอยู่จริงใน welfare database
         const validWelfareIds = new Set();
         addSalaryFromWelfare.forEach(item => {
           if (item.id) validWelfareIds.add(item.id);
         });
+        
+        // กรองเอาเฉพาะข้อมูลที่ไม่ใช่ welfare หรือเป็น welfare ที่ยังมีอยู่ใน DB
         timeRecord.addSalaryList = timeRecord.addSalaryList.filter(item => {
+          // ถ้าไม่มี welfareType หรือ welfareType เป็น falsy และไม่อยู่ใน validWelfareIds = เก็บไว้
           const isWelfareItem = item.welfareType || validWelfareIds.has(item.id);
           const shouldKeep = !isWelfareItem;
+          
+          if (isWelfareItem) {
+            console.log(`🗑️ [TIMERECORDS] ลบ welfare item: id=${item.id}, name=${item.name}, welfareType=${item.welfareType || 'undefined'}`);
+          }
+          
           return shouldKeep;
         });
+        
+        console.log(`🧹 [TIMERECORDS] ลบข้อมูล welfare เดิมทั้งหมดออก: ${originalLength} → ${timeRecord.addSalaryList.length} items`);
+        
+        // เพิ่ม welfare data ที่ไม่ซ้ำแล้ว (เฉพาะที่มีอยู่จริงใน welfare database)
         timeRecord.addSalaryList = [...timeRecord.addSalaryList, ...addSalaryFromWelfare];
+        console.log(`📝 [TIMERECORDS] เพิ่ม welfare data ใหม่จาก DB: ${addSalaryFromWelfare.length} items`);
+        
+        // 🎯 กรองข้อมูลซ้ำขั้นสุดท้าย เผื่อมี ID ซ้ำระหว่าง addSalaryList เดิมกับ welfare data
         const finalUniqueItems = [];
         const finalSeenIds = new Set();
+        
         timeRecord.addSalaryList.forEach(item => {
           const itemId = item.id || "";
           if (!finalSeenIds.has(itemId)) {
             finalSeenIds.add(itemId);
             finalUniqueItems.push(item);
+          } else {
+            console.log(`🚫 [TIMERECORDS] ข้าม item ซ้ำขั้นสุดท้าย: id=${itemId}, name=${item.name}`);
           }
         });
+        
         timeRecord.addSalaryList = finalUniqueItems;
+        
+        // Debug: Log the welfare data addition
+        if (addSalaryFromWelfare.length > 0) {
+          console.log('✅ Added', addSalaryFromWelfare.length, 'welfare items to addSalaryList for employee:', timeRecord.employeeId);
+        } else {
+          console.log('⚠️ No welfare data to add for employee:', timeRecord.employeeId);
+        }
+        
       } catch (welfareError) {
         console.error('Error fetching welfare data for employee:', timeRecord.employeeId, welfareError);
+        // ถ้ามีข้อผิดพลาดในการดึงข้อมูล welfare ก็ให้ใช้ addSalaryList เดิม
         if (!timeRecord.addSalaryList) {
           timeRecord.addSalaryList = [];
         }
       }
     }
+
     res.status(200).json({ result });
   } catch (error) {
     console.error(error);
@@ -1635,18 +1746,42 @@ router.post('/searchtimerecordmonthyear', async (req, res) => {
 //search timerecordEmployee 
 router.post('/searchtimerecordemployee', async (req, res) => {
   try {
-    const { employeeId, employeeName, month, year } = req.body;
+    const { employeeId,
+      employeeName,
+      month,
+     year} = req.body;
+
+    // Construct the search query based on the provided parameters
     const query = {};
-    if (employeeId) query.employeeId = employeeId;
-    if (employeeName) query.employeeName = { $regex: new RegExp(employeeName, 'i') };
-    if (month) query.month = month;
-    if (year) query.year = year;
-    if (!employeeId && !employeeName && !month && !year) {
-      return res.status(200).json({});
+
+    if (employeeId !== '') {
+      query.employeeId= employeeId;
     }
-    const result = await timerecordEmployee.find(query).lean();
-    return res.status(200).json({ result });
+
+
+    if (employeeName !== '') {
+      query.employeeName = { $regex: new RegExp(employeeName, 'i') };
+    }
+
+    if (month !== '') {
+      //query.month = new Date(date);
+      query.month = { $regex: new RegExp(month , 'i') };
+    }
+
+    if (year!== '') {
+      query.year = { $regex: new RegExp(year , 'i') };
+    }
+
+    if (employeeId == '' && employeeName == '' && month == '' && year== '') {
+      res.status(200).json({});
+    }
+
+    // Query the workplace collection for matching documents
+    const result = await timerecordEmployee.find(query);
+
+    await res.status(200).json({ result});
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
@@ -1657,34 +1792,49 @@ router.post('/createtimerecordemployee', async (req, res) => {
   const currentYear = currentDate.getFullYear();
 
   const {
-    year,
+year,
     employeeId,
     employeeName,
     month,
     employee_record
   } = req.body;
 
+  // Debug: Log payFullDay data
+  console.log('📋 Employee Record Data:', JSON.stringify(employee_record, null, 2));
+  employee_record.forEach((record, index) => {
+    if (record.payFullDay !== undefined) {
+      console.log(`✅ Record ${index}: payFullDay = ${record.payFullDay}, totalTime = ${record.totalTime}`);
+    }
+  });
+
+  // Create timerecordEmployee 
   const timerecordEmployeeData = new timerecordEmployee({
-    year,
+year,
     employeeId,
     employeeName,
     month,
     employee_record
   });
+// console.log(workplaceTimeRecordData );
 
   try {
+    // Delete existing records for the same employee and month timerecordId
     await timerecordEmployee.deleteMany({
       year,
       employeeId,
       employeeName,
-      month
-    });
+      month    });
+      
     await timerecordEmployeeData.save();
-    if (timerecordEmployeeData) {
-      await setToWorkplaceTimerecords(employeeId, employeeName, employee_record, year, month);
+
+    if(timerecordEmployeeData) {
+      await setToWorkplaceTimerecords(employeeId, employeeName,  employee_record, year, month) 
     }
+
     await res.json(timerecordEmployeeData);
+
   } catch (err) {
+    console.log(err);
     res.status(400).json({ error: err.message });
   }
 
