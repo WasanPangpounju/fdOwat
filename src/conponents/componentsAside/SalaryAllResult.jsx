@@ -817,7 +817,7 @@ const fetchAllWorkplaceData = useCallback(async () => {
         
         positionAndTransportationWithSocial +
         plusOther +
-        otherDeduct
+        otherDeduct 
         diligenceAllowance + 
         (parseFloat(record.publicHolidayCash || 0)) - 
         (parseFloat(record.tax || 0)) - 

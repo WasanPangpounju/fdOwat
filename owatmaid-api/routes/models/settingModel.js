@@ -40,6 +40,24 @@ leave: [{
   vacationLeave: String
 }],
   
+paymentCodes: [{
+    transportAllowanceIds: [Number],
+    wageReviseIdsPlus: [Number],
+    wageReviseIdsMinus: [Number],
+    leaveInLieuIdsPlus: [Number],
+    leaveInLieuIdsMinus: [Number],
+    otherDeductIds: [Number],
+    plusOtherIds: [Number],
+    positionAndTransportationWithSocialIdsPlus: [Number],
+    positionAndTransportationWithSocialIdsMinus: [Number],
+    overtimeIdsPlus: [Number],
+    publicHolidayCashIds: [Number],
+    additionalAfterTaxIds: [Number],
+    deductionAfterTaxIds: [Number],
+    diligenceAllowanceIds: [Number],
+    advancePaymentIds: [Number],
+    totalIds: [Number]
+  }]
   
 });
 

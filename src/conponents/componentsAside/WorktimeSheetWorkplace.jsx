@@ -9611,20 +9611,20 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                       let actualMonth, actualYear;
                       
                       // ตรวจสอบว่าเป็นวันไหนจากเดือนไหน (ตารางแสดงข้ามเดือน 21-31 เดือนก่อน และ 1-20 เดือนปัจจุบัน)
-                      if (dayNum >= 21) {
-                        // วันที่ 21-31 เป็นของเดือนก่อนหน้า
-                        if (parseInt(month) === 1) {
-                          actualMonth = 12;
-                          actualYear = parseInt(year) - 1;
-                        } else {
-                          actualMonth = parseInt(month) - 1;
-                          actualYear = parseInt(year);
-                        }
-                      } else {
-                        // วันที่ 1-20 เป็นของเดือนปัจจุบัน
-                        actualMonth = parseInt(month);
-                        actualYear = parseInt(year);
-                      }
+                     if (dayNum >= 21) {
+  // วันที่ 21-31 เป็นของเดือนถัดไป
+  if (parseInt(month) === 12) {
+    actualMonth = 1;
+    actualYear = parseInt(year) + 1;
+  } else {
+    actualMonth = parseInt(month) + 1;
+    actualYear = parseInt(year);
+  }
+} else {
+  // วันที่ 1-20 เป็นของเดือนปัจจุบัน
+  actualMonth = parseInt(month);
+  actualYear = parseInt(year);
+}
                       
                       // ตรวจสอบว่าวันที่นี้มีอยู่จริงในเดือนนั้นหรือไม่
                       const daysInActualMonth = new Date(actualYear, actualMonth, 0).getDate();
@@ -9822,20 +9822,20 @@ for (let colIdx = 1; colIdx <= exactColumns; colIdx++) {
                       let actualMonth, actualYear;
                       
                       // ตรวจสอบว่าเป็นวันไหนจากเดือนไหน (ตารางแสดงข้ามเดือน 21-31 เดือนก่อน และ 1-20 เดือนปัจจุบัน)
-                      if (dayNum >= 21) {
-                        // วันที่ 21-31 เป็นของเดือนก่อนหน้า
-                        if (parseInt(month) === 1) {
-                          actualMonth = 12;
-                          actualYear = parseInt(year) - 1;
-                        } else {
-                          actualMonth = parseInt(month) - 1;
-                          actualYear = parseInt(year);
-                        }
-                      } else {
-                        // วันที่ 1-20 เป็นของเดือนปัจจุบัน
-                        actualMonth = parseInt(month);
-                        actualYear = parseInt(year);
-                      }
+                     if (dayNum >= 21) {
+  // วันที่ 21-31 เป็นของเดือนถัดไป
+  if (parseInt(month) === 12) {
+    actualMonth = 1;
+    actualYear = parseInt(year) + 1;
+  } else {
+    actualMonth = parseInt(month) + 1;
+    actualYear = parseInt(year);
+  }
+} else {
+  // วันที่ 1-20 เป็นของเดือนปัจจุบัน
+  actualMonth = parseInt(month);
+  actualYear = parseInt(year);
+}
                       
                       // ตรวจสอบว่าวันที่นี้มีอยู่จริงในเดือนนั้นหรือไม่
                       const daysInActualMonth = new Date(actualYear, actualMonth, 0).getDate();
