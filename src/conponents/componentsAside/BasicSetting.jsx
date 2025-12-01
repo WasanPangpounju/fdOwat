@@ -54,9 +54,32 @@ function BasicSetting() {
           });
         }
 
-        // NEW: Payment codes
+        // NEW: Payment codes - รวมรหัส hardcode จาก SalaryAllResult
         if (data?.paymentCodes?.[0]) {
           setPaymentCodes(data.paymentCodes[0]);
+        } else {
+          // ตั้งค่าเริ่มต้นด้วยรหัสจาก SalaryAllResult
+          setPaymentCodes({
+            transportAllowanceIds: ["1535","1536"],
+            wageReviseIdsPlus: ["1531","1525","1526"],
+            wageReviseIdsMinus: ["2111","2120","2430"],
+            leaveInLieuIdsPlus: ["1231","1233","1242","1423","1428","1435","1429","1427","1234"],
+            leaveInLieuIdsMinus: ["2160"],
+            otherDeductIds: ["2116","2117","2331","2312"],
+            plusOtherIds: ["1241","1251","1330","1440","1447","1560","1210","1540","1541","1542","1550","1561","1610","1611","1612","1613","1245"],
+            positionAndTransportationWithSocialIdsPlus: ["1230","1520"],
+            positionAndTransportationWithSocialIdsMinus: ["2124","0000"],
+            overtimeIdsPlus: ["1441","1446","1444","1528","1442","1159"],
+            welfareIdsPlus: [],
+            publicHolidayCashIds: ["1533"],
+            additionalAfterTaxIds: ["2250","2310","2340"],
+            deductionAfterTaxIds: ["2230","2333","2261","2311"],
+            taxIdsDeduct: [],
+            socialSecurityIdsDeduct: [],
+            diligenceAllowanceIds: ["1410"],
+            advancePaymentIds: ["2330"],
+            totalIds: []
+          });
         }
 
         // Hospitals
@@ -128,12 +151,18 @@ function BasicSetting() {
     positionAndTransportationWithSocialIdsMinus: [],
     // ค่าล่วงเวลา
     overtimeIdsPlus: [],
+    // สวัสดิการพิเศษ
+    welfareIdsPlus: [],
     // นักขัติ/วันหยุด
     publicHolidayCashIds: [],
     // บวกอื่นๆ หลังภาษี
     additionalAfterTaxIds: [],
     // หักอื่นๆ หลังภาษี
     deductionAfterTaxIds: [],
+    // หักภาษี
+    taxIdsDeduct: [],
+    // หัก ปกส
+    socialSecurityIdsDeduct: [],
     // รหัสเดี่ยว
     diligenceAllowanceIds: [],           // เบี้ยขยัน
     advancePaymentIds: [],               // เงินล่วงหน้า
@@ -145,6 +174,9 @@ function BasicSetting() {
     type: "wageReviseIdsPlus",
     code: "",
   });
+
+  const [editMode, setEditMode] = useState(false);
+  const [paymentCodesBackup, setPaymentCodesBackup] = useState({});
 
   // Hospital Data
   const localHospitalList = [
@@ -300,16 +332,16 @@ function BasicSetting() {
     leaveInLieuIdsPlus: "ชดเชยวันลา",
     overtimeIdsPlus: "ค่าล่วงเวลา",
     welfareIdsPlus: "สวัสดิการพิเศษ",
-    positionIdsPlus: "ตำแหน่ง",
-    diligenceIdsPlus: "เบี้ยขยัน",
-    holidayIdsPlus: "นักขัติ/วันหยุด",
-    additionalBeforeTaxIdsPlus: "บวกอื่นๆ ก่อนหักภาษี",
-    additionalAfterTaxIdsPlus: "บวกอื่นๆ หลังหักภาษี",
-    deductionBeforeTaxIdsPlus: "หักอื่นๆ ก่อนหักภาษี",
-    deductionAfterTaxIdsPlus: "หักอื่นๆ หลังหักภาษี",
+    positionAndTransportationWithSocialIdsPlus: "ตำแหน่ง",
+    diligenceAllowanceIds: "เบี้ยขยัน",
+    publicHolidayCashIds: "นักขัติ/วันหยุด",
+    plusOtherIds: "บวกอื่นๆ",
+    otherDeductIds: "หักอื่นๆ",
     taxIdsDeduct: "หักภาษี",
     socialSecurityIdsDeduct: "หัก ปกส",
-    advancePaymentIdsDeduct: "เบิกล่วงหน้า",
+    additionalAfterTaxIds: "บวกอื่นๆ",
+    deductionAfterTaxIds: "หักอื่นๆ",
+    advancePaymentIds: "เบิกล่วงหน้า",
     totalIds: "สุทธิ",
   };
 
@@ -326,20 +358,49 @@ function BasicSetting() {
   };
 
   // NEW: Payment Code Functions
+  const handleEditMode = () => {
+    if (!editMode) {
+      // เข้าสู่โหมดแก้ไข - backup ข้อมูลปัจจุบัน
+      setPaymentCodesBackup({ ...paymentCodes });
+      setEditMode(true);
+    } else {
+      // ยกเลิกแก้ไข - restore ข้อมูลจาก backup
+      setPaymentCodes({ ...paymentCodesBackup });
+      setEditMode(false);
+    }
+  };
+
+  const handleSaveEdit = () => {
+    // บันทึกการเปลี่ยนแปลง - ออกจากโหมดแก้ไข
+    setEditMode(false);
+    setPaymentCodesBackup({});
+    // Add save to server logic here if needed
+  };
+
   const handleAddPaymentCode = () => {
-    if (newPaymentCode.code.trim() === "") {
+    const codeToAdd = newPaymentCode.code.trim();
+    if (codeToAdd === "") {
       alert("กรุณากรอกรหัส");
       return;
     }
-
+    // Prevent duplicate code in all types
+    const allCodes = Object.values(paymentCodes).flat();
+    if (allCodes.includes(codeToAdd)) {
+      alert("รหัสได้ถูกใช้งานแล้ว กรุณากรอกรหัสใหม่");
+      return;
+    }
+    // Check if the selected type exists in paymentCodes
+    if (!Object.prototype.hasOwnProperty.call(paymentCodes, newPaymentCode.type)) {
+      alert("ไม่สามารถเพิ่มรหัสในหมวดนี้ได้ กรุณาเลือกหมวดที่ถูกต้อง");
+      return;
+    }
     setPaymentCodes((prev) => ({
       ...prev,
       [newPaymentCode.type]: [
         ...prev[newPaymentCode.type],
-        newPaymentCode.code.trim(),
+        codeToAdd,
       ],
     }));
-
     setNewPaymentCode((prev) => ({ ...prev, code: "" }));
   };
 
@@ -579,87 +640,97 @@ function BasicSetting() {
                             <label className="col-md-2 col-form-label">
                               ประเภทรหัส
                             </label>
-                            <div className="col-md-3">
-                              <select
-                                className="form-control"
-                                value={newPaymentCode.type}
-                                onChange={handlePaymentCodeTypeChange}
-                              >
-                                {Object.entries(paymentCodeTypes).map(
-                                  ([value, label]) => (
-                                    <option key={value} value={value}>
-                                      {label}
-                                    </option>
-                                  )
-                                )}
-                              </select>
-                            </div>
-                            <label className="col-md-1 col-form-label">
-                              รหัส
-                            </label>
-                            <div className="col-md-3">
-                              <input
-                                type="text"
-                                className="form-control"
-                                value={newPaymentCode.code}
-                                onChange={handlePaymentCodeChange}
-                                placeholder="กรอกรหัส"
-                              />
-                            </div>
-                            <div className="col-md-3">
-                              <button
-                                type="button"
-                                className="btn btn-success"
-                                onClick={handleAddPaymentCode}
-                              >
-                                เพิ่มรหัส
-                              </button>
-                            </div>
                           </div>
 
                           {/* Display Added Payment Codes */}
-                          <div className="form-group row">
-                            <div className="col-md-12">
-                              <h5>รหัสที่ตั้งค่าแล้ว:</h5>
-                              <div className="row">
-                                {Object.entries(paymentCodeTypes).map(
-                                  ([type, label]) =>
-                                    paymentCodes[type]?.length > 0 && (
-                                      <div key={type} className="col-md-6 mb-3">
-                                        <div className="card">
-                                          <div className="card-header bg-primary text-white">
-                                            <strong>{label}</strong>
-                                          </div>
-                                          <div className="card-body">
-                                            {paymentCodes[type].map(
-                                              (code, index) => (
-                                                <div
-                                                  key={index}
-                                                  className="d-flex justify-content-between align-items-center mb-2 p-2 border rounded"
-                                                >
-                                                  <span>{code}</span>
-                                                  <button
-                                                    type="button"
-                                                    className="btn btn-sm btn-danger"
-                                                    onClick={() =>
-                                                      handleRemovePaymentCode(
-                                                        type,
-                                                        index
-                                                      )
-                                                    }
-                                                  >
-                                                    &times;
-                                                  </button>
-                                                </div>
-                                              )
-                                            )}
-                                          </div>
+                          {/* ฟอร์มแถวบน */}
+                          <div className="d-flex mb-4" style={{ gap: "16px" }}>
+                            <select
+                              className="form-control"
+                              style={{ maxWidth: "260px" }}
+                              value={newPaymentCode.type}
+                              onChange={handlePaymentCodeTypeChange}
+                            >
+                              {Object.entries(paymentCodeTypes).map(([value, label]) => (
+                                <option key={value} value={value}>{label}</option>
+                              ))}
+                            </select>
+                            <input
+                              type="text"
+                              className="form-control"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
+                              style={{ maxWidth: "220px" }}
+                              value={newPaymentCode.code}
+                              onChange={e => {
+                                const val = e.target.value.replace(/[^0-9]/g, "");
+                                handlePaymentCodeChange({ target: { value: val } });
+                              }}
+                              placeholder="กรอกรหัส"
+                            />
+                            <button
+                              type="button"
+                              className="btn btn-success btn-sm"
+                              style={{ minWidth: "100px", maxWidth: "140px", padding: "6px 18px" }}
+                              onClick={handleAddPaymentCode}
+                            >
+                              เพิ่มรหัส
+                            </button>
+                            <button
+                              type="button"
+                              className={`btn btn-sm ${editMode ? 'btn-secondary' : 'btn-warning'}`}
+                              style={{ minWidth: "80px", padding: "6px 18px" }}
+                              onClick={handleEditMode}
+                            >
+                              {editMode ? 'ยกเลิก' : 'แก้ไข'}
+                            </button>
+                            {editMode && (
+                              <button
+                                type="button"
+                                className="btn btn-primary btn-sm"
+                                style={{ minWidth: "80px", padding: "6px 18px" }}
+                                onClick={handleSaveEdit}
+                              >
+                                บันทึก
+                              </button>
+                            )}
+                          </div>
+
+                          {/* ตารางรหัสแต่ละประเภท */}
+                          <div style={{ overflowX: "auto" }}>
+                            <table className="table table-bordered table-sm" style={{ fontSize: "0.95rem", minWidth: "900px" }}>
+                              <thead>
+                                <tr>
+                                  {Object.entries(paymentCodeTypes).map(([type, label]) => (
+                                    <th key={type} style={{ whiteSpace: "nowrap", textAlign: "center", verticalAlign: "middle" }}>{label}</th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                <tr>
+                                  {Object.entries(paymentCodeTypes).map(([type]) => (
+                                    <td key={type} style={{ verticalAlign: "top", minWidth: "80px" }}>
+                                      {paymentCodes[type]?.map((code, idx) => (
+                                        <div key={idx} className={`d-flex ${editMode ? 'justify-content-between' : 'justify-content-center'} align-items-center mb-1 p-1 border rounded`} style={{ fontSize: "0.95rem" }}>
+                                          <span>{code}</span>
+                                          {editMode && (
+                                            <button
+                                              type="button"
+                                              className="btn btn-danger"
+                                              style={{ borderRadius: 16, width:22, minHeight: 28, fontSize: 14, padding: '0 6px', lineHeight: 1 }}
+                                              onClick={() => handleRemovePaymentCode(type, idx)}
+                                              title="ลบรหัสนี้"
+                                            >
+                                              &times;
+                                            </button>
+                                          )}
                                         </div>
-                                      </div>
-                                    )
-                                )}
-                              </div>
-                            </div>
+                                      ))}
+                                    </td>
+                                  ))}
+                                </tr>
+                              </tbody>
+                            </table>
                           </div>
                         </section>
                       </div>

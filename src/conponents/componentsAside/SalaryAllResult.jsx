@@ -23,6 +23,7 @@ import { saveAs } from "file-saver";
 function SalaryAllResult({ employeeList, workplaceList }) {
   const [workplacrName, setWorkplacrName] = useState(""); //รหัสหน่วยงาน
   const [sumCashWork, setSumCashWork] = useState(0);
+  const [paymentCodes, setPaymentCodes] = useState({}); // เพิ่ม state สำหรับเก็บรหัสการจ่ายเงิน
 
   const [workplaces, setWorkplaces] = useState([]);
   const [searchWorkplaceId, setSearchWorkplaceId] = useState("");
@@ -49,6 +50,46 @@ function SalaryAllResult({ employeeList, workplaceList }) {
   const [presentfilm, setPresentfilm] = useState(
     "\\10.10.110.20payrolldataReportUserPRUSR101.RPT"
   );
+
+  // ฟังก์ชันสำหรับดึงรหัสการจ่ายเงินจากฐานข้อมูล
+  const fetchPaymentCodes = useCallback(async () => {
+    try {
+      const response = await axios.get(endpoint + "/basicsetting");
+      if (response.status === 200) {
+        const allData = response.data;
+        let data = null;
+
+        if (Array.isArray(allData) && allData.length > 0) {
+          data = allData[allData.length - 1];
+        }
+
+        // ดึงข้อมูลรหัสการจ่ายเงิน
+        if (data?.paymentCodes?.[0]) {
+          setPaymentCodes(data.paymentCodes[0]);
+        }
+      }
+    } catch (err) {
+      console.error('ไม่สามารถดึงข้อมูลรหัสการจ่ายเงินได้:', err);
+      // ใช้ค่าเริ่มต้นถ้าไม่สามารถดึงข้อมูลได้
+      setPaymentCodes({
+        transportAllowanceIds: ["1535","1536"],
+        wageReviseIdsPlus: [1531,1525,1526],
+        wageReviseIdsMinus: [2111,2120,2430],
+        leaveInLieuIdsPlus: [1231,1233,1242,1423,1428,1435,1429,1427,1234],
+        leaveInLieuIdsMinus: [2160],
+        overtimeIdsPlus: ["1441", "1446", "1444", "1528", "1442", "1159"],
+        positionAndTransportationWithSocialIdsPlus: ["1230", "1520"],
+        positionAndTransportationWithSocialIdsMinus: ["2124","0000"],
+        diligenceAllowanceIds: ["1410"],
+        publicHolidayCashIds: ["1533"],
+        plusOtherIds: ["1241", "1251", "1330", "1440", "1447", "1560", "1210", "1540", "1541", "1542", "1550", "1561", "1610", "1611", "1612", "1613", "1245"],
+        otherDeductIds: ["2116", "2117", "2331", "2312"],
+        advancePaymentIds: ["2330"],
+        additionalAfterTaxIds: ["2250", "2310", "2340"],
+        deductionAfterTaxIds: ["2230", "2333", "2261", "2311"]
+      });
+    }
+  }, []);
 
   moment.locale("th");
 
@@ -108,12 +149,13 @@ useEffect(() => {
     };
 
     fetchWorkplaces();
+    fetchPaymentCodes(); // เพิ่มการดึงรหัสการจ่ายเงิน
 
     // ตั้งค่าเริ่มต้นของวันที่
     const today = new Date();
     const formattedToday = `${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear() + 543}`;
     setFormattedDate321(formattedToday);
-  }, []);
+  }, [fetchPaymentCodes]);
 
   const EndYear = 2010;
   const currentYear = new Date().getFullYear(); // 2024
@@ -309,7 +351,7 @@ filteredEmployees = filteredRecords.map(record => {
   let transportAllowance = 0;
   let diligenceAllowance = 0;
   
-  const transportAllowanceIds = ["1535","1536"];
+  const transportAllowanceIds = paymentCodes.transportAllowanceIds || ["1535","1536"];
  
   addSalaryList.forEach(item => {
     if (transportAllowanceIds.includes(item.id)) {
@@ -325,7 +367,7 @@ filteredEmployees = filteredRecords.map(record => {
   });
 
   let wageRevisePlus = 0;
-  const wageReviseIdsPlus = [1531,1525,1526]
+  const wageReviseIdsPlus = paymentCodes.wageReviseIdsPlus || [1531,1525,1526]
   addSalaryList.forEach(item => {
     if (wageReviseIdsPlus.includes(item.id)) {
       const spSalary = parseFloat(item.SpSalary || 0);
@@ -341,7 +383,7 @@ filteredEmployees = filteredRecords.map(record => {
 
 
   let wageReviseMinus = 0;
-  const wageReviseIdsMinus = [2111,2120,2430]
+  const wageReviseIdsMinus = paymentCodes.wageReviseIdsMinus || [2111,2120,2430]
   deductSalaryList.forEach(item => {
     if (wageReviseIdsMinus.includes(item.id)) {
       const spSalary = parseFloat(item.SpSalary || 0);
@@ -359,7 +401,7 @@ filteredEmployees = filteredRecords.map(record => {
 
 
   let leaveInLieuPlus = 0;
-  const leaveInLieuIdsPlus = [1231,1233,1242,1423,1428,1435,1429,1427,1234]
+  const leaveInLieuIdsPlus = paymentCodes.leaveInLieuIdsPlus || [1231,1233,1242,1423,1428,1435,1429,1427,1234]
   addSalaryList.forEach(item => {
     if (leaveInLieuIdsPlus.includes(item.id)) {
       const spSalary = parseFloat(item.SpSalary || 0);
@@ -374,7 +416,7 @@ filteredEmployees = filteredRecords.map(record => {
   });
 
   let leaveInLieuMinus = 0;
-  const leaveInLieuIdsMinus = [2160];
+  const leaveInLieuIdsMinus = paymentCodes.leaveInLieuIdsMinus || [2160];
   deductSalaryList.forEach(item => {
     if (leaveInLieuIdsMinus.includes(item.id)) {
       const spSalary = parseFloat(item.SpSalary || 0);
@@ -412,7 +454,7 @@ filteredEmployees = filteredRecords.map(record => {
 
 
   let otherDeduct = 0;
-const deductIds = [
+const deductIds = paymentCodes.otherDeductIds || [
   "2116", // หักคืนอื่นๆ (คำนวณ ปกส)
   "2117", // หักคืนอื่นๆ (ไม่คำนวณ ปกส)
   "2331", //หักคืนทำงานวันหยุด
@@ -423,7 +465,7 @@ const deductIds = [
 deductSalaryList.forEach(item => {
   if (deductIds.includes(item.id)) {
     const amount = parseFloat(item.amount || 0);
-    
+     
     // สำหรับ deductSalaryList ไม่มี roundOfSalary ให้ใช้ amount โดยตรง
     otherDeduct += amount;
     
@@ -433,10 +475,11 @@ deductSalaryList.forEach(item => {
 console.log(`Final Deduct for employee ${record.employeeId}: ${otherDeduct}`);
 
 let payinAdvance = 0;
+const advancePaymentIds = paymentCodes.advancePaymentIds || ["2330"];
 deductSalaryList.forEach(item => {
       console.log('deductSalaryList item:', item); // ดูว่ามีข้อมูลอะไรบ้าง
 
-    if (item.id === "2330" ){ 
+    if (advancePaymentIds.includes(item.id)){ 
       const spSalary = parseFloat(item.SpSalary || 0);
       const days = parseFloat(record.dayWorkCount || 0);
       
@@ -452,7 +495,7 @@ deductSalaryList.forEach(item => {
 
 
   let plusOther = 0;
-const targetIds = [
+const targetIds = paymentCodes.plusOtherIds || [
   "1241", // ค่าวิชาชีพ
   "1251", // ค่าโรยตัว/ค่าขับรถ
   "1330", // ค่าอาหาร
@@ -494,7 +537,7 @@ addSalaryList.forEach(item => {
 console.log(`Final plusOther for employee ${record.employeeId}: ${plusOther}`);
 
   let positionAndTransportationWithSocialPlus = 0;
-  const positionAndTransportationIds = ["1230", "1520"];
+  const positionAndTransportationIds = paymentCodes.positionAndTransportationWithSocialIdsPlus || ["1230", "1520"];
 
   addSalaryList.forEach(item => {
       console.log('addSalaryList item:', item); // ดูว่ามีข้อมูลอะไรบ้าง
@@ -513,7 +556,7 @@ console.log(`Final plusOther for employee ${record.employeeId}: ${plusOther}`);
   console.log('Final positionAndTransportationWithSocialPlus:', positionAndTransportationWithSocialPlus);
 
   let positionAndTransportationWithSocialMinus = 0;
-  const positionAndTransportationMinusIds = ["2124","0000"]
+  const positionAndTransportationMinusIds = paymentCodes.positionAndTransportationWithSocialIdsMinus || ["2124","0000"]
   deductSalaryList.forEach(item => {
     if (positionAndTransportationMinusIds.includes(item.id)) {
       const spSalary = parseFloat(item.SpSalary || 0);
@@ -531,8 +574,9 @@ console.log(`Final plusOther for employee ${record.employeeId}: ${plusOther}`);
   let positionAndTransportationWithSocial = positionAndTransportationWithSocialPlus - positionAndTransportationWithSocialMinus;
 
   // คำนวณเบี้ยขยัน (ID 1410) - ไม่เปลี่ยนแปลง
+  const diligenceAllowanceIds = paymentCodes.diligenceAllowanceIds || ["1410"];
   addSalaryList.forEach(item => {
-    if (item.id === "1410") {
+    if (diligenceAllowanceIds.includes(item.id)) {
       const spSalary = parseFloat(item.SpSalary || 0);
       const days = parseFloat(record.dayWorkCount || 0);
       
@@ -545,7 +589,7 @@ console.log(`Final plusOther for employee ${record.employeeId}: ${plusOther}`);
   });
 
   let otplusOther = 0;
-  const otTargetIds = [
+  const otTargetIds = paymentCodes.overtimeIdsPlus || [
     "1441", // ค่าจ้างล่วงเวลา
     "1446", // ค่าจ้าง
     "1444", // ปรับปรุงค่าจ้างเพิ่ม
@@ -565,7 +609,7 @@ console.log(`Final plusOther for employee ${record.employeeId}: ${plusOther}`);
   });
 
   let otherPublicHoliday = 0;
-  const publicHolidayIds = ["1533"]
+  const publicHolidayIds = paymentCodes.publicHolidayCashIds || ["1533"]
   addSalaryList.forEach(item => {
     if (publicHolidayIds.includes(item.id)) {
       const spSalary = parseFloat(item.SpSalary || 0);
@@ -581,7 +625,7 @@ console.log(`Final plusOther for employee ${record.employeeId}: ${plusOther}`);
   let additionalAfterTax = 0;
   
   
-  const additionalAfterTaxIds = [
+  const additionalAfterTaxIds = paymentCodes.additionalAfterTaxIds || [
     "2250",
     "2310",
     "2340"];
@@ -598,7 +642,7 @@ console.log(`Final plusOther for employee ${record.employeeId}: ${plusOther}`);
 
   // let deductionAfterTax = 0; // ลบบรรทัดนี้ออกเพราะ declare ไว้ข้างบนแล้ว
   let deductionAfterTax = 0; // ย้าย declaration มาไว้ข้างบน
-  const deductionAfterTaxIds = [
+  const deductionAfterTaxIds = paymentCodes.deductionAfterTaxIds || [
     "2230",
     "2333",
     "2261",

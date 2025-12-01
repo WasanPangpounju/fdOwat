@@ -41,22 +41,22 @@ leave: [{
 }],
   
 paymentCodes: [{
-    transportAllowanceIds: [Number],
-    wageReviseIdsPlus: [Number],
-    wageReviseIdsMinus: [Number],
-    leaveInLieuIdsPlus: [Number],
-    leaveInLieuIdsMinus: [Number],
-    otherDeductIds: [Number],
-    plusOtherIds: [Number],
-    positionAndTransportationWithSocialIdsPlus: [Number],
-    positionAndTransportationWithSocialIdsMinus: [Number],
-    overtimeIdsPlus: [Number],
-    publicHolidayCashIds: [Number],
-    additionalAfterTaxIds: [Number],
-    deductionAfterTaxIds: [Number],
-    diligenceAllowanceIds: [Number],
-    advancePaymentIds: [Number],
-    totalIds: [Number]
+    transportAllowanceIds: [String],
+    wageReviseIdsPlus: [String],
+    wageReviseIdsMinus: [String],
+    leaveInLieuIdsPlus: [String],
+    leaveInLieuIdsMinus: [String],
+    otherDeductIds: [String],
+    plusOtherIds: [String],
+    positionAndTransportationWithSocialIdsPlus: [String],
+    positionAndTransportationWithSocialIdsMinus: [String],
+    overtimeIdsPlus: [String],
+    publicHolidayCashIds: [String],
+    additionalAfterTaxIds: [String],
+    deductionAfterTaxIds: [String],
+    diligenceAllowanceIds: [String],
+    advancePaymentIds: [String],
+    totalIds: [String]
   }]
   
 });
