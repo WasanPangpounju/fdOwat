@@ -57,29 +57,6 @@ function BasicSetting() {
         // NEW: Payment codes - รวมรหัส hardcode จาก SalaryAllResult
         if (data?.paymentCodes?.[0]) {
           setPaymentCodes(data.paymentCodes[0]);
-        } else {
-          // ตั้งค่าเริ่มต้นด้วยรหัสจาก SalaryAllResult
-          setPaymentCodes({
-            transportAllowanceIds: ["1535","1536"],
-            wageReviseIdsPlus: ["1531","1525","1526"],
-            wageReviseIdsMinus: ["2111","2120","2430"],
-            leaveInLieuIdsPlus: ["1231","1233","1242","1423","1428","1435","1429","1427","1234"],
-            leaveInLieuIdsMinus: ["2160"],
-            otherDeductIds: ["2116","2117","2331","2312"],
-            plusOtherIds: ["1241","1251","1330","1440","1447","1560","1210","1540","1541","1542","1550","1561","1610","1611","1612","1613","1245"],
-            positionAndTransportationWithSocialIdsPlus: ["1230","1520"],
-            positionAndTransportationWithSocialIdsMinus: ["2124","0000"],
-            overtimeIdsPlus: ["1441","1446","1444","1528","1442","1159"],
-            welfareIdsPlus: [],
-            publicHolidayCashIds: ["1533"],
-            additionalAfterTaxIds: ["2250","2310","2340"],
-            deductionAfterTaxIds: ["2230","2333","2261","2311"],
-            taxIdsDeduct: [],
-            socialSecurityIdsDeduct: [],
-            diligenceAllowanceIds: ["1410"],
-            advancePaymentIds: ["2330"],
-            totalIds: []
-          });
         }
 
         // Hospitals
