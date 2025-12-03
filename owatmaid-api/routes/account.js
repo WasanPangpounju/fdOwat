@@ -5771,8 +5771,17 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         // ตรวจสอบว่า doc.employee_record มีค่าและมี cash_holiday หรือไม่
         let foundCashHoliday = false;
         if (doc.employee_record && Array.isArray(doc.employee_record)) {
+          // 🚨 ป้องกัน infinite loop - จำกัดจำนวน records
+          if (doc.employee_record.length > 100) {
+            console.warn(`⚠️ employee_record มีจำนวนมาก (${doc.employee_record.length} records) - จำกัดการประมวลผล 100 รายการแรก`);
+            doc.employee_record = doc.employee_record.slice(0, 100);
+          }
+          
           doc.employee_record.forEach((record, index) => {
-            console.log(`🔍 [DEBUG] Record ${index}: date=${record.date}, shift=${record.shift}, cashWork=${record.cashWork}, cashWorkMul=${record.cashWorkMul}`);
+            // ลด log ให้น้อยลง - แสดงเฉพาะข้อมูลสำคัญ
+            if (index === 0 || index === doc.employee_record.length - 1 || record.shift === "cash_holiday") {
+              console.log(`🔍 [DEBUG] Record ${index}/${doc.employee_record.length}: date=${record.date}, shift=${record.shift}`);
+            }
             
             if (record.shift === "cash_holiday") {
               foundCashHoliday = true;
@@ -7613,6 +7622,13 @@ console.log(`💰 รวมทั้งหมด: ${sumCashWork + sumCashOt} บ
   
   console.log(`🔍 countAllowance สำหรับ message (รวมทั้ง work + stop): ${countAllowance} วัน`);
 
+  // 🚨 ตรวจสอบว่ามีข้อมูลเกินขนาดหรือไม่ (ป้องกัน infinite loop)
+  if (employee_record.length > 100) {
+    console.error(`🚨 ⚠️ WARNING: employee_record มีจำนวนมากเกินไป (${employee_record.length} records) อาจเกิด infinite loop!`);
+    console.error(`🚨 จำกัดการประมวลผลเพียง 100 records แรก`);
+    employee_record = employee_record.slice(0, 100);
+  }
+
   // Log สรุปข้อมูลที่สำคัญ
   console.log(`\n📊 === สรุปข้อมูลการคำนวณ ===`);
   console.log(`👤 employeeId: ${employeeId}`);
@@ -7745,7 +7761,19 @@ console.log(`📋 หมายเหตุ: ข้อมูลด้านล่
 console.log(`| วันที่        | ประเภทวัน | เวลาทำงาน | เป็นวันหยุด customizeDayoff | มาทำงาน |`);
 console.log(`|-------------|----------|----------|--------------------------|--------|`);
 
-employee_record.forEach(record => {
+// 🚨 เพิ่มตัวนับเพื่อป้องกัน infinite loop
+let loopCounter = 0;
+const maxLoopIterations = 100; // จำกัดไม่เกิน 100 รอบ
+
+employee_record.forEach((record, index) => {
+  loopCounter++;
+  
+  // ป้องกัน infinite loop
+  if (loopCounter > maxLoopIterations) {
+    console.error(`🚨 ⚠️ LOOP LIMIT EXCEEDED! หยุดการประมวลผลที่ iteration ${loopCounter}`);
+    return; // หยุด forEach
+  }
+  
   try {
     const recordDate = parseInt(record.date);
     
@@ -7814,6 +7842,9 @@ employee_record.forEach(record => {
     console.error(`❌ ไม่สามารถตรวจสอบวันที่ ${record.date} ได้:`, error.message);
   }
 });
+
+console.log(`\n✅ เสร็จสิ้นการวนลูป employee_record: ประมวลผล ${loopCounter} รายการจากทั้งหมด ${employee_record.length} รายการ\n`);
+
 const totalPublicHolidays = dayOffOnlyDates.length;
 
 // ค้นหาวันหยุดนักขัตฤกษ์ที่พนักงานมาทำงาน พร้อมเก็บรายละเอียด
