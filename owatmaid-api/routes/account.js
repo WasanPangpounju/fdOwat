@@ -5321,7 +5321,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     }
 
     // ✨ เพิ่มการ sync addSalaryList จาก employee.addSalary ก่อนทำอย่างอื่น
-    console.log(`🔄 [SYNC] เริ่ม sync addSalaryList จาก employee.addSalary สำหรับ ${records.length} records`);
+    console.log(`🔄 [SYNC] เริ่ม sync addSalaryList สำหรับ ${records.length} records`);
     
     // ปรับให้ดึงข้อมูล employee ทั้งหมดรอบเดียว แทนที่จะดึงทีละคน
     const Employee = require('./models/employeeModel');
@@ -5329,44 +5329,46 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     const employeesData = await Employee.find({ employeeId: { $in: employeeIds } });
     const employeeMap = new Map(employeesData.map(e => [e.employeeId, e]));
     
+    let syncCount = 0;
     for (let record of records) {
       try {
         const employeeData = employeeMap.get(record.employeeId);
         
         if (employeeData && employeeData.addSalary) {
-          console.log(`🔄 [SYNC] พบข้อมูล employee ${record.employeeId} - addSalary: ${employeeData.addSalary.length} items`);
+          // ลด log - แสดงเฉพาะ 5 รายการแรกและสุดท้าย
+          if (syncCount < 5 || syncCount === records.length - 1) {
+            console.log(`🔄 [SYNC] ${record.employeeId}: ${employeeData.addSalary.length} items`);
+          }
           
-          // กรองเฉพาะ addSalary ที่มาจาก employee (ไม่มี welfareType)
-          // และลบ addSalary เก่าที่ไม่มีใน employee.addSalary แล้ว
           if (!record.addSalaryList) {
             record.addSalaryList = [];
           }
           
-          // เก็บเฉพาะ welfare items (มี welfareType)
           const welfareItems = record.addSalaryList.filter(item => item.welfareType);
-          
-          // รวมกับ addSalary จาก employee (ไม่มี welfareType)
           const employeeAddSalary = employeeData.addSalary.map(item => ({
             ...item.toObject ? item.toObject() : item,
-            welfareType: undefined // ตรวจสอบว่าไม่มี welfareType
+            welfareType: undefined
           }));
           
           record.addSalaryList = [...welfareItems, ...employeeAddSalary];
-          console.log(`✅ [SYNC] อัปเดต addSalaryList: welfare=${welfareItems.length} + employee=${employeeAddSalary.length} = ${record.addSalaryList.length} items`);
-        } else {
-          console.log(`⚠️ [SYNC] ไม่พบข้อมูล employee หรือ addSalary สำหรับ ${record.employeeId}`);
+          syncCount++;
         }
       } catch (syncError) {
-        console.error(`❌ [SYNC] Error syncing employee ${record.employeeId}:`, syncError);
+        console.error(`❌ [SYNC] Error: ${record.employeeId}`);
       }
     }
+    console.log(`✅ [SYNC] เสร็จสิ้น: ${syncCount}/${records.length} records`);
     
     // เพิ่มข้อมูล welfare/leave ลงใน addSalaryList ก่อนการประมวลผล
-    console.log(`🔍 [ACCOUNTING] เริ่มค้นหาข้อมูล welfare สำหรับ ${records.length} records`);
+    console.log(`🔍 [ACCOUNTING] เริ่มค้นหา welfare สำหรับ ${records.length} records`);
     
+    let welfareProcessCount = 0;
     for (let record of records) {
       try {
-        console.log(`🔍 [ACCOUNTING] ค้นหา welfare สำหรับพนักงาน: ${record.employeeId}`);
+        // ลด log - แสดงเฉพาะ 3 รายการแรก
+        if (welfareProcessCount < 3) {
+          console.log(`🔍 [ACCOUNTING] ค้นหา welfare: ${record.employeeId}`);
+        }
         
         // ค้นหาข้อมูล welfare ของพนักงาน
         const welfareQuery = { employeeId: record.employeeId };
@@ -5374,11 +5376,16 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         // ถ้ามีการระบุ year ให้กรองตามปี
         if (year && year !== '') {
           welfareQuery.year = year;
-          console.log(`🔍 [ACCOUNTING] กรองตามปี: ${year}`);
         }
         
         const welfareRecords = await welfare.find(welfareQuery);
-        console.log(`🔍 [ACCOUNTING] พบข้อมูล welfare: ${welfareRecords.length} records สำหรับพนักงาน ${record.employeeId}`);
+        
+        // ลด log
+        if (welfareProcessCount < 3 && welfareRecords.length > 0) {
+          console.log(`🔍 [ACCOUNTING] พบ welfare: ${welfareRecords.length} records`);
+        }
+        
+        welfareProcessCount++;
         
         // รวม addSalaryList จากข้อมูล welfare ทั้งหมด
         let addSalaryFromWelfare = [];
@@ -5395,7 +5402,11 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         
         welfareRecords.forEach(welfareRecord => {
           if (welfareRecord.record && Array.isArray(welfareRecord.record)) {
-            console.log(`🔍 [ACCOUNTING] ประมวลผล welfare record: ${welfareRecord.record.length} items`);
+            // ลด log - แสดงเฉพาะจำนวน
+            if (welfareRecord.record.length > 0) {
+              console.log(`🔍 [ACCOUNTING] ประมวลผล welfare record: ${welfareRecord.record.length} items`);
+            }
+            
             welfareRecord.record.forEach(welfareItem => {
               // 🎯 กรองเฉพาะ records ที่อยู่ในรอบเงินเดือน (21 เดือนก่อน - 20 เดือนปัจจุบัน)
               let shouldInclude = true;
@@ -5422,12 +5433,10 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                 // ตรวจสอบว่า startDay อยู่ในรอบเงินเดือนหรือไม่
                 shouldInclude = recordStartDate >= periodStartDate && recordStartDate <= periodEndDate;
                 
-                console.log(`🔍 [ACCOUNTING] กรองตามรอบเงินเดือน:`);
-                console.log(`   - เดือนที่เลือก: ${month}/${year}`);
-                console.log(`   - รอบเงินเดือน: ${periodStartDate.toISOString().slice(0,10)} ถึง ${periodEndDate.toISOString().slice(0,10)}`);
-                console.log(`   - startDay: ${welfareItem.startDay}`);
-                console.log(`   - recordDate: ${recordStartDate.toISOString().slice(0,10)}`);
-                console.log(`   - include: ${shouldInclude}`);
+                // ลด log - แสดงเฉพาะ 2 รายการแรก
+                if (shouldInclude && welfareProcessCount < 2) {
+                  console.log(`✓ รวม: ${welfareItem.name || welfareItem.id} (${recordStartDate.toISOString().slice(0,10)})`);
+                }
               }
               
               if (!shouldInclude) return;
@@ -5576,25 +5585,28 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           if (item.id) validWelfareIds.add(item.id);
         });
         
-        console.log(`🔍 [ACCOUNTING] validWelfareIds จาก DB:`, Array.from(validWelfareIds));
+        // ลด log - แสดงเฉพาะ record แรก
+        if (welfareProcessCount < 1) {
+          console.log(`🔍 [ACCOUNTING] validWelfareIds:`, Array.from(validWelfareIds));
+        }
         
-        // สร้าง list ของ welfare IDs ที่เป็นไปได้ - รวมทุก welfare ID ที่อาจปรากฏ
+        // สร้าง list ของ welfare IDs ที่เป็นไปได้
         const potentialWelfareIds = new Set([
           '1235', '1234', '1230', '1350', '1410', '1520', '1535', 
-          '1423', '1242', '1233', '1243', // welfare IDs ที่พบในระบบ
-          '1231', '1422', '1428', '1434', '1435', '1429', '1427', '1426', '1425', // welfare IDs เพิ่มเติม
-          ...Array.from(validWelfareIds) // และ IDs ที่มีใน welfare database
+          '1423', '1242', '1233', '1243', '1231', '1422', '1428', 
+          '1434', '1435', '1429', '1427', '1426', '1425',
+          ...Array.from(validWelfareIds)
         ]);
         
-        console.log(`🔍 [ACCOUNTING] potentialWelfareIds ทั้งหมด:`, Array.from(potentialWelfareIds));
-        
-        // Debug: แสดงข้อมูล addSalaryList ก่อนกรอง
-        console.log(`🔍 [ACCOUNTING] addSalaryList ก่อนกรอง (${record.addSalaryList.length} items):`);
-        record.addSalaryList.forEach((item, index) => {
-          const isPotentialWelfare = potentialWelfareIds.has(item.id);
-          const isValidWelfare = validWelfareIds.has(item.id);
-          console.log(`   [${index}] id=${item.id}, name="${item.name}", welfareType="${item.welfareType || 'undefined'}", isPotentialWelfare=${isPotentialWelfare}, isValidWelfare=${isValidWelfare}, _id=${item._id}`);
-        });
+        // Debug: แสดงข้อมูล addSalaryList ก่อนกรอง - เฉพาะ 2 records แรก
+        if (welfareProcessCount < 2) {
+          console.log(`🔍 [ACCOUNTING] addSalaryList (${record.addSalaryList.length} items) - แสดงเฉพาะ 5 รายการแรก:`);
+          record.addSalaryList.slice(0, 5).forEach((item, index) => {
+            const isPotentialWelfare = potentialWelfareIds.has(item.id);
+            const isValidWelfare = validWelfareIds.has(item.id);
+            console.log(`   [${index}] id=${item.id}, name="${item.name}", valid=${isValidWelfare}`);
+          });
+        }
         
         // 🎯 กรองออก welfare ID ที่ไม่มีใน validWelfareIds (ที่ถูกลบจาก DB) และเก็บเฉพาะที่ยังมีใน DB
         // ⚠️ แก้ไข: ลบ welfare ที่ไม่มีอยู่ใน database แล้ว และเก็บเฉพาะที่ยังอยู่ใน DB
@@ -5619,45 +5631,20 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           const isWelfareStillInDB = isPotentialWelfare && isValidWelfare;
           const shouldKeep = isNonWelfareItem || isWelfareStillInDB;
           
-          // 🔍 Enhanced debug logging สำหรับ welfare IDs
-          if (isPotentialWelfare) {
-            console.log(`🎯 [WELFARE DEBUG] ID ${item.id} Analysis:`);
-            console.log(`   - name: ${item.name}`);
-            console.log(`   - hasWelfareType: ${hasWelfareType}`);
-            console.log(`   - isPotentialWelfare: ${isPotentialWelfare}`);
-            console.log(`   - isValidWelfare: ${isValidWelfare}`);
-            console.log(`   - isNonWelfareItem: ${isNonWelfareItem}`);
-            console.log(`   - isWelfareStillInDB: ${isWelfareStillInDB}`);
-            console.log(`   - shouldKeep: ${shouldKeep}`);
-            console.log(`   - welfareType: ${item.welfareType || 'undefined'}`);
-            
-            if (!shouldKeep) {
-              console.log(`   🗑️ -> จะถูกลบ เพราะ welfare นี้ไม่มีใน database แล้ว`);
-            } else if (isWelfareStillInDB) {
-              console.log(`   ⚠️ -> จะถูกเก็บไว้ แต่จะถูกอัปเดตข้อมูลใหม่จาก database`);
-            } else {
-              console.log(`   ✅ -> จะถูกเก็บไว้ เพราะไม่ใช่ welfare`);
-            }
-          }
-          
-          if (!shouldKeep) {
-            console.log(`🗑️ [ACCOUNTING] ลบ welfare item ที่ไม่มีใน DB: id=${item.id}, name=${item.name}, isValidWelfare=${isValidWelfare}`);
+          // ลด log - แสดง debug เฉพาะ 2 records แรก และเฉพาะกรณีที่จะถูกลบ
+          if (isPotentialWelfare && !shouldKeep && welfareProcessCount < 2) {
+            console.log(`🗑️ ลบ: ${item.id} ${item.name} (ไม่มีใน DB)`);
           }
           
           return shouldKeep;
         });
         
-        console.log(`🧹 [ACCOUNTING] กรอง welfare ที่ไม่มีใน DB: ${originalLength} → ${record.addSalaryList.length} items`);
+        // ลด log - แสดงสรุปเฉพาะ 2 records แรก
+        if (welfareProcessCount < 2) {
+          console.log(`🧹 [ACCOUNTING] กรอง: ${originalLength} → ${record.addSalaryList.length} items`);
+        }
         
-        // Debug: แสดงข้อมูล addSalaryList หลังจากกรอง
-        console.log(`🔍 [ACCOUNTING] addSalaryList หลังจากกรอง (${record.addSalaryList.length} items):`);
-        record.addSalaryList.forEach((item, index) => {
-          const isPotentialWelfare = potentialWelfareIds.has(item.id);
-          const isValidWelfare = validWelfareIds.has(item.id);
-          console.log(`   [${index}] id=${item.id}, name="${item.name}", welfareType="${item.welfareType || 'undefined'}", isPotentialWelfare=${isPotentialWelfare}, isValidWelfare=${isValidWelfare}, _id=${item._id}`);
-        });
-        
-        // เพิ่ม welfare data ใหม่ที่อัปเดตแล้ว (เฉพาะที่มีอยู่จริงใน welfare database)
+        // เพิ่ม welfare data ใหม่
         const newAddSalaryList = [...record.addSalaryList, ...addSalaryFromWelfare];
         
         // 🔧 ลบข้อมูลซ้ำสำหรับ addSalaryList ก่อนบันทึกลง database
@@ -5756,33 +5743,25 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           stopDaysList = doc.stopDaysList || [];
         }
         
-        // บันทึก personalDayOff และ stopDaysList กลับเข้าไปใน doc เพื่อใช้ในขั้นตอนถัดไป
+        // บันทึก personalDayOff และ stopDaysList กลับเข้าไปใน doc
         doc.personalDayOff = personalDayOff;
         doc.stopDaysList = stopDaysList;
         
-        console.log(`📊 สรุป personalDayOff: ${personalDayOff.length} วัน`);
-        console.log(`📊 สรุป stopDaysList: ${stopDaysList.length} วัน\n`);
+        // ลด log - แสดงเฉพาะ 2 records แรก
+        if (welfareProcessCount < 2) {
+          console.log(`📊 personalDayOff: ${personalDayOff.length} วัน, stopDaysList: ${stopDaysList.length} วัน`);
+        }
         
-        // เงื่อนไขพิเศษ: ถ้า shift เป็น "cash_holiday" ให้กำหนด cashWork, cashWorkMul, cashBeforeOtMul, cashOt, cashOtMul เป็น 0
-        // *** ย้ายมาไว้ก่อน calculateCashValues เพื่อให้การคำนวณใช้ค่าที่แก้ไขแล้ว ***
-        console.log(`🔍 [DEBUG] เริ่มตรวจสอบ cash_holiday สำหรับพนักงาน ${doc.employeeId}`);
-        console.log(`🔍 [DEBUG] จำนวน employee_record: ${doc.employee_record ? doc.employee_record.length : 0}`);
-        
-        // ตรวจสอบว่า doc.employee_record มีค่าและมี cash_holiday หรือไม่
+        // เงื่อนไขพิเศษ: ถ้า shift เป็น "cash_holiday" 
         let foundCashHoliday = false;
         if (doc.employee_record && Array.isArray(doc.employee_record)) {
-          // 🚨 ป้องกัน infinite loop - จำกัดจำนวน records
+          // ป้องกัน infinite loop - จำกัดจำนวน records
           if (doc.employee_record.length > 100) {
-            console.warn(`⚠️ employee_record มีจำนวนมาก (${doc.employee_record.length} records) - จำกัดการประมวลผล 100 รายการแรก`);
+            console.warn(`⚠️ employee_record มีจำนวนมาก (${doc.employee_record.length}) - จำกัด 100 รายการ`);
             doc.employee_record = doc.employee_record.slice(0, 100);
           }
           
           doc.employee_record.forEach((record, index) => {
-            // ลด log ให้น้อยลง - แสดงเฉพาะข้อมูลสำคัญ
-            if (index === 0 || index === doc.employee_record.length - 1 || record.shift === "cash_holiday") {
-              console.log(`🔍 [DEBUG] Record ${index}/${doc.employee_record.length}: date=${record.date}, shift=${record.shift}`);
-            }
-            
             if (record.shift === "cash_holiday") {
               foundCashHoliday = true;
               console.log(`🎯 [CASH_HOLIDAY] *** ก่อนแก้ไข *** วันที่ ${record.date}: cashWork=${record.cashWork}, cashWorkMul=${record.cashWorkMul}, cashOt=${record.cashOt}, cashOtMul=${record.cashOtMul}`);
