@@ -3,7 +3,20 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "node ./bin/www"
+    "start": "node ./bin/www",
+    "load:workplace": "autocannon -c 10 -d 30 http://10.10.110.7:3000/workplace/list",
+    "load:employee": "autocannon -c 10 -d 30 http://10.10.110.7:3000/employee/1001",
+    "load:accounting-list": "autocannon -c 10 -d 30 http://10.10.110.7:3000/accounting/list",
+    "load:conclude": "autocannon -c 10 -d 30 -m POST -H 'Content-Type: application/json' -b '{\"employeeId\":\"1001\",\"month\":\"10\",\"year\":\"2025\",\"concludeDate\": \"\"}' http://10.10.110.7:3000/conclude/search",
+    "load:accounting": "autocannon -c 10 -d 30 -m POST -H 'Content-Type: application/json' -b '{\"year\":\"2025\",\"month\":\"11\",\"employeeId\":\"1001\",\"updateStatus\":\"\"}' http://10.10.110.7:3000/accounting/calsalaryemp",
+    "load:stress": "autocannon -c 40 -d 60 http://10.10.110.7:3000/workplace/list",
+    "clinic:doctor": "MONGO_HOST=10.10.110.7 clinic doctor --on-port 'autocannon -c 10 -d 30 http://10.10.110.7:3000/employee/1001' -- node ./bin/www",
+    "clinic:flame:workplace": "MONGO_HOST=10.10.110.7 clinic flame --on-port 'autocannon -c 10 -d 30 http://10.10.110.7:3000/workplace/list' -- node ./bin/www",
+    "clinic:flame:conclude": "MONGO_HOST=10.10.110.7 clinic flame --on-port 'autocannon -c 10 -d 30 -m POST -H \"Content-Type: application/json\" -b \"{\\\"employeeId\\\":\\\"1001\\\",\\\"month\\\":\\\"10\\\",\\\"year\\\":\\\"2025\\\",\\\"concludeDate\\\": \\\"\\\"}\" http://10.10.110.7:3000/conclude/search' -- node ./bin/www",
+    "clinic:flame:accounting": "MONGO_HOST=10.10.110.7 clinic flame --on-port 'autocannon -c 10 -d 30 -m POST -H \"Content-Type: application/json\" -b \"{\\\"year\\\":\\\"2025\\\",\\\"month\\\":\\\"11\\\",\\\"employeeId\\\":\\\"1001\\\",\\\"updateStatus\\\":\\\"\\\"}\" http://10.10.110.7:3000/accounting/calsalaryemp' -- node ./bin/www",
+    "clinic:bubble": "MONGO_HOST=10.10.110.7 clinic bubbleprof --on-port 'autocannon -c 10 -d 30 http://10.10.110.7:3000/accounting/list' -- node ./bin/www",
+    "clinic:heap": "MONGO_HOST=10.10.110.7 clinic heapprofiler --on-port 'autocannon -c 10 -d 30 http://10.10.110.7:3000/workplace/list' -- node ./bin/www",
+    "clinic:clean": "clinic clean"
   },
   "dependencies": {
     "bcrypt": "^5.1.0",
@@ -26,6 +39,8 @@
     "update": "^0.7.4"
   },
   "devDependencies": {
-    "nodemon": "^3.1.0"
+    "nodemon": "^3.1.0",
+    "clinic": "^13.0.0",
+    "autocannon": "^7.15.0"
   }
 }

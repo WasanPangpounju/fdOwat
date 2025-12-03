@@ -41,22 +41,28 @@ leave: [{
 }],
   
 paymentCodes: [{
-    transportAllowanceIds: [String],
-    wageReviseIdsPlus: [String],
-    wageReviseIdsMinus: [String],
-    leaveInLieuIdsPlus: [String],
-    leaveInLieuIdsMinus: [String],
-    otherDeductIds: [String],
-    plusOtherIds: [String],
-    positionAndTransportationWithSocialIdsPlus: [String],
-    positionAndTransportationWithSocialIdsMinus: [String],
-    overtimeIdsPlus: [String],
-    publicHolidayCashIds: [String],
-    additionalAfterTaxIds: [String],
-    deductionAfterTaxIds: [String],
-    diligenceAllowanceIds: [String],
-    advancePaymentIds: [String],
-    totalIds: [String]
+    transportAllowanceIds: [mongoose.Schema.Types.Mixed],
+    wageReviseIdsPlus: [mongoose.Schema.Types.Mixed],
+    wageReviseIdsMinus: [mongoose.Schema.Types.Mixed],
+    leaveInLieuIdsPlus: [mongoose.Schema.Types.Mixed],
+    leaveInLieuIdsMinus: [mongoose.Schema.Types.Mixed],
+    otherDeductIds: [mongoose.Schema.Types.Mixed],
+    plusOtherIds: [mongoose.Schema.Types.Mixed],
+    positionAndTransportationWithSocialIdsPlus: [mongoose.Schema.Types.Mixed],
+    positionAndTransportationWithSocialIdsMinus: [mongoose.Schema.Types.Mixed],
+    overtimeIdsPlus: [mongoose.Schema.Types.Mixed],
+    publicHolidayCashIds: [mongoose.Schema.Types.Mixed],
+    additionalAfterTaxIds: [mongoose.Schema.Types.Mixed],
+    deductionAfterTaxIds: [mongoose.Schema.Types.Mixed],
+    diligenceAllowanceIds: [mongoose.Schema.Types.Mixed],
+    advancePaymentIds: [mongoose.Schema.Types.Mixed],
+    totalIds: [mongoose.Schema.Types.Mixed],
+    
+  
+    netCalculationRules: {
+      addToNet: [String],       // รายการที่บวกเข้ายอดสุทธิ
+      subtractFromNet: [String]  // รายการที่ลบออกจากยอดสุทธิ
+    }
   }]
   
 });
