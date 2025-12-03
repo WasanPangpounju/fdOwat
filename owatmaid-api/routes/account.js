@@ -13,7 +13,93 @@ const welfare = require('./models/welfareModel');
 
 const axios = require('axios');
 
+// Cache สำหรับเก็บ taxableIds เพื่อลดการเรียก API ซ้ำๆ
+let cachedTaxableIds = null;
+let cacheTimestamp = null;
+const CACHE_DURATION = 30 * 100; // 30 วินาที (ลดจาก 5 นาที)
 
+// Cache สำหรับเก็บ DedutIds
+let cachedDedutIds = null;
+let cacheDedutTimestamp = null;
+
+// ฟังก์ชันสำหรับ clear cache (เรียกใช้เมื่อต้องการอัพเดทข้อมูลทันที)
+function clearTaxableIdsCache() {
+  cachedTaxableIds = null;
+  cacheTimestamp = null;
+  console.log('🔄 ล้าง cache taxableIds แล้ว');
+}
+
+function clearDedutIdsCache() {
+  cachedDedutIds = null;
+  cacheDedutTimestamp = null;
+  console.log('🔄 ล้าง cache DedutIds แล้ว');
+}
+
+function clearAllCache() {
+  clearTaxableIdsCache();
+  clearDedutIdsCache();
+  console.log('🔄 ล้าง cache ทั้งหมดแล้ว');
+}
+
+// ฟังก์ชันดึงข้อมูล taxableIds จาก API
+async function fetchTaxableIds() {
+  // ตรวจสอบ cache ก่อน
+  const now = Date.now();
+  if (cachedTaxableIds && cacheTimestamp && (now - cacheTimestamp < CACHE_DURATION)) {
+    console.log(`✅ ใช้ taxableIds จาก cache (${cachedTaxableIds.length} รายการ)`);
+    return cachedTaxableIds;
+  }
+
+  try {
+    const response = await axios.get('http://10.10.110.7:3000/employee/social-security-checked');
+    if (response.data && response.data.summary && response.data.summary.uniqueIdList) {
+      cachedTaxableIds = response.data.summary.uniqueIdList;
+      cacheTimestamp = Date.now();
+      console.log(`✅ ดึง taxableIds จาก API สำเร็จ: ${cachedTaxableIds.length} รายการ`);
+      return cachedTaxableIds;
+    }
+    console.warn('⚠️ ไม่พบข้อมูล uniqueIdList จาก API, ใช้ค่า default');
+    return [];
+  } catch (error) {
+    console.error('❌ Error fetching taxableIds from API:', error.message);
+    // fallback to cached data if available
+    if (cachedTaxableIds) {
+      console.warn('⚠️ ใช้ข้อมูล cache เดิมแทน');
+      return cachedTaxableIds;
+    }
+    return [];
+  }
+}
+
+// ฟังก์ชันดึงข้อมูล DedutIds จาก API
+async function fetchDedutIds() {
+  // ตรวจสอบ cache ก่อน
+  const now = Date.now();
+  if (cachedDedutIds && cacheDedutTimestamp && (now - cacheDedutTimestamp < CACHE_DURATION)) {
+    console.log(`✅ ใช้ DedutIds จาก cache (${cachedDedutIds.length} รายการ)`);
+    return cachedDedutIds;
+  }
+
+  try {
+    const response = await axios.get('http://10.10.110.7:3000/employee/Deduct-social-security-checked');
+    if (response.data && response.data.summary && response.data.summary.uniqueIdList) {
+      cachedDedutIds = response.data.summary.uniqueIdList;
+      cacheDedutTimestamp = Date.now();
+      console.log(`✅ ดึง DedutIds จาก API สำเร็จ: ${cachedDedutIds.length} รายการ`);
+      return cachedDedutIds;
+    }
+    console.warn('⚠️ ไม่พบข้อมูล uniqueIdList สำหรับ DedutIds จาก API, ใช้ค่า default');
+    return ["2116", "2222"]; // fallback เดิม
+  } catch (error) {
+    console.error('❌ Error fetching DedutIds from API:', error.message);
+    // fallback to cached data if available
+    if (cachedDedutIds) {
+      console.warn('⚠️ ใช้ข้อมูล cache เดิมแทน');
+      return cachedDedutIds;
+    }
+    return ["2116", "2222"]; // fallback เดิม
+  }
+}
 
 const getDayNumberFromName = (dayName) => {
   const daysMap = {
@@ -701,7 +787,13 @@ if(promise) {
         if(response.data.addSalary[k].roundOfSalary == "daily" ) {
           if( response.data.addSalary[k].SpSalary !== "") {
             let dailyTmp = await response.data.addSalary[k];
-            dailyTmp.message = await countDay;
+            // ✅ ตรวจสอบว่าเป็นหน่วยงาน 10806 หรือไม่
+            if (data.workplace === '10806') {
+              dailyTmp.message = "1";  // หน่วยงาน 10806 ใช้ message = 1
+              console.log(`✅ [ACCOUNT-10806] สวัสดิการรายวัน ID:${dailyTmp.id} - message = 1`);
+            } else {
+              dailyTmp.message = await countDay;  // หน่วยงานอื่นใช้ countDay ตามปกติ
+            }
             await addSalaryList.push(dailyTmp);
           }
 
@@ -1053,9 +1145,9 @@ try {
   const workplaceResponse = await axios.get(`${sURL}/workplace/${wpId1}`);
   const workOfWeek = workplaceResponse.data.workOfWeek || "5";
   
-  if (workOfWeek === "7") {
+  if (["5", "6", "7"].includes(workOfWeek)) {
     isSpecialWorkplace7Days = true;
-    console.log(`\n✅ หน่วยงานพิเศษ 7 วัน - จะคิดเงินเพิ่มรายวันทุกวันที่มี allTimes > 0`);
+    console.log(`\n✅ หน่วยงานพิเศษ ${workOfWeek} วัน - จะคิดเงินเพิ่มรายวันทุกวันที่มี allTimes > 0`);
   }
 } catch (error) {
   console.error(`❌ ไม่สามารถตรวจสอบ workOfWeek ได้:`, error.message);
@@ -1069,7 +1161,7 @@ if (isSpecialWorkplace7Days) {
     return record.totalTime && record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0;
   }).length;
   
-  console.log(`📊 หน่วยงานพิเศษ 7 วัน - จำนวนวันทำงานจริง (จาก totalTime): ${totalWorkDays} วัน`);
+  console.log(`📊 หน่วยงานพิเศษ - จำนวนวันทำงานจริง (จาก totalTime): ${totalWorkDays} วัน`);
   
   // แสดงรายละเอียดการนับเพื่อตรวจสอบ
   console.log(`📋 รายละเอียดการนับวัน:`);
@@ -1090,7 +1182,7 @@ if (isSpecialWorkplace7Days) {
 // เพิ่มการตรวจสอบเพิ่มเติม:
 
 // เพิ่ม log สรุปจำนวนวันที่มี totalTime (แทน allTimes)
-console.log(`\n📊 === สรุป addSalaryList สำหรับหน่วยงานพิเศษ 7 วัน ===`);
+console.log(`\n📊 === สรุป addSalaryList สำหรับหน่วยงานพิเศษ ===`);
 let countDaysWithTotalTime = 0;
 
 responseConclude.data.recordConclude[c].concludeRecord.forEach((record, index) => {
@@ -1146,7 +1238,13 @@ console.log(addSalaryDayArray.length);
 for (let k = 0; k < (response?.data?.addSalary?.length || 0); k++) {
   if(response.data.addSalary[k].roundOfSalary == "daily" && response.data.addSalary[k].SpSalary !== "") {
     let dailyTmp = await {...response.data.addSalary[k]};
-    dailyTmp.message = await countDay;
+    // ✅ ตรวจสอบว่าเป็นหน่วยงาน 10806 หรือไม่
+    if (data.workplace === '10806') {
+      dailyTmp.message = "1";  // หน่วยงาน 10806 ใช้ message = 1
+      console.log(`✅ [ACCOUNT-10806-Loop2] สวัสดิการรายวัน ID:${dailyTmp.id} - message = 1`);
+    } else {
+      dailyTmp.message = await countDay;  // หน่วยงานอื่นใช้ countDay ตามปกติ
+    }
     await addSalaryList.push(dailyTmp);
   }
 }
@@ -1349,7 +1447,30 @@ data.accountingRecord.amountCountDayWork = await salary ||0;
 await console.log('countDay '+ countDay + ' dayOffSumWork ' + dayOffSumWork  + ' s2 '  +s2 + 'workDaySocial ' + workDaySocial );
 console.log('workDaySocial '+ (workDaySocial * salary) + 'sumSocial '+ sumSocial );
 
+// ============= เริ่มการคำนวณฐานประกันสังคมแบบใหม่ =============
+// ขั้นตอน 1: หักรายการที่ต้องหักออกจากฐานประกันสังคมก่อน
+console.log('\n📊 === การคำนวณฐานประกันสังคม ===');
+console.log('ฐานประกันสังคมเริ่มต้น:', sumSocial);
 
+let deductFromSocial = 0;
+const deductIdsForSocial = await fetchDedutIds(); // ดึงจาก API
+
+// วนหาค่าหักที่ต้องลบออกจากฐานประกันสังคม
+if (deductSalaryList && deductSalaryList.length > 0) {
+  for (let deductItem of deductSalaryList) {
+    if (deductIdsForSocial.includes(deductItem.id)) {
+      const deductAmount = parseFloat(deductItem.amount || 0);
+      deductFromSocial += deductAmount;
+      console.log(`- หัก ${deductItem.name || 'รหัส ' + deductItem.id}: -${deductAmount} บาท`);
+    }
+  }
+}
+
+// ขั้นตอน 2: คำนวณฐานประกันสังคมใหม่
+console.log(`รวมรายการหัก (${deductIdsForSocial.join(', ')}):`, deductFromSocial);
+sumSocial = sumSocial - deductFromSocial;
+console.log('ฐานประกันสังคมหลังหักรายการพิเศษ:', sumSocial);
+// ============= สิ้นสุดการคำนวณฐานประกันสังคมแบบใหม่ =============
 
     // Other properties
     // data.accountingRecord.amountSpecialDay= await calSP ||0;
@@ -1384,6 +1505,7 @@ if (sumSocial > 15000) {
 if (sumSocial < 1650) {
   sumSocial = await 83; // Set sumSocial to 83
 }
+console.log('ฐานประกันสังคมสุดท้าย (หลังปรับขีดจำกัด):', sumSocial);
 
 // Calculate socialSecurity based on sumSocial
 // data.accountingRecord.socialSecurity = Math.ceil((sumSocial * 0.05)) || 0;
@@ -2466,6 +2588,30 @@ if(! dayW.includes( getDayNumberFromDate( responseConclude.data.recordConclude[c
     
     console.log('workDaySocial '+ (workDaySocial * salary) + 'sumSocial '+ sumSocial );
     
+    // ============= เริ่มการคำนวณฐานประกันสังคมแบบใหม่ (calsalarylist) =============
+    console.log('\n📊 === การคำนวณฐานประกันสังคม ===');
+    console.log('ฐานประกันสังคมเริ่มต้น:', sumSocial);
+    
+    let deductFromSocial = 0;
+    const deductIdsForSocial = await fetchDedutIds(); // ดึงจาก API
+    
+    // วนหาค่าหักที่ต้องลบออกจากฐานประกันสังคม
+    if (deductSalaryList && deductSalaryList.length > 0) {
+      for (let deductItem of deductSalaryList) {
+        if (deductIdsForSocial.includes(deductItem.id)) {
+          const deductAmount = parseFloat(deductItem.amount || 0);
+          deductFromSocial += deductAmount;
+          console.log(`- หัก ${deductItem.name || 'รหัส ' + deductItem.id}: -${deductAmount} บาท`);
+        }
+      }
+    }
+    
+    // คำนวณฐานประกันสังคมใหม่
+    console.log(`รวมรายการหัก (${deductIdsForSocial.join(', ')}):`, deductFromSocial);
+    sumSocial = sumSocial - deductFromSocial;
+    console.log('ฐานประกันสังคมหลังหักรายการพิเศษ:', sumSocial);
+    // ============= สิ้นสุดการคำนวณฐานประกันสังคมแบบใหม่ =============
+    
     sumAmountDayWork  = await Number(dayOffWork) * Number(salary);
     let  calOtWork = await (Number(amountDay) - Number(sumAmountDayWork ) ) + Number(amountOt) || 0;
 
@@ -2501,6 +2647,7 @@ if(! dayW.includes( getDayNumberFromDate( responseConclude.data.recordConclude[c
     if (sumSocial < 1650) {
       sumSocial = await 83; // Set sumSocial to 83
     }
+    console.log('ฐานประกันสังคมสุดท้าย (หลังปรับขีดจำกัด):', sumSocial);
             
     // Calculate socialSecurity based on sumSocial
     // data.accountingRecord.socialSecurity = Math.ceil((sumSocial * 0.05)) || 0;
@@ -3568,7 +3715,7 @@ async function getEmployeeData(id) {
 
 
 async function checkCalSocial(id) {
-  const idList = await ["1230","1231","1233","1241","1242","1350","1423","1428","1434","1520","1522","1524","1525","1526","1529","1531","1533","1534","1429","1427","1245","1234","2111","2116","2120","2124"];
+  const idList = await ["1230","1231","1233","1241","1445","1242","1350","1423","1428","1434","1520","1522","1524","1525","1526","1529","1531","1533","1534","1429","1427","1245","1234","2111","2116","2120","2124"];
 
   
   const idToCheck = await id;
@@ -3598,7 +3745,8 @@ async function checkCalSocial(id) {
 // }
 
 async function checkCalTax(id) {
-  const idList = await ["1110","1120","1130",,"1530","1140","1150","1230","1233","1241","1242","1251","1350","1422","1423","1428","1434","1440","1441","1444","1445","1446","1520","1522","1524","1525","1526","1528","1540","1541","1550","1447","1613","1561","1542","1529","1531","1532","1533","1534","1435","1429","1427","1412","1245","1234","1159","2111","2113","2116","2117","2120","2124","2160","2430","1190","1211","1212","1214","1235","1236","1243","1351","1411","1425","1426","1431","1448","1449","1527","1562","2114","2123","1543","1443","1544"];
+  // ดึงรายการ ID จาก API
+  const idList = await fetchTaxableIds();
   
   const idToCheck = await id;
   
@@ -4005,7 +4153,13 @@ if(promise) {
         if(response.data.addSalary[k].roundOfSalary == "daily" ) {
           if( response.data.addSalary[k].SpSalary !== "") {
             let dailyTmp = await response.data.addSalary[k];
-            dailyTmp.message = await countDay;
+            // ✅ ตรวจสอบว่าเป็นหน่วยงาน 10806 หรือไม่
+            if (data.workplace === '10806') {
+              dailyTmp.message = "1";  // หน่วยงาน 10806 ใช้ message = 1
+              console.log(`✅ [ACCOUNT-10806-Loop3] สวัสดิการรายวัน ID:${dailyTmp.id} - message = 1`);
+            } else {
+              dailyTmp.message = await countDay;  // หน่วยงานอื่นใช้ countDay ตามปกติ
+            }
             await addSalaryList.push(dailyTmp);
           }
 
@@ -4437,6 +4591,30 @@ await console.log('countDay '+ countDay + ' dayOffSumWork ' + dayOffSumWork  + '
 
 console.log('workDaySocial '+ (workDaySocial * salary) + 'sumSocial '+ sumSocial );
 
+// ============= เริ่มการคำนวณฐานประกันสังคมแบบใหม่ (calsalarytest) =============
+console.log('\n📊 === การคำนวณฐานประกันสังคม ===');
+console.log('ฐานประกันสังคมเริ่มต้น:', sumSocial);
+
+let deductFromSocial = 0;
+const deductIdsForSocial = await fetchDedutIds(); // ดึงจาก API
+
+// วนหาค่าหักที่ต้องลบออกจากฐานประกันสังคม
+if (deductSalaryList && deductSalaryList.length > 0) {
+  for (let deductItem of deductSalaryList) {
+    if (deductIdsForSocial.includes(deductItem.id)) {
+      const deductAmount = parseFloat(deductItem.amount || 0);
+      deductFromSocial += deductAmount;
+      console.log(`- หัก ${deductItem.name || 'รหัส ' + deductItem.id}: -${deductAmount} บาท`);
+    }
+  }
+}
+
+// คำนวณฐานประกันสังคมใหม่
+console.log(`รวมรายการหัก (${deductIdsForSocial.join(', ')}):`, deductFromSocial);
+sumSocial = sumSocial - deductFromSocial;
+console.log('ฐานประกันสังคมหลังหักรายการพิเศษ:', sumSocial);
+// ============= สิ้นสุดการคำนวณฐานประกันสังคมแบบใหม่ =============
+
 sumAmountDayWork  = await Number(dayOffWork) * Number(salary);
 let  calOtWork = await (Number(amountDay) - Number(sumAmountDayWork ) ) + Number(amountOt) || 0;
 
@@ -4474,6 +4652,7 @@ if (sumSocial > 15000) {
 if (sumSocial < 1650) {
   sumSocial = await 83; // Set sumSocial to 83
 }
+console.log('ฐานประกันสังคมสุดท้าย (หลังปรับขีดจำกัด):', sumSocial);
 
 
 // Calculate socialSecurity based on sumSocial
@@ -4629,12 +4808,79 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
     }
 
     // Step 1: Fetch all matching time records
-    const records = await timerecordEmployee.find({
+    const allRecords = await timerecordEmployee.find({
       month: { $regex: new RegExp(month, 'i') },
       year: { $regex: new RegExp(year, 'i') },
     });
     
-    console.log(`🔍 [WORKPLACE] Found ${records.length} total records for month=${month}, year=${year}`);
+    console.log(`🔍 [WORKPLACE] Found ${allRecords.length} total records for month=${month}, year=${year}`);
+
+    // Step 1.5: กรองข้อมูลซ้ำ - เก็บเฉพาะรายการล่าสุดที่มี employee_record
+    const employeeRecordMap = new Map();
+    const recordsToDelete = [];
+
+    for (const record of allRecords) {
+      const key = `${record.employeeId}-${record.month}-${record.year}`;
+      
+      if (!employeeRecordMap.has(key)) {
+        employeeRecordMap.set(key, record);
+      } else {
+        // มีข้อมูลซ้ำ - เลือกรายการที่ดีกว่า
+        const existingRecord = employeeRecordMap.get(key);
+        const hasEmployeeRecord = record.employee_record && Array.isArray(record.employee_record) && record.employee_record.length > 0;
+        const existingHasEmployeeRecord = existingRecord.employee_record && Array.isArray(existingRecord.employee_record) && existingRecord.employee_record.length > 0;
+
+        console.log(`⚠️ พบข้อมูลซ้ำสำหรับ ${record.employeeId} เดือน ${month}/${year}`);
+        console.log(`   - รายการเก่า (_id: ${existingRecord._id}): มี employee_record = ${existingHasEmployeeRecord}, จำนวน ${existingRecord.employee_record?.length || 0} รายการ`);
+        console.log(`   - รายการใหม่ (_id: ${record._id}): มี employee_record = ${hasEmployeeRecord}, จำนวน ${record.employee_record?.length || 0} รายการ`);
+
+        if (hasEmployeeRecord && !existingHasEmployeeRecord) {
+          // รายการใหม่มีข้อมูล แต่รายการเก่าไม่มี -> ใช้รายการใหม่
+          console.log(`   ✅ เลือกรายการใหม่ (_id: ${record._id}) เพราะมี employee_record`);
+          recordsToDelete.push(existingRecord._id);
+          employeeRecordMap.set(key, record);
+        } else if (!hasEmployeeRecord && existingHasEmployeeRecord) {
+          // รายการเก่ามีข้อมูล แต่รายการใหม่ไม่มี -> ใช้รายการเก่า
+          console.log(`   ✅ เลือกรายการเก่า (_id: ${existingRecord._id}) เพราะมี employee_record`);
+          recordsToDelete.push(record._id);
+        } else if (hasEmployeeRecord && existingHasEmployeeRecord) {
+          // ทั้งสองมีข้อมูล -> เลือกรายการที่สร้างหลังสุด (ใช้ _id ใหม่กว่า)
+          if (record._id > existingRecord._id) {
+            console.log(`   ✅ เลือกรายการใหม่ (_id: ${record._id}) เพราะสร้างหลังสุด`);
+            recordsToDelete.push(existingRecord._id);
+            employeeRecordMap.set(key, record);
+          } else {
+            console.log(`   ✅ เลือกรายการเก่า (_id: ${existingRecord._id}) เพราะสร้างหลังสุด`);
+            recordsToDelete.push(record._id);
+          }
+        } else {
+          // ทั้งสองไม่มีข้อมูล -> เลือกรายการที่สร้างหลังสุด
+          if (record._id > existingRecord._id) {
+            console.log(`   ⚠️ ทั้งสองไม่มี employee_record - เลือกรายการใหม่ (_id: ${record._id})`);
+            recordsToDelete.push(existingRecord._id);
+            employeeRecordMap.set(key, record);
+          } else {
+            console.log(`   ⚠️ ทั้งสองไม่มี employee_record - เลือกรายการเก่า (_id: ${existingRecord._id})`);
+            recordsToDelete.push(record._id);
+          }
+        }
+      }
+    }
+
+    // ลบข้อมูลซ้ำออกจาก database
+    if (recordsToDelete.length > 0) {
+      console.log(`🗑️ กำลังลบข้อมูลซ้ำ ${recordsToDelete.length} รายการ...`);
+      try {
+        const deleteResult = await timerecordEmployee.deleteMany({ _id: { $in: recordsToDelete } });
+        console.log(`✅ ลบข้อมูลสำเร็จ: ${deleteResult.deletedCount} รายการ`);
+      } catch (deleteError) {
+        console.error(`❌ เกิดข้อผิดพลาดในการลบข้อมูลซ้ำ:`, deleteError);
+      }
+    }
+
+    // ใช้ข้อมูลที่กรองแล้ว
+    const records = Array.from(employeeRecordMap.values());
+    console.log(`🔍 [WORKPLACE] หลังกรองข้อมูลซ้ำเหลือ ${records.length} รายการ`);
 
     if (!records.length) {
       console.log(`❌ [WORKPLACE] No records found, returning empty result`);
@@ -4854,13 +5100,18 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
       
       // คำนวณค่าเงินใหม่โดยใช้ฟังก์ชัน calculateCashValues
       try {
+        // ส่ง stopDaysList หรือ personalDayOff (ใช้ค่าที่มีอยู่)
+        const stopDaysToUse = record.stopDaysList || record.personalDayOff || [];
+        console.log(`🔍 ใช้ stopDaysList: ${stopDaysToUse.length} วัน (จาก ${record.stopDaysList ? 'stopDaysList' : record.personalDayOff ? 'personalDayOff' : 'ไม่มี'})`);
+        
         const calculatedValues = await calculateCashValues(
           record.employeeId,
           record.employee_record,
           record.month,
           record.year,
           null, // welfareAddSalaryList
-          record.stopDaysList || [] // ส่ง stopDaysList จาก database
+          stopDaysToUse, // ส่ง stopDaysList หรือ personalDayOff จาก database
+          record.deductSalaryList || [] // ส่ง deductSalaryList จาก record
         );
         
         // อัปเดตค่าที่คำนวณใหม่
@@ -5065,6 +5316,43 @@ router.post('/searchtimerecordemployee', async (req, res) => {
       return res.status(200).json({ result: [], message: 'No records found' });
     }
 
+    // ✨ เพิ่มการ sync addSalaryList จาก employee.addSalary ก่อนทำอย่างอื่น
+    console.log(`🔄 [SYNC] เริ่ม sync addSalaryList จาก employee.addSalary สำหรับ ${records.length} records`);
+    
+    for (let record of records) {
+      try {
+        // ดึงข้อมูล employee ล่าสุดจาก database
+        const Employee = require('./models/employeeModel');
+        const employeeData = await Employee.findOne({ employeeId: record.employeeId });
+        
+        if (employeeData && employeeData.addSalary) {
+          console.log(`🔄 [SYNC] พบข้อมูล employee ${record.employeeId} - addSalary: ${employeeData.addSalary.length} items`);
+          
+          // กรองเฉพาะ addSalary ที่มาจาก employee (ไม่มี welfareType)
+          // และลบ addSalary เก่าที่ไม่มีใน employee.addSalary แล้ว
+          if (!record.addSalaryList) {
+            record.addSalaryList = [];
+          }
+          
+          // เก็บเฉพาะ welfare items (มี welfareType)
+          const welfareItems = record.addSalaryList.filter(item => item.welfareType);
+          
+          // รวมกับ addSalary จาก employee (ไม่มี welfareType)
+          const employeeAddSalary = employeeData.addSalary.map(item => ({
+            ...item.toObject ? item.toObject() : item,
+            welfareType: undefined // ตรวจสอบว่าไม่มี welfareType
+          }));
+          
+          record.addSalaryList = [...welfareItems, ...employeeAddSalary];
+          console.log(`✅ [SYNC] อัปเดต addSalaryList: welfare=${welfareItems.length} + employee=${employeeAddSalary.length} = ${record.addSalaryList.length} items`);
+        } else {
+          console.log(`⚠️ [SYNC] ไม่พบข้อมูล employee หรือ addSalary สำหรับ ${record.employeeId}`);
+        }
+      } catch (syncError) {
+        console.error(`❌ [SYNC] Error syncing employee ${record.employeeId}:`, syncError);
+      }
+    }
+    
     // เพิ่มข้อมูล welfare/leave ลงใน addSalaryList ก่อนการประมวลผล
     console.log(`🔍 [ACCOUNTING] เริ่มค้นหาข้อมูล welfare สำหรับ ${records.length} records`);
     
@@ -5158,6 +5446,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                     welfareYear: welfareRecord.year || "",
                     // เพิ่ม date/month/year ตามที่ขอ
                     date: startKey ? startKey.split('-')[2] : (welfareRecord.month ? '01' : ''),
+                    countDate: 1, // เริ่มต้นด้วย 1 วัน
                     month: startKey ? startKey.split('-')[1] : (welfareRecord.month || ''),
                     year: startKey ? startKey.split('-')[0] : (welfareRecord.year || ''),
                   };
@@ -5177,8 +5466,11 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                       const newDate = startKey.split('-')[2];
                       if (currentDate && !currentDate.split(',').includes(newDate)) {
                         agg.item.date = currentDate + ',' + newDate;
+                        // อัปเดต countDate เมื่อมีการเพิ่มวันใหม่
+                        agg.item.countDate = (agg.item.countDate || 1) + 1;
                       } else if (!currentDate) {
                         agg.item.date = newDate;
+                        agg.item.countDate = 1;
                       }
                       
                       // อัปเดต startDay เป็นวันที่เก่าสุด
@@ -5196,7 +5488,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                         }
                       }
                     }
-                    console.log(`🔄 [ACCOUNTING] (target) รวม id=${welfareId}, +${amount} ⇒ ${agg.item.SpSalary}, dates=${agg.item.date}`);
+                    console.log(`🔄 [ACCOUNTING] (target) รวม id=${welfareId}, +${amount} ⇒ ${agg.item.SpSalary}, dates=${agg.item.date}, countDate=${agg.item.countDate}`);
                   }
                 }
               } else {
@@ -5216,12 +5508,15 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                     const newDate = currentStartDay.split('-')[2];
                     if (existingDate && !existingDate.split(',').includes(newDate)) {
                       addSalaryFromWelfare[existingIndex].date = existingDate + ',' + newDate;
+                      // อัปเดต countDate เมื่อมีการเพิ่มวันใหม่
+                      addSalaryFromWelfare[existingIndex].countDate = (addSalaryFromWelfare[existingIndex].countDate || 1) + 1;
                     } else if (!existingDate) {
                       addSalaryFromWelfare[existingIndex].date = newDate;
+                      addSalaryFromWelfare[existingIndex].countDate = 1;
                     }
                   }
                   
-                  console.log(`🔄 [ACCOUNTING] (normal) รวม id=${welfareId}, ${existingAmount} + ${amount} ⇒ ${newTotal}`);
+                  console.log(`🔄 [ACCOUNTING] (normal) รวม id=${welfareId}, ${existingAmount} + ${amount} ⇒ ${newTotal}, countDate=${addSalaryFromWelfare[existingIndex].countDate}`);
                 } else {
                   // ถ้าไม่มี id เดียวกัน ให้เพิ่มใหม่
                   addSalaryFromWelfare.push({
@@ -5239,6 +5534,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                     welfareYear: welfareRecord.year || "",
                     // เพิ่ม date/month/year ตามที่ขอ
                     date: welfareItem.startDay ? normalizeStartDay(welfareItem.startDay).split('-')[2] : (welfareRecord.month ? '01' : ''),
+                    countDate: 1, // เริ่มต้นด้วย 1 วัน
                     month: welfareItem.startDay ? normalizeStartDay(welfareItem.startDay).split('-')[1] : (welfareRecord.month || ''),
                     year: welfareItem.startDay ? normalizeStartDay(welfareItem.startDay).split('-')[0] : (welfareRecord.year || ''),
                   });
@@ -5421,6 +5717,44 @@ router.post('/searchtimerecordemployee', async (req, res) => {
       }
 
       try {
+        // 🔄 คำนวณ personalDayOff และ stopDaysList ก่อนประมวลผลอื่นๆ
+        console.log(`\n🔄 === เริ่มคำนวณ personalDayOff สำหรับพนักงาน ${doc.employeeId} ===`);
+        let personalDayOff = [];
+        let stopDaysList = [];
+        let regularAgency = ''; // ✅ ประกาศ regularAgency ไว้ข้างนอก scope
+        
+        try {
+          // ตรวจสอบว่าเป็นหน่วยงานแบบไหน
+          const employeeData = await Employee.findOne({ employeeId: doc.employeeId });
+          const workplaceId = employeeData?.workplace;
+          regularAgency = workplaceId || ''; // เก็บ regularAgency (หน่วยงานหลัก)
+          
+          if (workplaceId) {
+            const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${workplaceId}`);
+            const workOfWeek = workplaceResponse.data.workOfWeek || "5";
+            
+            console.log(`🏢 Workplace: ${workplaceId}, WorkOfWeek: ${workOfWeek}`);
+            
+            // ทุกหน่วยงานใช้ข้อมูลจาก database ที่คำนวณโดย conclude
+            personalDayOff = doc.personalDayOff || [];
+            stopDaysList = doc.stopDaysList || [];
+            
+            console.log(`✅ ใช้ข้อมูล personalDayOff จาก database (หน่วยงาน ${workOfWeek} วัน): ${personalDayOff.length} วัน`);
+          }
+        } catch (dayOffError) {
+          console.error(`❌ Error calculating personalDayOff:`, dayOffError);
+          // fallback ใช้ข้อมูลจาก database
+          personalDayOff = doc.personalDayOff || [];
+          stopDaysList = doc.stopDaysList || [];
+        }
+        
+        // บันทึก personalDayOff และ stopDaysList กลับเข้าไปใน doc เพื่อใช้ในขั้นตอนถัดไป
+        doc.personalDayOff = personalDayOff;
+        doc.stopDaysList = stopDaysList;
+        
+        console.log(`📊 สรุป personalDayOff: ${personalDayOff.length} วัน`);
+        console.log(`📊 สรุป stopDaysList: ${stopDaysList.length} วัน\n`);
+        
         // เงื่อนไขพิเศษ: ถ้า shift เป็น "cash_holiday" ให้กำหนด cashWork, cashWorkMul, cashBeforeOtMul, cashOt, cashOtMul เป็น 0
         // *** ย้ายมาไว้ก่อน calculateCashValues เพื่อให้การคำนวณใช้ค่าที่แก้ไขแล้ว ***
         console.log(`🔍 [DEBUG] เริ่มตรวจสอบ cash_holiday สำหรับพนักงาน ${doc.employeeId}`);
@@ -5472,13 +5806,18 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           console.warn(`⚠️ Could not fetch prefix and employeeName for employee ${doc.employeeId}:`, prefixError.message);
         }
 
+        // ส่ง stopDaysList หรือ personalDayOff (ใช้ค่าที่มีอยู่)
+        const stopDaysToUse = doc.stopDaysList || doc.personalDayOff || [];
+        console.log(`🔍 ใช้ stopDaysList: ${stopDaysToUse.length} วัน (จาก ${doc.stopDaysList ? 'stopDaysList' : doc.personalDayOff ? 'personalDayOff' : 'ไม่มี'})`);
+        
         const calculatedValues = await calculateCashValues(
           doc.employeeId,
           doc.employee_record,
           doc.month,
           doc.year,
           doc.addSalaryList, // ส่ง addSalaryList ที่มี welfare data แล้วจากการประมวลผลข้างต้น
-          doc.stopDaysList || [] // ส่ง stopDaysList จาก database
+          stopDaysToUse, // ส่ง stopDaysList หรือ personalDayOff จาก database
+          doc.deductSalaryList || [] // ส่ง deductSalaryList จาก document
         );
 
         // Log ค่าที่ได้จาก calculateCashValues
@@ -5542,7 +5881,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           return total + (parseFloat(item.amount) || 0);
         }, 0);
         
-        // ตรวจสอบว่าเป็นหน่วยงาน 7 วัน และใช้ค่า customizeDayoff จาก Employee collection
+        // ตรวจสอบว่าเป็นหน่วยงาน 5/6/7 วัน และใช้ค่า customizeDayoff จาก Employee collection
         let finalCustomizeDayoff = calculatedValues.customizeDayoff || 0;
         try {
           const employee = await Employee.findOne({ employeeId: doc.employeeId });
@@ -5552,28 +5891,24 @@ router.post('/searchtimerecordemployee', async (req, res) => {
             const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${wpId}`);
             const workOfWeek = workplaceResponse.data.workOfWeek || "5";
             
-            if (workOfWeek === "7") {
-              // สำหรับหน่วยงาน 7 วัน: ลองใช้ MongoDB โดยตรงเพราะ Mongoose schema อาจไม่รู้จัก field
-              try {
-                const db = Employee.db;
-                const employeeCollection = db.collection('employees');
-                const rawEmployee = await employeeCollection.findOne({ employeeId: doc.employeeId });
-                
-                finalCustomizeDayoff = rawEmployee?.customizeDayoff || 0;
-                console.log(`🎯 หน่วยงาน 7 วัน - ใช้ customizeDayoff จาก MongoDB โดยตรง: ${finalCustomizeDayoff}`);
-              } catch (directError) {
-                console.warn(`⚠️ ไม่สามารถใช้ MongoDB โดยตรงได้, ใช้ค่าจาก Mongoose: ${employee?.customizeDayoff || 0}`);
-                finalCustomizeDayoff = employee?.customizeDayoff || 0;
-              }
-            } else {
-              console.log(`📅 หน่วยงานปกติ - ใช้ customizeDayoff จาก calculateCashValues: ${finalCustomizeDayoff}`);
+            // ทุกหน่วยงานใช้วิธีเดียวกัน - ดึงจาก MongoDB โดยตรง
+            try {
+              const db = Employee.db;
+              const employeeCollection = db.collection('employees');
+              const rawEmployee = await employeeCollection.findOne({ employeeId: doc.employeeId });
+              
+              finalCustomizeDayoff = rawEmployee?.customizeDayoff || 0;
+              console.log(`🎯 หน่วยงาน ${workOfWeek} วัน - ใช้ customizeDayoff จาก MongoDB โดยตรง: ${finalCustomizeDayoff}`);
+            } catch (directError) {
+              console.warn(`⚠️ ไม่สามารถใช้ MongoDB โดยตรงได้, ใช้ค่าจาก Mongoose: ${employee?.customizeDayoff || 0}`);
+              finalCustomizeDayoff = employee?.customizeDayoff || 0;
             }
           }
         } catch (workplaceError) {
           console.warn(`⚠️ ไม่สามารถตรวจสอบ workplace ได้:`, workplaceError.message);
         }
         
-        // ตรวจสอบว่าเป็นหน่วยงาน 7 วัน และใช้ค่า cashcustomizeDayoff จาก timerecordEmployee document
+        // ตรวจสอบว่าเป็นหน่วยงาน 5/6/7 วัน และใช้ค่า cashcustomizeDayoff จาก timerecordEmployee document
         let finalCashcustomizeDayoff = calculatedValues.cashSpecialDay || 0;
         try {
           const employee = await Employee.findOne({ employeeId: doc.employeeId });
@@ -5583,16 +5918,12 @@ router.post('/searchtimerecordemployee', async (req, res) => {
             const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${wpId}`);
             const workOfWeek = workplaceResponse.data.workOfWeek || "5";
             
-            if (workOfWeek === "7") {
-              // สำหรับหน่วยงาน 7 วัน: ใช้ cashcustomizeDayoff จาก document ที่คำนวณใน conclude.js
-              if (doc.cashcustomizeDayoff !== undefined) {
-                finalCashcustomizeDayoff = doc.cashcustomizeDayoff;
-                console.log(`💎 หน่วยงาน 7 วัน - ใช้ cashcustomizeDayoff จาก document: ${finalCashcustomizeDayoff} บาท`);
-              } else {
-                console.log(`⚠️ หน่วยงาน 7 วัน - ไม่พบ cashcustomizeDayoff ใน document, ใช้ค่าจาก calculateCashValues: ${finalCashcustomizeDayoff}`);
-              }
+            // ทุกหน่วยงานใช้วิธีเดียวกัน - ใช้ค่าจาก document ที่คำนวณใน conclude.js
+            if (doc.cashcustomizeDayoff !== undefined) {
+              finalCashcustomizeDayoff = doc.cashcustomizeDayoff;
+              console.log(`💎 หน่วยงาน ${workOfWeek} วัน - ใช้ cashcustomizeDayoff จาก document: ${finalCashcustomizeDayoff} บาท`);
             } else {
-              console.log(`📅 หน่วยงานปกติ - ใช้ cashSpecialDay จาก calculateCashValues: ${finalCashcustomizeDayoff}`);
+              console.log(`⚠️ หน่วยงาน ${workOfWeek} วัน - ไม่พบ cashcustomizeDayoff ใน document, ใช้ค่าจาก calculateCashValues: ${finalCashcustomizeDayoff}`);
             }
           }
         } catch (workplaceError) {
@@ -5602,11 +5933,12 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         const updateData = await {
           prefix: employeePrefix, // เพิ่ม prefix ใหม่
           employeeName: employeeName, // เพิ่ม employeeName
+          regularAgency: regularAgency, // ✅ เพิ่ม regularAgency (หน่วยงานหลักของพนักงาน)
           dayWorkCount: String(calculatedValues.dayWorkCount),
           dayOffCount: String(calculatedValues.dayOffCount),
           specialDayOff: String(calculatedValues.specialDayOff),
           customizeDayoff: String(finalCustomizeDayoff), // ใช้ค่าที่ปรับแล้ว
-          cashcustomizeDayoff: String(finalCashcustomizeDayoff || 0), // ใช้ค่าที่คำนวณจาก totalWorkerWage สำหรับหน่วยงาน 7 วัน
+          cashcustomizeDayoff: String(finalCashcustomizeDayoff || 0), // ใช้ค่าที่คำนวณจาก totalWorkerWage สำหรับหน่วยงานพิเศษ
           publicHolidayCount: String(calculatedValues.publicHolidayCount || 0), // เพิ่มบรรทัดนี้
           publicHolidayCash: String(calculatedValues.publicHolidayCash || 0), // เพิ่มบรรทัดนี้
           cash: String(calculatedValues.cashHolidayCount || 0), // เพิ่มฟิลด์ cash (จำนวนวัน cash_holiday)
@@ -5636,7 +5968,8 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           addSalaryList: calculatedValues.addSalaryList,
            deductSalaryList: calculatedValues.deductSalaryList,
           sumCashWorkMul: calculatedValues.sumCashWorkMul,
-          // เพิ่ม stopDaysList สำหรับหน่วยงาน 7 วัน
+          // เพิ่ม personalDayOff และ stopDaysList ที่คำนวณใหม่
+          personalDayOff: doc.personalDayOff || [],
           stopDaysList: doc.stopDaysList || [],
         };
 
@@ -5668,6 +6001,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         // แสดงข้อมูลสำคัญที่จะบันทึก
         console.log(`\n📝 ข้อมูลที่จะบันทึกสำหรับพนักงาน ${doc.employeeId}:`);
         console.log(`🏷️ prefix: ${updateData.prefix}`);
+        console.log(`🏢 regularAgency: ${updateData.regularAgency}`); // ✅ เพิ่ม log regularAgency
         console.log(`🔍 dayWorkCount: ${updateData.dayWorkCount}`);
         console.log(`🔍 customizeDayoff: ${updateData.customizeDayoff}`);
         console.log(`💰 cashcustomizeDayoff: ${updateData.cashcustomizeDayoff}`);
@@ -5708,6 +6042,84 @@ router.post('/searchtimerecordemployee', async (req, res) => {
       }
     }
 
+    // ✅ ปรับ message และ SpSalary สำหรับหน่วยงานที่มี ApplyeveryDay = true
+    console.log(`\n🔧 === ตรวจสอบและปรับ message และ SpSalary สำหรับหน่วยงานที่ต้องคำนวณทุกวัน ===`);
+    for (const record of updatedRecords) {
+      try {
+        // ✅ ใช้ regularAgency เพื่อเช็คหน่วยงานหลักของพนักงาน
+        const regularAgency = record.regularAgency || record.employee_record?.[0]?.workplaceId;
+        
+        if (!regularAgency) {
+          console.log(`⚠️ ไม่พบ regularAgency สำหรับพนักงาน ${record.employeeId}`);
+          continue;
+        }
+        
+        console.log(`🔍 [DEBUG] พนักงาน ${record.employeeId}: regularAgency = "${regularAgency}"`);
+        
+        // ✅ เรียก API เพื่อเช็ค ApplyeveryDay
+        try {
+          const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${regularAgency}`);
+          const applyEveryDay = workplaceResponse.data?.ApplyeveryDay || false;
+          const workplaceName = workplaceResponse.data?.workplaceName || '';
+          
+          console.log(`🏢 หน่วยงาน ${regularAgency} (${workplaceName}): ApplyeveryDay = ${applyEveryDay}`);
+          
+          if (applyEveryDay && record.addSalaryList) {
+            console.log(`🏢 ✅ พบพนักงานสังกัดหน่วยงานที่ต้องคำนวณทุกวัน: ${record.employeeId} (${record.employeeName})`);
+            
+            // ✅ ใช้ dayWorkCount จาก record โดยตรง
+            let dayWorkCount = parseFloat(record.dayWorkCount) || 0;
+            
+            console.log(`📊 จำนวนวันทำงานทั้งหมด: ${dayWorkCount} วัน`);
+            
+            // ปรับ message และ SpSalary สำหรับสวัสดิการที่มี roundOfSalary เป็น "daily"
+            let updatedCount = 0;
+            record.addSalaryList = record.addSalaryList.map(item => {
+              if (item.roundOfSalary === 'daily') {
+                const currentMessage = parseFloat(item.message || 0);
+                
+                // ตรวจสอบว่าต้องอัปเดตหรือไม่
+                if (Math.abs(currentMessage - dayWorkCount) > 0.01 || parseFloat(item.SpSalary || 0) > 100) {
+                  const originalMessage = item.message;
+                  const originalSpSalary = parseFloat(item.SpSalary || 0);
+                  const originalDays = parseFloat(originalMessage || dayWorkCount || 1);
+                  
+                  // คำนวณ SpSalary ต่อวัน = ยอดรวม / จำนวนวันเดิม
+                  const spSalaryPerDay = originalDays > 0 ? (originalSpSalary / originalDays) : originalSpSalary;
+                  
+                  // คำนวณยอดรวมใหม่ = ราคาต่อวัน × จำนวนวันจริง
+                  const newTotalSpSalary = spSalaryPerDay * dayWorkCount;
+                  
+                  console.log(`✅ [APPLY-EVERYDAY] ปรับ ${item.name} (ID:${item.id}):`);
+                  console.log(`   - message: "${originalMessage}" → "${dayWorkCount}"`);
+                  console.log(`   - ราคาต่อวัน: ${spSalaryPerDay.toFixed(2)} บาท`);
+                  console.log(`   - SpSalary: "${originalSpSalary}" → "${newTotalSpSalary.toFixed(2)}" (${spSalaryPerDay.toFixed(2)} × ${dayWorkCount})`);
+                  
+                  updatedCount++;
+                  return { 
+                    ...item, 
+                    message: dayWorkCount.toString(),
+                    SpSalary: newTotalSpSalary.toFixed(2)
+                  };
+                }
+              }
+              return item;
+            });
+            
+            if (updatedCount > 0) {
+              console.log(`✅ [APPLY-EVERYDAY] อัปเดตสำเร็จ ${updatedCount} รายการสำหรับพนักงาน ${record.employeeId}`);
+            } else {
+              console.log(`ℹ️ [APPLY-EVERYDAY] ไม่มีรายการที่ต้องอัปเดตสำหรับพนักงาน ${record.employeeId}`);
+            }
+          }
+        } catch (workplaceError) {
+          console.error(`❌ Error fetching workplace data for ${regularAgency}:`, workplaceError.message);
+        }
+      } catch (error) {
+        console.error(`❌ Error adjusting message for employee ${record.employeeId}:`, error);
+      }
+    }
+
     res.status(200).json({ result: updatedRecords });
 
   } catch (error) {
@@ -5722,9 +6134,23 @@ const convertTimeToDecimal = (timeString) => {
   }
   
   if (timeString.includes('.')) {
-    const [hours, minutes] = timeString.split('.').map(Number);
-    const decimalMinutes = (minutes || 0) / 60;
-    return (hours || 0) + decimalMinutes;
+    const [hours, minutesStr] = timeString.split('.');
+    const hoursNum = parseInt(hours) || 0;
+    let minutesNum = parseInt(minutesStr) || 0;
+    
+    // 🔧 แก้ไข: ถ้านาทีเป็นเลขหลักเดียว (เช่น 3) ให้คูณ 10 เป็น 30
+    // เพราะ "1.3" หมายถึง 1 ชม. 30 นาที ไม่ใช่ 3 นาที
+    if (minutesNum < 10 && minutesNum > 0) {
+      minutesNum = minutesNum * 10;
+      console.log(`⚠️ [convertTimeToDecimal] แก้ไขนาทีจาก ${minutesStr} เป็น ${minutesNum}`);
+    }
+    
+    const decimalMinutes = minutesNum / 60;
+    const result = hoursNum + decimalMinutes;
+    
+    console.log(`🔄 [convertTimeToDecimal] "${timeString}" → ${hoursNum} ชม. + (${minutesNum}/60) นาที = ${result.toFixed(2)} ชั่วโมง`);
+    
+    return result;
   }
   
   return parseFloat(timeString) || 0;
@@ -5732,7 +6158,7 @@ const convertTimeToDecimal = (timeString) => {
 
 
 
-const calculateCashValues = async (employeeId, employee_record, month, year, welfareAddSalaryList = null, stopDaysListParam = null) => {
+const calculateCashValues = async (employeeId, employee_record, month, year, welfareAddSalaryList = null, stopDaysListParam = null, deductSalaryListParam = null) => {
   // แสดงข้อมูลรอบเงินเดือนก่อนเริ่มการคำนวณ
   const monthInt = parseInt(month);
   const yearInt = parseInt(year);
@@ -5861,11 +6287,19 @@ let timeCashWorkMul = {
     console.log(`⚠️ ใช้ค่า default holidayOT = 3`);
   }
 
-  // 🎯 ดึงข้อมูล workplace และ workRate
+  // 🎯 ดึงข้อมูล employee salary และ workplace workRate
   let workRate = 0;
+  let employeeSalary = 0;
+  
   try {
     const employee = await Employee.findOne({ employeeId: employeeId });
     const wpId = employee?.workplace || '';
+    
+    // 🎯 ดึง salary จากพนักงานก่อน (ใช้เป็นลำดับแรก)
+    if (employee?.salary && parseFloat(employee.salary) > 0) {
+      employeeSalary = parseFloat(employee.salary);
+      console.log(`💰 [EMPLOYEE SALARY] ดึง salary จากพนักงาน: ${employeeSalary} บาท`);
+    }
     
     if (wpId) {
       const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${wpId}`);
@@ -5886,14 +6320,14 @@ let timeCashWorkMul = {
         
         if (effectiveDate <= currentPeriodEnd) {
           workRate = newWorkRate;
-          console.log(`🏢 ใช้อัตราใหม่: ${workRate} บาท (มีผลตั้งแต่ ${effectiveDate.toISOString().slice(0,10)})`);
+          console.log(`🏢 [WORKPLACE] ใช้อัตราใหม่: ${workRate} บาท (มีผลตั้งแต่ ${effectiveDate.toISOString().slice(0,10)})`);
         } else {
           workRate = baseWorkRate + addWorkRate;
-          console.log(`🏢 ใช้อัตราเดิม: ${workRate} บาท (อัตราใหม่ยังไม่มีผล)`);
+          console.log(`🏢 [WORKPLACE] ใช้อัตราเดิม: ${workRate} บาท (อัตราใหม่ยังไม่มีผล)`);
         }
       } else {
         workRate = baseWorkRate + addWorkRate;
-        console.log(`🏢 ใช้อัตราปกติ: ${workRate} บาท (${baseWorkRate} + ${addWorkRate})`);
+        console.log(`🏢 [WORKPLACE] ใช้อัตราปกติ: ${workRate} บาท (${baseWorkRate} + ${addWorkRate})`);
       }
       
       console.log(`🏢 ดึงข้อมูล workplace ${wpId}: workRate = ${workRate}`);
@@ -5902,6 +6336,16 @@ let timeCashWorkMul = {
     }
   } catch (workplaceError) {
     console.warn(`⚠️ ไม่สามารถดึงข้อมูล workplace ได้:`, workplaceError.message);
+  }
+  
+  // 🎯 เลือกใช้ค่าแรง: ใช้ของพนักงานก่อน ถ้าไม่มีค่อยใช้ของหน่วยงาน
+  const salaryToUse = employeeSalary > 0 ? employeeSalary : workRate;
+  if (employeeSalary > 0) {
+    console.log(`✅ [CONFIRMED] ใช้ค่าแรงจากพนักงาน: ${salaryToUse} บาท/วัน`);
+  } else if (workRate > 0) {
+    console.log(`✅ [CONFIRMED] ใช้ค่าแรงจากหน่วยงาน (fallback): ${salaryToUse} บาท/วัน`);
+  } else {
+    console.log(`⚠️ [WARNING] ไม่พบค่าแรงทั้งจากพนักงานและหน่วยงาน`);
   } 
   
 
@@ -6032,8 +6476,8 @@ let timeCashWorkMul = {
       const workplaceResponse = await axios.get(`${sURL}/workplace/${employeeProfile[0].workplace}`);
       const workOfWeek = workplaceResponse?.data?.workOfWeek || "5";
       
-      if (workOfWeek === "7") {
-        console.log(`\n🔍 === ตรวจสอบวันหยุดสำหรับหน่วยงานพิเศษ 7 วัน (${employeeId}) ===`);
+      if (["5", "6", "7"].includes(workOfWeek)) {
+        console.log(`\n🔍 === ตรวจสอบวันหยุดสำหรับหน่วยงานพิเศษ ${workOfWeek} วัน (${employeeId}) ===`);
         
         // ดึงข้อมูล customWorkplace และ workTimeDay
         const customWorkplace = employeeProfile[0].customWorkplace;
@@ -6144,7 +6588,8 @@ let timeCashWorkMul = {
         console.log(`📅 จำนวนวันหยุดที่กำหนดทั้งหมด: ${stopDaysList.length} วัน`);
         
         // ตรวจสอบการมาทำงานในวันหยุด
-        let workedOnStopDays = 0;
+        let workedOnStopDays = 0; // จำนวนวันหยุดที่มาทำงาน (นับเป็นจำนวนครั้ง)
+        let workedOnStopDaysCount = 0; // จำนวนวันจริงๆ (รวม 0.5 วัน ถ้าทำงานไม่ครบ 8 ชม.)
         
         stopDaysList.forEach(stopDay => {
           // หาข้อมูลการทำงานของวันนั้น
@@ -6172,8 +6617,20 @@ let timeCashWorkMul = {
             const isCashHoliday = recordForDay.shift === 'cash_holiday';
             
             if (hasWorked && !isCashHoliday) {
-              workedOnStopDays++;
-              console.log(`✅ วันที่ ${stopDay.date}/${stopDay.month}/${stopDay.year} - มาทำงาน (${recordForDay.totalTime} ชม.) shift: ${recordForDay.shift || 'ไม่ระบุ'}`);
+              workedOnStopDays++; // นับจำนวนวันหยุดที่มาทำงาน
+              
+              // 🔧 คำนวณจำนวนวันที่แท้จริงตามชั่วโมงทำงาน
+              const workHours = parseFloat(recordForDay.totalTime);
+              let dayCount = 0;
+              if (workHours >= 8) {
+                dayCount = 1; // นับเป็น 1 วันเต็ม
+              } else if (workHours > 0 && workHours < 8) {
+                dayCount = 0.5; // นับเป็น 0.5 วัน
+              }
+              workedOnStopDaysCount += dayCount; // รวมจำนวนวันจริง
+              
+              console.log(`✅ วันที่ ${stopDay.date}/${stopDay.month}/${stopDay.year} - มาทำงาน (${recordForDay.totalTime} ชม. = ${dayCount} วัน) shift: ${recordForDay.shift || 'ไม่ระบุ'}`);
+              console.log(`   🔢 workedOnStopDaysCount สะสม: ${workedOnStopDaysCount} วัน`);
             } else if (hasWorked && isCashHoliday) {
               console.log(`⚠️ วันที่ ${stopDay.date}/${stopDay.month}/${stopDay.year} - มาทำงานแต่เป็น cash_holiday ไม่นับ (${recordForDay.totalTime} ชม.) shift: ${recordForDay.shift}`);
             } else {
@@ -6189,29 +6646,44 @@ let timeCashWorkMul = {
         
         console.log(`\n📊 === สรุปการมาทำงานในวันหยุด ===`);
         console.log(`📅 จำนวนวันหยุดทั้งหมด: ${stopDaysList.length} วัน`);
-        console.log(`✅ มาทำงานในวันหยุด: ${workedOnStopDays} วัน`);
+        console.log(`✅ มาทำงานในวันหยุด: ${workedOnStopDays} วัน (จำนวนครั้ง)`);
+        console.log(`🔢 จำนวนวันจริง (รวม 0.5 วัน): ${workedOnStopDaysCount} วัน`);
         console.log(`🔢 กำหนดค่า customizeDayoff = ${customizeDayoff}`);
+        console.log(`\n🔍 === dayWorkCount ก่อนหักวันหยุด ===`);
+        console.log(`📊 dayWorkCount ปัจจุบัน: ${dayWorkCount} วัน`);
         
-        // สำหรับหน่วยงาน 7 วัน: ปรับ dayWorkCount โดยหัก workedOnStopDays
-        if (workOfWeek === "7") {
+        // สำหรับหน่วยงานพิเศษ: ปรับ dayWorkCount โดยหัก workedOnStopDaysCount (จำนวนวันจริง)
+        if (["5", "6", "7"].includes(workOfWeek)) {
           const originalDayWorkCount = dayWorkCount;
-          dayWorkCount = dayWorkCount - workedOnStopDays; // 🔧 แก้ไข: หัก workedOnStopDays
-          console.log(`\n🔄 === ปรับ dayWorkCount สำหรับหน่วยงาน 7 วัน ===`);
+          dayWorkCount = dayWorkCount - workedOnStopDaysCount; // 🔧 แก้ไข: หัก workedOnStopDaysCount (จำนวนวันจริง)
+          console.log(`\n🔄 === ปรับ dayWorkCount สำหรับหน่วยงาน ${workOfWeek} วัน ===`);
           console.log(`📊 dayWorkCount เดิม: ${originalDayWorkCount} วัน`);
-          console.log(`📊 workedOnStopDays: ${workedOnStopDays} วัน`);
+          console.log(`📊 workedOnStopDaysCount: ${workedOnStopDaysCount} วัน (จำนวนวันจริง)`);
           console.log(`📊 dayWorkCount ใหม่: ${dayWorkCount} วัน`);
-          console.log(`📝 สูตร: dayWorkCount - workedOnStopDays = ${originalDayWorkCount} - ${workedOnStopDays} = ${dayWorkCount}`);
+          console.log(`📝 สูตร: dayWorkCount - workedOnStopDaysCount = ${originalDayWorkCount} - ${workedOnStopDaysCount} = ${dayWorkCount}`);
         } else {
           // 🔧 แก้ไข: สำหรับหน่วยงานปกติ ให้ใช้วิธีการคำนวณ customizeDayoff จากจำนวนวันที่มาทำงานใน dayType: "stop"
           console.log(`\n🔄 === คำนวณ customizeDayoff สำหรับหน่วยงานปกติ ===`);
-          let stopDayWorkCount = 0;
+          let stopDayWorkCount = 0; // จำนวนวันหยุดที่มาทำงาน (นับเป็นจำนวนครั้ง)
+          let stopDayWorkDaysCount = 0; // จำนวนวันจริงๆ (รวม 0.5 วัน)
           
           employee_record.forEach(record => {
             if (record.dayType === "stop" && record.totalTime && 
                 record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0 &&
                 record.shift !== 'cash_holiday') { // เพิ่มเงื่อนไขไม่นับ cash_holiday
               stopDayWorkCount++;
-              console.log(`✅ วันที่ ${record.date} - dayType: "stop" มีการทำงาน (${record.totalTime} ชม.) shift: ${record.shift || 'ไม่ระบุ'}`);
+              
+              // 🔧 คำนวณจำนวนวันจริงตามชั่วโมงทำงาน
+              const workHours = parseFloat(record.totalTime);
+              let dayCount = 0;
+              if (workHours >= 8) {
+                dayCount = 1; // นับเป็น 1 วันเต็ม
+              } else if (workHours > 0 && workHours < 8) {
+                dayCount = 0.5; // นับเป็น 0.5 วัน
+              }
+              stopDayWorkDaysCount += dayCount;
+              
+              console.log(`✅ วันที่ ${record.date} - dayType: "stop" มีการทำงาน (${record.totalTime} ชม. = ${dayCount} วัน) shift: ${record.shift || 'ไม่ระบุ'}`);
             } else if (record.dayType === "stop" && record.totalTime && 
                       record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0 &&
                       record.shift === 'cash_holiday') {
@@ -6221,6 +6693,14 @@ let timeCashWorkMul = {
           
           customizeDayoff = stopDayWorkCount;
           console.log(`🔢 หน่วยงานปกติ - กำหนดค่า customizeDayoff = ${customizeDayoff} (จากการนับ dayType: "stop" ที่มีการทำงาน)`);
+          console.log(`🔢 จำนวนวันจริง (รวม 0.5 วัน): ${stopDayWorkDaysCount} วัน`);
+          
+          // 🔧 หัก dayWorkCount ด้วยจำนวนวันจริง
+          if (stopDayWorkDaysCount > 0) {
+            const originalDayWorkCount = dayWorkCount;
+            dayWorkCount = dayWorkCount - stopDayWorkDaysCount;
+            console.log(`🔄 ปรับ dayWorkCount: ${originalDayWorkCount} - ${stopDayWorkDaysCount} = ${dayWorkCount} วัน`);
+          }
         }
         
         // คำนวณค่าแรงสำหรับวันหยุดที่มาทำงาน (ถ้าต้องการ)
@@ -6758,7 +7238,22 @@ try {
             
             filteredAddSalaryDaily.forEach((salaryItem) => {
               const cleanSalaryItemId = String(salaryItem.id).trim();
-              const amount = parseFloat(salaryItem.SpSalary || 0);
+              const originalAmount = parseFloat(salaryItem.SpSalary || 0);
+
+              // 🔢 คำนวณจำนวนวันและเงินตามชั่วโมงทำงาน
+              const workHours = convertTimeToDecimal(record.totalTime);
+              let dayCount = 0;
+              let amount = 0;
+              
+              if (workHours >= 8) {
+                dayCount = 1; // นับเป็น 1 วันเต็ม
+                amount = originalAmount; // ได้เงินเต็ม
+                console.log(`✅ วันที่ ${record.date}: ${workHours} ชม. >= 8 ชม. → เงิน ${amount} บาท (เต็ม), นับ ${dayCount} วัน`);
+              } else if (workHours > 0 && workHours < 8) {
+                dayCount = 0.5; // นับเป็น 0.5 วัน
+                amount = originalAmount / 2; // ได้เงินครึ่ง (หาร 2)
+                console.log(`⚠️ วันที่ ${record.date}: ${workHours} ชม. < 8 ชม. → เงิน ${amount} บาท (${originalAmount}/2), นับ ${dayCount} วัน`);
+              }
 
               const existingItem = addSalaryList.find(
                 item => String(item.id).trim() === cleanSalaryItemId
@@ -6769,18 +7264,19 @@ try {
                 const currentDays = parseFloat(existingItem.message || 0);
                 
                 existingItem.SpSalary = String(currentAmount + amount);
-                existingItem.message = String(currentDays + 1);
+                existingItem.message = String(currentDays + dayCount);
 
                 const index = addSalaryList.findIndex(item => item.id === existingItem.id);
                 if (index !== -1) {
                   addSalaryList[index] = existingItem;
                 }
                 
-                console.log(`🔄 รวม addSalary ID ${cleanSalaryItemId}: ${currentAmount} + ${amount} = ${existingItem.SpSalary} บาท (วัน: ${currentDays} + 1 = ${existingItem.message})`);
+                console.log(`🔄 รวม addSalary ID ${cleanSalaryItemId}: ${currentAmount} + ${amount} = ${existingItem.SpSalary} บาท (วัน: ${currentDays} + ${dayCount} = ${existingItem.message})`);
               } else {
-                salaryItem.message = "1"; 
+                salaryItem.message = String(dayCount);
+                salaryItem.SpSalary = String(amount); // ใช้เงินที่คำนวณแล้ว
                 addSalaryList.push(salaryItem);
-                console.log(`➕ เพิ่ม addSalary ID ${cleanSalaryItemId}: ${amount} บาท (1 วัน)`);
+                console.log(`➕ เพิ่ม addSalary ID ${cleanSalaryItemId}: ${amount} บาท (${dayCount} วัน, ชั่วโมง: ${workHours})`);
               }
             });
           }
@@ -6832,9 +7328,24 @@ if (record?.dayType === "work") {
   const isWorkDay = record.dayType === "work";
   
   if (hasRegularWork && !countedWorkDates.has(record.date) && !isSpecialShift && isWorkDay) {
-    dayWorkCount += 1;
+    // 🔢 คำนวณจำนวนวันตามชั่วโมงทำงาน
+    const workHours = convertTimeToDecimal(record.totalTime);
+    let dayCount = 0;
+    
+    if (workHours >= 8) {
+      dayCount = 1; // นับเป็น 1 วันเต็ม
+      console.log(`✅ วันที่ ${record.date}: ทำงาน ${workHours} ชม. >= 8 ชม. → นับเป็น 1 วัน`);
+    } else if (workHours > 0 && workHours < 8) {
+      dayCount = 0.5; // นับเป็น 0.5 วัน
+      console.log(`⚠️ วันที่ ${record.date}: ทำงาน ${workHours} ชม. < 8 ชม. → นับเป็น 0.5 วัน`);
+    }
+    
+    dayWorkCount += dayCount;
     countedWorkDates.add(record.date);
-    console.log(`✅ นับวันที่ ${record.date} เป็นวันทำงาน (dayType: ${record.dayType}, shift: ${record.shift}, dayWorkCount = ${dayWorkCount})`);
+    console.log(`✅ นับวันที่ ${record.date} เป็นวันทำงาน (dayType: ${record.dayType}, shift: ${record.shift}, ชั่วโมง: ${workHours}, นับ: ${dayCount} วัน, dayWorkCount รวม = ${dayWorkCount})`);
+    
+    // 🔍 แสดงรายการวันที่นับไปแล้วทั้งหมด
+    console.log(`   📋 วันที่นับแล้ว: [${Array.from(countedWorkDates).join(', ')}]`);
   } else if (countedWorkDates.has(record.date)) {
     console.log(`⚠️ วันที่ ${record.date} ถูกนับแล้ว ข้ามการนับวัน`);
   } else if (isSpecialShift) {
@@ -6976,7 +7487,22 @@ if (record?.dayType === "work") {
     
     filteredAddSalaryDaily.forEach((salaryItem) => {
       const cleanSalaryItemId = String(salaryItem.id).trim();
-      const amount = parseFloat(salaryItem.SpSalary || 0);
+      const originalAmount = parseFloat(salaryItem.SpSalary || 0);
+
+      // 🔢 คำนวณจำนวนวันและเงินตามชั่วโมงทำงาน
+      const workHours = convertTimeToDecimal(record.totalTime);
+      let dayCount = 0;
+      let amount = 0;
+      
+      if (workHours >= 8) {
+        dayCount = 1; // นับเป็น 1 วันเต็ม
+        amount = originalAmount; // ได้เงินเต็ม
+        console.log(`✅ วันที่ ${record.date}: ${workHours} ชม. >= 8 ชม. → เงิน ${amount} บาท (เต็ม), นับ ${dayCount} วัน`);
+      } else if (workHours > 0 && workHours < 8) {
+        dayCount = 0.5; // นับเป็น 0.5 วัน
+        amount = originalAmount / 2; // ได้เงินครึ่ง (หาร 2)
+        console.log(`⚠️ วันที่ ${record.date}: ${workHours} ชม. < 8 ชม. → เงิน ${amount} บาท (${originalAmount}/2), นับ ${dayCount} วัน`);
+      }
 
       const existingItem = addSalaryList.find(
         item => String(item.id).trim() === cleanSalaryItemId
@@ -6987,18 +7513,19 @@ if (record?.dayType === "work") {
         const currentDays = parseFloat(existingItem.message || 0);
         
         existingItem.SpSalary = String(currentAmount + amount);
-        existingItem.message = String(currentDays + 1);
+        existingItem.message = String(currentDays + dayCount);
 
         const index = addSalaryList.findIndex(item => item.id === existingItem.id);
         if (index !== -1) {
           addSalaryList[index] = existingItem;
         }
         
-        console.log(`🔄 รวม addSalary ID ${cleanSalaryItemId}: ${currentAmount} + ${amount} = ${existingItem.SpSalary} บาท (วัน: ${currentDays} + 1 = ${existingItem.message})`);
+        console.log(`🔄 รวม addSalary ID ${cleanSalaryItemId}: ${currentAmount} + ${amount} = ${existingItem.SpSalary} บาท (วัน: ${currentDays} + ${dayCount} = ${existingItem.message})`);
       } else {
-        salaryItem.message = "1"; 
+        salaryItem.message = String(dayCount);
+        salaryItem.SpSalary = String(amount); // ใช้เงินที่คำนวณแล้ว
         addSalaryList.push(salaryItem);
-        console.log(`➕ เพิ่ม addSalary ID ${cleanSalaryItemId}: ${amount} บาท (1 วัน)`);
+        console.log(`➕ เพิ่ม addSalary ID ${cleanSalaryItemId}: ${amount} บาท (${dayCount} วัน, ชั่วโมง: ${workHours})`);
       }
     });
   }
@@ -7721,9 +8248,100 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
   console.log(`🔍 ยอดรวมเงินพิเศษที่คิดประกันสังคม: ${addSalarySocialSecurity} บาท`);
   
   console.log(`\n🔍 === รายการ ID ที่คิดประกันสังคม ===`);
-  const taxableIds = ["1110","1423","1120","1130","1530","1140","1150","1210","1230","1231","1233","1241","1242","1251","1350","1422","1423","1428","1434","1440","1441","1444","1445","1446","1520","1522","1524","1525","1526","1528","1540","1541","1550","1447","1613","1561","1542","1529","1531","1532","1533","1534","1435","1429","1427","1412","1245","1234","1159","2111","2113","2116","2117","2120","2124","2160","2430","1190","1211","1212","1214","1235","1236","1243","1351","1411","1425","1426","1431","1448","1449","1527","1562","2114","2123","1543","1443","1544"];
-  console.log(`🔍 ID ที่คิดประกันสังคม: ${taxableIds.join(', ')}`);
+  // ดึง taxableIds จาก API แทน hardcode
+  const taxableIds = await fetchTaxableIds();
+  // ดึง DedutIds จาก API แทน hardcode
+  const DedutIds = await fetchDedutIds();
+  console.log(`🔍 ID ที่คิดประกันสังคม (จาก API): ${taxableIds.join(', ')}`);
+  console.log(`🔍 ID ที่ต้องหักออกจากฐานประกันสังคม (จาก API): ${DedutIds.join(', ')}`);
   console.log(`🔍 ===============================================\n`);
+
+  // 🔍 คำนวณรายการหักที่ต้องลบออกจากฐานประกันสังคม
+  let deductSalarySocialSecurity = 0;
+  
+  console.log(`\n🔍 === การตรวจสอบรายการหักที่ต้องลบออกจากฐานประกันสังคม ===`);
+  
+  // ใช้ข้อมูล deductSalaryList ที่ส่งมาจากพารามิเตอร์
+  const deductListForSocial = deductSalaryListParam || [];
+  
+  console.log(`🔍 จำนวนรายการหักทั้งหมด: ${deductListForSocial.length} รายการ`);
+  
+  for (const deductItem of deductListForSocial) {
+    console.log(`\n🔍 ตรวจสอบรายการหัก:`);
+    console.log(`🔍 - ID: ${deductItem.id}`);
+    console.log(`🔍 - ชื่อ: ${deductItem.name}`);
+    console.log(`🔍 - จำนวนเงิน: ${deductItem.amount} บาท`);
+    
+    if (DedutIds.includes(deductItem.id)) {
+      const deductAmount = parseFloat(deductItem.amount || 0);
+      deductSalarySocialSecurity += deductAmount;
+      console.log(`🔍 ✅ รายการนี้ต้องหักออกจากฐานประกันสังคม: +${deductAmount} บาท`);
+      console.log(`🔍 - ยอดรวมการหัก: ${deductSalarySocialSecurity} บาท`);
+    } else {
+      console.log(`🔍 ❌ รายการนี้ไม่ต้องหักออกจากฐานประกันสังคม`);
+    }
+  }
+  
+  console.log(`\n🔍 === สรุปรายการหักออกจากฐานประกันสังคม ===`);
+  console.log(`🔍 ยอดรวมรายการที่ต้องหักออก: ${deductSalarySocialSecurity} บาท`);
+  console.log(`🔍 ===============================================\n`);
+
+  // 🔥 PRE-CALCULATE: คำนวณ sumCashWork ใหม่สำหรับพนักงานรายวันก่อนคำนวณประกันสังคม
+  if (salaryToUse > 0 && dayWorkCount > 0 && typeOfemployee === 'รายวัน') {
+    let recalculatedSumCashWork = 0;
+    
+    console.log(`\n🔥 === PRE-CALCULATE: คำนวณ sumCashWork ใหม่ก่อนคำนวณประกันสังคม ===`);
+    console.log(`🔥 typeOfemployee: ${typeOfemployee}`);
+    console.log(`🔥 salaryToUse: ${salaryToUse} บาท/วัน`);
+    console.log(`🔥 stopDaysListParam: ${stopDaysListParam ? stopDaysListParam.length : 0} วัน`);
+    console.log(`🔥 sumCashWork เดิม: ${sumCashWork} บาท`);
+    
+    employee_record.forEach((record) => {
+      const isWorkDay = record?.dayType === "work";
+      const hasWorkTime = record.totalTime && record.totalTime.trim() !== '' && parseFloat(record.totalTime) > 0;
+      const isNormalShift = record.shift !== "specialt_shift" && record.shift !== "cash_holiday";
+      const isCashWorkMul1 = record?.cashWorkMul === "1";
+      
+      // เช็คว่าอยู่ใน stopDaysList หรือไม่
+      let isInStopDaysList = false;
+      if (stopDaysListParam && Array.isArray(stopDaysListParam) && stopDaysListParam.length > 0) {
+        isInStopDaysList = stopDaysListParam.some(stopDay => {
+          const recordDate = parseInt(record.date);
+          const currentMonth = parseInt(month);
+          const currentYear = parseInt(year);
+          
+          let prevMonth = currentMonth - 1;
+          let prevYear = currentYear;
+          if (prevMonth < 1) {
+            prevMonth = 12;
+            prevYear = currentYear - 1;
+          }
+          
+          const stopDayMonth = parseInt(stopDay.month);
+          const stopDayYear = parseInt(stopDay.year);
+          const stopDayDate = parseInt(stopDay.date);
+          
+          let isSameDate = false;
+          if (recordDate >= 21 && stopDayMonth === prevMonth && stopDayYear === prevYear && stopDayDate === recordDate) {
+            isSameDate = true;
+          } else if (recordDate <= 20 && stopDayMonth === currentMonth && stopDayYear === currentYear && stopDayDate === recordDate) {
+            isSameDate = true;
+          }
+          
+          return isSameDate;
+        });
+      }
+      
+      // รวมเฉพาะวันที่ไม่อยู่ใน stopDaysList และเป็น dayType: "work"
+      if (isWorkDay && hasWorkTime && isNormalShift && isCashWorkMul1 && !isInStopDaysList) {
+        recalculatedSumCashWork += parseFloat(record?.cashWork || '0');
+      }
+    });
+    
+    sumCashWork = recalculatedSumCashWork;
+    console.log(`🔥 sumCashWork ใหม่: ${sumCashWork} บาท (ใช้ค่านี้ในการคำนวณประกันสังคม)`);
+    console.log(`🔥 ===================================================\n`);
+  }
 
   // แสดงข้อมูลที่จะใช้ในการคำนวณประกันสังคม
   console.log(`\n💰 === การคำนวณประกันสังคม (socialSecurity) ===`);
@@ -7761,14 +8379,17 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
     console.log(`💰 - sumCashWorkMul["2"]: ${sumCashWorkMul["2"]} บาท (เก็บค่าจาก records เฉพาะวันหยุดพิเศษ)`);
     
     console.log(`\n💰 STEP 3: คำนวณรายได้รวมสำหรับประกันสังคม`);
-    const totalIncome = parseFloat(salaryMonth || 0) + 
+    const totalIncome = parseFloat(salaryMonth || 0) -
+                        parseFloat(deductSalarySocialSecurity || 0) +
                        parseFloat(addSalarySocialSecurity || 0) 
                   
     
     console.log(`💰 - เงินเดือนพื้นฐาน: ${parseFloat(salaryMonth || 0)} บาท`);
-    console.log(`💰 - เงินพิเศษที่คิดประกันสังคม: ${parseFloat(addSalarySocialSecurity || 0)} บาท`);
-    console.log(`💰 - เงินวันหยุดกำหนดเอง: ${parseFloat(cashcustomizeDayoff || 0)} บาท`);
-    console.log(`💰 - เงินวันหยุดนักขัติฤกษ์: ${parseFloat(publicHolidayCash || 0)} บาท`);
+    console.log(`💰 - หักรายการพิเศษ (${DedutIds.join(', ')}): -${parseFloat(deductSalarySocialSecurity || 0)} บาท`);
+    console.log(`💰 - เงินพิเศษที่คิดประกันสังคม: +${parseFloat(addSalarySocialSecurity || 0)} บาท`);
+    console.log(`💰 - (เงินวันหยุดกำหนดเอง: ${parseFloat(cashcustomizeDayoff || 0)} บาท - อยู่ในเงินพิเศษแล้ว)`);
+    console.log(`💰 - (เงินวันหยุดนักขัติฤกษ์: ${parseFloat(publicHolidayCash || 0)} บาท - อยู่ในเงินพิเศษแล้ว)`);
+    console.log(`💰 - คำนวณ: ${parseFloat(salaryMonth || 0)} - ${parseFloat(deductSalarySocialSecurity || 0)} + ${parseFloat(addSalarySocialSecurity || 0)} = ${totalIncome} บาท`);
     console.log(`💰 - รวมรายได้ที่คิดประกันสังคม: ${totalIncome} บาท`);
     
     console.log(`\n💰 STEP 4: คำนวณประกันสังคม`);
@@ -7782,8 +8403,8 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
   } else {
     console.log(`💰 ✅ พนักงานรายวัน (salaryMonth = ${salaryMonth} = 0)`);
     
-    // คำนวณ dayPerHour สำหรับพนักงานรายวัน
-    const dayPerHour = workRate / 8; // ใช้ workRate หารด้วย 8 ชั่วโมง
+    // คำนวณ dayPerHour สำหรับพนักงานรายวัน - ใช้ salaryToUse แทน workRate
+    const dayPerHour = salaryToUse / 8; // ใช้ salaryToUse (จากพนักงานหรือหน่วยงาน) หารด้วย 8 ชั่วโมง
     const dayPerHour1p5 = dayPerHour * 1.5; 
     const dayPerHour2 = dayPerHour * 2;
     const dayPerHour3 = dayPerHour * 3; 
@@ -7791,7 +8412,7 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
     sumCashWorkMul["2"] = (dayPerHour2 * sumOtPublicHoliday).toFixed(2)
     sumCashWorkMul["3"] = (dayPerHour3 * sumOt3).toFixed(2)
     
-    console.log(`💰 - คำนวณค่าแรงต่อชั่วโมงสำหรับพนักงานรายวัน: ${dayPerHour} บาท/ชม. (workRate: ${workRate} ÷ 8)`);
+    console.log(`💰 - [${employeeSalary > 0 ? 'EMPLOYEE SALARY' : 'WORKPLACE RATE'}] คำนวณค่าแรงต่อชั่วโมงสำหรับพนักงานรายวัน: ${dayPerHour} บาท/ชม. (${salaryToUse} ÷ 8)`);
     console.log(`💰 - sumCashWorkMul["1.5"]: ${sumCashWorkMul["1.5"]} บาท (${dayPerHour1p5} × ${sumOt1p5})`);
     console.log(`💰 - sumCashWorkMul["2"]: ${sumCashWorkMul["2"]} บาท (${dayPerHour2} × ${sumOtPublicHoliday})`);
     console.log(`💰 - sumCashWorkMul["3"]: ${sumCashWorkMul["3"]} บาท (${dayPerHour3} × ${sumOt3})`);
@@ -7901,13 +8522,13 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
   
 
   // 🎯 คำนวณ sumCashWorkMul["1"] ใหม่แบบรายวัน (คูณ totalTime แต่ละวัน)
-  if (workRate > 0 && dayWorkCount > 0 && typeOfemployee === 'รายวัน') {
-    const hourlyRate = workRate / 8; // ค่าแรงต่อชั่วโมง
+  if (salaryToUse > 0 && dayWorkCount > 0 && typeOfemployee === 'รายวัน') {
+    const hourlyRate = salaryToUse / 8; // ค่าแรงต่อชั่วโมง (ใช้ของพนักงานหรือหน่วยงาน)
     let newSumCashWorkMul1 = 0;
     
     console.log(`\n🎯 === การคำนวณ sumCashWorkMul["1"] ใหม่แบบรายวัน ===`);
-    console.log(`🎯 workRate: ${workRate} บาท/วัน`);
-    console.log(`🎯 hourlyRate: ${hourlyRate} บาท/ชม. (workRate ÷ 8)`);
+    console.log(`🎯 salaryToUse: ${salaryToUse} บาท/วัน (${employeeSalary > 0 ? 'จากพนักงาน' : 'จากหน่วยงาน'})`);
+    console.log(`🎯 hourlyRate: ${hourlyRate} บาท/ชม. (salaryToUse ÷ 8)`);
     console.log(`🎯 dayWorkCount: ${dayWorkCount} วัน`);
     console.log(`🎯 sumCashWorkMul["1"] เดิม: ${sumCashWorkMul["1"]}`);
     console.log(`\n📋 คำนวณแต่ละวัน:`);
@@ -7991,7 +8612,7 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
     
   } else {
     console.log(`\n⚠️ ไม่สามารถคำนวณ sumCashWorkMul["1"] ใหม่ได้:`);
-    console.log(`   workRate: ${workRate}, dayWorkCount: ${dayWorkCount}, typeOfemployee: ${typeOfemployee}`);
+    console.log(`   salaryToUse: ${salaryToUse}, dayWorkCount: ${dayWorkCount}, typeOfemployee: ${typeOfemployee}`);
   }
 
   try {
@@ -8353,7 +8974,7 @@ router.delete('/remove-multiple-salary-items', async (req, res) => {
             name: itemToRemove.name,
             SpSalary: itemToRemove.SpSalary
           });
-
+ 
           recordRemovedItems.push({
             _id: itemToRemove._id,
             id: itemToRemove.id,
