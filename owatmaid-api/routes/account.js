@@ -5268,6 +5268,10 @@ const getEmployeeProfile = async (employeeId) => {
 
 
 router.post('/searchtimerecordemployee', async (req, res) => {
+  // ตั้งค่า timeout สำหรับ request นี้ (80 วินาที)
+  req.setTimeout(80000);
+  res.setTimeout(80000);
+  
   try {
     const { employeeId, month, year, isRecursiveCall } = req.body;
     const query = {};
@@ -5303,8 +5307,8 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     if (!records.length) {
       // เพิ่มการค้นหาทั้งหมดเพื่อ debug
       console.log(`🔍 [DEBUG] ไม่พบข้อมูล - ทำการค้นหาทั้งหมดเพื่อตรวจสอบ`);
-      const allRecords = await timerecordEmployee.find({});
-      console.log(`🔍 [DEBUG] ข้อมูลทั้งหมดในฐาน: ${allRecords.length} records`);
+      const allRecords = await timerecordEmployee.find({}).limit(10); // จำกัดการค้นหาใน debug mode
+      console.log(`🔍 [DEBUG] ข้อมูลทั้งหมดในฐาน: ${allRecords.length} records (showing max 10)`);
       
       if (allRecords.length > 0) {
         console.log(`🔍 [DEBUG] ตัวอย่างข้อมูล 3 รายการแรก:`);
@@ -5319,11 +5323,15 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     // ✨ เพิ่มการ sync addSalaryList จาก employee.addSalary ก่อนทำอย่างอื่น
     console.log(`🔄 [SYNC] เริ่ม sync addSalaryList จาก employee.addSalary สำหรับ ${records.length} records`);
     
+    // ปรับให้ดึงข้อมูล employee ทั้งหมดรอบเดียว แทนที่จะดึงทีละคน
+    const Employee = require('./models/employeeModel');
+    const employeeIds = [...new Set(records.map(r => r.employeeId))];
+    const employeesData = await Employee.find({ employeeId: { $in: employeeIds } });
+    const employeeMap = new Map(employeesData.map(e => [e.employeeId, e]));
+    
     for (let record of records) {
       try {
-        // ดึงข้อมูล employee ล่าสุดจาก database
-        const Employee = require('./models/employeeModel');
-        const employeeData = await Employee.findOne({ employeeId: record.employeeId });
+        const employeeData = employeeMap.get(record.employeeId);
         
         if (employeeData && employeeData.addSalary) {
           console.log(`🔄 [SYNC] พบข้อมูล employee ${record.employeeId} - addSalary: ${employeeData.addSalary.length} items`);
@@ -6120,11 +6128,20 @@ router.post('/searchtimerecordemployee', async (req, res) => {
       }
     }
 
+    console.log(`✅ [SEARCH] ส่งข้อมูลกลับ: ${updatedRecords.length} records`);
     res.status(200).json({ result: updatedRecords });
 
   } catch (error) {
-    console.error("❌ Server error:", error);
-    res.status(500).json({ message: 'Internal server error' });
+    console.error("❌ Server error in searchtimerecordemployee:", error);
+    console.error("❌ Error stack:", error.stack);
+    
+    // ส่ง response กลับไปพร้อม error message ที่ชัดเจน
+    res.status(500).json({ 
+      success: false,
+      message: 'Internal server error', 
+      error: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 
