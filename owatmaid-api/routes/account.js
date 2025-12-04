@@ -8076,8 +8076,8 @@ if (DEBUG_LOG) {
   if (salaryToUse > 0 && dayWorkCount > 0 && typeOfemployee === 'รายวัน') {
     let recalculatedSumCashWork = 0;
     
-    // ลด log - ใช้ employeeId จาก context เพื่อควบคุม
-    const shouldLog = processCount <= 2; // แสดงเฉพาะ 2 คนแรก
+    // ลด log - ปิดการ log เพื่อประสิทธิภาพ
+    const shouldLog = false;
     
     if (shouldLog) {
       console.log(`\n🔥 PRE-CALC: ${employeeId}`);
@@ -8133,7 +8133,7 @@ if (DEBUG_LOG) {
   }
 
   // ลด log การคำนวณประกันสังคม
-  const shouldLogSS = processCount <= 2;
+  const shouldLogSS = false; // ปิด log ประกันสังคม
   
   if (shouldLogSS) {
     console.log(`\n💰 คำนวณประกันสังคม: ${employeeId}`);
