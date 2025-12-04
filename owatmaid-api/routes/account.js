@@ -8123,8 +8123,8 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
   if (salaryToUse > 0 && dayWorkCount > 0 && typeOfemployee === 'รายวัน') {
     let recalculatedSumCashWork = 0;
     
-    // ลด log - ใช้ employeeId จาก context เพื่อควบคุม
-    const shouldLog = processCount <= 2; // แสดงเฉพาะ 2 คนแรก
+    // ลด log - แสดงเฉพาะบางเคสเพื่อไม่ให้ log มากเกินไป
+    const shouldLog = false; // ปิดการแสดง log detail เพื่อลด log ในระบบ
     
     if (shouldLog) {
       console.log(`\n🔥 PRE-CALC: ${employeeId}`);
