@@ -296,30 +296,29 @@ router.get("/delete-all", async (req, res) => {
 // ⚠️ ต้องอยู่ก่อน route /:employeeId เพื่อป้องกัน route conflict
 router.get("/social-security-checked", async (req, res) => {
   try {
-    const employees = await Employee.find();
-    
-    // รวบรวม id ทั้งหมดที่มี socialSecurityCheck: true
+    // ดึงเฉพาะ employee ที่มี addSalary.socialSecurityCheck = true
+    const employees = await Employee.find(
+      { "addSalary.socialSecurityCheck": true },
+      { employeeId: 1, name: 1, workplace: 1, addSalary: 1 }
+    );
+
     const socialSecurityCheckedIds = [];
-    
+
     employees.forEach(employee => {
-      // ตรวจสอบจาก newAddSalary
-      if (employee.addSalary && Array.isArray(employee.addSalary)) {
-        employee.addSalary.forEach(item => {
-          if (item.socialSecurityCheck === true && item.id) {
-            socialSecurityCheckedIds.push({
-              id: item.id,
-              name: item.name || '',
-              employeeId: employee.employeeId,
-              employeeName: employee.name,
-              workplace: employee.workplace
-            });
-          }
-        });
-      }
+      employee.addSalary.forEach(item => {
+        if (item.socialSecurityCheck === true) {
+          socialSecurityCheckedIds.push({
+            id: item.id,
+            name: item.name || "",
+            employeeId: employee.employeeId,
+            employeeName: employee.name,
+            workplace: employee.workplace
+          });
+        }
+      });
     });
 
-    // นับจำนวน unique id
-    const uniqueIds = [...new Set(socialSecurityCheckedIds.map(item => item.id))];
+    const uniqueIds = [...new Set(socialSecurityCheckedIds.map(i => i.id))];
 
     res.status(200).json({
       summary: {
@@ -331,13 +330,11 @@ router.get("/social-security-checked", async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching social security checked items:', error);
-    res.status(500).json({ 
-      error: "Internal server error", 
-      details: error.message 
-    });
+    console.error("Error fetching social security checked items:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
+
 
 
 router.get("/Deduct-social-security-checked", async (req, res) => {
