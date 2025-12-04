@@ -5938,6 +5938,8 @@ console.timeEnd('[TIMER] step4-calc-and-update');
   }
 });
 
+// 🔧 DEBUG FLAG: เปิด/ปิด log สำหรับ time conversion debug
+const DEBUG_TIME = false;
 
 const convertTimeToDecimal = (timeString) => {
   if (!timeString || typeof timeString !== 'string') {
@@ -5953,13 +5955,17 @@ const convertTimeToDecimal = (timeString) => {
     // เพราะ "1.3" หมายถึง 1 ชม. 30 นาที ไม่ใช่ 3 นาที
     if (minutesNum < 10 && minutesNum > 0) {
       minutesNum = minutesNum * 10;
-      console.log(`⚠️ [convertTimeToDecimal] แก้ไขนาทีจาก ${minutesStr} เป็น ${minutesNum}`);
+      if (DEBUG_TIME) {
+        console.log(`⚠️ [convertTimeToDecimal] แก้ไขนาทีจาก ${minutesStr} เป็น ${minutesNum}`);
+      }
     }
     
     const decimalMinutes = minutesNum / 60;
     const result = hoursNum + decimalMinutes;
     
-    console.log(`🔄 [convertTimeToDecimal] "${timeString}" → ${hoursNum} ชม. + (${minutesNum}/60) นาที = ${result.toFixed(2)} ชั่วโมง`);
+    if (DEBUG_TIME) {
+      console.log(`🔄 [convertTimeToDecimal] "${timeString}" → ${hoursNum} ชม. + (${minutesNum}/60) นาที = ${result.toFixed(2)} ชั่วโมง`);
+    }
     
     return result;
   }
