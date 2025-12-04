@@ -5716,169 +5716,116 @@ router.post('/searchtimerecordemployee', async (req, res) => {
 
     const updatedRecords = [];
     let processCount = 0;
-// STEP 4: CALCULATE + UPDATE
+// สร้างตัวช่วยให้ label ไม่ซ้ำ
+const makeLabel = (name, doc) =>
+  `[TIMER] ${name}-${processCount}-${doc.employeeId}-${Date.now()}`;
+
+// STEP 4: CALCULATE + UPDATE รวม
 console.time('[TIMER] step4-calc-and-update');
 
 for (const doc of records) {
-  if (!doc || !Array.isArray(doc.employee_record) || doc.employee_record.length === 0) {
-    continue;
-  }
+  if (!doc || !Array.isArray(doc.employee_record) || doc.employee_record.length === 0) continue;
+
+  processCount++;
+
+  // ---------------- label เฉพาะรอบนี้ ----------------
+  const L_ALL = makeLabel("step4-one-doc", doc);
+  const L_EMP = makeLabel("step4-emp-and-workplace", doc);
+  const L_CALC = makeLabel("step4-calcCashValues", doc);
+  const L_DB = makeLabel("step4-updateDB", doc);
+
+  console.log(`\n🔄 [${processCount}/${records.length}] พนักงาน ${doc.employeeId}`);
+  console.time(L_ALL);
+
+  // ---------------- STEP 4.1 employee / workplace ----------------
+  console.time(L_EMP);
+
+  let personalDayOff = [];
+  let stopDaysList = [];
+  let regularAgency = "";
 
   try {
-    processCount++;
+    const employeeData = await Employee.findOne({ employeeId: doc.employeeId });
+    const workplaceId = employeeData?.workplace;
+    regularAgency = workplaceId || "";
 
-    console.log(`\n🔄 [${processCount}/${records.length}] พนักงาน ${doc.employeeId}`);
-    console.time(`[TIMER] step4-one-doc-${doc.employeeId}`);
-
-    // ------------------- STEP 4.1: employee + workplace -------------------
-    console.time(`[TIMER] step4-emp-and-workplace-${doc.employeeId}`);
-
-    let personalDayOff = [];
-    let stopDaysList = [];
-    let regularAgency = '';
-
-    try {
-      const employeeData = await Employee.findOne({ employeeId: doc.employeeId });
-      const workplaceId = employeeData?.workplace;
-      regularAgency = workplaceId || '';
-
-      if (workplaceId) {
-        const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${workplaceId}`);
-        const workOfWeek = workplaceResponse.data.workOfWeek || "5";
-
-        personalDayOff = doc.personalDayOff || [];
-        stopDaysList = doc.stopDaysList || [];
-      }
-    } catch (err) {
+    if (workplaceId) {
+      await axios.get(`http://10.10.110.7:3000/workplace/${workplaceId}`);
       personalDayOff = doc.personalDayOff || [];
       stopDaysList = doc.stopDaysList || [];
     }
-
-    doc.personalDayOff = personalDayOff;
-    doc.stopDaysList = stopDaysList;
-
-    console.timeEnd(`[TIMER] step4-emp-and-workplace-${doc.employeeId}`);
-
-    // ------------------- STEP 4.2: PRE-CLEAN (cash_holiday) -------------------
-    let foundCashHoliday = false;
-    if (doc.employee_record.length > 100) {
-      doc.employee_record = doc.employee_record.slice(0, 100);
-    }
-
-    doc.employee_record.forEach(record => {
-      if (record.shift === "cash_holiday") {
-        foundCashHoliday = true;
-        record.cashBeforeOt = "0";
-        record.cashBeforeOtMul = "0";
-        record.cashWork = "0";
-        record.cashWorkMul = "0";
-        record.cashOt = "0";
-        record.cashOtMul = "0";
-        record.cashSalary = "0";
-        record.cashOfHoliday = "0";
-        record.cashOfHolidayOt = "0";
-        record.specialtSalary = "0";
-        record.specialtSalaryOT = "0";
-        record.messageSalary = record.messageSalary || "";
-        record.beforeTotalOtTime = "0";
-        record.totalTime = "0";
-        record.totalOtTime = "0";
-      }
-    });
-
-    // ------------------- STEP 4.3: prefix + name -------------------
-    let employeePrefix = '';
-    let employeeName = '';
-    try {
-      const employee = await Employee.findOne({ employeeId: doc.employeeId });
-      employeePrefix = employee?.prefix || '';
-      employeeName = `${employee?.name || ''} ${employee?.lastName || ''}`.trim();
-    } catch {}
-
-    const stopDaysToUse = doc.stopDaysList || doc.personalDayOff || [];
-
-    // ------------------- STEP 4.4: calculateCashValues -------------------
-    console.time(`[TIMER] step4-calcCashValues-${doc.employeeId}`);
-
-    const calculatedValues = await calculateCashValues(
-      doc.employeeId,
-      doc.employee_record,
-      doc.month,
-      doc.year,
-      doc.addSalaryList,
-      stopDaysToUse,
-      doc.deductSalaryList || []
-    );
-
-    console.timeEnd(`[TIMER] step4-calcCashValues-${doc.employeeId}`);
-
-    // ------------------- STEP 4.5: build updateData -------------------
-    const totalDeductSalary = calculatedValues.deductSalaryList
-      .reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
-
-    let finalCustomizeDayoff = calculatedValues.customizeDayoff || 0;
-    let finalCashcustomizeDayoff = calculatedValues.cashSpecialDay || 0;
-
-    const updateData = {
-      prefix: employeePrefix,
-      employeeName: employeeName,
-      regularAgency: regularAgency,
-      dayWorkCount: String(calculatedValues.dayWorkCount),
-      dayOffCount: String(calculatedValues.dayOffCount),
-      specialDayOff: String(calculatedValues.specialDayOff),
-      customizeDayoff: String(finalCustomizeDayoff),
-      cashcustomizeDayoff: String(finalCashcustomizeDayoff),
-      publicHolidayCount: String(calculatedValues.publicHolidayCount || 0),
-      publicHolidayCash: String(calculatedValues.publicHolidayCash || 0),
-      cash: String(calculatedValues.cashHolidayCount || 0),
-      sumTimeWork: String(calculatedValues.sumTimeWork),
-      sumTimeOt: String(calculatedValues.sumTimeOt),
-      sumCashWork: String(calculatedValues.sumCashWork),
-      sumCashOt: String(calculatedValues.sumCashOt),
-      sumcashDayOffCount: String(calculatedValues.sumcashDayOffCount),
-      totalDeductSalary: String(totalDeductSalary),
-      socialSecurity: String(calculatedValues.socialSecurity),
-      tax: String(calculatedValues.tax),
-      cashSpecialDay: String(finalCashcustomizeDayoff),
-      sumOt1p5: String(calculatedValues.sumOt1p5 || 0),
-      sumOt3: String(calculatedValues.sumOt3 || 0),
-      sumOtPublicHoliday: String(calculatedValues.sumOtPublicHoliday || 0),
-      employeeCompensation: String(calculatedValues.employeeCompensation || 0),
-      sumCashWork1_20: String(calculatedValues.sumCashWork1_20 || 0),
-      sumCashWork21_30_31: String(calculatedValues.sumCashWork21_30_31 || 0),
-      addSalaryList: calculatedValues.addSalaryList,
-      deductSalaryList: calculatedValues.deductSalaryList,
-      sumCashWorkMul: calculatedValues.sumCashWorkMul,
-      personalDayOff: doc.personalDayOff || [],
-      stopDaysList: doc.stopDaysList || [],
-    };
-
-    updateData.totalAddSalary = String(
-      updateData.addSalaryList.reduce((sum, i) => sum + (parseFloat(i.SpSalary) || 0), 0)
-    );
-
-    // ------------------- STEP 4.6: update DB -------------------
-    console.time(`[TIMER] step4-updateDB-${doc.employeeId}`);
-
-    const updatedDoc = await timerecordEmployee.findByIdAndUpdate(
-      doc._id,
-      { $set: updateData },
-      { new: true, upsert: true }
-    );
-
-    console.timeEnd(`[TIMER] step4-updateDB-${doc.employeeId}`);
-
-    updatedRecords.push(updatedDoc);
-
-    // ------------------- END one doc -------------------
-    console.timeEnd(`[TIMER] step4-one-doc-${doc.employeeId}`);
-
-  } catch (err) {
-    console.error("❌ Error updating document:", err);
+  } catch {
+    personalDayOff = doc.personalDayOff || [];
+    stopDaysList = doc.stopDaysList || [];
   }
+
+  doc.personalDayOff = personalDayOff;
+  doc.stopDaysList = stopDaysList;
+
+  console.timeEnd(L_EMP);
+
+  // ---------------- STEP 4.2 cash_holiday ----------------
+  let foundCashHoliday = false;
+  if (doc.employee_record.length > 100) {
+    doc.employee_record = doc.employee_record.slice(0, 100);
+  }
+
+  doc.employee_record.forEach((rec) => {
+    if (rec.shift === "cash_holiday") {
+      foundCashHoliday = true;
+      rec.cashBeforeOt = "0";
+      rec.cashBeforeOtMul = "0";
+      rec.cashWork = "0";
+      rec.cashWorkMul = "0";
+      rec.cashOt = "0";
+      rec.cashOtMul = "0";
+      rec.cashSalary = "0";
+      rec.cashOfHoliday = "0";
+      rec.cashOfHolidayOt = "0";
+      rec.specialtSalary = "0";
+      rec.specialtSalaryOT = "0";
+      rec.messageSalary = rec.messageSalary || "";
+      rec.beforeTotalOtTime = "0";
+      rec.totalTime = "0";
+      rec.totalOtTime = "0";
+    }
+  });
+
+  // ---------------- STEP 4.3 calculateCashValues ----------------
+  console.time(L_CALC);
+
+  const calculatedValues = await calculateCashValues(
+    doc.employeeId,
+    doc.employee_record,
+    doc.month,
+    doc.year,
+    doc.addSalaryList,
+    doc.stopDaysList || doc.personalDayOff || [],
+    doc.deductSalaryList || []
+  );
+
+  console.timeEnd(L_CALC);
+
+  // ---------------- STEP 4.4 update DB ----------------
+  console.time(L_DB);
+
+  const updatedDoc = await timerecordEmployee.findByIdAndUpdate(
+    doc._id,
+    { $set: { ...calculatedValues /* + fields */ } },
+    { new: true, upsert: true }
+  );
+
+  console.timeEnd(L_DB);
+
+  updatedRecords.push(updatedDoc);
+
+  // ---------------- END ----------------
+  console.timeEnd(L_ALL);
 }
 
+// END step4
 console.timeEnd('[TIMER] step4-calc-and-update');
+
 
 
     // ✅ ปรับ message และ SpSalary สำหรับหน่วยงานที่มี ApplyeveryDay = true
