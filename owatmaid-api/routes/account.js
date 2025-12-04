@@ -4797,6 +4797,134 @@ router.post('/updatetimerecord', async (req, res) => {
 });
 
 // ============================================
+// 🚀 Route: /searchtimerecordbyworkplace
+// ============================================
+router.post('/searchtimerecordbyworkplace', async (req, res) => {
+  try {
+    const { month, year, workplaceId, isRecursiveCall } = req.body;
+
+    if (!month || !year) {
+      return res.status(400).json({ message: "Month and year are required" });
+    }
+
+    // โหลด timerecord แบบเร็ว
+    const allRecords = await timerecordEmployee.find({ month, year });
+
+    if (allRecords.length === 0) {
+      return res.status(200).json({ groupedResult: {}, message: "No records" });
+    }
+
+    // เลือก record ล่าสุดสำหรับ employeeId-month-year
+    const employeeRecordMap = new Map();
+
+    for (const rec of allRecords) {
+      const key = `${rec.employeeId}-${rec.month}-${rec.year}`;
+
+      if (!employeeRecordMap.has(key)) {
+        employeeRecordMap.set(key, rec);
+      } else {
+        const current = employeeRecordMap.get(key);
+        const hasNew = rec.employee_record?.length > 0;
+        const hasOld = current.employee_record?.length > 0;
+
+        if (hasNew && !hasOld) employeeRecordMap.set(key, rec);
+        else if (hasNew && hasOld && rec._id > current._id) employeeRecordMap.set(key, rec);
+        else if (!hasNew && !hasOld && rec._id > current._id) employeeRecordMap.set(key, rec);
+      }
+    }
+
+    const records = [...employeeRecordMap.values()];
+
+    // โหลด employee profile ทีเดียว
+    const employeeIds = records.map(r => r.employeeId);
+    const employees = await Employee.find({ employeeId: { $in: employeeIds } });
+
+    const employeeMap = {};
+    const directWorkplace = new Set();
+
+    employees.forEach(e => {
+      employeeMap[e.employeeId] = e;
+      if (e.workplace === workplaceId) directWorkplace.add(e.employeeId);
+    });
+
+    // วน process record
+    const groupedResult = {};
+
+    for (const record of records) {
+      const employee = employeeMap[record.employeeId];
+      if (!employee) continue;
+
+      let shouldInclude = false;
+
+      if (!workplaceId) {
+        shouldInclude = true;
+      } else if (directWorkplace.has(record.employeeId)) {
+        shouldInclude = true;
+      } else if (record.employee_record?.some(r => r.workplaceId === workplaceId)) {
+        shouldInclude = true;
+      }
+
+      if (!shouldInclude) continue;
+
+      // โหลด personalDayOff ถ้ายังไม่มี
+      if (!isRecursiveCall && (!record.personalDayOff || !record.dayWorkCount)) {
+        try {
+          const apiRes = await axios.post(sURL + "/conclude/searchtimerecordemployee", {
+            employeeId: record.employeeId,
+            month: record.month,
+            year: record.year
+          });
+
+          if (apiRes.data?.result?.length > 0) {
+            const d = apiRes.data.result[0];
+            record.personalDayOff = d.personalDayOff || d.stopDaysList || [];
+            record.stopDaysList = record.personalDayOff;
+          }
+        } catch (err) {
+          console.log("ERROR fetching conclude API:", err.message);
+        }
+      }
+
+      // คำนวณค่าเงิน
+      const stopDaysUse = record.stopDaysList || record.personalDayOff || [];
+      let processed = record.toObject();
+
+      try {
+        const calc = await calculateCashValues(
+          record.employeeId,
+          record.employee_record,
+          record.month,
+          record.year,
+          null,
+          stopDaysUse,
+          record.deductSalaryList || []
+        );
+
+        processed = { ...processed, ...calc };
+      } catch (err) {
+        console.log("❌ calculateCashValues ERROR:", err.message);
+      }
+
+      // Group by workplace
+      const groupId = workplaceId || employee.workplace;
+
+      if (!groupedResult[groupId]) groupedResult[groupId] = [];
+
+      groupedResult[groupId].push({
+        ...processed,
+        employeeName: employee.name + " " + (employee.surname || employee.lastName || "")
+      });
+    }
+
+    return res.status(200).json({ groupedResult });
+
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// ============================================
 // 🚀 MAIN calculateCashValues FUNCTION
 // ============================================
 
