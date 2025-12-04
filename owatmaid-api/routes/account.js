@@ -8180,7 +8180,7 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
   }
 
   // ลด log การคำนวณประกันสังคม
-  const shouldLogSS = processCount <= 2;
+  const shouldLogSS = false; // ปิดการแสดง log detail เพื่อลด log ในระบบ
   
   if (shouldLogSS) {
     console.log(`\n💰 คำนวณประกันสังคม: ${employeeId}`);
