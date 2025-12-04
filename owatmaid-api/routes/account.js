@@ -5716,9 +5716,12 @@ router.post('/searchtimerecordemployee', async (req, res) => {
 
     const updatedRecords = [];
     let processCount = 0;
-// สร้างตัวช่วยให้ label ไม่ซ้ำ
-const makeLabel = (name, doc) =>
-  `[TIMER] ${name}-${processCount}-${doc.employeeId}-${Date.now()}`;
+// สร้างตัวช่วยให้ label ไม่ซ้ำ โดยใช้ counter และ random เพื่อป้องกัน collision
+let labelCounter = 0;
+const makeLabel = (name, doc) => {
+  labelCounter++;
+  return `[TIMER] ${name}-${processCount}-${doc.employeeId}-${labelCounter}-${Math.random().toString(36).substring(2, 9)}`;
+};
 
 // STEP 4: CALCULATE + UPDATE รวม
 console.time('[TIMER] step4-calc-and-update');
