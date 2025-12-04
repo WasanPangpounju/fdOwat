@@ -5716,17 +5716,17 @@ router.post('/searchtimerecordemployee', async (req, res) => {
 
     const updatedRecords = [];
     let processCount = 0;
-// สร้างตัวช่วยให้ label ไม่ซ้ำ โดยใช้ counter และ random เพื่อป้องกัน collision
-let labelCounter = 0;
-const makeLabel = (name, doc) => {
-  labelCounter++;
-  return `[TIMER] ${name}-${processCount}-${doc.employeeId}-${labelCounter}-${Math.random().toString(36).substring(2, 9)}`;
-};
+    // สร้างตัวช่วยให้ label ไม่ซ้ำ โดยใช้ counter และ random เพื่อป้องกัน collision
+    let labelCounter = 0;
+    const makeLabel = (name, doc) => {
+      labelCounter++;
+      return `[TIMER] ${name}-${labelCounter}-${Math.random().toString(36).substring(2, 9)}`;
+    };
 
-// STEP 4: CALCULATE + UPDATE รวม
-console.time('[TIMER] step4-calc-and-update');
+    // STEP 4: CALCULATE + UPDATE รวม
+    console.time('[TIMER] step4-calc-and-update');
 
-for (const doc of records) {
+    for (const doc of records) {
   if (!doc || !Array.isArray(doc.employee_record) || doc.employee_record.length === 0) continue;
 
   processCount++;
