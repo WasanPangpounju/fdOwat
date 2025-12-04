@@ -6638,7 +6638,7 @@ try {
   const customDayoffSet = new Set(allCustomDayoffs);
   
   // 🚀 NORMALIZE RECORDS: คำนวณข้อมูลที่ใช้บ่อยไว้ล่วงหน้า ครั้งเดียว
-  const normalizedRecords = normalizedRecords.map(r => {
+  const normalizedRecords = employee_record.map(r => {
     const recordDate = parseInt(r.date);
     let actualYear, actualMonth;
 
