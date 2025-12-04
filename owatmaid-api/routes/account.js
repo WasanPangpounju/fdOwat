@@ -6395,22 +6395,24 @@ const calculateCashValues = async (employeeId, employee_record, month, year, wel
         let workedOnStopDaysCount = 0; // จำนวนวันจริงๆ (รวม 0.5 วัน ถ้าทำงานไม่ครบ 8 ชม.)
         
         stopDaysList.forEach(stopDay => {
-          // หาข้อมูลการทำงานของวันนั้น - ใช้ normalizedRecords แทน
-          const recordForDay = normalizedRecords.find(record => {
+          // หาข้อมูลการทำงานของวันนั้น - ใช้ employee_record (normalizedRecords ยังไม่ถูกสร้าง)
+          const recordForDay = employee_record.find(record => {
+            const recordDate = parseInt(record.date);
             // ตรวจสอบว่าตรงกับวันหยุดหรือไม่
             if (stopDay.month === prevMonth && stopDay.date >= 21) {
               // วันที่ 21-31 ของเดือนก่อนหน้า
-              return record.recordDate === stopDay.date;
+              return recordDate === stopDay.date;
             } else if (stopDay.month === monthInt && stopDay.date <= 20) {
               // วันที่ 1-20 ของเดือนปัจจุบัน
-              return record.recordDate === stopDay.date;
+              return recordDate === stopDay.date;
             }
             return false;
           });
           
           if (recordForDay) {
-            // ตรวจสอบว่ามีการทำงานหรือไม่ - ใช้ totalTimeDecimal ที่คำนวณไว้แล้ว
-            const hasWorked = recordForDay.totalTimeDecimal > 0;
+            // ตรวจสอบว่ามีการทำงานหรือไม่ - แปลงเวลาเป็นทศนิยม
+            const totalTimeDecimal = convertTimeToDecimal(recordForDay.totalTime || "0");
+            const hasWorked = totalTimeDecimal > 0;
             
             // ตรวจสอบว่า shift ไม่ใช่ cash_holiday
             const isCashHoliday = recordForDay.shift === 'cash_holiday';
@@ -6418,8 +6420,8 @@ const calculateCashValues = async (employeeId, employee_record, month, year, wel
             if (hasWorked && !isCashHoliday) {
               workedOnStopDays++; // นับจำนวนวันหยุดที่มาทำงาน
               
-              // 🔧 คำนวณจำนวนวันที่แท้จริงตามชั่วโมงทำงาน - ใช้ totalTimeDecimal
-              const workHours = recordForDay.totalTimeDecimal;
+              // 🔧 คำนวณจำนวนวันที่แท้จริงตามชั่วโมงทำงาน
+              const workHours = totalTimeDecimal;
               let dayCount = 0;
               if (workHours >= 8) {
                 dayCount = 1; // นับเป็น 1 วันเต็ม
@@ -6431,7 +6433,7 @@ const calculateCashValues = async (employeeId, employee_record, month, year, wel
               console.log(`✅ วันที่ ${stopDay.date}/${stopDay.month}/${stopDay.year} - มาทำงาน (${workHours.toFixed(2)} ชม. = ${dayCount} วัน) shift: ${recordForDay.shift || 'ไม่ระบุ'}`);
               console.log(`   🔢 workedOnStopDaysCount สะสม: ${workedOnStopDaysCount} วัน`);
             } else if (hasWorked && isCashHoliday) {
-              console.log(`⚠️ วันที่ ${stopDay.date}/${stopDay.month}/${stopDay.year} - มาทำงานแต่เป็น cash_holiday ไม่นับ (${recordForDay.totalTimeDecimal.toFixed(2)} ชม.) shift: ${recordForDay.shift}`);
+              console.log(`⚠️ วันที่ ${stopDay.date}/${stopDay.month}/${stopDay.year} - มาทำงานแต่เป็น cash_holiday ไม่นับ (${totalTimeDecimal.toFixed(2)} ชม.) shift: ${recordForDay.shift}`);
             } else {
               console.log(`❌ วันที่ ${stopDay.date}/${stopDay.month}/${stopDay.year} - ไม่มาทำงาน`);
             }
@@ -6466,14 +6468,15 @@ const calculateCashValues = async (employeeId, employee_record, month, year, wel
           let stopDayWorkCount = 0; // จำนวนวันหยุดที่มาทำงาน (นับเป็นจำนวนครั้ง)
           let stopDayWorkDaysCount = 0; // จำนวนวันจริงๆ (รวม 0.5 วัน)
           
-          normalizedRecords.forEach(record => {
+          employee_record.forEach(record => {
+            const totalTimeDecimal = convertTimeToDecimal(record.totalTime || "0");
             if (record.dayType === "stop" && record.totalTime && 
-                record.totalTime.trim() !== '' && record.totalTimeDecimal > 0 &&
+                record.totalTime.trim() !== '' && totalTimeDecimal > 0 &&
                 record.shift !== 'cash_holiday') { // เพิ่มเงื่อนไขไม่นับ cash_holiday
               stopDayWorkCount++;
               
               // 🔧 คำนวณจำนวนวันจริงตามชั่วโมงทำงาน
-              const workHours = record.totalTimeDecimal;
+              const workHours = totalTimeDecimal;
               let dayCount = 0;
               if (workHours >= 8) {
                 dayCount = 1; // นับเป็น 1 วันเต็ม
@@ -6631,64 +6634,6 @@ try {
   console.log(`📅 รวมวันหยุดที่กำหนดเองทั้งหมด: ${customizeDayoff} วัน`);
   console.log(`📅 รายการวันหยุดรวม: ${JSON.stringify(allCustomDayoffs)}`);
 
-  // 🚀 PRE-PROCESS: สร้าง Set เพื่อเพิ่มความเร็วในการค้นหา (O(1) แทน O(n))
-  const publicHolidaySet = new Set(dayOffOnlyDates || []);
-  const weekendAndDayOffSet = new Set(weekendData?.weekendAndDayOff || []);
-  const dayoffWorkplaceSet = new Set(weekendData?.dayoffWorkplace || []);
-  const customDayoffSet = new Set(allCustomDayoffs);
-  
-  // 🚀 NORMALIZE RECORDS: คำนวณข้อมูลที่ใช้บ่อยไว้ล่วงหน้า ครั้งเดียว
-  const normalizedRecords = employee_record.map(r => {
-    const recordDate = parseInt(r.date);
-    let actualYear, actualMonth;
-
-    if (recordDate >= 21) {
-      actualMonth = monthInt - 1;
-      actualYear = yearInt;
-      if (actualMonth < 1) {
-        actualMonth = 12;
-        actualYear = yearInt - 1;
-      }
-    } else {
-      actualMonth = monthInt;
-      actualYear = yearInt;
-    }
-
-    const dateStr = `${actualYear}-${String(actualMonth).padStart(2, '0')}-${String(recordDate).padStart(2, '0')}`;
-    
-    // แปลงเวลาเป็นทศนิยม (ทำครั้งเดียว)
-    const totalTimeDecimal = convertTimeToDecimal(r.totalTime || "0");
-    const beforeOtDecimal = convertTimeToDecimal(r.beforeTotalOtTime || "0");
-    const totalOtDecimal = convertTimeToDecimal(r.totalOtTime || "0");
-    
-    // คำนวณ flags ต่างๆ ที่ใช้บ่อย
-    const hasWork = totalTimeDecimal > 0;
-    const isPublicHoliday = publicHolidaySet.has(dateStr);
-    const isWeekendOrDayOff = weekendAndDayOffSet.has(dateStr);
-    const isDayoffWorkplace = dayoffWorkplaceSet.has(dateStr);
-    const isCustomDayoff = isWeekendOrDayOff || isDayoffWorkplace;
-    const isCashHoliday = r.shift === "cash_holiday";
-
-    return {
-      ...r,
-      recordDate,
-      actualYear,
-      actualMonth,
-      dateStr,
-      totalTimeDecimal,
-      beforeOtDecimal,
-      totalOtDecimal,
-      hasWork,
-      isPublicHoliday,
-      isWeekendOrDayOff,
-      isDayoffWorkplace,
-      isCustomDayoff,
-      isCashHoliday,
-    };
-  });
-  
-  console.log(`🚀 ✅ Pre-processed ${normalizedRecords.length} records with flags and decimal times`);
-
   // นับจำนวนวันหยุดที่กำหนดเอง
   if (allCustomDayoffs.length > 0) {
     console.log(`📅 พบวันหยุดที่กำหนดเอง ${customizeDayoff} วัน: ${JSON.stringify(allCustomDayoffs)}`);
@@ -6730,6 +6675,70 @@ try {
   publicHolidayCount = 0;
 }
 
+// 🚀 สร้าง Set และ NORMALIZE RECORDS หลังจากได้ข้อมูลวันหยุดแล้ว
+const publicHolidaySet = new Set(dayOffOnlyDates || []);
+const weekendAndDayOffSet = new Set(weekendData?.weekendAndDayOff || []);
+const dayoffWorkplaceSet = new Set(weekendData?.dayoffWorkplace || []);
+const allCustomDayoffsForSet = [];
+if (weekendData?.weekendAndDayOff) allCustomDayoffsForSet.push(...weekendData.weekendAndDayOff);
+if (weekendData?.dayoffWorkplace) {
+  weekendData.dayoffWorkplace.forEach(d => {
+    if (!allCustomDayoffsForSet.includes(d)) allCustomDayoffsForSet.push(d);
+  });
+}
+const customDayoffSet = new Set(allCustomDayoffsForSet);
+
+// 🚀 NORMALIZE RECORDS: คำนวณข้อมูลที่ใช้บ่อยไว้ล่วงหน้า ครั้งเดียว
+const normalizedRecords = employee_record.map(r => {
+  const recordDate = parseInt(r.date);
+  let actualYear, actualMonth;
+
+  if (recordDate >= 21) {
+    actualMonth = monthInt - 1;
+    actualYear = yearInt;
+    if (actualMonth < 1) {
+      actualMonth = 12;
+      actualYear = yearInt - 1;
+    }
+  } else {
+    actualMonth = monthInt;
+    actualYear = yearInt;
+  }
+
+  const dateStr = `${actualYear}-${String(actualMonth).padStart(2, '0')}-${String(recordDate).padStart(2, '0')}`;
+  
+  // แปลงเวลาเป็นทศนิยม (ทำครั้งเดียว)
+  const totalTimeDecimal = convertTimeToDecimal(r.totalTime || "0");
+  const beforeOtDecimal = convertTimeToDecimal(r.beforeTotalOtTime || "0");
+  const totalOtDecimal = convertTimeToDecimal(r.totalOtTime || "0");
+  
+  // คำนวณ flags ต่างๆ ที่ใช้บ่อย
+  const hasWork = totalTimeDecimal > 0;
+  const isPublicHoliday = publicHolidaySet.has(dateStr);
+  const isWeekendOrDayOff = weekendAndDayOffSet.has(dateStr);
+  const isDayoffWorkplace = dayoffWorkplaceSet.has(dateStr);
+  const isCustomDayoff = isWeekendOrDayOff || isDayoffWorkplace;
+  const isCashHoliday = r.shift === "cash_holiday";
+
+  return {
+    ...r,
+    recordDate,
+    actualYear,
+    actualMonth,
+    dateStr,
+    totalTimeDecimal,
+    beforeOtDecimal,
+    totalOtDecimal,
+    hasWork,
+    isPublicHoliday,
+    isWeekendOrDayOff,
+    isDayoffWorkplace,
+    isCustomDayoff,
+    isCashHoliday,
+  };
+});
+
+console.log(`🚀 ✅ Pre-processed ${normalizedRecords.length} records with flags and decimal times`);
 
 
   // ตัวแปรเพื่อนับจำนวนวันที่พนักงานไม่มาทำงานในวันหยุดที่กำหนดเอง
@@ -6779,8 +6788,8 @@ try {
             console.log(`📋 รายการ dayoffWorkplace: ${JSON.stringify(weekendData?.dayoffWorkplace || [])}`);
 
             // ตรวจสอบว่าวันนี้เป็นวันหยุดที่กำหนดเองหรือไม่
-            isCustomDayoff = (weekendData?.weekendAndDayOff?.includes(dateStr)) || 
-                             (weekendData?.dayoffWorkplace?.includes(dateStr));
+            isCustomDayoff = (weekendAndDayOffSet.has(dateStr)) || 
+                             (dayoffWorkplaceSet.has(dateStr));
 
             // กรณีพิเศษสำหรับวันที่ 18 ของเดือน
             if (recordDate === "18") {
@@ -6820,7 +6829,7 @@ try {
             }
           }
 
-          if (dayOffOnlyDates.includes(dateStr)) {
+          if (publicHolidaySet.has(dateStr)) {
             // ตรวจสอบว่าพนักงานมาทำงานหรือไม่
             const hasWorked = record.totalTime && record.totalTime.trim() !== '' && record.totalTimeDecimal > 0;
             
@@ -6938,7 +6947,7 @@ try {
             }
             
             const dateStr = `${actualYear}-${String(actualMonth).padStart(2, '0')}-${String(recordDate).padStart(2, '0')}`;
-            const isPublicHoliday = dayOffOnlyDates.includes(dateStr);
+            const isPublicHoliday = publicHolidaySet.has(dateStr);
             
             // ⚠️ สำหรับพนักงานเงินเดือน: ไม่นับวันหยุดนักขัตฤกษ์เป็น OT (sumOtPublicHoliday = 0)
             if (isPublicHoliday && typeOfemployee !== 'รายเดือน') {
@@ -6972,7 +6981,7 @@ try {
             }
             
             const dateStr = `${actualYear}-${String(actualMonth).padStart(2, '0')}-${String(recordDate).padStart(2, '0')}`;
-            const isPublicHoliday = dayOffOnlyDates.includes(dateStr);
+            const isPublicHoliday = publicHolidaySet.has(dateStr);
             
             // สำหรับพนักงานเงินเดือน: ถ้าเป็นวันหยุดนักขัตฤกษ์ ให้ cashWorkMul = 0
             let effectiveCashWorkMul = record.cashWorkMul;
@@ -7007,7 +7016,7 @@ try {
             }
             
             const dateStr = `${actualYear}-${String(actualMonth).padStart(2, '0')}-${String(recordDate).padStart(2, '0')}`;
-            const isPublicHoliday = dayOffOnlyDates.includes(dateStr);
+            const isPublicHoliday = publicHolidaySet.has(dateStr);
             
             // สำหรับพนักงานเงินเดือน: ถ้าเป็นวันหยุดนักขัตฤกษ์ ให้ cashOtMul = 0
             let effectiveCashOtMul = record.cashOtMul;
@@ -7043,7 +7052,7 @@ try {
             }
             
             const dateStr = `${actualYear}-${String(actualMonth).padStart(2, '0')}-${String(recordDate).padStart(2, '0')}`;
-            const isPublicHoliday = dayOffOnlyDates.includes(dateStr);
+            const isPublicHoliday = publicHolidaySet.has(dateStr);
             
             // สำหรับพนักงานเงินเดือน: ถ้าเป็นวันหยุดนักขัตฤกษ์ ข้าม timeCashWorkMul
             if (!(isPublicHoliday && typeOfemployee === 'รายเดือน')) {
@@ -7070,7 +7079,7 @@ try {
             }
             
             const dateStr = `${actualYear}-${String(actualMonth).padStart(2, '0')}-${String(recordDate).padStart(2, '0')}`;
-            const isPublicHoliday = dayOffOnlyDates.includes(dateStr);
+            const isPublicHoliday = publicHolidaySet.has(dateStr);
             
             // สำหรับพนักงานเงินเดือน: ถ้าเป็นวันหยุดนักขัตฤกษ์ ข้าม timeCashWorkMul (OT)
             if (!(isPublicHoliday && typeOfemployee === 'รายเดือน')) {
@@ -7630,8 +7639,8 @@ normalizedRecords.forEach((record, index) => {
     const dateStr = `${actualYear}-${String(actualMonth).padStart(2, '0')}-${String(recordDate).padStart(2, '0')}`;
 
     // ตรวจสอบว่าเป็นวันหยุดที่กำหนดเองหรือไม่
-    const isCustomDayoff = (weekendData?.weekendAndDayOff?.includes(dateStr)) || 
-                          (weekendData?.dayoffWorkplace?.includes(dateStr));
+    const isCustomDayoff = (weekendAndDayOffSet.has(dateStr)) || 
+                          (dayoffWorkplaceSet.has(dateStr));
     
     // ตรวจสอบว่าพนักงานมาทำงานหรือไม่ โดยดูจาก totalTime
     const hasWorked = record.totalTime && record.totalTime.trim() !== '' && record.totalTimeDecimal > 0;
@@ -7656,8 +7665,8 @@ normalizedRecords.forEach((record, index) => {
       console.log(`  - hasWorked: ${hasWorked}`);
       console.log(`  - dayType: ${record.dayType}`);
       console.log(`  - totalTime: ${record.totalTime}`);
-      console.log(`  - weekendAndDayOff includes: ${weekendData?.weekendAndDayOff?.includes(dateStr)}`);
-      console.log(`  - dayoffWorkplace includes: ${weekendData?.dayoffWorkplace?.includes(dateStr)}`);
+      console.log(`  - weekendAndDayOff includes: ${weekendAndDayOffSet.has(dateStr)}`);
+      console.log(`  - dayoffWorkplace includes: ${dayoffWorkplaceSet.has(dateStr)}`);
     }
     
     // แสดงข้อมูลเพิ่มเติมสำหรับวันหยุดที่กำหนดเอง
@@ -7699,7 +7708,7 @@ const workedPublicHolidayRecords = employee_record.filter(record => {
     }
     
     const dateStr = `${actualYear}-${String(actualMonth).padStart(2, '0')}-${String(recordDate).padStart(2, '0')}`;
-    const isPublicHoliday = dayOffOnlyDates.includes(dateStr);
+    const isPublicHoliday = publicHolidaySet.has(dateStr);
     const hasWorked = record.totalTime && record.totalTime.trim() !== '' && record.totalTimeDecimal > 0;
     console.log(`🔍 ตรวจสอบวันที่ ${recordDate} (${dateStr}): เป็นวันหยุดนักขัตฤกษ์: ${isPublicHoliday ? 'ใช่' : 'ไม่ใช่'}, มาทำงาน: ${hasWorked ? 'ใช่' : 'ไม่ใช่'}`);
 
@@ -7901,8 +7910,8 @@ const workedCustomDayoffRecords = employee_record.filter(record => {
     const dateStr = `${actualYear}-${String(actualMonth).padStart(2, '0')}-${String(recordDate).padStart(2, '0')}`;
     
     // ✅ ตรวจสอบทั้ง weekendAndDayOff และ dayoffWorkplace
-    const isCustomDayoff = (weekendData?.weekendAndDayOff?.includes(dateStr)) || 
-                          (weekendData?.dayoffWorkplace?.includes(dateStr));
+    const isCustomDayoff = (weekendAndDayOffSet.has(dateStr)) || 
+                          (dayoffWorkplaceSet.has(dateStr));
     const hasWorked = record.totalTime && record.totalTime.trim() !== '' && record.totalTimeDecimal > 0;
     const isCashHoliday = record.shift === 'cash_holiday';
     
@@ -7934,8 +7943,8 @@ const cashHolidayCustomDayoffRecords = employee_record.filter(record => {
     }
 
     const dateStr = `${actualYear}-${String(actualMonth).padStart(2, '0')}-${String(recordDate).padStart(2, '0')}`;
-    const isCustomDayoff = (weekendData?.weekendAndDayOff?.includes(dateStr)) || 
-                          (weekendData?.dayoffWorkplace?.includes(dateStr));
+    const isCustomDayoff = (weekendAndDayOffSet.has(dateStr)) || 
+                          (dayoffWorkplaceSet.has(dateStr));
     const hasWorked = record.totalTime && record.totalTime.trim() !== '' && record.totalTimeDecimal > 0;
     const isCashHoliday = record.shift === 'cash_holiday';
     
