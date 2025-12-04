@@ -6061,36 +6061,8 @@ const calculateCashValues = async (employeeId, employee_record, month, year, wel
     "3": 0
   };
   
-  // 🚀 PRE-PROCESS: คำนวณข้อมูลที่ใช้บ่อยไว้ล่วงหน้า เพื่อลดการคำนวณซ้ำในลูป
-  const processedRecords = employee_record.map(r => {
-    const recordDate = parseInt(r.date);
-    let actualYear, actualMonth;
-
-    if (recordDate >= 21) {
-      actualMonth = monthInt - 1;
-      actualYear = yearInt;
-      if (actualMonth < 1) {
-        actualMonth = 12;
-        actualYear = yearInt - 1;
-      }
-    } else {
-      actualMonth = monthInt;
-      actualYear = yearInt;
-    }
-
-    const dateStr = `${actualYear}-${String(actualMonth).padStart(2, '0')}-${String(recordDate).padStart(2, '0')}`;
-
-    return {
-      ...r,
-      recordDate,
-      actualYear,
-      actualMonth,
-      dateStr,
-      totalTimeDecimal: convertTimeToDecimal(r.totalTime || "0"),
-      beforeOtDecimal: convertTimeToDecimal(r.beforeTotalOtTime || "0"),
-      totalOtDecimal: convertTimeToDecimal(r.totalOtTime || "0"),
-    };
-  });
+  // ⚠️ ย้าย pre-process ไปทำหลังจากได้ weekendData แล้ว
+  // เพื่อให้สามารถเช็ค isPublicHoliday, isCustomDayoff ได้
   if (settingResult) {
     socialSecurityP = parseFloat(settingResult?.data?.[settingResult.data.length - 1]?.social?.[0]?.socialPercent || '5') / 100;
   }
@@ -6423,8 +6395,8 @@ const calculateCashValues = async (employeeId, employee_record, month, year, wel
         let workedOnStopDaysCount = 0; // จำนวนวันจริงๆ (รวม 0.5 วัน ถ้าทำงานไม่ครบ 8 ชม.)
         
         stopDaysList.forEach(stopDay => {
-          // หาข้อมูลการทำงานของวันนั้น - ใช้ processedRecords แทน
-          const recordForDay = processedRecords.find(record => {
+          // หาข้อมูลการทำงานของวันนั้น - ใช้ normalizedRecords แทน
+          const recordForDay = normalizedRecords.find(record => {
             // ตรวจสอบว่าตรงกับวันหยุดหรือไม่
             if (stopDay.month === prevMonth && stopDay.date >= 21) {
               // วันที่ 21-31 ของเดือนก่อนหน้า
@@ -6494,7 +6466,7 @@ const calculateCashValues = async (employeeId, employee_record, month, year, wel
           let stopDayWorkCount = 0; // จำนวนวันหยุดที่มาทำงาน (นับเป็นจำนวนครั้ง)
           let stopDayWorkDaysCount = 0; // จำนวนวันจริงๆ (รวม 0.5 วัน)
           
-          processedRecords.forEach(record => {
+          normalizedRecords.forEach(record => {
             if (record.dayType === "stop" && record.totalTime && 
                 record.totalTime.trim() !== '' && record.totalTimeDecimal > 0 &&
                 record.shift !== 'cash_holiday') { // เพิ่มเงื่อนไขไม่นับ cash_holiday
@@ -6659,6 +6631,64 @@ try {
   console.log(`📅 รวมวันหยุดที่กำหนดเองทั้งหมด: ${customizeDayoff} วัน`);
   console.log(`📅 รายการวันหยุดรวม: ${JSON.stringify(allCustomDayoffs)}`);
 
+  // 🚀 PRE-PROCESS: สร้าง Set เพื่อเพิ่มความเร็วในการค้นหา (O(1) แทน O(n))
+  const publicHolidaySet = new Set(dayOffOnlyDates || []);
+  const weekendAndDayOffSet = new Set(weekendData?.weekendAndDayOff || []);
+  const dayoffWorkplaceSet = new Set(weekendData?.dayoffWorkplace || []);
+  const customDayoffSet = new Set(allCustomDayoffs);
+  
+  // 🚀 NORMALIZE RECORDS: คำนวณข้อมูลที่ใช้บ่อยไว้ล่วงหน้า ครั้งเดียว
+  const normalizedRecords = normalizedRecords.map(r => {
+    const recordDate = parseInt(r.date);
+    let actualYear, actualMonth;
+
+    if (recordDate >= 21) {
+      actualMonth = monthInt - 1;
+      actualYear = yearInt;
+      if (actualMonth < 1) {
+        actualMonth = 12;
+        actualYear = yearInt - 1;
+      }
+    } else {
+      actualMonth = monthInt;
+      actualYear = yearInt;
+    }
+
+    const dateStr = `${actualYear}-${String(actualMonth).padStart(2, '0')}-${String(recordDate).padStart(2, '0')}`;
+    
+    // แปลงเวลาเป็นทศนิยม (ทำครั้งเดียว)
+    const totalTimeDecimal = convertTimeToDecimal(r.totalTime || "0");
+    const beforeOtDecimal = convertTimeToDecimal(r.beforeTotalOtTime || "0");
+    const totalOtDecimal = convertTimeToDecimal(r.totalOtTime || "0");
+    
+    // คำนวณ flags ต่างๆ ที่ใช้บ่อย
+    const hasWork = totalTimeDecimal > 0;
+    const isPublicHoliday = publicHolidaySet.has(dateStr);
+    const isWeekendOrDayOff = weekendAndDayOffSet.has(dateStr);
+    const isDayoffWorkplace = dayoffWorkplaceSet.has(dateStr);
+    const isCustomDayoff = isWeekendOrDayOff || isDayoffWorkplace;
+    const isCashHoliday = r.shift === "cash_holiday";
+
+    return {
+      ...r,
+      recordDate,
+      actualYear,
+      actualMonth,
+      dateStr,
+      totalTimeDecimal,
+      beforeOtDecimal,
+      totalOtDecimal,
+      hasWork,
+      isPublicHoliday,
+      isWeekendOrDayOff,
+      isDayoffWorkplace,
+      isCustomDayoff,
+      isCashHoliday,
+    };
+  });
+  
+  console.log(`🚀 ✅ Pre-processed ${normalizedRecords.length} records with flags and decimal times`);
+
   // นับจำนวนวันหยุดที่กำหนดเอง
   if (allCustomDayoffs.length > 0) {
     console.log(`📅 พบวันหยุดที่กำหนดเอง ${customizeDayoff} วัน: ${JSON.stringify(allCustomDayoffs)}`);
@@ -6707,7 +6737,7 @@ try {
 
   const countedWorkDates = new Set();
   await Promise.all(
-    employee_record.map(async (record) => {
+    normalizedRecords.map(async (record) => {
       //check workplace 10105
       const workplaceId = employeeProfile[0].workplace === "10105" ? "10105" : record.workplaceId;
 
@@ -7438,7 +7468,7 @@ console.log(`💰 รวมทั้งหมด: ${sumCashWork + sumCashOt} บ
   
   // นับประเภท shift
   const shiftCounts = {};
-  processedRecords.forEach(record => {
+  normalizedRecords.forEach(record => {
     const shift = record.shift || 'ไม่ระบุ';
     shiftCounts[shift] = (shiftCounts[shift] || 0) + 1;
   });
@@ -7566,7 +7596,7 @@ console.log(`|-------------|----------|----------|--------------------------|---
 let loopCounter = 0;
 const maxLoopIterations = 100; // จำกัดไม่เกิน 100 รอบ
 
-processedRecords.forEach((record, index) => {
+normalizedRecords.forEach((record, index) => {
   loopCounter++;
   
   // ป้องกัน infinite loop
@@ -7692,7 +7722,7 @@ if (totalPublicHolidays > 0) {
   console.log(`\n📋 === รายละเอียดวันหยุดนักขัตฤกษ์ทั้งหมดในรอบเงินเดือนนี้ ===`);
   dayOffOnlyDates.forEach((publicHolidayDate, index) => {
     // ตรวจสอบว่าพนักงานมาทำงานในวันหยุดนี้หรือไม่
-    const workedRecord = processedRecords.find(record => {
+    const workedRecord = normalizedRecords.find(record => {
       const recordDate = parseInt(record.date);
       
       // คำนวณปีและเดือนที่ถูกต้องตามรอบเงินเดือน
@@ -8147,7 +8177,7 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
       console.log(`🔥 sumCashWork เดิม: ${sumCashWork} บาท`);
     }
     
-    processedRecords.forEach((record) => {
+    normalizedRecords.forEach((record) => {
       const isWorkDay = record?.dayType === "work";
       const hasWorkTime = record.totalTime && record.totalTime.trim() !== '' && record.totalTimeDecimal > 0;
       const isNormalShift = record.shift !== "specialt_shift" && record.shift !== "cash_holiday";
@@ -8195,8 +8225,8 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
     }
   }
 
-  // ลด log การคำนวณประกันสังคม (ปิดการ log เพื่อประสิทธิภาพ)
-  const shouldLogSS = false;
+  // ลด log การคำนวณประกันสังคม
+  const shouldLogSS = processCount <= 2;
   
   if (shouldLogSS) {
     console.log(`\n💰 คำนวณประกันสังคม: ${employeeId}`);
@@ -8333,7 +8363,7 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
     console.log(`\n📋 คำนวณแต่ละวัน:`);
     
     // วนลูปแต่ละ record เพื่อคำนวณรายวัน
-    processedRecords.forEach((record, index) => {
+    normalizedRecords.forEach((record, index) => {
       // 🚫 เช็คว่าวันนี้อยู่ใน stopDaysList หรือไม่
       let isInStopDaysList = false;
       if (stopDaysListParam && Array.isArray(stopDaysListParam) && stopDaysListParam.length > 0) {
