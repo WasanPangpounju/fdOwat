@@ -5269,7 +5269,7 @@ const getEmployeeProfile = async (employeeId) => {
 
 router.post('/searchtimerecordemployee', async (req, res) => {
   try {
-    const { employeeId, month, year, isRecursiveCall } = req.body;
+    const { employeeId, workplaceId, month, year, isRecursiveCall } = req.body;
     const query = {};
 
     if (employeeId) query.employeeId = employeeId;
@@ -5292,12 +5292,24 @@ router.post('/searchtimerecordemployee', async (req, res) => {
       query.year = { $regex: new RegExp(year, 'i') };
     }
 
-    if (!employeeId && !month && !year) {
+    if (!employeeId && !month && !year && !workplaceId) {
       return res.status(200).json({ result: [], message: 'No query parameters provided' });
     }
 
-    // console.log(`🔍 [SEARCH] กำลังค้นหาข้อมูลด้วย query:`, JSON.stringify(query, null, 2));
-    const records = await timerecordEmployee.find(query);
+    console.log(`🔍 [SEARCH] กำลังค้นหาข้อมูลด้วย query:`, JSON.stringify(query, null, 2));
+    let records = await timerecordEmployee.find(query);
+    
+    // 🏢 กรอง workplaceId ถ้ามีการส่งมา (ทำหลัง find เพราะต้องตรวจสอบใน employee_record array)
+    if (workplaceId && records.length > 0) {
+      console.log(`🏢 [FILTER] กรองเฉพาะหน่วยงาน ${workplaceId} จาก ${records.length} records`);
+      records = records.filter(record => {
+        // ตรวจสอบว่ามี employee_record ที่มี workplaceId ตรงกันหรือไม่
+        return record.employee_record && record.employee_record.some(emp => 
+          emp.workplace && emp.workplace.toString() === workplaceId.toString()
+        );
+      });
+      console.log(`✅ [FILTER] เหลือ ${records.length} records หลังกรองหน่วยงาน`);
+    }
     console.log(`🔍 [SEARCH] พบข้อมูล: ${records.length} records`);
 
     if (!records.length) {
