@@ -181,6 +181,61 @@ function BasicSetting() {
   const [editMode, setEditMode] = useState(false);
   const [paymentCodesBackup, setPaymentCodesBackup] = useState({});
 
+  // NEW: Master Employee (0001) Data - Copy from AddEditSalaryEmployee
+  const [employeeId, setEmployeeId] = useState('0001');
+  const [name, setName] = useState('');
+  const [dataResult, setDataResult] = useState([]);
+  
+  // Add Salary States
+  const [addSalaryId, setAddSalaryId] = useState('');
+  const [addSalaryName, setAddSalaryName] = useState('');
+  const [roundOfSalary, setRoundOfSalary] = useState('');
+  const [staffType, setStaffType] = useState('');
+  const [socialSecurityCheck, setSocialSecurityCheck] = useState(null);
+  const [addSalary, setAddSalary] = useState('');
+  const [message, setMessage] = useState('');
+
+  // Deduct Salary States
+  const [minusId, setMinusId] = useState('');
+  const [misnusName, setMisnusName] = useState('');
+  const [minusSalary, setMinusSalary] = useState('');
+  const [payType, setPayType] = useState('');
+  const [installment, setInstallment] = useState('1');
+  const [minusStaffType, setMinusStaffType] = useState('');
+  const [minusSocialSecurityCheck, setMinusSocialSecurityCheck] = useState(null);
+
+  // Row Data Lists
+  const initialRowData2 = {
+    id: '',
+    name: '',
+    SpSalary: '',
+    roundOfSalary: '',
+    StaffType: '',
+    message: '',
+    socialSecurityCheck: null,
+  };
+
+  const initialRowData = {
+    id: '',
+    name: '',
+    amount: '',
+    payType: '',
+    installment: '',
+    message: '',
+    socialSecurityCheck: null,
+  };
+
+  const [rowDataList2, setRowDataList2] = useState([]);
+  const [rowDataList, setRowDataList] = useState([]);
+  const [searchAddSalaryList, setSearchAddSalaryList] = useState([]);
+  const [searchDeductSalaryList, setSearchDeductSalaryList] = useState([]);
+
+  // Editing States
+  const [editingRowIndex, setEditingRowIndex] = useState(null);
+  const [editingRowIndex2, setEditingRowIndex2] = useState(null);
+  const [editingData, setEditingData] = useState(null);
+  const [editingData2, setEditingData2] = useState(null);
+
   // Payment Code Name Mapping - ดึงจาก API
   const [paymentCodeNames, setPaymentCodeNames] = useState({});
   const [paymentCodeName, setPaymentCodeName] = useState(""); // ชื่อรายการที่แสดง
@@ -277,7 +332,7 @@ function BasicSetting() {
     { value: "KamphaengPhet", label: "กำแพงเพชร" },
     { value: "Ayutthaya", label: "อยุธยา" },
   ];
-
+ 
   const hospital = {
     Bangkok: [
       "คณะแพทยศาสตร์วชิรพยาบาล",
@@ -431,8 +486,221 @@ function BasicSetting() {
   useEffect(() => {
     document.title = "ตั้งค่าระบบ";
     fetchSettings();
+    fetchMasterEmployeeData();
     fetchPaymentCodeNames();
   }, []);
+
+  // Fetch Master Employee (0001) data
+  const fetchMasterEmployeeData = async () => {
+    try {
+      const data = {
+        employeeId: '0001',
+        name: '',
+        idCard: '',
+        workPlace: '',
+      };
+      const response = await axios.post(endpoint + '/employee/search', data);
+      if (response.data && response.data.employees && response.data.employees.length > 0) {
+        const employee = response.data.employees[0];
+        setName(employee.name);
+        setDataResult(employee);
+        await setSearchAddSalaryList(employee.addSalary || []);
+        await setSearchDeductSalaryList(employee.deductSalary || []);
+
+        // Process addSalary
+        const newDataList = [];
+        if (employee.addSalary) {
+          employee.addSalary.forEach(item => {
+            let newRowData = {
+              id: item.id,
+              name: item.name,
+              SpSalary: item.SpSalary,
+              roundOfSalary: item.roundOfSalary,
+              StaffType: item.StaffType,
+              nameType: item.nameType,
+              message: item.message,
+              socialSecurityCheck: item.socialSecurityCheck === true || item.socialSecurityCheck === "yes" || item.socialSecurityCheck === "คิด" 
+                ? true 
+                : item.socialSecurityCheck === false || item.socialSecurityCheck === "no" || item.socialSecurityCheck === "ไม่คิด"
+                ? false
+                : null
+            };
+            newDataList.unshift(newRowData);
+          });
+        }
+        setRowDataList2(newDataList);
+
+        // Process deductSalary
+        const newDataList1 = [];
+        if (employee.deductSalary) {
+          employee.deductSalary.forEach(item => {
+            let newRowData1 = {
+              id: item.id,
+              name: item.name,
+              amount: item.amount,
+              payType: item.payType,
+              installment: item.installment,
+              nameType: item.nameType,
+              message: item.message,
+              socialSecurityCheck: item.socialSecurityCheck === true || item.socialSecurityCheck === "yes" || item.socialSecurityCheck === "คิด"
+                ? true
+                : item.socialSecurityCheck === false || item.socialSecurityCheck === "no" || item.socialSecurityCheck === "ไม่คิด"
+                ? false
+                : null
+            };
+            newDataList1.unshift(newRowData1);
+          });
+        }
+        setRowDataList(newDataList1);
+      }
+    } catch (error) {
+      console.error('Error fetching master employee data:', error);
+    }
+  };
+
+  // Functions from AddEditSalaryEmployee
+  const addRow = (newRowData) => {
+    const idExists = rowDataList2.some((row) => row.id === newRowData.id);
+    if (!idExists) {
+      const newDataList = [newRowData, ...rowDataList2];
+      setRowDataList2(newDataList);
+      alert('เพิ่มรายการเงินเพิ่มสำเร็จ');
+      // ล้างข้อมูลฟอร์ม
+      setAddSalaryId('');
+      setAddSalaryName('');
+      setAddSalary('');
+      setRoundOfSalary('');
+      setStaffType('');
+      setMessage('');
+      setSocialSecurityCheck(null);
+    } else {
+      alert(`มีรหัส ${newRowData.id} ใช้งานแล้ว`);
+    }
+  };
+
+  const addRow2 = (newRowData2) => {
+    const idExists2 = rowDataList.some((row) => row.id === newRowData2.id);
+    if (!idExists2) {
+      const newDataList = [newRowData2, ...rowDataList];
+      setRowDataList(newDataList);
+      alert('เพิ่มรายการเงินหักสำเร็จ');
+      // ล้างข้อมูลฟอร์ม
+      setMinusId('');
+      setMisnusName('');
+      setMinusSalary('');
+      setPayType('');
+      setInstallment('');
+      setMinusStaffType('');
+      setMinusSocialSecurityCheck(null);
+    } else {
+      alert(`มีรหัส ${newRowData2.id} ใช้งานแล้ว`);
+    }
+  };
+
+  const handleEditRow = (index) => {
+    setEditingRowIndex2(index);
+    setEditingData2({...rowDataList2[index]});
+  };
+
+  const handleSaveEdit2 = (index) => {
+    const newDataList = [...rowDataList2];
+    newDataList[index] = editingData2;
+    setRowDataList2(newDataList);
+    setEditingRowIndex2(null);
+    setEditingData2(null);
+    alert('แก้ไขรายการเงินเพิ่มสำเร็จ');
+  };
+
+  const handleCancelEdit2 = () => {
+    setEditingRowIndex2(null);
+    setEditingData2(null);
+  };
+
+  const handleDeleteRow = (index) => {
+    const item = rowDataList2[index];
+    if (window.confirm(`คุณต้องการลบรายการเงินเพิ่มนี้หรือไม่?\n\nรหัส: ${item.id}\nชื่อ: ${item.name}\nจำนวนเงิน: ${Number(item.SpSalary).toLocaleString()} บาท`)) {
+      const newDataList = rowDataList2.filter((_, i) => i !== index);
+      setRowDataList2(newDataList);
+      alert('ลบรายการเงินเพิ่มสำเร็จ');
+    }
+  };
+
+  const handleDeleteRow2 = (index) => {
+    const item = rowDataList[index];
+    if (window.confirm(`คุณต้องการลบรายการเงินหักนี้หรือไม่?\n\nรหัส: ${item.id}\nชื่อ: ${item.name}\nจำนวนเงิน: ${Number(item.amount).toLocaleString()} บาท`)) {
+      const newDataList = rowDataList.filter((_, i) => i !== index);
+      setRowDataList(newDataList);
+      alert('ลบรายการเงินหักสำเร็จ');
+    }
+  };
+
+  const handleEditRow2 = (index) => {
+    setEditingRowIndex(index);
+    setEditingData({...rowDataList[index]});
+  };
+
+  const handleSaveEdit = (index) => {
+    const newDataList = [...rowDataList];
+    newDataList[index] = editingData;
+    setRowDataList(newDataList);
+    setEditingRowIndex(null);
+    setEditingData(null);
+    alert('แก้ไขรายการเงินหักสำเร็จ');
+  };
+
+  const handleCancelEdit = () => {
+    setEditingRowIndex(null);
+    setEditingData(null);
+  };
+
+  // Save Master Employee Data
+  const handleSaveMasterEmployee = async (event) => {
+    event.preventDefault();
+    
+    const updatedEmployee = {
+      ...dataResult,
+      addSalary: rowDataList2,
+      deductSalary: rowDataList,
+    };
+
+    try {
+      const response = await axios.put(endpoint + '/employee/update', updatedEmployee);
+      if (response.status === 200) {
+        console.log('บันทึกข้อมูลสำเร็จ!');
+        fetchMasterEmployeeData();
+      }
+    } catch (error) {
+      console.error('Error saving employee data:', error);
+      console.error('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+    }
+  };
+
+  // Auto-fill name when ID changes
+  React.useEffect(() => {
+    const findObjectById = (id) => {
+      return searchAddSalaryList.find(item => item.id === id);
+    };
+    const foundObject = findObjectById(addSalaryId);
+    if (foundObject) {
+      setAddSalaryName(foundObject.name);
+    }
+  }, [addSalaryId, searchAddSalaryList]);
+
+  React.useEffect(() => {
+    const findObjectById = (id) => {
+      let foundItem = searchDeductSalaryList.find(item => item.id === id);
+      if (!foundItem) {
+        foundItem = rowDataList.find(item => item.id === id);
+      }
+      return foundItem;
+    };
+    const foundObject = findObjectById(minusId);
+    if (foundObject) {
+      setMisnusName(foundObject.name);
+    } else if (minusId === '') {
+      setMisnusName('');
+    }
+  }, [minusId, searchDeductSalaryList, rowDataList]);
 
   const handlePaymentPeriodChange = (month, value) => {
     setPaymentPeriod((prev) => ({
@@ -454,7 +722,7 @@ function BasicSetting() {
     }
   };
 
-  const handleSaveEdit = () => {
+  const handleSavePaymentEdit = () => {
     // บันทึกการเปลี่ยนแปลง - ออกจากโหมดแก้ไข
     setEditMode(false);
     setPaymentCodesBackup({});
@@ -464,7 +732,7 @@ function BasicSetting() {
   const handleAddPaymentCode = () => {
     const codeToAdd = newPaymentCode.code.trim();
     if (codeToAdd === "") {
-      alert("กรุณากรอกรหัส");
+      console.warn("กรุณากรอกรหัส");
       return;
     }
     
@@ -626,17 +894,55 @@ function BasicSetting() {
     };
 
     try {
+      // Save basic settings
       const response = await axios.post(
         endpoint + "/basicsetting",
         settingData
       );
+      
       if (response.status === 201) {
-        alert("Data saved successfully!");
+        // Save master employee data only if dataResult exists with _id
+        if (dataResult && dataResult._id && dataResult.employeeId) {
+          try {
+            // กรองเฉพาะรายการที่มีข้อมูล
+            const validAddSalary = rowDataList2.filter(item => item.id && item.name);
+            const validDeductSalary = rowDataList.filter(item => item.id && item.name);
+            
+            const updatedEmployee = {
+              ...dataResult,
+              addSalary: validAddSalary,
+              deductSalary: validDeductSalary,
+              newAddSalary: validAddSalary,
+              newDeductSalary: validDeductSalary,
+            };
+            
+            // ใช้ endpoint ที่ถูกต้อง: /employee/update/:id
+            const employeeResponse = await axios.put(
+              endpoint + '/employee/update/' + dataResult._id,
+              updatedEmployee
+            );
+            
+            if (employeeResponse.status === 200) {
+              alert("บันทึกข้อมูลสำเร็จ!");
+            }
+          } catch (empError) {
+            console.error("Error saving employee data:", empError);
+            const empErrorMsg = empError.response?.data?.message || empError.message;
+            alert(`บันทึกการตั้งค่าสำเร็จ แต่ไม่สามารถบันทึกข้อมูลเงินเพิ่ม เงินหักได้\n\nError: ${empErrorMsg}`);
+          }
+        } else {
+          alert("บันทึกข้อมูลสำเร็จ!");
+        }
+        
         fetchSettings();
+        if (dataResult && dataResult._id && dataResult.employeeId) {
+          fetchMasterEmployeeData();
+        }
       }
     } catch (error) {
       console.error("Error saving data:", error);
-      alert("Failed to save data. Please try again.");
+      const errorMsg = error.response?.data?.message || error.message || "ไม่สามารถบันทึกข้อมูลได้";
+      alert(`ไม่สามารถบันทึกข้อมูลได้\n\nError: ${errorMsg}\n\nกรุณาลองใหม่อีกครั้ง`);
     }
   }
 
@@ -674,6 +980,755 @@ function BasicSetting() {
               <div className="row">
                 <div className="col-md-12">
                   <form onSubmit={handleManageSetting}>
+                    <div className="row">
+                        <div className="col-md-12">
+                            <h2 className="title">เงินเพิ่ม</h2>
+                            <section className="Frame">
+
+                                <div className="row">
+                                    <div className="col-md-1">
+                                        <div className="form-group">
+                                            <label>รหัส</label>
+                                        </div>
+                                    </div>
+                                    <div className="col-md-2">
+                                        <div className="form-group">
+                                            <label>ชื่อ</label>
+                                        </div>
+                                    </div>
+                                    <div className="col-md-1">
+                                        <div className="form-group">
+                                            <label>จำนวนเงิน</label>
+                                        </div>
+                                    </div>
+                                    <div className="col-md-2">
+                                        <div className="form-group">
+                                            <label>รายวัน/รายเดือน</label>
+                                        </div>
+                                    </div>
+                                    <div className="col-md-2">
+                                        <div className="form-group">
+                                            <label>ประกันสังคม</label>
+                                        </div>
+                                    </div>
+                                    <div className="col-md-2">
+                                        <div className="form-group">
+                                            <label>ประเภทพนักงาน</label>
+                                        </div>
+                                    </div>
+                                    <div className="col-md-2">
+                                        <div className="form-group">
+                                            <label>หมายเหตุ</label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="row">
+                                    <div className="col-md-1">
+                                        <div className="form-group">
+                                            <input type="text" className="form-control" id="addSalaryId" placeholder="รหัส" value={addSalaryId} onChange={(e) => setAddSalaryId(e.target.value)} />
+                                        </div>
+                                    </div>
+
+                                    <div className="col-md-2">
+                                        <div className="form-group">
+                                            <input type="text" className="form-control" id="addSalaryName" placeholder="ชื่อ" value={addSalaryName} onChange={(e) => setAddSalaryName(e.target.value)} />
+                                        </div>
+                                    </div>
+
+                                    <div className="col-md-1">
+                                        <input type="text" className="form-control" id="addSalary" placeholder="จำนวนเงิน" value={addSalary} onChange={(e) => setAddSalary(e.target.value)}
+                                            onInput={(e) => {
+                                                e.target.value = e.target.value.replace(/[^0-9.]/g, "");
+                                                const parts = e.target.value.split(".");
+                                                if (parts.length > 2) {
+                                                    e.target.value = `${parts[0]}.${parts[1]}`;
+                                                }
+                                            }} />
+                                    </div>
+                                    <div className="col-md-2">
+                                        <select
+                                            name="roundOfSalary"
+                                            className="form-control"
+                                            value={roundOfSalary}
+                                            onChange={(e) => setRoundOfSalary(e.target.value)}
+                                        >
+                                            <option value="">เลือก</option>
+                                            <option value="daily">รายวัน</option>
+                                            <option value="monthly">รายเดือน</option>
+                                        </select>
+                                    </div>
+                                    <div className="col-md-2">
+                                        <select
+                                            name="socialSecurityType"
+                                            className="form-control"
+                                            value={socialSecurityCheck === null ? "" : (socialSecurityCheck ? "yes" : "no")}
+                                            onChange={(e) => {
+                                                const value = e.target.value;
+                                                if (value === "") {
+                                                    setSocialSecurityCheck(null);
+                                                } else {
+                                                    setSocialSecurityCheck(value === "yes");
+                                                }
+                                            }}
+                                        >
+                                            <option value="">เลือก</option>
+                                            <option value="yes">คิดประกันสังคม</option>
+                                            <option value="no">ไม่คิดประกันสังคม</option>
+                                        </select>
+                                    </div> 
+                                    <div className="col-md-2">
+                                        <select
+                                            name="StaffType"
+                                            className="form-control"
+                                            value={staffType}
+                                            onChange={(e) => setStaffType(e.target.value)}
+                                        >
+                                            <option value="">เลือกตำแหน่งที่จะมอบให้</option>
+                                            <option value="all">ทั้งหมด</option>
+                                            <option value="หัวหน้าควบคุมงาน">หัวหน้าควบคุมงาน</option>
+                                            <option value="ผู้ช่วยผู้ควบคุมงาน">ผู้ช่วยผู้ควบคุมงาน</option>
+                                            <option value="พนักงานทำความสะอาด">พนักงานทำความสะอาด</option>
+                                            <option value="พนักงานทำความสะอาดรอบนอก">พนักงานทำความสะอาดรอบนอก</option>
+                                            <option value="พนักงานเสิร์ฟ">พนักงานเสิร์ฟ</option>
+                                            <option value="พนักงานคนสวน">พนักงานคนสวน</option>
+                                            <option value="พนักงานแรงงานชาย">พนักงานแรงงานชาย</option>
+                                            <option value="กรรมการผู้จัดการ">กรรมการผู้จัดการ</option>
+                                            <option value="ผู้จัดการทั่วไป">ผู้จัดการทั่วไป</option>
+                                            <option value="ผู้จัดการฝ่ายการตลาด">ผู้จัดการฝ่ายการตลาด</option>
+                                            <option value="ผู้จัดการฝ่ายบัญชี/การเงิน">ผู้จัดการฝ่ายบัญชี/การเงิน</option>
+                                            <option value="ผู้จัดการฝ่ายบุคคล">ผู้จัดการฝ่ายบุคคล</option>
+                                            <option value="เจ้าหน้าที่ฝ่ายบัญชี/การเงิน">เจ้าหน้าที่ฝ่ายบัญชี/การเงิน</option>
+                                            <option value="เจ้าหน้าที่ฝ่ายบุคคล">เจ้าหน้าที่ฝ่ายบุคคล</option>
+                                            <option value="เจ้าหน้าที่ฝ่ายจัดซื้อ">เจ้าหน้าที่ฝ่ายจัดซื้อ</option>
+                                            <option value="เจ้าหน้าที่ธุรการฝ่ายขาย">เจ้าหน้าที่ธุรการฝ่ายขาย</option>
+                                            <option value="เจ้าหน้าที่ฝ่ายการตลาด">เจ้าหน้าที่ฝ่ายการตลาด</option>
+                                            <option value="เจ้าหน้าที่ฝ่ายปฏิบัติการ">เจ้าหน้าที่ฝ่ายปฏิบัติการ</option>
+                                            <option value="เจ้าหน้าที่ฝ่ายปฏิบัติการ(สายตรวจ)">เจ้าหน้าที่ฝ่ายปฏิบัติการ(สายตรวจ)</option>
+                                            <option value="เจ้าหน้าที่ฝ่ายยานพาหนะ">เจ้าหน้าที่ฝ่ายยานพาหนะ</option>
+                                            <option value="เจ้าหน้าที่ฝ่ายไอที">เจ้าหน้าที่ฝ่ายไอที</option>
+                                            <option value="เจ้าหน้าที่ฝ่ายสโตร์">เจ้าหน้าที่ฝ่ายสโตร์</option>
+                                            <option value="เจ้าหน้าที่ความปลอดภัยในการทำงาน(จป)">เจ้าหน้าที่ความปลอดภัยในการทำงาน(จป)</option>
+                                            <option value="ธุรการทั่วไป">ธุรการทั่วไป</option>
+                                            <option value="หัวหน้าฝ่ายปฏิบัติการ">หัวหน้าฝ่ายปฏิบัติการ</option>
+                                            <option value="หัวหน้าฝ่ายบัญชี/การเงิน">หัวหน้าฝ่ายบัญชี/การเงิน</option>
+                                            <option value="หัวหน้าฝ่ายสโตร์">หัวหน้าฝ่ายสโตร์</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="col-md-2">
+                                        <input type="text" className="form-control" id="message" placeholder="หมายเหตุ" value={message} onChange={(e) => setMessage(e.target.value)} />
+                                    </div>
+                                </div>
+
+                                <div className="row" style={{ marginTop: '-5px' }}>
+                                    <div className="col-md-12">
+                                        <div className="d-flex justify-content-end">
+                                            <button
+                                                type="button"
+                                                className="btn b_save"
+                                                onClick={() => {
+                                                    const newRowData = {
+                                                        id: addSalaryId || '',
+                                                        name: addSalaryName || '',
+                                                        SpSalary: addSalary || '',
+                                                        roundOfSalary: roundOfSalary || '',
+                                                        StaffType: staffType || '',
+                                                        message: message || '',
+                                                        socialSecurityCheck: socialSecurityCheck,
+                                                    };
+                                                    addRow(newRowData);
+                                                }}
+                                            >
+                                                <i className="fas fa-check"></i> &nbsp; เพิ่ม
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* ตารางแสดงข้อมูลเงินเพิ่ม */}
+                                <div className="card shadow-sm bg-light mt-3">
+                                    <div className="card-header text-dark" style={{ backgroundColor: '#d4edda' }}>
+                                        <h6 className="mb-0" style={{ color: '#000' }}>
+                                            <i className="fas fa-plus-circle mr-2"></i>
+                                            รายการเงินเพิ่ม
+                                        </h6>
+                                    </div>
+                                    <div className="card-body p-0">
+                                        {rowDataList2.length > 0 && rowDataList2.some(item => item.name) ? (
+                                            <div className="table-responsive">
+                                                <table className="table table-hover table-striped mb-0">
+                                                    <thead className="thead-light">
+                                                        <tr>
+                                                            <th className="text-center" width="10%">
+                                                                <i className="fas fa-hashtag mr-1"></i>รหัส
+                                                            </th>
+                                                            <th width="20%">
+                                                             รายการเงินเพิ่ม
+                                                            </th>
+                                                            <th className="text-center" width="15%">
+                                                                <i className="fas fa-money-bill mr-1"></i>จำนวนเงิน
+                                                            </th>
+                                                            <th className="text-center" width="12%">
+                                                                <i className="fas fa-calendar-alt mr-1"></i>รายวัน/รายเดือน
+                                                            </th>
+                                                            <th className="text-center" width="15%">
+                                                                <i className="fas fa-shield-alt mr-1"></i>ประกันสังคม
+                                                            </th>
+                                                            <th className="text-center" width="15%">
+                                                                <i className="fas fa-users mr-1"></i>ประเภทพนักงาน
+                                                            </th>
+                                                            <th className="text-center" width="10%">
+                                                                <i className="fas fa-sticky-note mr-1"></i>หมายเหตุ
+                                                            </th>
+                                                            <th className="text-center" width="10%">
+                                                                <i className="fas fa-cogs mr-1"></i>จัดการ
+                                                            </th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {rowDataList2.map((item, index) => (
+                                                            item.name && (
+                                                                <tr key={index}>
+                                                                    {editingRowIndex2 === index ? (
+                                                                        <>
+                                                                            <td className="text-center p-2">
+                                                                                <input
+                                                                                    type="text"
+                                                                                    className="form-control form-control-sm text-center"
+                                                                                    value={editingData2?.id || ''}
+                                                                                    readOnly
+                                                                                    style={{ backgroundColor: '#f0f0f0' }}
+                                                                                />
+                                                                            </td>
+                                                                            <td className="p-2">
+                                                                                <input
+                                                                                    type="text"
+                                                                                    className="form-control form-control-sm"
+                                                                                    value={editingData2?.name || ''}
+                                                                                    onChange={(e) => setEditingData2({...editingData2, name: e.target.value})}
+                                                                                />
+                                                                            </td>
+                                                                            <td className="p-2">
+                                                                                <input
+                                                                                    type="text"
+                                                                                    className="form-control form-control-sm"
+                                                                                    value={editingData2?.SpSalary || ''}
+                                                                                    onChange={(e) => setEditingData2({...editingData2, SpSalary: e.target.value})}
+                                                                                    onInput={(e) => {
+                                                                                        e.target.value = e.target.value.replace(/[^0-9.]/g, '');
+                                                                                    }}
+                                                                                />
+                                                                            </td>
+                                                                            <td className="p-2">
+                                                                                <select
+                                                                                    className="form-control form-control-sm"
+                                                                                    value={editingData2?.roundOfSalary || ''}
+                                                                                    onChange={(e) => setEditingData2({...editingData2, roundOfSalary: e.target.value})}
+                                                                                >
+                                                                                    <option value="">เลือก</option>
+                                                                                    <option value="daily">รายวัน</option>
+                                                                                    <option value="monthly">รายเดือน</option>
+                                                                                </select>
+                                                                            </td>
+                                                                            <td className="p-2">
+                                                                                <select
+                                                                                    className="form-control form-control-sm"
+                                                                                    value={editingData2?.socialSecurityCheck === true ? "yes" : editingData2?.socialSecurityCheck === false ? "no" : ""}
+                                                                                    onChange={(e) => {
+                                                                                        const value = e.target.value === "yes" ? true : e.target.value === "no" ? false : null;
+                                                                                        setEditingData2({...editingData2, socialSecurityCheck: value});
+                                                                                    }}
+                                                                                >
+                                                                                    <option value="">เลือก</option>
+                                                                                    <option value="yes">คิดประกันสังคม</option>
+                                                                                    <option value="no">ไม่คิดประกันสังคม</option>
+                                                                                </select>
+                                                                            </td>
+                                                                            <td className="p-2">
+                                                                                <select
+                                                                                    className="form-control form-control-sm"
+                                                                                    value={editingData2?.StaffType || ''}
+                                                                                    onChange={(e) => setEditingData2({...editingData2, StaffType: e.target.value})}
+                                                                                >
+                                                                                    <option value="">เลือก</option>
+                                                                                    <option value="all">ทั้งหมด</option>
+                                                                                    <option value="header">หัวหน้างาน</option>
+                                                                                    <option value="หัวหน้าควบคุมงาน">หัวหน้าควบคุมงาน</option>
+                                                                                    <option value="พนักงานทำความสะอาด">พนักงานทำความสะอาด</option>
+                                                                                </select>
+                                                                            </td>
+                                                                            <td className="p-2">
+                                                                                <input
+                                                                                    type="text"
+                                                                                    className="form-control form-control-sm"
+                                                                                    value={editingData2?.message || ''}
+                                                                                    onChange={(e) => setEditingData2({...editingData2, message: e.target.value})}
+                                                                                    placeholder="หมายเหตุ"
+                                                                                />
+                                                                            </td>
+                                                                            <td className="text-center p-2">
+                                                                                <div className="btn-group-vertical btn-group-sm" role="group">
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        className="btn btn-success btn-sm mb-1"
+                                                                                        onClick={() => handleSaveEdit2(index)}
+                                                                                        title="บันทึก"
+                                                                                    >
+                                                                                        <i className="fas fa-check"></i>
+                                                                                    </button>
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        className="btn btn-secondary btn-sm"
+                                                                                        onClick={handleCancelEdit2}
+                                                                                        title="ยกเลิก"
+                                                                                    >
+                                                                                        <i className="fas fa-times"></i>
+                                                                                    </button>
+                                                                                </div>
+                                                                            </td>
+                                                                        </>
+                                                                    ) : (
+                                                                        <>
+                                                                    <td className="text-center p-3 font-weight-bold text-primary">
+                                                                        {item.id}
+                                                                    </td>
+                                                                    <td className="p-3">
+                                                                        {item.name}
+                                                                    </td>
+                                                                    <td className="text-center p-3">
+                                                                        <span className="">
+                                                                           {Number(item.SpSalary).toLocaleString()} บาท
+                                                                        </span>
+                                                                    </td>
+                                                                    <td className="text-center p-3">
+                                                                        {item.roundOfSalary === "daily" && (
+                                                                            <span className="text-bold">รายวัน</span>
+                                                                        )}
+                                                                        {item.roundOfSalary === "monthly" && (
+                                                                            <span className="text-bold">รายเดือน</span>
+                                                                        )}
+                                                                    </td>
+                                                                    <td className="text-center p-3">
+                                                                        {(item.socialSecurityCheck === true || item.socialSecurityCheck === "yes" || item.socialSecurityCheck === "คิด") && (
+                                                                            <span className="badge badge-success">คิดประกันสังคม</span>
+                                                                        )}
+                                                                        {(item.socialSecurityCheck === false || item.socialSecurityCheck === "no" || item.socialSecurityCheck === "ไม่คิด") && (
+                                                                            <span className="badge badge-danger">ไม่คิดประกันสังคม</span>
+                                                                        )}
+                                                                        {(item.socialSecurityCheck === null || item.socialSecurityCheck === undefined || item.socialSecurityCheck === "") && (
+                                                                            <span className="badge badge-secondary">ไม่ระบุ</span>
+                                                                        )}
+                                                                    </td> 
+                                                                    <td className="text-center p-3">
+                                                                        {item.StaffType === "header" && (
+                                                                            <span className="">หัวหน้างาน</span>
+                                                                        )}
+                                                                        {item.StaffType === "all" && (
+                                                                            <span className="">พนักงาน</span>
+                                                                        )}
+                                                                        {item.StaffType !== "header" && item.StaffType !== "all" && item.StaffType && (
+                                                                            <span className="">{item.StaffType}</span>
+                                                                        )}
+                                                                    </td>
+                                                                    <td className="text-center p-3">
+                                                                        <small className="">
+                                                                            {item.message || '-'}
+                                                                        </small>
+                                                                    </td>
+                                                                    <td className="text-center p-3">
+                                                                        <div className="btn-group" role="group">
+                                                                            <button 
+                                                                                type="button"
+                                                                                className="btn btn-info btn-sm"
+                                                                                onClick={() => handleEditRow(index)}
+                                                                                title="แก้ไขรายการ"
+                                                                            >
+                                                                                <i className="fas fa-edit"></i>
+                                                                            </button>
+                                                                            <button 
+                                                                                type="button"
+                                                                                className="btn btn-danger btn-sm"
+                                                                                onClick={() => handleDeleteRow(index)}
+                                                                                title="ลบรายการ"
+                                                                            >
+                                                                                <i className="fas fa-trash"></i>
+                                                                            </button>
+                                                                        </div>
+                                                                    </td>
+                                                                    </>
+                                                                    )}
+                                                                </tr>
+                                                            )
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        ) : (
+                                            <div className="text-center py-4">
+                                                <i className="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                                <p className="text-muted">ยังไม่มีข้อมูลเงินเพิ่ม</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </section>
+                        </div>
+                    </div>
+
+                    <div className="row">
+                        <div className="col-md-12">
+                            <h2 className="title">เงินหัก</h2>
+                            <section className="Frame">
+                                <div className="row">
+                                    <div className="col-md-1">
+                                        <div className="form-group">
+                                            <label>รหัส</label>
+                                        </div>
+                                    </div>
+                                    <div className="col-md-2">
+                                        <div className="form-group">
+                                            <label>ชื่อ</label>
+                                        </div>
+                                    </div>
+                                    <div className="col-md-2">
+                                        <div className="form-group">
+                                            <label>จำนวนเงิน</label>
+                                        </div>
+                                    </div>
+                                    <div className="col-md-2">
+                                        <div className="form-group">
+                                            <label>การหักเงิน</label>
+                                        </div>
+                                    </div>
+                                    <div className="col-md-2">
+                                        <div className="form-group">
+                                            <label>ประกันสังคม</label>
+                                        </div>
+                                    </div>
+                                    <div className="col-md-3">
+                                        <div className="form-group">
+                                            <label>หมายเหตุ</label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="row">
+                                    <div className="col-md-1">
+                                        <div className="form-group">
+                                            <input type="text" className="form-control" id="addSalaryId" placeholder="รหัส" value={minusId} onChange={(e) => setMinusId(e.target.value)}
+                                                onInput={(e) => {
+                                                    e.target.value = e.target.value.replace(/\D/g, "");
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="col-md-2">
+                                        <div className="form-group">
+                                            <input type="text" className="form-control" id="addSalaryName" placeholder="ชื่อ" value={misnusName} onChange={(e) => setMisnusName(e.target.value)} />
+                                        </div>
+                                    </div>
+
+                                    <div className="col-md-2">
+                                        <input type="text" className="form-control" id="addSalaryName" placeholder="จำนวนเงิน" value={minusSalary} onChange={(e) => setMinusSalary(e.target.value)}
+                                            onInput={(e) => {
+                                                e.target.value = e.target.value.replace(/[^0-9.]/g, "");
+                                                const parts = e.target.value.split(".");
+                                                if (parts.length > 2) {
+                                                    e.target.value = `${parts[0]}.${parts[1]}`;
+                                                }
+                                            }} />
+                                    </div>
+
+                                    <div className="col-md-2">
+                                        <select
+                                            name="roundOfSalary"
+                                            className="form-control"
+                                            value={payType}
+                                            onChange={(e) => setPayType(e.target.value)}
+                                        >
+                                            <option value="">เลือก</option>
+                                            <option value="immedate">ทั้งหมด</option>
+                                            <option value="installment">ผ่อนจ่าย</option>
+                                        </select>
+                                    </div>
+                                    <div className="col-md-2">
+                                        <select
+                                            name="minusSocialSecurityType"
+                                            className="form-control"
+                                            value={minusSocialSecurityCheck === null ? "" : (minusSocialSecurityCheck ? "yes" : "no")}
+                                            onChange={(e) => {
+                                                const value = e.target.value;
+                                                if (value === "") {
+                                                    setMinusSocialSecurityCheck(null);
+                                                } else {
+                                                    setMinusSocialSecurityCheck(value === "yes");
+                                                }
+                                            }}
+                                        >
+                                            <option value="">เลือก</option>
+                                            <option value="yes">คิดประกันสังคม</option>
+                                            <option value="no">ไม่คิดประกันสังคม</option>
+                                        </select>
+                                    </div>
+                                    <div className="col-md-2">
+                                        {payType === "installment" ? (
+                                            <select
+                                                name="StaffType"
+                                                className="form-control"
+                                                value={installment}
+                                                onChange={(e) => setInstallment(e.target.value)}
+                                            >
+                                                <option value="">เลือกจำนวนงวด</option>
+                                                <option value="2">2 งวด {minusSalary / 2}</option>
+                                                <option value="3">3 งวด {minusSalary / 3}</option>
+                                                <option value="4">4 งวด {minusSalary / 4}</option>
+                                                <option value="5">5 งวด {minusSalary / 5}</option>
+                                                <option value="6">6 งวด {minusSalary / 6}</option>
+                                            </select>
+                                        ) : (
+                                            <select
+                                                name="StaffType"
+                                                className="form-control"
+                                                value={installment}
+                                                onChange={(e) => setInstallment(e.target.value)}
+                                            >
+                                                <option value="1">1 งวด {minusSalary}</option>
+                                            </select>
+                                        )}
+                                    </div>
+
+                                    <div className="col-md-2">
+                                        <input type="text" className="form-control" id="minusStaffType" placeholder="หมายเหตุ" value={minusStaffType} onChange={(e) => setMinusStaffType(e.target.value)} />
+                                    </div>
+                                </div>
+
+                                <div className="row" style={{ marginTop: '-10px' }}>
+                                    <div className="col-md-12">
+                                        <div className="d-flex justify-content-end">
+                                            <button
+                                                type="button"
+                                                className="btn b_save"
+                                                onClick={() => {
+                                                    const newRowData2 = {
+                                                        id: minusId || '',
+                                                        name: misnusName || '',
+                                                        amount: minusSalary || '',
+                                                        payType: payType || '',
+                                                        installment: installment || '',
+                                                        message: minusStaffType || '',
+                                                        socialSecurityCheck: minusSocialSecurityCheck,
+                                                    };
+                                                    addRow2(newRowData2);
+                                                }}
+                                            >
+                                                <i className="fas fa-check"></i> &nbsp; เพิ่ม
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* ตารางแสดงข้อมูลเงินหัก */}
+                                <div className="card shadow-sm bg-light mt-3">
+                                    <div className="card-header text-dark" style={{ backgroundColor: '#d4edda' }}>
+                                        <h6 className="mb-0" style={{ color: '#000' }}>
+                                            <i className="fas fa-minus-circle mr-2"></i>
+                                            รายการเงินหัก
+                                        </h6>
+                                    </div>
+                                    <div className="card-body p-0">
+                                        {rowDataList.length > 0 && rowDataList.some(item => item.name) ? (
+                                            <div className="table-responsive">
+                                                <table className="table table-hover table-striped mb-0">
+                                                    <thead className="thead-light">
+                                                        <tr>
+                                                            <th className="text-center" width="10%">
+                                                                <i className="fas fa-hashtag mr-1"></i>รหัส
+                                                            </th>
+                                                            <th width="20%">
+                                                                รายการเงินหัก
+                                                            </th>
+                                                            <th className="text-center" width="15%">
+                                                                <i className="fas fa-money-bill mr-1"></i>จำนวนเงิน
+                                                            </th>
+                                                            <th className="text-center" width="15%">
+                                                                <i className="fas fa-credit-card mr-1"></i>การหักเงิน
+                                                            </th>
+                                                            <th className="text-center" width="20%">
+                                                                <i className="fas fa-shield-alt mr-1"></i>ประกันสังคม
+                                                            </th>
+                                                            <th className="text-center" width="17%">
+                                                                <i className="fas fa-sticky-note mr-1"></i>หมายเหตุ
+                                                            </th>
+                                                            <th className="text-center" width="10%">
+                                                                <i className="fas fa-cogs mr-1"></i>จัดการ
+                                                            </th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {rowDataList.map((item, index) => (
+                                                            item.name && (
+                                                                <tr key={index}>
+                                                                    {editingRowIndex === index ? (
+                                                                        <>
+                                                                            <td className="text-center p-2">
+                                                                                <input
+                                                                                    type="text"
+                                                                                    className="form-control form-control-sm text-center"
+                                                                                    value={editingData?.id || ''}
+                                                                                    readOnly
+                                                                                    style={{ backgroundColor: '#f0f0f0' }}
+                                                                                />
+                                                                            </td>
+                                                                            <td className="p-2">
+                                                                                <input
+                                                                                    type="text"
+                                                                                    className="form-control form-control-sm"
+                                                                                    value={editingData?.name || ''}
+                                                                                    onChange={(e) => setEditingData({...editingData, name: e.target.value})}
+                                                                                />
+                                                                            </td>
+                                                                            <td className="p-2">
+                                                                                <input
+                                                                                    type="text"
+                                                                                    className="form-control form-control-sm"
+                                                                                    value={editingData?.amount || ''}
+                                                                                    onChange={(e) => setEditingData({...editingData, amount: e.target.value})}
+                                                                                    onInput={(e) => {
+                                                                                        e.target.value = e.target.value.replace(/[^0-9.]/g, '');
+                                                                                    }}
+                                                                                />
+                                                                            </td>
+                                                                            <td className="p-2">
+                                                                                <select
+                                                                                    className="form-control form-control-sm"
+                                                                                    value={editingData?.payType || ''}
+                                                                                    onChange={(e) => setEditingData({...editingData, payType: e.target.value})}
+                                                                                >
+                                                                                    <option value="">เลือก</option>
+                                                                                    <option value="immedate">ทั้งหมด</option>
+                                                                                    <option value="installment">ผ่อนจ่าย</option>
+                                                                                </select>
+                                                                            </td>
+                                                                            <td className="p-2">
+                                                                                <select
+                                                                                    className="form-control form-control-sm"
+                                                                                    value={editingData?.socialSecurityCheck || ''}
+                                                                                    onChange={(e) => setEditingData({...editingData, socialSecurityCheck: e.target.value})}
+                                                                                >
+                                                                                    <option value="">ไม่ระบุ</option>
+                                                                                    <option value="yes">คิดประกันสังคม</option>
+                                                                                    <option value="no">ไม่คิดประกันสังคม</option>
+                                                                                </select>
+                                                                            </td>
+                                                                            <td className="p-2">
+                                                                                <input
+                                                                                    type="text"
+                                                                                    className="form-control form-control-sm"
+                                                                                    value={editingData?.message || ''}
+                                                                                    onChange={(e) => setEditingData({...editingData, message: e.target.value})}
+                                                                                    placeholder="หมายเหตุ"
+                                                                                />
+                                                                            </td>
+                                                                            <td className="text-center p-2">
+                                                                                <div className="btn-group-vertical btn-group-sm" role="group">
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        className="btn btn-success btn-sm mb-1"
+                                                                                        onClick={() => handleSaveEdit(index)}
+                                                                                        title="บันทึก"
+                                                                                    >
+                                                                                        <i className="fas fa-check"></i>
+                                                                                    </button>
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        className="btn btn-secondary btn-sm"
+                                                                                        onClick={handleCancelEdit}
+                                                                                        title="ยกเลิก"
+                                                                                    >
+                                                                                        <i className="fas fa-times"></i>
+                                                                                    </button>
+                                                                                </div>
+                                                                            </td>
+                                                                        </>
+                                                                    ) : (
+                                                                        <>
+                                                                    <td className="text-center font-weight-bold text-primary p-3">
+                                                                        {item.id}
+                                                                    </td>
+                                                                    <td className="p-3">
+                                                                        {item.name}
+                                                                    </td>
+                                                                    <td className="text-center p-3">
+                                                                        <span className="">
+                                                                            - {Number(item.amount).toLocaleString()} บาท
+                                                                        </span>
+                                                                    </td>
+                                                                    <td className="text-center p-3">
+                                                                        {item.payType === "immedate" && (
+                                                                            <span className="">จ่ายทั้งหมด</span>
+                                                                        )}
+                                                                        {item.payType === "installment" && (
+                                                                            <span className="">ผ่อนจ่าย</span>
+                                                                        )}
+                                                                    </td>
+                                                                    <td className="text-center p-3">
+                                                                        {(item.socialSecurityCheck === true || item.socialSecurityCheck === "yes" || item.socialSecurityCheck === "คิด") && (
+                                                                            <span className="badge badge-success">คิดประกันสังคม</span>
+                                                                        )}
+                                                                        {(item.socialSecurityCheck === false || item.socialSecurityCheck === "no" || item.socialSecurityCheck === "ไม่คิด") && (
+                                                                            <span className="badge badge-danger">ไม่คิดประกันสังคม</span>
+                                                                        )}
+                                                                        {(item.socialSecurityCheck === null || item.socialSecurityCheck === undefined || item.socialSecurityCheck === "") && (
+                                                                            <span className="badge badge-secondary">ไม่ระบุ</span>
+                                                                        )}
+                                                                    </td>
+                                                                    <td className="text-center p-3">
+                                                                        <small className="">
+                                                                            {item.message || '-'}
+                                                                        </small>
+                                                                    </td>
+                                                                    <td className="text-center p-2">
+                                                                        <div className="btn-group" role="group">
+                                                                            <button
+                                                                                type="button"
+                                                                                className="btn btn-info btn-sm"
+                                                                                onClick={() => handleEditRow2(index)}
+                                                                                title="แก้ไขรายการ"
+                                                                            >
+                                                                                <i className="fas fa-edit"></i>
+                                                                            </button>
+                                                                            <button
+                                                                                type="button"
+                                                                                className="btn btn-danger btn-sm"
+                                                                                onClick={() => handleDeleteRow2(index)}
+                                                                                title="ลบรายการ"
+                                                                            >
+                                                                                <i className="fas fa-trash"></i>
+                                                                            </button>
+                                                                        </div>
+                                                                    </td>
+                                                                        </>
+                                                                    )}
+                                                                </tr>
+                                                            )
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        ) : (
+                                            <div className="text-center py-4">
+                                                <i className="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                                <p className="text-muted">ยังไม่มีข้อมูลเงินหัก</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </section>
+                        </div>
+                    </div>
+
                     {/* Existing Social Insurance Section */}
                     {/* <h2 className="title">รายละเอียดประกันสังคม</h2>
                     <div className="form-group row">
