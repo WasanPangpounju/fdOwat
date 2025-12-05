@@ -4800,10 +4800,10 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
   try {
     const { month, year, workplaceId, isRecursiveCall } = req.body;
     
-    console.log(`🔍 [WORKPLACE] API called with parameters:`, { month, year, workplaceId, isRecursiveCall });
+    // console.log(`🔍 [WORKPLACE] API called with parameters:`, { month, year, workplaceId, isRecursiveCall });
 
     if (!month || !year) {
-      console.log(`❌ [WORKPLACE] Missing month or year parameters`);
+      // console.log(`❌ [WORKPLACE] Missing month or year parameters`);
       return res.status(400).json({ message: 'Month and year are required' });
     }
 
@@ -4813,7 +4813,7 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
       year: { $regex: new RegExp(year, 'i') },
     });
     
-    console.log(`🔍 [WORKPLACE] Found ${allRecords.length} total records for month=${month}, year=${year}`);
+    // console.log(`🔍 [WORKPLACE] Found ${allRecords.length} total records for month=${month}, year=${year}`);
 
     // Step 1.5: กรองข้อมูลซ้ำ - เก็บเฉพาะรายการล่าสุดที่มี employee_record
     const employeeRecordMap = new Map();
@@ -4880,25 +4880,25 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
 
     // ใช้ข้อมูลที่กรองแล้ว
     const records = Array.from(employeeRecordMap.values());
-    console.log(`🔍 [WORKPLACE] หลังกรองข้อมูลซ้ำเหลือ ${records.length} รายการ`);
+    // console.log(`🔍 [WORKPLACE] หลังกรองข้อมูลซ้ำเหลือ ${records.length} รายการ`);
 
     if (!records.length) {
-      console.log(`❌ [WORKPLACE] No records found, returning empty result`);
+      // console.log(`❌ [WORKPLACE] No records found, returning empty result`);
       return res.status(200).json({ groupedResult: {}, message: 'No records found' });
     }
 
     // Step 2: Fetch all employee profiles to avoid repeated queries
     const employeeIds = records.map(r => r.employeeId);
-    console.log(`🔍 [WORKPLACE] Employee IDs from records: ${employeeIds.join(', ')}`);
+    // console.log(`🔍 [WORKPLACE] Employee IDs from records: ${employeeIds.join(', ')}`);
     
     const employees = await Employee.find({ employeeId: { $in: employeeIds } });
-    console.log(`🔍 [WORKPLACE] Found ${employees.length} employee profiles`);
+    // console.log(`🔍 [WORKPLACE] Found ${employees.length} employee profiles`);
 
     const employeeMap = {};
     employees.forEach(emp => {
       if (emp.employeeId) {
         employeeMap[emp.employeeId] = emp;
-        console.log(`🔍 [WORKPLACE] Employee ${emp.employeeId} -> workplace: ${emp.workplace}`);
+        // console.log(`🔍 [WORKPLACE] Employee ${emp.employeeId} -> workplace: ${emp.workplace}`);
       }
     });
 
@@ -4908,20 +4908,20 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
     for (const record of records) {
       const employee = employeeMap[record.employeeId];
       
-      console.log(`🔍 [WORKPLACE] Processing record for employeeId: ${record.employeeId}`);
+      // console.log(`🔍 [WORKPLACE] Processing record for employeeId: ${record.employeeId}`);
 
       if (!employee) {
-        console.log(`❌ [WORKPLACE] No employee profile found for employeeId: ${record.employeeId}`);
+        // console.log(`❌ [WORKPLACE] No employee profile found for employeeId: ${record.employeeId}`);
         continue;
       }
       
       if (!employee.workplace) {
-        console.log(`❌ [WORKPLACE] Employee ${record.employeeId} has no workplace assigned`);
+        // console.log(`❌ [WORKPLACE] Employee ${record.employeeId} has no workplace assigned`);
         continue;
       }
 
       const empWorkplaceId = employee.workplace;
-      console.log(`🔍 [WORKPLACE] Employee ${record.employeeId} workplace: ${empWorkplaceId}, target: ${workplaceId || 'ALL'}`);
+      // console.log(`🔍 [WORKPLACE] Employee ${record.employeeId} workplace: ${empWorkplaceId}, target: ${workplaceId || 'ALL'}`);
 
       // ตรวจสอบว่าพนักงานทำงานในหน่วยงานที่ต้องการหรือไม่
       let shouldInclude = false;
@@ -4929,12 +4929,12 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
       if (!workplaceId) {
         // ถ้าไม่ระบุ workplaceId ให้แสดงทั้งหมด
         shouldInclude = true;
-        console.log(`✅ [WORKPLACE] Include all - employee ${record.employeeId}`);
+        // console.log(`✅ [WORKPLACE] Include all - employee ${record.employeeId}`);
       } else {
         // เช็คว่าพนักงานสังกัดหน่วยงานที่ต้องการ
         if (empWorkplaceId === workplaceId) {
           shouldInclude = true;
-          console.log(`✅ [WORKPLACE] Match direct workplace - employee ${record.employeeId}`);
+          // console.log(`✅ [WORKPLACE] Match direct workplace - employee ${record.employeeId}`);
         } else {
           // เช็คว่าพนักงานจากหน่วยงานอื่นมาทำงานที่หน่วยงานนี้หรือไม่
           if (record.employee_record && Array.isArray(record.employee_record)) {
@@ -4943,35 +4943,35 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
             );
             if (worksAtTargetWorkplace) {
               shouldInclude = true;
-              console.log(`🔄 [WORKPLACE] Cross-workplace match - employee ${record.employeeId} (belongs to ${empWorkplaceId}) works at ${workplaceId}`);
+              // console.log(`🔄 [WORKPLACE] Cross-workplace match - employee ${record.employeeId} (belongs to ${empWorkplaceId}) works at ${workplaceId}`);
             } else {
-              console.log(`❌ [WORKPLACE] No cross-workplace match - employee ${record.employeeId} workplace ${empWorkplaceId} != target ${workplaceId}`);
+              // console.log(`❌ [WORKPLACE] No cross-workplace match - employee ${record.employeeId} workplace ${empWorkplaceId} != target ${workplaceId}`);
             }
           } else {
-            console.log(`❌ [WORKPLACE] No employee_record for cross-workplace check - employee ${record.employeeId}`);
+            // console.log(`❌ [WORKPLACE] No employee_record for cross-workplace check - employee ${record.employeeId}`);
           }
         }
       }
 
       if (!shouldInclude) {
-        console.log(`❌ [WORKPLACE] Skipping employee ${record.employeeId} - no workplace match`);
+        // console.log(`❌ [WORKPLACE] Skipping employee ${record.employeeId} - no workplace match`);
         continue;
       }
       
-      console.log(`✅ [WORKPLACE] Including employee ${record.employeeId} in results`);
+      // console.log(`✅ [WORKPLACE] Including employee ${record.employeeId} in results`);
 
             // 🔥 เพิ่มเช็ค dayWorkCount หรือ dayOffCount และดึง personalDayOff
             if (!isRecursiveCall && (!record.dayWorkCount || !record.dayOffCount || !record.personalDayOff)) {
-              // console.log(`🔍 Missing data for employeeId=${record.employeeId} month ${record.month} year ${record.year}`);
-              // console.log(`  - dayWorkCount: ${record.dayWorkCount || 'ไม่มี'}`);
-              // console.log(`  - dayOffCount: ${record.dayOffCount || 'ไม่มี'}`);
-              // console.log(`  - personalDayOff: ${record.personalDayOff ? 'มี' : 'ไม่มี'}`);
-              // console.log(`  - stopDaysList: ${record.stopDaysList ? 'มี' : 'ไม่มี'}`);
+              console.log(`🔍 Missing data for employeeId=${record.employeeId} month ${record.month} year ${record.year}`);
+              console.log(`  - dayWorkCount: ${record.dayWorkCount || 'ไม่มี'}`);
+              console.log(`  - dayOffCount: ${record.dayOffCount || 'ไม่มี'}`);
+              console.log(`  - personalDayOff: ${record.personalDayOff ? 'มี' : 'ไม่มี'}`);
+              console.log(`  - stopDaysList: ${record.stopDaysList ? 'มี' : 'ไม่มี'}`);
       
               try {
                 // สร้าง personalDayOff สำหรับหน่วยงานปกติ
                 if (!record.personalDayOff || record.personalDayOff.length === 0) {
-                  // console.log(`🔄 สร้าง personalDayOff สำหรับหน่วยงานปกติ employeeId=${record.employeeId}`);
+                  console.log(`🔄 สร้าง personalDayOff สำหรับหน่วยงานปกติ employeeId=${record.employeeId}`);
                   const personalDayOff = await createPersonalDayOffForRegularWorkplace(
                     record.employeeId, 
                     record.employee_record, 
@@ -4990,7 +4990,7 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
                       employee_record: record.employee_record // อัปเดต employee_record ด้วย
                     });
                     
-                    // console.log(`✅ สร้าง personalDayOff สำเร็จ: ${personalDayOff.length} วัน และอัปเดต employee_record`);
+                    console.log(`✅ สร้าง personalDayOff สำเร็จ: ${personalDayOff.length} วัน และอัปเดต employee_record`);
                   }
                 }
                 
@@ -5039,7 +5039,7 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
                             }
                             
                             if (isMatchingDate) {
-                              // console.log(`🔄 [CONCLUDE] อัปเดต dayType จาก "${workRecord.dayType}" เป็น "stop" สำหรับวันที่ ${recordDate}`);
+                              console.log(`🔄 [CONCLUDE] อัปเดต dayType จาก "${workRecord.dayType}" เป็น "stop" สำหรับวันที่ ${recordDate}`);
                               workRecord.dayType = "stop";
                             }
                           });
@@ -5062,7 +5062,7 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
                             const dayOffDate = parseInt(dayOffItem.date);
                             
                             if (recordDate === dayOffDate) {
-                              console.log(`🔄 [STOPLIST] อัปเดต dayType จาก "${workRecord.dayType}" เป็น "stop" สำหรับวันที่ ${recordDate}`);
+                              // console.log(`🔄 [STOPLIST] อัปเดต dayType จาก "${workRecord.dayType}" เป็น "stop" สำหรับวันที่ ${recordDate}`);
                               workRecord.dayType = "stop";
                             }
                           });
@@ -5072,7 +5072,7 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
                   }
                   if (concludeData.cashcustomizeDayoff) {
                     record.cashcustomizeDayoff = concludeData.cashcustomizeDayoff;
-                    console.log(`💎 ได้ cashcustomizeDayoff สำหรับ ${record.employeeId}: ${record.cashcustomizeDayoff} บาท`);
+                    // console.log(`💎 ได้ cashcustomizeDayoff สำหรับ ${record.employeeId}: ${record.cashcustomizeDayoff} บาท`);
                   }
                 }
       
@@ -5102,7 +5102,7 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
       try {
         // ส่ง stopDaysList หรือ personalDayOff (ใช้ค่าที่มีอยู่)
         const stopDaysToUse = record.stopDaysList || record.personalDayOff || [];
-        console.log(`🔍 ใช้ stopDaysList: ${stopDaysToUse.length} วัน (จาก ${record.stopDaysList ? 'stopDaysList' : record.personalDayOff ? 'personalDayOff' : 'ไม่มี'})`);
+        // console.log(`🔍 ใช้ stopDaysList: ${stopDaysToUse.length} วัน (จาก ${record.stopDaysList ? 'stopDaysList' : record.personalDayOff ? 'personalDayOff' : 'ไม่มี'})`);
         
         const calculatedValues = await calculateCashValues(
           record.employeeId,
@@ -5126,7 +5126,7 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
         processedRecord.sumCashWork1_20 = calculatedValues.sumCashWork1_20;
         processedRecord.sumCashWork21_30_31 = calculatedValues.sumCashWork21_30_31;
         
-        console.log(`🔄 คำนวณค่าเงินใหม่สำหรับพนักงาน ${record.employeeId}:`);
+        // console.log(`🔄 คำนวณค่าเงินใหม่สำหรับพนักงาน ${record.employeeId}:`);
         console.log(`   - sumCashWorkMul["1.5"]: ${calculatedValues.sumCashWorkMul["1.5"]} บาท`);
         console.log(`   - sumOt1p5: ${calculatedValues.sumOt1p5} ชั่วโมง`);
         console.log(`   - dayWorkCount: ${calculatedValues.dayWorkCount} วัน`);
@@ -5179,7 +5179,7 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
       }
 
       // Debug: ตรวจสอบข้อมูล personalDayOff และ cashcustomizeDayoff
-      console.log(`📊 Debug ข้อมูล employee ${record.employeeId}:`);
+      // console.log(`📊 Debug ข้อมูล employee ${record.employeeId}:`);
       console.log(`  - personalDayOff จาก DB:`, record.personalDayOff);
       console.log(`  - stopDaysList จาก DB:`, record.stopDaysList);
       console.log(`  - cashcustomizeDayoff จาก DB:`, record.cashcustomizeDayoff);
@@ -5202,20 +5202,20 @@ router.post('/searchtimerecordbyworkplace', async (req, res) => {
       // Debug log เพื่อตรวจสอบข้อมูลที่ส่งกลับ
       const crossWorkplaceInfo = empWorkplaceId !== targetWorkplaceForGrouping ? 
         ` (ข้ามหน่วยงานจาก ${empWorkplaceId} มาทำงานที่ ${targetWorkplaceForGrouping})` : '';
-      console.log(`📤 ส่งข้อมูลกลับสำหรับ ${record.employeeId}${crossWorkplaceInfo}:`);
+      // console.log(`📤 ส่งข้อมูลกลับสำหรับ ${record.employeeId}${crossWorkplaceInfo}:`);
       console.log(`  - personalDayOff: ${record.personalDayOff ? `${record.personalDayOff.length} วัน` : 'ไม่มี'}`);
       console.log(`  - stopDaysList: ${record.stopDaysList ? `${record.stopDaysList.length} วัน` : 'ไม่มี'}`);
       console.log(`  - cashcustomizeDayoff: ${record.cashcustomizeDayoff || 'ไม่มี'} บาท`);
     }
     
-    console.log(`📊 [WORKPLACE] Final results summary:`);
+    // console.log(`📊 [WORKPLACE] Final results summary:`);
     console.log(`   - Total workplace groups: ${Object.keys(groupedResult).length}`);
     Object.keys(groupedResult).forEach(wpId => {
       console.log(`   - Workplace ${wpId}: ${groupedResult[wpId].length} employees`);
     });
     
     if (Object.keys(groupedResult).length === 0) {
-      console.log(`⚠️ [WORKPLACE] Returning empty groupedResult - no employees matched criteria`);
+      // console.log(`⚠️ [WORKPLACE] Returning empty groupedResult - no employees matched criteria`);
     }
 
     return res.status(200).json({ groupedResult });
@@ -5249,7 +5249,7 @@ const getEmployeeProfile = async (employeeId) => {
     const query = {};
     if (employeeId) {
       query.employeeId = employeeId;
-    }ด
+    }
 
         // Query the employee collection for matching documents
         const employees = await Employee.find(query);
@@ -5546,7 +5546,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           if (item.id) validWelfareIds.add(item.id);
         });
         
-        console.log(`🔍 [ACCOUNTING] validWelfareIds จาก DB:`, Array.from(validWelfareIds));
+        // console.log(`🔍 [ACCOUNTING] validWelfareIds จาก DB:`, Array.from(validWelfareIds));
         
         // สร้าง list ของ welfare IDs ที่เป็นไปได้ - รวมทุก welfare ID ที่อาจปรากฏ
         const potentialWelfareIds = new Set([
@@ -5556,10 +5556,10 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           ...Array.from(validWelfareIds) // และ IDs ที่มีใน welfare database
         ]);
         
-        console.log(`🔍 [ACCOUNTING] potentialWelfareIds ทั้งหมด:`, Array.from(potentialWelfareIds));
+        // console.log(`🔍 [ACCOUNTING] potentialWelfareIds ทั้งหมด:`, Array.from(potentialWelfareIds));
         
         // Debug: แสดงข้อมูล addSalaryList ก่อนกรอง
-        console.log(`🔍 [ACCOUNTING] addSalaryList ก่อนกรอง (${record.addSalaryList.length} items):`);
+        // console.log(`🔍 [ACCOUNTING] addSalaryList ก่อนกรอง (${record.addSalaryList.length} items):`);
         record.addSalaryList.forEach((item, index) => {
           const isPotentialWelfare = potentialWelfareIds.has(item.id);
           const isValidWelfare = validWelfareIds.has(item.id);
@@ -5611,16 +5611,16 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           }
           
           if (!shouldKeep) {
-            console.log(`🗑️ [ACCOUNTING] ลบ welfare item ที่ไม่มีใน DB: id=${item.id}, name=${item.name}, isValidWelfare=${isValidWelfare}`);
+            // console.log(`🗑️ [ACCOUNTING] ลบ welfare item ที่ไม่มีใน DB: id=${item.id}, name=${item.name}, isValidWelfare=${isValidWelfare}`);
           }
           
           return shouldKeep;
         });
         
-        console.log(`🧹 [ACCOUNTING] กรอง welfare ที่ไม่มีใน DB: ${originalLength} → ${record.addSalaryList.length} items`);
+        // console.log(`🧹 [ACCOUNTING] กรอง welfare ที่ไม่มีใน DB: ${originalLength} → ${record.addSalaryList.length} items`);
         
         // Debug: แสดงข้อมูล addSalaryList หลังจากกรอง
-        console.log(`🔍 [ACCOUNTING] addSalaryList หลังจากกรอง (${record.addSalaryList.length} items):`);
+        // console.log(`🔍 [ACCOUNTING] addSalaryList หลังจากกรอง (${record.addSalaryList.length} items):`);
         record.addSalaryList.forEach((item, index) => {
           const isPotentialWelfare = potentialWelfareIds.has(item.id);
           const isValidWelfare = validWelfareIds.has(item.id);
@@ -5781,7 +5781,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
 
         // ส่ง stopDaysList หรือ personalDayOff (ใช้ค่าที่มีอยู่)
         const stopDaysToUse = doc.stopDaysList || doc.personalDayOff || [];
-        console.log(`🔍 ใช้ stopDaysList: ${stopDaysToUse.length} วัน (จาก ${doc.stopDaysList ? 'stopDaysList' : doc.personalDayOff ? 'personalDayOff' : 'ไม่มี'})`);
+        // console.log(`🔍 ใช้ stopDaysList: ${stopDaysToUse.length} วัน (จาก ${doc.stopDaysList ? 'stopDaysList' : doc.personalDayOff ? 'personalDayOff' : 'ไม่มี'})`);
         
         const calculatedValues = await calculateCashValues(
           doc.employeeId,
@@ -5894,7 +5894,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
             // ทุกหน่วยงานใช้วิธีเดียวกัน - ใช้ค่าจาก document ที่คำนวณใน conclude.js
             if (doc.cashcustomizeDayoff !== undefined) {
               finalCashcustomizeDayoff = doc.cashcustomizeDayoff;
-              console.log(`💎 หน่วยงาน ${workOfWeek} วัน - ใช้ cashcustomizeDayoff จาก document: ${finalCashcustomizeDayoff} บาท`);
+              // console.log(`💎 หน่วยงาน ${workOfWeek} วัน - ใช้ cashcustomizeDayoff จาก document: ${finalCashcustomizeDayoff} บาท`);
             } else {
               console.log(`⚠️ หน่วยงาน ${workOfWeek} วัน - ไม่พบ cashcustomizeDayoff ใน document, ใช้ค่าจาก calculateCashValues: ${finalCashcustomizeDayoff}`);
             }
@@ -5980,7 +5980,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         console.log(`💰 cashcustomizeDayoff: ${updateData.cashcustomizeDayoff}`);
         console.log(`💵 cash (cash_holiday count): ${updateData.cash}`); // เพิ่ม log สำหรับ cash field
         console.log(`⏱️ sumOt1p5: ${updateData.sumOt1p5}`); 
-        console.log(`🟢 stopDaysList: ${updateData.stopDaysList ? `${updateData.stopDaysList.length} วัน` : 'ไม่มี'}`);
+        // console.log(`🟢 stopDaysList: ${updateData.stopDaysList ? `${updateData.stopDaysList.length} วัน` : 'ไม่มี'}`);
         if (updateData.stopDaysList && updateData.stopDaysList.length > 0) {
           console.log(`  วันหยุดพิเศษ: ${JSON.stringify(updateData.stopDaysList)}`);
         }
@@ -8174,7 +8174,7 @@ if (weekendData?.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
   
   // 🔧 ใช้ข้อมูลจาก addSalaryList (รายการทั้งหมด) แทน welfareAddSalaryList (ที่อาจถูกกรอง)
   const finalAddSalaryList = addSalaryList;
-  console.log(`🔍 ใช้ข้อมูลจาก: addSalaryList (รายการทั้งหมด)`);
+  // console.log(`🔍 ใช้ข้อมูลจาก: addSalaryList (รายการทั้งหมด)`);
   console.log(`🔍 จำนวนรายการสุดท้าย: ${finalAddSalaryList.length} รายการ`);
   
   // Debug: แสดงข้อมูล welfareAddSalaryList ด้วย
