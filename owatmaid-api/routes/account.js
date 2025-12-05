@@ -9047,12 +9047,14 @@ router.post('/searchtimerecordbyworkplace/detailed', async (req, res) => {
     console.log(`🚀 [DETAILED API] Called with:`, { month, year, workplaceId, includeFields });
 
     // Validate required fields
-    if (!month || !year || !workplaceId) {
+    if (!month || !year) {
       return res.status(400).json({ 
         success: false,
-        message: 'Month, year, and workplaceId are required' 
+        message: 'Month and year are required' 
       });
     }
+    
+    // workplaceId is optional - if not provided, return all employees
 
     // Default includeFields if not provided
     const fields = {
@@ -9150,56 +9152,69 @@ router.post('/searchtimerecordbyworkplace/detailed', async (req, res) => {
 
     // Filter records by workplace
     const filteredRecords = [];
-    for (const record of records) {
-      const employee = employeeMap[record.employeeId];
-      
-      console.log(`\n🔍 Checking employee ${record.employeeId}:`, {
-        hasEmployee: !!employee,
-        employeeWorkplace: employee?.workplace,
-        targetWorkplace: workplaceId,
-        hasEmployeeRecord: !!(record.employee_record && Array.isArray(record.employee_record)),
-        employeeRecordLength: record.employee_record?.length || 0
-      });
-      
-      if (!employee) {
-        console.log(`❌ No employee profile found for ${record.employeeId}`);
-        continue;
-      }
-      
-      if (!employee.workplace) {
-        console.log(`❌ Employee ${record.employeeId} has no workplace`);
-        continue;
-      }
-
-      const empWorkplaceId = employee.workplace;
-      let shouldInclude = false;
-
-      // Check 1: Direct workplace match
-      if (empWorkplaceId === workplaceId) {
-        shouldInclude = true;
-        console.log(`✅ Direct match: ${record.employeeId} belongs to ${workplaceId}`);
-      } 
-      // Check 2: Cross-workplace work
-      else if (record.employee_record && Array.isArray(record.employee_record)) {
-        const worksAtTargetWorkplace = record.employee_record.some(rec => 
-          rec.workplaceId === workplaceId
-        );
-        if (worksAtTargetWorkplace) {
-          shouldInclude = true;
-          console.log(`✅ Cross-workplace: ${record.employeeId} (from ${empWorkplaceId}) works at ${workplaceId}`);
-        } else {
-          console.log(`❌ No match: ${record.employeeId} workplace ${empWorkplaceId} != ${workplaceId}, no cross-workplace work`);
+    
+    // ✨ If no workplaceId provided, include all employees
+    if (!workplaceId) {
+      console.log(`📋 No workplaceId filter - including all employees`);
+      for (const record of records) {
+        const employee = employeeMap[record.employeeId];
+        if (employee) {
+          filteredRecords.push({ record, employee });
         }
-      } else {
-        console.log(`❌ No employee_record for ${record.employeeId}`);
       }
+    } else {
+      // Filter by specific workplace
+      for (const record of records) {
+        const employee = employeeMap[record.employeeId];
+        
+        console.log(`\n🔍 Checking employee ${record.employeeId}:`, {
+          hasEmployee: !!employee,
+          employeeWorkplace: employee?.workplace,
+          targetWorkplace: workplaceId,
+          hasEmployeeRecord: !!(record.employee_record && Array.isArray(record.employee_record)),
+          employeeRecordLength: record.employee_record?.length || 0
+        });
+        
+        if (!employee) {
+          console.log(`❌ No employee profile found for ${record.employeeId}`);
+          continue;
+        }
+        
+        if (!employee.workplace) {
+          console.log(`❌ Employee ${record.employeeId} has no workplace`);
+          continue;
+        }
 
-      if (shouldInclude) {
-        filteredRecords.push({ record, employee });
+        const empWorkplaceId = employee.workplace;
+        let shouldInclude = false;
+
+        // Check 1: Direct workplace match
+        if (empWorkplaceId === workplaceId) {
+          shouldInclude = true;
+          console.log(`✅ Direct match: ${record.employeeId} belongs to ${workplaceId}`);
+        } 
+        // Check 2: Cross-workplace work
+        else if (record.employee_record && Array.isArray(record.employee_record)) {
+          const worksAtTargetWorkplace = record.employee_record.some(rec => 
+            rec.workplaceId === workplaceId
+          );
+          if (worksAtTargetWorkplace) {
+            shouldInclude = true;
+            console.log(`✅ Cross-workplace: ${record.employeeId} (from ${empWorkplaceId}) works at ${workplaceId}`);
+          } else {
+            console.log(`❌ No match: ${record.employeeId} workplace ${empWorkplaceId} != ${workplaceId}, no cross-workplace work`);
+          }
+        } else {
+          console.log(`❌ No employee_record for ${record.employeeId}`);
+        }
+
+        if (shouldInclude) {
+          filteredRecords.push({ record, employee });
+        }
       }
     }
 
-    console.log(`\n✅ Filtered to ${filteredRecords.length} employees for workplace ${workplaceId}`);
+    console.log(`\n✅ Filtered to ${filteredRecords.length} employees${workplaceId ? ` for workplace ${workplaceId}` : ' (all workplaces)'}`);
 
     // ============================================================================
     // STEP 3: Parallel fetch workplace data & weekend dates
@@ -9208,8 +9223,8 @@ router.post('/searchtimerecordbyworkplace/detailed', async (req, res) => {
     
     const parallelFetches = [];
 
-    // 3.1: Fetch workplace details
-    if (fields.workplaceAddSalary) {
+    // 3.1: Fetch workplace details (only if workplaceId provided)
+    if (fields.workplaceAddSalary && workplaceId) {
       parallelFetches.push(
         Workplace.findOne({ workplaceId: workplaceId })
           .then(wp => ({ type: 'workplace', data: wp }))
@@ -9220,8 +9235,8 @@ router.post('/searchtimerecordbyworkplace/detailed', async (req, res) => {
       );
     }
 
-    // 3.2: Fetch weekend dates
-    if (fields.weekendDates) {
+    // 3.2: Fetch weekend dates (only if workplaceId provided)
+    if (fields.weekendDates && workplaceId) {
       parallelFetches.push(
         axios.get(sURL + '/conclude/getWeekendDates', {
           params: {
