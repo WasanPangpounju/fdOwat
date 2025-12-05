@@ -296,29 +296,30 @@ router.get("/delete-all", async (req, res) => {
 // ⚠️ ต้องอยู่ก่อน route /:employeeId เพื่อป้องกัน route conflict
 router.get("/social-security-checked", async (req, res) => {
   try {
-    // ดึงเฉพาะ employee ที่มี addSalary.socialSecurityCheck = true
-    const employees = await Employee.find(
-      { "addSalary.socialSecurityCheck": true },
-      { employeeId: 1, name: 1, workplace: 1, addSalary: 1 }
-    );
-
+    const employees = await Employee.find();
+    
+    // รวบรวม id ทั้งหมดที่มี socialSecurityCheck: true
     const socialSecurityCheckedIds = [];
-
+    
     employees.forEach(employee => {
-      employee.addSalary.forEach(item => {
-        if (item.socialSecurityCheck === true) {
-          socialSecurityCheckedIds.push({
-            id: item.id,
-            name: item.name || "",
-            employeeId: employee.employeeId,
-            employeeName: employee.name,
-            workplace: employee.workplace
-          });
-        }
-      });
+      // ตรวจสอบจาก newAddSalary
+      if (employee.addSalary && Array.isArray(employee.addSalary)) {
+        employee.addSalary.forEach(item => {
+          if (item.socialSecurityCheck === true && item.id) {
+            socialSecurityCheckedIds.push({
+              id: item.id,
+              name: item.name || '',
+              employeeId: employee.employeeId,
+              employeeName: employee.name,
+              workplace: employee.workplace
+            });
+          }
+        });
+      }
     });
 
-    const uniqueIds = [...new Set(socialSecurityCheckedIds.map(i => i.id))];
+    // นับจำนวน unique id
+    const uniqueIds = [...new Set(socialSecurityCheckedIds.map(item => item.id))];
 
     res.status(200).json({
       summary: {
@@ -330,35 +331,33 @@ router.get("/social-security-checked", async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Error fetching social security checked items:", error);
-    res.status(500).json({ error: "Internal server error" });
+    console.error('Error fetching social security checked items:', error);
+    res.status(500).json({ 
+      error: "Internal server error", 
+      details: error.message 
+    });
   }
 });
 
 
-// ✅ GET /employee/Deduct-social-security-checked
-// 🔍 ดึงรายการ id ที่มี socialSecurityCheck: true จาก deductSalary
-// ⚠️ ควรประกาศ route นี้ก่อน route ที่เป็น "/:employeeId" เสมอ เพื่อเลี่ยง conflict
 router.get("/Deduct-social-security-checked", async (req, res) => {
   try {
-    // 🔥 ใช้ query ให้ MongoDB ช่วย filter แทนการ Employee.find() ทั้ง collection
-    const employees = await Employee.find(
-      { "deductSalary.socialSecurityCheck": true },          // เงื่อนไข
-      { employeeId: 1, name: 1, workplace: 1, deductSalary: 1 } // เลือกเฉพาะ field ที่ต้องใช้
-    );
-
+    const employees = await Employee.find();
+    
+    // รวบรวม id ทั้งหมดที่มี socialSecurityCheck: true
     const DeductSocialSecurityCheckedIds = [];
-
-    employees.forEach((employee) => {
-      if (Array.isArray(employee.deductSalary)) {
-        employee.deductSalary.forEach((item) => {
+    
+    employees.forEach(employee => {
+      // ตรวจสอบจาก newAddSalary
+      if (employee.deductSalary && Array.isArray(employee.deductSalary)) {
+        employee.deductSalary.forEach(item => {
           if (item.socialSecurityCheck === true && item.id) {
             DeductSocialSecurityCheckedIds.push({
               id: item.id,
-              name: item.name || "",
+              name: item.name || '',
               employeeId: employee.employeeId,
               employeeName: employee.name,
-              workplace: employee.workplace,
+              workplace: employee.workplace
             });
           }
         });
@@ -366,25 +365,25 @@ router.get("/Deduct-social-security-checked", async (req, res) => {
     });
 
     // นับจำนวน unique id
-    const uniqueIds = [...new Set(DeductSocialSecurityCheckedIds.map((item) => item.id))];
+    const uniqueIds = [...new Set(DeductSocialSecurityCheckedIds.map(item => item.id))];
 
     res.status(200).json({
       summary: {
         totalItems: DeductSocialSecurityCheckedIds.length,
         uniqueIds: uniqueIds.length,
-        uniqueIdList: uniqueIds,
+        uniqueIdList: uniqueIds
       },
-      items: DeductSocialSecurityCheckedIds,
+      items: DeductSocialSecurityCheckedIds
     });
+
   } catch (error) {
-    console.error("Error fetching Deduct social security checked items:", error);
-    res.status(500).json({
-      error: "Internal server error",
-      details: error.message,
+    console.error('Error fetching social security checked items:', error);
+    res.status(500).json({ 
+      error: "Internal server error", 
+      details: error.message 
     });
   }
 });
-
 
 // ✅ GET /api/employees/check-bank-info
 // 🔍 ตรวจสอบข้อมูลธนาคารของพนักงาน (salarybank และ banknumber)
