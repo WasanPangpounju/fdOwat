@@ -9037,4 +9037,290 @@ router.delete('/remove-multiple-salary-items', async (req, res) => {
   }
 });
 
+// ============================================================================
+// 🚀 NEW ENDPOINT: Optimized API with all data in single call
+// ============================================================================
+router.post('/searchtimerecordbyworkplace/detailed', async (req, res) => {
+  try {
+    const { month, year, workplaceId, includeFields } = req.body;
+    
+    console.log(`🚀 [DETAILED API] Called with:`, { month, year, workplaceId, includeFields });
+
+    // Validate required fields
+    if (!month || !year || !workplaceId) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Month, year, and workplaceId are required' 
+      });
+    }
+
+    // Default includeFields if not provided
+    const fields = {
+      employeePrefix: true,
+      workplaceAddSalary: true,
+      weekendDates: true,
+      conclude: false, // ไม่รวม conclude เพราะมีใน employee_record แล้ว
+      ...includeFields
+    };
+
+    // ============================================================================
+    // STEP 1: Fetch employee time records (similar to searchtimerecordbyworkplace)
+    // ============================================================================
+    console.log(`📊 [STEP 1] Fetching employee time records...`);
+    
+    const allRecords = await timerecordEmployee.find({
+      month: { $regex: new RegExp(month, 'i') },
+      year: { $regex: new RegExp(year, 'i') },
+    });
+
+    console.log(`✅ Found ${allRecords.length} total records`);
+
+    // กรองข้อมูลซ้ำ (ใช้ logic เดียวกับ searchtimerecordbyworkplace)
+    const employeeRecordMap = new Map();
+    const recordsToDelete = [];
+
+    for (const record of allRecords) {
+      const key = `${record.employeeId}-${record.month}-${record.year}`;
+      
+      if (!employeeRecordMap.has(key)) {
+        employeeRecordMap.set(key, record);
+      } else {
+        const existingRecord = employeeRecordMap.get(key);
+        const hasEmployeeRecord = record.employee_record && Array.isArray(record.employee_record) && record.employee_record.length > 0;
+        const existingHasEmployeeRecord = existingRecord.employee_record && Array.isArray(existingRecord.employee_record) && existingRecord.employee_record.length > 0;
+
+        if (hasEmployeeRecord && !existingHasEmployeeRecord) {
+          recordsToDelete.push(existingRecord._id);
+          employeeRecordMap.set(key, record);
+        } else if (!hasEmployeeRecord && existingHasEmployeeRecord) {
+          recordsToDelete.push(record._id);
+        } else if (hasEmployeeRecord && existingHasEmployeeRecord) {
+          if (record._id > existingRecord._id) {
+            recordsToDelete.push(existingRecord._id);
+            employeeRecordMap.set(key, record);
+          } else {
+            recordsToDelete.push(record._id);
+          }
+        } else {
+          if (record._id > existingRecord._id) {
+            recordsToDelete.push(existingRecord._id);
+            employeeRecordMap.set(key, record);
+          } else {
+            recordsToDelete.push(record._id);
+          }
+        }
+      }
+    }
+
+    // ลบข้อมูลซ้ำ
+    if (recordsToDelete.length > 0) {
+      console.log(`🗑️ Removing ${recordsToDelete.length} duplicate records...`);
+      await timerecordEmployee.deleteMany({ _id: { $in: recordsToDelete } });
+    }
+
+    const records = Array.from(employeeRecordMap.values());
+    console.log(`✅ After deduplication: ${records.length} records`);
+
+    if (!records.length) {
+      return res.status(200).json({ 
+        success: true,
+        employees: [],
+        workplace: null,
+        weekendData: null,
+        message: 'No records found' 
+      });
+    }
+
+    // ============================================================================
+    // STEP 2: Fetch employee profiles & filter by workplace
+    // ============================================================================
+    console.log(`👥 [STEP 2] Fetching employee profiles...`);
+    
+    const employeeIds = records.map(r => r.employeeId);
+    const employees = await Employee.find({ employeeId: { $in: employeeIds } });
+    
+    console.log(`✅ Found ${employees.length} employee profiles`);
+
+    const employeeMap = {};
+    employees.forEach(emp => {
+      if (emp.employeeId) {
+        employeeMap[emp.employeeId] = emp;
+      }
+    });
+
+    // Filter records by workplace
+    const filteredRecords = [];
+    for (const record of records) {
+      const employee = employeeMap[record.employeeId];
+      
+      if (!employee || !employee.workplace) continue;
+
+      const empWorkplaceId = employee.workplace;
+      let shouldInclude = false;
+
+      if (empWorkplaceId === workplaceId) {
+        shouldInclude = true;
+      } else if (record.employee_record && Array.isArray(record.employee_record)) {
+        const worksAtTargetWorkplace = record.employee_record.some(rec => 
+          rec.workplaceId === workplaceId
+        );
+        if (worksAtTargetWorkplace) {
+          shouldInclude = true;
+        }
+      }
+
+      if (shouldInclude) {
+        filteredRecords.push({ record, employee });
+      }
+    }
+
+    console.log(`✅ Filtered to ${filteredRecords.length} employees for workplace ${workplaceId}`);
+
+    // ============================================================================
+    // STEP 3: Parallel fetch workplace data & weekend dates
+    // ============================================================================
+    console.log(`🏢 [STEP 3] Fetching workplace & weekend data in parallel...`);
+    
+    const parallelFetches = [];
+
+    // 3.1: Fetch workplace details
+    if (fields.workplaceAddSalary) {
+      parallelFetches.push(
+        Workplace.findOne({ workplaceId: workplaceId })
+          .then(wp => ({ type: 'workplace', data: wp }))
+          .catch(err => {
+            console.error(`❌ Error fetching workplace:`, err);
+            return { type: 'workplace', data: null };
+          })
+      );
+    }
+
+    // 3.2: Fetch weekend dates
+    if (fields.weekendDates) {
+      parallelFetches.push(
+        axios.post(sURL + '/conclude/getWeekendDates', {
+          yyyy: year,
+          mm: month.padStart(2, '0'),
+          workplaceId: workplaceId
+        }).then(response => ({ 
+          type: 'weekend', 
+          data: response.data 
+        }))
+        .catch(err => {
+          console.error(`❌ Error fetching weekend dates:`, err);
+          return { type: 'weekend', data: null };
+        })
+      );
+    }
+
+    const parallelResults = await Promise.all(parallelFetches);
+    
+    let workplaceData = null;
+    let weekendData = null;
+
+    parallelResults.forEach(result => {
+      if (result.type === 'workplace') workplaceData = result.data;
+      if (result.type === 'weekend') weekendData = result.data;
+    });
+
+    console.log(`✅ Parallel fetch completed`);
+
+    // ============================================================================
+    // STEP 4: Enrich employee data with prefixes (parallel)
+    // ============================================================================
+    console.log(`🔖 [STEP 4] Enriching employee data with prefixes...`);
+    
+    const enrichedEmployees = await Promise.all(
+      filteredRecords.map(async ({ record, employee }) => {
+        let prefix = employee.prefix || '';
+
+        // Fetch prefix if requested and not available
+        if (fields.employeePrefix && !prefix) {
+          try {
+            const prefixResponse = await axios.post(sURL + '/employee/search', {
+              employeeId: employee.employeeId
+            }, { timeout: 5000 });
+
+            if (prefixResponse.data?.employees?.[0]?.prefix) {
+              prefix = prefixResponse.data.employees[0].prefix;
+            }
+          } catch (error) {
+            console.warn(`⚠️ Failed to fetch prefix for ${employee.employeeId}`);
+          }
+        }
+
+        // Build enriched employee object
+        return {
+          employeeId: employee.employeeId,
+          prefix: prefix,
+          name: employee.name,
+          lastName: employee.lastName,
+          workplace: employee.workplace,
+          costtype: employee.costtype,
+          
+          // Accounting data from record
+          year: record.year,
+          month: record.month,
+          countSpecialDay: record.countSpecialDay || 0,
+          specialDayListWork: record.specialDayListWork || [],
+          specialDayRate: record.specialDayRate || 0,
+          
+          // Employee record (time records)
+          employee_record: record.employee_record || [],
+          
+          // Accounting record
+          accountingRecord: record.accountingRecord || {},
+          
+          // Add salary (employee-specific)
+          addSalary: employee.addSalary || [],
+          
+          // Personal day off
+          personalDayOff: record.personalDayOff || [],
+          stopDaysList: record.stopDaysList || [],
+          
+          // Work counts
+          dayWorkCount: record.dayWorkCount,
+          dayOffCount: record.dayOffCount
+        };
+      })
+    );
+
+    console.log(`✅ Enriched ${enrichedEmployees.length} employees`);
+
+    // ============================================================================
+    // STEP 5: Prepare response
+    // ============================================================================
+    const response = {
+      success: true,
+      employees: enrichedEmployees,
+      workplace: workplaceData ? {
+        workplaceId: workplaceData.workplaceId,
+        workplaceName: workplaceData.workplaceName,
+        addSalary: workplaceData.addSalary || [],
+        workTimeDayPerson: workplaceData.workTimeDayPerson || []
+      } : null,
+      weekendData: weekendData || null,
+      metadata: {
+        totalEmployees: enrichedEmployees.length,
+        month,
+        year,
+        workplaceId,
+        timestamp: new Date().toISOString()
+      }
+    };
+
+    console.log(`🎉 [DETAILED API] Success! Returning ${enrichedEmployees.length} employees`);
+    
+    res.status(200).json(response);
+
+  } catch (error) {
+    console.error("❌ [DETAILED API] Error:", error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Internal server error',
+      error: error.message 
+    });
+  }
+});
+
 module.exports = router;
