@@ -9153,20 +9153,45 @@ router.post('/searchtimerecordbyworkplace/detailed', async (req, res) => {
     for (const record of records) {
       const employee = employeeMap[record.employeeId];
       
-      if (!employee || !employee.workplace) continue;
+      console.log(`\n🔍 Checking employee ${record.employeeId}:`, {
+        hasEmployee: !!employee,
+        employeeWorkplace: employee?.workplace,
+        targetWorkplace: workplaceId,
+        hasEmployeeRecord: !!(record.employee_record && Array.isArray(record.employee_record)),
+        employeeRecordLength: record.employee_record?.length || 0
+      });
+      
+      if (!employee) {
+        console.log(`❌ No employee profile found for ${record.employeeId}`);
+        continue;
+      }
+      
+      if (!employee.workplace) {
+        console.log(`❌ Employee ${record.employeeId} has no workplace`);
+        continue;
+      }
 
       const empWorkplaceId = employee.workplace;
       let shouldInclude = false;
 
+      // Check 1: Direct workplace match
       if (empWorkplaceId === workplaceId) {
         shouldInclude = true;
-      } else if (record.employee_record && Array.isArray(record.employee_record)) {
+        console.log(`✅ Direct match: ${record.employeeId} belongs to ${workplaceId}`);
+      } 
+      // Check 2: Cross-workplace work
+      else if (record.employee_record && Array.isArray(record.employee_record)) {
         const worksAtTargetWorkplace = record.employee_record.some(rec => 
           rec.workplaceId === workplaceId
         );
         if (worksAtTargetWorkplace) {
           shouldInclude = true;
+          console.log(`✅ Cross-workplace: ${record.employeeId} (from ${empWorkplaceId}) works at ${workplaceId}`);
+        } else {
+          console.log(`❌ No match: ${record.employeeId} workplace ${empWorkplaceId} != ${workplaceId}, no cross-workplace work`);
         }
+      } else {
+        console.log(`❌ No employee_record for ${record.employeeId}`);
       }
 
       if (shouldInclude) {
@@ -9174,7 +9199,7 @@ router.post('/searchtimerecordbyworkplace/detailed', async (req, res) => {
       }
     }
 
-    console.log(`✅ Filtered to ${filteredRecords.length} employees for workplace ${workplaceId}`);
+    console.log(`\n✅ Filtered to ${filteredRecords.length} employees for workplace ${workplaceId}`);
 
     // ============================================================================
     // STEP 3: Parallel fetch workplace data & weekend dates
