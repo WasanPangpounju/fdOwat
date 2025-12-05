@@ -824,8 +824,14 @@ router.post("/search", async (req, res) => {
 
     // Query the employee collection for matching documents
     const employees = await Employee.find(query);
+    
+    // 📊 นับจำนวนพนักงานทั้งหมดในระบบ
+    const totalEmployeesInSystem = await Employee.countDocuments({});
+    console.log(`📊 จำนวนพนักงานทั้งหมดในระบบ: ${totalEmployeesInSystem} คน`);
+    console.log(`🔍 พบพนักงานที่ตรงกับเงื่อนไข: ${employees.length} คน`);
 
     // Format the startjob field from dd/mm/yyyy to mm/dd/yyyy
+    if (employees.length > 0) {
       if (employees[0].startjob) {
         const [day, month, year] = employees[0].startjob.split('/');
         employees[0].startjob = `${month}/${day}/${year}`;
@@ -845,12 +851,17 @@ router.post("/search", async (req, res) => {
       if (employees[0].department  && employees[0].department == null) {
         employees[0].department= '';
       }
-
+    }
       
     // console.log('Search Results:');
     // console.log(employees);
     let textSearch = "test";
-    await res.status(200).json({ employees });
+    await res.status(200).json({ 
+      employees,
+      totalEmployeesInSystem,
+      searchResultCount: employees.length,
+      summary: `พบพนักงาน ${employees.length} คน จากทั้งหมด ${totalEmployeesInSystem} คนในระบบ`
+    });
   } catch (error) {
     console.error(error);
     // res.status(500).json({ message: 'Internal server error' });
