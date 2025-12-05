@@ -1942,15 +1942,18 @@ router.post('/checkworkplacesinmonth', async (req, res) => {
 
     const workplaces = await timerecordEmployee.aggregate(pipeline);
 
-    // สร้างข้อความสรุป
+    // คำนวณยอดรวมทั้งหมด
     const totalWorkplaces = workplaces.length;
+    const totalEmployees = workplaces.reduce((sum, wp) => sum + wp.employeeCount, 0);
+    const totalRecords = workplaces.reduce((sum, wp) => sum + wp.recordCount, 0);
+    
     const workplaceList = workplaces.map(wp => 
       `${wp.workplaceName} (รหัส: ${wp.workplaceId}, พนักงาน: ${wp.employeeCount} คน, บันทึก: ${wp.recordCount} รายการ)`
     ).join(', ');
 
     const yearText = year && year !== '' ? ` ปี ${year}` : '';
     const summary = totalWorkplaces > 0 
-      ? `เดือน ${month}${yearText} มี ${totalWorkplaces} หน่วยงาน: ${workplaceList}`
+      ? `เดือน ${month}${yearText} มี ${totalWorkplaces} หน่วยงาน, พนักงานทั้งหมด ${totalEmployees} คน, จำนวน record ${totalRecords} รายการ: ${workplaceList}`
       : `เดือน ${month}${yearText} ไม่มีข้อมูลหน่วยงาน`;
 
     console.log(`📊 [CHECK WORKPLACES] ${summary}`);
@@ -1962,6 +1965,8 @@ router.post('/checkworkplacesinmonth', async (req, res) => {
       month: month,
       year: year || 'ทุกปี',
       totalWorkplaces: totalWorkplaces,
+      totalEmployees: totalEmployees, // ✅ เพิ่ม: จำนวนพนักงานทั้งหมด
+      totalRecords: totalRecords, // ✅ เพิ่ม: จำนวน record ทั้งหมด
       summary: summary,
       workplaces: workplaces,
       details: workplaces,
