@@ -9224,6 +9224,15 @@ router.post('/searchtimerecordbyworkplace/detailed', async (req, res) => {
     });
 
     console.log(`✅ Parallel fetch completed`);
+    
+    // ✨ Add fallback for weekend data if null
+    if (!weekendData || weekendData === null) {
+      console.warn(`⚠️ Weekend data is null, using empty fallback`);
+      weekendData = {
+        weekendDates: [],
+        publicHolidays: []
+      };
+    }
 
     // ============================================================================
     // STEP 4: Enrich employee data with prefixes (parallel)
