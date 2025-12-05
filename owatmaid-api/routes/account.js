@@ -9198,10 +9198,12 @@ router.post('/searchtimerecordbyworkplace/detailed', async (req, res) => {
     // 3.2: Fetch weekend dates
     if (fields.weekendDates) {
       parallelFetches.push(
-        axios.post(sURL + '/conclude/getWeekendDates', {
-          yyyy: year,
-          mm: month.padStart(2, '0'),
-          workplaceId: workplaceId
+        axios.get(sURL + '/conclude/getWeekendDates', {
+          params: {
+            yyyy: year,
+            mm: month.padStart(2, '0'),
+            workplaceId: workplaceId
+          }
         }).then(response => ({ 
           type: 'weekend', 
           data: response.data 
