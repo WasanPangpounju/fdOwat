@@ -5296,28 +5296,16 @@ router.post('/searchtimerecordemployee', async (req, res) => {
       return res.status(200).json({ result: [], message: 'No query parameters provided' });
     }
 
-    console.log(`🔍 [SEARCH] กำลังค้นหาข้อมูลด้วย query:`, JSON.stringify(query, null, 2));
+    // console.log(`🔍 [SEARCH] กำลังค้นหาข้อมูลด้วย query:`, JSON.stringify(query, null, 2));
     const records = await timerecordEmployee.find(query);
     console.log(`🔍 [SEARCH] พบข้อมูล: ${records.length} records`);
 
     if (!records.length) {
-      // เพิ่มการค้นหาทั้งหมดเพื่อ debug
-      console.log(`🔍 [DEBUG] ไม่พบข้อมูล - ทำการค้นหาทั้งหมดเพื่อตรวจสอบ`);
-      const allRecords = await timerecordEmployee.find({});
-      console.log(`🔍 [DEBUG] ข้อมูลทั้งหมดในฐาน: ${allRecords.length} records`);
-      
-      if (allRecords.length > 0) {
-        console.log(`🔍 [DEBUG] ตัวอย่างข้อมูล 3 รายการแรก:`);
-        allRecords.slice(0, 3).forEach((record, index) => {
-          console.log(`   [${index}] employeeId: "${record.employeeId}", month: "${record.month}", year: "${record.year}"`);
-        });
-      }
-      
       return res.status(200).json({ result: [], message: 'No records found' });
     }
 
     // ✨ เพิ่มการ sync addSalaryList จาก employee.addSalary ก่อนทำอย่างอื่น
-    console.log(`🔄 [SYNC] เริ่ม sync addSalaryList จาก employee.addSalary สำหรับ ${records.length} records`);
+    // console.log(`🔄 [SYNC] เริ่ม sync addSalaryList จาก employee.addSalary สำหรับ ${records.length} records`);
     
     for (let record of records) {
       try {
@@ -5326,7 +5314,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         const employeeData = await Employee.findOne({ employeeId: record.employeeId });
         
         if (employeeData && employeeData.addSalary) {
-          console.log(`🔄 [SYNC] พบข้อมูล employee ${record.employeeId} - addSalary: ${employeeData.addSalary.length} items`);
+          // console.log(`🔄 [SYNC] พบข้อมูล employee ${record.employeeId} - addSalary: ${employeeData.addSalary.length} items`);
           
           // กรองเฉพาะ addSalary ที่มาจาก employee (ไม่มี welfareType)
           // และลบ addSalary เก่าที่ไม่มีใน employee.addSalary แล้ว
@@ -5344,9 +5332,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
           }));
           
           record.addSalaryList = [...welfareItems, ...employeeAddSalary];
-          console.log(`✅ [SYNC] อัปเดต addSalaryList: welfare=${welfareItems.length} + employee=${employeeAddSalary.length} = ${record.addSalaryList.length} items`);
-        } else {
-          console.log(`⚠️ [SYNC] ไม่พบข้อมูล employee หรือ addSalary สำหรับ ${record.employeeId}`);
+          // console.log(`✅ [SYNC] อัปเดต addSalaryList: welfare=${welfareItems.length} + employee=${employeeAddSalary.length} = ${record.addSalaryList.length} items`);
         }
       } catch (syncError) {
         console.error(`❌ [SYNC] Error syncing employee ${record.employeeId}:`, syncError);
@@ -5354,11 +5340,11 @@ router.post('/searchtimerecordemployee', async (req, res) => {
     }
     
     // เพิ่มข้อมูล welfare/leave ลงใน addSalaryList ก่อนการประมวลผล
-    console.log(`🔍 [ACCOUNTING] เริ่มค้นหาข้อมูล welfare สำหรับ ${records.length} records`);
+    // console.log(`🔍 [ACCOUNTING] เริ่มค้นหาข้อมูล welfare สำหรับ ${records.length} records`);
     
     for (let record of records) {
       try {
-        console.log(`🔍 [ACCOUNTING] ค้นหา welfare สำหรับพนักงาน: ${record.employeeId}`);
+        // console.log(`🔍 [ACCOUNTING] ค้นหา welfare สำหรับพนักงาน: ${record.employeeId}`);
         
         // ค้นหาข้อมูล welfare ของพนักงาน
         const welfareQuery = { employeeId: record.employeeId };
@@ -5366,11 +5352,10 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         // ถ้ามีการระบุ year ให้กรองตามปี
         if (year && year !== '') {
           welfareQuery.year = year;
-          console.log(`🔍 [ACCOUNTING] กรองตามปี: ${year}`);
         }
         
         const welfareRecords = await welfare.find(welfareQuery);
-        console.log(`🔍 [ACCOUNTING] พบข้อมูล welfare: ${welfareRecords.length} records สำหรับพนักงาน ${record.employeeId}`);
+        // console.log(`🔍 [ACCOUNTING] พบข้อมูล welfare: ${welfareRecords.length} records สำหรับพนักงาน ${record.employeeId}`);
         
         // รวม addSalaryList จากข้อมูล welfare ทั้งหมด
         let addSalaryFromWelfare = [];
@@ -5387,7 +5372,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         
         welfareRecords.forEach(welfareRecord => {
           if (welfareRecord.record && Array.isArray(welfareRecord.record)) {
-            console.log(`🔍 [ACCOUNTING] ประมวลผล welfare record: ${welfareRecord.record.length} items`);
+            // console.log(`🔍 [ACCOUNTING] ประมวลผล welfare record: ${welfareRecord.record.length} items`);
             welfareRecord.record.forEach(welfareItem => {
               // 🎯 กรองเฉพาะ records ที่อยู่ในรอบเงินเดือน (21 เดือนก่อน - 20 เดือนปัจจุบัน)
               let shouldInclude = true;
@@ -5413,13 +5398,6 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                 
                 // ตรวจสอบว่า startDay อยู่ในรอบเงินเดือนหรือไม่
                 shouldInclude = recordStartDate >= periodStartDate && recordStartDate <= periodEndDate;
-                
-                console.log(`🔍 [ACCOUNTING] กรองตามรอบเงินเดือน:`);
-                console.log(`   - เดือนที่เลือก: ${month}/${year}`);
-                console.log(`   - รอบเงินเดือน: ${periodStartDate.toISOString().slice(0,10)} ถึง ${periodEndDate.toISOString().slice(0,10)}`);
-                console.log(`   - startDay: ${welfareItem.startDay}`);
-                console.log(`   - recordDate: ${recordStartDate.toISOString().slice(0,10)}`);
-                console.log(`   - include: ${shouldInclude}`);
               }
               
               if (!shouldInclude) return;
@@ -5451,11 +5429,11 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                     year: startKey ? startKey.split('-')[0] : (welfareRecord.year || ''),
                   };
                   welfareAgg.set(welfareId, { item: baseItem, seenDates: new Set(startKey ? [startKey] : []) });
-                  console.log(`✅ [ACCOUNTING] (target) สร้างกลุ่ม id=${welfareId}, startDay=${startKey}, amount=${amount}`);
+                  // console.log(`✅ [ACCOUNTING] (target) สร้างกลุ่ม id=${welfareId}, startDay=${startKey}, amount=${amount}`);
                 } else {
                   const agg = welfareAgg.get(welfareId);
                   if (startKey && agg.seenDates.has(startKey)) {
-                    console.log(`🚫 [ACCOUNTING] (target) ข้าม (id ซ้ำ + startDay ซ้ำ) id=${welfareId}, startDay=${startKey}, amount=${amount}`);
+                    // console.log(`🚫 [ACCOUNTING] (target) ข้าม (id ซ้ำ + startDay ซ้ำ) id=${welfareId}, startDay=${startKey}, amount=${amount}`);
                   } else {
                     const current = parseFloat(agg.item.SpSalary || '0') || 0;
                     agg.item.SpSalary = String(current + amount);
@@ -5488,7 +5466,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                         }
                       }
                     }
-                    console.log(`🔄 [ACCOUNTING] (target) รวม id=${welfareId}, +${amount} ⇒ ${agg.item.SpSalary}, dates=${agg.item.date}, countDate=${agg.item.countDate}`);
+                    // console.log(`🔄 [ACCOUNTING] (target) รวม id=${welfareId}, +${amount} ⇒ ${agg.item.SpSalary}, dates=${agg.item.date}, countDate=${agg.item.countDate}`);
                   }
                 }
               } else {
@@ -5516,7 +5494,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                     }
                   }
                   
-                  console.log(`🔄 [ACCOUNTING] (normal) รวม id=${welfareId}, ${existingAmount} + ${amount} ⇒ ${newTotal}, countDate=${addSalaryFromWelfare[existingIndex].countDate}`);
+                  // console.log(`🔄 [ACCOUNTING] (normal) รวม id=${welfareId}, ${existingAmount} + ${amount} ⇒ ${newTotal}, countDate=${addSalaryFromWelfare[existingIndex].countDate}`);
                 } else {
                   // ถ้าไม่มี id เดียวกัน ให้เพิ่มใหม่
                   addSalaryFromWelfare.push({
@@ -5538,7 +5516,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
                     month: welfareItem.startDay ? normalizeStartDay(welfareItem.startDay).split('-')[1] : (welfareRecord.month || ''),
                     year: welfareItem.startDay ? normalizeStartDay(welfareItem.startDay).split('-')[0] : (welfareRecord.year || ''),
                   });
-                  console.log(`✅ [ACCOUNTING] (normal) เพิ่ม welfare item ใหม่: ${welfareItem.name} (${welfareItem.SpSalary})`);
+                  // console.log(`✅ [ACCOUNTING] (normal) เพิ่ม welfare item ใหม่: ${welfareItem.name} (${welfareItem.SpSalary})`);
                 }
               }
             });
@@ -5548,11 +5526,11 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         // รวมผลของกลุ่ม target ids เข้ากับรายการปกติ
         const targetMergedItems = Array.from(welfareAgg.values()).map(v => v.item); // กลับมาใช้ .map(v => v.item) เพราะใช้ structure แบบเดิม
         addSalaryFromWelfare = [...addSalaryFromWelfare, ...targetMergedItems];
-        console.log(`� [ACCOUNTING] สรุป welfare หลังประมวลผล: normal=${addSalaryFromWelfare.length - targetMergedItems.length} + target=${targetMergedItems.length} → total=${addSalaryFromWelfare.length}`);
+        // console.log(`📝 [ACCOUNTING] สรุป welfare หลังประมวลผล: normal=${addSalaryFromWelfare.length - targetMergedItems.length} + target=${targetMergedItems.length} → total=${addSalaryFromWelfare.length}`);
 
-        console.log(`📊 [ACCOUNTING] สำหรับพนักงาน ${record.employeeId}:`);
-        console.log(`   - addSalaryList เดิม: ${record.addSalaryList ? record.addSalaryList.length : 0} items`);
-        console.log(`   - welfare items: ${addSalaryFromWelfare.length} items`);
+        // console.log(`📊 [ACCOUNTING] สำหรับพนักงาน ${record.employeeId}:`);
+        // console.log(`   - addSalaryList เดิม: ${record.addSalaryList ? record.addSalaryList.length : 0} items`);
+        // console.log(`   - welfare items: ${addSalaryFromWelfare.length} items`);
 
         // รวม addSalaryList เดิมกับข้อมูลจาก welfare
         if (!record.addSalaryList) {
@@ -5670,13 +5648,11 @@ router.post('/searchtimerecordemployee', async (req, res) => {
               // เก็บรายการที่มี date field (รายการที่รวมแล้ว) หรือมี SpSalary มากกว่า
               if (item.date || parseFloat(item.SpSalary || 0) > parseFloat(existingItem.SpSalary || 0)) {
                 seenKeys.set(uniqueKey, item);
-                console.log(`🔄 [WELFARE] Replaced existing item with better one: ${uniqueKey}, SpSalary: ${existingItem.SpSalary} -> ${item.SpSalary}`);
-              } else {
-                console.log(`⚠️ [WELFARE] Kept existing item: ${uniqueKey}, SpSalary: ${existingItem.SpSalary}`);
+                // console.log(`🔄 [WELFARE] Replaced existing item with better one: ${uniqueKey}, SpSalary: ${existingItem.SpSalary} -> ${item.SpSalary}`);
               }
             } else {
               seenKeys.set(uniqueKey, item);
-              console.log(`✅ [WELFARE] Added new welfare item: ${uniqueKey}, SpSalary: ${item.SpSalary}`);
+              // console.log(`✅ [WELFARE] Added new welfare item: ${uniqueKey}, SpSalary: ${item.SpSalary}`);
             }
           } else {
             // สำหรับรายการทั่วไป ใช้ key เดิม
@@ -5684,9 +5660,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
             
             if (!seenKeys.has(uniqueKey)) {
               seenKeys.set(uniqueKey, item);
-              console.log(`✅ [REGULAR] Added regular item: ${uniqueKey}`);
-            } else {
-              console.log(`❌ [DUPLICATE] Skipped duplicate regular item: ${uniqueKey}`);
+              // console.log(`✅ [REGULAR] Added regular item: ${uniqueKey}`);
             }
           }
         });
@@ -5695,9 +5669,8 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         uniqueAddSalaryList.push(...seenKeys.values());
         
         record.addSalaryList = uniqueAddSalaryList;
-        console.log(`📝 [ACCOUNTING] เพิ่ม welfare data ใหม่จาก DB: ${addSalaryFromWelfare.length} items (ลบซ้ำแล้ว)`);
-        
-        console.log(`   - รวมแล้ว: ${record.addSalaryList.length} items (ไม่มีข้อมูลซ้ำ)`);
+        // console.log(`📝 [ACCOUNTING] เพิ่ม welfare data ใหม่จาก DB: ${addSalaryFromWelfare.length} items (ลบซ้ำแล้ว)`);
+        // console.log(`   - รวมแล้ว: ${record.addSalaryList.length} items (ไม่มีข้อมูลซ้ำ)`);
         
       } catch (welfareError) {
         console.error('❌ [ACCOUNTING] Error fetching welfare data for employee:', record.employeeId, welfareError);
@@ -5718,7 +5691,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
 
       try {
         // 🔄 คำนวณ personalDayOff และ stopDaysList ก่อนประมวลผลอื่นๆ
-        console.log(`\n🔄 === เริ่มคำนวณ personalDayOff สำหรับพนักงาน ${doc.employeeId} ===`);
+        // console.log(`\n🔄 === เริ่มคำนวณ personalDayOff สำหรับพนักงาน ${doc.employeeId} ===`);
         let personalDayOff = [];
         let stopDaysList = [];
         let regularAgency = ''; // ✅ ประกาศ regularAgency ไว้ข้างนอก scope
@@ -5733,13 +5706,13 @@ router.post('/searchtimerecordemployee', async (req, res) => {
             const workplaceResponse = await axios.get(`http://10.10.110.7:3000/workplace/${workplaceId}`);
             const workOfWeek = workplaceResponse.data.workOfWeek || "5";
             
-            console.log(`🏢 Workplace: ${workplaceId}, WorkOfWeek: ${workOfWeek}`);
+            // console.log(`🏢 Workplace: ${workplaceId}, WorkOfWeek: ${workOfWeek}`);
             
             // ทุกหน่วยงานใช้ข้อมูลจาก database ที่คำนวณโดย conclude
             personalDayOff = doc.personalDayOff || [];
             stopDaysList = doc.stopDaysList || [];
             
-            console.log(`✅ ใช้ข้อมูล personalDayOff จาก database (หน่วยงาน ${workOfWeek} วัน): ${personalDayOff.length} วัน`);
+            // console.log(`✅ ใช้ข้อมูล personalDayOff จาก database (หน่วยงาน ${workOfWeek} วัน): ${personalDayOff.length} วัน`);
           }
         } catch (dayOffError) {
           console.error(`❌ Error calculating personalDayOff:`, dayOffError);
@@ -5752,13 +5725,13 @@ router.post('/searchtimerecordemployee', async (req, res) => {
         doc.personalDayOff = personalDayOff;
         doc.stopDaysList = stopDaysList;
         
-        console.log(`📊 สรุป personalDayOff: ${personalDayOff.length} วัน`);
-        console.log(`📊 สรุป stopDaysList: ${stopDaysList.length} วัน\n`);
+        // console.log(`📊 สรุป personalDayOff: ${personalDayOff.length} วัน`);
+        // console.log(`📊 สรุป stopDaysList: ${stopDaysList.length} วัน\n`);
         
         // เงื่อนไขพิเศษ: ถ้า shift เป็น "cash_holiday" ให้กำหนด cashWork, cashWorkMul, cashBeforeOtMul, cashOt, cashOtMul เป็น 0
         // *** ย้ายมาไว้ก่อน calculateCashValues เพื่อให้การคำนวณใช้ค่าที่แก้ไขแล้ว ***
-        console.log(`🔍 [DEBUG] เริ่มตรวจสอบ cash_holiday สำหรับพนักงาน ${doc.employeeId}`);
-        console.log(`🔍 [DEBUG] จำนวน employee_record: ${doc.employee_record ? doc.employee_record.length : 0}`);
+        // console.log(`🔍 [DEBUG] เริ่มตรวจสอบ cash_holiday สำหรับพนักงาน ${doc.employeeId}`);
+        // console.log(`🔍 [DEBUG] จำนวน employee_record: ${doc.employee_record ? doc.employee_record.length : 0}`);
         
         // ตรวจสอบว่า doc.employee_record มีค่าและมี cash_holiday หรือไม่
         let foundCashHoliday = false;
@@ -9279,7 +9252,7 @@ router.post('/searchtimerecordbyworkplace/detailed', async (req, res) => {
     // ============================================================================
     // STEP 4: Enrich employee data with prefixes (parallel)
     // ============================================================================
-    console.log(`🔖 [STEP 4] Enriching employee data with prefixes...`);
+    console.log(`🔖 [STEP 4] Enriching employee data with prefixes and calculating cash values...`);
     
     const enrichedEmployees = await Promise.all(
       filteredRecords.map(async ({ record, employee }) => {
@@ -9298,6 +9271,43 @@ router.post('/searchtimerecordbyworkplace/detailed', async (req, res) => {
           } catch (error) {
             console.warn(`⚠️ Failed to fetch prefix for ${employee.employeeId}`);
           }
+        }
+
+        // ✨ Calculate cash values (same as old API)
+        let calculatedValues = {};
+        try {
+          const stopDaysToUse = record.stopDaysList || record.personalDayOff || [];
+          
+          calculatedValues = await calculateCashValues(
+            record.employeeId,
+            record.employee_record,
+            record.month,
+            record.year,
+            null, // welfareAddSalaryList
+            stopDaysToUse,
+            record.deductSalaryList || []
+          );
+          
+          console.log(`💰 Calculated values for ${record.employeeId}:`, {
+            sumCashWorkMul: calculatedValues.sumCashWorkMul,
+            dayWorkCount: calculatedValues.dayWorkCount,
+            dayOffCount: calculatedValues.dayOffCount
+          });
+        } catch (error) {
+          console.error(`❌ Error calculating cash values for ${record.employeeId}:`, error);
+          // Provide default values if calculation fails
+          calculatedValues = {
+            sumCashWorkMul: { "1.5": 0, "2": 0, "3": 0 },
+            sumOt1p5: 0,
+            sumOt3: 0,
+            sumCashOt: 0,
+            sumCashWork: 0,
+            dayWorkCount: 0,
+            dayOffCount: 0,
+            employeeCompensation: 0,
+            sumCashWork1_20: 0,
+            sumCashWork21_30_31: 0
+          };
         }
 
         // Build enriched employee object
@@ -9322,16 +9332,25 @@ router.post('/searchtimerecordbyworkplace/detailed', async (req, res) => {
           // Accounting record
           accountingRecord: record.accountingRecord || {},
           
-          // Add salary (employee-specific)
-          addSalary: employee.addSalary || [],
+          // Add salary (employee-specific) - renamed to addSalaryList for frontend compatibility
+          addSalaryList: employee.addSalary || [],
           
           // Personal day off
           personalDayOff: record.personalDayOff || [],
           stopDaysList: record.stopDaysList || [],
           
-          // Work counts
-          dayWorkCount: record.dayWorkCount,
-          dayOffCount: record.dayOffCount
+          // ✨ Calculated values from calculateCashValues
+          sumCashWorkMul: calculatedValues.sumCashWorkMul || {},
+          sumOt1p5: calculatedValues.sumOt1p5 || 0,
+          sumOt3: calculatedValues.sumOt3 || 0,
+          sumCashOt: calculatedValues.sumCashOt || 0,
+          sumCashWork: calculatedValues.sumCashWork || 0,
+          dayWorkCount: calculatedValues.dayWorkCount || 0,
+          dayOffCount: calculatedValues.dayOffCount || 0,
+          employeeCompensation: calculatedValues.employeeCompensation || 0,
+          sumCashWork1_20: calculatedValues.sumCashWork1_20 || 0,
+          sumCashWork21_30_31: calculatedValues.sumCashWork21_30_31 || 0,
+          publicHolidayCash: calculatedValues.publicHolidayCash || 0
         };
       })
     );
