@@ -2957,6 +2957,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
         hasWorked
       });
       
+      
       // ✅ ตรวจสอบว่าต้องใช้อัตราพิเศษหรือไม่
       let useSpecialRate = false;
       let specialOTRate = 0;
