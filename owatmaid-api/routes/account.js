@@ -7034,12 +7034,17 @@ try {
           
           // คำนวณ OT time โดยใช้ค่าที่ปรับแล้ว (ยกเว้น cash_holiday)
           if (record.shift !== "cash_holiday") {
-            if (holidayOT === "1.5") {
-              sumOt1p5 += convertTimeToDecimal(record.totalOtTime);
-              console.log(`➕ เพิ่ม OT ใน sumOt1p5: ${convertTimeToDecimal(record.totalOtTime)} ชม. (วันที่ ${record.date})`);
+            // ✅ ใช้ค่า cashOtMul จาก record แทนที่จะใช้ holidayOT จาก workplace
+            const otMultiplier = parseFloat(record.cashOtMul || 1.5);
+            const otTime = convertTimeToDecimal(record.totalOtTime);
+            
+            if (otMultiplier === 3) {
+              sumOt3 += otTime;
+              console.log(`➕ เพิ่ม OT ใน sumOt3: ${otTime} ชม. (วันที่ ${record.date}, cashOtMul: ${record.cashOtMul})`);
             } else {
-              sumOt3 += convertTimeToDecimal(record.totalOtTime);
-              console.log(`➕ เพิ่ม OT ใน sumOt3: ${convertTimeToDecimal(record.totalOtTime)} ชม. (วันที่ ${record.date})`);
+              // 1.5x หรืออื่นๆ
+              sumOt1p5 += otTime;
+              console.log(`➕ เพิ่ม OT ใน sumOt1p5: ${otTime} ชม. (วันที่ ${record.date}, cashOtMul: ${record.cashOtMul})`);
             }
           } else {
             console.log(`⏭️ ข้าม cash_holiday ไม่รวมใน sumOt1p5/sumOt3 (วันที่ ${record.date})`);
