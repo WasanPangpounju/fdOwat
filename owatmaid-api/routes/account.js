@@ -7392,16 +7392,43 @@ if (record?.dayType === "work") {
       }
     }
     
-    // ❌ COMMENT: อัปเดต sumCashWorkMul สำหรับเวลาทำงานปกติ - ซ้ำกับบรรทัด 7089-7159
-    // if (record?.shift !== "cash_holiday" && record?.shift !== "specialt_shift") {
-    //   const cashWorkAmount = parseFloat(record?.cashWork || '0');
-    //   if (record?.cashWorkMul && sumCashWorkMul[record.cashWorkMul] !== undefined) {
-    //     sumCashWorkMul[record.cashWorkMul] += cashWorkAmount;
-    //   }
-    //   if (record?.cashWorkMul && timeCashWorkMul[record.cashWorkMul] !== undefined) {
-    //     timeCashWorkMul[record.cashWorkMul] += convertTimeToDecimal(record.totalTime);
-    //   }
-    // }
+    // ✅ อัปเดต sumCashWorkMul สำหรับเวลาทำงานปกติ (แก้ไขให้ใช้ cashWorkMul แยกต่างหาก)
+    if (record?.shift !== "cash_holiday" && record?.shift !== "specialt_shift") {
+      const cashWorkAmount = parseFloat(record?.cashWork || '0');
+      if (record?.cashWorkMul && sumCashWorkMul[record.cashWorkMul] !== undefined) {
+        sumCashWorkMul[record.cashWorkMul] += cashWorkAmount;
+        console.log(`   - เพิ่ม cashWork ${cashWorkAmount} ไปยัง sumCashWorkMul[${record.cashWorkMul}] (รวม: ${sumCashWorkMul[record.cashWorkMul]})`);
+      }
+      if (record?.cashWorkMul && timeCashWorkMul[record.cashWorkMul] !== undefined) {
+        timeCashWorkMul[record.cashWorkMul] += convertTimeToDecimal(record.totalTime);
+      }
+      
+      // ✅ บวก OT (cashBeforeOt + cashOt) เข้า sumCashWorkMul ตาม cashOtMul
+      if (record?.cashOtMul && sumCashWorkMul[record.cashOtMul] !== undefined) {
+        const cashOtAmount = parseFloat(record?.cashBeforeOt || '0') + parseFloat(record?.cashOt || '0');
+        if (cashOtAmount > 0) {
+          sumCashWorkMul[record.cashOtMul] += cashOtAmount;
+          console.log(`   - เพิ่ม cashOt ${cashOtAmount} ไปยัง sumCashWorkMul[${record.cashOtMul}] (รวม: ${sumCashWorkMul[record.cashOtMul]})`);
+        }
+      }
+      if (record?.cashOtMul && timeCashWorkMul[record.cashOtMul] !== undefined) {
+        const otTime = convertTimeToDecimal(record.beforeTotalOtTime || '0') + convertTimeToDecimal(record.totalOtTime || '0');
+        if (otTime > 0) {
+          timeCashWorkMul[record.cashOtMul] += otTime;
+          
+          // ✅ คำนวณ sumOt1p5 และ sumOt3 ตาม cashOtMul
+          const otMultiplier = parseFloat(record.cashOtMul || 1.5);
+          if (otMultiplier === 3) {
+            sumOt3 += otTime;
+            console.log(`➕ เพิ่ม OT ใน sumOt3: ${otTime} ชม. (วันที่ ${record.date}, cashOtMul: ${record.cashOtMul})`);
+          } else {
+            // 1.5x หรืออื่นๆ
+            sumOt1p5 += otTime;
+            console.log(`➕ เพิ่ม OT ใน sumOt1p5: ${otTime} ชม. (วันที่ ${record.date}, cashOtMul: ${record.cashOtMul})`);
+          }
+        }
+      }
+    }
   }
   
   // คำนวณ OT ทั้งหมด (ก่อนและหลังเวลาทำงาน)
