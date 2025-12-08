@@ -7087,6 +7087,7 @@ try {
           }
           
           // คำนวณ sumCashWorkMul และ timeCashWorkMul โดยใช้ค่าที่ปรับแล้ว
+          console.log(`🔍 วันที่ ${record.date}: cashWorkMul="${record?.cashWorkMul}", cashWork="${record?.cashWork}", sumCashWorkMul[${record?.cashWorkMul}]=${sumCashWorkMul[record.cashWorkMul]}`);
           if (record?.cashWorkMul && sumCashWorkMul[record.cashWorkMul] !== undefined) {
             // ⚠️ ตรวจสอบวันหยุดนักขัตฤกษ์สำหรับพนักงานเงินเดือน
             const recordDate = parseInt(record.date);
@@ -7122,6 +7123,7 @@ try {
               console.log(`   - ข้าม cashWork ${record?.cashWork || '0'} เพราะ effectiveCashWorkMul = 0`);
             }
           }
+          console.log(`🔍 วันที่ ${record.date}: cashOtMul="${record?.cashOtMul}", cashOt="${record?.cashOt}", sumCashWorkMul[${record?.cashOtMul}]=${sumCashWorkMul[record.cashOtMul]}`);
           if (record?.cashOtMul && sumCashWorkMul[record.cashOtMul] !== undefined) {
             // ⚠️ ตรวจสอบวันหยุดนักขัตฤกษ์สำหรับพนักงานเงินเดือน (OT)
             const recordDate = parseInt(record.date);
@@ -7435,12 +7437,14 @@ if (record?.dayType === "work") {
     
     totalOtTime += afterOtTime;
     totalOtCash += afterOtCash;
-      if (record.shift !== "cash_holiday") {
-    sumOt1p5 += afterOtTime; // นับเฉพาะ OT หลังเวลาทำงาน
-    console.log(`➕ เพิ่ม OT ใน sumOt1p5: ${afterOtTime} ชม. (วันที่ ${record.date}, shift: ${record.shift})`);
-  } else {
-    console.log(`⏭️ ข้าม cash_holiday ไม่รวมใน sumOt1p5 (วันที่ ${record.date})`);
-  }
+    
+    // ❌ COMMENT: ลบการบวก sumOt1p5 ตรงนี้ - ซ้ำกับบรรทัด 7036-7048 ที่คำนวณถูกต้องตาม cashOtMul แล้ว
+    // if (record.shift !== "cash_holiday") {
+    //   sumOt1p5 += afterOtTime;
+    //   console.log(`➕ เพิ่ม OT ใน sumOt1p5: ${afterOtTime} ชม. (วันที่ ${record.date}, shift: ${record.shift})`);
+    // } else {
+    //   console.log(`⏭️ ข้าม cash_holiday ไม่รวมใน sumOt1p5 (วันที่ ${record.date})`);
+    // }
    
     
     // ❌ COMMENT: อัปเดต sumCashWorkMul สำหรับ OT หลังเวลา - ซ้ำกับบรรทัด 7089-7159
