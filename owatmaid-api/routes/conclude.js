@@ -2924,18 +2924,31 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
       let dayType = '';
       let addSalaryDaily = [];
 
+      // ✅ เพิ่มการตรวจสอบจาก dayoffWorkplace ด้วย
+      const isDayoffWorkplace = (weekendData.dayoffWorkplace || []).includes(bangkokDate);
+      
       // ตรวจสอบว่าเป็นวันหยุดหรือไม่
       const allHolidays = [
         ...(weekendData.weekendAndDayOff || []),
-        ...(weekendData.dayOffOnly || [])
+        ...(weekendData.dayOffOnly || []),
+        ...(weekendData.dayoffWorkplace || []) // ✅ เพิ่มการตรวจสอบจาก dayoffWorkplace
       ];
       
       const isHoliday = allHolidays.includes(bangkokDate);
       const isPublicHoliday = (weekendData.dayOffOnly || []).includes(bangkokDate); // วันหยุดนักขัตฤกษ์
-      const isWeekendOrCustom = (weekendData.weekendAndDayOff || []).includes(bangkokDate); // วันหยุดสุดสัปดาห์/กำหนดเอง
+      const isWeekendOrCustom = (weekendData.weekendAndDayOff || []).includes(bangkokDate) || isDayoffWorkplace; // ✅ เพิ่มเช็คจาก dayoffWorkplace
       
       // ตรวจสอบว่าพนักงานมาทำงานหรือไม่ (มีเวลาทำงาน > 0)
       const hasWorked = record.totalTime && parseFloat(record.totalTime) > 0;
+      
+      // ✅ Log เพื่อ debug
+      console.log(`🔍 เช็ควันหยุดสำหรับ ${bangkokDate}:`, {
+        isHoliday,
+        isPublicHoliday,
+        isWeekendOrCustom,
+        isDayoffWorkplace,
+        hasWorked
+      });
       
       if (isHoliday && hasWorked) {
         // ถ้าเป็นวันหยุดและพนักงานมาทำงาน
