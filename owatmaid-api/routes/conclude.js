@@ -3106,6 +3106,7 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
           }))
         ];
         
+        
         // กรองเงินพิเศษตาม shift สำหรับ id 1210
         if (record.shift === 'night_shift') {
           // night_shift: รวม id 1210 ทั้งหมด
