@@ -21,6 +21,10 @@ import { saveAs } from "file-saver";
 
 
 function SalaryAllResult({ employeeList, workplaceList }) {
+  // ตรวจสอบสิทธิ์ admin
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
   const [workplacrName, setWorkplacrName] = useState(""); //รหัสหน่วยงาน
   const [sumCashWork, setSumCashWork] = useState(0);
   const [paymentCodes, setPaymentCodes] = useState({}); // เพิ่ม state สำหรับเก็บรหัสการจ่ายเงิน
@@ -90,6 +94,33 @@ function SalaryAllResult({ employeeList, workplaceList }) {
   });
 
   
+
+// ตรวจสอบสิทธิ์ admin
+useEffect(() => {
+  const checkUserRole = () => {
+    try {
+      const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+      const userRole = localStorage.getItem('userRole') || '';
+      
+      // ตรวจสอบว่าเป็น admin หรือไม่
+      if (userRole === 'admin' || userData.role === 'admin' || userData.isAdmin === true) {
+        setIsAdmin(true);
+      } else {
+        setIsAdmin(false);
+        alert('คุณไม่มีสิทธิ์เข้าถึงหน้านี้ เฉพาะ Admin เท่านั้น');
+        // Redirect ไปหน้าอื่น (ถ้าต้องการ)
+        window.history.back();
+      }
+    } catch (error) {
+      console.error('Error checking user role:', error);
+      setIsAdmin(false);
+    } finally {
+      setIsCheckingAuth(false);
+    }
+  };
+
+  checkUserRole();
+}, []);
 
 useEffect(() => {
     const fetchWorkplaces = async () => {
@@ -250,6 +281,85 @@ useEffect(() => {
     return formatNumber(cleanNum1 + cleanNum2);
   }, [formatNumber]);
 
+  // ฟังก์ชันคำนวณเงินสุทธิแบบใหม่: รวมภายในหัวข้อก่อน แล้วค่อยรวมระหว่างหัวข้อ
+  // หมายเหตุ: ค่าที่ได้จาก backend (เช่น emp.diligenceAllowance) เป็นผลรวมที่ลบกันภายในหัวข้อแล้ว
+  // เช่น ถ้ามี +1410 (10 บาท) และ -5555 (10 บาท) → emp.diligenceAllowance = 0
+  const calculateNetSalaryV2 = useCallback((emp, paymentCodes) => {
+    // 1. แปลงค่าทั้งหมดเป็นตัวเลข
+    const parseValue = (val) => parseFloat(val) || 0;
+    
+    const salary = parseValue(emp.sumCashWork);
+    const wageRevise = parseValue(emp.wageRevise);
+    const leaveInLieu = parseValue(emp.leaveInLieu);
+    const ot = parseValue(emp.sumCashOt);
+    const transportation = parseValue(emp.transportAllowance);
+    const positionAndTransportationWithSocial = parseValue(emp.positionAndTransportationWithSocial);
+    const welfare = parseValue(emp.welfare);
+    const diligence = parseValue(emp.diligenceAllowance);
+    const holiday = parseValue(emp.publicHolidayCash);
+    const addBeforeTax = parseValue(emp.additionalBeforeTax);
+    const deductBeforeTax = parseValue(emp.deductionBeforeTax);
+    const tax = parseValue(emp.tax);
+    const socialSecurity = parseValue(emp.socialSecurity);
+    const addAfterTax = parseValue(emp.additionalAfterTax);
+    const deductAfterTax = parseValue(emp.deductionAfterTax);
+    const advance = parseValue(emp.advancePayment);
+
+    // 2. สร้าง object เก็บค่าของแต่ละหัวข้อ (ค่าเหล่านี้รวมภายในหัวข้อแล้ว)
+    const categoryTotals = {
+      wageRevise, // ปรับปรุงค่าจ้าง
+      leaveInLieu, // ชดเชยวันลา
+      ot, // ค่าล่วงเวลา
+      transportation, // ค่าพาหนะ
+      positionAndTransportationWithSocial, // ตำแหน่ง
+      welfare, // สวัสดิการพิเศษ
+      diligence, // เบี้ยขยัน (ถ้ามี +1410 และ -5555 ค่านี้จะเป็นผลรวมที่ลบกันแล้ว)
+      holiday, // วันหยุด
+      additionalBeforeTax: addBeforeTax, // บวกอื่นๆ ก่อนหักภาษี
+      deductionBeforeTax: deductBeforeTax, // หักอื่นๆ ก่อนหักภาษี
+      additionalAfterTax: addAfterTax, // บวกอื่นๆ หลังหักภาษี
+      deductionAfterTax: deductAfterTax, // หักอื่นๆ หลังหักภาษี
+      advancePayment: advance // เงินเบิกล่วงหน้า
+    };
+
+    // 3. ดึง netCalculationRules จาก paymentCodes
+    const netRules = paymentCodes.netCalculationRules || null;
+    let netCalculated = salary; // เริ่มจากเงินเดือนฐาน
+
+    if (netRules && netRules.addToNet && netRules.subtractFromNet) {
+      // ใช้ rules จาก basicsetting
+      
+      // บวกหัวข้อที่อยู่ใน addToNet (ค่าเหล่านี้รวมภายในหัวข้อแล้ว)
+      netRules.addToNet.forEach(fieldName => {
+        if (categoryTotals[fieldName] !== undefined) {
+          netCalculated += categoryTotals[fieldName];
+        }
+      });
+      
+      // ลบหัวข้อที่อยู่ใน subtractFromNet (ค่าเหล่านี้รวมภายในหัวข้อแล้ว)
+      netRules.subtractFromNet.forEach(fieldName => {
+        if (categoryTotals[fieldName] !== undefined) {
+          netCalculated -= categoryTotals[fieldName];
+        }
+      });
+      
+      // ลบภาษี, ประกันสังคม (รายการเหล่านี้ลบเสมอ)
+      netCalculated -= tax;
+      netCalculated -= socialSecurity;
+      
+    } else {
+      // ถ้าไม่มี rules ใช้สูตรเดิม (default)
+      netCalculated = 
+        salary + wageRevise + leaveInLieu + ot + transportation + 
+        positionAndTransportationWithSocial + diligence + holiday + 
+        addBeforeTax + addAfterTax - 
+        deductBeforeTax - tax - socialSecurity - deductAfterTax - advance;
+    }
+
+    return netCalculated;
+  }, []);
+
+
   // แปลงชื่อเดือนภาษาไทย
   const getThaiMonth = useCallback((month) => {
     const thaiMonths = [
@@ -338,13 +448,9 @@ filteredEmployees = filteredRecords.map(record => {
   addSalaryList.forEach(item => {
     if (transportAllowanceIds.includes(item.id)) {
       const spSalary = parseFloat(item.SpSalary || 0);
-      const days = parseFloat(record.dayWorkCount || 0);
       
-      if (item.roundOfSalary === "daily") {
-        transportAllowance += spSalary ; // คูณด้วยจำนวนวันที่ทำงาน
-      } else if (item.roundOfSalary === "monthly") {
-        transportAllowance += spSalary;
-      }
+      // รายการจาก basicsetting ไม่คูณด้วย days
+      transportAllowance += spSalary;
     }
   });
 
@@ -353,13 +459,9 @@ filteredEmployees = filteredRecords.map(record => {
   addSalaryList.forEach(item => {
     if (wageReviseIdsPlus.includes(item.id)) {
       const spSalary = parseFloat(item.SpSalary || 0);
-      const days = parseFloat(record.dayWorkCount || 0);
       
-      if (item.roundOfSalary === "daily") {
-        wageRevisePlus += spSalary * days;
-      } else if (item.roundOfSalary === "monthly") {
-        wageRevisePlus += spSalary;
-      }
+      // รายการจาก basicsetting ไม่คูณด้วย days
+      wageRevisePlus += spSalary;
     }
   });
 
@@ -369,13 +471,9 @@ filteredEmployees = filteredRecords.map(record => {
   deductSalaryList.forEach(item => {
     if (wageReviseIdsMinus.includes(item.id)) {
       const spSalary = parseFloat(item.SpSalary || 0);
-      const days = parseFloat(record.dayWorkCount || 0);
       
-      if (item.roundOfSalary === "daily") {
-        wageReviseMinus += spSalary * days;
-      } else if (item.roundOfSalary === "monthly") {
-        wageReviseMinus += spSalary;
-      }
+      // รายการจาก basicsetting ไม่คูณด้วย days
+      wageReviseMinus += spSalary;
     }
   });
 
@@ -387,13 +485,9 @@ filteredEmployees = filteredRecords.map(record => {
   addSalaryList.forEach(item => {
     if (leaveInLieuIdsPlus.includes(item.id)) {
       const spSalary = parseFloat(item.SpSalary || 0);
-      const days = parseFloat(record.dayWorkCount || 0);
       
-      if (item.roundOfSalary === "daily") {
-        leaveInLieuPlus += spSalary * days;
-      } else if (item.roundOfSalary === "monthly") {
-        leaveInLieuPlus += spSalary;
-      }
+      // รายการจาก basicsetting ไม่คูณด้วย days
+      leaveInLieuPlus += spSalary;
     }
   });
 
@@ -402,13 +496,9 @@ filteredEmployees = filteredRecords.map(record => {
   deductSalaryList.forEach(item => {
     if (leaveInLieuIdsMinus.includes(item.id)) {
       const spSalary = parseFloat(item.SpSalary || 0);
-      const days = parseFloat(record.dayWorkCount || 0);
       
-      if (item.roundOfSalary === "daily") {
-        leaveInLieuMinus += spSalary * days;
-      } else if (item.roundOfSalary === "monthly") {
-        leaveInLieuMinus += spSalary;
-      }
+      // รายการจาก basicsetting ไม่คูณด้วย days
+      leaveInLieuMinus += spSalary;
     }
   });
 
@@ -457,13 +547,9 @@ deductSalaryList.forEach(item => {
 
     if (advancePaymentIds.includes(item.id)){ 
       const spSalary = parseFloat(item.SpSalary || 0);
-      const days = parseFloat(record.dayWorkCount || 0);
       
-      if (item.roundOfSalary === "daily") {
-        payinAdvance += spSalary * days; // คูณด้วยจำนวนวันที่ทำงาน
-      } else if (item.roundOfSalary === "monthly") {
-        payinAdvance += spSalary;
-      }
+      // รายการจาก basicsetting ไม่คูณด้วย days
+      payinAdvance += spSalary;
     }
   });
   console.log('Final payInAdvance:', payinAdvance);
@@ -477,18 +563,11 @@ const targetIds = paymentCodes.plusOtherIds || [];
 addSalaryList.forEach(item => {
   if (targetIds.includes(item.id)) {
     const spSalary = parseFloat(item.SpSalary || 0);
-    const days = parseFloat(record.dayWorkCount || 0);
     
-    let calculatedAmount = 0;
-    if (item.roundOfSalary === "daily") {
-      calculatedAmount = spSalary * days;
-      plusOther += calculatedAmount;
-    } else if (item.roundOfSalary === "monthly") {
-      calculatedAmount = spSalary;
-      plusOther += calculatedAmount;
-    }
+    // รายการจาก basicsetting ไม่คูณด้วย days
+    plusOther += spSalary;
     
-    console.log(`plusOther - ID: ${item.id}, Name: ${item.SpName || 'N/A'}, SpSalary: ${spSalary}, Days: ${days}, RoundOfSalary: ${item.roundOfSalary}, Calculated: ${calculatedAmount}`);
+    console.log(`plusOther - ID: ${item.id}, Name: ${item.SpName || 'N/A'}, SpSalary: ${spSalary}, RoundOfSalary: ${item.roundOfSalary}, Calculated: ${spSalary}`);
   }
 });
 
@@ -502,13 +581,9 @@ console.log(`Final plusOther for employee ${record.employeeId}: ${plusOther}`);
 
     if (positionAndTransportationIds.includes(item.id)) {
       const spSalary = parseFloat(item.SpSalary || 0);
-      const days = parseFloat(record.dayWorkCount || 0);
       
-      if (item.roundOfSalary === "daily") {
-        positionAndTransportationWithSocialPlus += spSalary * days; // คูณด้วยจำนวนวันที่ทำงาน
-      } else if (item.roundOfSalary === "monthly") {
-        positionAndTransportationWithSocialPlus += spSalary;
-      }
+      // รายการจาก basicsetting ไม่คูณด้วย days
+      positionAndTransportationWithSocialPlus += spSalary;
     }
   });
   console.log('Final positionAndTransportationWithSocialPlus:', positionAndTransportationWithSocialPlus);
@@ -518,13 +593,9 @@ console.log(`Final plusOther for employee ${record.employeeId}: ${plusOther}`);
   deductSalaryList.forEach(item => {
     if (positionAndTransportationMinusIds.includes(item.id)) {
       const spSalary = parseFloat(item.SpSalary || 0);
-      const days = parseFloat(record.dayWorkCount || 0);  
 
-      if (item.roundOfSalary === "daily") {
-        positionAndTransportationWithSocialMinus += spSalary * days;
-      } else if (item.roundOfSalary === "monthly") {
-        positionAndTransportationWithSocialMinus += spSalary;
-      }
+      // รายการจาก basicsetting ไม่คูณด้วย days
+      positionAndTransportationWithSocialMinus += spSalary;
     }
   });
   console.log('Final positionAndTransportationWithSocialMinus:', positionAndTransportationWithSocialMinus);
@@ -536,13 +607,9 @@ console.log(`Final plusOther for employee ${record.employeeId}: ${plusOther}`);
   addSalaryList.forEach(item => {
     if (diligenceAllowanceIds.includes(item.id)) {
       const spSalary = parseFloat(item.SpSalary || 0);
-      const days = parseFloat(record.dayWorkCount || 0);
       
-      if (item.roundOfSalary === "daily") {
-        diligenceAllowance += spSalary * days;
-      } else if (item.roundOfSalary === "monthly") {
-        diligenceAllowance += spSalary;
-      }
+      // รายการจาก basicsetting ไม่คูณด้วย days
+      diligenceAllowance += spSalary;
     }
   });
 
@@ -551,12 +618,9 @@ console.log(`Final plusOther for employee ${record.employeeId}: ${plusOther}`);
   addSalaryList.forEach(item => {
     if (otTargetIds.includes(item.id)) {
       const spSalary = parseFloat(item.SpSalary || 0);
-      const days = parseFloat(record.dayWorkCount || 0);  
-      if (item.roundOfSalary === "daily") {
-        otplusOther += spSalary * days; // คูณด้วยจำนวนวันที่ทำงาน
-      } else if (item.roundOfSalary === "monthly") {
-        otplusOther += spSalary;
-      }
+      
+      // รายการจาก basicsetting ไม่คูณด้วย days
+      otplusOther += spSalary;
     }
   });
 
@@ -565,12 +629,9 @@ console.log(`Final plusOther for employee ${record.employeeId}: ${plusOther}`);
   addSalaryList.forEach(item => {
     if (publicHolidayIds.includes(item.id)) {
       const spSalary = parseFloat(item.SpSalary || 0);
-      const days = parseFloat(record.dayWorkCount || 0);  
-      if (item.roundOfSalary === "daily") {
-        otherPublicHoliday += spSalary * days; // คูณด้วยจำนวนวันที่ทำงาน
-      } else if (item.roundOfSalary === "monthly") {
-        otherPublicHoliday += spSalary;
-      }
+      
+      // รายการจาก basicsetting ไม่คูณด้วย days
+      otherPublicHoliday += spSalary;
     }
   });
 
@@ -1484,11 +1545,8 @@ const employeeData = displayEmployees.map((emp) => {
   const deductAfterTax = parseFloat(emp.deductionAfterTax?.replace(/,/g, '') || 0);
   const advance = parseFloat(emp.advancePayment?.replace(/,/g, '') || 0);
 
-  // คำนวณยอดสุทธิโดยรวมทุกช่องเงิน (บวกรายรับ ลบรายจ่าย)
-  const netCalculated = 
-    salary + wageRevise + leaveInLieu + ot + transportation + positionAndTransportationWithSocial + diligence + holiday + 
-    addBeforeTax +   addAfterTax - 
-    deductBeforeTax  - tax - socialSecurity - deductAfterTax - advance;
+  // คำนวณยอดสุทธิโดยใช้ฟังก์ชันใหม่ที่คำนวณแบบรวมภายในหัวข้อก่อน แล้วรวมระหว่างหัวข้อ
+  const netCalculated = calculateNetSalaryV2(emp, paymentCodes);
   
   // ฟอร์แมตเป็นสตริงที่มี , คั่นหลักพัน และทศนิยม 2 ตำแหน่ง
   const netFormatted = formatNumber(netCalculated);
@@ -2062,11 +2120,8 @@ const employeeData = displayEmployees.map((emp) => {
   const deductAfterTax = parseFloat(emp.deductionAfterTax?.replace(/,/g, '') || 0);
   const advance = parseFloat(emp.advancePayment?.replace(/,/g, '') || 0);
 
-  // คำนวณยอดสุทธิโดยรวมทุกช่องเงิน (บวกรายรับ ลบรายจ่าย)
-  const netCalculated = 
-    salary + ot + transportation + welfare + diligence + holiday + 
-    addBeforeTax + addNoTax + addAfterTax - 
-    deductBeforeTax - deductNoTax - tax - socialSecurity - deductAfterTax - advance;
+  // คำนวณยอดสุทธิโดยใช้ฟังก์ชันใหม่ที่คำนวณแบบรวมภายในหัวข้อก่อน แล้วรวมระหว่างหัวข้อ
+  const netCalculated = calculateNetSalaryV2(emp, paymentCodes);
   
   // ฟอร์แมตเป็นสตริงที่มี , คั่นหลักพัน และทศนิยม 2 ตำแหน่ง
   const netFormatted = formatNumber(netCalculated);
@@ -2409,11 +2464,8 @@ const createWorkplaceTable = (doc, wpId, wpName, employees, startY) => {
     const deductAfterTax = parseFloat(emp.deductionAfterTax?.replace(/,/g, '') || 0);
     const advance = parseFloat(emp.advancePayment?.replace(/,/g, '') || 0);
 
-    // คำนวณยอดสุทธิโดยรวมทุกช่องเงิน (บวกรายรับ ลบรายจ่าย)
-    const netCalculated = 
-      salary + ot + transportation + welfare + diligence + holiday + 
-      addBeforeTax + addNoTax + addAfterTax - 
-      deductBeforeTax - deductNoTax - tax - socialSecurity - deductAfterTax - advance;
+    // คำนวณยอดสุทธิโดยใช้ฟังก์ชันใหม่ที่คำนวณแบบรวมภายในหัวข้อก่อน แล้วรวมระหว่างหัวข้อ
+    const netCalculated = calculateNetSalaryV2(emp, paymentCodes);
     
     // ฟอร์แมตเป็นสตริงที่มี , คั่นหลักพัน และทศนิยม 2 ตำแหน่ง
     const netFormatted = formatNumber(netCalculated);
@@ -6281,11 +6333,8 @@ const exportToExcel = async () => {
           const advance = parseFloat(emp.advancePayment?.replace(/,/g, '') || 0);
           const days = parseFloat(emp.typeOfemployee === 'รายเดือน' ? '30' : (emp.dayWorkCount || '0'));
 
-          // คำนวณยอดสุทธิ
-          const netCalculated = 
-            salary + ot + transportation + welfare + diligence + holiday + 
-            addBeforeTax + addNoTax + addAfterTax - 
-            deductBeforeTax - deductNoTax - tax - socialSecurity - deductAfterTax - advance;
+          // คำนวณยอดสุทธิโดยใช้ฟังก์ชันใหม่ที่คำนวณแบบรวมภายในหัวข้อก่อน แล้วรวมระหว่างหัวข้อ
+          const netCalculated = calculateNetSalaryV2(emp, paymentCodes);
           
           // บวกรวมค่าสำหรับการคำนวณผลรวม
           totals.days += days;
@@ -6474,11 +6523,8 @@ const exportToExcel = async () => {
         const advance = parseFloat(emp.advancePayment?.replace(/,/g, '') || 0);
         const days = parseFloat(emp.typeOfemployee === 'รายเดือน' ? '30' : (emp.dayWorkCount || '0'));
 
-        // คำนวณยอดสุทธิ
-        const netCalculated = 
-          salary + wageRevise + ot + transportation + welfare + diligence + holiday + 
-          addBeforeTax + addNoTax + addAfterTax - 
-          deductBeforeTax - deductNoTax - tax - socialSecurity - deductAfterTax - advance;
+        // คำนวณยอดสุทธิโดยใช้ฟังก์ชันใหม่ที่คำนวณแบบรวมภายในหัวข้อก่อน แล้วรวมระหว่างหัวข้อ
+        const netCalculated = calculateNetSalaryV2(emp, paymentCodes);
         
         // บวกรวมค่าสำหรับการคำนวณผลรวม
         totals.days += days;
@@ -6828,6 +6874,60 @@ const exportToExcel = async () => {
     // ดาวน์โหลดไฟล์ Excel
     XLSX.writeFile(wb, "ExportedData.xlsx");
   };
+
+  // แสดงหน้า Loading ขณะตรวจสอบสิทธิ์
+  if (isCheckingAuth) {
+    return (
+      <div className="hold-transition sidebar-mini editlaout">
+        <div className="wrapper">
+          <div className="content-wrapper">
+            <div className="content-header">
+              <div className="container-fluid">
+                <div className="row mb-2 justify-content-center" style={{ minHeight: '400px', alignItems: 'center' }}>
+                  <div className="text-center">
+                    <i className="fas fa-spinner fa-spin fa-3x text-primary mb-3"></i>
+                    <h4>กำลังตรวจสอบสิทธิ์...</h4>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // แสดงข้อความถ้าไม่มีสิทธิ์
+  if (!isAdmin) {
+    return (
+      <div className="hold-transition sidebar-mini editlaout">
+        <div className="wrapper">
+          <div className="content-wrapper">
+            <div className="content-header">
+              <div className="container-fluid">
+                <div className="row mb-2 justify-content-center" style={{ minHeight: '400px', alignItems: 'center' }}>
+                  <div className="text-center">
+                    <i className="fas fa-exclamation-triangle fa-5x text-danger mb-4"></i>
+                    <h2 className="text-danger">ไม่มีสิทธิ์เข้าถึง</h2>
+                    <p className="text-muted" style={{ fontSize: '1.2rem' }}>
+                      หน้านี้สามารถเข้าถึงได้เฉพาะผู้ดูแลระบบ (Admin) เท่านั้น
+                    </p>
+                    <button 
+                      className="btn btn-primary mt-3"
+                      onClick={() => window.history.back()}
+                    >
+                      <i className="fas fa-arrow-left mr-2"></i>
+                      กลับหน้าก่อนหน้า
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     // <body class="hold-transition sidebar-mini" className="editlaout">

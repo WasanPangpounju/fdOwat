@@ -331,10 +331,6 @@ const [isGeneratingExcel, setIsGeneratingExcel] = useState(false);
   const [staffName, setStaffName] = useState(""); //รหัสหน่วยงาน
   const [staffLastname, setStaffLastname] = useState(""); //รหัสหน่วยงาน
   const [staffFullName, setStaffFullName] = useState(""); //รหัสหน่วยงาน
-  const [searchWorkPlace, setSearchWorkPlace] = useState("");
-  const [searchPhoneNumber, setSearchPhoneNumber] = useState("");
-  const [searchIdCard, setSearchIdCard] = useState("");
-  const [allEmployees, setAllEmployees] = useState([]);
 
   const [searchEmployeeId, setSearchEmployeeId] = useState("");
   const [searchEmployeeName, setSearchEmployeeName] = useState("");
@@ -343,20 +339,9 @@ const [isGeneratingExcel, setIsGeneratingExcel] = useState(false);
   const [cashWorkData, setCashWorkData] = useState([]);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(false); // เพิ่ม loading state สำหรับข้อมูล
+  const [loadingMessage, setLoadingMessage] = useState("กำลังโหลดข้อมูล"); // เพิ่ม loading message
   const [basicSettings, setBasicSettings] = useState([]);
   const [paymentDate, setPaymentDate] = useState("");
-
-  useEffect(() => {
-    // Fetch all employees for frontend filtering
-    fetch(endpoint + "/employee/list")
-      .then((response) => response.json())
-      .then((data) => {
-        setAllEmployees(data);
-      })
-      .catch((error) => {
-        console.error("Error fetching employees:", error);
-      });
-  }, []);
 
   const [month, setMonth] = useState("01");
   const currentYear = new Date().getFullYear(); // 2024
@@ -636,9 +621,9 @@ const [isGeneratingExcel, setIsGeneratingExcel] = useState(false);
       }
 
       pdf.text(`เงินได้สะสมต่อปี`, 9, head2 + 83);
-      const netSalaryForDisplay = calculateNetSalary(currentEmployee, responseDataAll[i]?.accountingRecord?.[0]);
+      const netSalaryForDisplay2 = calculateNetSalary(currentEmployee2, responseDataAll[i + 1]?.accountingRecord?.[0]);
       pdf.text(
-        `${netSalaryForDisplay.toLocaleString('th-TH', {
+        `${netSalaryForDisplay2.toLocaleString('th-TH', {
           minimumFractionDigits: 2,
           maximumFractionDigits: 2
         })}`,
@@ -1343,6 +1328,7 @@ const [isGeneratingExcel, setIsGeneratingExcel] = useState(false);
 // ฟังก์ชันสำหรับค้นหาข้อมูลเมื่อกดปุ่ม
 const handleSearchData = async () => {
   setIsLoadingData(true); // เริ่ม loading
+  setLoadingMessage("กำลังค้นหาข้อมูลเงินเดือน...");
   
   try {
     console.log("🚀 Starting comprehensive data search...");
@@ -1351,19 +1337,68 @@ const handleSearchData = async () => {
     console.log("👤 Search employee ID:", searchEmployeeId);
     console.log("📅 Year:", year, "Month:", month);
 
+    // เตรียมข้อมูลสำหรับ API - เพิ่ม workplaceId ถ้ามี
     const dataTest = {
       year: year.toString(),
       month: month.toString().padStart(2, '0'),
     };
+    
+    // ถ้าเป็น option1 (หน่วยงาน) ให้ส่ง workplaceId ไปด้วย เพื่อให้ server กรองให้
+    if (selectedOption === "option1" && searchWorkplaceId) {
+      dataTest.workplaceId = searchWorkplaceId;
+      console.log("🏢 Including workplaceId in main API request:", searchWorkplaceId);
+    }
+    
+    // ถ้าเป็น option2 (พนักงาน) ให้ส่ง employeeId ไปด้วย
+    if (selectedOption === "option2" && searchEmployeeId) {
+      dataTest.employeeId = searchEmployeeId;
+      console.log("👤 Including employeeId in main API request:", searchEmployeeId);
+    }
 
     // Step 1: เรียก API accounting/searchtimerecordemployee (API หลัก)
-    console.log("� Step 1: Calling main API - accounting/searchtimerecordemployee");
-    const mainResponse = await axios.post("http://10.10.110.7:3000/accounting/searchtimerecordemployee", dataTest);
+    console.log("📡 Step 1: Calling main API - accounting/searchtimerecordemployee");
+    console.log("📤 Request data:", dataTest);
+    setLoadingMessage("กำลังดึงข้อมูลพนักงาน...");
+    
+    // เพิ่ม timeout และ retry logic
+    let mainResponse;
+    let retryCount = 0;
+    const maxRetries = 2;
+    
+    while (retryCount <= maxRetries) {
+      try {
+        mainResponse = await axios.post(
+          "http://10.10.110.7:3000/accounting/searchtimerecordemployee", 
+          dataTest,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            timeout: 90000, // เพิ่ม timeout เป็น 90 วินาที
+          }
+        );
+        break; // สำเร็จ ออกจาก loop
+      } catch (error) {
+        retryCount++;
+        console.warn(`⚠️ Attempt ${retryCount}/${maxRetries + 1} failed:`, error.message);
+        
+        if (retryCount > maxRetries) {
+          throw error; // ลองครบแล้ว throw error ต่อ
+        }
+        
+        // รอ 2 วินาทีก่อน retry
+        console.log(`⏳ Retrying in 2 seconds...`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    }
+    
     console.log("✅ Main API Response received:", mainResponse.data);
 
     // Step 2: ถ้าเป็น option1 (หน่วยงาน) ให้เรียก API เพิ่มเติม
     if (selectedOption == "option1" && searchWorkplaceId) {
-      console.log("� Step 2: Calling workplace API - accounting/searchtimerecordbyworkplace");
+      console.log("🏢 Step 2: Calling workplace API - accounting/searchtimerecordbyworkplace");
+      setLoadingMessage("กำลังประมวลผลข้อมูลหน่วยงาน...");
+      
       const workplaceApiData = {
         workplaceId: searchWorkplaceId,
         month: month.toString().padStart(2, '0'),
@@ -1387,7 +1422,7 @@ const handleSearchData = async () => {
       }
 
       // Step 3: เรียก conclude/searchtimerecordemployee สำหรับพนักงานในหน่วยงาน
-      console.log("� Step 3: Calling conclude API for all employees in workplace");
+      console.log("📊 Step 3: Calling conclude API for all employees in workplace");
       const responseData = mainResponse.data.result || [];
       
       // กรองพนักงานในหน่วยงานที่เลือก
@@ -1398,48 +1433,95 @@ const handleSearchData = async () => {
       });
 
       console.log(`🔄 Found ${workplaceEmployees.length} employees in workplace ${searchWorkplaceId}`);
+      
+      if (workplaceEmployees.length > 0) {
+        setLoadingMessage(`กำลังประมวลผลข้อมูล ${workplaceEmployees.length} คน...`);
+      }
 
-      // วนยิง conclude API สำหรับแต่ละพนักงาน
+      // วนยิง conclude API สำหรับแต่ละพนักงาน (Batch Processing)
       let concludeSuccessCount = 0;
-      for (let i = 0; i < workplaceEmployees.length; i++) {
-        const employee = workplaceEmployees[i];
-        try {
-          const concludeData = {
-            employeeId: employee.employeeId,
-            month: month.toString().padStart(2, '0'),
-            year: year.toString()
-          };
+      let concludeErrorCount = 0;
+      
+      console.log(`📡 Starting conclude API calls for ${workplaceEmployees.length} employees...`);
+      
+      // แบ่ง batch ละ 5 คน เพื่อลด concurrent requests
+      const batchSize = 5;
+      const batches = [];
+      for (let i = 0; i < workplaceEmployees.length; i += batchSize) {
+        batches.push(workplaceEmployees.slice(i, i + batchSize));
+      }
+      
+      console.log(`📦 Split into ${batches.length} batches (${batchSize} employees per batch)`);
+      
+      for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+        const batch = batches[batchIndex];
+        
+        // ยิง API พร้อมกันใน batch
+        const batchPromises = batch.map(async (employee) => {
+          try {
+            const concludeData = {
+              employeeId: employee.employeeId,
+              month: month.toString().padStart(2, '0'),
+              year: year.toString()
+            };
 
-          const concludeResponse = await axios.post(
-            'http://10.10.110.7:3000/conclude/searchtimerecordemployee',
-            concludeData,
-            {
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              timeout: 30000
+            const concludeResponse = await axios.post(
+              'http://10.10.110.7:3000/conclude/searchtimerecordemployee',
+              concludeData,
+              {
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                timeout: 30000
+              }
+            );
+
+            if (concludeResponse.status === 200) {
+              return { success: true, employeeId: employee.employeeId };
             }
-          );
-
-          if (concludeResponse.status === 200) {
-            concludeSuccessCount++;
-            console.log(`✅ Conclude API success for employee ${employee.employeeId}`);
+            return { success: false, employeeId: employee.employeeId };
+          } catch (concludeError) {
+            return { 
+              success: false, 
+              employeeId: employee.employeeId, 
+              error: concludeError.message 
+            };
           }
-        } catch (concludeError) {
-          console.warn(`⚠️ Conclude API error for employee ${employee.employeeId}:`, concludeError);
-        }
+        });
 
-        // เพิ่ม delay เล็กน้อย
-        if (i < workplaceEmployees.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 100));
+        // รอให้ batch นี้เสร็จทั้งหมด
+        const batchResults = await Promise.all(batchPromises);
+        
+        // นับผลลัพธ์
+        batchResults.forEach(result => {
+          if (result.success) {
+            concludeSuccessCount++;
+          } else {
+            concludeErrorCount++;
+            if (concludeErrorCount <= 3) {
+              console.warn(`⚠️ Conclude API error for employee ${result.employeeId}: ${result.error || 'Unknown error'}`);
+            }
+          }
+        });
+
+        // แสดง progress
+        const processedCount = (batchIndex + 1) * batchSize;
+        const currentCount = Math.min(processedCount, workplaceEmployees.length);
+        console.log(`✅ Progress: ${currentCount}/${workplaceEmployees.length} employees processed (${concludeSuccessCount} success, ${concludeErrorCount} errors)`);
+        setLoadingMessage(`กำลังประมวลผล ${currentCount}/${workplaceEmployees.length} คน...`);
+        
+        // เพิ่ม delay ระหว่าง batch (500ms) เพื่อไม่ให้ server โดน flood
+        if (batchIndex < batches.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500));
         }
       }
 
-      console.log(`✅ Conclude API completed: ${concludeSuccessCount}/${workplaceEmployees.length} employees processed`);
+      console.log(`✅ Conclude API completed: ${concludeSuccessCount}/${workplaceEmployees.length} employees processed successfully${concludeErrorCount > 0 ? `, ${concludeErrorCount} errors` : ''}`);
     }
 
     // Step 4: ประมวลผลข้อมูลตามเดิม
     console.log("🔄 Processing main data response...");
+    setLoadingMessage("กำลังจัดเรียงและกรองข้อมูล...");
     
     if (selectedOption == "option1") {
       const responseData = mainResponse.data.result; // แก้ไข: เข้าถึง result array
@@ -1457,55 +1539,77 @@ const handleSearchData = async () => {
 
           console.log("🏢 After workplace filter:", filteredData.length, "records");
 
-          // เพิ่ม log เพื่อดูโครงสร้างข้อมูล
-          if (filteredData.length > 0) {
-            console.log("📋 Sample data structure:", filteredData[0]);
-            console.log("👤 Employee data keys:", Object.keys(filteredData[0]));
-            if (filteredData[0].employee_record) {
-              console.log("🏢 Employee record structure:", filteredData[0].employee_record[0]);
+          // กรองออกพนักงานที่มีหน่วยงานต้นสังกัดเป็น "10105" 
+          console.log(`🔍 Checking workplace origin for ${filteredData.length} employees...`);
+          setLoadingMessage(`กำลังตรวจสอบหน่วยงานต้นสังกัด ${filteredData.length} คน...`);
+          
+          // แบ่ง batch ละ 10 คน เพื่อลด concurrent requests
+          const checkBatchSize = 10;
+          const checkBatches = [];
+          for (let i = 0; i < filteredData.length; i += checkBatchSize) {
+            checkBatches.push(filteredData.slice(i, i + checkBatchSize));
+          }
+          
+          console.log(`📦 Split into ${checkBatches.length} batches for workplace check`);
+          
+          let filteredExclude10105 = [];
+          let excludedCount = 0;
+          
+          for (let batchIndex = 0; batchIndex < checkBatches.length; batchIndex++) {
+            const batch = checkBatches[batchIndex];
+            
+            // ยิง API พร้อมกันใน batch
+            const batchResults = await Promise.all(
+              batch.map(async (item) => {
+                try {
+                  // เรียก API เพื่อเช็คหน่วยงานต้นสังกัดของพนักงาน
+                  const response = await axios.post("http://10.10.110.7:3000/employee/search", {
+                    employeeId: item.employeeId
+                  });
+                  
+                  if (response.data && response.data.employees && response.data.employees.length > 0) {
+                    const employee = response.data.employees[0];
+                    const originalWorkplace = employee.workplace; // หน่วยงานต้นสังกัด
+                    
+                    // ถ้าหน่วยงานต้นสังกัดเป็น 10105 ให้กรองออก
+                    if (originalWorkplace === "10105") {
+                      console.log(`🚫 Filtering out employee ${item.employeeId} - original workplace is 10105`);
+                      return null; // กรองออก
+                    }
+                  }
+                  return item; // เก็บไว้
+                } catch (error) {
+                  // Log error แต่ไม่ต้อง log รายละเอียดทั้งหมด
+                  console.warn(`⚠️ Error checking employee ${item.employeeId}: ${error.message}`);
+                  return item; // ถ้า error ให้เก็บไว้
+                }
+              })
+            );
+            
+            // กรองผลลัพธ์และนับจำนวนที่ถูกกรอง
+            const validResults = batchResults.filter(item => {
+              if (item === null) {
+                excludedCount++;
+                return false;
+              }
+              return true;
+            });
+            
+            filteredExclude10105 = [...filteredExclude10105, ...validResults];
+            
+            // แสดง progress
+            const processedCount = Math.min((batchIndex + 1) * checkBatchSize, filteredData.length);
+            console.log(`📊 Progress: ${processedCount}/${filteredData.length} employees checked (${excludedCount} excluded)`);
+            setLoadingMessage(`กำลังตรวจสอบ ${processedCount}/${filteredData.length} คน...`);
+            
+            // เพิ่ม delay ระหว่าง batch (300ms)
+            if (batchIndex < checkBatches.length - 1) {
+              await new Promise(resolve => setTimeout(resolve, 300));
             }
           }
 
-          // กรองออกพนักงานที่มีหน่วยงานต้นสังกัดเป็น "10105" 
-          const filteredExclude10105 = await Promise.all(
-            filteredData.map(async (item) => {
-              try {
-                // เรียก API เพื่อเช็คหน่วยงานต้นสังกัดของพนักงาน
-                const response = await axios.post("http://10.10.110.7:3000/employee/search", {
-                  employeeId: item.employeeId
-                });
-                
-                if (response.data && response.data.employees && response.data.employees.length > 0) {
-                  const employee = response.data.employees[0];
-                  
-                  // เพิ่ม logging เพื่อดู structure ของ employee data
-                  console.log(`🔍 Employee API Response for ${item.employeeId}:`, employee);
-                  console.log(`🔑 Available keys:`, Object.keys(employee));
-                  
-                  const originalWorkplace = employee.workplace; // หน่วยงานต้นสังกัด
-                  
-                  console.log(`👤 Employee ${item.employeeId} (${item.employeeName}):`, {
-                    originalWorkplace: originalWorkplace,
-                    currentWork: item.employee_record?.[0]?.workplaceId,
-                    fullEmployeeData: employee
-                  });
-                  
-                  // ถ้าหน่วยงานต้นสังกัดเป็น 10105 ให้กรองออก
-                  if (originalWorkplace === "10105") {
-                    console.log(`🚫 Filtering out employee ${item.employeeId} - original workplace is 10105`);
-                    return null; // กรองออก
-                  }
-                }
-                return item; // เก็บไว้
-              } catch (error) {
-                console.error(`❌ Error checking employee ${item.employeeId}:`, error);
-                return item; // ถ้า error ให้เก็บไว้
-              }
-            })
-          ).then(results => results.filter(item => item !== null)); // กรองออก null values
-
           console.log("🚫 After excluding workplace 10105:", filteredExclude10105.length, "records");
-          console.log("📋 Records excluded from 10105:", filteredData.length - filteredExclude10105.length);
+          console.log("📋 Records excluded from 10105:", excludedCount);
 
           // Sort filteredExclude10105 by workplaceId in ascending order
           filteredExclude10105.sort((a, b) => {
@@ -1530,50 +1634,18 @@ const handleSearchData = async () => {
           );
 
           console.log("📅 After date filter:", dateFilteredData.length, "records");
-          console.log("📋 Final filtered data:", dateFilteredData);
+          console.log("✅ Final filtered data ready:", dateFilteredData.length, "employees");
           setResponseDataAll(dateFilteredData);
         } else if (selectedOption == "option2") {
           const responseData = mainResponse.data.result; // แก้ไข: เข้าถึง result array
           console.log("🔄 Processing Option 2 (Employee filter)");
 
-          // Check if using new search fields for frontend filtering
-          const usingNewFields = searchWorkPlace || searchPhoneNumber || searchIdCard || staffName || staffLastname;
-
-          let targetEmployeeId = searchEmployeeId;
-
-          // Frontend filtering if new fields are used
-          if (usingNewFields && allEmployees.length > 0) {
-            console.log("🔍 Using frontend filtering with new search fields");
-            const filtered = allEmployees.filter((emp) => {
-              let match = true;
-              if (staffId && emp.employeeId !== staffId) match = false;
-              if (searchWorkPlace && !emp.workplace?.toLowerCase().includes(searchWorkPlace.toLowerCase())) match = false;
-              if (staffName && !emp.name?.toLowerCase().includes(staffName.toLowerCase())) match = false;
-              if (staffLastname && !emp.lastName?.toLowerCase().includes(staffLastname.toLowerCase())) match = false;
-              if (searchPhoneNumber && !emp.phoneNumber?.includes(searchPhoneNumber)) match = false;
-              if (searchIdCard && !emp.idCard?.includes(searchIdCard)) match = false;
-              return match;
-            });
-
-            console.log("✅ Frontend filter results:", filtered.length, "employees");
-            if (filtered.length > 0) {
-              targetEmployeeId = filtered[0].employeeId;
-              setSearchEmployeeId(targetEmployeeId);
-              setStaffId(targetEmployeeId);
-              console.log("🎯 Selected employee ID:", targetEmployeeId);
-            } else {
-              console.log("⚠️ No matching employee found");
-              setResponseDataAll([]);
-              return;
-            }
-          }
-
           // ถ้าเป็น option2 และมี employeeId ให้เรียก conclude API สำหรับพนักงานคนนั้น
-          if (targetEmployeeId) {
+          if (searchEmployeeId) {
             console.log("📡 Step 3: Calling conclude API for specific employee");
             try {
               const concludeData = {
-                employeeId: targetEmployeeId,
+                employeeId: searchEmployeeId,
                 month: month.toString().padStart(2, '0'),
                 year: year.toString()
               };
@@ -1589,15 +1661,15 @@ const handleSearchData = async () => {
                 }
               );
 
-              console.log(`✅ Conclude API success for employee ${targetEmployeeId}`);
+              console.log(`✅ Conclude API success for employee ${searchEmployeeId}`);
             } catch (concludeError) {
-              console.warn(`⚠️ Conclude API error for employee ${targetEmployeeId}:`, concludeError);
+              console.warn(`⚠️ Conclude API error for employee ${searchEmployeeId}:`, concludeError);
             }
           }
 
-          // Filter data based on targetEmployeeId if provided
-          const filteredData = targetEmployeeId
-            ? responseData.filter((item) => item.employeeId === targetEmployeeId)
+          // Filter data based on searchEmployeeId if provided
+          const filteredData = searchEmployeeId
+            ? responseData.filter((item) => item.employeeId === searchEmployeeId)
             : responseData;
 
           console.log("👤 After employee filter:", filteredData.length, "records");
@@ -1625,19 +1697,40 @@ const handleSearchData = async () => {
           );
 
           console.log("📅 After date filter:", dateFilteredData.length, "records");
-          console.log("📋 Final filtered data:", dateFilteredData);
+          console.log("✅ Final filtered data ready:", dateFilteredData.length, "employees");
           setResponseDataAll(dateFilteredData);
         }
   } catch (error) {
     console.error("❌ API Error:", error);
     console.error("❌ Error message:", error.message);
-    if (error.response) {
+    
+    // แสดงข้อความแจ้งเตือนที่เฉพาะเจาะจงตาม error type
+    let errorMessage = "เกิดข้อผิดพลาดในการค้นหาข้อมูล";
+    
+    if (error.code === 'ERR_NETWORK' || error.code === 'ECONNABORTED') {
+      errorMessage = "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต";
+    } else if (error.code === 'ECONNREFUSED') {
+      errorMessage = "เซิร์ฟเวอร์ปฏิเสธการเชื่อมต่อ กรุณาติดต่อผู้ดูแลระบบ";
+    } else if (error.message === 'timeout of 90000ms exceeded') {
+      errorMessage = "การค้นหาใช้เวลานานเกินไป กรุณาลองใหม่อีกครั้ง หรือเลือกเงื่อนไขที่เฉพาะเจาะจงมากขึ้น";
+    } else if (error.response) {
       console.error("❌ Response status:", error.response.status);
       console.error("❌ Response data:", error.response.data);
+      
+      if (error.response.status === 404) {
+        errorMessage = "ไม่พบข้อมูลเงินเดือน กรุณาตรวจสอบเงื่อนไขการค้นหา";
+      } else if (error.response.status === 500) {
+        errorMessage = "เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์ กรุณาลองใหม่อีกครั้ง";
+      }
     }
+    
+    // แสดง alert แจ้งเตือน
+    alert(errorMessage);
+    
     setResponseDataAll([]); // Clear data on error
   } finally {
     setIsLoadingData(false); // จบ loading
+    setLoadingMessage("กำลังโหลดข้อมูล"); // รีเซ็ต loading message
   }
 };
 
@@ -1850,7 +1943,6 @@ const generatePDF = async () => {
       parseFloat(employee?.sumCashWork || '0') + 
       parseFloat(employee?.sumCashOt || '0') +
       parseFloat(specialDayAmount || '0') + 
-      parseFloat(employee?.publicHolidayCash || '0') +
       parseFloat(
         employee?.addSalaryList?.reduce(
           (total, item) => total + parseFloat(item.SpSalary || '0'),
@@ -1858,18 +1950,9 @@ const generatePDF = async () => {
         ) || '0'
       );
 
-    // รวมรายการหักจาก deductSalaryList
-    const deductSalaryTotal = parseFloat(
-      employee?.deductSalaryList?.reduce(
-        (total, item) => total + parseFloat(item.amount || '0'),
-        0
-      ) || '0'
-    );
-
     const deductionTotal =
       parseFloat(employee?.socialSecurity || '0') +
-      parseFloat(employee?.tax || '0') +
-      deductSalaryTotal;
+      parseFloat(employee?.tax || '0');
 
     const netTotal = incomeTotal - deductionTotal;
 
@@ -7507,8 +7590,8 @@ const generateExcel = async () => {
           <div className="loading-overlay">
             <div className="loading-content">
               <div className="loading-spinner"></div>
-              <div className="loading-text">กำลังโหลดข้อมูล<span className="loading-dots"></span></div>
-              <div className="loading-subtext">กรุณารอสักครู่</div>
+              <div className="loading-text">{loadingMessage}<span className="loading-dots"></span></div>
+              <div className="loading-subtext">กรุณารอสักครู่ อาจใช้เวลาหลายนาทีสำหรับข้อมูลจำนวนมาก</div>
             </div>
           </div>
         )}
@@ -7565,7 +7648,10 @@ const generateExcel = async () => {
                             placeholder="รหัสหน่อยงาน"
                             value={workplacrId}
                             onChange={handleStaffIdChange}
-                            
+                            onInput={(e) => {
+                              // Remove any non-digit characters
+                              e.target.value = e.target.value.replace(/\D/g, "");
+                            }}
                             list="WorkplaceIdList"
                           />
                           <datalist id="WorkplaceIdList">
@@ -7625,9 +7711,8 @@ const generateExcel = async () => {
                   {selectedOption === "option2" && (
                     <div>
                       <h2>แบบพนักงาน</h2>
-                      {/* Row 1: รหัสพนักงาน | ชื่อหน่วยงาน */}
-                      <div class="row mb-3">
-                        <div class="col-md-6">
+                      <div class="row">
+                        <div class="col-md-3">
                           <label role="searchEmployeeId">รหัสพนักงาน</label>
                           <input
                             type="text"
@@ -7637,6 +7722,7 @@ const generateExcel = async () => {
                             value={staffId}
                             onChange={handleStaffIdChange2}
                             onInput={(e) => {
+                              // Remove any non-digit characters
                               e.target.value = e.target.value.replace(/\D/g, "");
                             }}
                             list="staffIdList"
@@ -7650,155 +7736,33 @@ const generateExcel = async () => {
                             ))}
                           </datalist>
                         </div>
-                        <div class="col-md-6">
-                          <label role="searchWorkPlace">ชื่อหน่วยงาน</label>
-                          <input
-                            type="text"
-                            className="form-control"
-                            id="searchWorkPlace"
-                            placeholder="ชื่อหน่วยงาน"
-                            value={searchWorkPlace}
-                            onChange={(e) => setSearchWorkPlace(e.target.value)}
-                            list="workPlaceListEmp"
-                          />
-                          <datalist id="workPlaceListEmp">
-                            {[...new Set(employeeList.map(emp => emp.workplace))].map((workplace, index) => (
-                              <option key={index} value={workplace} />
-                            ))}
-                          </datalist>
-                        </div>
-                      </div>
-
-                      {/* Row 2: ชื่อ | นามสกุล */}
-                      <div class="row mb-3">
-                        <div class="col-md-6">
-                          <label role="staffName">ชื่อ</label>
+                        <div class="col-md-3">
+                          <label role="searchname">ชื่อพนักงาน</label>
                           <input
                             type="text"
                             className="form-control"
                             id="staffName"
-                            placeholder="ชื่อ"
-                            value={staffName}
-                            onChange={(e) => setStaffName(e.target.value)}
-                            list="firstNameListEmp"
+                            placeholder="ชื่อพนักงาน"
+                            value={staffFullName}
+                            onChange={handleStaffNameChange2}
+                            list="staffNameList"
                           />
-                          <datalist id="firstNameListEmp">
-                            {[...new Set(employeeList.map(emp => emp.name))].map((name, index) => (
-                              <option key={index} value={name} />
-                            ))}
-                          </datalist>
-                        </div>
-                        <div class="col-md-6">
-                          <label role="staffLastname">นามสกุล</label>
-                          <input
-                            type="text"
-                            className="form-control"
-                            id="staffLastname"
-                            placeholder="นามสกุล"
-                            value={staffLastname}
-                            onChange={(e) => setStaffLastname(e.target.value)}
-                            list="lastNameListEmp"
-                          />
-                          <datalist id="lastNameListEmp">
-                            {[...new Set(employeeList.map(emp => emp.lastName))].map((lastName, index) => (
-                              <option key={index} value={lastName} />
-                            ))}
-                          </datalist>
-                        </div>
-                      </div>
-
-                      {/* Row 3: เบอร์โทรศัพท์ | หมายเลขบัตรประชาชน */}
-                      <div class="row mb-3">
-                        <div class="col-md-6">
-                          <label role="searchPhoneNumber">เบอร์โทรศัพท์</label>
-                          <input
-                            type="text"
-                            className="form-control"
-                            id="searchPhoneNumber"
-                            placeholder="เบอร์โทรศัพท์"
-                            value={searchPhoneNumber}
-                            onChange={(e) => setSearchPhoneNumber(e.target.value)}
-                            list="phoneNumberListEmp"
-                          />
-                          <datalist id="phoneNumberListEmp">
+                          <datalist id="staffNameList">
                             {employeeList.map((employee) => (
                               <option
                                 key={employee.employeeId}
-                                value={employee.phoneNumber}
+                                value={employee.name + " " + employee.lastName}
                               />
                             ))}
                           </datalist>
                         </div>
-                        <div class="col-md-6">
-                          <label role="searchIdCard">หมายเลขบัตรประชาชน</label>
-                          <input
-                            type="text"
-                            className="form-control"
-                            id="searchIdCard"
-                            placeholder="หมายเลขบัตรประชาชน"
-                            value={searchIdCard}
-                            onChange={(e) => setSearchIdCard(e.target.value)}
-                            list="idCardListEmp"
-                          />
-                          <datalist id="idCardListEmp">
-                            {employeeList.map((employee) => (
-                              <option
-                                key={employee.employeeId}
-                                value={employee.idCard}
-                              />
-                            ))}
-                          </datalist>
-                        </div>
-                      </div>
-
-                      {/* Row 4: เดือน | ปี */}
-                      <div class="row mb-3">
-                        <div class="col-md-6">
-                          <label role="month">เดือน</label>
-                          <select
-                            className="form-control"
-                            value={month}
-                            onChange={(e) => setMonth(e.target.value)}
-                          >
-                            <option value="01">มกราคม</option>
-                            <option value="02">กุมภาพันธ์</option>
-                            <option value="03">มีนาคม</option>
-                            <option value="04">เมษายน</option>
-                            <option value="05">พฤษภาคม</option>
-                            <option value="06">มิถุนายน</option>
-                            <option value="07">กรกฎาคม</option>
-                            <option value="08">สิงหาคม</option>
-                            <option value="09">กันยายน</option>
-                            <option value="10">ตุลาคม</option>
-                            <option value="11">พฤศจิกายน</option>
-                            <option value="12">ธันวาคม</option>
-                          </select>
-                        </div>
-                        <div class="col-md-6">
-                          <label role="year">ปี</label>
-                          <select
-                            className="form-control"
-                            value={year}
-                            onChange={(e) => setYear(e.target.value)}
-                          >
-                            {years.map((y) => (
-                              <option key={y} value={y}>
-                                {y + 543}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-
-                      {/* Search Button */}
-                      <div class="row mt-4">
-                        <div class="col-md-12 d-flex justify-content-center">
+                        <div class="col-md-3 d-flex align-items-end">
                           <button
                             type="button"
                             className={`btn btn-primary ${isLoadingData ? 'btn-loading' : ''}`}
                             onClick={handleSearchData}
-                            disabled={isLoadingData}
-                            style={{ minWidth: '150px' }}
+                            disabled={isLoadingData || (!staffId.trim() && !staffFullName.trim())}
+                            style={{ height: '38px' }}
                           >
                             {isLoadingData ? (
                               <>

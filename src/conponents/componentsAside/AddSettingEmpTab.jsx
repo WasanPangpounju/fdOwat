@@ -12,7 +12,7 @@ import "../editwindowcss.css";
 import EmployeeWorkDay from "./componentsetting/EmployeeWorkDay";
 import { useLocation } from "react-router-dom";
 
-function Setting({ workplaceList, employeeList }) {
+function SettingTab({ workplaceList, employeeList }) {
   // Use useLocation hook to access query parameters from URL
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
@@ -117,7 +117,6 @@ function Setting({ workplaceList, employeeList }) {
         shift: "",
         beforeStartTimeOT: "", // เข้า OT ก่อน
         beforeEndTimeOT: "", // ออก OT ก่อน
-        beforeResultTimeOT: "", // ✅ เปลี่ยนเป็น beforeResultTimeOT
         startTime: "",
         endTime: "",
         resultTime: "",
@@ -131,8 +130,7 @@ function Setting({ workplaceList, employeeList }) {
   });
 
   const [workTimeDayList, setWorkTimeDayList] = useState([]);
-  const [editingRow, setEditingRow] = useState(null);
-  const [editingItem, setEditingItem] = useState(null);
+  const [editingTimeListIndex, setEditingTimeListIndex] = useState(null); // เก็บ index ของรายการที่กำลังแก้ไข
 
   // const daysOfWeekThai = ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์', 'อาทิตย์'];
   const shiftWork = ["กะเช้า", "กะบ่าย", "กะดึก"];
@@ -177,7 +175,26 @@ function Setting({ workplaceList, employeeList }) {
   };
 
   const handleAddTimeList = () => {
-    setWorkTimeDayList((prevList) => [...prevList, workTimeDay]);
+    // ถ้าอยู่ในโหมดแก้ไข
+    if (editingTimeListIndex !== null) {
+      setWorkTimeDayList((prevList) => {
+        const updatedList = [...prevList];
+        updatedList[editingTimeListIndex] = workTimeDay;
+        return updatedList;
+      });
+      setEditingTimeListIndex(null);
+      
+      Swal.fire({
+        title: "แก้ไขสำเร็จ",
+        text: "แก้ไขข้อมูลเรียบร้อยแล้ว",
+        icon: "success",
+        timer: 1500,
+        showConfirmButton: false
+      });
+    } else {
+      // เพิ่มใหม่
+      setWorkTimeDayList((prevList) => [...prevList, workTimeDay]);
+    }
 
     //clean data
     setWorkTimeDay({
@@ -189,7 +206,6 @@ function Setting({ workplaceList, employeeList }) {
           shift: "",
           beforeStartTimeOT: "", // เข้า OT ก่อน
           beforeEndTimeOT: "", // ออก OT ก่อน
-          beforeResultTimeOT: "", // ✅ เปลี่ยนเป็น beforeResultTimeOT
           startTime: "",
           endTime: "",
           resultTime: "",
@@ -207,134 +223,18 @@ function Setting({ workplaceList, employeeList }) {
       updatedList.splice(index, 1);
       return updatedList;
     });
+  };
+
+  const handleEditTimeList = (index) => {
+    const itemToEdit = workTimeDayList[index];
+    setWorkTimeDay(itemToEdit);
+    setEditingTimeListIndex(index);
     
-    // Reset editing state
-    if (editingRow === index) {
-      setEditingRow(null);
-      setEditingItem(null);
+    // เลื่อนหน้าจอไปที่ฟอร์ม
+    const formElement = document.getElementById('workTimeDayForm');
+    if (formElement) {
+      formElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-  };
-
-  const handleEditClick = (index, item1) => {
-    setEditingRow(index);
-    setEditingItem({
-      ...item1,
-      startDay: workTimeDayList[index].startDay,
-      endDay: workTimeDayList[index].endDay,
-      workOrStop: workTimeDayList[index].workOrStop
-    });
-  };
-
-  const handleCancelEdit = () => {
-    setEditingRow(null);
-    setEditingItem(null);
-  };
-
-  const handleSaveEdit = (index, rowIndex) => {
-    setWorkTimeDayList(prevList => {
-      const newList = [...prevList];
-      // อัพเดทข้อมูลของวันและสถานะ
-      newList[index] = {
-        ...newList[index],
-        startDay: editingItem.startDay || "",
-        endDay: editingItem.endDay || "",
-        workOrStop: editingItem.workOrStop || ""
-      };
-
-      // คำนวณเวลาทำงานและ OT
-      let resultTime = "";
-      if (editingItem.startTime && editingItem.endTime) {
-        const start = parseFloat(editingItem.startTime);
-        const end = parseFloat(editingItem.endTime);
-        if (!isNaN(start) && !isNaN(end)) {
-          resultTime = (end - start).toFixed(2);
-        }
-      }
-
-      let resultTimeOT = "";
-      if (editingItem.startTimeOT && editingItem.endTimeOT) {
-        const startOT = parseFloat(editingItem.startTimeOT);
-        const endOT = parseFloat(editingItem.endTimeOT);
-        if (!isNaN(startOT) && !isNaN(endOT)) {
-          resultTimeOT = (endOT - startOT).toFixed(2);
-        }
-      }
-
-      let beforeResultTimeOT = ""; // ✅ เปลี่ยนชื่อตัวแปร
-      if (editingItem.beforeStartTimeOT && editingItem.beforeEndTimeOT) {
-        const startBeforeOT = parseFloat(editingItem.beforeStartTimeOT);
-        const endBeforeOT = parseFloat(editingItem.beforeEndTimeOT);
-        if (!isNaN(startBeforeOT) && !isNaN(endBeforeOT)) {
-          beforeResultTimeOT = (endBeforeOT - startBeforeOT).toFixed(2);
-        }
-      }
-
-      // อัพเดทข้อมูลของเวลาทำงาน
-      newList[index].allTimes[rowIndex] = {
-        shift: editingItem.shift || "",
-        beforeStartTimeOT: editingItem.beforeStartTimeOT || "",
-        beforeEndTimeOT: editingItem.beforeEndTimeOT || "",
-        beforeResultTimeOT: beforeResultTimeOT, // ✅ เปลี่ยนเป็น beforeResultTimeOT
-        startTime: editingItem.startTime || "",
-        endTime: editingItem.endTime || "",
-        resultTime: resultTime,
-        startTimeOT: editingItem.startTimeOT || "",
-        endTimeOT: editingItem.endTimeOT || "",
-        resultTimeOT: resultTimeOT,
-        numberOfPeople: editingItem.numberOfPeople || "",
-        Remark: editingItem.Remark || ""
-      };
-      return newList;
-    });
-    setEditingRow(null);
-    setEditingItem(null);
-  };
-
-  const handleEditChange = (field, value) => {
-    setEditingItem(prev => {
-      const updated = { ...prev, [field]: value };
-      
-      // คำนวณ resultTime เมื่อมีการเปลี่ยนแปลงเวลาเข้าหรือออก
-      if (field === 'startTime' || field === 'endTime') {
-        if (updated.startTime && updated.endTime) {
-          const startHour = parseFloat(updated.startTime);
-          const endHour = parseFloat(updated.endTime);
-          if (!isNaN(startHour) && !isNaN(endHour)) {
-            let diff = endHour - startHour;
-            if (diff < 0) diff += 24; // กรณีข้ามวัน
-            updated.resultTime = diff.toFixed(2);
-          }
-        }
-      }
-      
-      // คำนวณ resultTimeOT เมื่อมีการเปลี่ยนแปลงเวลา OT
-      if (field === 'startTimeOT' || field === 'endTimeOT') {
-        if (updated.startTimeOT && updated.endTimeOT) {
-          const startHour = parseFloat(updated.startTimeOT);
-          const endHour = parseFloat(updated.endTimeOT);
-          if (!isNaN(startHour) && !isNaN(endHour)) {
-            let diff = endHour - startHour;
-            if (diff < 0) diff += 24; // กรณีข้ามวัน
-            updated.resultTimeOT = diff.toFixed(2);
-          }
-        }
-      }
-
-      // คำนวณ beforeResultTimeOT เมื่อมีการเปลี่ยนแปลงเวลา OT ก่อน
-      if (field === 'beforeStartTimeOT' || field === 'beforeEndTimeOT') {
-        if (updated.beforeStartTimeOT && updated.beforeEndTimeOT) {
-          const startHour = parseFloat(updated.beforeStartTimeOT);
-          const endHour = parseFloat(updated.beforeEndTimeOT);
-          if (!isNaN(startHour) && !isNaN(endHour)) {
-            let diff = endHour - startHour;
-            if (diff < 0) diff += 24; // กรณีข้ามวัน
-            updated.beforeResultTimeOT = diff.toFixed(2); // ✅ เปลี่ยนเป็น beforeResultTimeOT
-          }
-        }
-      }
-
-      return updated;
-    });
   };
 
   const handleTimeChange = (index, timeType, value) => {
@@ -356,8 +256,6 @@ function Setting({ workplaceList, employeeList }) {
         const endTime = updatedTimes[index].endTime;
         const startTimeOT = updatedTimes[index].startTimeOT;
         const endTimeOT = updatedTimes[index].endTimeOT;
-        const beforeStartTimeOT = updatedTimes[index].beforeStartTimeOT;
-        const beforeEndTimeOT = updatedTimes[index].beforeEndTimeOT;
 
         if (startTime && endTime) {
           const resultTime = calculateTimeDifference(startTime, endTime);
@@ -367,11 +265,6 @@ function Setting({ workplaceList, employeeList }) {
         if (startTimeOT && endTimeOT) {
           const resultTimeOT = calculateTimeDifference(startTimeOT, endTimeOT);
           updatedTimes[index].resultTimeOT = resultTimeOT;
-        }
-
-        if (beforeStartTimeOT && beforeEndTimeOT) {
-          const beforeResultTimeOT = calculateTimeDifference(beforeStartTimeOT, beforeEndTimeOT);
-          updatedTimes[index].beforeResultTimeOT = beforeResultTimeOT; // ✅ เปลี่ยนเป็น beforeResultTimeOT
         }
       }
 
@@ -658,6 +551,7 @@ function Setting({ workplaceList, employeeList }) {
   const [publicHolidayMonth, setPublicHolidayMonth] = useState("");
   const [publicHolidayYear, setPublicHolidayYear] = useState(new Date().getFullYear());
   const [publicHolidayNote, setPublicHolidayNote] = useState(""); // เพิ่มสำหรับหมายเหตุ
+  const [editingPublicHolidayIndex, setEditingPublicHolidayIndex] = useState(null); // เก็บ index ของรายการที่กำลังแก้ไข
 
   const [workRateChange, setWorkRateChange] = useState('');
   const [workRateDayChange, setWorkRateDayChange] = useState("");
@@ -667,18 +561,22 @@ function Setting({ workplaceList, employeeList }) {
   //set day month year to WorkRate change
   useEffect(() => {
     if (workRateDayChange && workRateMonthChange && workRateYearChange) {
-      const selectedDate = new Date(`${workRateMonthChange }/${workRateDayChange }/${workRateYearChange}`);
-      setWorkRateChange(selectedDate || null);
+      // ตรวจสอบว่าวันที่ถูกต้องสำหรับเดือนนั้นๆ
+      const daysInMonth = new Date(workRateYearChange, workRateMonthChange, 0).getDate();
+      const validDay = Math.min(parseInt(workRateDayChange), daysInMonth);
+      
+      const selectedDate = new Date(`${workRateMonthChange}/${validDay}/${workRateYearChange}`);
+      
+      // ตรวจสอบว่าวันที่ถูกต้องก่อนอัปเดต state
+      if (!isNaN(selectedDate.getTime())) {
+        // ถ้าวันที่ถูกปรับ ให้อัปเดต state ของวัน
+        if (validDay !== parseInt(workRateDayChange)) {
+          setWorkRateDayChange(validDay.toString());
+        }
+        setWorkRateChange(selectedDate);
+      }
     }
-  }, [ workRateDayChange , workRateMonthChange , workRateYearChange] );
-
-  useEffect(() => {
-    const currentDate = new Date(workRateChange); // Get the workRateChange date
-
-    setWorkRateDayChange(currentDate.getDate()); // Day of the month (1-31) 
-   setWorkRateMonthChange(currentDate.getMonth() + 1); // Month (0-11) - Add 1 to get 1-12
-   setWorkRateYearChange( currentDate.getFullYear()); // Year (e.g., 2025)
-}, [workRateChange ] );
+  }, [workRateDayChange, workRateMonthChange, workRateYearChange]);
 
 
   const handleAddDate = () => {
@@ -690,7 +588,7 @@ function Setting({ workplaceList, employeeList }) {
         if (
           !selectedDates.find(
             (date) => date.getTime() === selectedDate.getTime()
-          )
+          ) 
         ) {
           setSelectedDates((prevDates) => [...prevDates, selectedDate]);
         } else {
@@ -735,7 +633,35 @@ function Setting({ workplaceList, employeeList }) {
     if (publicHolidayDay && publicHolidayMonth && publicHolidayYear) {
       const selectedDate = new Date(`${publicHolidayMonth}/${publicHolidayDay}/${publicHolidayYear}`);
       if (!isNaN(selectedDate.getTime())) {
-        // ตรวจสอบว่ามีวันที่นี้อยู่แล้วหรือไม่
+        
+        // ถ้าอยู่ในโหมดแก้ไข
+        if (editingPublicHolidayIndex !== null) {
+          const updatedDates = [...publicHolidayDates];
+          updatedDates[editingPublicHolidayIndex] = {
+            date: selectedDate,
+            note: publicHolidayNote || ""
+          };
+          setPublicHolidayDates(updatedDates);
+          setEditingPublicHolidayIndex(null);
+          
+          // ล้างค่า
+          setPublicHolidayNote("");
+          setPublicHolidayDay("");
+          setPublicHolidayMonth("");
+          setPublicHolidayYear(new Date().getFullYear());
+          
+          Swal.fire({
+            title: "แก้ไขสำเร็จ",
+            text: "แก้ไขวันหยุดนักขัตฤกษ์เรียบร้อยแล้ว",
+            icon: "success",
+            timer: 1500,
+            showConfirmButton: false
+          });
+          
+          return;
+        }
+        
+        // ตรวจสอบว่ามีวันที่นี้อยู่แล้วหรือไม่ (สำหรับการเพิ่มใหม่)
         const isDuplicate = publicHolidayDates.some((holiday) => {
           try {
             const existingDate = holiday.date || holiday; // รองรับทั้งแบบ object และ Date
@@ -784,6 +710,24 @@ function Setting({ workplaceList, employeeList }) {
         text: "กรุณาเลือกวัน เดือน และปี สำหรับวันหยุดนักขัตฤกษ์",
         icon: "warning"
       });
+    }
+  };
+
+  // ฟังก์ชันสำหรับแก้ไขวันหยุดนักขัตฤกษ์
+  const handleEditPublicHoliday = (holiday, index) => {
+    const date = holiday.date || holiday;
+    if (date instanceof Date && !isNaN(date.getTime())) {
+      setPublicHolidayDay(date.getDate().toString());
+      setPublicHolidayMonth((date.getMonth() + 1).toString());
+      setPublicHolidayYear(date.getFullYear());
+      setPublicHolidayNote(holiday.note || "");
+      setEditingPublicHolidayIndex(index);
+      
+      // เลื่อนหน้าจอไปที่ฟอร์มเพิ่มวันหยุด
+      const formElement = document.getElementById('publicHolidayForm');
+      if (formElement) {
+        formElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
     }
   };
 
@@ -982,10 +926,6 @@ const handleRemovePublicHoliday = async (holidayToRemove) => {
   const [workplaceName, setWorkplaceName] = useState(""); //ชื่อหน่วยงาน
   const [workplaceArea, setWorkplaceArea] = useState(""); //สถานที่ปฏิบัติงาน
   const [workOfWeek, setWorkOfWeek] = useState(""); //วันทำงานต่อสัปดาห์
-  const [dateStartContract, setDateStartContract] = useState(""); //วันที่เริ่มสัญญาจ้าง
-  const [dateEndContract, setDateEndContract] = useState(""); //วันที่สิ้นสุดสัญญาจ้าง
-  const [serviceFeePerMonth, setServiceFeePerMonth] = useState(""); //ค่าบริการรายเดือน
-
 
   const [workStart1, setWorkStart1] = useState(""); //เวลาเริ่มกะเช้า
   const [workEnd1, setWorkEnd1] = useState(""); //เวลาออกกะเช้า
@@ -1126,7 +1066,7 @@ const handleRemovePublicHoliday = async (holidayToRemove) => {
     setFormData({
       ...formData,
       addSalary: [
-        ...(formData.addSalary || []),
+        ...formData.addSalary,
         {
           codeSpSalary: "",
           name: "",
@@ -1228,719 +1168,148 @@ const handleRemovePublicHoliday = async (holidayToRemove) => {
     setShowEmployeeListResult([]);
     // setWorkTimeDay_specialwork([]);
 
-    //get value from form search
-    const data = {
-      searchWorkplaceId: searchWorkplaceId,
-      searchWorkplaceName: searchWorkplaceName,
-    };
+    // Frontend filtering when using new search fields
+    if (searchPhoneNumber || searchIdCard || searchWorkPlace || staffName || staffLastname) {
+      let filtered = [...employeeList];
 
-    try {
-      const response = await axios.post(endpoint + "/workplace/search", data);
-      setSearchResult(response.data.workplaces);
-      // console.log("response", response);
-      const filteredList = workplaceList.filter((workplace) => {
-        const idMatch = workplace.workplaceId
-          .toString()
-          .includes(searchWorkplaceId);
-        const nameMatch = workplace.workplaceName
-          .toLowerCase()
-          .includes(searchWorkplaceName.toLowerCase());
-        return idMatch && nameMatch;
-      });
-      setSearchResult(filteredList);
-      setFilteredWorkplaceList(filteredList);
-      console.log("filteredList", filteredList);
-      if (response.data.workplaces.length < 1) {
-        window.location.reload();
-      } else {
-        const data1 = {
-          employeeId: "",
-          name: "",
-          idCard: "",
-          //   workPlace: searchWorkplaceId,
-          workPlace: searchResult.workplaceId,
-        };
-
-        // const response1 = await axios.post(
-        //   endpoint + "/employee/search",
-        //   data1
-        // );
-
-        // const filteredEmployees = response1.data.employees.filter(
-        //   (employee) => employee.workplace === searchWorkplaceId
-        // );
-
-        // await setEmployeeListResult(response1.data.employees);
-        // employeeList
-        // searchWorkplaceId
-        const filteredEmployees = employeeList.filter(
-          (employee) => employee.workplace === searchWorkplaceId
+      if (searchEmployeeId) {
+        filtered = filtered.filter(emp => 
+          emp.employeeId && emp.employeeId.includes(searchEmployeeId)
         );
-        // console.log('searchWorkplaceId',searchWorkplaceId);
-        await setEmployeeListResult(filteredEmployees);
-
-        // await alert(JSON.stringify(response1.data.employees , null ,2));
-        // alert(response1.data );
-        // alert(employeeListResult.length);
       }
-    } catch (error) {
-      // setMessage('ไม่พบผลการค้นหา กรุณาตรวจสอบข้อมูลที่ใช้ในการค้นหาอีกครั้ง');
-      // alert("กรุณาตรวจสอบข้อมูลในช่องค้นหา" , error);
-      // window.location.reload();
-    }
-  }
-  // console.log("EmployeeListResult", employeeListResult);
 
-  // Function to send workRate to employees
-  const sendWorkRate = async () => {
-    try {
-      // Show loading alert
-      Swal.fire({
-        title: 'กำลังส่งค่าแรง...',
-        text: 'กรุณารอสักครู่',
-        allowOutsideClick: false,
-        didOpen: () => {
-          Swal.showLoading();
+      if (staffName) {
+        filtered = filtered.filter(emp => 
+          emp.name && emp.name.toLowerCase().includes(staffName.toLowerCase())
+        );
+      }
+
+      if (staffLastname) {
+        filtered = filtered.filter(emp => 
+          emp.lastName && emp.lastName.toLowerCase().includes(staffLastname.toLowerCase())
+        );
+      }
+
+      if (searchWorkPlace) {
+        filtered = filtered.filter(emp => 
+          emp.workplace && emp.workplace.toLowerCase().includes(searchWorkPlace.toLowerCase())
+        );
+      }
+
+      if (searchPhoneNumber) {
+        filtered = filtered.filter(emp => 
+          emp.phoneNumber && emp.phoneNumber.includes(searchPhoneNumber)
+        );
+      }
+
+      if (searchIdCard) {
+        filtered = filtered.filter(emp => 
+          emp.idCard && emp.idCard.includes(searchIdCard)
+        );
+      }
+
+      if (filtered.length === 0) {
+        alert('ไม่พบพนักงานตามเงื่อนไขที่ค้นหา');
+        return;
+      }
+
+      // Load first result
+      const employee = filtered[0];
+      
+      let finalWorkplace = {};
+
+      // ✅ ถ้ามี customWorkplace → ใช้เลย
+      if (employee.customWorkplace && Object.keys(employee.customWorkplace).length > 0) {
+        finalWorkplace = employee.customWorkplace;
+        console.log("✅ ใช้การตั้งค่าเฉพาะบุคคล");
+      } else {
+        // 🔁 ไม่มี custom → ดึง workplace ปกติ
+        if (!employee.workplace) {
+          alert("พนักงานไม่มีข้อมูล workplace");
+          return;
         }
-      });
 
-      // Get all employees from the current workplace
-      const searchData = {
-        employeeId: "",
-        name: "",
-        idCard: "",
-        workPlace: workplaceId,
+        try {
+          const wpRes = await axios.get(`${endpoint}/workplace/${employee.workplace}`);
+          finalWorkplace = wpRes.data || {};
+          console.log("✅ ใช้การตั้งค่าหน่วยงานปกติ");
+        } catch (err) {
+          console.error("❌ Error loading workplace:", err);
+          alert('เกิดข้อผิดพลาดในการโหลดข้อมูลหน่วยงาน');
+          return;
+        }
+      }
+
+      const employeeWithWorkplace = {
+        ...employee,
+        effectiveWorkplace: finalWorkplace,
       };
 
-      const employeeResponse = await axios.post(endpoint + "/employee/search", searchData);
-      const employees = employeeResponse.data.employees;
+      handleClickResult(finalWorkplace);
+      setShowEmployeeListResult([employeeWithWorkplace]);
+      return;
+    }
 
-      if (!employees || employees.length === 0) {
-        Swal.fire({
-          icon: 'warning',
-          title: 'ไม่พบพนักงาน',
-          text: 'ไม่พบพนักงานในหน่วยงานนี้'
-        });
-        return;
-      }
+    // Original search by employeeId only
+    if (!searchEmployeeId) {
+      alert('กรุณากรอกข้อมูลการค้นหาอย่างน้อย 1 ช่อง');
+      return;
+    }
 
-      // Filter employees with jobtype "รายวัน" and salary < workRate
-      const targetEmployees = employees.filter(employee => {
-        const currentSalary = parseFloat(employee.salary || '0');
-        const newWorkRate = parseFloat(workRate || '0');
-        return employee.jobtype === "รายวัน" && currentSalary < newWorkRate;
+    try {
+      // 🔍 ค้นหาพนักงานจาก employeeId เท่านั้น
+      const empRes = await axios.post(endpoint + "/employee/search", {
+        employeeId: searchEmployeeId,
+        name: "",
+        idCard: "",
+        workPlace: "",
       });
 
-      if (targetEmployees.length === 0) {
-        Swal.fire({
-          icon: 'info',
-          title: 'ไม่มีการเปลี่ยนแปลง',
-          text: 'ไม่พบพนักงานรายวันที่มีค่าแรงต่ำกว่าค่าแรงที่ต้องการส่ง'
-        });
+      const employee = empRes.data.employees?.[0];
+
+      if (!employee) {
+        alert('ไม่พบพนักงานรหัส: ' + searchEmployeeId);
         return;
       }
 
-      // Prepare updates
-      let successCount = 0;
-      let errorCount = 0;
+      let finalWorkplace = {};
 
-      for (const employee of targetEmployees) {
-        try {
-          // Update employee salary
-          const updateData = {
-            employeeId: employee.employeeId,
-            salary: workRate
-          };
-
-          await axios.post(endpoint + "/employee/updateemployees", updateData);
-          successCount++;
-        } catch (error) {
-          console.error(`Error updating employee ${employee.employeeId}:`, error);
-          errorCount++;
-        }
-      }
-
-      // Show result
-      if (errorCount === 0) {
-        Swal.fire({
-          icon: 'success',
-          title: 'ส่งค่าแรงสำเร็จ',
-          text: `อัพเดตค่าแรงของพนักงาน ${successCount} คน เป็น ${parseFloat(workRate).toLocaleString()} บาท`
-        });
+      // ✅ ถ้ามี customWorkplace → ใช้เลย
+      if (employee.customWorkplace && Object.keys(employee.customWorkplace).length > 0) {
+        finalWorkplace = employee.customWorkplace;
+        console.log("✅ ใช้การตั้งค่าเฉพาะบุคคล");
       } else {
-        Swal.fire({
-          icon: 'warning',
-          title: 'ส่งค่าแรงบางส่วน',
-          html: `
-            <p>สำเร็จ: ${successCount} คน</p>
-            <p>ไม่สำเร็จ: ${errorCount} คน</p>
-          `
-        });
+        // 🔁 ไม่มี custom → ดึง workplace ปกติ
+        if (!employee.workplace) {
+          alert("พนักงานไม่มีข้อมูล workplace");
+          return;
+        }
+
+        const wpRes = await axios.get(`${endpoint}/workplace/${employee.workplace}`);
+        finalWorkplace = wpRes.data || {};
+        console.log("✅ ใช้การตั้งค่าหน่วยงานปกติ");
       }
 
-    } catch (error) {
-      console.error('Error sending work rate:', error);
-      Swal.fire({
-        icon: 'error',
-        title: 'เกิดข้อผิดพลาด',
-        text: 'ไม่สามารถส่งค่าแรงได้ กรุณาลองใหม่อีกครั้ง'
-      });
+      // 🧾 รวมข้อมูลกลับเป็นชุดเดียว
+      const employeeWithWorkplace = {
+        ...employee,
+        effectiveWorkplace: finalWorkplace,
+      };
+
+      // แสดงข้อมูลวันหยุดใน console
+      console.log("📅 วันหยุดของพนักงาน:", finalWorkplace.daysOff);
+      console.log("✅ ข้อมูลพนักงาน:", employeeWithWorkplace);
+
+      // โหลดข้อมูลไปยังฟอร์ม
+      handleClickResult(finalWorkplace);
+      setShowEmployeeListResult([employeeWithWorkplace]);
+
+    } catch (err) {
+      console.error("❌ handleSearch error:", err);
+      alert('เกิดข้อผิดพลาดในการค้นหา: ' + err.message);
     }
-  };
 
-  // Function to reset customWorkplace and sync workplace settings to all employees
-  const syncWorkplaceToAllEmployees = async () => {
-    try {
-      // ตรวจสอบว่ามีข้อมูลหน่วยงาน
-      if (!workplaceId || !_id) {
-        Swal.fire({
-          icon: 'warning',
-          title: 'ไม่พบข้อมูลหน่วยงาน',
-          text: 'กรุณาเลือกหน่วยงานก่อนทำการซิงค์'
-        });
-        return;
-      }
-
-      // กรองพนักงานจาก employeeList ที่อยู่ในหน่วยงานเดียวกัน
-      const employees = employeeList.filter(
-        (employee) => employee.workplace === workplaceId
-      );
-
-      if (!employees || employees.length === 0) {
-        Swal.fire({
-          icon: 'warning',
-          title: 'ไม่พบพนักงาน',
-          text: 'ไม่พบพนักงานในหน่วยงานนี้'
-        });
-        return;
-      }
-
-      // สร้าง HTML สำหรับ checkbox list
-      const employeeCheckboxHTML = `
-        <div style="text-align: left; max-height: 400px; overflow-y: auto; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
-          <div style="margin-bottom: 15px; padding: 10px; background-color: #f8f9fa; border-radius: 5px;">
-            <label style="cursor: pointer; font-weight: bold;">
-              <input type="checkbox" id="selectAll" style="margin-right: 8px; cursor: pointer;" />
-              เลือกทั้งหมด (${employees.length} คน)
-            </label>
-          </div>
-          ${employees.map((emp, index) => `
-            <div style="padding: 8px; border-bottom: 1px solid #eee;">
-              <label style="cursor: pointer; display: block;">
-                <input 
-                  type="checkbox" 
-                  class="employee-checkbox" 
-                  value="${emp.employeeId}" 
-                  style="margin-right: 8px; cursor: pointer;"
-                  ${emp.customWorkplace ? 'checked' : ''}
-                />
-                <strong>${emp.employeeId}</strong> - ${emp.name} ${emp.lastname || ''}
-                ${emp.customWorkplace ? '<span style="color: orange; font-size: 12px;"> (มีการตั้งค่าเฉพาะบุคคล)</span>' : '<span style="color: green; font-size: 12px;"> (ใช้ค่าหน่วยงาน)</span>'}
-              </label>
-            </div>
-          `).join('')}
-        </div>
-      `;
-
-      // แสดง confirmation dialog พร้อม checkbox
-      const confirmResult = await Swal.fire({
-        title: 'เลือกพนักงานที่ต้องการซิงค์',
-        html: `
-          <div style="text-align: left;">
-            <p>หน่วยงาน: <strong>${workplaceName}</strong> (${workplaceId})</p>
-            <p style="color: red; font-weight: bold;">⚠️ การดำเนินการนี้จะลบการตั้งค่าเฉพาะบุคคลของพนักงานที่เลือกและใช้ค่าจากหน่วยงานแทน</p>
-            <hr style="margin: 15px 0;" />
-            ${employeeCheckboxHTML}
-          </div>
-        `,
-        icon: 'question',
-        width: '600px',
-        showCancelButton: true,
-        confirmButtonText: 'ยืนยันการซิงค์',
-        cancelButtonText: 'ยกเลิก',
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
-        reverseButtons: true,
-        didOpen: () => {
-          // จัดการ Select All checkbox
-          const selectAllCheckbox = document.getElementById('selectAll');
-          const employeeCheckboxes = document.querySelectorAll('.employee-checkbox');
-          
-          selectAllCheckbox.addEventListener('change', (e) => {
-            employeeCheckboxes.forEach(cb => {
-              cb.checked = e.target.checked;
-            });
-          });
-
-          // อัพเดท Select All เมื่อมีการเปลี่ยนแปลง checkbox แต่ละตัว
-          employeeCheckboxes.forEach(cb => {
-            cb.addEventListener('change', () => {
-              const allChecked = Array.from(employeeCheckboxes).every(checkbox => checkbox.checked);
-              const someChecked = Array.from(employeeCheckboxes).some(checkbox => checkbox.checked);
-              selectAllCheckbox.checked = allChecked;
-              selectAllCheckbox.indeterminate = someChecked && !allChecked;
-            });
-          });
-
-          // ตั้งค่าเริ่มต้นของ Select All
-          const initialAllChecked = Array.from(employeeCheckboxes).every(checkbox => checkbox.checked);
-          const initialSomeChecked = Array.from(employeeCheckboxes).some(checkbox => checkbox.checked);
-          selectAllCheckbox.checked = initialAllChecked;
-          selectAllCheckbox.indeterminate = initialSomeChecked && !initialAllChecked;
-        },
-        preConfirm: () => {
-          const selectedCheckboxes = document.querySelectorAll('.employee-checkbox:checked');
-          const selectedEmployeeIds = Array.from(selectedCheckboxes).map(cb => cb.value);
-          
-          if (selectedEmployeeIds.length === 0) {
-            Swal.showValidationMessage('กรุณาเลือกพนักงานอย่างน้อย 1 คน');
-            return false;
-          }
-          
-          return selectedEmployeeIds;
-        }
-      });
-
-      if (!confirmResult.isConfirmed || !confirmResult.value) {
-        return;
-      }
-
-      const selectedEmployeeIds = confirmResult.value;
-
-      // Show loading
-      Swal.fire({
-        title: 'กำลังซิงค์ข้อมูล...',
-        text: `กำลังซิงค์ข้อมูลให้กับพนักงาน ${selectedEmployeeIds.length} คน`,
-        allowOutsideClick: false,
-        didOpen: () => {
-          Swal.showLoading();
-        }
-      });
-
-      let successCount = 0;
-      let errorCount = 0;
-      let skippedCount = 0;
-
-      // Loop through selected employees only
-      const selectedEmployees = employees.filter(emp => selectedEmployeeIds.includes(emp.employeeId));
-      
-      for (const employee of selectedEmployees) {
-        try {
-          // ลบ customWorkplace (ส่ง null หรือ empty object)
-          await axios.delete(`${endpoint}/employee/${employee.employeeId}/custom-workplace`);
-          successCount++;
-        } catch (error) {
-          // ถ้าไม่มี customWorkplace อยู่แล้ว ให้ skip
-          if (error.response && error.response.status === 404) {
-            skippedCount++;
-          } else {
-            console.error(`Error resetting employee ${employee.employeeId}:`, error);
-            errorCount++;
-          }
-        }
-      }
-
-      // Show result
-      Swal.fire({
-        icon: errorCount === 0 ? 'success' : 'warning',
-        title: 'ซิงค์ข้อมูลเสร็จสิ้น',
-        html: `
-          <p>ผลการซิงค์ (เลือก ${selectedEmployeeIds.length} คน):</p>
-          <p>✅ ลบการตั้งค่าเฉพาะบุคคลสำเร็จ: <strong>${successCount}</strong> คน</p>
-          <p>⏭️ ไม่มีการตั้งค่าเฉพาะบุคคลอยู่แล้ว: <strong>${skippedCount}</strong> คน</p>
-          ${errorCount > 0 ? `<p style="color: red;">❌ ไม่สำเร็จ: <strong>${errorCount}</strong> คน</p>` : ''}
-          <br>
-          <p style="color: green;">พนักงานที่เลือกจะใช้ค่าการตั้งค่าจากหน่วยงาน <strong>${workplaceName}</strong></p>
-        `,
-        confirmButtonText: 'ตกลง'
-      });
-
-    } catch (error) {
-      console.error('Error syncing workplace to employees:', error);
-      Swal.fire({
-        icon: 'error',
-        title: 'เกิดข้อผิดพลาด',
-        text: 'ไม่สามารถซิงค์ข้อมูลได้ กรุณาลองใหม่อีกครั้ง'
-      });
-    }
-  };
-
-  // Function to sync wage rates (OT, dayoff, holiday) to employees
-  const syncWageRatesToEmployees = async () => {
-    try {
-      // Step 1: Ask for secret key
-      const secretKeyResult = await Swal.fire({
-        title: '🔐 ยืนยันตัวตน',
-        html: '<p>กรุณาใส่รหัสลับเพื่อใช้งานฟีเจอร์นี้</p>',
-        input: 'password',
-        inputPlaceholder: 'ใส่รหัสลับ',
-        inputAttributes: {
-          autocapitalize: 'off',
-          autocorrect: 'off'
-        },
-        showCancelButton: true,
-        confirmButtonText: 'ยืนยัน',
-        cancelButtonText: 'ยกเลิก',
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-        inputValidator: (value) => {
-          if (!value) {
-            return 'กรุณาใส่รหัสลับ!';
-          }
-          if (value !== '8888') {
-            return 'รหัสลับไม่ถูกต้อง!';
-          }
-        }
-      });
-
-      if (!secretKeyResult.isConfirmed) {
-        return;
-      }
-
-      // ตรวจสอบว่ามีข้อมูลหน่วยงาน
-      if (!workplaceId || !_id) {
-        Swal.fire({
-          icon: 'warning',
-          title: 'ไม่พบข้อมูลหน่วยงาน',
-          text: 'กรุณาเลือกหน่วยงานก่อนทำการซิงค์'
-        });
-        return;
-      }
-
-      // กรองพนักงานจาก employeeList ที่อยู่ในหน่วยงานเดียวกัน
-      const employees = employeeList.filter(
-        (employee) => employee.workplace === workplaceId
-      );
-
-      if (!employees || employees.length === 0) {
-        Swal.fire({
-          icon: 'warning',
-          title: 'ไม่พบพนักงาน',
-          text: 'ไม่พบพนักงานในหน่วยงานนี้'
-        });
-        return;
-      }
-
-      // Step 2: Select which fields to sync
-      const fieldsResult = await Swal.fire({
-        title: '📋 เลือกข้อมูลที่ต้องการซิงค์',
-        html: `
-          <div style="text-align: left; padding: 15px;">
-            <p style="margin-bottom: 15px; color: #666;">
-              <i class="fas fa-info-circle"></i> เลือกข้อมูลที่ต้องการส่งให้พนักงาน
-            </p>
-            <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-              <div style="margin-bottom: 12px;">
-                <label style="cursor: pointer; display: flex; align-items: center; padding: 8px;">
-                  <input type="checkbox" id="sync_workRateOT" class="field-checkbox" style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;" checked />
-                  <div>
-                    <strong>OT รายชั่วโมง (กี่เท่า)</strong>
-                    <div style="color: #666; font-size: 13px; margin-top: 3px;">ค่า: ${workRateOT || 'ไม่ได้กำหนด'} เท่า</div>
-                  </div>
-                </label>
-              </div>
-              <div style="margin-bottom: 12px;">
-                <label style="cursor: pointer; display: flex; align-items: center; padding: 8px;">
-                  <input type="checkbox" id="sync_dayoffRateHour" class="field-checkbox" style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;" checked />
-                  <div>
-                    <strong>วันหยุดประจำสัปดาห์รายชั่วโมง (กี่เท่า)</strong>
-                    <div style="color: #666; font-size: 13px; margin-top: 3px;">ค่า: ${dayoffRateHour || 'ไม่ได้กำหนด'} เท่า</div>
-                  </div>
-                </label>
-              </div>
-              <div style="margin-bottom: 12px;">
-                <label style="cursor: pointer; display: flex; align-items: center; padding: 8px;">
-                  <input type="checkbox" id="sync_dayoffRateOT" class="field-checkbox" style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;" checked />
-                  <div>
-                    <strong>OT วันหยุดประจำสัปดาห์รายชั่วโมง (กี่เท่า)</strong>
-                    <div style="color: #666; font-size: 13px; margin-top: 3px;">ค่า: ${dayoffRateOT || 'ไม่ได้กำหนด'} เท่า</div>
-                  </div>
-                </label>
-              </div>
-              <div style="margin-bottom: 12px;">
-                <label style="cursor: pointer; display: flex; align-items: center; padding: 8px;">
-                  <input type="checkbox" id="sync_holidayHour" class="field-checkbox" style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;" checked />
-                  <div>
-                    <strong>วันหยุดนักขัตฤกษ์ รายชั่วโมง (กี่เท่า)</strong>
-                    <div style="color: #666; font-size: 13px; margin-top: 3px;">ค่า: ${holidayHour || 'ไม่ได้กำหนด'} เท่า</div>
-                  </div>
-                </label>
-              </div>
-              <div style="margin-bottom: 12px;">
-                <label style="cursor: pointer; display: flex; align-items: center; padding: 8px;">
-                  <input type="checkbox" id="sync_holidayOT" class="field-checkbox" style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;" checked />
-                  <div>
-                    <strong>วันหยุดนักขัตฤกษ์ OT รายชั่วโมง (กี่เท่า)</strong>
-                    <div style="color: #666; font-size: 13px; margin-top: 3px;">ค่า: ${holidayOT || 'ไม่ได้กำหนด'} เท่า</div>
-                  </div>
-                </label>
-              </div>
-            </div>
-            <div style="background-color: #fff3cd; padding: 10px; border-left: 4px solid #ffc107; border-radius: 4px;">
-              <small style="color: #856404;">
-                <i class="fas fa-exclamation-triangle"></i> ค่าที่เลือกจะถูกส่งไปแทนที่ค่าเดิมของพนักงานที่เลือก
-              </small>
-            </div>
-          </div>
-        `,
-        width: '600px',
-        showCancelButton: true,
-        confirmButtonText: 'ถัดไป',
-        cancelButtonText: 'ยกเลิก',
-        confirmButtonColor: '#28a745',
-        cancelButtonColor: '#6c757d',
-        preConfirm: () => {
-          const selectedFields = {};
-          const checkboxes = document.querySelectorAll('.field-checkbox:checked');
-          
-          if (checkboxes.length === 0) {
-            Swal.showValidationMessage('กรุณาเลือกข้อมูลอย่างน้อย 1 รายการ');
-            return false;
-          }
-          
-          checkboxes.forEach(cb => {
-            const fieldName = cb.id.replace('sync_', '');
-            selectedFields[fieldName] = true;
-          });
-          
-          return selectedFields;
-        }
-      });
-
-      if (!fieldsResult.isConfirmed || !fieldsResult.value) {
-        return;
-      }
-
-      const selectedFields = fieldsResult.value;
-
-      // Step 3: Select employees
-      const employeeCheckboxHTML = `
-        <div style="text-align: left; max-height: 400px; overflow-y: auto; padding: 10px; border: 1px solid #ddd; border-radius: 5px; margin-top: 15px;">
-          <div style="margin-bottom: 15px; padding: 10px; background-color: #f8f9fa; border-radius: 5px;">
-            <label style="cursor: pointer; font-weight: bold;">
-              <input type="checkbox" id="selectAll" style="margin-right: 8px; cursor: pointer; width: 18px; height: 18px;" />
-              เลือกทั้งหมด (${employees.length} คน)
-            </label>
-          </div>
-          ${employees.map((emp, index) => `
-            <div style="padding: 8px; border-bottom: 1px solid #eee;">
-              <label style="cursor: pointer; display: block;">
-                <input 
-                  type="checkbox" 
-                  class="employee-checkbox" 
-                  value="${emp.employeeId}" 
-                  style="margin-right: 8px; cursor: pointer; width: 18px; height: 18px;"
-                  checked
-                />
-                <strong>${emp.employeeId}</strong> - ${emp.name} ${emp.lastname || ''}
-                <span style="color: #6c757d; font-size: 12px;"> (${emp.jobtype || 'ไม่ระบุ'})</span>
-              </label>
-            </div>
-          `).join('')}
-        </div>
-      `;
-
-      const employeesResult = await Swal.fire({
-        title: '👥 เลือกพนักงาน',
-        html: `
-          <div style="text-align: left;">
-            <p style="margin-bottom: 10px;">หน่วยงาน: <strong>${workplaceName}</strong></p>
-            <div style="background-color: #e7f3ff; padding: 10px; border-left: 4px solid #2196F3; border-radius: 4px; margin-bottom: 15px;">
-              <strong>ข้อมูลที่จะส่ง:</strong>
-              <ul style="margin: 8px 0; padding-left: 20px;">
-                ${selectedFields.workRateOT ? `<li>OT รายชั่วโมง: <strong>${workRateOT}</strong> เท่า</li>` : ''}
-                ${selectedFields.dayoffRateHour ? `<li>วันหยุดประจำสัปดาห์: <strong>${dayoffRateHour}</strong> เท่า</li>` : ''}
-                ${selectedFields.dayoffRateOT ? `<li>OT วันหยุดประจำสัปดาห์: <strong>${dayoffRateOT}</strong> เท่า</li>` : ''}
-                ${selectedFields.holidayHour ? `<li>วันหยุดนักขัตฤกษ์: <strong>${holidayHour}</strong> เท่า</li>` : ''}
-                ${selectedFields.holidayOT ? `<li>OT วันหยุดนักขัตฤกษ์: <strong>${holidayOT}</strong> เท่า</li>` : ''}
-              </ul>
-            </div>
-            ${employeeCheckboxHTML}
-          </div>
-        `,
-        icon: 'question',
-        width: '700px',
-        showCancelButton: true,
-        confirmButtonText: 'ยืนยันและส่งข้อมูล',
-        cancelButtonText: 'ยกเลิก',
-        confirmButtonColor: '#28a745',
-        cancelButtonColor: '#6c757d',
-        reverseButtons: true,
-        didOpen: () => {
-          // จัดการ Select All checkbox
-          const selectAllCheckbox = document.getElementById('selectAll');
-          const employeeCheckboxes = document.querySelectorAll('.employee-checkbox');
-          
-          selectAllCheckbox.addEventListener('change', (e) => {
-            employeeCheckboxes.forEach(cb => {
-              cb.checked = e.target.checked;
-            });
-          });
-
-          // อัพเดท Select All เมื่อมีการเปลี่ยนแปลง checkbox แต่ละตัว
-          employeeCheckboxes.forEach(cb => {
-            cb.addEventListener('change', () => {
-              const allChecked = Array.from(employeeCheckboxes).every(checkbox => checkbox.checked);
-              const someChecked = Array.from(employeeCheckboxes).some(checkbox => checkbox.checked);
-              selectAllCheckbox.checked = allChecked;
-              selectAllCheckbox.indeterminate = someChecked && !allChecked;
-            });
-          });
-
-          // ตั้งค่าเริ่มต้นของ Select All
-          selectAllCheckbox.checked = true;
-        },
-        preConfirm: () => {
-          const selectedCheckboxes = document.querySelectorAll('.employee-checkbox:checked');
-          const selectedEmployeeIds = Array.from(selectedCheckboxes).map(cb => cb.value);
-          
-          if (selectedEmployeeIds.length === 0) {
-            Swal.showValidationMessage('กรุณาเลือกพนักงานอย่างน้อย 1 คน');
-            return false;
-          }
-          
-          return selectedEmployeeIds;
-        }
-      });
-
-      if (!employeesResult.isConfirmed || !employeesResult.value) {
-        return;
-      }
-
-      const selectedEmployeeIds = employeesResult.value;
-
-      // Show loading
-      Swal.fire({
-        title: 'กำลังส่งข้อมูล...',
-        html: `กำลังซิงค์ข้อมูลให้กับพนักงาน <strong>${selectedEmployeeIds.length}</strong> คน`,
-        allowOutsideClick: false,
-        didOpen: () => {
-          Swal.showLoading();
-        }
-      });
-
-      // Prepare update data for customWorkplace
-      const customWorkplaceData = {};
-      if (selectedFields.workRateOT) customWorkplaceData.workRateOT = workRateOT;
-      if (selectedFields.dayoffRateHour) customWorkplaceData.dayoffRateHour = dayoffRateHour;
-      if (selectedFields.dayoffRateOT) customWorkplaceData.dayoffRateOT = dayoffRateOT;
-      if (selectedFields.holidayHour) customWorkplaceData.holidayHour = holidayHour;
-      if (selectedFields.holidayOT) customWorkplaceData.holidayOT = holidayOT;
-
-      let successCount = 0;
-      let errorCount = 0;
-      let createdCount = 0;
-      let updatedCount = 0;
-
-      // Update selected employees
-      for (const employeeId of selectedEmployeeIds) {
-        try {
-          // Step 1: ดึง customWorkplace ที่มีอยู่ หรือสร้างจาก workplace
-          let existingCustomWorkplace = {};
-          let isNewlyCreated = false;
-
-          try {
-            // พยายามดึง customWorkplace ที่มีอยู่
-            const getResponse = await axios.get(`${endpoint}/employee/${employeeId}/custom-workplace`);
-            existingCustomWorkplace = getResponse.data.customWorkplace || {};
-          } catch (getError) {
-            // ถ้าไม่มี customWorkplace ให้สร้างจาก workplace
-            if (getError.response && getError.response.status === 404) {
-              // ไม่มี customWorkplace ยัง - ให้ส่งข้อมูลว่างๆ ไปก่อน แล้ว API จะ merge เอง
-              isNewlyCreated = true;
-              existingCustomWorkplace = {};
-            } else {
-              throw getError; // ถ้าเป็น error อื่นให้ throw ต่อ
-            }
-          }
-
-          // Step 2: Merge ข้อมูลเดิมกับข้อมูลใหม่
-          const mergedCustomWorkplace = {
-            ...existingCustomWorkplace,
-            ...customWorkplaceData
-          };
-
-          // Step 3: บันทึก customWorkplace ที่ merge แล้ว
-          await axios.put(`${endpoint}/employee/${employeeId}/custom-workplace`, {
-            customWorkplace: mergedCustomWorkplace
-          });
-
-          successCount++;
-          if (isNewlyCreated) {
-            createdCount++;
-          } else {
-            updatedCount++;
-          }
-        } catch (error) {
-          console.error(`Error updating employee ${employeeId}:`, error);
-          errorCount++;
-        }
-      }
-
-      // Show result
-      Swal.fire({
-        icon: errorCount === 0 ? 'success' : 'warning',
-        title: 'ซิงค์ข้อมูลเสร็จสิ้น',
-        html: `
-          <div style="text-align: left; padding: 15px;">
-            <p style="font-size: 16px; margin-bottom: 15px;">
-              <strong>ผลการซิงค์:</strong> (เลือก ${selectedEmployeeIds.length} คน)
-            </p>
-            <div style="background-color: #d4edda; padding: 12px; border-left: 4px solid #28a745; border-radius: 4px; margin-bottom: 10px;">
-              <p style="margin: 0; color: #155724;">
-                <i class="fas fa-check-circle"></i> <strong>สำเร็จ:</strong> ${successCount} คน
-              </p>
-              ${createdCount > 0 ? `
-                <p style="margin: 5px 0 0 0; color: #155724; font-size: 14px;">
-                  <i class="fas fa-plus-circle"></i> สร้างการตั้งค่าส่วนบุคคลใหม่: ${createdCount} คน
-                </p>
-              ` : ''}
-              ${updatedCount > 0 ? `
-                <p style="margin: 5px 0 0 0; color: #155724; font-size: 14px;">
-                  <i class="fas fa-edit"></i> อัพเดทการตั้งค่าส่วนบุคคลที่มีอยู่: ${updatedCount} คน
-                </p>
-              ` : ''}
-            </div>
-            ${errorCount > 0 ? `
-              <div style="background-color: #f8d7da; padding: 12px; border-left: 4px solid #dc3545; border-radius: 4px; margin-bottom: 10px;">
-                <p style="margin: 0; color: #721c24;">
-                  <i class="fas fa-times-circle"></i> <strong>ไม่สำเร็จ:</strong> ${errorCount} คน
-                </p>
-              </div>
-            ` : ''}
-            <div style="background-color: #fff3cd; padding: 12px; border-left: 4px solid #ffc107; border-radius: 4px; margin-bottom: 10px;">
-              <p style="margin: 0; color: #856404; font-size: 14px;">
-                <i class="fas fa-info-circle"></i> พนักงานที่อัพเดทจะมี<strong>การตั้งค่าส่วนบุคคล</strong> และไม่ได้รับผลกระทบจากการเปลี่ยนค่าที่หน่วยงาน
-              </p>
-            </div>
-            <div style="background-color: #f8f9fa; padding: 12px; border-radius: 4px; margin-top: 15px;">
-              <p style="margin: 0; font-size: 14px; color: #495057;">
-                <strong>ข้อมูลที่ถูกอัพเดทใน customWorkplace:</strong>
-              </p>
-              <ul style="margin: 8px 0; padding-left: 20px; font-size: 14px;">
-                ${selectedFields.workRateOT ? `<li>OT รายชั่วโมง → <strong>${workRateOT}</strong> เท่า</li>` : ''}
-                ${selectedFields.dayoffRateHour ? `<li>วันหยุดประจำสัปดาห์ → <strong>${dayoffRateHour}</strong> เท่า</li>` : ''}
-                ${selectedFields.dayoffRateOT ? `<li>OT วันหยุดประจำสัปดาห์ → <strong>${dayoffRateOT}</strong> เท่า</li>` : ''}
-                ${selectedFields.holidayHour ? `<li>วันหยุดนักขัตฤกษ์ → <strong>${holidayHour}</strong> เท่า</li>` : ''}
-                ${selectedFields.holidayOT ? `<li>OT วันหยุดนักขัตฤกษ์ → <strong>${holidayOT}</strong> เท่า</li>` : ''}
-              </ul>
-            </div>
-          </div>
-        `,
-        width: '600px',
-        confirmButtonText: 'ตกลง',
-        confirmButtonColor: '#28a745'
-      });
-
-    } catch (error) {
-      console.error('Error syncing wage rates to employees:', error);
-      Swal.fire({
-        icon: 'error',
-        title: 'เกิดข้อผิดพลาด',
-        text: error.message || 'ไม่สามารถซิงค์ข้อมูลได้ กรุณาลองใหม่อีกครั้ง'
-      });
-    }
-  };
+  }
 
   //set data to form
   function handleClickResult(workplace) {
@@ -1959,9 +1328,6 @@ const handleRemovePublicHoliday = async (holidayToRemove) => {
     setWorkplaceName(workplace.workplaceName);
     setWorkplaceArea(workplace.workplaceArea);
     setWorkOfWeek(workplace.workOfWeek);
-    setDateStartContract(workplace.dateStartContract);
-    setDateEndContract(workplace.dateEndContract);
-    setServiceFeePerMonth(workplace.serviceFeePerMonth);
 
     setWorkStart1(workplace.workStart1);
     setWorkEnd1(workplace.workEnd1);
@@ -2147,7 +1513,6 @@ setWorkTimeDayList_specialwork(workplace.specialWorkTimeDay || []);
         StaffType: item.StaffType || "",
         nameType: item.nameType || "",
       })),
-      includeHolidaysForDaily: workplace.ApplyeveryDay || false,
     };
 
     setFormData(initialFormData);
@@ -2165,7 +1530,17 @@ setWorkTimeDayList_specialwork(workplace.specialWorkTimeDay || []);
     setListSpecialWorktime(workplace.listSpecialWorktime);
     setWorkTimeDayList(workplace.workTimeDay);
     setWorkTimeDayPersonList(workplace.workTimeDayPerson);
-setWorkRateChange(workplace.workRateChange)
+    
+    // ตั้งค่า workRateChange และแยก day, month, year
+    if (workplace.workRateChange) {
+      const rateChangeDate = new Date(workplace.workRateChange);
+      if (!isNaN(rateChangeDate.getTime())) {
+        setWorkRateChange(rateChangeDate);
+        setWorkRateDayChange(rateChangeDate.getDate());
+        setWorkRateMonthChange(rateChangeDate.getMonth() + 1);
+        setWorkRateYearChange(rateChangeDate.getFullYear());
+      }
+    }
 
     // ✅ โหลดข้อมูลเงินสงเคราะห์ลูกจ้าง
     if (workplace.employeeCompensation) {
@@ -2235,9 +1610,6 @@ setWorkRateChange(workplace.workRateChange)
     setWorkplaceId("");
     setWorkplaceName("");
     setWorkplaceArea("");
-    setDateStartContract("");
-    setDateEndContract("");
-    setServiceFeePerMonth("");
     setWorkOfWeek("");
     setWorkOfHour("");
     setWorkRate("");
@@ -2283,6 +1655,12 @@ setWorkRateChange(workplace.workRateChange)
     // ล้างข้อมูลวันหยุด
     setPublicHolidayDates([]);
     setVaccinationDates([]);
+    
+    // ล้างข้อมูลวันเริ่มต้นคำนวณ
+    setWorkRateChange(null);
+    setWorkRateDayChange("");
+    setWorkRateMonthChange("");
+    setWorkRateYearChange(new Date().getFullYear());
     
     console.log("Form cleared successfully");
   };
@@ -2457,20 +1835,12 @@ setWorkRateChange(workplace.workRateChange)
       workcount6: workcount6,
       workcount7: workcount7,
       addSalary: formData.addSalary,
-      ApplyeveryDay: formData.includeHolidaysForDaily || false,
       listEmployeeDay: listEmployeeDay,
       listSpecialWorktime: listSpecialWorktime,
       workTimeDay: workTimeDayList,
       workTimeDayPerson: workTimeDayPersonList,
       specialWorkTimeDay: workTimeDayList_specialwork || []
     };
-
-    // Debug: แสดงข้อมูลที่จะส่งไป API
-    console.log("Data to send to API:", {
-      ApplyeveryDay: data.ApplyeveryDay,
-      includeHolidaysForDaily: formData.includeHolidaysForDaily,
-      fullData: data
-    });
 
     // if (file) {
     //     data.append('reason', file);
@@ -2487,10 +1857,7 @@ if (newWorkplace) {
     workplaceArea: "สถานที่ปฏิบัติงาน",
     workOfWeek: "จำนวนวันทำงานต่อสัปดาห์",
     workOfHour: "ชั่วโมงทำงาน",
-    workRate: "ค่าจ้างรายวัน",
-    dateStartContract: "วันเริ่มสัญญา",
-    dateEndContract: "วันสิ้นสุดสัญญา",
-    serviceFeePerMonth: "ค่าบริการรายเดือน"
+    workRate: "ค่าจ้างรายวัน"
   };
 
   const missingFields = [];
@@ -2965,94 +2332,485 @@ if (newWorkplace) {
     setWorkTimeDayList_specialwork((prev) => prev.filter((_, i) => i !== index));
   };
 
+//===== โค้ดเพิ่มเติมสำหรับการทำงานเฉพาะบุคคล
+  const [searchEmployeeId, setSearchEmployeeId] = useState("");
+  const [searchEmployeeName, setSearchEmployeeName] = useState("");
+  const [staffId, setStaffId] = useState(""); //รหัสพนักงาน
+  const [staffName, setStaffName] = useState(""); //ชื่อ
+  const [staffLastname, setStaffLastname] = useState(""); //นามสกุล
+  const [staffFullName, setStaffFullName] = useState(""); //ชื่อเต็ม
+  const [searchWorkPlace, setSearchWorkPlace] = useState(""); //หน่วยงาน
+  const [searchPhoneNumber, setSearchPhoneNumber] = useState(""); //เบอร์โทรศัพท์
+  const [searchIdCard, setSearchIdCard] = useState(""); //บัตรประชาชน
+
+
+  const handleStaffIdChange = (e) => {
+    const selectedStaffId = e.target.value;
+    setStaffId(selectedStaffId);
+    setSearchEmployeeId(selectedStaffId);
+
+    // Find the corresponding employee and set the staffName
+
+    const selectedEmployee = employeeList.find(
+      (employee) => employee.employeeId === selectedStaffId
+    );
+    if (selectedEmployee) {
+      // setStaffName(selectedEmployee.name);
+      // setStaffLastname(selectedEmployee.lastName);
+      setStaffFullName(selectedEmployee.name + " " + selectedEmployee.lastName);
+      setWorkplaceIdEMP(selectedEmployee.workplace);
+    } else {
+      setStaffName("");
+      setStaffFullName("");
+      setSearchEmployeeName("");
+    }
+  };
+
+  const callHandleStaffNameChangeWithEmployeeId = async (employeeId) => {
+    // Assuming you have access to the event object or you can create a synthetic event
+    // You can create a synthetic event using `new Event('change')`
+    const syntheticEvent = await new Event("change");
+
+    // You need to attach a `target` property to the synthetic event
+    // with a `value` property containing the employeeId
+    syntheticEvent.target = await { value: employeeId };
+
+    // Call handleStaffNameChange with the synthetic event
+    await handleStaffIdChange(syntheticEvent);
+  };
+
+  const handleStaffNameChange = (e) => {
+    const selectedStaffName = e.target.value;
+
+    // Find the corresponding employee and set the staffId
+    const selectedEmployee = employeeList.find(
+      (employee) =>
+        employee.name + " " + employee.lastName === selectedStaffName
+    );
+    const selectedEmployeeFName = employeeList.find(
+      (employee) => employee.name === selectedStaffName
+    );
+
+    if (selectedEmployee) {
+      setStaffId(selectedEmployee.employeeId);
+      setSearchEmployeeId(selectedEmployee.employeeId);
+      setWorkplaceIdEMP(selectedEmployee.workplace);
+    } else {
+      setStaffId("");
+      // searchEmployeeId('');
+    }
+
+    // setStaffName(selectedStaffName);
+    setStaffFullName(selectedStaffName);
+    setSearchEmployeeName(selectedStaffName);
+  };
+
+  const handleStaffFirstNameChange = (e) => {
+    const selectedFirstName = e.target.value;
+    setStaffName(selectedFirstName);
+
+    // Find employee by first name
+    const selectedEmployee = employeeList.find(
+      (employee) => employee.name === selectedFirstName
+    );
+
+    if (selectedEmployee) {
+      setStaffId(selectedEmployee.employeeId);
+      setSearchEmployeeId(selectedEmployee.employeeId);
+      setStaffLastname(selectedEmployee.lastName);
+      setWorkplaceIdEMP(selectedEmployee.workplace);
+    }
+  };
+
+  const handleStaffLastNameChange = (e) => {
+    const selectedLastName = e.target.value;
+    setStaffLastname(selectedLastName);
+
+    // Find employee by last name
+    const selectedEmployee = employeeList.find(
+      (employee) => employee.lastName === selectedLastName
+    );
+
+    if (selectedEmployee) {
+      setStaffId(selectedEmployee.employeeId);
+      setSearchEmployeeId(selectedEmployee.employeeId);
+      setStaffName(selectedEmployee.name);
+      setWorkplaceIdEMP(selectedEmployee.workplace);
+    }
+  };
+
+  const handleWorkPlaceChange = (e) => {
+    setSearchWorkPlace(e.target.value);
+  };
+
+  const handlePhoneNumberChange = (e) => {
+    setSearchPhoneNumber(e.target.value);
+  };
+
+  const handleIdCardChange = (e) => {
+    setSearchIdCard(e.target.value);
+  };
+
+
+async function handleSaveCustomWorkplace() {
+  if (!showEmployeeListResult || showEmployeeListResult.length === 0) {
+    alert("ไม่พบพนักงานที่ต้องการบันทึก");
+    return;
+  }
+
+  const employeeId = showEmployeeListResult[0].employeeId;
+
+  // ✅ เตรียม customWorkplace จาก state ทั้งหมด (เหมือนใน handleManageWorkplace)
+  const customWorkplace = {
+          workplaceId: workplaceId,
+      workplaceName: workplaceName,
+      workplaceArea: workplaceArea,
+      workOfWeek: workOfWeek,
+
+      workStart1: workStart1,
+      workEnd1: workEnd1,
+      workStart2: workStart2,
+      workEnd2: workEnd2,
+      workStart3: workStart3,
+      workEnd3: workEnd3,
+
+      workStartOt1: workStartOt1,
+      workEndOt1: workEndOt1,
+      workStartOt2: workStartOt2,
+      workEndOt2: workEndOt2,
+      workStartOt3: workStartOt3,
+      workEndOt3: workEndOt3,
+
+      workOfHour: (parseInt(workOfHour || '0') + (parseFloat(workOfMinute || '0') / 60)),
+      // workOfOT: (parseInt(workOfOT || '0') + ((parseFloat(workOfOTMinute || '0')- parseInt(breakOfOT || '0')) / 60)),
+      workOfOT: parseFloat(workOfOTMinute || '0') === 0
+        ? ((parseInt(workOfOT || '0') * 60 - parseInt(breakOfOT || '0')) / 60).toFixed(4)
+        : (parseInt(workOfOT || '0') + (parseFloat(workOfOTMinute || '0') - parseInt(breakOfOT || '0')) / 60).toFixed(4),
+
+      workOfHour_subHour: workOfHour || 0,
+      workOfHour_subMinute: workOfMinute || 0,
+      startWorkOfOT_subHour: startWorkOfOT || 0,
+      startWorkOfOT_subMinute: startWorkOfOTMinute || 0,
+      workOfOT_subHour: workOfOT || 0,
+      workOfOT_subMinute: workOfOTMinute || 0,
+      workOfOT_breakHour: '',
+      workOfOT_breakMinute: breakOfOT || 0,
+
+      workRate: workRate,
+      addWorkRate: addWorkRate,
+      newWorkRate: parseFloat(addWorkRate || '0') + parseFloat(workRate || '0'), // ค่าจ้างใหม่รวม
+      workRateEffectiveDate: workRateEffectiveDate, // วันที่มีผลบังคับใช้
+      workRateOT: workRateOT,
+      workTotalPeople: workTotalPeople,
+      countEmployee: showEmployeeListResult.length.toString(),
+      dayoffRate: dayoffRate,
+      dayoffRateOT: dayoffRateOT,
+      dayoffRateHour: dayoffRateHour,
+      holiday: holiday,
+      holidayOT: holidayOT,
+      holidayHour: holidayHour,
+      salaryadd1: salaryadd1,
+      salaryadd2: salaryadd2,
+      salaryadd3: salaryadd3,
+      salaryadd4: salaryadd4,
+      salaryadd5: salaryadd5,
+      salaryadd6: salaryadd6,
+      personalLeave: personalLeave,
+      personalLeaveNumber: personalLeaveNumber,
+      personalLeaveRate: personalLeaveRate,
+      sickLeave: sickLeave,
+      sickLeaveNumber: sickLeaveNumber,
+      sickLeaveRate: sickLeaveRate,
+      workRateDayoff: workRateDayoff,
+      workRateDayoffNumber: workRateDayoffNumber,
+      workRateDayoffRate: workRateDayoffRate,
+      // workplaceAddress: workplaceAddress,
+      // แก้ไขการส่งข้อมูลวันที่ไป API เพื่อให้วันที่ตรงกับหน้าบ้าน
+      daysOff: selectedDates.map(date => {
+        // แปลง Date เป็น ISO string ที่เวลาเป็น 00:00:00 ตาม local timezone
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        const day = date.getDate();
+        return new Date(Date.UTC(year, month, day));
+      }),
+      // เพิ่มข้อมูลวันหยุดนักขัตฤกษ์
+      publicHoliday: publicHolidayDates
+        .filter(holiday => {
+          const date = holiday.date || holiday;
+          return date instanceof Date && !isNaN(date.getTime());
+        })
+        .map(holiday => {
+          try {
+            const date = holiday.date || holiday;
+            if (date instanceof Date && !isNaN(date.getTime())) {
+              return {
+                date: date.toISOString(), // แปลงเป็น ISO string เพื่อส่งไป API
+                note: holiday.note || ""
+              };
+            }
+            return null;
+          } catch (error) {
+            console.error("Error converting date for API:", error);
+            return null;
+          }
+        })
+        .filter(item => item !== null),
+      workRateChange: workRateChange,
+      reason: reason,
+
+      // ✅ เพิ่มข้อมูลเงินสงเคราะห์ลูกจ้าง
+      employeeCompensation: {
+        Rate21_30_31: parseFloat(employeeCompensationRate21_30_31 || 0) / 100,
+        Rate1_20: parseFloat(employeeCompensationRate1_20 || 0) / 100,
+        effectiveDate: employeeCompensationStartDate ? new Date(employeeCompensationStartDate) : null,
+        // เพิ่มประวัติเมื่อมีการเปลี่ยนแปลง
+        ...(employeeCompensationRate1_20 || employeeCompensationRate21_30_31 ? {
+          $push: {
+            history: {
+              Rate21_30_31: parseFloat(employeeCompensationRate21_30_31 || 0) / 100,
+              Rate1_20: parseFloat(employeeCompensationRate1_20 || 0) / 100,
+              effectiveDate: employeeCompensationStartDate ? new Date(employeeCompensationStartDate) : new Date(),
+              updatedBy: 'admin', // หรือ user ID ที่ login อยู่
+              updatedAt: new Date()
+            }
+          }
+        } : {})
+      },
+
+      employeeIdList: employeeIdList,
+      employeeNameList: employeeNameList,
+
+      workday1: workday1 === true ? workday1 : false,
+      workday2: workday2 === true ? workday2 : false,
+      workday3: workday3 === true ? workday3 : false,
+      workday4: workday4 === true ? workday4 : false,
+      workday5: workday5 === true ? workday5 : false,
+      workday6: workday6 === true ? workday6 : false,
+      workday7: workday7 === true ? workday7 : false,
+
+      workcount1: workcount1,
+      workcount2: workcount2,
+      workcount3: workcount3,
+      workcount4: workcount4,
+      workcount5: workcount5,
+      workcount6: workcount6,
+      workcount7: workcount7,
+      addSalary: formData.addSalary,
+      listEmployeeDay: listEmployeeDay,
+      listSpecialWorktime: listSpecialWorktime,
+      workTimeDay: workTimeDayList,
+      workTimeDayPerson: workTimeDayPersonList,
+      specialWorkTimeDay: workTimeDayList_specialwork || []
+  };
+
+  try {
+    console.log("🔍 [DEBUG] กำลังบันทึก customWorkplace สำหรับพนักงาน:", employeeId);
+    console.log("📦 [DEBUG] ข้อมูลวันหยุดที่จะบันทึก:");
+    console.log("   - dayoffRate:", customWorkplace.dayoffRate);
+    console.log("   - dayoffRateOT:", customWorkplace.dayoffRateOT);
+    console.log("   - dayoffRateHour:", customWorkplace.dayoffRateHour);
+    console.log("   - holiday:", customWorkplace.holiday);
+    console.log("   - holidayOT:", customWorkplace.holidayOT);
+    console.log("   - holidayHour:", customWorkplace.holidayHour);
+    console.log("   - publicHoliday:", customWorkplace.publicHoliday);
+    console.log("   - daysOff:", customWorkplace.daysOff);
+    
+    const res = await axios.put(`${endpoint}/employee/${employeeId}/custom-workplace`, {
+      customWorkplace,
+    });
+
+    alert("✅ บันทึก ตั้งค่าการทำงานเฉพาะบุคคลสำเร็จ");
+    console.log("📦 บันทึกแล้ว:", res.data.customWorkplace);
+  } catch (err) {
+    console.error("❌ บันทึก customWorkplace ล้มเหลว:", err);
+    alert("เกิดข้อผิดพลาด กรุณาตรวจสอบข้อมูล");
+  }
+}
+
+async function handleDeleteCustomWorkplace() {
+  if (!showEmployeeListResult || showEmployeeListResult.length === 0) {
+    alert("ไม่พบพนักงานที่ต้องการลบ customWorkplace");
+    return;
+  }
+
+  const employeeId = showEmployeeListResult[0].employeeId;
+
+  const confirmDelete = window.confirm(
+    `คุณแน่ใจหรือไม่ว่าต้องการลบ customWorkplace ของพนักงานรหัส ${employeeId}?`
+  );
+
+  if (!confirmDelete) return;
+
+  try {
+    await axios.delete(`${endpoint}/employee/${employeeId}/custom-workplace`);
+    alert("✅ ลบ การตั้งค่าเฉพาะบุคคลสำเร็จ");
+
+    // 🌀 รีโหลดใหม่ เพื่อให้กลับไปใช้ workplace ปกติ
+    await handleSearch({ preventDefault: () => {} }); // 👈 reuse การค้นหาปัจจุบัน
+  } catch (error) {
+    console.error("❌ ลบ customWorkplace ไม่สำเร็จ:", error);
+    alert("เกิดข้อผิดพลาดในการลบ");
+  }
+}
+
+
   return (
-    <div class="hold-transition sidebar-mini" className="editlaout">
-      <div class="wrapper">
-        <div class="content-wrapper">
-          {/* <!-- Content Header (Page header) --> */}
-          <ol class="breadcrumb">
-            <li class="breadcrumb-item">
-              <i class="fas fa-home"></i> <a href="index.php">หน้าหลัก</a>
-            </li>
-            <li class="breadcrumb-item">
-              <a href="#"> การตั้งค่า</a>
-            </li>
-            <li class="breadcrumb-item active">ตั้งค่าหน่วยงาน</li>
-          </ol>
-          <div class="content-header">
+    <div className="tab-setting-content">
+      <section className="content">
             <div class="container-fluid">
-              <div class="row mb-2">
-                <h1 class="m-0">
-                  <i class="far fa-arrow-alt-circle-right"></i> ตั้งค่าหน่วยงาน
-                </h1>
-              </div>
-            </div>
-          </div>
-          {/* <!-- /.content-header -->
-                    <!-- Main content --> */}
-          <section class="content">
-            <div class="container-fluid">
-              <h2 class="title">ตั้งค่าหน่วยงาน</h2>
+              <h2 class="title">ตั้งค่าการทำงานเฉพาะบุคคล</h2>
               <section class="Frame">
                 <div class="col-md-12">
                   <form onSubmit={handleSearch}>
+                    {/* Row 1: รหัสพนักงาน | หน่วยงาน */}
                     <div class="row">
                       <div class="col-md-6">
                         <div class="form-group">
-                          <label role="searchWorkplaceId">รหัสหน่วยงาน</label>
-                          {/* <input
-                            type="text"
-                            class="form-control"
-                            id="searchWorkplaceId"
-                            placeholder="รหัสหน่วยงาน"
-                            value={searchWorkplaceId}
-                            onChange={(e) =>
-                              setSearchWorkplaceId(e.target.value)
-                            }
-                          /> */}
+                          <label role="searchEmployeeId">รหัสพนักงาน</label>
                           <input
                             type="text"
                             className="form-control"
-                            id="searchWorkplaceId"
-                            list="workplaceIds" // Associate the datalist with the input
-                            placeholder="รหัสหน่วยงาน"
-                            value={searchWorkplaceId}
-                            onChange={(e) =>
-                              setSearchWorkplaceId(e.target.value)
-                            }
+                            id="staffId"
+                            placeholder="รหัสพนักงาน"
+                            value={staffId == "null" ? "" : staffId}
+                            onChange={handleStaffIdChange}
                             onInput={(e) => {
                               // Remove any non-digit characters
-                            
+                              e.target.value = e.target.value.replace(
+                                /\D/g,
+                                ""
+                              );
                             }}
+                            list="staffIdList"
                           />
-                          <datalist id="workplaceIds">
-                            {workplaceList.map((workplace) => (
+                          <datalist id="staffIdList">
+                            {employeeList.map((employee) => (
                               <option
-                                key={workplace.workplaceId}
-                                value={workplace.workplaceId}
-                              >
-                                {workplace.workplaceId}
-                              </option>
+                                key={employee.employeeId}
+                                value={employee.employeeId}
+                              />
                             ))}
                           </datalist>
                         </div>
                       </div>
                       <div class="col-md-6">
                         <div class="form-group">
-                          <label role="searchWorkplaceName">ชื่อหน่วยงาน</label>
+                          <label role="searchWorkPlace">หน่วยงาน</label>
                           <input
                             type="text"
-                            class="form-control"
-                            id="searchWorkplaceName"
-                            placeholder="ชื่อหน่วยงาน"
-                            value={searchWorkplaceName}
-                            onChange={(e) =>
-                              setSearchWorkplaceName(e.target.value)
-                            }
+                            className="form-control"
+                            id="searchWorkPlace"
+                            placeholder="หน่วยงาน"
+                            value={searchWorkPlace}
+                            onChange={handleWorkPlaceChange}
+                            list="workPlaceList"
                           />
+                          <datalist id="workPlaceList">
+                            {[...new Set(employeeList.map((employee) => employee.workplace))].map((workplace, index) => (
+                              <option key={index} value={workplace} />
+                            ))}
+                          </datalist>
                         </div>
                       </div>
                     </div>
+
+                    {/* Row 2: ชื่อ | นามสกุล */}
+                    <div class="row">
+                      <div class="col-md-6">
+                        <div class="form-group">
+                          <label role="searchFirstName">ชื่อ</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            id="staffFirstName"
+                            placeholder="ชื่อ"
+                            value={staffName}
+                            onChange={handleStaffFirstNameChange}
+                            list="staffFirstNameList"
+                          />
+                          <datalist id="staffFirstNameList">
+                            {employeeList.map((employee) => (
+                              <option
+                                key={employee.employeeId}
+                                value={employee.name}
+                              />
+                            ))}
+                          </datalist>
+                        </div>
+                      </div>
+                      <div class="col-md-6">
+                        <div class="form-group">
+                          <label role="searchLastName">นามสกุล</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            id="staffLastName"
+                            placeholder="นามสกุล"
+                            value={staffLastname}
+                            onChange={handleStaffLastNameChange}
+                            list="staffLastNameList"
+                          />
+                          <datalist id="staffLastNameList">
+                            {employeeList.map((employee) => (
+                              <option
+                                key={employee.employeeId}
+                                value={employee.lastName}
+                              />
+                            ))}
+                          </datalist>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Row 3: เบอร์โทรศัพท์ | บัตรประชาชน */}
+                    <div class="row">
+                      <div class="col-md-6">
+                        <div class="form-group">
+                          <label role="searchPhoneNumber">เบอร์โทรศัพท์</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            id="searchPhoneNumber"
+                            placeholder="เบอร์โทรศัพท์"
+                            value={searchPhoneNumber}
+                            onChange={handlePhoneNumberChange}
+                            list="phoneNumberList"
+                          />
+                          <datalist id="phoneNumberList">
+                            {employeeList.map((employee) => (
+                              <option
+                                key={employee.employeeId}
+                                value={employee.phoneNumber}
+                              />
+                            ))}
+                          </datalist>
+                        </div>
+                      </div>
+                      <div class="col-md-6">
+                        <div class="form-group">
+                          <label role="searchIdCard">หมายเลขบัตรประชาชน</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            id="searchIdCard"
+                            placeholder="หมายเลขบัตรประชาชน"
+                            value={searchIdCard}
+                            onChange={handleIdCardChange}
+                            list="idCardList"
+                          />
+                          <datalist id="idCardList">
+                            {employeeList.map((employee) => (
+                              <option
+                                key={employee.employeeId}
+                                value={employee.idCard}
+                              />
+                            ))}
+                          </datalist>
+                        </div>
+                      </div>
+                    </div>
+
+
                     <div class="d-flex justify-content-center">
                       <button class="btn b_save">
                         <i class="nav-icon fas fa-search"></i> &nbsp; ค้นหา
@@ -3115,7 +2873,10 @@ if (newWorkplace) {
                             onChange={(e) => setWorkplaceId(e.target.value)}
                             onInput={(e) => {
                               // Remove any non-digit characters
-                             
+                              e.target.value = e.target.value.replace(
+                                /\D/g,
+                                ""
+                              );
                             }}
                           />
                         </div>
@@ -3170,51 +2931,6 @@ if (newWorkplace) {
                           />
                         </div>
                       </div>
-
-                      <div class="col-md-4">
-                        <div class="form-group">
-                          <label role="dateStartContract">วันเริ่มสัญญา<span style={{ color: "red" }}>*</span></label>
-                          <input
-                            type="date"
-                            class="form-control"
-                            id="dateStartContract"
-                            placeholder="วันเริ่มสัญญา"
-                            value={dateStartContract}
-                            onChange={(e) => setDateStartContract(e.target.value)}
-                          />
-                        </div>
-                      </div>
-                      <div class="col-md-4">
-                        <div class="form-group">
-                          <label role="dateEndContract">วันสิ้นสุดสัญญา<span style={{ color: "red" }}>*</span></label>
-                          <input
-                            type="date"
-                            class="form-control"
-                            id="dateEndContract"
-                            placeholder="วันสิ้นสุดสัญญา"
-                            value={dateEndContract}
-                            onChange={(e) => setDateEndContract(e.target.value)}
-                          />
-                        </div>
-                      </div>
-                      <div class="col-md-4">
-                        <div class="form-group">
-                          <label role="serviceFeePerMonth">ค่าบริการต่อเดือน<span style={{ color: "red" }}>*</span></label>
-                          <input
-                            type="text"
-                            class="form-control"
-                            id="serviceFeePerMonth"
-                            placeholder="ค่าบริการต่อเดือน"
-                            value={serviceFeePerMonth ? Number(serviceFeePerMonth).toLocaleString('en-US') : ''}
-                            onChange={(e) => {
-                              const value = e.target.value.replace(/,/g, '');
-                              if (value === '' || !isNaN(value)) {
-                                setServiceFeePerMonth(value);
-                              }
-                            }}
-                          />
-                        </div>
-                      </div>
                     </div>
                   </div>
                 </section>
@@ -3246,7 +2962,7 @@ if (newWorkplace) {
                         <input
                           type="text"
                           class="form-control"
-                          id="startOTMinute"
+                          id="startOT"
                           placeholder="นาที"
                           value={startWorkOfOTMinute}
                           onChange={(e) => setStartWorkOfOTMinute(e.target.value)}
@@ -3284,7 +3000,7 @@ if (newWorkplace) {
                           type="text"
                           // style={{ marginBottom: "0rem" }}
                           class="form-control "
-                          id="workOfMinute"
+                          id="workOfHour"
                           placeholder="นาที"
                           value={workOfMinute}
                           onChange={(e) => setWorkOfMinute(e.target.value)}
@@ -3320,7 +3036,7 @@ if (newWorkplace) {
                         <input
                           type="text"
                           class="form-control"
-                          id="endOTMinute"
+                          id="endOT"
                           placeholder="นาที"
                           value={workOfOTMinute}
                           onChange={(e) => setWorkOfOTMinute(e.target.value)}
@@ -3424,7 +3140,7 @@ if (newWorkplace) {
                         <input
                           type="text"
                           class="form-control"
-                          id="workRateHourly"
+                          id="workRate"
                           placeholder="บาท"
                           value={(parseFloat(workRate ||  0) /8) || ''} readOnly />
                       </div>
@@ -3466,7 +3182,7 @@ if (newWorkplace) {
                         <input
                           type="text"
                           class="form-control"
-                          id="workRateOTBaht"
+                          id="workRateOT"
                           placeholder="กี่บาท"
                           value={ ((parseFloat(workRate || '0')/ 8)* parseFloat(workRateOT || '0')) || '' }
                         readOnly/>
@@ -3511,7 +3227,7 @@ if (newWorkplace) {
                         <input
                           type="text"
                           class="form-control"
-                          id="dayoffRateHourBaht"
+                          id="dayoffRateHour"
                           placeholder="กี่บาท"
                           value={ ((parseFloat(workRate || '0')/ 8)* parseFloat(dayoffRateHour || '0')) || '' }
                                                 readOnly />
@@ -3553,7 +3269,7 @@ if (newWorkplace) {
                         <input
                           type="text"
                           class="form-control"
-                          id="dayoffRateOTBaht"
+                          id="dayoffRateOT"
                           placeholder="กี่บาท"
                           value={ ((parseFloat(workRate || '0')/ 8)* parseFloat(dayoffRateOT || '0')) || '' }
                         readOnly />
@@ -3598,7 +3314,7 @@ if (newWorkplace) {
                         <input
                           type="text"
                           class="form-control"
-                          id="holidayHourBaht"
+                          id="holidayHour"
                           placeholder=""
                           value={ ((parseFloat(workRate || '0')/ 8)* parseFloat(holidayHour || '0')) || '' }
                         readOnly />
@@ -3640,7 +3356,7 @@ if (newWorkplace) {
                         <input
                           type="text"
                           class="form-control"
-                          id="holidayOTBaht"
+                          id="holidayOT"
                           placeholder="กี่บาท"
                           value={ ((parseFloat(workRate || '0')/ 8)* parseFloat(holidayOT || '0')) || '' }
                         readOnly />
@@ -3719,64 +3435,15 @@ if (newWorkplace) {
                       </div>
                     </div>
                  </div>
-                 <label>ส่งค่าแรงไปยังพนักงานในหน่วยงาน</label>
-                    <div className="row">
-                       <div className="col-md-3">
-                           <input
-                          type="text"
-                          class="form-control"
-                          id="currentWorkRateDisplay"
-                          placeholder="บาท"
-                          value={parseFloat(workRate || '0')}
-                          readOnly
-                        />
-                        </div>
-                        <div className="col-md-3">
-                          
-                          <button className="btn btn-primary" 
-                          onClick={() => sendWorkRate()}> <i className="fas fa-paper-plane"></i>  ส่งค่าแรง
-                           
-                          </button>
-                        </div>
-                        <div className="col-md-3">
-                          <button 
-                            className="btn btn-warning" 
-                            onClick={() => syncWorkplaceToAllEmployees()}
-                            title="ส่งการตั้งค่าหน่วยงานใหม่ให้พนักงานทั้งหมด (ลบการตั้งค่าเฉพาะบุคคล)"
-                          >
-                            <i className="fas fa-sync-alt"></i> ซิงค์การตั้งค่าหน่วยงาน
-                          </button>
-                        </div>
-                        <div className="col-md-3">
-                          <button 
-                            className="btn btn-success" 
-                            onClick={() => syncWageRatesToEmployees()}
-                            title="ส่งค่าเท่าต่างๆ (OT, วันหยุด) ไปให้พนักงานในหน่วยงาน"
-                          >
-                            <i className="fas fa-sync"></i> ซิงค์ค่าเท่าต่างๆ
-                          </button>
-                        </div>
-                    </div>
-                  <div>
-                    
-                  </div>
 
-<div class="col-md-4">
+<div class="col-md-6">
 
 <div>
+                    <label>วันเริ่มต้นคำนวณ:</label>
 
-
-                      
-                    {/* <label>วันเริ่มต้นคำนวณ:</label> */}
-                    
-
-                    <div class="form-control-static">
-                      
+                    <div>
                       <div className="row">
-                        
-                       
-                        
-                        {/* <div className="col-md-3">
+                        <div className="col-md-3">
                           <select
                             className="form-control"
                             value={workRateDayChange}
@@ -3791,8 +3458,8 @@ if (newWorkplace) {
                               )
                             )}
                           </select>
-                        </div> */}
-                        {/* <div className="col-md-3">
+                        </div>
+                        <div className="col-md-3">
                           <select
                             className="form-control"
                             value={workRateMonthChange}
@@ -3807,9 +3474,9 @@ if (newWorkplace) {
                               )
                             )}
                           </select>
-                        </div> */}
+                        </div>
 
-                        {/* <div className="col-md-3">
+                        <div className="col-md-3">
                           <select
                             className="form-control"
                             value={workRateYearChange}
@@ -3825,7 +3492,7 @@ if (newWorkplace) {
                               </option>
                             ))}
                           </select>
-                        </div> */}
+                        </div>
                       </div></div>
                       </div>
                       </div>
@@ -3840,7 +3507,7 @@ if (newWorkplace) {
                  <h2 className="title">เงินสงเคราะห์ลูกจ้าง</h2>
                 <section className="Frame">
                   <div className="row">
-                        {/* <div className="col-md-3">
+                        <div className="col-md-3">
                           <div className="form-group">
                             <label>Rate สำหรับวันที่ 21-30/31</label>
                             <div className="input-group">
@@ -3869,10 +3536,10 @@ if (newWorkplace) {
                             </div>
                             </div>
                           </div>
-                        </div> */}
+                        </div>
                         <div className="col-md-3">
                           <div className="form-group">
-                            <label>Rate สำหรับเงินสงเคราะห์ลูกจ้าง</label>
+                            <label>Rate สำหรับวันที่ 1-20</label>
                             <div className="input-group">
                               <input type="text"
                               className="form-control"
@@ -3909,13 +3576,7 @@ if (newWorkplace) {
                 <section class="Frame">
                   {formData.addSalary &&
                     formData.addSalary.length > 0 &&
-                    formData.addSalary.map((data, index) => {
-                      
-                      if (data.codeSpSalary === ".") {
-                        return null;
-                      }
-                      
-                      return (
+                    formData.addSalary.map((data, index) => (
                       <div key={index}>
                         <div className="row">
                           <div className="col-md-1">
@@ -3929,31 +3590,7 @@ if (newWorkplace) {
                                 handleChangeSpSalary(e, index, "codeSpSalary")
                               }
                               onInput={(e) => {
-                                // Check for restricted codes (leave-related welfare codes)
-                                const restrictedCodes = [
-                                  "1428", // ลากิจธุระจำเป็น(ประกันสังคม)
-                                  "1429", // ลากิจธุระจำเป็น(ปกส)รับล่วงหน้า
-                                  "1231", // จ่ายลาป่วยมีใบแพทย์
-                                  "1234", // จ่ายลาป่วยมีใบรับรองแพทย์(รับล่วงหน้า)
-                                  "1235", // ค่าจ้างวันลาป่วย
-                                  "1422", // จ่ายคืนพักร้อน(ครบปี/ใช้สิทธิไม่หมด)
-                                  "1423", // ชดเชยวันลาพักร้อน (ประกันสังคม)
-                                  "1425", // ค่าจ้างในวันลาพักร้อน
-                                  "1426", // จ่ายคืนค่าจ้างพักร้อน(ครบปี/ใช้สิทธิไม่หมด)
-                                  "1427", // ชดเชยวันลาพักร้อน(ประกันสังคม)รับล่วงหน้า
-                                  "1435", // จ่ายคืนพักร้อน(ครบปี/ใช้สิทธิไม่หมด)รับล่วงหน้า
-                                  "1233", // ชดเชยค่าแรงลาคลอด
-                                ];
-                                if (restrictedCodes.includes(e.target.value)) {
-                                  Swal.fire({
-                                    icon: "warning",
-                                    title: "ไม่อนุญาตให้กรอกรหัสนี้",
-                                    text: "เป็นสวัสดิการเช็คตามคนอยู่แล้ว",
-                                    confirmButtonText: "รับทราบ",
-                                  });
-                                  e.target.value = ""; // Clear the input
-                                  return;
-                                }
+                            
 
                                 // Ensure only one '.' is allowed
                                 const parts = e.target.value.split(".");
@@ -4170,39 +3807,15 @@ if (newWorkplace) {
                                                 </div>
                                             </div> */}
                       </div>
-                      );
-                    })}
+                    ))}
                   <br />
                   <button
                     type="button"
                     onClick={handleAddInput}
-                    className="btn btn-primary"
+                    class="btn btn-primary"
                   >
                     เพิ่ม
                   </button>
-                  <div style={{ marginTop: "20px", padding: "15px", backgroundColor: "#f8f9fa", borderRadius: "5px" }}>
-                    <div className="form-check">
-                      <input
-                        type="checkbox"
-                        className="form-check-input"
-                        id="includeHolidaysForDaily"
-                        checked={formData.includeHolidaysForDaily || false}
-                        onChange={(e) => {
-                          setFormData({
-                            ...formData,
-                            includeHolidaysForDaily: e.target.checked
-                          });
-                        }}
-                      />
-                      <label 
-                        className="form-check-label" 
-                        htmlFor="includeHolidaysForDaily"
-                        style={{ fontSize: "16px", fontWeight: "500" }}
-                      >
-                        คำนวณสวัสดิการรายวันรวมวันหยุดด้วย (ใช้กับทุกรายการที่เป็นรายวัน)
-                      </label>
-                    </div>
-                  </div>
                   {/* <pre>{JSON.stringify(formData, null, 2)}</pre> */}
                 </section>
 
@@ -4490,7 +4103,7 @@ if (newWorkplace) {
                 </div>
 
                 <h2 class="title">ตั้งค่าวันทํางาน</h2>
-                <section class="Frame">
+                <section class="Frame" id="workTimeDayForm">
                   <div class="row">
                     <div class="col-md-1">ตั้งแต่</div>
                     <div class="col-md-1">ถึงวันที่</div>
@@ -4723,7 +4336,6 @@ if (newWorkplace) {
                                 type="text"
                                 class="form-control"
                                 placeholder="จำนวนคน"
-
                                 value={time.numberOfPeople || ""}
                                 onChange={(e) =>
                                   handleTimeChange(
@@ -4800,8 +4412,39 @@ if (newWorkplace) {
                       className="btn btn-primary ml-auto"
                       onClick={handleAddTimeList}
                     >
-                      เพิ่ม
+                      {editingTimeListIndex !== null ? 'บันทึกการแก้ไข' : 'เพิ่ม'}
                     </button>
+                    {editingTimeListIndex !== null && (
+                      <button
+                        type="button"
+                        className="btn btn-secondary ml-2"
+                        onClick={() => {
+                          setEditingTimeListIndex(null);
+                          setWorkTimeDay({
+                            startDay: "",
+                            endDay: "",
+                            workOrStop: "",
+                            allTimes: [
+                              {
+                                shift: "",
+                                beforeStartTimeOT: "",
+                                beforeEndTimeOT: "",
+                                startTime: "",
+                                endTime: "",
+                                resultTime: "",
+                                startTimeOT: "",
+                                endTimeOT: "",
+                                resultTimeOT: "",
+                                numberOfPeople: "",
+                                Remark: "",
+                              },
+                            ],
+                          });
+                        }}
+                      >
+                        ยกเลิก
+                      </button>
+                    )}
                   </div>
                   <br />
                   <br />
@@ -4817,15 +4460,11 @@ if (newWorkplace) {
                         <th style={headerCellStyle}>เวลาเข้า</th>
                         <th style={headerCellStyle}>เวลาออก</th>
                         <th style={headerCellStyle}>ชม.</th>
-                        <th style={headerCellStyle}>เวลาเข้า OT ก่อน</th>
-                        <th style={headerCellStyle}>เวลาออก OT ก่อน</th>
-                        <th style={headerCellStyle}>ชม. OT ก่อน</th>
                         <th style={headerCellStyle}>เวลาเข้าOT</th>
                         <th style={headerCellStyle}>เวลาออกOT</th>
                         <th style={headerCellStyle}>ชม.OT</th>
                         <th style={headerCellStyle}>จำนวนคน</th>
                         <th style={headerCellStyle}>หมายเหตุ</th>
-                        <th style={headerCellStyle}>แก้ไข</th>
                         <th style={headerCellStyle}>ลบ</th>
                       </tr>
                     </thead>
@@ -4848,183 +4487,27 @@ if (newWorkplace) {
                                                                         ลบ
                                                                     </button>
                                                                 </td> */}
-                                <td style={cellStyle}>
-                                  {editingRow === index ? (
-                                    <select
-                                      className="form-control mx-auto "
-                                      value={editingItem?.startDay || item.startDay}
-                                      onChange={(e) => handleEditChange('startDay', e.target.value)}
-                                      style={{ width: '50px', height: '35px', padding: '2px',  textAlign: 'center' }}
-                                    >
-                                      <option value="">เลือก</option>
-                                      {daysOfWeek.map((day, idx) => (
-                                        <option key={idx} value={day}>{day}</option>
-                                      ))}
-                                    </select>
-                                  ) : (
-                                    item.startDay
-                                  )}
-                                </td>
-                                <td style={cellStyle}>
-                                  {editingRow === index ? (
-                                    <select
-                                      className="form-control mx-auto "
-                                      value={editingItem?.endDay || item.endDay}
-                                      onChange={(e) => handleEditChange('endDay', e.target.value)}
-                                    >
-                                      <option value="">เลือก</option>
-                                      {daysOfWeek.map((day, idx) => (
-                                        <option key={idx} value={day}>{day}</option>
-                                      ))}
-                                    </select>
-                                  ) : (
-                                    item.endDay
-                                  )}
-                                </td>
+                                <td style={cellStyle}>{item.startDay}</td>
+                                <td style={cellStyle}>{item.endDay}</td>
                               </>
                             )}
 
-                            <td style={cellStyle}>
-                              {editingRow === index ? (
-                                <select
-                                  className="form-control mx-auto "
-                                  value={editingItem?.workOrStop || item.workOrStop}
-                                  onChange={(e) => handleEditChange('workOrStop', e.target.value)}
-                                >
-                                  <option value="">เลือก</option>
-                                  <option value="work">ทำงาน</option>
-                                  <option value="stop">หยุด</option>
-                                </select>
-                              ) : (
-                                item.workOrStop === "work" ? "ทำงาน" : "หยุด"
-                              )}
-                            </td>
+                            {item.workOrStop == "work" ? (
+                              <td style={cellStyle}>ทำงาน</td>
+                            ) : (
+                              <td style={cellStyle}>หยุด</td>
+                            )}
 
-                            <td style={cellStyle}>
-                              {editingRow === index && editingItem ? (
-                                <select
-                                  className="form-control mx-auto "
-                                  value={editingItem.shift}
-                                  onChange={(e) => handleEditChange('shift', e.target.value)}
-                                >
-                                  <option value="">เลือกกะ</option>
-                                  {shiftWork.map((shift, idx) => (
-                                    <option key={idx} value={shift}>{shift}</option>
-                                  ))}
-                                </select>
-                              ) : (
-                                item1.shift
-                              )}
-                            </td>
-                            <td style={cellStyle}>
-                              {editingRow === index && editingItem ? (
-                                <input
-                                  type="text"
-                                  className="form-control mx-auto "
-                                  value={editingItem.startTime}
-                                  onChange={(e) => handleEditChange('startTime', e.target.value)}
-                                  style={{ width: '50px', height: '35px', padding: '2px',  textAlign: 'center' }}
-                                />
-                              ) : (
-                                item1.startTime
-                              )}
-                            </td>
-                            <td style={cellStyle}>
-                              {editingRow === index && editingItem ? (
-                                <input
-                                  type="text"
-                                  className="form-control mx-auto "
-                                  value={editingItem.endTime}
-                                  onChange={(e) => handleEditChange('endTime', e.target.value)}
-                                  style={{ width: '55px', height: '35px', padding: '2px',  textAlign: 'center' }}
-                                />
-                              ) : (
-                                item1.endTime
-                              )}
-                            </td>
+                            <td style={cellStyle}>{item1.shift}</td>
+                            <td style={cellStyle}>{item1.startTime}</td>
+                            <td style={cellStyle}>{item1.endTime}</td>
                             <td style={cellStyle}>{item1.resultTime}</td>
-                            <td style={cellStyle}>
-                              {editingRow === index && editingItem ? (
-                                <input
-                                  type="text"
-                                  className="form-control mx-auto "
-                                  value={editingItem.beforeStartTimeOT}
-                                  onChange={(e) => handleEditChange('beforeStartTimeOT', e.target.value)}
-                                  style={{ width: '70px', height: '35px', padding: '2px',  textAlign: 'center' }}
-                                />
-                              ) : (
-                                item1.beforeStartTimeOT
-                              )}
-                            </td>
-                            <td style={cellStyle}>
-                              {editingRow === index && editingItem ? (
-                                <input
-                                  type="text"
-                                  className="form-control mx-auto "
-                                  value={editingItem.beforeEndTimeOT}
-                                  onChange={(e) => handleEditChange('beforeEndTimeOT', e.target.value)}
-                                  style={{ width: '70px', height: '35px', padding: '2px',  textAlign: 'center' }}
-                                />
-                              ) : (
-                                item1.beforeEndTimeOT
-                              )}
-                            </td>
-                            <td style={cellStyle}>{item1.beforeResultTimeOT}</td>
-                            <td style={cellStyle}>
-                              {editingRow === index && editingItem ? (
-                                <input
-                                  type="text"
-                                  className="form-control mx-auto "
-                                  value={editingItem.startTimeOT}
-                                  onChange={(e) => handleEditChange('startTimeOT', e.target.value)}
-                                  style={{ width: '70px', height: '35px', padding: '2px',  textAlign: 'center' }}
-                                />
-                              ) : (
-                                item1.startTimeOT
-                              )}
-                            </td>
-                            <td style={cellStyle}>
-                              {editingRow === index && editingItem ? (
-                                <input
-                                  type="text"
-                                  className="form-control mx-auto "
-                                  value={editingItem.endTimeOT}
-                                  onChange={(e) => handleEditChange('endTimeOT', e.target.value)}
-                                  style={{ width: '80px', height: '35px', padding: '2px',  textAlign: 'center' }}
-                                />
-                              ) : (
-                                item1.endTimeOT
-                              )}
-                            </td>
+                            <td style={cellStyle}>{item1.startTimeOT}</td>
+                            <td style={cellStyle}>{item1.endTimeOT}</td>
                             <td style={cellStyle}>{item1.resultTimeOT}</td>
-                            <td style={cellStyle}>
-                              {editingRow === index && editingItem ? (
-                                <input
-                                  type="text"
-                                  className="form-control mx-auto "
-                                  value={editingItem.numberOfPeople}
-                                  style={{ width: '50px', height: '35px', padding: '2px',  textAlign: 'center' }}
-                                  onChange={(e) => handleEditChange('numberOfPeople', e.target.value)}
-                                  onInput={(e) => {
-                                    e.target.value = e.target.value.replace(/[^0-9]/g, "");
-                                  }}
-                                />
-                              ) : (
-                                item1.numberOfPeople
-                              )}
-                            </td>
-                            <td style={cellStyle}>
-                              {editingRow === index && editingItem ? (
-                                <input
-                                  type="text"
-                                  className="form-control"
-                                  value={editingItem.Remark}
-                                  onChange={(e) => handleEditChange('Remark', e.target.value)}
-                                />
-                              ) : (
-                                item1.Remark
-                              )}
-                            </td>
+                            <td style={cellStyle}>{item1.numberOfPeople}</td>
+                            <td style={cellStyle}>{item1.Remark}</td>
+                            
                             {index1 > 0 ? (
                               <>
                                 <td style={cellStyle}></td>
@@ -5032,53 +4515,22 @@ if (newWorkplace) {
                             ) : (
                               <>
                                 <td style={cellStyle}>
-                                  {editingRow === index ? (
-                                    <div className="btn-group">
-                                      <button
-                                        type="button"
-                                        onClick={() => handleSaveEdit(index, index1)}
-                                        className="btn btn-success" style={{ fontSize: '12px', padding: '2px 8px', width: '55px' }}
-                                      >
-                                        แก้
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={handleCancelEdit}
-                                        className="btn btn-secondary"
-                                        style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem', width: '50px', height: '24px', marginLeft: '4px' }}
-                                      >
-                                        ยกเลิก
-                                      </button>
-                                    </div>
-                                  ) : (
+                                  <div style={{ display: 'flex', gap: '8px' }}>
                                     <button
                                       type="button"
-                                      onClick={() => handleEditClick(index, {...item1})}
+                                      onClick={() => handleEditTimeList(index)}
                                       className="btn btn-warning"
-                                      style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem', width: '50px', height: '24px' }}
                                     >
                                       แก้ไข
                                     </button>
-                                  )}
-                                </td>
-                              </>
-                            )}
-                            {index1 > 0 ? (
-                              <>
-                                <td style={cellStyle}></td>
-                              </>
-                            ) : (
-                              <>
-                                <td style={cellStyle}>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRemoveTimeList(index)}
-                                    className="btn btn-danger ml-auto" 
-                                    style={{ fontSize: '14px', padding: '2px 8px', width: '50px' }}
-                                    disabled={editingRow === index}
-                                  >
-                                    ลบ
-                                  </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveTimeList(index)}
+                                      className="btn btn-danger"
+                                    >
+                                      ลบ
+                                    </button>
+                                  </div>
                                 </td>
                               </>
                             )}
@@ -5299,7 +4751,7 @@ if (newWorkplace) {
                                 type="button"
                                 onClick={() => handleRemoveTimePerson(index)}
                                 style={{ width: "2.5rem" }}
-                                className="btn btn-danger"
+                                className="btn btn-danger ml-auto"
                               >
                                 ลบ
                               </button>
@@ -5387,18 +4839,19 @@ if (newWorkplace) {
                                       handleRemoveTimePersonList(index)
                                     }
                                
-                                    className="btn btn-danger" style={{ fontSize: '14px', padding: '2px 8px', width: '50px' }}
+                                    className="btn btn-danger mb-2"
                                   >
                                     ลบ
                                   </button>
-                                <button
-                                  className="btn btn-warning"
-                                  type="button"
-                                  onClick={() => handleEditTimePersonList(index)}
-                                  style={{ fontSize: '14px', padding: '2px 8px', marginLeft: '4px' }}
-                                >
-                                  แก้ไข
-                                </button>                                </td>
+                                  <button
+                                    className="btn btn-warning"
+                                    type="button"
+                                    onClick={() => handleEditTimePersonList(index)}
+                                  >
+                                    แก้ไข
+                                  </button>
+ 
+                                </td>
                               </>
                             )}
                           </tr>
@@ -5548,7 +5001,7 @@ if (newWorkplace) {
                       วันหยุดนักขัตฤกษ์
                     </h2>
                     <section className="Frame" style={{ minHeight: '450px' }}>
-                      <div>
+                      <div id="publicHolidayForm">
                         <label >เลือกวันหยุดนักขัตฤกษ์:</label>
 
                         <div >
@@ -5640,8 +5093,24 @@ if (newWorkplace) {
                             onClick={handleAddPublicHoliday}
                             
                           >
-                          เพิ่ม
+                          {editingPublicHolidayIndex !== null ? 'บันทึกการแก้ไข' : 'เพิ่ม'}
                           </button>
+                          {editingPublicHolidayIndex !== null && (
+                            <button
+                              type="button"
+                              className="btn btn-secondary"
+                              onClick={() => {
+                                setEditingPublicHolidayIndex(null);
+                                setPublicHolidayDay("");
+                                setPublicHolidayMonth("");
+                                setPublicHolidayYear(new Date().getFullYear());
+                                setPublicHolidayNote("");
+                              }}
+                              style={{ marginLeft: '8px' }}
+                            >
+                              ยกเลิก
+                            </button>
+                          )}
                         </div>
 
                         <br />
@@ -5693,13 +5162,22 @@ if (newWorkplace) {
                                         </span>
                                       )}
                                     </span>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleRemovePublicHoliday(holiday)}
-                                      className="btn btn-danger"
-                                    >
-                                      ลบ
-                                    </button>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleEditPublicHoliday(holiday, index)}
+                                        className="btn btn-warning"
+                                      >
+                                        แก้ไข
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleRemovePublicHoliday(holiday)}
+                                        className="btn btn-danger"
+                                      >
+                                        ลบ
+                                      </button>
+                                    </div>
                                   </div>
                                 ))}
                             </div>
@@ -5822,7 +5300,7 @@ if (newWorkplace) {
       {/* ✅ Employees Input Section */}
       <h5 className="mt-4">ตำแหน่งและจำนวนคน</h5>
       <div className="d-flex justify-content-start mt-3 mb-4">
-      <button type="button" className="btn btn-success" style={{ fontSize: '14px', padding: '2px 8px' }} onClick={handleAddTimePerson_specialwork}>
+      <button type="button" className="btn btn-success mb-2" onClick={handleAddTimePerson_specialwork}>
         + เพิ่มตำแหน่ง
       </button>
       </div>
@@ -5994,39 +5472,30 @@ if (newWorkplace) {
                                 {preview && <img src={preview} style={{ width: '300px', height: '200px' }} alt="Selected" />} */}
                 {/* <button onClick={handleUpload}>Upload</button> */}
                 {/* <!--Frame--> */}
-                <div class="line_btn">
+                                <div class="line_btn">
                   {newWorkplace ? (
-                    <button
-                      type="button"
-                      onClick={handleManageWorkplace}
-                      class="btn b_save"
-                    >
-                      <i class="nav-icon fas fa-save"></i>{" "}
-                      &nbsp;สร้างหน่วยงานใหม่
-                    </button>
+                    <p>ค้นหาพนักงานเพื่อเพิ่มการตั้งค่าเฉพาะบุคคล</p>
                   ) : (
                     <button
                       type="button"
-                      onClick={handleManageWorkplace}
+                      onClick={handleSaveCustomWorkplace}
                       class="btn b_save"
                     >
                       <i class="nav-icon fas fa-save"></i> &nbsp;บันทึก
                     </button>
                   )}
                   <button class="btn clean">
-                    <i class="far fa-window-close" onClick={() => window.location.reload()}></i> &nbsp;ยกเลิก
+                    <i class="far fa-window-close" onClick={handleDeleteCustomWorkplace}></i> &nbsp;ล้างการตั้งค่า
                   </button>
                 </div>
+
               </form>
             </div>
             {/* <!-- /.container-fluid --> */}
           </section>
           {/* <!-- /.content --> */}
-        </div>
-      </div>
-      {/* {JSON.stringify(workTimeDayPersonList, null, 2)} */}
     </div>
   );
 }
 
-export default Setting;
+export default SettingTab;

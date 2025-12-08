@@ -17,7 +17,7 @@ import AddsettimeOutsiderWorkplace from "./AddsettimeOutsiderWorkplace";
 import "../editwindowcss.css";
 
 function Addsettime({ workplaceList, employeeList }) {
-  const [selectedOption, setSelectedOption] = useState("workplace");
+  const [selectedOption, setSelectedOption] = useState("employee");
   // const [selectedOption, setSelectedOption] = useState("workplaceReplace");
   const handleOptionChange = (event) => {
     setSelectedOption(event.target.value);
@@ -81,10 +81,10 @@ function Addsettime({ workplaceList, employeeList }) {
                             value={selectedOption}
                             onChange={handleOptionChange}
                           >
-                            <option value="workplace">รูปแบบหน่วยงาน</option>
+                            {/* <option value="workplace">รูปแบบหน่วยงาน</option> */}
                             <option value="employee">รูปแบบบุคคล</option>
-                            <option value="workplaceReplace">แทนงานพนักงาน</option>
-                            <option value="upload">อัพโหลดไฟล์ลงเวลา</option>
+                            {/* <option value="workplaceReplace">แทนงานพนักงาน</option> */}
+                            {/* <option value="upload">อัพโหลดไฟล์ลงเวลา</option> */}
                             {/* <option value="Outsiderworkplace">รูปแบบหน่วยงาน(บุคคลภายนอก)</option>
                                                         <option value="Outsideremployee">รูปแบบบุคคล(บุคคลภายนอก)</option> */}
                           </select>

@@ -1125,9 +1125,15 @@ function Employee({ preSelectedEmployee = null }) {
   const isEmbedded = preSelectedEmployee !== null;
 
   return (
-    <div class="hold-transition sidebar-mini" className="editlaout">
-      <div class="wrapper">
-        <div class="content-wrapper" style={isEmbedded ? { background: 'transparent', padding: 0 } : {}}>
+    <div 
+      className={isEmbedded ? "" : "hold-transition sidebar-mini editlaout"}
+      style={isEmbedded ? { width: '100%' } : {}}
+    >
+      <div className={isEmbedded ? "" : "wrapper"}>
+        <div 
+          className={isEmbedded ? "" : "content-wrapper"}
+          style={isEmbedded ? { background: 'transparent', padding: 0, marginLeft: 0 } : {}}
+        >
           {!isEmbedded && (
             <>
               <ol class="breadcrumb">
@@ -1151,18 +1157,16 @@ function Employee({ preSelectedEmployee = null }) {
               </div>
             </>
           )}
-          <section class="content" style={isEmbedded ? { padding: '20px' } : {}}>
+          <section class="content" style={isEmbedded ? { padding: 0 } : {}}>
             <div class="container-fluid">
               <div class="row">
                 <div class={isEmbedded ? "col-md-12" : "col-md-9"}>
                   <form onSubmit={handleManageEmployee}>
                     {!isEmbedded && <h2 class="title">ข้อมูลพนักงาน</h2>}
                     
-                    {/* แสดงข้อความเมื่อมีการเลือกพนักงานจาก Tab 1 - ซ่อนเพราะมีใน header card แล้ว */}
-                    
                     <div class="row">
                       <div class="col-md-12">
-                        <section class="Frame" style={isEmbedded ? { border: 'none', boxShadow: 'none' } : {}}>
+                        <section class="Frame" style={isEmbedded ? { border: 'none', boxShadow: 'none', margin: 0 } : {}}>
                           <div class="col-md-12">
                             <div class="row">
                               <div class="col-md-3">
@@ -2632,7 +2636,6 @@ function Employee({ preSelectedEmployee = null }) {
             </div>
             {/* <!-- /.container-fluid --> */}
           </section>
-
           {/* <!-- /.content --> */}
         </div>
       </div>

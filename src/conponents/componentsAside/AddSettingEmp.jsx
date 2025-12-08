@@ -115,8 +115,9 @@ function Setting({ workplaceList, employeeList }) {
     allTimes: [
       {
         shift: "",
-        beforeStartTimeOT: "", // เข้า OT ก่อน
-        beforeEndTimeOT: "", // ออก OT ก่อน
+        beforeStartTimeOT: "", 
+        beforeEndTimeOT: "",
+        beforeResultTimeOT: "", 
         startTime: "",
         endTime: "",
         resultTime: "",
@@ -154,6 +155,7 @@ function Setting({ workplaceList, employeeList }) {
           shift: "",
           beforeStartTimeOT: "", // เข้า OT ก่อน
           beforeEndTimeOT: "", // ออก OT ก่อน
+          beforeResultTimeOT: "", // ✅ เปลี่ยนเป็น beforeResultTimeOT
           startTime: "",
           endTime: "",
           resultTime: "",
@@ -206,6 +208,7 @@ function Setting({ workplaceList, employeeList }) {
           shift: "",
           beforeStartTimeOT: "", // เข้า OT ก่อน
           beforeEndTimeOT: "", // ออก OT ก่อน
+          beforeResultTimeOT: "", // ✅ เปลี่ยนเป็น beforeResultTimeOT
           startTime: "",
           endTime: "",
           resultTime: "",
@@ -256,6 +259,8 @@ function Setting({ workplaceList, employeeList }) {
         const endTime = updatedTimes[index].endTime;
         const startTimeOT = updatedTimes[index].startTimeOT;
         const endTimeOT = updatedTimes[index].endTimeOT;
+        const beforeStartTimeOT = updatedTimes[index].beforeStartTimeOT;
+        const beforeEndTimeOT = updatedTimes[index].beforeEndTimeOT;
 
         if (startTime && endTime) {
           const resultTime = calculateTimeDifference(startTime, endTime);
@@ -265,6 +270,11 @@ function Setting({ workplaceList, employeeList }) {
         if (startTimeOT && endTimeOT) {
           const resultTimeOT = calculateTimeDifference(startTimeOT, endTimeOT);
           updatedTimes[index].resultTimeOT = resultTimeOT;
+        }
+
+        if (beforeStartTimeOT && beforeEndTimeOT) {
+          const beforeResultTimeOT = calculateTimeDifference(beforeStartTimeOT, beforeEndTimeOT);
+          updatedTimes[index].beforeResultTimeOT = beforeResultTimeOT;
         }
       }
 
@@ -276,8 +286,10 @@ function Setting({ workplaceList, employeeList }) {
   };
 
   const calculateTimeDifference = (startTime, endTime) => {
-    const [startHour, startMinute] = startTime.split(".").map(Number);
-    const [endHour, endMinute] = endTime.split(".").map(Number);
+    // รองรับทั้งรูปแบบ HH.MM และ HH:MM
+    const separator = startTime.includes(':') ? ':' : '.';
+    const [startHour, startMinute] = startTime.split(separator).map(Number);
+    const [endHour, endMinute] = endTime.split(separator).map(Number);
 
     let resultHour = endHour - startHour;
     let resultMinute = endMinute - startMinute;
@@ -292,7 +304,8 @@ function Setting({ workplaceList, employeeList }) {
       resultHour += 24; // Assuming 24-hour time format
     }
 
-    return `${resultHour.toString().padStart(2, "0")}.${resultMinute
+    // ใช้ separator เดียวกันกับ input
+    return `${resultHour.toString().padStart(2, "0")}${separator}${resultMinute
       .toString()
       .padStart(2, "0")}`;
   };
@@ -4483,6 +4496,9 @@ async function handleDeleteCustomWorkplace() {
                         <th style={headerCellStyle}>เวลาเข้า</th>
                         <th style={headerCellStyle}>เวลาออก</th>
                         <th style={headerCellStyle}>ชม.</th>
+                        <th style={headerCellStyle}>เวลาเข้า OT ก่อน</th>
+                        <th style={headerCellStyle}>เวลาออก OT ก่อน</th>
+                        <th style={headerCellStyle}>ชม. OT ก่อน</th>
                         <th style={headerCellStyle}>เวลาเข้าOT</th>
                         <th style={headerCellStyle}>เวลาออกOT</th>
                         <th style={headerCellStyle}>ชม.OT</th>
@@ -4525,6 +4541,9 @@ async function handleDeleteCustomWorkplace() {
                             <td style={cellStyle}>{item1.startTime}</td>
                             <td style={cellStyle}>{item1.endTime}</td>
                             <td style={cellStyle}>{item1.resultTime}</td>
+                            <td style={cellStyle}>{item1.beforeStartTimeOT}</td>
+                            <td style={cellStyle}>{item1.beforeEndTimeOT}</td>
+                            <td style={cellStyle}>{item1.beforeResultTimeOT}</td>
                             <td style={cellStyle}>{item1.startTimeOT}</td>
                             <td style={cellStyle}>{item1.endTimeOT}</td>
                             <td style={cellStyle}>{item1.resultTimeOT}</td>

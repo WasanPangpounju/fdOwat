@@ -11,7 +11,7 @@ import "../editwindowcss.css";
 import { ThaiDatePicker } from "thaidatepicker-react";
 import { FaCalendarAlt } from "react-icons/fa"; // You can use any icon library
 
-function Salary() {
+function Salary({ preSelectedEmployee = null }) {
   useEffect(() => {
     document.title = "ข้อมูลเงินเดือน";
     // You can also return a cleanup function if needed
@@ -970,6 +970,14 @@ const handleWorkplace = async (event) => {
     }
   }, [salaryadd1, salaryadd2, salaryadd3, salaryadd4, salaryadd5]);
 
+  // 🎯 Load employee data when preSelectedEmployee is provided
+  useEffect(() => {
+    if (preSelectedEmployee) {
+      console.log('📋 Salary: Loading preSelectedEmployee', preSelectedEmployee);
+      onEmployeeSelect(preSelectedEmployee);
+    }
+  }, [preSelectedEmployee]);
+
   //Update localStorage
   function updateEmployeeLocal(emp) {
     let employeeLocal = JSON.parse(localStorage.getItem("selectedEmployees"));
@@ -990,10 +998,15 @@ const handleWorkplace = async (event) => {
     );
   }
 
+  // Check if this component is being used in embedded mode
+  const isEmbedded = preSelectedEmployee !== null;
+
   return (
-    <div class="hold-transition sidebar-mini" className="editlaout">
-      <div class="wrapper">
-        <div class="content-wrapper">
+    <div class="hold-transition sidebar-mini" className={isEmbedded ? "" : "editlaout"}>
+      {!isEmbedded && <div class="wrapper"></div>}
+      <div class="content-wrapper" style={isEmbedded ? { background: 'transparent', padding: 0, marginLeft: 0 } : {}}>
+        {!isEmbedded && (
+          <>
           {/* <!-- Content Header (Page header) --> */}
           <ol class="breadcrumb">
             <li class="breadcrumb-item">
@@ -1013,6 +1026,8 @@ const handleWorkplace = async (event) => {
               </div>
             </div>
           </div>
+          </>
+        )}
           {/* <!-- /.content-header -->
                     <!-- Main content --> */}
           <section class="content">
@@ -2562,11 +2577,13 @@ const handleWorkplace = async (event) => {
                     </div>
                   </form>
                 </div>
+                {!isEmbedded && (
                 <div class="col-md-3">
                   <section class="Frame">
                     <EmployeesSelected onEmployeeSelect={onEmployeeSelect} />
                   </section>
                 </div>
+                )}
               </div>
             </div>
 
@@ -2574,7 +2591,6 @@ const handleWorkplace = async (event) => {
           </section>
           {/* <!-- /.content --> */}
         </div>
-      </div>
     </div>
   );
 }

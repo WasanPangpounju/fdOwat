@@ -3184,6 +3184,45 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
           console.error("CREATE: Accounting error details:", accountingError.response?.data);
         }
 
+        // Send data to conclude endpoint
+        try {
+          const concludeData = {
+            employeeId: employeeId,
+            month: month,
+            year: year
+          };
+          
+          console.log("CREATE: Sending to conclude API:", concludeData);
+          const concludeResponse = await axios.post(
+            "http://10.10.110.7:3000/conclude/searchtimerecordemployee",
+            concludeData
+          );
+          console.log("CREATE: Conclude API response:", concludeResponse.data);
+
+       
+          try {
+            const accountingData2 = {
+              employeeId: employeeId,
+              month: month,
+              year: year,
+              specialShiftTotalSalary: specialShiftTotalSalary.toString()
+            };
+            
+            console.log("CREATE: Sending to accounting API (2nd time):", accountingData2);
+            const accountingResponse2 = await axios.post(
+              "http://10.10.110.7:3000/accounting/searchtimerecordemployee",
+              accountingData2
+            );
+            console.log("CREATE: Accounting API response (2nd time):", accountingResponse2.data);
+          } catch (accountingError2) {
+            console.error("CREATE: Error sending to accounting API (2nd time):", accountingError2);
+            console.error("CREATE: Accounting error details (2nd time):", accountingError2.response?.data);
+          }
+        } catch (concludeError) {
+          console.error("CREATE: Error sending to conclude API:", concludeError);
+          console.error("CREATE: Conclude error details:", concludeError.response?.data);
+        }
+
         alert("บันทึกสำเร็จ");
         // Scroll to top of the page
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -3246,6 +3285,45 @@ setCustomWorkplace(response?.data?.employees?.[0]?.customWorkplace);
         } catch (accountingError) {
           console.error("UPDATE: Error sending to accounting API:", accountingError);
           console.error("UPDATE: Accounting error details:", accountingError.response?.data);
+        }
+
+        // Send data to conclude endpoint
+        try {
+          const concludeData = {
+            employeeId: employeeId,
+            month: month,
+            year: year
+          };
+          
+          console.log("UPDATE: Sending to conclude API:", concludeData);
+          const concludeResponse = await axios.post(
+            "http://10.10.110.7:3000/conclude/searchtimerecordemployee",
+            concludeData
+          );
+          console.log("UPDATE: Conclude API response:", concludeResponse.data);
+
+          // After conclude success, send to accounting API again
+          try {
+            const accountingData2 = {
+              employeeId: employeeId,
+              month: month,
+              year: year,
+              specialShiftTotalSalary: specialShiftTotalSalary.toString()
+            };
+            
+            console.log("UPDATE: Sending to accounting API (2nd time):", accountingData2);
+            const accountingResponse2 = await axios.post(
+              "http://10.10.110.7:3000/accounting/searchtimerecordemployee",
+              accountingData2
+            );
+            console.log("UPDATE: Accounting API response (2nd time):", accountingResponse2.data);
+          } catch (accountingError2) {
+            console.error("UPDATE: Error sending to accounting API (2nd time):", accountingError2);
+            console.error("UPDATE: Accounting error details (2nd time):", accountingError2.response?.data);
+          }
+        } catch (concludeError) {
+          console.error("UPDATE: Error sending to conclude API:", concludeError);
+          console.error("UPDATE: Conclude error details:", concludeError.response?.data);
         }
 
         alert("บันทึกสำเร็จ");
