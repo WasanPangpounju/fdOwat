@@ -2212,23 +2212,10 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
       // - วันที่ 21-31 ของเดือนก่อนหน้า (เช่น เมษายน) ต้องใช้ข้อมูลของเดือนถัดไป (เช่น พฤษภาคม)
       // - วันที่ 1-20 ของเดือนปัจจุบัน (เช่น พฤษภาคม) ต้องใช้ข้อมูลของเดือนปัจจุบัน (เช่น พฤษภาคม)
       let apiMonth, apiYear;
-      
-      if (dayOfMonth >= 21) {
-        // วันที่ 21-31 ของเดือนนี้ (เช่น เมษายน)
-        // ต้องใช้ข้อมูลของเดือนถัดไป (เช่น พฤษภาคม)
-        if (month === 12) {
-          apiMonth = "1";
-          apiYear = (parseInt(year) + 1).toString();
-        } else {
-          apiMonth = (month + 1).toString();
-          apiYear = year;
-        }
-      } else {
-        // วันที่ 1-20 ของเดือนนี้ (เช่น พฤษภาคม)
-        // ใช้ข้อมูลของเดือนนี้ (เช่น พฤษภาคม)
-        apiMonth = month.toString().padStart(2, '0');
-        apiYear = year;
-      }
+      // ✅ แก้ไข: ใช้เดือนที่รับเข้ามาโดยตรง เพราะ month คือเดือนของรอบเงินเดือนแล้ว
+      // เช่น month=11 หมายถึงรอบเงินเดือนเดือน 11 (21 ต.ค. - 20 พ.ย.)
+      apiMonth = month.toString().padStart(2, '0');
+      apiYear = year;
       
       // เรียก API โดยส่งค่า year และ month ที่ถูกต้อง
       const apiUrl = `http://10.10.110.7:3000/conclude/getWeekendDates?yyyy=${apiYear}&mm=${apiMonth}&workplaceId=${workplaceId}`;
@@ -2240,6 +2227,17 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
       
       // แสดงข้อมูลเพื่อตรวจสอบ
       console.log(`📅 วันที่ต้องการตรวจสอบ: ${dateStr} (รูปแบบ: YYYY-MM-DD)`);
+      
+      // ✅ เพิ่มการตรวจสอบจาก dayoffWorkplace ก่อน
+      if (weekendData.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
+        console.log(`📅 วันใน dayoffWorkplace: ${JSON.stringify(weekendData.dayoffWorkplace)}`);
+        
+        if (weekendData.dayoffWorkplace.includes(dateStr)) {
+          console.log(`✅ พบวันที่ ${dateStr} ใน dayoffWorkplace -> กำหนด dayType = stop`);
+          dataCal.dayType = 'stop';
+          return dataCal;
+        }
+      }
       
       // ตรวจสอบ weekendAndDayOff ก่อน (วันหยุดสุดสัปดาห์และวันหยุดพิเศษ)
       if (weekendData.weekendAndDayOff && weekendData.weekendAndDayOff.length > 0) {
