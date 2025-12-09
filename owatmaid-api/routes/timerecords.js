@@ -16,6 +16,37 @@ const jwt = require('jsonwebtoken');
 const bodyParser = require('body-parser');
 const { months } = require('moment');
 
+// Optional JWT middleware - extracts user info if token is present
+const optionalJwtMiddleware = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader) {
+    const token = authHeader.split(' ')[1];
+    try {
+      const secretKey = 'Friendlydev'; // Same secret key as in users.js
+      const decodedToken = jwt.verify(token, secretKey);
+      req.userId = decodedToken.userId;
+      
+      // ดึงข้อมูล user จาก database
+      try {
+        const User = mongoose.model('User');
+        const user = await User.findById(req.userId);
+        if (user) {
+          req.userName = user.name;
+          req.userUsername = user.username;
+          console.log(`✅ [AUTH] User authenticated: ${user.name} (${user.username})`);
+        }
+      } catch (err) {
+        console.log('⚠️ Could not fetch user details:', err.message);
+      }
+    } catch (err) {
+      console.log('⚠️ Invalid token:', err.message);
+    }
+  } else {
+    console.log('ℹ️ No authorization header - using system as default');
+  }
+  next(); // Continue regardless of token validity
+};
+
 // ฟังก์ชันดึงข้อมูล typeOfemployee จาก employee API
 async function getEmployeeJobType(employeeId) {
   try {
@@ -1787,7 +1818,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
 });
 
 // Create new timerecordEmployee 
-router.post('/createtimerecordemployee', async (req, res) => {
+router.post('/createtimerecordemployee', optionalJwtMiddleware, async (req, res) => {
   const currentDate = new Date();
   const currentYear = currentDate.getFullYear();
 
@@ -1807,13 +1838,23 @@ year,
     }
   });
 
+  // Get user info from JWT token (if available)
+  const createBy = req.userId || 'system';
+  const createByName = req.userName || 'ระบบ';
+
+  console.log(`👤 [CREATE] User info - ID: ${createBy}, Name: ${createByName}`);
+
   // Create timerecordEmployee 
   const timerecordEmployeeData = new timerecordEmployee({
 year,
     employeeId,
     employeeName,
     month,
-    employee_record
+    employee_record,
+    createBy: createBy,
+    createByName: createByName,
+    updateBy: createBy, // Set initial updateBy same as createBy
+    updateByName: createByName
   });
 // console.log(workplaceTimeRecordData );
 
@@ -1841,7 +1882,7 @@ year,
 });
 
 // Route to delete all matching records and save a new one
-router.put("/updatetimerecordemployee/:employeeRecordId", async (req, res) => {
+router.put("/updatetimerecordemployee/:employeeRecordId", optionalJwtMiddleware, async (req, res) => {
   try {
     const { year, employeeId, employeeName, month, employee_record } = req.body;
 
@@ -1857,13 +1898,26 @@ router.put("/updatetimerecordemployee/:employeeRecordId", async (req, res) => {
       });
     }
 
+    // Get user info from JWT token (if available)
+    const updateBy = req.userId || 'system';
+    const updateByName = req.userName || 'ระบบ';
+
+    console.log(`👤 [UPDATE] User info - ID: ${updateBy}, Name: ${updateByName}`);
+
     // Delete all matching records
     const deleteResult = await timerecordEmployee.deleteMany({ year, employeeId, month });
 
     console.log(`🗑️ Deleted ${deleteResult.deletedCount} records`);
 
+    // Add updateBy info to req.body
+    const updatedBody = {
+      ...req.body,
+      updateBy: updateBy,
+      updateByName: updateByName
+    };
+
     // Create a new record with updated fields
-    const newRecord = new timerecordEmployee(req.body);
+    const newRecord = new timerecordEmployee(updatedBody);
 
     // Save the new record
     const saved_employee_record = await newRecord.save();
