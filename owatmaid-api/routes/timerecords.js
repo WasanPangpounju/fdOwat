@@ -1922,7 +1922,8 @@ router.post('/checkworkplacesinmonth', async (req, res) => {
           workplaceName: "$employee_record.workplaceName"
         },
         employeeCount: { $addToSet: "$employeeId" }, // นับพนักงานที่ไม่ซ้ำ
-        recordCount: { $sum: 1 } // นับจำนวน record ทั้งหมด
+        recordCount: { $sum: 1 }, // นับจำนวน record ทั้งหมด
+        lastUpdated: { $max: "$updatedAt" } // เก็บวันที่อัปเดตล่าสุด
       }
     });
 
@@ -1933,7 +1934,8 @@ router.post('/checkworkplacesinmonth', async (req, res) => {
         workplaceId: "$_id.workplaceId",
         workplaceName: "$_id.workplaceName",
         employeeCount: { $size: "$employeeCount" },
-        recordCount: "$recordCount"
+        recordCount: "$recordCount",
+        lastUpdated: "$lastUpdated"
       }
     });
 
@@ -1942,12 +1944,32 @@ router.post('/checkworkplacesinmonth', async (req, res) => {
 
     const workplaces = await timerecordEmployee.aggregate(pipeline);
 
+    // Format timestamp for each workplace
+    const formattedWorkplaces = workplaces.map(wp => {
+      let timestamp = 'N/A';
+      if (wp.lastUpdated) {
+        const date = new Date(wp.lastUpdated);
+        const day = date.getDate();
+        const month = date.getMonth() + 1;
+        const year = date.getFullYear();
+        const hours = date.getHours().toString().padStart(2, '0');
+        const minutes = date.getMinutes().toString().padStart(2, '0');
+        const seconds = date.getSeconds().toString().padStart(2, '0');
+        timestamp = `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+      }
+      
+      return {
+        ...wp,
+        timestamp: timestamp
+      };
+    });
+
     // คำนวณยอดรวมทั้งหมด
-    const totalWorkplaces = workplaces.length;
-    const totalEmployees = workplaces.reduce((sum, wp) => sum + wp.employeeCount, 0);
-    const totalRecords = workplaces.reduce((sum, wp) => sum + wp.recordCount, 0);
+    const totalWorkplaces = formattedWorkplaces.length;
+    const totalEmployees = formattedWorkplaces.reduce((sum, wp) => sum + wp.employeeCount, 0);
+    const totalRecords = formattedWorkplaces.reduce((sum, wp) => sum + wp.recordCount, 0);
     
-    const workplaceList = workplaces.map(wp => 
+    const workplaceList = formattedWorkplaces.map(wp => 
       `${wp.workplaceName} (รหัส: ${wp.workplaceId}, พนักงาน: ${wp.employeeCount} คน, บันทึก: ${wp.recordCount} รายการ)`
     ).join(', ');
 
@@ -1968,8 +1990,8 @@ router.post('/checkworkplacesinmonth', async (req, res) => {
       totalEmployees: totalEmployees, // ✅ เพิ่ม: จำนวนพนักงานทั้งหมด
       totalRecords: totalRecords, // ✅ เพิ่ม: จำนวน record ทั้งหมด
       summary: summary,
-      workplaces: workplaces,
-      details: workplaces,
+      workplaces: formattedWorkplaces,
+      details: formattedWorkplaces,
       timestamp: new Date().toISOString(),
       executionTime: `${executionTime}ms`
     });
