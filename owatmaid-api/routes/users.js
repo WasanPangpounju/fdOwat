@@ -41,6 +41,19 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ['admin', 'employee', 'manager'],
     default: 'employee'
+  },
+  // Online/Offline tracking fields
+  isOnline: {
+    type: Boolean,
+    default: false
+  },
+  loginAt: {
+    type: Date,
+    default: null
+  },
+  lastActiveAt: {
+    type: Date,
+    default: null
   }
 });
 
@@ -97,6 +110,14 @@ console.log(req.body );
     return res.status(401).json({ error: 'Invalid password' });
   }
 
+  // อัพเดทสถานะ Online และเวลา Login
+  const now = new Date();
+  await User.findByIdAndUpdate(user._id, {
+    isOnline: true,
+    loginAt: now,
+    lastActiveAt: now
+  });
+
   // Generate and sign JWT token
   // const token = await jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
@@ -104,7 +125,7 @@ console.log(req.body );
   try {
     const userId = await user._id; // Replace with the actual user ID
     // const secretKey = process.env.JWT_SECRET; // Replace with your own secret key
-    const secretKey = await 'Friendlydev'; // Replace with your own secret key
+    const secretKey = await 'Friendlydev'; // Replace with your own secret keyประด
     const expiresIn = await '1000d'; // Set the token expiration time (24 hours = 1 day)
   console.log(secretKey );
     if (!secretKey) {
@@ -159,6 +180,117 @@ role
   }
  
 });
+
+// =============== ONLINE/OFFLINE TRACKING ===============
+
+// Heartbeat endpoint - Frontend ส่งมาทุก 30 วินาที
+router.post('/heartbeat', async (req, res) => {
+  try {
+    const { userId } = req.body;
+    
+    if (!userId) {
+      return res.status(400).json({ error: 'userId is required' });
+    }
+
+    // อัพเดท lastActiveAt
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { 
+        lastActiveAt: new Date(),
+        isOnline: true
+      },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({ 
+      success: true, 
+      message: 'Heartbeat received',
+      lastActiveAt: updatedUser.lastActiveAt
+    });
+
+  } catch (error) {
+    console.error('❌ Heartbeat error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get online users - ผู้ใช้ที่ online ในช่วง 2 นาทีที่ผ่านมา
+router.get('/online', async (req, res) => {
+  try {
+    const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
+    
+    const onlineUsers = await User.find({
+      lastActiveAt: { $gte: twoMinutesAgo },
+      isOnline: true
+    })
+    .select('name username role loginAt lastActiveAt isOnline')
+    .sort({ lastActiveAt: -1 });
+
+    // คำนวณระยะเวลา online
+    const usersWithDuration = onlineUsers.map(user => {
+      const onlineDuration = user.loginAt 
+        ? Math.floor((Date.now() - user.loginAt.getTime()) / 1000) // วินาที
+        : 0;
+      
+      const lastActiveDuration = user.lastActiveAt
+        ? Math.floor((Date.now() - user.lastActiveAt.getTime()) / 1000) // วินาที
+        : 0;
+
+      return {
+        _id: user._id,
+        name: user.name,
+        username: user.username,
+        role: user.role,
+        loginAt: user.loginAt,
+        lastActiveAt: user.lastActiveAt,
+        onlineDuration: onlineDuration, // วินาที
+        lastActiveDuration: lastActiveDuration, // กี่วินาทีที่ผ่านมาตั้งแต่ active ครั้งล่าสุด
+        isOnline: user.isOnline
+      };
+    });
+
+    res.json({
+      success: true,
+      count: usersWithDuration.length,
+      users: usersWithDuration
+    });
+
+  } catch (error) {
+    console.error('❌ Get online users error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Logout endpoint - ตั้งสถานะเป็น offline
+router.post('/logout', async (req, res) => {
+  try {
+    const { userId } = req.body;
+    
+    if (!userId) {
+      return res.status(400).json({ error: 'userId is required' });
+    }
+
+    await User.findByIdAndUpdate(userId, {
+      isOnline: false,
+      lastActiveAt: new Date()
+    });
+
+    res.json({ 
+      success: true, 
+      message: 'Logged out successfully'
+    });
+
+  } catch (error) {
+    console.error('❌ Logout error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// =============== END ONLINE/OFFLINE TRACKING ===============
 
 
 // router.put('/update/:_id', async (req, res) => {
