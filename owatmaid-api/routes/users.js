@@ -105,7 +105,7 @@ console.log(req.body );
     const userId = await user._id; // Replace with the actual user ID
     // const secretKey = process.env.JWT_SECRET; // Replace with your own secret key
     const secretKey = await 'Friendlydev'; // Replace with your own secret key
-    const expiresIn = await '3h'; // Set the token expiration time
+    const expiresIn = await '1000d'; // Set the token expiration time (24 hours = 1 day)
   console.log(secretKey );
     if (!secretKey) {
       throw new Error('Missing JWT secret key');
