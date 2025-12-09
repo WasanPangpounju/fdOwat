@@ -1923,7 +1923,7 @@ router.post('/checkworkplacesinmonth', async (req, res) => {
         },
         employeeCount: { $addToSet: "$employeeId" }, // นับพนักงานที่ไม่ซ้ำ
         recordCount: { $sum: 1 }, // นับจำนวน record ทั้งหมด
-        lastUpdated: { $max: "$updatedAt" } // เก็บวันที่อัปเดตล่าสุด
+        latestDocId: { $max: "$_id" } // เก็บ _id ล่าสุด (ใช้ดึง timestamp)
       }
     });
 
@@ -1935,7 +1935,7 @@ router.post('/checkworkplacesinmonth', async (req, res) => {
         workplaceName: "$_id.workplaceName",
         employeeCount: { $size: "$employeeCount" },
         recordCount: "$recordCount",
-        lastUpdated: "$lastUpdated"
+        latestDocId: "$latestDocId"
       }
     });
 
@@ -1947,8 +1947,12 @@ router.post('/checkworkplacesinmonth', async (req, res) => {
     // Format timestamp for each workplace
     const formattedWorkplaces = workplaces.map(wp => {
       let timestamp = 'N/A';
-      if (wp.lastUpdated) {
-        const date = new Date(wp.lastUpdated);
+      if (wp.latestDocId) {
+        // Extract timestamp from MongoDB ObjectId
+        const objectId = wp.latestDocId;
+        const timestampInSeconds = objectId.getTimestamp();
+        const date = new Date(timestampInSeconds);
+        
         const day = date.getDate();
         const month = date.getMonth() + 1;
         const year = date.getFullYear();
@@ -1958,8 +1962,11 @@ router.post('/checkworkplacesinmonth', async (req, res) => {
         timestamp = `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
       }
       
+      // Remove latestDocId from response
+      const { latestDocId, ...wpData } = wp;
+      
       return {
-        ...wp,
+        ...wpData,
         timestamp: timestamp
       };
     });
