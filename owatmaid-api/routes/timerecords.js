@@ -1978,6 +1978,7 @@ router.post('/checkworkplacesinmonth', async (req, res) => {
       ? `เดือน ${month}${yearText} มี ${totalWorkplaces} หน่วยงาน, พนักงานทั้งหมด ${totalEmployees} คน, จำนวน record ${totalRecords} รายการ: ${workplaceList}`
       : `เดือน ${month}${yearText} ไม่มีข้อมูลหน่วยงาน`;
 
+      
     console.log(`📊 [CHECK WORKPLACES] ${summary}`);
 
     const executionTime = Date.now() - startTime;
