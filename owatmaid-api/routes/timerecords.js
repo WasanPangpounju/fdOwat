@@ -16,6 +16,66 @@ const jwt = require('jsonwebtoken');
 const bodyParser = require('body-parser');
 const { months } = require('moment');
 
+// Optional JWT middleware - extracts user info if token is present
+const optionalJwtMiddleware = async (req, res, next) => {
+  console.log('🔍 [MIDDLEWARE] optionalJwtMiddleware called');
+  console.log('🔍 [MIDDLEWARE] Headers:', req.headers.authorization ? 'Authorization header exists' : 'No Authorization header');
+  
+  let token = null;
+  
+  // 1. Try to get token from Authorization header
+  const authHeader = req.headers.authorization;
+  if (authHeader) {
+    token = authHeader.split(' ')[1];
+    console.log('🔍 [MIDDLEWARE] Token from header:', token ? token.substring(0, 20) + '...' : 'Invalid');
+  }
+  
+  // 2. Try to get token from cookies
+  if (!token && req.cookies && req.cookies.token) {
+    token = req.cookies.token;
+  }
+  
+  // 3. Try to get token from body (for backward compatibility)
+  if (!token && req.body && req.body.token) {
+    token = req.body.token;
+  }
+  
+  if (token) {
+    try {
+      const secretKey = 'Friendlydev'; // Same secret key as in users.js
+      const decodedToken = jwt.verify(token, secretKey);
+      req.userId = decodedToken.userId;
+      
+      // ดึงข้อมูล user จาก database
+      try {
+        const User = mongoose.model('User');
+        const user = await User.findById(req.userId);
+        if (user) {
+          req.userName = user.name;
+          req.userUsername = user.username;
+          req.userRole = user.role;
+          console.log(`✅ [AUTH] User authenticated: ${user.name} (${user.username}) [${user.role}]`);
+        }
+      } catch (err) {
+        console.log('⚠️ Could not fetch user details:', err.message);
+      }
+    } catch (err) {
+      console.log('⚠️ Invalid token:', err.message);
+    }
+  } else {
+    // 4. Try to get user info directly from body (fallback)
+    if (req.body && req.body.userId) {
+      req.userId = req.body.userId;
+      req.userName = req.body.userName || req.body.user?.name || 'ผู้ใช้';
+      console.log(`ℹ️ [AUTH] User info from body: ${req.userName} (${req.userId})`);
+    } else {
+      console.log('ℹ️ No token or user info found - using system as default');
+    }
+  }
+  
+  next(); // Continue regardless of token validity
+};
+
 // ฟังก์ชันดึงข้อมูล typeOfemployee จาก employee API
 async function getEmployeeJobType(employeeId) {
   try {
@@ -1787,7 +1847,7 @@ router.post('/searchtimerecordemployee', async (req, res) => {
 });
 
 // Create new timerecordEmployee 
-router.post('/createtimerecordemployee', async (req, res) => {
+router.post('/createtimerecordemployee', optionalJwtMiddleware, async (req, res) => {
   const currentDate = new Date();
   const currentYear = currentDate.getFullYear();
 
@@ -1807,13 +1867,23 @@ year,
     }
   });
 
+  // Get user info from JWT token (if available)
+  const createBy = req.userId || 'system';
+  const createByName = req.userName || 'ระบบ';
+
+  console.log(`👤 [CREATE] User info - ID: ${createBy}, Name: ${createByName}`);
+
   // Create timerecordEmployee 
   const timerecordEmployeeData = new timerecordEmployee({
 year,
     employeeId,
     employeeName,
     month,
-    employee_record
+    employee_record,
+    createBy: createBy,
+    createByName: createByName,
+    updateBy: createBy, // Set initial updateBy same as createBy
+    updateByName: createByName
   });
 // console.log(workplaceTimeRecordData );
 
@@ -1841,7 +1911,7 @@ year,
 });
 
 // Route to delete all matching records and save a new one
-router.put("/updatetimerecordemployee/:employeeRecordId", async (req, res) => {
+router.put("/updatetimerecordemployee/:employeeRecordId", optionalJwtMiddleware, async (req, res) => {
   try {
     const { year, employeeId, employeeName, month, employee_record } = req.body;
 
@@ -1857,13 +1927,26 @@ router.put("/updatetimerecordemployee/:employeeRecordId", async (req, res) => {
       });
     }
 
+    // Get user info from JWT token (if available)
+    const updateBy = req.userId || 'system';
+    const updateByName = req.userName || 'ระบบ';
+
+    console.log(`👤 [UPDATE] User info - ID: ${updateBy}, Name: ${updateByName}`);
+
     // Delete all matching records
     const deleteResult = await timerecordEmployee.deleteMany({ year, employeeId, month });
 
     console.log(`🗑️ Deleted ${deleteResult.deletedCount} records`);
 
+    // Add updateBy info to req.body
+    const updatedBody = {
+      ...req.body,
+      updateBy: updateBy,
+      updateByName: updateByName
+    };
+
     // Create a new record with updated fields
-    const newRecord = new timerecordEmployee(req.body);
+    const newRecord = new timerecordEmployee(updatedBody);
 
     // Save the new record
     const saved_employee_record = await newRecord.save();
@@ -1897,7 +1980,7 @@ router.post('/checkworkplacesinmonth', async (req, res) => {
       });
     }
 
-    // ใช้ aggregation pipeline เพื่อหาหน่วยงานที่ไม่ซ้ำกันในเดือนที่ระบุ พร้อมรายละเอียดพนักงาน
+    // ใช้ aggregation pipeline เพื่อหาหน่วยงานที่ไม่ซ้ำกันในเดือนที่ระบุ
     const pipeline = [];
 
     // Match stage - กรองตามเดือนและปี
@@ -1914,93 +1997,17 @@ router.post('/checkworkplacesinmonth', async (req, res) => {
     // Unwind employee_record เพื่อเข้าถึงข้อมูลหน่วยงานในแต่ละ record
     pipeline.push({ $unwind: "$employee_record" });
 
-    // Group ระดับ 1: ตามหน่วยงาน + พนักงาน + ผู้แก้ไข
-    // เก็บข้อมูลว่าแต่ละคนแก้ไขกี่ครั้ง
+    // Group เพื่อหาหน่วยงานที่ไม่ซ้ำกัน
     pipeline.push({
       $group: {
         _id: {
           workplaceId: "$employee_record.workplaceId",
-          workplaceName: "$employee_record.workplaceName",
-          employeeId: "$employeeId",
-          employeeName: "$employeeName",
-          prefix: "$prefix",
-          updateBy: "$updateBy",
-          updateByName: "$updateByName"
+          workplaceName: "$employee_record.workplaceName"
         },
-        modifyCount: { $sum: 1 }, // นับว่าคนนี้แก้ไขกี่ครั้ง
-        lastModifiedAt: { $max: "$_id" } // เก็บ ObjectId ล่าสุดเพื่อดึง timestamp
-      }
-    });
-
-    // Group ระดับ 2: ตามหน่วยงาน + พนักงาน
-    // รวมผู้แก้ไขทั้งหมดของพนักงานแต่ละคน
-    pipeline.push({
-      $group: {
-        _id: {
-          workplaceId: "$_id.workplaceId",
-          workplaceName: "$_id.workplaceName",
-          employeeId: "$_id.employeeId",
-          employeeName: "$_id.employeeName",
-          prefix: "$_id.prefix"
-        },
-        recordCount: { $sum: "$modifyCount" }, // จำนวน record ทั้งหมดของพนักงานคนนี้
-        modifiedBy: {
-          $push: {
-            userId: "$_id.updateBy",
-            userName: "$_id.updateByName",
-            modifyCount: "$modifyCount",
-            lastModifiedAt: "$lastModifiedAt"
-          }
-        }
-      }
-    });
-
-    // Sort modifiedBy array by modifyCount descending
-    pipeline.push({
-      $addFields: {
-        modifiedBy: {
-          $sortArray: {
-            input: "$modifiedBy",
-            sortBy: { modifyCount: -1 }
-          }
-        }
-      }
-    });
-
-    // Group ระดับ 3: ตามหน่วยงาน
-    // รวมพนักงานทั้งหมดในแต่ละหน่วยงาน
-    pipeline.push({
-      $group: {
-        _id: {
-          workplaceId: "$_id.workplaceId",
-          workplaceName: "$_id.workplaceName"
-        },
-        employees: {
-          $push: {
-            employeeId: "$_id.employeeId",
-            employeeName: {
-              $concat: [
-                { $ifNull: ["$_id.prefix", ""] },
-                "$_id.employeeName"
-              ]
-            },
-            recordCount: "$recordCount",
-            modifiedBy: "$modifiedBy"
-          }
-        },
-        totalRecords: { $sum: "$recordCount" }
-      }
-    });
-
-    // Sort employees by employeeId
-    pipeline.push({
-      $addFields: {
-        employees: {
-          $sortArray: {
-            input: "$employees",
-            sortBy: { employeeId: 1 }
-          }
-        }
+        employeeCount: { $addToSet: "$employeeId" }, // นับพนักงานที่ไม่ซ้ำ
+        recordCount: { $sum: 1 }, // นับจำนวน record ทั้งหมด
+        latestDocId: { $max: "$_id" }, // เก็บ _id ล่าสุด (ใช้ดึง timestamp)
+        latestDoc: { $last: "$$ROOT" } // เก็บ document ล่าสุดทั้งหมด
       }
     });
 
@@ -2010,37 +2017,13 @@ router.post('/checkworkplacesinmonth', async (req, res) => {
         _id: 0,
         workplaceId: "$_id.workplaceId",
         workplaceName: "$_id.workplaceName",
-        employeeCount: { $size: "$employees" },
-        recordCount: "$totalRecords",
-        employees: {
-          $map: {
-            input: "$employees",
-            as: "emp",
-            in: {
-              employeeId: "$$emp.employeeId",
-              employeeName: "$$emp.employeeName",
-              recordCount: "$$emp.recordCount",
-              modifiedBy: {
-                $map: {
-                  input: "$$emp.modifiedBy",
-                  as: "mod",
-                  in: {
-                    userId: "$$mod.userId",
-                    userName: "$$mod.userName",
-                    modifyCount: "$$mod.modifyCount",
-                    lastModifiedAt: {
-                      $dateToString: {
-                        format: "%Y-%m-%d %H:%M:%S",
-                        date: "$$mod.lastModifiedAt",
-                        timezone: "Asia/Bangkok"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
+        employeeCount: { $size: "$employeeCount" },
+        recordCount: "$recordCount",
+        latestDocId: "$latestDocId",
+        createBy: "$latestDoc.createBy",
+        updateBy: "$latestDoc.updateBy",
+        createByName: "$latestDoc.createByName",
+        updateByName: "$latestDoc.updateByName"
       }
     });
 
@@ -2049,12 +2032,45 @@ router.post('/checkworkplacesinmonth', async (req, res) => {
 
     const workplaces = await timerecordEmployee.aggregate(pipeline);
 
+    // Format timestamp for each workplace
+    const formattedWorkplaces = workplaces.map(wp => {
+      let timestamp = 'N/A';
+      if (wp.latestDocId) {
+        // Extract timestamp from MongoDB ObjectId
+        const objectId = wp.latestDocId;
+        const timestampInSeconds = objectId.getTimestamp();
+        const date = new Date(timestampInSeconds);
+        
+        const day = date.getDate();
+        const month = date.getMonth() + 1;
+        const year = date.getFullYear();
+        const hours = date.getHours().toString().padStart(2, '0');
+        const minutes = date.getMinutes().toString().padStart(2, '0');
+        const seconds = date.getSeconds().toString().padStart(2, '0');
+        timestamp = `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+      }
+      
+      // Determine who modified the record (prefer updateBy over createBy)
+      const modifiedBy = wp.updateBy || wp.createBy || 'N/A';
+      const modifiedByName = wp.updateByName || wp.createByName || 'ไม่ระบุ';
+      
+      // Remove latestDocId from response
+      const { latestDocId, createBy, updateBy, createByName, updateByName, ...wpData } = wp;
+      
+      return {
+        ...wpData,
+        timestamp: timestamp,
+        modifiedBy: modifiedBy,
+        modifiedByName: modifiedByName
+      };
+    });
+
     // คำนวณยอดรวมทั้งหมด
-    const totalWorkplaces = workplaces.length;
-    const totalEmployees = workplaces.reduce((sum, wp) => sum + wp.employeeCount, 0);
-    const totalRecords = workplaces.reduce((sum, wp) => sum + wp.recordCount, 0);
+    const totalWorkplaces = formattedWorkplaces.length;
+    const totalEmployees = formattedWorkplaces.reduce((sum, wp) => sum + wp.employeeCount, 0);
+    const totalRecords = formattedWorkplaces.reduce((sum, wp) => sum + wp.recordCount, 0);
     
-    const workplaceList = workplaces.map(wp => 
+    const workplaceList = formattedWorkplaces.map(wp => 
       `${wp.workplaceName} (รหัส: ${wp.workplaceId}, พนักงาน: ${wp.employeeCount} คน, บันทึก: ${wp.recordCount} รายการ)`
     ).join(', ');
     
@@ -2074,11 +2090,11 @@ router.post('/checkworkplacesinmonth', async (req, res) => {
       month: month,
       year: year || 'ทุกปี',
       totalWorkplaces: totalWorkplaces,
-      totalEmployees: totalEmployees,
-      totalRecords: totalRecords,
+      totalEmployees: totalEmployees, // ✅ เพิ่ม: จำนวนพนักงานทั้งหมด
+      totalRecords: totalRecords, // ✅ เพิ่ม: จำนวน record ทั้งหมด
       summary: summary,
-      workplaces: workplaces,
-      details: workplaces,
+      workplaces: formattedWorkplaces,
+      details: formattedWorkplaces,
       timestamp: new Date().toISOString(),
       executionTime: `${executionTime}ms`
     });
