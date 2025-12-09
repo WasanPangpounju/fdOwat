@@ -146,6 +146,11 @@ addSalaryList: [
 sumCashWorkMul : {},
 timeCashWorkMul : {},
 
+createBy: String, // ผู้สร้างข้อมูล
+updateBy: String, // ผู้แก้ไขข้อมูลล่าสุด
+createByName: String, // ชื่อผู้สร้างข้อมูล
+updateByName: String, // ชื่อผู้แก้ไขข้อมูลล่าสุด
+
 });
 
 // Create the workplace record time model based on the schema

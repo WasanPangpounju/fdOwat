@@ -1923,7 +1923,8 @@ router.post('/checkworkplacesinmonth', async (req, res) => {
         },
         employeeCount: { $addToSet: "$employeeId" }, // นับพนักงานที่ไม่ซ้ำ
         recordCount: { $sum: 1 }, // นับจำนวน record ทั้งหมด
-        latestDocId: { $max: "$_id" } // เก็บ _id ล่าสุด (ใช้ดึง timestamp)
+        latestDocId: { $max: "$_id" }, // เก็บ _id ล่าสุด (ใช้ดึง timestamp)
+        latestDoc: { $last: "$$ROOT" } // เก็บ document ล่าสุดทั้งหมด
       }
     });
 
@@ -1935,7 +1936,11 @@ router.post('/checkworkplacesinmonth', async (req, res) => {
         workplaceName: "$_id.workplaceName",
         employeeCount: { $size: "$employeeCount" },
         recordCount: "$recordCount",
-        latestDocId: "$latestDocId"
+        latestDocId: "$latestDocId",
+        createBy: "$latestDoc.createBy",
+        updateBy: "$latestDoc.updateBy",
+        createByName: "$latestDoc.createByName",
+        updateByName: "$latestDoc.updateByName"
       }
     });
 
@@ -1962,12 +1967,18 @@ router.post('/checkworkplacesinmonth', async (req, res) => {
         timestamp = `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
       }
       
+      // Determine who modified the record (prefer updateBy over createBy)
+      const modifiedBy = wp.updateBy || wp.createBy || 'N/A';
+      const modifiedByName = wp.updateByName || wp.createByName || 'ไม่ระบุ';
+      
       // Remove latestDocId from response
-      const { latestDocId, ...wpData } = wp;
+      const { latestDocId, createBy, updateBy, createByName, updateByName, ...wpData } = wp;
       
       return {
         ...wpData,
-        timestamp: timestamp
+        timestamp: timestamp,
+        modifiedBy: modifiedBy,
+        modifiedByName: modifiedByName
       };
     });
 
