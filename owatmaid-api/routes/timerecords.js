@@ -18,9 +18,25 @@ const { months } = require('moment');
 
 // Optional JWT middleware - extracts user info if token is present
 const optionalJwtMiddleware = async (req, res, next) => {
+  let token = null;
+  
+  // 1. Try to get token from Authorization header
   const authHeader = req.headers.authorization;
   if (authHeader) {
-    const token = authHeader.split(' ')[1];
+    token = authHeader.split(' ')[1];
+  }
+  
+  // 2. Try to get token from cookies
+  if (!token && req.cookies && req.cookies.token) {
+    token = req.cookies.token;
+  }
+  
+  // 3. Try to get token from body (for backward compatibility)
+  if (!token && req.body && req.body.token) {
+    token = req.body.token;
+  }
+  
+  if (token) {
     try {
       const secretKey = 'Friendlydev'; // Same secret key as in users.js
       const decodedToken = jwt.verify(token, secretKey);
@@ -33,7 +49,8 @@ const optionalJwtMiddleware = async (req, res, next) => {
         if (user) {
           req.userName = user.name;
           req.userUsername = user.username;
-          console.log(`✅ [AUTH] User authenticated: ${user.name} (${user.username})`);
+          req.userRole = user.role;
+          console.log(`✅ [AUTH] User authenticated: ${user.name} (${user.username}) [${user.role}]`);
         }
       } catch (err) {
         console.log('⚠️ Could not fetch user details:', err.message);
@@ -42,8 +59,16 @@ const optionalJwtMiddleware = async (req, res, next) => {
       console.log('⚠️ Invalid token:', err.message);
     }
   } else {
-    console.log('ℹ️ No authorization header - using system as default');
+    // 4. Try to get user info directly from body (fallback)
+    if (req.body && req.body.userId) {
+      req.userId = req.body.userId;
+      req.userName = req.body.userName || req.body.user?.name || 'ผู้ใช้';
+      console.log(`ℹ️ [AUTH] User info from body: ${req.userName} (${req.userId})`);
+    } else {
+      console.log('ℹ️ No token or user info found - using system as default');
+    }
   }
+  
   next(); // Continue regardless of token validity
 };
 
