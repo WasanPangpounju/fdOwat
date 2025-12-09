@@ -18,12 +18,16 @@ const { months } = require('moment');
 
 // Optional JWT middleware - extracts user info if token is present
 const optionalJwtMiddleware = async (req, res, next) => {
+  console.log('🔍 [MIDDLEWARE] optionalJwtMiddleware called');
+  console.log('🔍 [MIDDLEWARE] Headers:', req.headers.authorization ? 'Authorization header exists' : 'No Authorization header');
+  
   let token = null;
   
   // 1. Try to get token from Authorization header
   const authHeader = req.headers.authorization;
   if (authHeader) {
     token = authHeader.split(' ')[1];
+    console.log('🔍 [MIDDLEWARE] Token from header:', token ? token.substring(0, 20) + '...' : 'Invalid');
   }
   
   // 2. Try to get token from cookies
@@ -2069,6 +2073,7 @@ router.post('/checkworkplacesinmonth', async (req, res) => {
     const workplaceList = formattedWorkplaces.map(wp => 
       `${wp.workplaceName} (รหัส: ${wp.workplaceId}, พนักงาน: ${wp.employeeCount} คน, บันทึก: ${wp.recordCount} รายการ)`
     ).join(', ');
+    
 
     const yearText = year && year !== '' ? ` ปี ${year}` : '';
     const summary = totalWorkplaces > 0 
