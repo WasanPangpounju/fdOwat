@@ -295,6 +295,7 @@ router.get('/stats/summary', async (req, res) => {
       LIMIT 10
     `;
     const [topUsers] = await db.query(topUsersQuery, queryParams);
+    
 
     // กิจกรรมรายชั่วโมง (24 ชั่วโมง)
     const hourlyActivityQuery = `
