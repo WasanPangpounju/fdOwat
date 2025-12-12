@@ -2212,10 +2212,23 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
       // - วันที่ 21-31 ของเดือนก่อนหน้า (เช่น เมษายน) ต้องใช้ข้อมูลของเดือนถัดไป (เช่น พฤษภาคม)
       // - วันที่ 1-20 ของเดือนปัจจุบัน (เช่น พฤษภาคม) ต้องใช้ข้อมูลของเดือนปัจจุบัน (เช่น พฤษภาคม)
       let apiMonth, apiYear;
-      // ✅ แก้ไข: ใช้เดือนที่รับเข้ามาโดยตรง เพราะ month คือเดือนของรอบเงินเดือนแล้ว
-      // เช่น month=11 หมายถึงรอบเงินเดือนเดือน 11 (21 ต.ค. - 20 พ.ย.)
-      apiMonth = month.toString().padStart(2, '0');
-      apiYear = year;
+      
+      if (dayOfMonth >= 21) {
+        // วันที่ 21-31 ของเดือนนี้ (เช่น เมษายน)
+        // ต้องใช้ข้อมูลของเดือนถัดไป (เช่น พฤษภาคม)
+        if (month === 12) {
+          apiMonth = "1";
+          apiYear = (parseInt(year) + 1).toString();
+        } else {
+          apiMonth = (month + 1).toString();
+          apiYear = year;
+        }
+      } else {
+        // วันที่ 1-20 ของเดือนนี้ (เช่น พฤษภาคม)
+        // ใช้ข้อมูลของเดือนนี้ (เช่น พฤษภาคม)
+        apiMonth = month.toString().padStart(2, '0');
+        apiYear = year;
+      }
       
       // เรียก API โดยส่งค่า year และ month ที่ถูกต้อง
       const apiUrl = `http://10.10.110.7:3000/conclude/getWeekendDates?yyyy=${apiYear}&mm=${apiMonth}&workplaceId=${workplaceId}`;
@@ -2227,17 +2240,6 @@ const checkDayRate = async (workplaceId, wGroup, date, dayNumber, customWorkplac
       
       // แสดงข้อมูลเพื่อตรวจสอบ
       console.log(`📅 วันที่ต้องการตรวจสอบ: ${dateStr} (รูปแบบ: YYYY-MM-DD)`);
-      
-      // ✅ เพิ่มการตรวจสอบจาก dayoffWorkplace ก่อน
-      if (weekendData.dayoffWorkplace && weekendData.dayoffWorkplace.length > 0) {
-        console.log(`📅 วันใน dayoffWorkplace: ${JSON.stringify(weekendData.dayoffWorkplace)}`);
-        
-        if (weekendData.dayoffWorkplace.includes(dateStr)) {
-          console.log(`✅ พบวันที่ ${dateStr} ใน dayoffWorkplace -> กำหนด dayType = stop`);
-          dataCal.dayType = 'stop';
-          return dataCal;
-        }
-      }
       
       // ตรวจสอบ weekendAndDayOff ก่อน (วันหยุดสุดสัปดาห์และวันหยุดพิเศษ)
       if (weekendData.weekendAndDayOff && weekendData.weekendAndDayOff.length > 0) {
@@ -2922,121 +2924,82 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
       let dayType = '';
       let addSalaryDaily = [];
 
-      // ✅ เช็คจาก stopDaysList ที่ส่งมาใน employee_record (ลำดับความสำคัญสูงสุด)
-      const isInStopDaysList = stopDaysList?.some(stopDay => 
-        stopDay.date === parseInt(record.date) && 
-        stopDay.month === parseInt(displayMonth) && 
-        stopDay.year === parseInt(displayYear)
-      );
-      
-      // ✅ เพิ่มการตรวจสอบจาก dayoffWorkplace ด้วย
-      const isDayoffWorkplace = (weekendData.dayoffWorkplace || []).includes(bangkokDate);
-      
       // ตรวจสอบว่าเป็นวันหยุดหรือไม่
       const allHolidays = [
         ...(weekendData.weekendAndDayOff || []),
-        ...(weekendData.dayOffOnly || []),
-        ...(weekendData.dayoffWorkplace || []) // ✅ เพิ่มการตรวจสอบจาก dayoffWorkplace
+        ...(weekendData.dayOffOnly || [])
       ];
       
-      // ✅ ถ้าอยู่ใน stopDaysList ให้ถือว่าเป็นวันหยุด
-      const isHoliday = isInStopDaysList || allHolidays.includes(bangkokDate);
+      const isHoliday = allHolidays.includes(bangkokDate);
       const isPublicHoliday = (weekendData.dayOffOnly || []).includes(bangkokDate); // วันหยุดนักขัตฤกษ์
-      const isWeekendOrCustom = isInStopDaysList || (weekendData.weekendAndDayOff || []).includes(bangkokDate) || isDayoffWorkplace;
+      const isWeekendOrCustom = (weekendData.weekendAndDayOff || []).includes(bangkokDate); // วันหยุดสุดสัปดาห์/กำหนดเอง
       
       // ตรวจสอบว่าพนักงานมาทำงานหรือไม่ (มีเวลาทำงาน > 0)
       const hasWorked = record.totalTime && parseFloat(record.totalTime) > 0;
       
-      // ✅ Log เพื่อ debug
-      console.log(`🔍 เช็ควันหยุดสำหรับวันที่ ${record.date} (${bangkokDate}):`, {
-        isInStopDaysList,
-        isHoliday,
-        isPublicHoliday,
-        isWeekendOrCustom,
-        isDayoffWorkplace,
-        hasWorked
-      });
-      
-      
-      // ✅ ตรวจสอบว่าต้องใช้อัตราพิเศษหรือไม่
-      let useSpecialRate = false;
-      let specialOTRate = 0;
-      let specialHourRate = 0;
-      
-      if (isInStopDaysList) {
-        // ✅ วันที่อยู่ใน stopDaysList ใช้อัตราจาก workplace.dayoffRateOT
-        useSpecialRate = true;
-        specialOTRate = parseFloat(dataRate?.dayoffRateOT || 1.5);
-        specialHourRate = parseFloat(dataRate?.dayoffRateHour || 1);
-        console.log(`🎯 วันที่ ${record.date} อยู่ใน stopDaysList:`);
-        console.log(`   → ดึงค่าจาก workplace ${workplaceId}:`);
-        console.log(`   → dayoffRateOT = ${specialOTRate}x (จาก dataRate.dayoffRateOT)`);
-        console.log(`   → dayoffRateHour = ${specialHourRate}x (จาก dataRate.dayoffRateHour)`);
-      }
-      
-      if (hasWorked) {
-        // ✅ ถ้าพนักงานมาทำงาน -> dayType = "work" เสมอ
-        dayType = 'work';
-        console.log(`🏢 พนักงานมาทำงาน -> dayType = work${useSpecialRate ? ` (แต่ใช้อัตราพิเศษ ${specialOTRate}x)` : ''}`);
-      } else if (isHoliday) {
-        // ถ้าไม่มาทำงานและเป็นวันหยุด -> dayType = "stop"
+      if (isHoliday && hasWorked) {
+        // ถ้าเป็นวันหยุดและพนักงานมาทำงาน
+        if (isPublicHoliday) {
+          console.log(`🎯 วันหยุดนักขัตฤกษ์และพนักงานมาทำงาน -> dayType = stop (ใช้ holidayOT)`);
+        } else {
+          console.log(`🎯 วันหยุดสุดสัปดาห์/กำหนดเองและพนักงานมาทำงาน -> dayType = stop (ใช้ dayoffRateOT)`);
+        }
         dayType = 'stop';
-        console.log(`🚫 ไม่มาทำงานและเป็นวันหยุด -> dayType = stop`);
-      } else {
-        // ไม่มาทำงานและไม่ใช่วันหยุด -> dayType = "work"
-        dayType = 'work';
-        console.log(`📭 ไม่มาทำงาน -> dayType = work`);
-      }
-      
-      if (useSpecialRate && hasWorked) {
-        // ✅ กรณีมาทำงานในวันที่อยู่ใน stopDaysList -> ใช้อัตรา 3 เท่า
         
-        // แก้ไขเวลา OT ก่อนทำงานให้คิดจากหน่วยนาที
+        // คำนวณค่าแรงแบบวันหยุด
+        // เลือกอัตราตามประเภทวันหยุด
+        const holidayOTRate = isPublicHoliday ? (dataRate?.holidayOT || 0) : (dataRate?.dayoffRateOT || 0);
+        const holidayHourRate = isPublicHoliday ? (dataRate?.holidayHour || 0) : (dataRate?.dayoffRateHour || 0);
+        
+        console.log(`💰 ใช้อัตรา: ${isPublicHoliday ? 'holidayOT' : 'dayoffRateOT'} = ${holidayOTRate}x`);
+        
+        // แก้ไขเวลา OT ก่อนทำงานให้คิดจากหน่วยนาที (วันหยุด)
         const beforeTmpHour_stop = Math.floor(record.beforeTotalOtTime || 0);
         const beforeTmpRawDecimal_stop = (record.beforeTotalOtTime || 0) - beforeTmpHour_stop;
         const beforeTmpMinute_stop = Math.round(beforeTmpRawDecimal_stop * 100);
         const beforeTotalDecimalHour_stop = beforeTmpHour_stop + (beforeTmpMinute_stop / 60);
         
         cashBeforeOt = await (
-          parseFloat(specialOTRate) > 5
-            ? parseFloat(specialOTRate) || 0
-            : ((beforeTotalDecimalHour_stop || 0) * ((parseFloat(specialOTRate)) * salary || 0)) || 0
+          parseFloat(holidayOTRate) > 5
+            ? parseFloat(holidayOTRate) || 0
+            : ((beforeTotalDecimalHour_stop || 0) * ((parseFloat(holidayOTRate)) * salary || 0)) || 0
         );
 
-        // คำนวณค่า OT
+        // คำนวณค่า OT แบบวันหยุด
         const tmpHour = Math.floor(record.totalOtTime || 0);
         const tmpRawDecimal = (record.totalOtTime || 0) - tmpHour;
         const tmpMinute = Math.round(tmpRawDecimal * 100);
         const totalDecimalHour = tmpHour + (tmpMinute / 60);
 
         cashOt = await (
-          parseFloat(specialOTRate) > 5
-            ? parseFloat(specialOTRate) || 0
-            : ((totalDecimalHour || 0) * ((parseFloat(specialOTRate)) * salary || 0)) || 0
+          parseFloat(holidayOTRate) > 5
+            ? parseFloat(holidayOTRate) || 0
+            : ((totalDecimalHour || 0) * ((parseFloat(holidayOTRate)) * salary || 0)) || 0
         );
 
         // ตรวจสอบเงื่อนไขพิเศษสำหรับ shift: "cash_holiday"
         if (record.shift === 'cash_holiday') {
-          cashWork = 0;
-          totalTime = 0;
-          addSalaryDaily = [];
-          cashOt = 0;
-          cashBeforeOt = 0;
-          cashOtMul = 0;
-          cashBeforeOtMul = 0;
-          cashWorkMul = 0;
+          cashWork = 0; // ตั้งค่า cashWork เป็น 0 สำหรับ cash_holiday
+          totalTime = 0; // ตั้งค่า totalTime เป็น 0 สำหรับ cash_holiday
+          addSalaryDaily = []; // ไม่เพิ่มเงินพิเศษรายวันสำหรับ cash_holiday
+          cashOt = 0; // ไม่คิดค่า OT สำหรับ cash_holiday
+          cashBeforeOt = 0; // ไม่คิดค่า OT ก่อนเวลาสำหรับ cash_holiday
+          cashOtMul = 0; // ตั้งตัวคูณ OT เป็น 0 สำหรับ cash_holiday
+          cashBeforeOtMul = 0; // ตั้งตัวคูณ OT ก่อนเวลาเป็น 0 สำหรับ cash_holiday
+          cashWorkMul = 0; // ตั้งตัวคูณค่าแรงเป็น 0 สำหรับ cash_holiday
+          
           console.log(`🎯 พบ shift: "cash_holiday" - กำหนดทุกค่าเป็น 0`);
         } else {
-          // คำนวณค่าแรงด้วยอัตราพิเศษ
-          cashWork = await (record.totalTime || 0) * (parseFloat(salary || '0') * parseFloat(specialHourRate)) || 0;
+          // คำนวณค่าแรงปกติแบบวันหยุด
+          cashWork = await (record.totalTime || 0) * (parseFloat(salary || '0') * parseFloat(holidayHourRate)) || 0;
           
-          // กำหนดตัวคูณแบบอัตราพิเศษ
-          cashBeforeOtMul = specialOTRate;
-          cashWorkMul = specialHourRate;
-          cashOtMul = specialOTRate;
+          // กำหนดตัวคูณแบบวันหยุด
+          cashBeforeOtMul = holidayOTRate;
+          cashWorkMul = holidayHourRate;
+          cashOtMul = holidayOTRate;
         }
         
-        console.log(`💰 คำนวณด้วยอัตราพิเศษ (stopDaysList):`);
+        console.log(`💰 คำนวณแบบวันหยุด:`);
         console.log(`   - อัตราค่าแรง: ${cashWorkMul}x`);
         console.log(`   - อัตรา OT: ${cashOtMul}x`);
         
@@ -3108,7 +3071,6 @@ const calculateCashValuesSpecial7Days = async (employeeId, employee_record, mont
               salary.SpSalary
           }))
         ];
-
         
         // กรองเงินพิเศษตาม shift สำหรับ id 1210
         if (record.shift === 'night_shift') {
