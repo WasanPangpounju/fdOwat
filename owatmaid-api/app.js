@@ -24,6 +24,7 @@ var oldemployeesRouter = require('./routes/oldemployees');
 var imgemployeeRouter = require('./routes/imgemployee');
 var uploadRouter = require('./routes/upload');
 var specialShiftApprovalRouter = require('./routes/specialShiftApproval');
+var activityLogsRouter = require('./routes/activityLogs');
 
 
 var app = express();
